@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { Editor } from "./Editor";
+import { Editor, type EditorApi } from "./Editor";
+import { IconPalette } from "./IconPalette";
 import { compile, decodeShare, encodeShare, type Preview } from "./squinch";
 import { EXAMPLES } from "./examples";
 
@@ -37,6 +38,8 @@ export function App() {
   const [lastGood, setLastGood] = useState<string>();
   const [copied, setCopied] = useState<string>();
   const [editorOpen, setEditorOpen] = useState(true);
+  const [paletteOpen, setPaletteOpen] = useState(false);
+  const editorApi = useRef<EditorApi | null>(null);
   const [zoom, setZoom] = useState(1);
   const [fit, setFit] = useState(true);
 
@@ -137,6 +140,10 @@ export function App() {
         e.preventDefault();
         download();
       }
+      if ((e.metaKey || e.ctrlKey) && e.key === "k") {
+        e.preventDefault();
+        setPaletteOpen((o) => !o);
+      }
       if ((e.metaKey || e.ctrlKey) && e.key === "\\") {
         e.preventDefault();
         setEditorOpen((o) => !o);
@@ -206,6 +213,9 @@ export function App() {
         >
           {THEME_LABEL[theme]}
         </button>
+        <button onClick={() => setPaletteOpen(true)} className={btn} title="⌘K — search pack icons, insert at cursor">
+          Icons
+        </button>
         <button onClick={share} className={btn} title="Copy a link — the source travels in the URL fragment">
           Share
         </button>
@@ -218,7 +228,7 @@ export function App() {
         {editorOpen && (
           <section className="flex w-[42%] min-w-[320px] max-w-[640px] flex-col border-r border-[var(--line)] bg-[var(--surface)]">
             <div className="flex-1 overflow-hidden">
-              <Editor value={source} diagnostics={preview.diagnostics} onChange={setSource} />
+              <Editor value={source} diagnostics={preview.diagnostics} onChange={setSource} apiRef={editorApi} />
             </div>
             <Diagnostics errors={errors} warnings={warnings} />
           </section>
@@ -291,6 +301,11 @@ export function App() {
           )}
         </section>
       </main>
+      <IconPalette
+        open={paletteOpen}
+        onClose={() => setPaletteOpen(false)}
+        onPick={(ref) => editorApi.current?.insert(ref)}
+      />
     </div>
   );
 }

@@ -1,4 +1,18 @@
 import { describe, it, expect } from "vitest";
+import { searchIcons } from "../src/api.js";
+
+describe("searchIcons", () => {
+  it("never lists an alias next to its canonical id", () => {
+    const gateway = searchIcons("gateway");
+    expect(gateway).toContain("aws/api-gateway");
+    expect(gateway).not.toContain("aws/apigateway"); // alias collapses onto canonical
+  });
+
+  it("alias-only matches stay reachable by their famous short names", () => {
+    expect(searchIcons("sqs")).toContain("aws/sqs");
+    expect(searchIcons("s3")).toContain("aws/s3");
+  });
+});
 import { sanitizeIcon } from "../src/packs/sanitize.js";
 import { iconAsset, hasIcon, iconTitle, packInfo, symbolId } from "../src/packs/registry.js";
 import { searchIcons, render, validateSVG } from "../src/index.js";

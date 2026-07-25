@@ -63,14 +63,21 @@ const theme = EditorView.theme({
   "&.cm-focused": { outline: "none" },
 });
 
+export interface EditorApi {
+  /** Insert text at the cursor (replacing any selection) and refocus. */
+  insert: (text: string) => void;
+}
+
 export function Editor({
   value,
   diagnostics,
   onChange,
+  apiRef,
 }: {
   value: string;
   diagnostics: SqDiagnostic[];
   onChange: (v: string) => void;
+  apiRef?: { current: EditorApi | null };
 }) {
   const host = useRef<HTMLDivElement>(null);
   const view = useRef<EditorView>(null);
@@ -95,6 +102,13 @@ export function Editor({
       parent: host.current!,
     });
     view.current = v;
+    if (apiRef)
+      apiRef.current = {
+        insert(text) {
+          v.dispatch(v.state.replaceSelection(text));
+          v.focus();
+        },
+      };
     return () => v.destroy();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);

@@ -6,5 +6,5 @@
 //   await preloadIcons(iconsUsedBy(source));
 //   const { svg } = await render(source, { view, theme });
 export * from "./api.js";
-export { registerPack, preloadIcons, packInfo, iconIds, hasIcon } from "./packs/registry.js";
+export { registerPack, preloadIcons, packInfo, iconIds, hasIcon, glyph } from "./packs/registry.js";
 export type { PackManifest, AssetLoader } from "./packs/registry.js";
