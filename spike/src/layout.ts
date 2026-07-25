@@ -148,6 +148,7 @@ export async function layoutModel(model: Model): Promise<Positioned> {
       "elk.layered.considerModelOrder.strategy": "NODES_AND_EDGES",
       "elk.layered.crossingMinimization.forceNodeModelOrder": "true",
       "elk.edgeRouting": "ORTHOGONAL",
+      "elk.layered.nodePlacement.strategy": "NETWORK_SIMPLEX",
       "elk.spacing.nodeNode": "48",
       "elk.layered.spacing.nodeNodeBetweenLayers": "56",
       "elk.layered.spacing.edgeNodeBetweenLayers": "24",
