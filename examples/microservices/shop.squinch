@@ -1,0 +1,112 @@
+// A microservices storefront — built to show what zoom is for.
+//
+// At landscape altitude you see five participants and how they talk. Zoom into
+// any service and its API/datastore/search internals appear, with its neighbours
+// collapsing into muted context cards. Nothing about the model changes between
+// altitudes; only the view does.
+pack aws
+
+person customer "Customer"
+
+system web "Storefront" {
+  description: "Next.js storefront"
+  glyph: sys/webapp
+
+  cdn = aws/cloudfront "CDN"
+  app = aws/amplify    "Web App"
+  cdn -> app
+}
+
+// The edge gateway is a single component, so it lives at the top level.
+gw = aws/api-gateway "Edge Gateway"
+
+system catalog "Catalog Service" {
+  description: "Products, browse and search"
+  glyph: sys/search
+  tags: #public
+
+  api  = aws/lambda     "Catalog API"
+  db   = aws/dynamodb   "Products"
+  idx  = aws/opensearch "Product Index"
+  sync = aws/lambda     "Index Sync"
+
+  api -> db
+  api -> idx  "search"
+  db  ~> sync "product stream"
+  sync -> idx "reindex"
+}
+
+system orders "Order Service" {
+  description: "Cart, checkout, fulfillment"
+  glyph: sys/api
+  tags: #pci
+
+  api    = aws/lambda   "Orders API"
+  db     = aws/dynamodb "Orders"
+  queue  = aws/sqs      "Fulfillment Queue"
+  worker = aws/lambda   "Fulfillment Worker"
+
+  api -> db
+  api ~> queue "enqueue"
+  queue ~> worker
+  worker -> db "mark shipped"
+}
+
+system accounts "Account Service" {
+  description: "Identity and profiles"
+  glyph: sys/auth
+  tags: #pci
+
+  api = aws/lambda "Accounts API"
+  db  = aws/rds    "Accounts DB"
+  api -> db
+}
+
+// ── cross-service wiring ───────────────────────────────────────────────────
+customer -> web.cdn "browses"
+web.app  -> gw      "REST"
+
+gw -> catalog.api  "browse"
+gw -> orders.api   "checkout"
+gw -> accounts.api "profile"
+
+orders.api    -> catalog.api  "price check"
+orders.worker -> catalog.api  "decrement stock"
+orders.api    -> accounts.api "verify identity"
+
+// ── views: the same model at four altitudes ────────────────────────────────
+
+view landscape {
+  title "Storefront — landscape"
+  include *
+  layout {
+    rows [customer] [web] [gw] [catalog orders accounts]
+  }
+}
+
+view catalog {
+  scope catalog
+  title "Catalog Service"
+  layout {
+    rows [api] [db idx]
+    place sync right-of idx
+    route db ~> sync "product stream" from east to west
+  }
+}
+
+view orders {
+  scope orders
+  title "Order Service"
+  layout {
+    rows [api] [queue worker] [db]
+  }
+}
+
+view orders-pci {
+  scope orders
+  title "Order Service — PCI surface"
+  highlight #pci
+  show descriptions
+  note right-of db "Card tokens only; PAN never stored"
+  note top-right "Audit scope: Q3" { style: warning }
+}

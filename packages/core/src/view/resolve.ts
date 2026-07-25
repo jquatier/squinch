@@ -180,14 +180,19 @@ export function resolveView(model: SModel, view: SView): ViewGraph {
     }
   }
 
+  // Context exists to show how the scope connects outward. An edge between two
+  // *outsiders* is their business, not this view's — suppress it, or zooming
+  // into one service drags in the whole neighbourhood's wiring.
+  const scopeEdges = edges.filter((e) => !(contextSet.has(e.from) && contextSet.has(e.to)));
+
   // context cards must earn their spot: drop any without a surviving edge
   for (const c of [...contextSet]) {
-    if (!edges.some((e) => e.from === c || e.to === c)) {
+    if (!scopeEdges.some((e) => e.from === c || e.to === c)) {
       contextSet.delete(c);
       visible = visible.filter((p) => p !== c);
     }
   }
-  const finalEdges = edges.filter((e) => visSet().has(e.from) && visSet().has(e.to));
+  const finalEdges = scopeEdges.filter((e) => visSet().has(e.from) && visSet().has(e.to));
 
   // ── 6. materialize nodes ──────────────────────────────────────────────────
   const leafDescendants = (path: string): string[] => {

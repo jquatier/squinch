@@ -98,46 +98,49 @@ export function buildProject(files: ProjectFile[]): BuildResult {
       },
     });
 
-    function walkContainer(body: SyntaxNode, parentPath: string) {
-      for (const decl of body.getChildren("NodeDecl")) {
-        const name = ctx.text(decl.getChild("Ident")!);
-        const path = parentPath ? `${parentPath}.${name}` : name;
-        const clash = model.nodes.get(path) ?? model.containers.get(path);
-        if (clash) {
-          error(ctx, decl, `duplicate id \`${name}\` in ${parentPath || "file"}`,
-            clash.file && clash.file !== ctx.name
-              ? `already declared in ${clash.file}`
-              : `ids must be unique within their container`);
-          continue;
-        }
-        const iconRef = decl.getChild("IconRef");
-        let icon: SNode["icon"];
-        if (iconRef) {
-          const [p, i] = iconRef.getChildren("Ident").map(ctx.text);
-          if (!packRegistry[p]) {
-            const s = suggest(p, Object.keys(packRegistry));
-            error(ctx, iconRef, `unknown pack \`${p}\``, s ? `did you mean \`${s}\`?` : undefined);
-          } else if (!iconMeta(p, i)) {
-            const s = suggest(i, iconIds(p));
-            error(ctx, iconRef, `unknown icon \`${p}/${i}\``,
-              s ? `did you mean \`${p}/${s}\`?` : `run \`squinch icons search ${i}\``);
-          } else icon = { pack: p, id: i };
-        }
-        const meta = attrsOf(ctx, decl.getChild("AttrBlock"));
-        const kinds = decl.getChildren("NodeKind").map((k) => ctx.text(k)) as SNode["kinds"];
-        const labelNode = decl.getChild("String");
-        model.nodes.set(path, {
-          path, name,
-          label: labelNode ? ctx.str(labelNode) : name,
-          icon, kinds,
-          description: meta.description,
-          tags: meta.tags,
-          attrs: meta.attrs,
-          loc: ctx.loc(decl),
-          file: ctx.name,
-        });
-        model.containers.get(parentPath)?.children.push(path);
+    /** Declare one node; works at any depth, including the file top level. */
+    function declareNode(decl: SyntaxNode, parentPath: string) {
+      const name = ctx.text(decl.getChild("Ident")!);
+      const path = parentPath ? `${parentPath}.${name}` : name;
+      const clash = model.nodes.get(path) ?? model.containers.get(path);
+      if (clash) {
+        error(ctx, decl, `duplicate id \`${name}\` in ${parentPath || "file"}`,
+          clash.file && clash.file !== ctx.name
+            ? `already declared in ${clash.file}`
+            : `ids must be unique within their container`);
+        return;
       }
+      const iconRef = decl.getChild("IconRef");
+      let icon: SNode["icon"];
+      if (iconRef) {
+        const [p, i] = iconRef.getChildren("Ident").map(ctx.text);
+        if (!packRegistry[p]) {
+          const s = suggest(p, Object.keys(packRegistry));
+          error(ctx, iconRef, `unknown pack \`${p}\``, s ? `did you mean \`${s}\`?` : undefined);
+        } else if (!iconMeta(p, i)) {
+          const s = suggest(i, iconIds(p));
+          error(ctx, iconRef, `unknown icon \`${p}/${i}\``,
+            s ? `did you mean \`${p}/${s}\`?` : `run \`squinch icons search ${i}\``);
+        } else icon = { pack: p, id: i };
+      }
+      const meta = attrsOf(ctx, decl.getChild("AttrBlock"));
+      const kinds = decl.getChildren("NodeKind").map((k) => ctx.text(k)) as SNode["kinds"];
+      const labelNode = decl.getChild("String");
+      model.nodes.set(path, {
+        path, name,
+        label: labelNode ? ctx.str(labelNode) : name,
+        icon, kinds,
+        description: meta.description,
+        tags: meta.tags,
+        attrs: meta.attrs,
+        loc: ctx.loc(decl),
+        file: ctx.name,
+      });
+      model.containers.get(parentPath)?.children.push(path);
+    }
+
+    function walkContainer(body: SyntaxNode, parentPath: string) {
+      for (const decl of body.getChildren("NodeDecl")) declareNode(decl, parentPath);
       for (const sub of body.getChildren("Container")) walkContainerDecl(sub, parentPath);
       for (const e of body.getChildren("EdgeStmt")) rawEdges.push({ node: e, scope: parentPath, ctx });
       const meta = attrsOf(ctx, body);
@@ -189,6 +192,7 @@ export function buildProject(files: ProjectFile[]): BuildResult {
         kinds: ["person"], tags: [], attrs: {}, loc: ctx.loc(p), file: ctx.name,
       });
     }
+    for (const decl of top.getChildren("NodeDecl")) declareNode(decl, "");
     for (const decl of top.getChildren("Container")) walkContainerDecl(decl, "");
     for (const e of top.getChildren("EdgeStmt")) rawEdges.push({ node: e, scope: "", ctx });
     for (const v of top.getChildren("View")) rawViews.push({ node: v, ctx });

@@ -1,0 +1,82 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="856" height="570" viewBox="0 0 856 570" font-family="Inter, system-ui, sans-serif">
+<rect width="856" height="570" fill="#F7F7F5"/>
+<g><path d="M 670 216 L 670 232 Q 670 240 662 240 L 40 240 Q 32 240 32 248 L 32 398 Q 32 406 40 406 L 86 406 Q 94 406 94 414 L 94 440" fill="none" stroke="#8A897F" stroke-width="1.5"/>
+<path d="M 94 440 L 100 432 L 88 432 Z" fill="#8A897F"/>
+</g>
+<g><path d="M 697 216 L 697 242 Q 697 250 689 250 L 165 250 Q 157 250 157 258 L 157 310" fill="none" stroke="#7C74D9" stroke-width="1.5" stroke-dasharray="6 4"/>
+<path d="M 163 302 L 157 310 L 151 302" fill="none" stroke="#7C74D9" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+</g>
+<g><path d="M 257 342 L 305 342" fill="none" stroke="#7C74D9" stroke-width="1.5" stroke-dasharray="6 4"/>
+<path d="M 297 348 L 305 342 L 297 336" fill="none" stroke="#7C74D9" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+</g>
+<g><path d="M 372 374 L 372 398 Q 372 406 364 406 L 162 406 Q 154 406 154 414 L 154 440" fill="none" stroke="#8A897F" stroke-width="1.5"/>
+<path d="M 154 440 L 160 432 L 148 432 Z" fill="#8A897F"/>
+</g>
+<g><path d="M 724 96 L 724 152" fill="none" stroke="#8A897F" stroke-width="1.5"/>
+<path d="M 724 152 L 730 144 L 718 144 Z" fill="#8A897F"/>
+</g>
+<g><path d="M 777 216 L 777 398 Q 777 406 769 406 L 506 406 Q 498 406 498 414 L 498 440" fill="none" stroke="#8A897F" stroke-width="1.5"/>
+<path d="M 498 440 L 504 432 L 492 432 Z" fill="#8A897F"/>
+</g>
+<g><path d="M 438 374 L 438 440" fill="none" stroke="#8A897F" stroke-width="1.5"/>
+<path d="M 438 440 L 444 432 L 432 432 Z" fill="#8A897F"/>
+</g>
+<g><path d="M 750 216 L 750 262 Q 750 270 742 270 L 661 270 Q 653 270 653 278 L 653 294" fill="none" stroke="#8A897F" stroke-width="1.5"/>
+<path d="M 653 294 L 659 286 L 647 286 Z" fill="#8A897F"/>
+</g>
+<g>
+<rect x="644" y="152" width="160" height="64" rx="4" fill="#FFFFFF" stroke="#D8D7D3" stroke-width="1.5"/>
+<rect x="656" y="164" width="40" height="40" rx="4" fill="#D9760A"/>
+<text x="676" y="188" text-anchor="middle" font-size="11" font-weight="500" fill="#FFFFFF">λ</text>
+<text x="708" y="189" font-size="13" font-weight="500" fill="#1C1C1A">Orders API</text>
+</g>
+<g>
+<rect x="57" y="310" width="200" height="64" rx="4" fill="#FFFFFF" stroke="#D8D7D3" stroke-width="1.5"/>
+<rect x="69" y="322" width="40" height="40" rx="4" fill="#B0468C"/>
+<text x="89" y="346" text-anchor="middle" font-size="11" font-weight="500" fill="#FFFFFF">SQS</text>
+<text x="121" y="347" font-size="13" font-weight="500" fill="#1C1C1A">Fulfillment Queue</text>
+</g>
+<g>
+<rect x="305" y="310" width="200" height="64" rx="4" fill="#FFFFFF" stroke="#D8D7D3" stroke-width="1.5"/>
+<rect x="317" y="322" width="40" height="40" rx="4" fill="#D9760A"/>
+<text x="337" y="346" text-anchor="middle" font-size="11" font-weight="500" fill="#FFFFFF">λ</text>
+<text x="369" y="347" font-size="13" font-weight="500" fill="#1C1C1A">Fulfillment Worker</text>
+</g>
+<g>
+<rect x="64" y="440" width="120" height="64" rx="4" fill="#FFFFFF" stroke="#D8D7D3" stroke-width="1.5"/>
+<rect x="76" y="452" width="40" height="40" rx="4" fill="#4568C9"/>
+<text x="96" y="476" text-anchor="middle" font-size="11" font-weight="500" fill="#FFFFFF">DDB</text>
+<text x="128" y="477" font-size="13" font-weight="500" fill="#1C1C1A">Orders</text>
+</g>
+<g>
+<rect x="624" y="32" width="200" height="64" rx="4" fill="#FFFFFF" stroke="#D8D7D3" stroke-width="1.5" stroke-dasharray="4 3"/>
+<rect x="636" y="44" width="40" height="40" rx="4" fill="#B0468C" opacity="0.55"/>
+<text x="656" y="68" text-anchor="middle" font-size="11" font-weight="500" fill="#FFFFFF">APIGW</text>
+<text x="688" y="69" font-size="13" font-weight="500" fill="#6F6E69">Edge Gateway</text>
+</g>
+<g opacity="0.75">
+<rect x="318" y="440" width="240" height="88" rx="6" fill="#FFFFFF" stroke="#D8D7D3" stroke-width="1.5" stroke-dasharray="4 3"/>
+<rect x="318" y="440" width="4" height="88" rx="2" fill="#6F6E69"/>
+<text x="336" y="474" font-size="15" font-weight="500" fill="#6F6E69">Catalog Service</text>
+<text x="336" y="494" font-size="11" fill="#6F6E69">Products, browse and search</text>
+<text x="546" y="462" text-anchor="end" font-size="10" font-weight="500" fill="#6F6E69">SRCH</text>
+<rect x="530" y="500" width="16" height="16" rx="3" fill="#D9760A" opacity="0.6"/>
+<rect x="510" y="500" width="16" height="16" rx="3" fill="#4568C9" opacity="0.6"/>
+<rect x="490" y="500" width="16" height="16" rx="3" fill="#8A5FC9" opacity="0.6"/>
+</g>
+<g opacity="0.75">
+<rect x="553" y="294" width="200" height="88" rx="6" fill="#FFFFFF" stroke="#D8D7D3" stroke-width="1.5" stroke-dasharray="4 3"/>
+<rect x="553" y="294" width="4" height="88" rx="2" fill="#6F6E69"/>
+<text x="571" y="328" font-size="15" font-weight="500" fill="#6F6E69">Account Service</text>
+<text x="571" y="348" font-size="11" fill="#6F6E69">Identity and profiles</text>
+<text x="741" y="316" text-anchor="end" font-size="10" font-weight="500" fill="#6F6E69">AUTH</text>
+<rect x="725" y="354" width="16" height="16" rx="3" fill="#D9760A" opacity="0.6"/>
+<rect x="705" y="354" width="16" height="16" rx="3" fill="#4568C9" opacity="0.6"/>
+</g>
+<g><rect x="398" y="241" width="57" height="18" rx="2" fill="#FFFFFF" stroke="#D8D7D3" stroke-width="1"/><text x="427" y="254" text-anchor="middle" font-size="11" fill="#6F6E69">enqueue</text></g>
+<g><rect x="221" y="397" width="83" height="18" rx="2" fill="#FFFFFF" stroke="#D8D7D3" stroke-width="1"/><text x="263" y="410" text-anchor="middle" font-size="11" fill="#6F6E69">mark shipped</text></g>
+<g><rect x="694" y="224" width="60" height="18" rx="2" fill="#FFFFFF" stroke="#D8D7D3" stroke-width="1"/><text x="724" y="237" text-anchor="middle" font-size="11" fill="#6F6E69">checkout</text></g>
+<g><rect x="601" y="397" width="73" height="18" rx="2" fill="#FFFFFF" stroke="#D8D7D3" stroke-width="1"/><text x="638" y="410" text-anchor="middle" font-size="11" fill="#6F6E69">price check</text></g>
+<g><rect x="388" y="536" width="100" height="18" rx="2" fill="#FFFFFF" stroke="#D8D7D3" stroke-width="1"/><text x="438" y="549" text-anchor="middle" font-size="11" fill="#6F6E69">decrement stock</text></g>
+<g><rect x="660" y="261" width="83" height="18" rx="2" fill="#FFFFFF" stroke="#D8D7D3" stroke-width="1"/><text x="702" y="274" text-anchor="middle" font-size="11" fill="#6F6E69">verify identity</text></g>
+</svg>

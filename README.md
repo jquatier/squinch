@@ -69,10 +69,24 @@ workflow to enforce it.)
 ## C4-style zoom
 
 One hierarchical model; altitudes are derived. Collapsed systems render as cards
-with a preview of what's inside; zooming shows internals and cross-boundary edges
-re-anchor automatically, aggregating with a count badge when several collapse into
-one. See [examples/landscape](examples/landscape) for all four altitudes of the same
-model.
+with a preview of what is inside; zooming shows internals while neighbours collapse
+into muted context cards, and cross-boundary edges re-anchor automatically —
+aggregating with a count badge when several collapse into one.
+
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="examples/microservices/microservices.landscape.dark.svg">
+  <img alt="Microservices landscape" src="examples/microservices/microservices.landscape.light.svg">
+</picture>
+
+Zoom into the catalog service and its API, table, search index and stream sync
+appear — with the gateway and order service reduced to context:
+
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="examples/microservices/microservices.catalog.dark.svg">
+  <img alt="Catalog service" src="examples/microservices/microservices.catalog.light.svg">
+</picture>
+
+Same model, no duplication — see [examples/microservices](examples/microservices).
 
 ## Try it from source
 

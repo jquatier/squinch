@@ -68,22 +68,45 @@ export async function layoutView(
   ];
   const entitySet = new Set(entities);
 
-  // ── ranks: declared (rows/place) + natural fill, at entity level ─────────
-  const rank = new Map<string, number>();
+  // ── ranks: declared (rows/place) pinned; everything else floats around them.
+  // Context cards arrive *above* the scope's first row, so unhinted nodes may
+  // take negative ranks and the whole grid is normalized afterwards. Declared
+  // rows are relative to each other — context must never push them down.
+  const declared = new Map<string, number>();
   view.layout.rows?.forEach((row, i) =>
-    row.forEach((p) => entitySet.has(entityOf(p)) && rank.set(entityOf(p), i)),
+    row.forEach((p) => entitySet.has(entityOf(p)) && declared.set(entityOf(p), i)),
   );
   for (const pl of view.layout.place) {
-    const t = rank.get(entityOf(pl.target));
-    if (t !== undefined) rank.set(entityOf(pl.node), t);
+    const t = declared.get(entityOf(pl.target));
+    if (t !== undefined) declared.set(entityOf(pl.node), t);
   }
-  const natAll = new Map(entities.map((p) => [p, 0]));
-  for (let i = 0; i < entities.length; i++)
-    for (const e of edges) {
-      const ef = entityOf(e.from), et = entityOf(e.to);
-      if (ef !== et) natAll.set(et, Math.max(natAll.get(et)!, natAll.get(ef)! + 1));
+
+  const rank = new Map<string, number>(declared);
+  const crossEdges = edges
+    .map((e) => [entityOf(e.from), entityOf(e.to)] as const)
+    .filter(([a, b]) => a !== b);
+  // Relax until stable: successors sit below predecessors; unpinned predecessors
+  // of a pinned node float above it (possibly negative).
+  for (let pass = 0; pass < entities.length + 2; pass++) {
+    let changed = false;
+    for (const [a, b] of crossEdges) {
+      const ra = rank.get(a), rb = rank.get(b);
+      if (!declared.has(b)) {
+        const want = Math.max(rb ?? 0, (ra ?? 0) + 1);
+        if (want !== rb) { rank.set(b, want); changed = true; }
+      }
+      if (!declared.has(a)) {
+        const cap = (rank.get(b) ?? 0) - 1;
+        const want = rb !== undefined ? Math.min(ra ?? cap, cap) : ra ?? 0;
+        if (want !== ra) { rank.set(a, want); changed = true; }
+      }
     }
-  for (const p of entities) if (!rank.has(p)) rank.set(p, natAll.get(p)!);
+    if (!changed) break;
+  }
+  for (const p of entities) if (!rank.has(p)) rank.set(p, 0);
+  // normalize to 0-based
+  const minRank = Math.min(...rank.values());
+  if (minRank !== 0) for (const [k, v] of rank) rank.set(k, v - minRank);
 
   // model order over entities: rows first, placed after targets, rest in resolve order
   const order: string[] = [];
@@ -126,19 +149,27 @@ export async function layoutView(
       const ef = entityOf(e.from), et = entityOf(e.to);
       if (ef !== et) natural.set(et, Math.max(natural.get(et)!, natural.get(ef)! + 1));
     }
-  const scaffold: { id: string; from: string; to: string }[] = [];
-  for (const p of order) {
-    const declared = rank.get(p)!;
-    const nat = natural.get(p)!;
-    if (nat > declared)
+  // A conflict is only a *user* error when two explicitly declared nodes
+  // contradict each other — an edge that runs upward between declared rows.
+  // Context and other unhinted nodes never trigger it; they float (see above).
+  for (const e of edges) {
+    const a = entityOf(e.from), b = entityOf(e.to);
+    if (a === b || !declared.has(a) || !declared.has(b)) continue;
+    if (declared.get(a)! > declared.get(b)!)  // equal ranks are legal (coplanar)
       diagnostics.push({
         severity: "error",
-        message: `hint conflict: \`${p}\` is declared in rank ${declared} but its edges force rank ${nat}`,
-        fix: "move it down in `rows`, or reroute the conflicting edge",
+        message: `hint conflict: \`${e.from}\` → \`${e.to}\` runs upward — row ${declared.get(a)} to row ${declared.get(b)}`,
+        fix: `put \`${e.to}\` in a row below \`${e.from}\`, or drop one of them from \`rows\``,
         loc: view.loc,
       });
-    if (nat < declared) {
-      const feeder = order.find((f) => rank.get(f)! === declared - 1);
+  }
+
+  const scaffold: { id: string; from: string; to: string }[] = [];
+  for (const p of order) {
+    const want = rank.get(p)!;
+    const nat = natural.get(p)!;
+    if (nat < want) {
+      const feeder = order.find((f) => rank.get(f)! === want - 1);
       if (feeder) scaffold.push({ id: `scaffold.${p}`, from: feeder, to: p });
     }
   }

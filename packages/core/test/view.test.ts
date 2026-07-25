@@ -103,3 +103,42 @@ describe("visibility resolution + edge lifting", () => {
     expect(g.edges.some((e) => e.to.startsWith("orders.handlers"))).toBe(false);
   });
 });
+
+describe("microservices example (zoom showcase)", () => {
+  const shop = readFileSync(join(pkg, "../../examples/microservices/shop.squinch"), "utf8");
+  const built = buildModel(shop);
+  const v = (name: string) => built.model.views.find((x) => x.name === name)!;
+
+  it("parses clean", () => {
+    expect(built.ok).toBe(true);
+  });
+
+  it("landscape collapses every service to a card and aggregates cross-service edges", () => {
+    const g = resolveView(built.model, v("landscape"));
+    const cards = g.nodes.filter((n) => n.kind === "card").map((n) => n.path).sort();
+    expect(cards).toEqual(["accounts", "catalog", "orders", "web"]);
+    // price check + decrement stock both lift to orders -> catalog
+    const agg = g.edges.find((e) => e.from === "orders" && e.to === "catalog")!;
+    expect(agg.count).toBe(2);
+    expect(agg.label).toBe("×2");
+    // every service card previews what's inside
+    expect(g.nodes.find((n) => n.path === "catalog")!.preview.length).toBe(3);
+  });
+
+  it("zooming a service reveals internals and collapses neighbours to context", () => {
+    const g = resolveView(built.model, v("catalog"));
+    const kinds = Object.fromEntries(g.nodes.map((n) => [n.path, n.kind]));
+    expect(kinds["catalog.idx"]).toBe("leaf");
+    expect(kinds["catalog.sync"]).toBe("leaf");
+    expect(kinds["orders"]).toBe("context-card");
+    expect(kinds["gw"]).toBe("context-leaf");
+    expect(kinds["accounts"]).toBeUndefined(); // no edge into catalog → not context
+  });
+
+  it("suppresses edges between two context nodes", () => {
+    const g = resolveView(built.model, v("orders"));
+    // gw -> catalog and gw -> accounts are outsider-to-outsider: not this view's business
+    expect(g.edges.some((e) => e.from === "gw" && e.to !== "orders.api")).toBe(false);
+    expect(g.edges.some((e) => e.from === "gw" && e.to === "orders.api")).toBe(true);
+  });
+});
