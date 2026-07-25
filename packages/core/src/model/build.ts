@@ -303,7 +303,7 @@ export function buildProject(files: ProjectFile[]): BuildResult {
     const view: SView = {
       name,
       include: [], includeStar: false, exclude: [], expand: [],
-      context: "auto", highlight: [], showDescriptions: false, notes: [],
+      context: "auto", highlight: [], showDescriptions: false, legend: false, notes: [],
       layout: { place: [], routes: [] },
       loc: ctx.loc(v), file: ctx.name,
     };
@@ -346,6 +346,10 @@ export function buildProject(files: ProjectFile[]): BuildResult {
     for (const h of body.getChildren("HighlightStmt"))
       view.highlight.push(...h.getChildren("Tag").map((t) => ctx.text(t).slice(1)));
     if (body.getChildren("ShowStmt").length) view.showDescriptions = true;
+    const legendStmt = body.getChildren("LegendStmt")[0];
+    if (legendStmt) view.legend = !legendStmt.getChild("off");
+    const tb = body.getChildren("TitleBlockStmt")[0];
+    if (tb) view.titleblock = attrsOf(ctx, tb.getChild("AttrBlock")).attrs;
     for (const n of body.getChildren("NoteStmt")) {
       const anchorNode = n.getChild("NoteAnchor")!;
       const noteText = ctx.str(n.getChild("String")!);
@@ -472,7 +476,7 @@ export function buildProject(files: ProjectFile[]): BuildResult {
       scope: path,
       auto: true,
       include: [], includeStar: false, exclude: [], expand: [],
-      context: "auto", highlight: [], showDescriptions: false, notes: [],
+      context: "auto", highlight: [], showDescriptions: false, legend: false, notes: [],
       layout: { place: [], routes: [] },
       loc: model.containers.get(path)!.loc,
       file: model.containers.get(path)!.file,

@@ -86,6 +86,11 @@ view shop {                 // name matching a system = that system's view
   show descriptions         // inline description lines under labels
   note right-of db "Single-table design; see ADR-42"
   note top-right "Audit scope: Q3" { style: warning }
+  legend auto               // footer key of the styles actually used
+  titleblock {              // drafting-style corner block (uses `title`)
+    version: "2026-07"
+    owner: team-orders
+  }
 }
 ```
 

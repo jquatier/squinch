@@ -105,3 +105,15 @@ committing a visual change. What looks bad here becomes the next fix.
 | light | dark |
 |---|---|
 | ![](out/15-densities.spacious.light.svg) | ![](out/15-densities.spacious.dark.svg) |
+
+## 16-legend-titleblock — `overview`
+
+| light | dark |
+|---|---|
+| ![](out/16-legend-titleblock.overview.light.svg) | ![](out/16-legend-titleblock.overview.dark.svg) |
+
+## 16-legend-titleblock — `pay`
+
+| light | dark |
+|---|---|
+| ![](out/16-legend-titleblock.pay.light.svg) | ![](out/16-legend-titleblock.pay.dark.svg) |

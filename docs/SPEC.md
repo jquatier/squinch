@@ -204,10 +204,10 @@ view shop {
                                 // SPA renders tag chips for interactive toggling
   show descriptions             // render descriptions inline (off by default)
   show flow checkout            // ①②③ badges along a declared flow   [v1.1]
-  legend auto                   // auto | off — legend of used edge styles,
-                                // tags, kinds, zone frames             [v1.1]
-  titleblock {                  // drafting-style corner block for
-    version: "2026-07"          // print/PDF export                     [v1.1]
+  legend auto                   // auto | off — legend of the edge styles
+                                // and kinds this view actually uses
+  titleblock {                  // drafting-style corner block
+    version: "2026-07"
     owner:   team-orders
   }
 

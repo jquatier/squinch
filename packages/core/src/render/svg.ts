@@ -22,6 +22,12 @@ export interface RenderOpts {
   highlight?: string[];
   notes?: SNote[];
   showDescriptions?: boolean;
+  /** `legend auto` — a key of the styles this render actually uses. */
+  legend?: boolean;
+  /** drafting-style corner block (bottom-right), free-form key/values */
+  titleblock?: Record<string, string>;
+  /** view title — the titleblock headline */
+  title?: string;
   /** Embed the subsetted faces via @font-face (default true), so the SVG
    *  renders with the exact font the metrics were measured from even in
    *  sandboxed contexts like GitHub's <img>. Off = smaller output for hosts
@@ -232,6 +238,80 @@ function notes(p: Positioned, rc: RC, list: SNote[], L: string[]) {
   }
 }
 
+/** Legend of what's actually in the picture — never a fixed key (DESIGN:
+ *  quiet structure; only earned entries). Returns markup + band height. */
+function legend(p: Positioned, rc: RC, y: number, L: string[]): { h: number; w: number } {
+  const { t } = rc;
+  const items: { sample: (x: number, cy: number) => string; label: string }[] = [];
+  if (p.edges.some((e) => !e.async))
+    items.push({
+      sample: (x, cy) => `<line x1="${x}" y1="${cy}" x2="${x + 24}" y2="${cy}" stroke="${t.edge}" stroke-width="1.5"/>`,
+      label: "sync",
+    });
+  if (p.edges.some((e) => e.async))
+    items.push({
+      sample: (x, cy) => `<line x1="${x}" y1="${cy}" x2="${x + 24}" y2="${cy}" stroke="${t.asyncEdge}" stroke-width="1.5" stroke-dasharray="6 4"/>`,
+      label: "async",
+    });
+  if (p.edges.some((e) => e.count > 1))
+    items.push({
+      sample: (x, cy) =>
+        `<line x1="${x}" y1="${cy}" x2="${x + 24}" y2="${cy}" stroke="${t.edge}" stroke-width="1.5"/>` +
+        `<text x="${x + 12}" y="${cy - 4}" text-anchor="middle" font-size="${rc.fx(9)}" fill="${t.muted}">×n</text>`,
+      label: "aggregated",
+    });
+  if (p.nodes.some((n) => n.kind.startsWith("context")))
+    items.push({
+      sample: (x, cy) => `<rect x="${x + 2}" y="${cy - 7}" width="20" height="14" rx="2" fill="${t.surface}" stroke="${t.border}" stroke-width="1.5" stroke-dasharray="4 3"/>`,
+      label: "context",
+    });
+  if (!items.length) return { h: 0, w: 0 };
+  const cy = y + 12;
+  let x = 16;
+  for (const it of items) {
+    L.push(it.sample(x, cy));
+    x += 24 + 8;
+    L.push(`<text x="${x}" y="${cy + 4}" font-size="${rc.fx(11)}" fill="${t.muted}">${esc(it.label)}</text>`);
+    x += Math.round(measure(it.label, rc.fx(11), "400", rc.fam)) + 24;
+  }
+  return { h: 24, w: x - 24 };
+}
+
+function titleblockDims(rc: RC, title: string | undefined, kv: Record<string, string>, canvasW: number) {
+  const rows = Object.entries(kv);
+  const keyW = Math.max(0, ...rows.map(([k]) => measure(k, rc.fx(11), "400", rc.fam)));
+  const wNeed = Math.max(
+    title ? measure(title, rc.fx(13), "500", rc.fam) : 0,
+    ...rows.map(([, v]) => keyW + 12 + measure(v, rc.fx(11), "400", rc.fam)),
+  );
+  return {
+    rows, keyW,
+    w: Math.min(280, canvasW - 32, Math.round(wNeed) + 24), // never wider than the canvas
+    h: (title ? 24 : 8) + rows.length * 16 + 8,
+  };
+}
+
+/** Drafting-style corner block, bottom-right: title row + key/value rows. */
+function titleblock(
+  p: Positioned, rc: RC, y: number, dims: ReturnType<typeof titleblockDims>,
+  title: string | undefined, L: string[],
+): void {
+  const { t } = rc;
+  const { rows, keyW, w, h } = dims;
+  const x = p.width - w - 16;
+  L.push(box(rc, x, y, w, h, 3, t.surface, t.border, 1));
+  let ty = y + 18;
+  if (title) {
+    L.push(`<text x="${x + 12}" y="${ty}" font-size="${rc.fx(13)}" font-weight="500" fill="${t.ink}">${esc(fit(title, w - 24, rc.fx(13), "500", rc.fam))}</text>`);
+    ty += 20;
+  } else ty -= 2;
+  for (const [k, v] of rows) {
+    L.push(`<text x="${x + 12}" y="${ty}" font-size="${rc.fx(11)}" fill="${t.muted}">${esc(k)}</text>`);
+    L.push(`<text x="${x + 12 + Math.round(keyW) + 12}" y="${ty}" font-size="${rc.fx(11)}" fill="${t.ink}">${esc(fit(v, w - 24 - keyW - 12, rc.fx(11), "400", rc.fam))}</text>`);
+    ty += 16;
+  }
+}
+
 interface Pill { x: number; y: number; w: number; h: number; mx: number; label: string; dimmed: boolean }
 
 const intersects = (a: Pill | { x: number; y: number; w: number; h: number }, b: Pill, m = 4) =>
@@ -404,9 +484,25 @@ export function renderSVG(p: Positioned, t: Theme, opts: RenderOpts = {}): strin
   // labels last, collision-resolved; canvas grows if a pill was pushed below
   const pills = computePills(p, rc, edgeMatches);
   for (const pill of pills) body.push(pillMarkup(pill, rc));
-  const height = Math.max(p.height, ...pills.map((pl) => pl.y + pl.h + 16));
+  let height = Math.max(p.height, ...pills.map((pl) => pl.y + pl.h + 16));
 
   if (opts.notes?.length) notes({ ...p, height }, rc, opts.notes, body);
+
+  // footer band: legend bottom-left, titleblock bottom-right; the titleblock
+  // drops below the legend when the canvas is too narrow for both
+  if (opts.legend || (opts.titleblock && Object.keys(opts.titleblock).length)) {
+    const bandY = height - 8;
+    const lg = opts.legend ? legend(p, rc, bandY, body) : { h: 0, w: 0 };
+    let bottom = bandY + lg.h;
+    if (opts.titleblock && Object.keys(opts.titleblock).length) {
+      const tb = titleblockDims(rc, opts.title, opts.titleblock, p.width);
+      const beside = lg.w === 0 || 16 + lg.w + 24 + tb.w + 16 <= p.width;
+      const ty = beside ? bandY : bottom + 8;
+      titleblock(p, rc, ty, tb, opts.title, body);
+      bottom = Math.max(bottom, ty + tb.h);
+    }
+    if (bottom > bandY) height = bottom + 16;
+  }
 
   const L: string[] = [];
   L.push(

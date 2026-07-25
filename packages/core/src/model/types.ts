@@ -79,6 +79,8 @@ export interface SView {
   context: "auto" | "off";
   highlight: string[]; // tag names, no '#'
   showDescriptions: boolean;
+  legend: boolean; // `legend auto` — key of the styles actually used (off by default)
+  titleblock?: Record<string, string>; // drafting corner block key/values
   notes: SNote[];
   layout: {
     direction?: "down" | "right";

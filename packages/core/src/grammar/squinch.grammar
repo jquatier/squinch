@@ -48,7 +48,8 @@ View { kw<"view"> Path ViewBody }
 ViewBody { "{" list<viewStmt> "}" }
 viewStmt {
   TitleStmt | ThemeStmt | ScopeStmt | IncludeStmt | ExcludeStmt |
-  ExpandStmt | ContextStmt | HighlightStmt | ShowStmt | NoteStmt | LayoutBlock
+  ExpandStmt | ContextStmt | HighlightStmt | ShowStmt | NoteStmt |
+  LegendStmt | TitleBlockStmt | LayoutBlock
 }
 TitleStmt { kw<"title"> String }
 ThemeStmt { kw<"theme"> Ident }
@@ -59,6 +60,8 @@ ExpandStmt { kw<"expand"> Path }
 ContextStmt { kw<"context"> (kw<"auto"> | kw<"off">) }
 HighlightStmt { kw<"highlight"> Tag+ }
 ShowStmt { kw<"show"> kw<"descriptions"> }
+LegendStmt { kw<"legend"> (kw<"auto"> | kw<"off">) }
+TitleBlockStmt { kw<"titleblock"> AttrBlock }
 NoteStmt { kw<"note"> NoteAnchor String AttrBlock? }
 NoteAnchor { RelPos Path | kw<"on"> Path Arrow Path | Corner }
 Corner {

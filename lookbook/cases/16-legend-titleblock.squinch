@@ -1,0 +1,45 @@
+// Footer furniture: an earned legend (sync/async/aggregate/context) and a
+// drafting-style titleblock — stacked or side-by-side depending on width.
+pack aws
+
+person ops "Operator"
+
+system pay "Payments" {
+  description: "Settlement and payouts"
+  glyph: sys/service
+  api = aws/lambda "Payment API"
+  q   = aws/sqs "Settlement Queue" datastore
+  w   = aws/lambda "Settlement Worker"
+  api ~> q "capture"
+  q ~> w "drain"
+  api -> w "health"
+}
+
+system ledger "Ledger" {
+  description: "Money movement of record"
+  glyph: sys/database
+  db = aws/aurora "Ledger DB" datastore
+}
+
+ops -> pay.api "reconciles"
+pay.w -> ledger.db "posts"
+pay.api -> ledger.db "balance check"
+
+view overview {
+  title "Payments — money path"
+  include *
+  legend auto
+  titleblock {
+    version: "2026-07"
+    owner: team-payments
+    status: "reviewed"
+  }
+}
+
+view pay {
+  title "Payments internals"
+  legend auto
+  titleblock {
+    version: "2026-07"
+  }
+}
