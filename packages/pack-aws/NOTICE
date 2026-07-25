@@ -1,0 +1,35 @@
+@squinch/pack-aws
+=================
+
+This package redistributes the AWS Architecture Icons.
+
+Icon assets (icons/*.svg)
+-------------------------
+Copyright Amazon Web Services, Inc. or its affiliates. All rights reserved.
+
+Source:  https://aws.amazon.com/architecture/icons/
+Release: 04302026
+
+The icon assets are made available under the Creative Commons
+Attribution-NoDerivs 2.0 licence (CC-BY-ND 2.0), the same terms under which
+Amazon redistributes them in its own open-source project
+(https://github.com/awslabs/aws-icons-for-plantuml). The full licence text is
+in LICENSE-ICONS.txt.
+
+NoDerivs means exactly what it says: the files in icons/ are byte-for-byte
+copies of Amazon's originals and MUST NOT be modified — not recoloured, not
+reshaped, not run through an SVG optimizer. Squinch applies theme treatment at
+render time (placement, clipping, surrounding plates) and never alters the
+asset itself. Regenerate this directory with `npm run fetch`, never by hand.
+
+AWS, Amazon Web Services, and the service names and marks shown in these icons
+are trademarks of Amazon.com, Inc. or its affiliates. Their use here is for
+identification in architecture diagrams, the purpose Amazon publishes them for.
+Squinch is not affiliated with, endorsed by, or sponsored by Amazon Web
+Services.
+
+Packaging code (scripts/, pack.json)
+------------------------------------
+Copyright the Squinch authors, licensed under Apache-2.0 with the rest of the
+repository. pack.json is generated metadata (ids, titles, categories), not an
+adaptation of the artwork.

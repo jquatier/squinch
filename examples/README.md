@@ -1,5 +1,8 @@
 # Examples
 
+Icons come from [@squinch/pack-aws](../packages/pack-aws) — Amazon's official
+Architecture Icons, redistributed verbatim under CC-BY-ND 2.0.
+
 Each subdirectory is a Squinch project. The `.svg` files are committed renders
 kept in sync by CI (`squinch render <dir> --check`) — edit the `.squinch` source,
 run `squinch render <dir> --sync`, and commit both.

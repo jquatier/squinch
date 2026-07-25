@@ -3,6 +3,7 @@
 // artifact under byte-identity tests.
 import { fit, measure } from "../metrics.js";
 import { iconMeta } from "../model/packs.js";
+import { iconAsset, symbolId } from "../packs/registry.js";
 import type { Theme } from "../themes/index.js";
 import type { Positioned, PEdge, PNode } from "../layout/layout.js";
 import type { SNote } from "../model/types.js";
@@ -90,12 +91,8 @@ function leaf(n: PNode, t: Theme, opts: RenderOpts, dimmed: boolean, L: string[]
   L.push(
     `<rect x="${n.x}" y="${n.y}" width="${n.w}" height="${n.h}" rx="${R_NODE}" fill="${t.surface}" stroke="${t.border}" stroke-width="1.5"${stroke}/>`,
   );
-  const meta = n.icon ? iconMeta(n.icon.pack, n.icon.id) : undefined;
   const px = n.x + PAD, py = n.y + PAD;
-  L.push(`<rect x="${px}" y="${py}" width="${PLATE}" height="${PLATE}" rx="4" fill="${meta?.color ?? t.muted}"${ctx ? ` opacity="0.55"` : ""}/>`);
-  L.push(
-    `<text x="${px + PLATE / 2}" y="${py + PLATE / 2 + 4}" text-anchor="middle" font-size="11" font-weight="500" fill="${t.plateText}">${esc(meta?.code ?? "?")}</text>`,
-  );
+  L.push(iconPlate(n.icon, px, py, PLATE, t, ctx));
   const maxLabel = n.w - PAD - PLATE - PAD - PAD;
   const withDesc = opts.showDescriptions && n.description;
   const labelY = withDesc ? n.y + n.h / 2 - 1 : n.y + n.h / 2 + 5;
@@ -137,11 +134,9 @@ function card(n: PNode, t: Theme, dimmed: boolean, L: string[]) {
   }
   // preview strip: up to 3 inner icons, bottom-right, 16px at 60%
   n.preview.forEach((icon, i) => {
-    const meta = iconMeta(icon.pack, icon.id);
-    if (!meta) return;
     const ix = n.x + n.w - PAD - 16 - i * 20;
     const iy = n.y + n.h - PAD - 16;
-    L.push(`<rect x="${ix}" y="${iy}" width="16" height="16" rx="3" fill="${meta.color}" opacity="0.6"/>`);
+    L.push(iconPlate(icon, ix, iy, 16, t, true));
   });
   L.push(`</g>`);
 }
@@ -244,6 +239,57 @@ function pillMarkup(pill: Pill, t: Theme): string {
   );
 }
 
+/** One <symbol> per distinct icon used in this render, in stable order. */
+function iconDefs(p: Positioned): string {
+  const used = new Map<string, { pack: string; id: string }>();
+  const note = (icon?: { pack: string; id: string }) => {
+    if (icon) used.set(`${icon.pack}/${icon.id}`, icon);
+  };
+  for (const n of p.nodes) {
+    note(n.icon);
+    for (const prev of n.preview) note(prev);
+  }
+  const symbols: string[] = [];
+  for (const key of [...used.keys()].sort()) {
+    const { pack, id } = used.get(key)!;
+    const asset = iconAsset(pack, id);
+    if (!asset) continue;
+    // artwork inlined verbatim inside the symbol; placement is ours, the asset is untouched
+    symbols.push(
+      `<symbol id="${symbolId(pack, id)}" viewBox="${asset.viewBox}">${asset.body}</symbol>`,
+    );
+  }
+  return symbols.length ? `<defs>\n${symbols.join("\n")}\n</defs>` : "";
+}
+
+/** Icon artwork clipped to our plate radius, or a lettered fallback plate. */
+function iconPlate(
+  icon: { pack: string; id: string } | undefined,
+  x: number, y: number, size: number, t: Theme, soften = false,
+): string {
+  const meta = icon ? iconMeta(icon.pack, icon.id) : undefined;
+  const asset = icon ? iconAsset(icon.pack, icon.id) : undefined;
+  const r = Math.max(2, Math.round(size / 10));
+  if (asset && icon) {
+    // clip-path directly on <use> stops it instantiating in some renderers —
+    // wrap instead, so the artwork still gets our rounded plate corners.
+    const clip = `clip-${symbolId(icon.pack, icon.id)}-${x}-${y}-${size}`;
+    return (
+      `<clipPath id="${clip}"><rect x="${x}" y="${y}" width="${size}" height="${size}" rx="${r}"/></clipPath>` +
+      `<g clip-path="url(#${clip})"${soften ? ` opacity="0.6"` : ""}>` +
+      `<use href="#${symbolId(icon.pack, icon.id)}" x="${x}" y="${y}" width="${size}" height="${size}"/>` +
+      `</g>`
+    );
+  }
+  const code = meta?.code ?? "?";
+  return (
+    `<rect x="${x}" y="${y}" width="${size}" height="${size}" rx="${r}" fill="${meta?.color ?? t.muted}"${soften ? ` opacity="0.6"` : ""}/>` +
+    (size >= 24
+      ? `<text x="${x + size / 2}" y="${y + size / 2 + 4}" text-anchor="middle" font-size="11" font-weight="500" fill="${t.plateText}">${esc(code)}</text>`
+      : "")
+  );
+}
+
 export function renderSVG(p: Positioned, t: Theme, opts: RenderOpts = {}): string {
   const hl = opts.highlight ?? [];
   const nodeMatches = (n: PNode) => hl.length === 0 || n.tags.some((tag) => hl.includes(tag));
@@ -295,6 +341,8 @@ export function renderSVG(p: Positioned, t: Theme, opts: RenderOpts = {}): strin
     `<svg xmlns="http://www.w3.org/2000/svg" width="${p.width}" height="${height}" viewBox="0 0 ${p.width} ${height}" font-family="Inter, system-ui, sans-serif">`,
   );
   L.push(`<rect width="${p.width}" height="${height}" fill="${t.canvas}"/>`);
+  const defs = iconDefs(p);
+  if (defs) L.push(defs);
   L.push(...body);
   L.push(`</svg>`);
   return L.join("\n") + "\n";

@@ -28,14 +28,19 @@ deterministic rendering. Pre-alpha; Phase 2 (see docs/PLAN.md §3).
   (`src/render/validate.ts`, fast-xml-parser) in tests and tools — never assume
   emitted markup is well-formed; browsers are lenient, strict parsers are not.
   Label pills are collision-resolved; the golden suite asserts no two overlap.
-- **Pack SVGs are sanitized at load** (allowlist; strip scripts/handlers/
-  foreignObject). AWS icons ship verbatim (CC-BY-ND): never modify the asset files —
-  theme treatment is render-time only.
+- **Pack SVGs are sanitized at load** (`src/packs/sanitize.ts`: allowlist elements
+  and attributes, strip scripts/handlers/foreignObject/external refs, namespace
+  internal ids). AWS icons in `packages/pack-aws/icons/` ship **verbatim** under
+  CC-BY-ND: never edit, recolour, or "optimize" them — regenerate with
+  `npm run fetch`. Theme treatment is render-time only (placement, clipping,
+  plates). Renderer note: `clip-path` on a `<use>` stops it instantiating in some
+  renderers — always clip a wrapping `<g>`.
 - Performance budgets in docs/PLAN.md §2 are CI-enforced acceptance criteria.
 
 ## Layout of the workspace
 
-`packages/core` — the engine (see below). `packages/cli` — the `squinch` binary,
+`packages/core` — the engine (see below). `packages/pack-aws` — 303 AWS service
+icons, verbatim + dual-licensed (see its NOTICE). `packages/cli` — the `squinch` binary,
 thin wrapper over core: arg parsing, project loading (file *or* directory), and the
 lockfile model (`--sync`/`--check`). `examples/` — one directory per project, with
 committed SVGs that CI verifies. `spike/` — the Phase-0 harness, kept as regression.
@@ -70,7 +75,8 @@ expanded container is one "entity" for ranking, and ELK layers freely inside it.
 ## Layout of @squinch/core
 
 `src/grammar` (Lezer DSL grammar → generated parser) → `src/model` (tree → semantic
-model + SPEC §9 diagnostics, pack registry, did-you-mean) → `src/layout` (hints →
-ELK + scaffold edges + coplanar router) → `src/render` (Positioned + theme → SVG) →
-`src/themes` (DESIGN.md token sets). Grammar note: comments are `//` only — `#` is
+model + SPEC §9 diagnostics, did-you-mean) → `src/layout` (hints → ELK + scaffold
+edges + coplanar router) → `src/render` (Positioned + theme → SVG, icons inlined as
+deduplicated `<symbol>`/`<use>`) → `src/themes` (DESIGN.md token sets);
+`src/packs` holds the pack registry + sanitizer. Grammar note: comments are `//` only — `#` is
 reserved for tags.

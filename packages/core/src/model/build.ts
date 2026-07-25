@@ -5,7 +5,7 @@
 import type { SyntaxNode } from "@lezer/common";
 // @ts-ignore generated
 import { parser } from "../grammar/parser.js";
-import { iconMeta, iconIds, packs as packRegistry } from "./packs.js";
+import { iconExists, packExists, iconIds, allPackNames } from "./packs.js";
 import { suggest } from "./suggest.js";
 import type {
   ArrowKind, BuildResult, Diagnostic, Loc, RelPos, SContainer, SEdge, SModel, SNode, SNote, SView, Side,
@@ -114,10 +114,10 @@ export function buildProject(files: ProjectFile[]): BuildResult {
       let icon: SNode["icon"];
       if (iconRef) {
         const [p, i] = iconRef.getChildren("Ident").map(ctx.text);
-        if (!packRegistry[p]) {
-          const s = suggest(p, Object.keys(packRegistry));
+        if (!packExists(p)) {
+          const s = suggest(p, allPackNames());
           error(ctx, iconRef, `unknown pack \`${p}\``, s ? `did you mean \`${s}\`?` : undefined);
-        } else if (!iconMeta(p, i)) {
+        } else if (!iconExists(p, i)) {
           const s = suggest(i, iconIds(p));
           error(ctx, iconRef, `unknown icon \`${p}/${i}\``,
             s ? `did you mean \`${p}/${s}\`?` : `run \`squinch icons search ${i}\``);
@@ -175,8 +175,8 @@ export function buildProject(files: ProjectFile[]): BuildResult {
     const top = tree.topNode;
     for (const p of top.getChildren("PackStmt")) {
       const name = ctx.text(p.getChild("Ident")!);
-      if (!packRegistry[name]) {
-        const s = suggest(name, Object.keys(packRegistry));
+      if (!packExists(name)) {
+        const s = suggest(name, allPackNames());
         error(ctx, p, `unknown pack \`${name}\``, s ? `did you mean \`${s}\`?` : undefined);
       } else if (!model.packs.includes(name)) model.packs.push(name);
     }

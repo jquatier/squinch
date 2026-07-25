@@ -4,7 +4,7 @@ import { layoutView } from "./layout/layout.js";
 import { renderSVG } from "./render/svg.js";
 import { validateSVG } from "./render/validate.js";
 import { themes, type Theme } from "./themes/index.js";
-import { packs, iconIds } from "./model/packs.js";
+import { allPackNames, iconIds } from "./model/packs.js";
 import type { BuildResult, Diagnostic, SView } from "./model/types.js";
 
 export { buildModel, buildProject, formatDiagnostics, layoutView, renderSVG, validateSVG, themes };
@@ -13,7 +13,7 @@ export { buildModel, buildProject, formatDiagnostics, layoutView, renderSVG, val
 export function searchIcons(query: string, pack?: string): string[] {
   const q = query.toLowerCase();
   const hits: string[] = [];
-  for (const name of Object.keys(packs)) {
+  for (const name of allPackNames()) {
     if (pack && name !== pack) continue;
     for (const id of iconIds(name)) if (id.includes(q)) hits.push(`${name}/${id}`);
   }
