@@ -1,9 +1,7 @@
-// Pack registry: manifest + lazily-sanitized assets. A pack is a directory with
-// a pack.json and an icons/ folder — the same shape third parties will ship.
-import { readFileSync, existsSync } from "node:fs";
-import { join, dirname } from "node:path";
-import { fileURLToPath } from "node:url";
-import { createRequire } from "node:module";
+// Pack registry — pure and browser-safe. Hosts supply assets:
+//   Node  : registerPackFromDisk() in ./node-fs.ts (used by the CLI + tests)
+//   Browser: registerPack() with a fetch-backed loader, then preloadIcons()
+// Rendering itself stays synchronous, so assets must be resident before render.
 import { sanitizeIcon, type SanitizedIcon } from "./sanitize.js";
 
 export interface PackManifest {
@@ -17,9 +15,12 @@ export interface PackManifest {
   aliases?: Record<string, string>;
 }
 
-export interface Pack {
+/** Returns raw SVG text for a pack-relative file. May be async (browser). */
+export type AssetLoader = (file: string) => string | Promise<string>;
+
+interface Registered {
   manifest: PackManifest;
-  dir: string;
+  load: AssetLoader;
 }
 
 /** Built-in fallbacks: no assets, drawn by the renderer itself. */
@@ -49,34 +50,14 @@ export const BUILTIN_GLYPHS: Record<string, Record<string, { code: string; color
   },
 };
 
-const packs = new Map<string, Pack>();
-const assetCache = new Map<string, SanitizedIcon>();
+const packs = new Map<string, Registered>();
+const assets = new Map<string, SanitizedIcon>();
 
-function tryLoad(packageName: string, packName: string): void {
-  const here = dirname(fileURLToPath(import.meta.url));
-  const candidates: string[] = [];
-  try {
-    const require = createRequire(import.meta.url);
-    candidates.push(dirname(require.resolve(`${packageName}/pack.json`)));
-  } catch {
-    /* not installed via node resolution — fall back to workspace layout */
-  }
-  candidates.push(join(here, "..", "..", "..", packageName.replace("@squinch/", "")));
-  candidates.push(join(here, "..", "..", "..", "..", packageName.replace("@squinch/", "")));
-
-  for (const dir of candidates) {
-    const manifestPath = join(dir, "pack.json");
-    if (!existsSync(manifestPath)) continue;
-    const manifest = JSON.parse(readFileSync(manifestPath, "utf8")) as PackManifest;
-    packs.set(packName, { manifest, dir });
-    return;
-  }
+export function registerPack(manifest: PackManifest, load: AssetLoader): void {
+  packs.set(manifest.name, { manifest, load });
 }
 
-tryLoad("@squinch/pack-aws", "aws");
-
-/** Resolve an id through the pack's alias table. */
-function canonical(pack: Pack, id: string): string | undefined {
+function canonical(pack: Registered, id: string): string | undefined {
   if (pack.manifest.icons[id]) return id;
   const alias = pack.manifest.aliases?.[id];
   return alias && pack.manifest.icons[alias] ? alias : undefined;
@@ -111,27 +92,44 @@ export function iconTitle(packName: string, id: string): string | undefined {
   return key ? pack.manifest.icons[key].title : undefined;
 }
 
-/** Sanitized, inlinable artwork — or undefined for builtin/glyph packs. */
-export function iconAsset(packName: string, id: string): SanitizedIcon | undefined {
-  const pack = packs.get(packName);
-  if (!pack) return undefined;
-  const key = canonical(pack, id);
-  if (!key) return undefined;
-  const cacheKey = `${packName}/${key}`;
-  const cached = assetCache.get(cacheKey);
-  if (cached) return cached;
-  const svg = readFileSync(join(pack.dir, "icons", pack.manifest.icons[key].file), "utf8");
-  const asset = sanitizeIcon(svg, `${packName}-${key}`);
-  assetCache.set(cacheKey, asset);
-  return asset;
-}
-
-/** Stable symbol id for an inlined icon. */
+/** Stable symbol id — aliases collapse onto their canonical icon. */
 export const symbolId = (packName: string, id: string): string => {
   const pack = packs.get(packName);
   const key = pack ? canonical(pack, id) ?? id : id;
   return `sq-${packName}-${key}`;
 };
+
+const cacheKey = (packName: string, key: string) => `${packName}/${key}`;
+
+/** Synchronous lookup used by the renderer; undefined until loaded. */
+export function iconAsset(packName: string, id: string): SanitizedIcon | undefined {
+  const pack = packs.get(packName);
+  if (!pack) return undefined;
+  const key = canonical(pack, id);
+  if (!key) return undefined;
+  const hit = assets.get(cacheKey(packName, key));
+  if (hit) return hit;
+  // Node loaders are synchronous: resolve inline so callers need no preload.
+  const raw = pack.load(pack.manifest.icons[key].file);
+  if (typeof raw !== "string") return undefined; // async source → must preload
+  const asset = sanitizeIcon(raw, `${packName}-${key}`);
+  assets.set(cacheKey(packName, key), asset);
+  return asset;
+}
+
+/** Resolve assets ahead of a synchronous render (browsers). */
+export async function preloadIcons(refs: { pack: string; id: string }[]): Promise<void> {
+  await Promise.all(
+    refs.map(async ({ pack: packName, id }) => {
+      const pack = packs.get(packName);
+      if (!pack) return;
+      const key = canonical(pack, id);
+      if (!key || assets.has(cacheKey(packName, key))) return;
+      const raw = await pack.load(pack.manifest.icons[key].file);
+      assets.set(cacheKey(packName, key), sanitizeIcon(raw, `${packName}-${key}`));
+    }),
+  );
+}
 
 export function glyph(packName: string, id: string): { code: string; color: string } | undefined {
   return BUILTIN_GLYPHS[packName]?.[id];

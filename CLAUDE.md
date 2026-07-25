@@ -18,7 +18,10 @@ deterministic rendering. Pre-alpha; Phase 2 (see docs/PLAN.md §3).
   from `hash(source)`; emitted SVG always uses LF; exported SVG never contains JS
   (animations are CSS keyframes at constant px/s).
 - **Text metrics never come from the environment** — bundled font + precomputed
-  metrics tables only. No canvas/DOM measurement anywhere in layout.
+  metrics tables only (`src/metrics.generated.ts`). No canvas/DOM measurement.
+- **Core is isomorphic**: shared code imports no `node:` builtins. Node registers
+  disk packs via `src/index.ts`; browsers call `registerPack` + `preloadIcons`
+  (`src/browser.ts`). Tests boot packs through `test/setup.ts`.
 - **The DSL has no pixel coordinates, ever.** Layout control is relative only.
 - **Structure/layout separation**: deleting every `layout` block must still render
   well; conflicting hints are check-time errors, never silently dropped.
@@ -39,7 +42,9 @@ deterministic rendering. Pre-alpha; Phase 2 (see docs/PLAN.md §3).
 
 ## Layout of the workspace
 
-`packages/core` — the engine (see below). `packages/pack-aws` — 303 AWS service
+`apps/spa` — the playground (Vite/React/Tailwind; imports `@squinch/core/browser`
+and fetches pack icons from `public/`). `packages/core` — the engine (see below).
+`packages/pack-aws` — 303 AWS service
 icons, verbatim + dual-licensed (see its NOTICE). `packages/cli` — the `squinch` binary,
 thin wrapper over core: arg parsing, project loading (file *or* directory), and the
 lockfile model (`--sync`/`--check`). `examples/` — one directory per project, with
@@ -50,8 +55,9 @@ committed SVGs that CI verifies. `spike/` — the Phase-0 harness, kept as regre
 Phase 0 passed (5/5 exit criteria; findings in docs/PLAN.md §3). **Phase 1 engine is
 complete**: grammar → model → visibility/lifting → layout → themed SVG, multi-file
 projects, cards/frames/zoom, highlight/notes. **Phase 2 in progress**: the CLI ships
-(check/render/icons/init/watch + lockfile model + GitHub Action); the SPA playground
-is next.
+(check/render/icons/init/watch + lockfile model + GitHub Action) and the SPA
+playground runs (CodeMirror + live preview + click-to-zoom). Next: agent skill +
+the Phase-3 gauntlet.
 
 Key architecture from the spike, still binding: same-rank edges bypass ELK and use
 our coplanar router; declared ranks are enforced via invisible scaffold edges; an
@@ -70,6 +76,7 @@ expanded container is one "entity" for ranking, and ELK layers freely inside it.
   and commit the SVGs, or CI fails.
 - `cd packages/core && npm run grammar` — regenerate Lezer parser from
   `src/grammar/squinch.grammar`.
+- `pnpm --filter @squinch/spa dev` — playground on :5180 (`.claude/launch.json`).
 - `cd spike && npm run spike` — Phase-0 exit-criteria harness (kept as regression).
 
 ## Layout of @squinch/core

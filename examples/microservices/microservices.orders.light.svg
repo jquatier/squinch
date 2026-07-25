@@ -32,32 +32,32 @@
 <g><path d="M 750 216 L 750 262 Q 750 270 742 270 L 661 270 Q 653 270 653 278 L 653 294" fill="none" stroke="#8A897F" stroke-width="1.5"/>
 <path d="M 653 294 L 659 286 L 647 286 Z" fill="#8A897F"/>
 </g>
-<g>
+<g data-path="orders.api" data-kind="leaf">
 <rect x="644" y="152" width="160" height="64" rx="4" fill="#FFFFFF" stroke="#D8D7D3" stroke-width="1.5"/>
 <clipPath id="clip-sq-aws-lambda-656-164-40"><rect x="656" y="164" width="40" height="40" rx="4"/></clipPath><g clip-path="url(#clip-sq-aws-lambda-656-164-40)"><use href="#sq-aws-lambda" x="656" y="164" width="40" height="40"/></g>
 <text x="708" y="189" font-size="13" font-weight="500" fill="#1C1C1A">Orders API</text>
 </g>
-<g>
+<g data-path="orders.queue" data-kind="leaf">
 <rect x="57" y="310" width="200" height="64" rx="4" fill="#FFFFFF" stroke="#D8D7D3" stroke-width="1.5"/>
 <clipPath id="clip-sq-aws-simple-queue-service-69-322-40"><rect x="69" y="322" width="40" height="40" rx="4"/></clipPath><g clip-path="url(#clip-sq-aws-simple-queue-service-69-322-40)"><use href="#sq-aws-simple-queue-service" x="69" y="322" width="40" height="40"/></g>
 <text x="121" y="347" font-size="13" font-weight="500" fill="#1C1C1A">Fulfillment Queue</text>
 </g>
-<g>
+<g data-path="orders.worker" data-kind="leaf">
 <rect x="305" y="310" width="200" height="64" rx="4" fill="#FFFFFF" stroke="#D8D7D3" stroke-width="1.5"/>
 <clipPath id="clip-sq-aws-lambda-317-322-40"><rect x="317" y="322" width="40" height="40" rx="4"/></clipPath><g clip-path="url(#clip-sq-aws-lambda-317-322-40)"><use href="#sq-aws-lambda" x="317" y="322" width="40" height="40"/></g>
 <text x="369" y="347" font-size="13" font-weight="500" fill="#1C1C1A">Fulfillment Worker</text>
 </g>
-<g>
+<g data-path="orders.db" data-kind="leaf">
 <rect x="64" y="440" width="120" height="64" rx="4" fill="#FFFFFF" stroke="#D8D7D3" stroke-width="1.5"/>
 <clipPath id="clip-sq-aws-dynamodb-76-452-40"><rect x="76" y="452" width="40" height="40" rx="4"/></clipPath><g clip-path="url(#clip-sq-aws-dynamodb-76-452-40)"><use href="#sq-aws-dynamodb" x="76" y="452" width="40" height="40"/></g>
 <text x="128" y="477" font-size="13" font-weight="500" fill="#1C1C1A">Orders</text>
 </g>
-<g>
+<g data-path="gw" data-kind="context-leaf">
 <rect x="624" y="32" width="200" height="64" rx="4" fill="#FFFFFF" stroke="#D8D7D3" stroke-width="1.5" stroke-dasharray="4 3"/>
 <clipPath id="clip-sq-aws-api-gateway-636-44-40"><rect x="636" y="44" width="40" height="40" rx="4"/></clipPath><g clip-path="url(#clip-sq-aws-api-gateway-636-44-40)" opacity="0.6"><use href="#sq-aws-api-gateway" x="636" y="44" width="40" height="40"/></g>
 <text x="688" y="69" font-size="13" font-weight="500" fill="#6F6E69">Edge Gateway</text>
 </g>
-<g opacity="0.75">
+<g data-path="catalog" data-kind="context-card" opacity="0.75">
 <rect x="318" y="440" width="240" height="88" rx="6" fill="#FFFFFF" stroke="#D8D7D3" stroke-width="1.5" stroke-dasharray="4 3"/>
 <rect x="318" y="440" width="4" height="88" rx="2" fill="#6F6E69"/>
 <text x="336" y="474" font-size="15" font-weight="500" fill="#6F6E69">Catalog Service</text>
@@ -67,7 +67,7 @@
 <clipPath id="clip-sq-aws-dynamodb-510-500-16"><rect x="510" y="500" width="16" height="16" rx="2"/></clipPath><g clip-path="url(#clip-sq-aws-dynamodb-510-500-16)" opacity="0.6"><use href="#sq-aws-dynamodb" x="510" y="500" width="16" height="16"/></g>
 <clipPath id="clip-sq-aws-opensearch-service-490-500-16"><rect x="490" y="500" width="16" height="16" rx="2"/></clipPath><g clip-path="url(#clip-sq-aws-opensearch-service-490-500-16)" opacity="0.6"><use href="#sq-aws-opensearch-service" x="490" y="500" width="16" height="16"/></g>
 </g>
-<g opacity="0.75">
+<g data-path="accounts" data-kind="context-card" opacity="0.75">
 <rect x="553" y="294" width="200" height="88" rx="6" fill="#FFFFFF" stroke="#D8D7D3" stroke-width="1.5" stroke-dasharray="4 3"/>
 <rect x="553" y="294" width="4" height="88" rx="2" fill="#6F6E69"/>
 <text x="571" y="328" font-size="15" font-weight="500" fill="#6F6E69">Account Service</text>

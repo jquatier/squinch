@@ -56,13 +56,18 @@ function hash(s: string): string {
   return createHash("sha256").update(s).digest("hex").slice(0, 16);
 }
 
+/**
+ * Views to render. Containers all get an auto view (so the SPA can zoom
+ * anywhere), but `--sync` commits only what the author declared — otherwise
+ * every container would spawn files nobody asked for. With no explicit views,
+ * the auto ones are all we have.
+ */
 function viewNames(input: Input): string[] {
   const built = buildProject(input.files);
-  const names = built.model.views.map((v) => v.name);
-  if (names.length) return names;
-  // implicit view of the first container
-  const first = [...built.model.containers.keys()][0];
-  return first ? [first] : ["default"];
+  const explicit = built.model.views.filter((v) => !v.auto).map((v) => v.name);
+  if (explicit.length) return explicit;
+  const auto = built.model.views.map((v) => v.name);
+  return auto.length ? auto : ["default"];
 }
 
 async function renderOne(input: Input, view: string, theme: string): Promise<string> {

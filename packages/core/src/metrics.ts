@@ -1,15 +1,9 @@
 // Text measurement from the committed metrics table ONLY (non-negotiable:
-// layout never asks the environment how wide text is).
-import { readFileSync } from "node:fs";
-import { fileURLToPath } from "node:url";
-import { dirname, join } from "node:path";
-
-const here = dirname(fileURLToPath(import.meta.url));
-const table: Record<string, { advances: Record<string, number>; fallback: number }> =
-  JSON.parse(readFileSync(join(here, "..", "metrics.json"), "utf8"));
+// layout never asks the environment how wide text is). Browser-safe.
+import { METRICS } from "./metrics.generated.js";
 
 export function measure(text: string, sizePx: number, weight: "400" | "500" = "500"): number {
-  const m = table[weight];
+  const m = METRICS[weight];
   let em = 0;
   for (const ch of text) em += m.advances[ch] ?? m.fallback;
   return em * sizePx;

@@ -1,0 +1,15 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "spa",
+      "runtimeExecutable": "pnpm",
+      "runtimeArgs": [
+        "--filter",
+        "@squinch/spa",
+        "dev"
+      ],
+      "port": 5180
+    }
+  ]
+}

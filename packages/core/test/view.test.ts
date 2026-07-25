@@ -142,3 +142,30 @@ describe("microservices example (zoom showcase)", () => {
     expect(g.edges.some((e) => e.from === "gw" && e.to === "orders.api")).toBe(true);
   });
 });
+
+describe("auto views (SPEC §5)", () => {
+  const SRC = `pack aws
+system a "A" {
+  x = aws/lambda "X"
+  container inner "Inner" { y = aws/s3 "Y" }
+}
+system b "B" { z = aws/dynamodb "Z" }
+a.x -> b.z
+view b { title "Custom B" }`;
+
+  it("gives every container a view so zoom always lands somewhere", () => {
+    const { model } = buildModel(SRC);
+    const byScope = Object.fromEntries(model.views.map((v) => [v.scope, v]));
+    expect(Object.keys(byScope).sort()).toEqual(["a", "a.inner", "b"]);
+    expect(byScope["a"].auto).toBe(true);
+    expect(byScope["a.inner"].auto).toBe(true);
+  });
+
+  it("an explicit view customizes the auto one rather than duplicating it", () => {
+    const { model } = buildModel(SRC);
+    const forB = model.views.filter((v) => v.scope === "b");
+    expect(forB).toHaveLength(1);
+    expect(forB[0].auto).toBeUndefined();
+    expect(forB[0].title).toBe("Custom B");
+  });
+});

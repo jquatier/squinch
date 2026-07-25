@@ -32,36 +32,36 @@
 <g><path d="M 311 216 L 311 232 Q 311 240 319 240 L 488 240 Q 496 240 496 248 L 496 274" fill="none" stroke="#8A897F" stroke-width="1.5"/>
 <path d="M 496 274 L 502 266 L 490 266 Z" fill="#8A897F"/>
 </g>
-<g>
+<g data-path="orders.api" data-kind="leaf">
 <rect x="183" y="152" width="160" height="64" rx="4" fill="#FFFFFF" stroke="#D8D7D3" stroke-width="1.5"/>
 <clipPath id="clip-sq-aws-lambda-195-164-40"><rect x="195" y="164" width="40" height="40" rx="4"/></clipPath><g clip-path="url(#clip-sq-aws-lambda-195-164-40)"><use href="#sq-aws-lambda" x="195" y="164" width="40" height="40"/></g>
 <text x="247" y="189" font-size="13" font-weight="500" fill="#1C1C1A">Orders API</text>
 </g>
 <rect x="180" y="149" width="166" height="70" rx="7" fill="none" stroke="#5A57C9" stroke-width="1.5" opacity="0.8"/>
-<g>
+<g data-path="orders.db" data-kind="leaf">
 <rect x="32" y="538" width="120" height="64" rx="4" fill="#FFFFFF" stroke="#D8D7D3" stroke-width="1.5"/>
 <clipPath id="clip-sq-aws-dynamodb-44-550-40"><rect x="44" y="550" width="40" height="40" rx="4"/></clipPath><g clip-path="url(#clip-sq-aws-dynamodb-44-550-40)"><use href="#sq-aws-dynamodb" x="44" y="550" width="40" height="40"/></g>
 <text x="96" y="575" font-size="13" font-weight="500" fill="#1C1C1A">Orders</text>
 </g>
 <rect x="29" y="535" width="126" height="70" rx="7" fill="none" stroke="#5A57C9" stroke-width="1.5" opacity="0.8"/>
-<g>
+<g data-path="orders.queue" data-kind="leaf">
 <rect x="147" y="286" width="200" height="64" rx="4" fill="#FFFFFF" stroke="#D8D7D3" stroke-width="1.5"/>
 <clipPath id="clip-sq-aws-simple-queue-service-159-298-40"><rect x="159" y="298" width="40" height="40" rx="4"/></clipPath><g clip-path="url(#clip-sq-aws-simple-queue-service-159-298-40)"><use href="#sq-aws-simple-queue-service" x="159" y="298" width="40" height="40"/></g>
 <text x="211" y="323" font-size="13" font-weight="500" fill="#1C1C1A">Fulfillment Queue</text>
 </g>
 <rect x="144" y="283" width="206" height="70" rx="7" fill="none" stroke="#5A57C9" stroke-width="1.5" opacity="0.8"/>
-<g>
+<g data-path="orders.worker" data-kind="leaf">
 <rect x="147" y="418" width="200" height="64" rx="4" fill="#FFFFFF" stroke="#D8D7D3" stroke-width="1.5"/>
 <clipPath id="clip-sq-aws-lambda-159-430-40"><rect x="159" y="430" width="40" height="40" rx="4"/></clipPath><g clip-path="url(#clip-sq-aws-lambda-159-430-40)"><use href="#sq-aws-lambda" x="159" y="430" width="40" height="40"/></g>
 <text x="211" y="455" font-size="13" font-weight="500" fill="#1C1C1A">Fulfillment Worker</text>
 </g>
 <rect x="144" y="415" width="206" height="70" rx="7" fill="none" stroke="#5A57C9" stroke-width="1.5" opacity="0.8"/>
-<g opacity="0.35">
+<g data-path="gw" data-kind="context-leaf" opacity="0.35">
 <rect x="163" y="32" width="200" height="64" rx="4" fill="#FFFFFF" stroke="#D8D7D3" stroke-width="1.5" stroke-dasharray="4 3"/>
 <clipPath id="clip-sq-aws-api-gateway-175-44-40"><rect x="175" y="44" width="40" height="40" rx="4"/></clipPath><g clip-path="url(#clip-sq-aws-api-gateway-175-44-40)" opacity="0.6"><use href="#sq-aws-api-gateway" x="175" y="44" width="40" height="40"/></g>
 <text x="227" y="69" font-size="13" font-weight="500" fill="#6F6E69">Edge Gateway</text>
 </g>
-<g opacity="0.35">
+<g data-path="catalog" data-kind="context-card" opacity="0.35">
 <rect x="200" y="538" width="240" height="88" rx="6" fill="#FFFFFF" stroke="#D8D7D3" stroke-width="1.5" stroke-dasharray="4 3"/>
 <rect x="200" y="538" width="4" height="88" rx="2" fill="#6F6E69"/>
 <text x="218" y="572" font-size="15" font-weight="500" fill="#6F6E69">Catalog Service</text>
@@ -71,7 +71,7 @@
 <clipPath id="clip-sq-aws-dynamodb-392-598-16"><rect x="392" y="598" width="16" height="16" rx="2"/></clipPath><g clip-path="url(#clip-sq-aws-dynamodb-392-598-16)" opacity="0.6"><use href="#sq-aws-dynamodb" x="392" y="598" width="16" height="16"/></g>
 <clipPath id="clip-sq-aws-opensearch-service-372-598-16"><rect x="372" y="598" width="16" height="16" rx="2"/></clipPath><g clip-path="url(#clip-sq-aws-opensearch-service-372-598-16)" opacity="0.6"><use href="#sq-aws-opensearch-service" x="372" y="598" width="16" height="16"/></g>
 </g>
-<g opacity="0.75">
+<g data-path="accounts" data-kind="context-card" opacity="0.75">
 <rect x="396" y="274" width="200" height="88" rx="6" fill="#FFFFFF" stroke="#D8D7D3" stroke-width="1.5" stroke-dasharray="4 3"/>
 <rect x="396" y="274" width="4" height="88" rx="2" fill="#6F6E69"/>
 <text x="414" y="308" font-size="15" font-weight="500" fill="#6F6E69">Account Service</text>

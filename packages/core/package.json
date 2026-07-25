@@ -8,7 +8,8 @@
     "build": "npm run grammar && tsc -p tsconfig.build.json && mkdir -p dist/grammar && cp src/grammar/parser.js src/grammar/parser.terms.js dist/grammar/",
     "typecheck": "tsc --noEmit",
     "test": "npm run grammar && vitest run",
-    "demo": "npm run grammar && tsx scripts/demo.ts"
+    "demo": "npm run grammar && tsx scripts/demo.ts",
+    "gen-metrics": "tsx scripts/gen-metrics.ts && tsx scripts/gen-metrics-module.ts"
   },
   "dependencies": {
     "@lezer/common": "^1.5.2",
@@ -31,6 +32,13 @@
     ".": {
       "types": "./dist/index.d.ts",
       "default": "./dist/index.js"
+    },
+    "./browser": {
+      "types": "./dist/browser.d.ts",
+      "default": "./dist/browser.js"
+    },
+    "./grammar": {
+      "default": "./dist/grammar/parser.js"
     }
   },
   "files": [

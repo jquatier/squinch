@@ -87,7 +87,7 @@ function leaf(n: PNode, t: Theme, opts: RenderOpts, dimmed: boolean, L: string[]
   const op = dimmed ? ` opacity="${DIM}"` : "";
   const ctx = n.kind === "context-leaf";
   const stroke = ctx ? ` stroke-dasharray="4 3"` : "";
-  L.push(`<g${op}>`);
+  L.push(`<g data-path="${esc(n.path)}" data-kind="${n.kind}"${op}>`);
   L.push(
     `<rect x="${n.x}" y="${n.y}" width="${n.w}" height="${n.h}" rx="${R_NODE}" fill="${t.surface}" stroke="${t.border}" stroke-width="1.5"${stroke}/>`,
   );
@@ -111,7 +111,7 @@ function card(n: PNode, t: Theme, dimmed: boolean, L: string[]) {
   // one opacity, never two: dim wins over the context fade
   const op = dimmed ? ` opacity="${DIM}"` : ctx ? ` opacity="0.75"` : "";
   const stroke = ctx ? ` stroke-dasharray="4 3"` : "";
-  L.push(`<g${op}>`);
+  L.push(`<g data-path="${esc(n.path)}" data-kind="${n.kind}"${op}>`);
   L.push(
     `<rect x="${n.x}" y="${n.y}" width="${n.w}" height="${n.h}" rx="6" fill="${t.surface}" stroke="${t.border}" stroke-width="1.5"${stroke}/>`,
   );
@@ -302,7 +302,7 @@ export function renderSVG(p: Positioned, t: Theme, opts: RenderOpts = {}): strin
   // container frames first — recessed surface behind everything (DESIGN §5)
   for (const f of p.frames) {
     body.push(
-      `<rect x="${f.x}" y="${f.y}" width="${f.w}" height="${f.h}" rx="8" fill="${t.surfaceAlt}" stroke="${t.border}" stroke-width="1"/>`,
+      `<rect data-path="${esc(f.path)}" data-kind="frame" x="${f.x}" y="${f.y}" width="${f.w}" height="${f.h}" rx="8" fill="${t.surfaceAlt}" stroke="${t.border}" stroke-width="1"/>`,
     );
     body.push(
       `<text x="${f.x + 14}" y="${f.y + 24}" font-size="13" font-weight="500" fill="${t.muted}">${esc(f.label)}</text>`,

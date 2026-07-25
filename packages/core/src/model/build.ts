@@ -428,6 +428,23 @@ export function buildProject(files: ProjectFile[]): BuildResult {
     model.views.push(view);
   }
 
+  // SPEC §5: every container gets a default view, so zoom navigation always has
+  // somewhere to land. Declaring `view <path>` explicitly customizes that view.
+  const scoped = new Set(model.views.map((v) => v.scope).filter(Boolean) as string[]);
+  for (const path of model.containers.keys()) {
+    if (scoped.has(path)) continue;
+    model.views.push({
+      name: path,
+      scope: path,
+      auto: true,
+      include: [], includeStar: false, exclude: [], expand: [],
+      context: "auto", highlight: [], showDescriptions: false, notes: [],
+      layout: { place: [], routes: [] },
+      loc: model.containers.get(path)!.loc,
+      file: model.containers.get(path)!.file,
+    });
+  }
+
   return {
     model,
     diagnostics,

@@ -16,17 +16,17 @@
 <g><path d="M 152 120 L 152 176" fill="none" stroke="#8A897F" stroke-width="1.5"/>
 <path d="M 152 176 L 158 168 L 146 168 Z" fill="#8A897F"/>
 </g>
-<g>
+<g data-path="orders.api" data-kind="leaf">
 <rect x="72" y="176" width="160" height="64" rx="4" fill="#FFFFFF" stroke="#D8D7D3" stroke-width="1.5"/>
 <clipPath id="clip-sq-aws-api-gateway-84-188-40"><rect x="84" y="188" width="40" height="40" rx="4"/></clipPath><g clip-path="url(#clip-sq-aws-api-gateway-84-188-40)"><use href="#sq-aws-api-gateway" x="84" y="188" width="40" height="40"/></g>
 <text x="136" y="213" font-size="13" font-weight="500" fill="#1C1C1A">API Gateway</text>
 </g>
-<g>
+<g data-path="orders.db" data-kind="leaf">
 <rect x="72" y="440" width="160" height="64" rx="4" fill="#FFFFFF" stroke="#D8D7D3" stroke-width="1.5"/>
 <clipPath id="clip-sq-aws-dynamodb-84-452-40"><rect x="84" y="452" width="40" height="40" rx="4"/></clipPath><g clip-path="url(#clip-sq-aws-dynamodb-84-452-40)"><use href="#sq-aws-dynamodb" x="84" y="452" width="40" height="40"/></g>
 <text x="136" y="477" font-size="13" font-weight="500" fill="#1C1C1A">Orders Table</text>
 </g>
-<g>
+<g data-path="orders.handlers" data-kind="card">
 <rect x="52" y="296" width="200" height="88" rx="6" fill="#FFFFFF" stroke="#D8D7D3" stroke-width="1.5"/>
 <rect x="52" y="296" width="4" height="88" rx="2" fill="#5A57C9"/>
 <text x="70" y="330" font-size="15" font-weight="500" fill="#1C1C1A">API Handlers</text>
@@ -34,7 +34,7 @@
 <clipPath id="clip-sq-aws-lambda-224-356-16"><rect x="224" y="356" width="16" height="16" rx="2"/></clipPath><g clip-path="url(#clip-sq-aws-lambda-224-356-16)" opacity="0.6"><use href="#sq-aws-lambda" x="224" y="356" width="16" height="16"/></g>
 <clipPath id="clip-sq-aws-lambda-204-356-16"><rect x="204" y="356" width="16" height="16" rx="2"/></clipPath><g clip-path="url(#clip-sq-aws-lambda-204-356-16)" opacity="0.6"><use href="#sq-aws-lambda" x="204" y="356" width="16" height="16"/></g>
 </g>
-<g opacity="0.75">
+<g data-path="web" data-kind="context-card" opacity="0.75">
 <rect x="32" y="32" width="240" height="88" rx="6" fill="#FFFFFF" stroke="#D8D7D3" stroke-width="1.5" stroke-dasharray="4 3"/>
 <rect x="32" y="32" width="4" height="88" rx="2" fill="#6F6E69"/>
 <text x="50" y="66" font-size="15" font-weight="500" fill="#6F6E69">Storefront</text>

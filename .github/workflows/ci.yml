@@ -24,6 +24,8 @@ jobs:
       - run: node packages/cli/bin/squinch.js render examples/orders --check
       - run: node packages/cli/bin/squinch.js render examples/landscape --check
       - run: node packages/cli/bin/squinch.js render examples/microservices --check
+      # the playground must keep building (it embeds core via the browser entry)
+      - run: pnpm --filter @squinch/spa build
 
   phase0:
     strategy:

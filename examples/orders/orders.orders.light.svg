@@ -34,42 +34,42 @@
 <g><path d="M 320 350 L 320 366 Q 320 374 328 374 L 688 374 Q 696 374 696 366 L 696 350" fill="none" stroke="#8A897F" stroke-width="1.5"/>
 <path d="M 696 350 L 690 358 L 702 358 Z" fill="#8A897F"/>
 </g>
-<g>
+<g data-path="orders.api" data-kind="leaf">
 <rect x="95" y="32" width="160" height="64" rx="4" fill="#FFFFFF" stroke="#D8D7D3" stroke-width="1.5"/>
 <clipPath id="clip-sq-aws-api-gateway-107-44-40"><rect x="107" y="44" width="40" height="40" rx="4"/></clipPath><g clip-path="url(#clip-sq-aws-api-gateway-107-44-40)"><use href="#sq-aws-api-gateway" x="107" y="44" width="40" height="40"/></g>
 <text x="159" y="69" font-size="13" font-weight="500" fill="#1C1C1A">API Gateway</text>
 </g>
-<g>
+<g data-path="orders.create" data-kind="leaf">
 <rect x="35" y="154" width="200" height="64" rx="4" fill="#FFFFFF" stroke="#D8D7D3" stroke-width="1.5"/>
 <clipPath id="clip-sq-aws-lambda-47-166-40"><rect x="47" y="166" width="40" height="40" rx="4"/></clipPath><g clip-path="url(#clip-sq-aws-lambda-47-166-40)"><use href="#sq-aws-lambda" x="47" y="166" width="40" height="40"/></g>
 <text x="99" y="191" font-size="13" font-weight="500" fill="#1C1C1A">Create Handler</text>
 </g>
-<g>
+<g data-path="orders.get" data-kind="leaf">
 <rect x="283" y="154" width="160" height="64" rx="4" fill="#FFFFFF" stroke="#D8D7D3" stroke-width="1.5"/>
 <clipPath id="clip-sq-aws-lambda-295-166-40"><rect x="295" y="166" width="40" height="40" rx="4"/></clipPath><g clip-path="url(#clip-sq-aws-lambda-295-166-40)"><use href="#sq-aws-lambda" x="295" y="166" width="40" height="40"/></g>
 <text x="347" y="191" font-size="13" font-weight="500" fill="#1C1C1A">Get Handler</text>
 </g>
-<g>
+<g data-path="orders.search" data-kind="leaf">
 <rect x="596" y="154" width="200" height="64" rx="4" fill="#FFFFFF" stroke="#D8D7D3" stroke-width="1.5"/>
 <clipPath id="clip-sq-aws-lambda-608-166-40"><rect x="608" y="166" width="40" height="40" rx="4"/></clipPath><g clip-path="url(#clip-sq-aws-lambda-608-166-40)"><use href="#sq-aws-lambda" x="608" y="166" width="40" height="40"/></g>
 <text x="660" y="191" font-size="13" font-weight="500" fill="#1C1C1A">Search Handler</text>
 </g>
-<g>
+<g data-path="orders.db" data-kind="leaf">
 <rect x="32" y="286" width="160" height="64" rx="4" fill="#FFFFFF" stroke="#D8D7D3" stroke-width="1.5"/>
 <clipPath id="clip-sq-aws-dynamodb-44-298-40"><rect x="44" y="298" width="40" height="40" rx="4"/></clipPath><g clip-path="url(#clip-sq-aws-dynamodb-44-298-40)"><use href="#sq-aws-dynamodb" x="44" y="298" width="40" height="40"/></g>
 <text x="96" y="323" font-size="13" font-weight="500" fill="#1C1C1A">Orders Table</text>
 </g>
-<g>
+<g data-path="orders.sync" data-kind="leaf">
 <rect x="240" y="286" width="160" height="64" rx="4" fill="#FFFFFF" stroke="#D8D7D3" stroke-width="1.5"/>
 <clipPath id="clip-sq-aws-lambda-252-298-40"><rect x="252" y="298" width="40" height="40" rx="4"/></clipPath><g clip-path="url(#clip-sq-aws-lambda-252-298-40)"><use href="#sq-aws-lambda" x="252" y="298" width="40" height="40"/></g>
 <text x="304" y="323" font-size="13" font-weight="500" fill="#1C1C1A">Stream Sync</text>
 </g>
-<g>
+<g data-path="orders.files" data-kind="leaf">
 <rect x="448" y="286" width="120" height="64" rx="4" fill="#FFFFFF" stroke="#D8D7D3" stroke-width="1.5"/>
 <clipPath id="clip-sq-aws-simple-storage-service-460-298-40"><rect x="460" y="298" width="40" height="40" rx="4"/></clipPath><g clip-path="url(#clip-sq-aws-simple-storage-service-460-298-40)"><use href="#sq-aws-simple-storage-service" x="460" y="298" width="40" height="40"/></g>
 <text x="512" y="323" font-size="13" font-weight="500" fill="#1C1C1A">Assets</text>
 </g>
-<g>
+<g data-path="orders.idx" data-kind="leaf">
 <rect x="616" y="286" width="160" height="64" rx="4" fill="#FFFFFF" stroke="#D8D7D3" stroke-width="1.5"/>
 <clipPath id="clip-sq-aws-opensearch-service-628-298-40"><rect x="628" y="298" width="40" height="40" rx="4"/></clipPath><g clip-path="url(#clip-sq-aws-opensearch-service-628-298-40)"><use href="#sq-aws-opensearch-service" x="628" y="298" width="40" height="40"/></g>
 <text x="680" y="323" font-size="13" font-weight="500" fill="#1C1C1A">Search Index</text>

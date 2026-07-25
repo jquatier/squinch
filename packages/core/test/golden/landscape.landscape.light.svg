@@ -13,12 +13,12 @@
 <g><path d="M 152 240 L 152 296" fill="none" stroke="#8A897F" stroke-width="1.5"/>
 <path d="M 152 296 L 158 288 L 146 288 Z" fill="#8A897F"/>
 </g>
-<g>
+<g data-path="customer" data-kind="leaf">
 <rect x="72" y="32" width="160" height="64" rx="4" fill="#FFFFFF" stroke="#D8D7D3" stroke-width="1.5"/>
 <rect x="84" y="44" width="40" height="40" rx="4" fill="#6F6E69"/><text x="104" y="68" text-anchor="middle" font-size="11" font-weight="500" fill="#FFFFFF">☺</text>
 <text x="136" y="69" font-size="13" font-weight="500" fill="#1C1C1A">Customer</text>
 </g>
-<g>
+<g data-path="web" data-kind="card">
 <rect x="32" y="152" width="240" height="88" rx="6" fill="#FFFFFF" stroke="#D8D7D3" stroke-width="1.5"/>
 <rect x="32" y="152" width="4" height="88" rx="2" fill="#5A57C9"/>
 <text x="50" y="186" font-size="15" font-weight="500" fill="#1C1C1A">Storefront</text>
@@ -27,7 +27,7 @@
 <clipPath id="clip-sq-aws-cloudfront-244-212-16"><rect x="244" y="212" width="16" height="16" rx="2"/></clipPath><g clip-path="url(#clip-sq-aws-cloudfront-244-212-16)" opacity="0.6"><use href="#sq-aws-cloudfront" x="244" y="212" width="16" height="16"/></g>
 <clipPath id="clip-sq-aws-amplify-224-212-16"><rect x="224" y="212" width="16" height="16" rx="2"/></clipPath><g clip-path="url(#clip-sq-aws-amplify-224-212-16)" opacity="0.6"><use href="#sq-aws-amplify" x="224" y="212" width="16" height="16"/></g>
 </g>
-<g>
+<g data-path="orders" data-kind="card">
 <rect x="52" y="296" width="200" height="88" rx="6" fill="#FFFFFF" stroke="#D8D7D3" stroke-width="1.5"/>
 <rect x="52" y="296" width="4" height="88" rx="2" fill="#5A57C9"/>
 <text x="70" y="330" font-size="15" font-weight="500" fill="#1C1C1A">Order Service</text>

@@ -25,32 +25,32 @@
 <g><path d="M 380 120 L 380 136 Q 380 144 372 144 L 193 144 Q 185 144 185 152 L 185 176" fill="none" stroke="#8D8C84" stroke-width="1.5"/>
 <path d="M 185 176 L 191 168 L 179 168 Z" fill="#8D8C84"/>
 </g>
-<g>
+<g data-path="catalog.api" data-kind="leaf">
 <rect x="79" y="176" width="160" height="64" rx="4" fill="#212124" stroke="#3B3B40" stroke-width="1.5"/>
 <clipPath id="clip-sq-aws-lambda-91-188-40"><rect x="91" y="188" width="40" height="40" rx="4"/></clipPath><g clip-path="url(#clip-sq-aws-lambda-91-188-40)"><use href="#sq-aws-lambda" x="91" y="188" width="40" height="40"/></g>
 <text x="143" y="213" font-size="13" font-weight="500" fill="#EDEDEA">Catalog API</text>
 </g>
-<g>
+<g data-path="catalog.db" data-kind="leaf">
 <rect x="39" y="298" width="160" height="64" rx="4" fill="#212124" stroke="#3B3B40" stroke-width="1.5"/>
 <clipPath id="clip-sq-aws-dynamodb-51-310-40"><rect x="51" y="310" width="40" height="40" rx="4"/></clipPath><g clip-path="url(#clip-sq-aws-dynamodb-51-310-40)"><use href="#sq-aws-dynamodb" x="51" y="310" width="40" height="40"/></g>
 <text x="103" y="335" font-size="13" font-weight="500" fill="#EDEDEA">Products</text>
 </g>
-<g>
+<g data-path="catalog.idx" data-kind="leaf">
 <rect x="247" y="298" width="200" height="64" rx="4" fill="#212124" stroke="#3B3B40" stroke-width="1.5"/>
 <clipPath id="clip-sq-aws-opensearch-service-259-310-40"><rect x="259" y="310" width="40" height="40" rx="4"/></clipPath><g clip-path="url(#clip-sq-aws-opensearch-service-259-310-40)"><use href="#sq-aws-opensearch-service" x="259" y="310" width="40" height="40"/></g>
 <text x="311" y="335" font-size="13" font-weight="500" fill="#EDEDEA">Product Index</text>
 </g>
-<g>
+<g data-path="catalog.sync" data-kind="leaf">
 <rect x="495" y="298" width="160" height="64" rx="4" fill="#212124" stroke="#3B3B40" stroke-width="1.5"/>
 <clipPath id="clip-sq-aws-lambda-507-310-40"><rect x="507" y="310" width="40" height="40" rx="4"/></clipPath><g clip-path="url(#clip-sq-aws-lambda-507-310-40)"><use href="#sq-aws-lambda" x="507" y="310" width="40" height="40"/></g>
 <text x="559" y="335" font-size="13" font-weight="500" fill="#EDEDEA">Index Sync</text>
 </g>
-<g>
+<g data-path="gw" data-kind="context-leaf">
 <rect x="32" y="56" width="200" height="64" rx="4" fill="#212124" stroke="#3B3B40" stroke-width="1.5" stroke-dasharray="4 3"/>
 <clipPath id="clip-sq-aws-api-gateway-44-68-40"><rect x="44" y="68" width="40" height="40" rx="4"/></clipPath><g clip-path="url(#clip-sq-aws-api-gateway-44-68-40)" opacity="0.6"><use href="#sq-aws-api-gateway" x="44" y="68" width="40" height="40"/></g>
 <text x="96" y="93" font-size="13" font-weight="500" fill="#9C9B94">Edge Gateway</text>
 </g>
-<g opacity="0.75">
+<g data-path="orders" data-kind="context-card" opacity="0.75">
 <rect x="280" y="32" width="200" height="88" rx="6" fill="#212124" stroke="#3B3B40" stroke-width="1.5" stroke-dasharray="4 3"/>
 <rect x="280" y="32" width="4" height="88" rx="2" fill="#9C9B94"/>
 <text x="298" y="66" font-size="15" font-weight="500" fill="#9C9B94">Order Service</text>

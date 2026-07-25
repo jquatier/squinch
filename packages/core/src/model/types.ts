@@ -90,6 +90,8 @@ export interface SView {
   };
   loc: Loc;
   file?: string;
+  /** Synthesized for a container that has no explicit view (SPEC §5). */
+  auto?: boolean;
 }
 
 export interface SModel {

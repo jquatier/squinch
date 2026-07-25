@@ -9,12 +9,12 @@ pack aws
 person customer "Customer"
 
 system web "Storefront" {
-  description: "Next.js storefront"
+  description: "React SPA on S3 behind CloudFront"
   glyph: sys/webapp
 
-  cdn = aws/cloudfront "CDN"
-  app = aws/amplify    "Web App"
-  cdn -> app
+  cdn    = aws/cloudfront "CloudFront"
+  bucket = aws/s3         "React SPA"
+  cdn -> bucket "origin"
 }
 
 // The edge gateway is a single component, so it lives at the top level.
@@ -64,7 +64,7 @@ system accounts "Account Service" {
 
 // ── cross-service wiring ───────────────────────────────────────────────────
 customer -> web.cdn "browses"
-web.app  -> gw      "REST"
+web.cdn  -> gw      "REST /api"
 
 gw -> catalog.api  "browse"
 gw -> orders.api   "checkout"
