@@ -1,10 +1,13 @@
 // Positioned + Theme (+ view annotations) → deterministic SVG string.
 // DESIGN.md-lite; integers, LF, fixed attribute order — the string is the
-// artifact under byte-identity tests.
-import { fit, measure } from "../metrics.js";
+// artifact under byte-identity tests. Sketch themes swap crisp strokes for
+// seeded rough.js paths and hand-lettered type; light/dark output is
+// byte-for-byte what it was before sketch existed.
+import { fit, measure, type FontFamily } from "../metrics.js";
 import { FONTS } from "../fonts.generated.js";
 import { iconMeta } from "../model/packs.js";
 import { iconAsset, symbolId } from "../packs/registry.js";
+import { makeSketcher, type Sketcher } from "./sketch.js";
 import type { Theme } from "../themes/index.js";
 import type { Positioned, PEdge, PNode } from "../layout/layout.js";
 import type { SNote } from "../model/types.js";
@@ -19,20 +22,47 @@ export interface RenderOpts {
   highlight?: string[];
   notes?: SNote[];
   showDescriptions?: boolean;
-  /** Embed the subsetted Inter faces via @font-face (default true), so the
-   *  SVG renders with the exact font the metrics were measured from even in
+  /** Embed the subsetted faces via @font-face (default true), so the SVG
+   *  renders with the exact font the metrics were measured from even in
    *  sandboxed contexts like GitHub's <img>. Off = smaller output for hosts
-   *  that already serve Inter. */
+   *  that already serve the fonts. */
   embedFonts?: boolean;
+  /** Sketch-theme jitter seed — hash(source), threaded in by the API so
+   *  roughness is a pure function of the input (never randomness). */
+  seed?: number;
 }
 
-// Dedicated family name: guarantees the embedded face wins over any page-level
-// Inter, so text width always matches the precomputed metrics tables.
-function fontDefs(): string {
+/** Everything the emitters need beyond geometry: theme, type, jitter. */
+interface RC {
+  t: Theme;
+  fam: FontFamily;
+  fx: (px: number) => number; // theme-scaled font size (sketch type runs larger)
+  sk: Sketcher | null;
+}
+
+// Dedicated family names: guarantee the embedded face wins over any
+// page-level font, so text width always matches the precomputed metrics.
+function fontDefs(t: Theme): string {
+  const cssFamily = t.font.css.split(",")[0];
   const face = (w: "400" | "500") =>
-    `@font-face{font-family:SquinchInter;font-style:normal;font-weight:${w};` +
-    `src:url(data:font/woff2;base64,${FONTS[w]}) format("woff2")}`;
+    `@font-face{font-family:${cssFamily};font-style:normal;font-weight:${w};` +
+    `src:url(data:font/woff2;base64,${FONTS[t.font.metrics][w]}) format("woff2")}`;
   return `<style>${face("400")}${face("500")}</style>`;
+}
+
+/** Crisp fill + theme-appropriate stroke: one rect in light/dark, a fill rect
+ *  under a seeded rough outline in sketch. `extra` lands on the stroke. */
+function box(
+  rc: RC,
+  x: number, y: number, w: number, h: number, rx: number,
+  fill: string, stroke: string, strokeW: number, extra = "",
+): string {
+  if (!rc.sk)
+    return `<rect x="${x}" y="${y}" width="${w}" height="${h}" rx="${rx}" fill="${fill}" stroke="${stroke}" stroke-width="${strokeW}"${extra}/>`;
+  return (
+    `<rect x="${x}" y="${y}" width="${w}" height="${h}" rx="2" fill="${fill}"/>` +
+    `<path d="${rc.sk.rect(x, y, w, h, { roughness: w < 80 ? 0.6 : undefined, multi: w >= 80 })}" fill="none" stroke="${stroke}" stroke-width="${strokeW}" stroke-linecap="round"${extra}/>`
+  );
 }
 
 function edgePath(pts: { x: number; y: number }[], lines: Positioned["lines"]): string {
@@ -76,13 +106,13 @@ const esc = (s: string) =>
   s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
 
 /** Greedy word-wrap against the metrics table; ≤maxLines, last line ellipsized. */
-function wrap(text: string, maxPx: number, sizePx: number, maxLines: number): string[] {
+function wrap(rc: RC, text: string, maxPx: number, sizePx: number, maxLines: number): string[] {
   const words = text.split(" ");
   const lines: string[] = [];
   let cur = "";
   for (const w of words) {
     const attempt = cur ? `${cur} ${w}` : w;
-    if (measure(attempt, sizePx, "400") <= maxPx) cur = attempt;
+    if (measure(attempt, sizePx, "400", rc.fam) <= maxPx) cur = attempt;
     else {
       if (cur) lines.push(cur);
       cur = w;
@@ -93,75 +123,74 @@ function wrap(text: string, maxPx: number, sizePx: number, maxLines: number): st
   const consumed = lines.join(" ").length;
   if (consumed < text.length) {
     const last = lines[lines.length - 1];
-    lines[lines.length - 1] = fit(`${last}${text.slice(consumed)}`, maxPx, sizePx, "400");
+    lines[lines.length - 1] = fit(`${last}${text.slice(consumed)}`, maxPx, sizePx, "400", rc.fam);
   }
   return lines;
 }
 
-function leaf(n: PNode, t: Theme, opts: RenderOpts, dimmed: boolean, L: string[]) {
+function leaf(n: PNode, rc: RC, opts: RenderOpts, dimmed: boolean, L: string[]) {
+  const { t } = rc;
   const op = dimmed ? ` opacity="${DIM}"` : "";
   const ctx = n.kind === "context-leaf";
   const stroke = ctx ? ` stroke-dasharray="4 3"` : "";
   L.push(`<g data-path="${esc(n.path)}" data-kind="${n.kind}"${op}>`);
-  L.push(
-    `<rect x="${n.x}" y="${n.y}" width="${n.w}" height="${n.h}" rx="${R_NODE}" fill="${t.surface}" stroke="${t.border}" stroke-width="1.5"${stroke}/>`,
-  );
+  L.push(box(rc, n.x, n.y, n.w, n.h, R_NODE, t.surface, t.border, 1.5, stroke));
   const px = n.x + PAD, py = n.y + PAD;
-  L.push(iconPlate(n.icon, px, py, PLATE, t, ctx));
+  L.push(iconPlate(n.icon, px, py, PLATE, rc, ctx));
   const maxLabel = n.w - PAD - PLATE - PAD - PAD;
   const withDesc = opts.showDescriptions && n.description;
   const labelY = withDesc ? n.y + n.h / 2 - 1 : n.y + n.h / 2 + 5;
   L.push(
-    `<text x="${px + PLATE + PAD}" y="${labelY}" font-size="13" font-weight="500" fill="${ctx ? t.muted : t.ink}">${esc(fit(n.label, maxLabel, 13, "500"))}</text>`,
+    `<text x="${px + PLATE + PAD}" y="${labelY}" font-size="${rc.fx(13)}" font-weight="500" fill="${ctx ? t.muted : t.ink}">${esc(fit(n.label, maxLabel, rc.fx(13), "500", rc.fam))}</text>`,
   );
   if (withDesc)
     L.push(
-      `<text x="${px + PLATE + PAD}" y="${n.y + n.h / 2 + 15}" font-size="11" fill="${t.muted}">${esc(fit(n.description!, maxLabel, 11, "400"))}</text>`,
+      `<text x="${px + PLATE + PAD}" y="${n.y + n.h / 2 + 15}" font-size="${rc.fx(11)}" fill="${t.muted}">${esc(fit(n.description!, maxLabel, rc.fx(11), "400", rc.fam))}</text>`,
     );
   L.push(`</g>`);
 }
 
-function card(n: PNode, t: Theme, dimmed: boolean, L: string[]) {
+function card(n: PNode, rc: RC, dimmed: boolean, L: string[]) {
+  const { t } = rc;
   const ctx = n.kind === "context-card";
   // one opacity, never two: dim wins over the context fade
   const op = dimmed ? ` opacity="${DIM}"` : ctx ? ` opacity="0.75"` : "";
   const stroke = ctx ? ` stroke-dasharray="4 3"` : "";
   L.push(`<g data-path="${esc(n.path)}" data-kind="${n.kind}"${op}>`);
-  L.push(
-    `<rect x="${n.x}" y="${n.y}" width="${n.w}" height="${n.h}" rx="6" fill="${t.surface}" stroke="${t.border}" stroke-width="1.5"${stroke}/>`,
-  );
+  L.push(box(rc, n.x, n.y, n.w, n.h, 6, t.surface, t.border, 1.5, stroke));
   // accent bar (kind silhouette, DESIGN §3)
   L.push(`<rect x="${n.x}" y="${n.y}" width="4" height="${n.h}" rx="2" fill="${ctx ? t.muted : t.accent}"/>`);
   const tx = n.x + PAD + 6;
   L.push(
-    `<text x="${tx}" y="${n.y + 34}" font-size="15" font-weight="500" fill="${ctx ? t.muted : t.ink}">${esc(fit(n.label, n.w - 60, 15, "500"))}</text>`,
+    `<text x="${tx}" y="${n.y + 34}" font-size="${rc.fx(15)}" font-weight="500" fill="${ctx ? t.muted : t.ink}">${esc(fit(n.label, n.w - 60, rc.fx(15), "500", rc.fam))}</text>`,
   );
   if (n.tagline)
     L.push(
-      `<text x="${tx}" y="${n.y + 54}" font-size="11" fill="${t.muted}">${esc(fit(n.tagline, n.w - 40, 11, "400"))}</text>`,
+      `<text x="${tx}" y="${n.y + 54}" font-size="${rc.fx(11)}" fill="${t.muted}">${esc(fit(n.tagline, n.w - 40, rc.fx(11), "400", rc.fam))}</text>`,
     );
   if (n.glyph) {
     const g = iconMeta(n.glyph.pack, n.glyph.id);
     if (g)
       L.push(
-        `<text x="${n.x + n.w - PAD}" y="${n.y + 22}" text-anchor="end" font-size="10" font-weight="500" fill="${t.muted}">${esc(g.code)}</text>`,
+        `<text x="${n.x + n.w - PAD}" y="${n.y + 22}" text-anchor="end" font-size="${rc.fx(10)}" font-weight="500" fill="${t.muted}">${esc(g.code)}</text>`,
       );
   }
   // preview strip: up to 3 inner icons, bottom-right, 16px at 60%
   n.preview.forEach((icon, i) => {
     const ix = n.x + n.w - PAD - 16 - i * 20;
     const iy = n.y + n.h - PAD - 16;
-    L.push(iconPlate(icon, ix, iy, 16, t, true));
+    L.push(iconPlate(icon, ix, iy, 16, rc, true));
   });
   L.push(`</g>`);
 }
 
-function notes(p: Positioned, t: Theme, list: SNote[], L: string[]) {
+function notes(p: Positioned, rc: RC, list: SNote[], L: string[]) {
+  const { t } = rc;
   const byPath = new Map(p.nodes.map((n) => [n.path, n]));
   for (const note of list) {
     const inner = 176;
-    const lines = wrap(note.text, inner, 11, 3);
-    const w = Math.min(200, Math.max(...lines.map((l) => measure(l, 11, "400"))) + 24);
+    const lines = wrap(rc, note.text, inner, rc.fx(11), 3);
+    const w = Math.min(200, Math.max(...lines.map((l) => measure(l, rc.fx(11), "400", rc.fam))) + 24);
     const h = lines.length * 15 + 12;
     let x = 0, y = 0;
     let leader: { x1: number; y1: number; x2: number; y2: number } | undefined;
@@ -194,10 +223,10 @@ function notes(p: Positioned, t: Theme, list: SNote[], L: string[]) {
       L.push(
         `<line x1="${Math.round(leader.x1)}" y1="${Math.round(leader.y1)}" x2="${Math.round(leader.x2)}" y2="${Math.round(leader.y2)}" stroke="${t.muted}" stroke-width="1" stroke-dasharray="2 3"/>`,
       );
-    L.push(`<rect x="${x}" y="${y}" width="${w}" height="${h}" rx="3" fill="${bg}" stroke="${t.border}" stroke-width="1"/>`);
+    L.push(box(rc, x, y, w, h, 3, bg, t.border, 1));
     lines.forEach((line, i) =>
       L.push(
-        `<text x="${x + 12}" y="${y + 17 + i * 15}" font-size="11" fill="${t.ink}">${esc(line)}</text>`,
+        `<text x="${x + 12}" y="${y + 17 + i * 15}" font-size="${rc.fx(11)}" fill="${t.ink}">${esc(line)}</text>`,
       ),
     );
   }
@@ -213,7 +242,7 @@ const intersects = (a: Pill | { x: number; y: number; w: number; h: number }, b:
  * a pill overlapping a node or an earlier pill shifts down until clear
  * (DESIGN: a label never sits on another label — enforced, not hoped).
  */
-function computePills(p: Positioned, edgeMatches: (e: PEdge) => boolean): Pill[] {
+function computePills(p: Positioned, rc: RC, edgeMatches: (e: PEdge) => boolean): Pill[] {
   const byPath = new Map(p.nodes.map((n) => [n.path, n]));
   const nodeBottom = (path: string) => {
     const n = byPath.get(path)!;
@@ -231,8 +260,8 @@ function computePills(p: Positioned, edgeMatches: (e: PEdge) => boolean): Pill[]
     let my = Math.round((e.points[bi].y + e.points[bi + 1].y) / 2);
     // labels truncate like node labels do, and a pill never leaves the canvas
     const maxW = Math.max(60, Math.min(240, p.width - 16));
-    const label = fit(e.label, maxW - 12, 11, "400");
-    const w = Math.round(measure(label, 11, "400")) + 12;
+    const label = fit(e.label, maxW - 12, rc.fx(11), "400", rc.fam);
+    const w = Math.round(measure(label, rc.fx(11), "400", rc.fam)) + 12;
     const relocated = w > best - 8;
     if (relocated) my = Math.max(nodeBottom(e.from), nodeBottom(e.to)) + 17;
     let x = mx - Math.round(w / 2);
@@ -253,11 +282,12 @@ function computePills(p: Positioned, edgeMatches: (e: PEdge) => boolean): Pill[]
   return pills;
 }
 
-function pillMarkup(pill: Pill, t: Theme): string {
+function pillMarkup(pill: Pill, rc: RC): string {
+  const { t } = rc;
   const op = pill.dimmed ? ` opacity="${DIM}"` : "";
   return (
-    `<g${op}><rect x="${pill.x}" y="${pill.y}" width="${pill.w}" height="${pill.h}" rx="2" fill="${t.surface}" stroke="${t.border}" stroke-width="1"/>` +
-    `<text x="${pill.mx}" y="${pill.y + 13}" text-anchor="middle" font-size="11" fill="${t.muted}">${esc(pill.label)}</text></g>`
+    `<g${op}>` + box(rc, pill.x, pill.y, pill.w, pill.h, 2, t.surface, t.border, 1) +
+    `<text x="${pill.mx}" y="${pill.y + 13}" text-anchor="middle" font-size="${rc.fx(11)}" fill="${t.muted}">${esc(pill.label)}</text></g>`
   );
 }
 
@@ -284,11 +314,13 @@ function iconDefs(p: Positioned): string {
   return symbols.length ? `<defs>\n${symbols.join("\n")}\n</defs>` : "";
 }
 
-/** Icon artwork clipped to our plate radius, or a lettered fallback plate. */
+/** Icon artwork clipped to our plate radius, or a lettered fallback plate.
+ *  Always crisp — the AWS art is verbatim; sketch roughness stops at its edge. */
 function iconPlate(
   icon: { pack: string; id: string } | undefined,
-  x: number, y: number, size: number, t: Theme, soften = false,
+  x: number, y: number, size: number, rc: RC, soften = false,
 ): string {
+  const { t } = rc;
   const meta = icon ? iconMeta(icon.pack, icon.id) : undefined;
   const asset = icon ? iconAsset(icon.pack, icon.id) : undefined;
   const r = Math.max(2, Math.round(size / 10));
@@ -307,12 +339,18 @@ function iconPlate(
   return (
     `<rect x="${x}" y="${y}" width="${size}" height="${size}" rx="${r}" fill="${meta?.color ?? t.muted}"${soften ? ` opacity="0.6"` : ""}/>` +
     (size >= 24
-      ? `<text x="${x + size / 2}" y="${y + size / 2 + 4}" text-anchor="middle" font-size="11" font-weight="500" fill="${t.plateText}">${esc(code)}</text>`
+      ? `<text x="${x + size / 2}" y="${y + size / 2 + 4}" text-anchor="middle" font-size="${rc.fx(11)}" font-weight="500" fill="${t.plateText}">${esc(code)}</text>`
       : "")
   );
 }
 
 export function renderSVG(p: Positioned, t: Theme, opts: RenderOpts = {}): string {
+  const rc: RC = {
+    t,
+    fam: t.font.metrics,
+    fx: (px) => Math.round(px * t.font.scale),
+    sk: t.sketch ? makeSketcher(opts.seed ?? 1, t.sketch.roughness, t.sketch.bowing) : null,
+  };
   const hl = opts.highlight ?? [];
   const nodeMatches = (n: PNode) => hl.length === 0 || n.tags.some((tag) => hl.includes(tag));
   const byPath = new Map(p.nodes.map((n) => [n.path, n]));
@@ -323,11 +361,16 @@ export function renderSVG(p: Positioned, t: Theme, opts: RenderOpts = {}): strin
 
   // container frames first — recessed surface behind everything (DESIGN §5)
   for (const f of p.frames) {
+    if (rc.sk) {
+      body.push(`<g data-path="${esc(f.path)}" data-kind="frame">` +
+        box(rc, f.x, f.y, f.w, f.h, 8, t.surfaceAlt, t.border, 1) + `</g>`);
+    } else {
+      body.push(
+        `<rect data-path="${esc(f.path)}" data-kind="frame" x="${f.x}" y="${f.y}" width="${f.w}" height="${f.h}" rx="8" fill="${t.surfaceAlt}" stroke="${t.border}" stroke-width="1"/>`,
+      );
+    }
     body.push(
-      `<rect data-path="${esc(f.path)}" data-kind="frame" x="${f.x}" y="${f.y}" width="${f.w}" height="${f.h}" rx="8" fill="${t.surfaceAlt}" stroke="${t.border}" stroke-width="1"/>`,
-    );
-    body.push(
-      `<text x="${f.x + 14}" y="${f.y + 24}" font-size="13" font-weight="500" fill="${t.muted}">${esc(f.label)}</text>`,
+      `<text x="${f.x + 14}" y="${f.y + 24}" font-size="${rc.fx(13)}" font-weight="500" fill="${t.muted}">${esc(f.label)}</text>`,
     );
   }
 
@@ -340,15 +383,18 @@ export function renderSVG(p: Positioned, t: Theme, opts: RenderOpts = {}): strin
     // prefers-reduced-motion turns it off entirely
     const anim = e.async && e.animate ? ` class="sq-flow"` : "";
     const op = dimmed ? ` opacity="${DIM}"` : "";
-    body.push(`<g${op}><path${anim} d="${edgePath(e.points, p.lines)}" fill="none" stroke="${col}" stroke-width="1.5"${dash}/>`);
+    const d = edgePath(e.points, p.lines);
+    body.push(
+      `<g${op}><path${anim} d="${rc.sk ? rc.sk.path(d) : d}" fill="none" stroke="${col}" stroke-width="1.5"${dash}${rc.sk ? ` stroke-linecap="round"` : ""}/>`,
+    );
     body.push(arrow(e, t));
     body.push(`</g>`);
   }
 
   for (const n of p.nodes) {
     const dimmed = !nodeMatches(n);
-    if (n.kind === "card" || n.kind === "context-card") card(n, t, dimmed, body);
-    else leaf(n, t, opts, dimmed, body);
+    if (n.kind === "card" || n.kind === "context-card") card(n, rc, dimmed, body);
+    else leaf(n, rc, opts, dimmed, body);
     if (!dimmed && hl.length > 0)
       body.push(
         `<rect x="${n.x - 3}" y="${n.y - 3}" width="${n.w + 6}" height="${n.h + 6}" rx="${R_NODE + 3}" fill="none" stroke="${t.accent}" stroke-width="1.5" opacity="0.8"/>`,
@@ -356,17 +402,17 @@ export function renderSVG(p: Positioned, t: Theme, opts: RenderOpts = {}): strin
   }
 
   // labels last, collision-resolved; canvas grows if a pill was pushed below
-  const pills = computePills(p, edgeMatches);
-  for (const pill of pills) body.push(pillMarkup(pill, t));
+  const pills = computePills(p, rc, edgeMatches);
+  for (const pill of pills) body.push(pillMarkup(pill, rc));
   const height = Math.max(p.height, ...pills.map((pl) => pl.y + pl.h + 16));
 
-  if (opts.notes?.length) notes({ ...p, height }, t, opts.notes, body);
+  if (opts.notes?.length) notes({ ...p, height }, rc, opts.notes, body);
 
   const L: string[] = [];
   L.push(
-    `<svg xmlns="http://www.w3.org/2000/svg" width="${p.width}" height="${height}" viewBox="0 0 ${p.width} ${height}" font-family="SquinchInter, Inter, system-ui, sans-serif">`,
+    `<svg xmlns="http://www.w3.org/2000/svg" width="${p.width}" height="${height}" viewBox="0 0 ${p.width} ${height}" font-family="${t.font.css}">`,
   );
-  if (opts.embedFonts !== false) L.push(fontDefs());
+  if (opts.embedFonts !== false) L.push(fontDefs(t));
   if (p.edges.some((e) => e.async && e.animate))
     L.push(
       // dasharray period is 10px (6+4); -10 per 0.9s ≈ 11px/s, everywhere

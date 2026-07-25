@@ -3,7 +3,11 @@ import { Editor } from "./Editor";
 import { compile, decodeShare, encodeShare, type Preview } from "./squinch";
 import { EXAMPLES } from "./examples";
 
-type Theme = "light" | "dark";
+type Theme = "light" | "dark" | "sketch" | "sketch-dark";
+const THEME_CYCLE: Theme[] = ["light", "dark", "sketch", "sketch-dark"];
+const THEME_LABEL: Record<Theme, string> = {
+  light: "Light", dark: "Dark", sketch: "Sketch", "sketch-dark": "Sketch dark",
+};
 
 const STORAGE_KEY = "squinch:source";
 
@@ -39,7 +43,8 @@ export function App() {
   const debounced = useDebounced(source, 180);
 
   useEffect(() => {
-    document.documentElement.dataset.theme = theme;
+    // app chrome only knows light/dark; sketch maps to its nearest shade
+    document.documentElement.dataset.theme = theme.includes("dark") ? "dark" : "light";
     localStorage.setItem("squinch:theme", theme);
   }, [theme]);
 
@@ -194,8 +199,12 @@ export function App() {
           </div>
         )}
 
-        <button onClick={() => setTheme(theme === "light" ? "dark" : "light")} className={btn}>
-          {theme === "light" ? "Dark" : "Light"}
+        <button
+          onClick={() => setTheme(THEME_CYCLE[(THEME_CYCLE.indexOf(theme) + 1) % THEME_CYCLE.length])}
+          className={btn}
+          title="Cycle theme"
+        >
+          {THEME_LABEL[theme]}
         </button>
         <button onClick={share} className={btn} title="Copy a link — the source travels in the URL fragment">
           Share

@@ -17,7 +17,7 @@ describe("font embedding", () => {
     expect(r.ok).toBe(true);
     for (const w of ["400", "500"] as const) {
       expect(r.svg).toContain(`font-weight:${w}`);
-      expect(r.svg).toContain(FONTS[w].slice(0, 40)); // the actual data, not just a rule
+      expect(r.svg).toContain(FONTS.inter[w].slice(0, 40)); // the actual data, not just a rule
     }
     expect(r.svg).toContain(`font-family="SquinchInter, Inter, system-ui, sans-serif"`);
     expect(validateSVG(r.svg!).ok).toBe(true);
@@ -35,7 +35,7 @@ describe("font embedding", () => {
 
   it("the generated subsets are real woff2", () => {
     for (const w of ["400", "500"] as const) {
-      const bytes = Buffer.from(FONTS[w], "base64");
+      const bytes = Buffer.from(FONTS.inter[w], "base64");
       expect(bytes.subarray(0, 4).toString("latin1")).toBe("wOF2");
       expect(bytes.length).toBeGreaterThan(4000);
     }

@@ -6,9 +6,9 @@ committing a visual change. What looks bad here becomes the next fix.
 
 ## 01-minimal — `tiny`
 
-| light | dark |
-|---|---|
-| ![](out/01-minimal.tiny.light.svg) | ![](out/01-minimal.tiny.dark.svg) |
+| light | dark | sketch | sketch-dark |
+|---|---|---|---|
+| ![](out/01-minimal.tiny.light.svg) | ![](out/01-minimal.tiny.dark.svg) | ![](out/01-minimal.tiny.sketch.svg) | ![](out/01-minimal.tiny.sketch-dark.svg) |
 
 ## 02-fan-out — `fan`
 
@@ -36,9 +36,9 @@ committing a visual change. What looks bad here becomes the next fix.
 
 ## 06-dense-mesh — `mesh`
 
-| light | dark |
-|---|---|
-| ![](out/06-dense-mesh.mesh.light.svg) | ![](out/06-dense-mesh.mesh.dark.svg) |
+| light | dark | sketch | sketch-dark |
+|---|---|---|---|
+| ![](out/06-dense-mesh.mesh.light.svg) | ![](out/06-dense-mesh.mesh.dark.svg) | ![](out/06-dense-mesh.mesh.sketch.svg) | ![](out/06-dense-mesh.mesh.sketch-dark.svg) |
 
 ## 07-nested-frames — `platform`
 
@@ -48,9 +48,9 @@ committing a visual change. What looks bad here becomes the next fix.
 
 ## 08-landscape — `landscape`
 
-| light | dark |
-|---|---|
-| ![](out/08-landscape.landscape.light.svg) | ![](out/08-landscape.landscape.dark.svg) |
+| light | dark | sketch | sketch-dark |
+|---|---|---|---|
+| ![](out/08-landscape.landscape.light.svg) | ![](out/08-landscape.landscape.dark.svg) | ![](out/08-landscape.landscape.sketch.svg) | ![](out/08-landscape.landscape.sketch-dark.svg) |
 
 ## 09-coplanar-row — `row`
 
@@ -60,9 +60,9 @@ committing a visual change. What looks bad here becomes the next fix.
 
 ## 10-highlight-notes — `pci`
 
-| light | dark |
-|---|---|
-| ![](out/10-highlight-notes.pci.light.svg) | ![](out/10-highlight-notes.pci.dark.svg) |
+| light | dark | sketch | sketch-dark |
+|---|---|---|---|
+| ![](out/10-highlight-notes.pci.light.svg) | ![](out/10-highlight-notes.pci.dark.svg) | ![](out/10-highlight-notes.pci.sketch.svg) | ![](out/10-highlight-notes.pci.sketch-dark.svg) |
 
 ## 11-async-mesh — `events`
 

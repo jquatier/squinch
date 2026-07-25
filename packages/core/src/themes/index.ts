@@ -1,5 +1,16 @@
 // Theme tokens — the DESIGN.md §2 color-role contract (v1 subset).
 // Dark is designed, not inverted (DESIGN §6).
+export interface ThemeFont {
+  /** CSS font-family stack; first entry is the embedded face's family name. */
+  css: string;
+  /** which metrics/embedding family backs this theme */
+  metrics: "inter" | "caveat";
+  /** Caveat runs small at a given px — sketch scales type up so it reads at
+   *  the same optical size. Applied to font sizes AND text measurement, so
+   *  layout stays truthful. */
+  scale: number;
+}
+
 export interface Theme {
   name: string;
   canvas: string;
@@ -13,10 +24,25 @@ export interface Theme {
   accent: string; // card accent bar, highlight ring
   warnTint: string; // warning-styled note chips
   surfaceAlt: string; // container-frame recession (DESIGN §5)
+  font: ThemeFont;
+  /** present = hand-drawn strokes via the seeded rough generator (DESIGN §6) */
+  sketch?: { roughness: number; bowing: number };
 }
+
+const inter: ThemeFont = {
+  css: "SquinchInter, Inter, system-ui, sans-serif",
+  metrics: "inter",
+  scale: 1,
+};
+const caveat: ThemeFont = {
+  css: "SquinchCaveat, Caveat, cursive",
+  metrics: "caveat",
+  scale: 1.3,
+};
 
 export const light: Theme = {
   name: "light",
+  font: inter,
   canvas: "#F7F7F5",
   surface: "#FFFFFF",
   border: "#D8D7D3",
@@ -32,6 +58,7 @@ export const light: Theme = {
 
 export const dark: Theme = {
   name: "dark",
+  font: inter,
   canvas: "#161618",
   surface: "#212124",
   border: "#3B3B40",
@@ -45,4 +72,43 @@ export const dark: Theme = {
   surfaceAlt: "#1D1D20",
 };
 
-export const themes: Record<string, Theme> = { light, dark };
+// Sketch: warm paper, ink-forward strokes, hand-lettered type. Not a palette
+// swap of light — surfaces warm up, borders darken toward pen ink (DESIGN §6).
+export const sketch: Theme = {
+  name: "sketch",
+  font: caveat,
+  sketch: { roughness: 1.1, bowing: 1 },
+  canvas: "#FAF6EE",
+  surface: "#FFFDF7",
+  border: "#4A453C",
+  ink: "#26221C",
+  muted: "#6E675A",
+  edge: "#57503F",
+  asyncEdge: "#6357C9",
+  plateText: "#FFFFFF",
+  accent: "#5A57C9",
+  warnTint: "#FBF0D2",
+  surfaceAlt: "#F3EDDF",
+};
+
+// Sketch-dark: chalk on slate — light strokes, deep board, same hand.
+export const sketchDark: Theme = {
+  name: "sketch-dark",
+  font: caveat,
+  sketch: { roughness: 1.1, bowing: 1 },
+  canvas: "#1E2022",
+  surface: "#26292C",
+  border: "#C9C4B4",
+  ink: "#EFEBDD",
+  muted: "#A39E8F",
+  edge: "#B5B0A0",
+  asyncEdge: "#A79FEF",
+  plateText: "#FFFFFF",
+  accent: "#8B88E8",
+  warnTint: "#3A3423",
+  surfaceAlt: "#22252A",
+};
+
+export const themes: Record<string, Theme> = {
+  light, dark, sketch, "sketch-dark": sketchDark,
+};

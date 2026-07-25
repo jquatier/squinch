@@ -90,7 +90,7 @@ Every theme is the full token set of §2 — never a palette swap on top of ligh
 - **`light` / `dark`** (v1, flagship): near-neutral surfaces, restrained accent,
   AAA-contrast ink. Dark is designed, not inverted: icon plates lighten, borders
   drop contrast, canvas is near-black not gray.
-- **`sketch` / `sketch-dark`** (v1.1): rough.js strokes + a hand-lettered font
+- **`sketch` / `sketch-dark`**: rough.js strokes + a hand-lettered font
   (bundled, metrics-precomputed like everything else). Roughness/jitter is seeded
   from `hash(source)` — **deterministically rough**, so the lockfile model holds.
 - **`blueprint`** (v2): white-on-Prussian-blue monoline, mono glyphs only, grid dots.

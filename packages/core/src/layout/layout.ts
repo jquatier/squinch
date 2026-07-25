@@ -7,10 +7,11 @@ import ELKModule from "elkjs/lib/elk.bundled.js";
 
 // elkjs ships a CJS class with no construct signature in its types
 const ELK = ELKModule as unknown as { new (): { layout(graph: unknown): Promise<any> } };
-import { measure } from "../metrics.js";
+import { measure, type FontFamily } from "../metrics.js";
 import { resolveView } from "../view/resolve.js";
 import type { VNode, VEdge } from "../view/resolve.js";
 import type { SModel, SView, Side, Diagnostic } from "../model/types.js";
+import type { ThemeFont } from "../themes/index.js";
 
 const LEAF_TIERS = [120, 160, 200, 240];
 const CARD_TIERS = [200, 240, 280, 320];
@@ -39,19 +40,30 @@ export interface Positioned {
   lines: "orthogonal" | "curved" | "straight";
 }
 
-function sizeOf(n: VNode): { w: number; h: number } {
+// Node width depends on the theme's font (sketch measures hand-lettered
+// Caveat at its own scale) — the theme is a determinism input, so this is
+// still a pure function of (source, theme).
+const INTER: Pick<ThemeFont, "metrics" | "scale"> = { metrics: "inter", scale: 1 };
+
+function sizeOf(n: VNode, font: Pick<ThemeFont, "metrics" | "scale">): { w: number; h: number } {
+  const fam = font.metrics as FontFamily;
+  const fx = (px: number) => Math.round(px * font.scale);
   const isCard = n.kind === "card" || n.kind === "context-card";
   if (isCard) {
-    const need = PAD + Math.max(measure(n.label, 15, "500"), measure(n.tagline ?? "", 11, "400")) + PAD + 28;
+    const need = PAD + Math.max(
+      measure(n.label, fx(15), "500", fam),
+      measure(n.tagline ?? "", fx(11), "400", fam),
+    ) + PAD + 28;
     return { w: CARD_TIERS.find((t) => t >= need) ?? CARD_TIERS[CARD_TIERS.length - 1], h: CARD_H };
   }
-  const need = PAD + PLATE + PAD + measure(n.label, 13, "500") + PAD;
+  const need = PAD + PLATE + PAD + measure(n.label, fx(13), "500", fam) + PAD;
   return { w: LEAF_TIERS.find((t) => t >= need) ?? LEAF_TIERS[LEAF_TIERS.length - 1], h: LEAF_H };
 }
 
 export async function layoutView(
   model: SModel,
   view: SView,
+  font: Pick<ThemeFont, "metrics" | "scale"> = INTER,
 ): Promise<{ positioned: Positioned; diagnostics: Diagnostic[] }> {
   const graph = resolveView(model, view);
   const diagnostics = [...graph.diagnostics];
@@ -208,7 +220,7 @@ export async function layoutView(
 
   const leafChild = (p: string) => {
     const n = byPath.get(p)!;
-    const { w, h } = sizeOf(n);
+    const { w, h } = sizeOf(n, font);
     const ports = elkEdges.flatMap((e) => {
       const s = sidesOf(e);
       const out: any[] = [];

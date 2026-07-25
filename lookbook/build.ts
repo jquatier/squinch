@@ -17,6 +17,8 @@ rmSync(outDir, { recursive: true, force: true });
 mkdirSync(outDir, { recursive: true });
 
 const THEMES = ["light", "dark"];
+// sketch snapshots on a curated subset (the Caveat embed adds ~110KB per SVG)
+const SKETCH_CASES = new Set(["01-minimal", "06-dense-mesh", "08-landscape", "10-highlight-notes"]);
 const cases = readdirSync(join(here, "cases")).filter((f) => f.endsWith(".squinch")).sort();
 
 interface Cell { caseName: string; view: string; files: Record<string, string> }
@@ -35,9 +37,10 @@ for (const file of cases) {
   }
   const explicit = built.model.views.filter((v) => !v.auto);
   const views = (explicit.length ? explicit : built.model.views.slice(0, 1)).map((v) => v.name);
+  const caseThemes = SKETCH_CASES.has(caseName) ? [...THEMES, "sketch", "sketch-dark"] : THEMES;
   for (const view of views) {
     const cell: Cell = { caseName, view, files: {} };
-    for (const theme of THEMES) {
+    for (const theme of caseThemes) {
       const r = await renderProject([{ name: file, src }], { view, theme });
       if (!r.ok) {
         console.error(`FAIL ${caseName}/${view}/${theme}\n${formatDiagnostics(r.diagnostics)}`);
@@ -69,8 +72,9 @@ const md: string[] = [
 ];
 for (const c of cells) {
   md.push(`## ${c.caseName} — \`${c.view}\``, "");
-  md.push(`| light | dark |`, `|---|---|`);
-  md.push(`| ![](out/${c.files.light}) | ![](out/${c.files.dark}) |`, "");
+  const themes = Object.keys(c.files);
+  md.push(`| ${themes.join(" | ")} |`, `|${themes.map(() => "---").join("|")}|`);
+  md.push(`| ${themes.map((th) => `![](out/${c.files[th]})`).join(" | ")} |`, "");
 }
 writeFileSync(join(here, "README.md"), md.join("\n"));
 console.log(`lookbook: ${cells.length} views across ${cases.length} cases → lookbook/out/`);
