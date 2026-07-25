@@ -1,0 +1,22 @@
+pack aws
+
+system events "Order Events" {
+  bus      = aws/eventbridge "Event Bus"
+  notify   = aws/lambda      "Email Notifier"
+  mail     = aws/sns         "Email Topic"
+  analytics = aws/lambda     "Analytics Writer"
+  lake     = aws/s3          "Data Lake"
+  dlq      = aws/sqs         "Dead-Letter Queue"
+
+  bus ~> notify    "order events"
+  bus ~> analytics "order events"
+  bus ~> dlq       "failed events"
+  notify -> mail   "send"
+  analytics -> lake "append"
+}
+
+view events {
+  layout {
+    rows [bus] [notify analytics dlq] [mail lake]
+  }
+}

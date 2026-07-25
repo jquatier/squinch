@@ -80,3 +80,17 @@ describe("grammar + model builder", () => {
     expect(r.diagnostics.some((d) => d.severity === "warning")).toBe(true);
   });
 });
+
+  it("keywords are contextual, not reserved (builtin/person, node named view)", () => {
+    const r = buildModel(
+      `system s "S" {\n admin = builtin/person "Admins" person\n view = aws/lambda "View Builder"\n admin -> view\n}`,
+    );
+    expect(r.ok).toBe(true);
+    expect(r.model.nodes.get("s.admin")?.icon).toEqual({ pack: "builtin", id: "person" });
+    expect(r.model.nodes.get("s.view")?.icon).toEqual({ pack: "aws", id: "lambda" });
+  });
+
+  it("box nodes get the builtin box icon", () => {
+    const r = buildModel(`system s "S" {\n a = box "Legacy" external\n}`);
+    expect(r.model.nodes.get("s.a")?.icon).toEqual({ pack: "builtin", id: "box" });
+  });

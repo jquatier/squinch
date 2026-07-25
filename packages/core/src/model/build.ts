@@ -112,7 +112,8 @@ export function buildProject(files: ProjectFile[]): BuildResult {
       }
       const iconRef = decl.getChild("IconRef");
       let icon: SNode["icon"];
-      if (iconRef) {
+      if (!iconRef && decl.getChild("box")) icon = { pack: "builtin", id: "box" };
+      if (iconRef && iconRef.getChildren("Ident").length === 2) {
         const [p, i] = iconRef.getChildren("Ident").map(ctx.text);
         if (!packExists(p)) {
           const s = suggest(p, allPackNames());

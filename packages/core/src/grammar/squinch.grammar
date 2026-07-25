@@ -19,7 +19,9 @@ s { nl | ";" }
 // their trailing seps, with an optional final unterminated item.
 list<x> { s* (x s+)* x? }
 
-kw<term> { @specialize[@name={term}]<Ident, term> }
+// @extend (not @specialize): keywords stay valid as ordinary identifiers,
+// so a node can be called `view`, an icon can be `builtin/person`, etc.
+kw<term> { @extend[@name={term}]<Ident, term> }
 
 PackStmt { kw<"pack"> Ident (kw<"from"> String)? }
 FileTheme { kw<"theme"> Ident }

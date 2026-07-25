@@ -1,0 +1,99 @@
+[
+  {
+    "id": "01-canonical-orders",
+    "prompt": "Create a diagram of a Lambda-based API with three handlers (create, get, search) behind API Gateway, using DynamoDB, S3 and OpenSearch. OpenSearch is kept up to date by an async Lambda listening to the DynamoDB stream. Lay it out in clear tiers.",
+    "expect": {
+      "minNodes": 7,
+      "minAsync": 1,
+      "icons": [["api-gateway"], ["lambda"], ["dynamodb"], ["s3"], ["opensearch", "opensearch-service"]]
+    }
+  },
+  {
+    "id": "02-three-tier",
+    "prompt": "A classic three-tier web app: an Application Load Balancer in front of an ECS (Fargate) service, backed by an Aurora database and an ElastiCache cache. Include the user.",
+    "expect": {
+      "minNodes": 4,
+      "requirePerson": true,
+      "icons": [["elastic-load-balancing", "elb"], ["ecs", "fargate"], ["aurora"], ["elasticache"]]
+    }
+  },
+  {
+    "id": "03-event-driven",
+    "prompt": "Order events flow through EventBridge to two consumers: an email notifier (Lambda plus SNS) and an analytics writer (Lambda plus an S3 data lake). Failed events land in an SQS dead-letter queue. Show asynchronous flows as async.",
+    "expect": {
+      "minNodes": 6,
+      "minAsync": 3,
+      "icons": [["eventbridge"], ["sqs"], ["sns"], ["s3"], ["lambda"]]
+    }
+  },
+  {
+    "id": "04-microservices-zoom",
+    "prompt": "Three microservices (catalog, checkout, identity) behind one API gateway, each service with its own API lambda and its own database. Provide a landscape view plus a zoomed view of the checkout service. Give the services descriptions so their cards read well.",
+    "expect": {
+      "minSystems": 3,
+      "minViews": 2,
+      "minNodes": 7,
+      "icons": [["api-gateway"], ["lambda"]]
+    }
+  },
+  {
+    "id": "05-data-pipeline",
+    "prompt": "Clickstream data pipeline: a Kinesis stream feeds a Lambda transformer that lands data in an S3 data lake; Glue catalogs it and analysts query it with Athena. The analysts are people.",
+    "expect": {
+      "minNodes": 5,
+      "minAsync": 1,
+      "requirePerson": true,
+      "icons": [["kinesis", "kinesis-data-streams"], ["lambda"], ["s3"], ["glue"], ["athena"]]
+    }
+  },
+  {
+    "id": "06-image-processing",
+    "prompt": "Serverless image pipeline: uploads land in an S3 bucket, which asynchronously triggers a Lambda that calls Rekognition for labels, writes metadata to DynamoDB, and notifies subscribers via SNS.",
+    "expect": {
+      "minNodes": 5,
+      "minAsync": 1,
+      "icons": [["s3"], ["lambda"], ["rekognition"], ["dynamodb"], ["sns"]]
+    }
+  },
+  {
+    "id": "07-partner-b2b",
+    "prompt": "A partner company's system (external, not ours) calls our public API Gateway; each request runs a Step Functions workflow that orchestrates a validation Lambda and a billing Lambda which writes to Aurora. Mark the partner system as external.",
+    "expect": {
+      "minNodes": 5,
+      "requireExternal": true,
+      "icons": [["api-gateway"], ["step-functions"], ["lambda"], ["aurora"]]
+    }
+  },
+  {
+    "id": "08-pci-highlight",
+    "prompt": "A payments service: an API Lambda, a tokenizer Lambda, a card vault on DynamoDB, and a settlement worker draining an SQS queue asynchronously. Tag everything that touches card data with #pci, and add a view that highlights the PCI surface with a note explaining where tokens are stored.",
+    "expect": {
+      "minNodes": 5,
+      "minAsync": 1,
+      "requireTag": "pci",
+      "requireHighlight": true,
+      "minNotes": 1,
+      "icons": [["lambda"], ["dynamodb"], ["sqs"]]
+    }
+  },
+  {
+    "id": "09-ml-inference",
+    "prompt": "Realtime ML inference: client apps call an API Gateway and Lambda front end that queries a SageMaker endpoint; features come from a DynamoDB feature store. A nightly batch job asynchronously retrains the model using training data in S3.",
+    "expect": {
+      "minNodes": 6,
+      "minAsync": 1,
+      "icons": [["api-gateway"], ["lambda"], ["sagemaker", "sagemaker-ai"], ["dynamodb"], ["s3"]]
+    }
+  },
+  {
+    "id": "10-hybrid-legacy",
+    "prompt": "A legacy on-premises ERP system (no cloud icon — it is not an AWS service) feeds a sync worker Lambda over an asynchronous link; the worker writes to an RDS database used by a new admin dashboard web app, which administrators (people) use.",
+    "expect": {
+      "minNodes": 4,
+      "minAsync": 1,
+      "requirePerson": true,
+      "requireExternal": true,
+      "icons": [["lambda"], ["rds"]]
+    }
+  }
+]

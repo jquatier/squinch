@@ -1,0 +1,22 @@
+pack aws
+
+erp   = box "Legacy ERP" external
+admin = builtin/person "Administrators" person
+
+system cloud "Cloud Side" {
+  worker = aws/lambda "Sync Worker"
+  db     = aws/rds    "Operational DB"
+  dash   = sys/webapp "Admin Dashboard"
+
+  worker -> db "upserts"
+  dash -> db "reads"
+}
+
+erp ~> cloud.worker "nightly extract"
+admin -> cloud.dash "manages"
+
+view cloud {
+  layout {
+    rows [worker dash] [db]
+  }
+}
