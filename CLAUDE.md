@@ -31,11 +31,16 @@ deterministic rendering. Pre-alpha; currently in Phase 0 (see docs/PLAN.md §3).
 
 ## Current phase
 
-Phase 0 — ELK spike (docs/PLAN.md §3): hand-built model of the canonical example
-through ELK, proving rows-pinning / place / side-routing / port-spread /
-bundled-text-metrics with byte-identical output on two platforms. All five exit
-criteria pass, or hit the decision gate. Timebox ~3 days.
+Phase 0 **passed** (2026-07-24, 5/5 exit criteria — outcome + binding findings in
+docs/PLAN.md §3). The spike lives in `spike/`; CI (`.github/workflows/spike.yml`)
+re-runs it on macOS + Linux against committed golden hashes. Key architecture from
+the spike: same-rank edges bypass ELK and use our coplanar router; declared ranks are
+enforced via invisible scaffold edges. Next: Phase 1 (Lezer grammar → model → full
+layout mapping → themed renderer).
 
 ## Commands
 
-Nothing runnable yet — update this section as the workspace comes to life.
+- `cd spike && npm run spike` — run Phase-0 cases + all exit-criteria assertions
+  (fails on golden hash mismatch; `cp out/*.svg out/hashes.json golden/` to rebless).
+- `cd spike && npm run gen-metrics` — regenerate metrics.json from the bundled Inter
+  fonts (build-time only; layout reads metrics.json exclusively).

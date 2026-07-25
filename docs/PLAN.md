@@ -87,6 +87,20 @@ All five pass → proceed to Phase 1. Any fail → decision gate, in order of pr
 different ELK options/algorithms, post-processing workaround, relax the specific hint's
 contract, or (last resort, big scope) custom layered layout.
 
+> **Phase 0 outcome (2026-07-24): ALL FIVE CRITERIA PASS** (`spike/`, enforced in CI
+> on macOS + Linux against committed golden hashes). Key findings, binding on Phase 1:
+> 1. **ELK layered cannot keep an edge's endpoints in one layer** — any in-layer edge
+>    forces re-layering; `layerChoiceConstraint` and INTERACTIVE layering don't help
+>    (verified minimal-case). Architecture: same-rank ("coplanar") edges are excluded
+>    from the ELK graph and routed by our own deterministic **coplanar router**
+>    (adjacent → straight facing-sides run; blocked → below-band lane); declared ranks
+>    are enforced with invisible **scaffold edges** for nodes whose natural layer is
+>    too shallow; natural-layer-too-deep is reported as a hint conflict.
+> 2. `rows`/`place` map to model order + `forceNodeModelOrder`; port spreading and
+>    perpendicular stubs come free from one-port-per-edge-endpoint with FIXED_SIDE.
+> 3. Bundled-metrics text measurement (Inter via fontkit at build time → committed
+>    `metrics.json`) + integer quantization gave byte-identical SVG on the first try.
+
 **Phase 1 — core pipeline.** Lezer grammar for SPEC §8 (minus [v1.1]/[v2] marks) →
 model builder with multi-file project merge + diagnostics (did-you-mean via
 levenshtein against ids/icons) →
