@@ -15,8 +15,8 @@ jobs:
           node-version: 22
           cache: pnpm
       - run: pnpm install --frozen-lockfile
-      # core must build first: the CLI typechecks against its emitted .d.ts
-      - run: pnpm --filter @squinch/core build
+      # pnpm -r builds in dependency order: core (emits .d.ts) then cli
+      - run: pnpm -r build
       - run: pnpm -r typecheck
       # Golden SVGs are committed from macOS — Linux must byte-match them.
       - run: pnpm -r test
