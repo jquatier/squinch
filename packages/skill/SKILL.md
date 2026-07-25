@@ -62,6 +62,8 @@ Rules that matter:
   from outside, bare `api` from inside.
 - Statements end at newline (or `;`). Labels are quoted strings.
 - Parallel edges between the same pair are fine — give each a label.
+- `~>` edges animate (dashes drift toward the target; still under
+  `prefers-reduced-motion`). Opt out per edge: `{ animate: false }`.
 - `layout { }` blocks go inside a `view`, **never** inside a `system` —
   structure and layout stay separate. Same for `highlight`, `note`, `expand`.
 

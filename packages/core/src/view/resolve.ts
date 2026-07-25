@@ -27,6 +27,7 @@ export interface VEdge {
   to: string;
   label?: string;
   async: boolean;
+  animate: boolean; // async edges animate unless `animate: false` (SPEC §edges)
   count: number; // >1 = aggregate
 }
 
@@ -154,7 +155,10 @@ export function resolveView(model: SModel, view: SView): ViewGraph {
     if (!f || !t || f === t) continue;
     const lifted = f !== e.from || t !== e.to;
     if (!lifted) {
-      edges.push({ id: e.id, from: f, to: t, label: e.label, async: e.arrow === "~>", count: 1 });
+      edges.push({
+        id: e.id, from: f, to: t, label: e.label, async: e.arrow === "~>",
+        animate: e.arrow === "~>" && e.attrs.animate !== "false", count: 1,
+      });
       continue;
     }
     const key = `${f}|${t}`;
@@ -168,13 +172,17 @@ export function resolveView(model: SModel, view: SView): ViewGraph {
     const slot = groupSlot.get(key)!;
     if (g.edges.length === 1) {
       const e = g.edges[0];
-      edges[slot] = { id: e.id, from: g.from, to: g.to, label: e.label, async: e.arrow === "~>", count: 1 };
+      edges[slot] = {
+        id: e.id, from: g.from, to: g.to, label: e.label, async: e.arrow === "~>",
+        animate: e.arrow === "~>" && e.attrs.animate !== "false", count: 1,
+      };
     } else {
       edges[slot] = {
         id: `agg:${g.from}|${g.to}`,
         from: g.from, to: g.to,
         label: `×${g.edges.length}`,
         async: g.edges.every((e) => e.arrow === "~>"),
+        animate: g.edges.every((e) => e.arrow === "~>" && e.attrs.animate !== "false"),
         count: g.edges.length,
       };
     }

@@ -66,7 +66,7 @@
 - **Edge labels**: pill chips (11px, surface bg, radius 2, 1px border) with a canvas
   halo — a label never sits raw on a line, and never collides with another chip.
 - **Aggregate edges** (from lifting): medium weight, neutral, count badge as pill.
-- **Animation** (`~>`, v1.1): CSS `stroke-dashoffset`, constant speed in px/s (not
+- **Animation** (`~>`): CSS `stroke-dashoffset`, constant speed in px/s (not
   per-edge duration — long edges must not "flow faster"), subtle: motion you notice
   peripherally, not a marquee. `prefers-reduced-motion` always respected.
 

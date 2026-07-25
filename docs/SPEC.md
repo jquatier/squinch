@@ -161,7 +161,7 @@ pack.
 ```squinch
 api -> create                       // sync: solid arrow
 api -> create, get, search          // fan-out
-db  ~> sync  "DynamoDB stream"      // async: dashed, animated by default [anim v1.1]
+db  ~> sync  "DynamoDB stream"      // async: dashed, animated by default
 api <-> cache "read/write"          // bidirectional
 web -- cdn                          // undirected association
 

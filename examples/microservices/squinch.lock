@@ -3,11 +3,11 @@
   "files": {
     "microservices.landscape.light.svg": "13b00945e685b176",
     "microservices.landscape.dark.svg": "72d0526eb27c630d",
-    "microservices.catalog.light.svg": "85a54ca6e9fa96cc",
-    "microservices.catalog.dark.svg": "8fd696f9b3d03f3c",
-    "microservices.orders.light.svg": "0341d2b563581da8",
-    "microservices.orders.dark.svg": "8bcba679e3c85bf1",
-    "microservices.orders-pci.light.svg": "f04a7783c3682920",
-    "microservices.orders-pci.dark.svg": "0f01d86411cd783f"
+    "microservices.catalog.light.svg": "d102e1288205b219",
+    "microservices.catalog.dark.svg": "0b912b19fc974d96",
+    "microservices.orders.light.svg": "2165eee911cc1c0e",
+    "microservices.orders.dark.svg": "451e1d9e9a71f36f",
+    "microservices.orders-pci.light.svg": "baa9c3e6515141ec",
+    "microservices.orders-pci.dark.svg": "b5fef12af9226a5d"
   }
 }

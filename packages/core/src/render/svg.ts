@@ -335,8 +335,12 @@ export function renderSVG(p: Positioned, t: Theme, opts: RenderOpts = {}): strin
     const dimmed = !edgeMatches(e);
     const col = e.async ? t.asyncEdge : t.edge;
     const dash = e.async ? ` stroke-dasharray="6 4"` : "";
+    // async flow animation: dashes drift source→target at constant px/s (one
+    // shared keyframe, so long edges never "flow faster"); CSS only, and
+    // prefers-reduced-motion turns it off entirely
+    const anim = e.async && e.animate ? ` class="sq-flow"` : "";
     const op = dimmed ? ` opacity="${DIM}"` : "";
-    body.push(`<g${op}><path d="${edgePath(e.points, p.lines)}" fill="none" stroke="${col}" stroke-width="1.5"${dash}/>`);
+    body.push(`<g${op}><path${anim} d="${edgePath(e.points, p.lines)}" fill="none" stroke="${col}" stroke-width="1.5"${dash}/>`);
     body.push(arrow(e, t));
     body.push(`</g>`);
   }
@@ -363,6 +367,13 @@ export function renderSVG(p: Positioned, t: Theme, opts: RenderOpts = {}): strin
     `<svg xmlns="http://www.w3.org/2000/svg" width="${p.width}" height="${height}" viewBox="0 0 ${p.width} ${height}" font-family="SquinchInter, Inter, system-ui, sans-serif">`,
   );
   if (opts.embedFonts !== false) L.push(fontDefs());
+  if (p.edges.some((e) => e.async && e.animate))
+    L.push(
+      // dasharray period is 10px (6+4); -10 per 0.9s ≈ 11px/s, everywhere
+      `<style>@media (prefers-reduced-motion: no-preference){` +
+        `.sq-flow{animation:sq-flow 0.9s linear infinite}` +
+        `@keyframes sq-flow{to{stroke-dashoffset:-10}}}</style>`,
+    );
   L.push(`<rect width="${p.width}" height="${height}" fill="${t.canvas}"/>`);
   const defs = iconDefs(p);
   if (defs) L.push(defs);
