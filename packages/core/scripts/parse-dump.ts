@@ -7,7 +7,7 @@ const src = readFileSync(process.argv[2], "utf8");
 const tree = parser.parse(src);
 let errors = 0;
 tree.iterate({
-  enter(n) {
+  enter(n: any) {
     if (n.type.isError) {
       errors++;
       const line = src.slice(0, n.from).split("\n").length;

@@ -90,7 +90,7 @@ export function buildProject(files: ProjectFile[]): BuildResult {
     const tree = parser.parse(f.src);
 
     tree.iterate({
-      enter(n) {
+      enter(n: any) {
         if (n.type.isError) {
           const at = f.src.slice(Math.max(0, n.from - 12), n.from + 12).replace(/\n/g, "⏎");
           error(ctx, n.node, `syntax error near \`${at}\``);
@@ -209,8 +209,16 @@ export function buildProject(files: ProjectFile[]): BuildResult {
       const candidate = sc ? `${sc}.${ref}` : ref;
       if (model.nodes.has(candidate) || model.containers.has(candidate)) return candidate;
     }
-    const sug = suggest(ref.split(".").pop()!, allPaths().map((p) => p.split(".").pop()!));
-    error(ctx, at, `unknown id \`${ref}\``, sug ? `did you mean \`${sug}\`?` : undefined);
+    // suggest full paths: a bare `create` that only exists as `a.b.create`
+    // must be shown with its path, or the fix reads as a no-op.
+    const leaf = ref.split(".").pop()!;
+    const candidates = allPaths();
+    const sameLeaf = candidates.filter((p) => p.split(".").pop() === leaf && p !== ref);
+    const sug = sameLeaf[0] ?? suggest(ref, candidates) ?? suggest(leaf, candidates.map((p) => p.split(".").pop()!));
+    const shown = sug && !candidates.includes(sug)
+      ? candidates.find((p) => p.split(".").pop() === sug) ?? sug
+      : sug;
+    error(ctx, at, `unknown id \`${ref}\``, shown ? `did you mean \`${shown}\`?` : undefined);
     return undefined;
   }
 

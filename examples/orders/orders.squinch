@@ -1,0 +1,32 @@
+// The canonical example — SPEC §10.1
+pack aws
+
+system orders "Order Service" {
+  api    = aws/api-gateway "API Gateway"
+  create = aws/lambda      "Create Handler"
+  get    = aws/lambda      "Get Handler"
+  search = aws/lambda      "Search Handler"
+  db     = aws/dynamodb    "Orders Table" {
+    description: "Single-table design, on-demand capacity"
+    tags: #pci
+  }
+  files  = aws/s3          "Assets"
+  idx    = aws/opensearch  "Search Index"
+  sync   = aws/lambda      "Stream Sync"
+
+  api -> create, get, search
+  create -> db, files
+  get    -> db
+  search -> idx
+  db  ~> sync "DynamoDB stream"
+  sync -> idx "index updates"
+}
+
+view orders {
+  theme dark
+  layout {
+    rows [api] [create get search] [db files idx]
+    place sync right-of db
+    route db ~> sync from east to west
+  }
+}

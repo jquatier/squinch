@@ -40,6 +40,15 @@ describe("grammar + model builder", () => {
     expect(d?.fix).toContain("db");
   });
 
+  it("suggests the full path when only a nested id matches", () => {
+    const r = buildModel(
+      `system a "A" {\n container inner "In" {\n  create = aws/lambda "C"\n }\n x = aws/lambda "X"\n x -> create\n}`,
+    );
+    expect(r.ok).toBe(false);
+    // a bare `create` suggestion would read as a no-op fix
+    expect(r.diagnostics[0].fix).toContain("a.inner.create");
+  });
+
   it("errors on duplicate ids", () => {
     const r = buildModel(`system s "S" {\n a = aws/lambda "A"\n a = aws/s3 "A2"\n}`);
     expect(r.ok).toBe(false);

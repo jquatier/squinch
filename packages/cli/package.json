@@ -1,0 +1,23 @@
+{
+  "name": "squinch",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "bin": {
+    "squinch": "./bin/squinch.js"
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "cli": "tsx src/cli.ts"
+  },
+  "dependencies": {
+    "@squinch/core": "workspace:*"
+  },
+  "devDependencies": {
+    "tsx": "^4.23.1",
+    "typescript": "^7.0.2",
+    "vitest": "^4.1.10"
+  }
+}

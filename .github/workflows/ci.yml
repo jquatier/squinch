@@ -2,7 +2,7 @@ name: ci
 on: [push, pull_request]
 
 jobs:
-  core:
+  build:
     strategy:
       matrix:
         os: [ubuntu-latest, macos-latest]
@@ -15,8 +15,13 @@ jobs:
           node-version: 22
           cache: pnpm
       - run: pnpm install --frozen-lockfile
+      - run: pnpm -r typecheck
+      - run: pnpm --filter @squinch/core build
       # Golden SVGs are committed from macOS — Linux must byte-match them.
-      - run: pnpm --filter @squinch/core test
+      - run: pnpm -r test
+      # Dogfood: the repo's own committed diagrams must stay in sync.
+      - run: node packages/cli/bin/squinch.js render examples/orders --check
+      - run: node packages/cli/bin/squinch.js render examples/landscape --check
 
   phase0:
     strategy:

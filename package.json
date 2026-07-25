@@ -8,5 +8,8 @@
   "scripts": {
     "test": "pnpm -r test",
     "build": "pnpm -r build"
+  },
+  "devDependencies": {
+    "@types/node": "^26.1.1"
   }
 }

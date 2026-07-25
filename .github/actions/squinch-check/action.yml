@@ -1,0 +1,20 @@
+name: "Squinch diagram check"
+description: "Fail the build when committed diagram SVGs are stale relative to their .squinch source."
+inputs:
+  path:
+    description: "Path to a .squinch file or a project directory"
+    required: true
+  version:
+    description: "squinch version to run"
+    required: false
+    default: "latest"
+runs:
+  using: composite
+  steps:
+    - uses: actions/setup-node@v4
+      with:
+        node-version: 22
+    # Pin `version` in real use: rendering is deterministic per tool version, so
+    # an unpinned upgrade will legitimately change output and fail the check.
+    - run: npx --yes squinch@${{ inputs.version }} render ${{ inputs.path }} --check
+      shell: bash

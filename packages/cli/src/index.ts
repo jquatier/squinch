@@ -1,0 +1,268 @@
+// squinch CLI — check / render / icons / init / watch.
+// Exit codes: 0 ok, 1 diagnostics-or-stale, 2 usage error.
+import { readFileSync, writeFileSync, mkdirSync, existsSync, watch as fsWatch } from "node:fs";
+import { join, relative, isAbsolute } from "node:path";
+import { createHash } from "node:crypto";
+import {
+  buildProject, renderProject, formatDiagnostics, validateSVG, searchIcons, themes,
+  type Diagnostic,
+} from "@squinch/core";
+import { parseArgs, str } from "./args.js";
+import { loadInput, type Input } from "./project.js";
+
+const VERSION = "0.0.0";
+const THEMES = ["light", "dark"] as const;
+
+const USAGE = `squinch ${VERSION} — architecture diagrams as code
+
+Usage
+  squinch check <path> [--format json]        parse + lint (dir = project)
+  squinch render <path> [options]             render SVG
+  squinch icons search <query> [--pack aws]   find icon ids
+  squinch init [dir]                          scaffold a starter project
+  squinch watch <path> [options]              re-render on change
+
+Render options
+  --view <name>     view to render (default: first)
+  --theme <name>    ${Object.keys(themes).join(" | ")} (default: view's theme)
+  -o <file>         output path (default: stdout)
+  --sync            write every view × theme next to the source, refresh
+                    squinch.lock, and print a README <picture> snippet
+  --check           verify committed SVGs match the source (CI gate)
+`;
+
+function reportDiagnostics(diags: Diagnostic[], json: boolean): void {
+  if (json) {
+    const errors = diags.filter((d) => d.severity === "error").length;
+    console.log(
+      JSON.stringify(
+        { ok: errors === 0, errors, warnings: diags.length - errors, diagnostics: diags },
+        null,
+        2,
+      ),
+    );
+    return;
+  }
+  if (diags.length) console.error(formatDiagnostics(diags));
+}
+
+/** Shortest readable form: relative when inside cwd, absolute otherwise. */
+function display(file: string): string {
+  const rel = relative(process.cwd(), file);
+  return rel.startsWith("..") || isAbsolute(rel) ? file : rel;
+}
+
+function hash(s: string): string {
+  return createHash("sha256").update(s).digest("hex").slice(0, 16);
+}
+
+function viewNames(input: Input): string[] {
+  const built = buildProject(input.files);
+  const names = built.model.views.map((v) => v.name);
+  if (names.length) return names;
+  // implicit view of the first container
+  const first = [...built.model.containers.keys()][0];
+  return first ? [first] : ["default"];
+}
+
+async function renderOne(input: Input, view: string, theme: string): Promise<string> {
+  const r = await renderProject(input.files, { view, theme });
+  if (!r.ok) {
+    reportDiagnostics(r.diagnostics, false);
+    throw new Error(`render failed for view \`${view}\``);
+  }
+  const valid = validateSVG(r.svg!);
+  if (!valid.ok) throw new Error(`internal: produced invalid SVG (${valid.error})`);
+  if (r.diagnostics.length) reportDiagnostics(r.diagnostics, false);
+  return r.svg!;
+}
+
+const outName = (base: string, view: string, theme: string) =>
+  `${base}.${view}.${theme}.svg`;
+
+async function cmdCheck(path: string, json: boolean): Promise<number> {
+  const input = loadInput(path);
+  const built = buildProject(input.files);
+  // layout-stage diagnostics too: render every view
+  const all: Diagnostic[] = [...built.diagnostics];
+  if (built.ok)
+    for (const view of viewNames(input))
+      for (const theme of ["light"]) {
+        const r = await renderProject(input.files, { view, theme });
+        for (const d of r.diagnostics)
+          if (!all.some((x) => x.message === d.message && x.loc.from === d.loc.from)) all.push(d);
+      }
+  reportDiagnostics(all, json);
+  const errors = all.filter((d) => d.severity === "error").length;
+  const warnings = all.length - errors;
+  if (!json)
+    console.error(
+      errors === 0 && warnings === 0
+        ? `${input.files.length} file(s) OK`
+        : `\n${errors} error(s), ${warnings} warning(s)`,
+    );
+  return errors ? 1 : 0;
+}
+
+async function cmdRender(path: string, flags: Record<string, string | boolean>): Promise<number> {
+  const input = loadInput(path);
+  const theme = str(flags.theme);
+  const view = str(flags.view);
+
+  if (flags.sync || flags.check) {
+    const views = viewNames(input);
+    const stale: string[] = [];
+    const written: string[] = [];
+    const lock: Record<string, string> = {};
+    for (const v of views)
+      for (const t of THEMES) {
+        const svg = await renderOne(input, v, t);
+        const file = join(input.dir, outName(input.base, v, t));
+        lock[outName(input.base, v, t)] = hash(svg);
+        if (flags.check) {
+          if (!existsSync(file) || readFileSync(file, "utf8") !== svg)
+            stale.push(display(file));
+        } else {
+          writeFileSync(file, svg);
+          written.push(display(file));
+        }
+      }
+
+    if (flags.check) {
+      if (stale.length) {
+        console.error(
+          `${stale.length} committed diagram(s) are stale or missing:\n` +
+            stale.map((f) => `  ${f}`).join("\n") +
+            `\n\nrun \`squinch render ${path} --sync\` and commit the result`,
+        );
+        return 1;
+      }
+      console.error(`${views.length * THEMES.length} diagram(s) up to date`);
+      return 0;
+    }
+
+    writeFileSync(
+      join(input.dir, "squinch.lock"),
+      JSON.stringify({ version: VERSION, files: lock }, null, 2) + "\n",
+    );
+    console.error(written.map((f) => `wrote ${f}`).join("\n"));
+    console.log(`\n<!-- README snippet -->`);
+    for (const v of views)
+      console.log(
+        `<picture>\n` +
+          `  <source media="(prefers-color-scheme: dark)" srcset="${outName(input.base, v, "dark")}">\n` +
+          `  <img alt="${v}" src="${outName(input.base, v, "light")}">\n` +
+          `</picture>`,
+      );
+    return 0;
+  }
+
+  const svg = await renderOne(input, view ?? viewNames(input)[0], theme ?? "light");
+  const out = str(flags.o) ?? str(flags.output);
+  if (out) {
+    writeFileSync(out, svg);
+    console.error(`wrote ${out}`);
+  } else console.log(svg.trimEnd());
+  return 0;
+}
+
+async function cmdIcons(positionals: string[], flags: Record<string, string | boolean>): Promise<number> {
+  const [sub, ...rest] = positionals;
+  if (sub !== "search") {
+    console.error("usage: squinch icons search <query> [--pack aws]");
+    return 2;
+  }
+  const query = rest.join(" ");
+  const hits = searchIcons(query, str(flags.pack));
+  if (!hits.length) {
+    console.error(`no icons match \`${query}\``);
+    return 1;
+  }
+  console.log(hits.join("\n"));
+  return 0;
+}
+
+const STARTER = `pack aws
+
+system app "My Service" {
+  api = aws/api-gateway "API Gateway"
+  fn  = aws/lambda      "Handler"
+  db  = aws/dynamodb    "Table"
+
+  api -> fn
+  fn  -> db
+}
+
+view app {
+  layout {
+    rows [api] [fn] [db]
+  }
+}
+`;
+
+function cmdInit(dir: string): number {
+  mkdirSync(dir, { recursive: true });
+  const file = join(dir, "diagram.squinch");
+  if (existsSync(file)) {
+    console.error(`${file} already exists — not overwriting`);
+    return 1;
+  }
+  writeFileSync(file, STARTER);
+  console.error(
+    `created ${file}\n\nnext:\n  squinch render ${file} -o diagram.svg\n  squinch render ${file} --sync   # commit-ready SVGs + README snippet`,
+  );
+  return 0;
+}
+
+async function cmdWatch(path: string, flags: Record<string, string | boolean>): Promise<number> {
+  const run = async () => {
+    try {
+      await cmdRender(path, flags);
+    } catch (e) {
+      console.error((e as Error).message);
+    }
+  };
+  await run();
+  console.error(`\nwatching ${path} … (ctrl-c to stop)`);
+  let timer: NodeJS.Timeout | undefined;
+  fsWatch(path, { recursive: true }, () => {
+    clearTimeout(timer);
+    timer = setTimeout(run, 60); // debounce editor write bursts
+  });
+  return new Promise(() => {}); // runs until interrupted
+}
+
+export async function main(argv: string[]): Promise<number> {
+  const { command, positionals, flags } = parseArgs(argv);
+  if (!command || flags.help || flags.h) {
+    console.log(USAGE);
+    return command ? 0 : 2;
+  }
+  if (flags.version || flags.v) {
+    console.log(VERSION);
+    return 0;
+  }
+  try {
+    switch (command) {
+      case "check":
+        if (!positionals[0]) throw new Error("usage: squinch check <path>");
+        return await cmdCheck(positionals[0], flags.format === "json");
+      case "render":
+        if (!positionals[0]) throw new Error("usage: squinch render <path>");
+        return await cmdRender(positionals[0], flags);
+      case "icons":
+        return await cmdIcons(positionals, flags);
+      case "init":
+        return cmdInit(positionals[0] ?? ".");
+      case "watch":
+        if (!positionals[0]) throw new Error("usage: squinch watch <path>");
+        return await cmdWatch(positionals[0], flags);
+      default:
+        console.error(`unknown command \`${command}\`\n\n${USAGE}`);
+        return 2;
+    }
+  } catch (e) {
+    console.error(`error: ${(e as Error).message}`);
+    return 2;
+  }
+}

@@ -3,7 +3,10 @@
 //   - same-rank ("coplanar") edges bypass ELK → our deterministic coplanar router
 //   - one port per edge endpoint with FIXED_SIDE → ELK spreads ports + stubs
 // ELK owns between-rank; we own within-rank. Keep that boundary crisp.
-import ELK from "elkjs/lib/elk.bundled.js";
+import ELKModule from "elkjs/lib/elk.bundled.js";
+
+// elkjs ships a CJS class with no construct signature in its types
+const ELK = ELKModule as unknown as { new (): { layout(graph: unknown): Promise<any> } };
 import { measure } from "../metrics.js";
 import { resolveView } from "../view/resolve.js";
 import type { VNode, VEdge } from "../view/resolve.js";

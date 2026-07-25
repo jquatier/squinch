@@ -4,9 +4,21 @@ import { layoutView } from "./layout/layout.js";
 import { renderSVG } from "./render/svg.js";
 import { validateSVG } from "./render/validate.js";
 import { themes, type Theme } from "./themes/index.js";
+import { packs, iconIds } from "./model/packs.js";
 import type { BuildResult, Diagnostic, SView } from "./model/types.js";
 
 export { buildModel, buildProject, formatDiagnostics, layoutView, renderSVG, validateSVG, themes };
+
+/** Icon search across installed packs — powers `squinch icons search`. */
+export function searchIcons(query: string, pack?: string): string[] {
+  const q = query.toLowerCase();
+  const hits: string[] = [];
+  for (const name of Object.keys(packs)) {
+    if (pack && name !== pack) continue;
+    for (const id of iconIds(name)) if (id.includes(q)) hits.push(`${name}/${id}`);
+  }
+  return hits.sort();
+}
 export type { ProjectFile };
 export type * from "./model/types.js";
 export type { Positioned } from "./layout/layout.js";

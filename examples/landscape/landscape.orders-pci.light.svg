@@ -1,0 +1,52 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="304" height="536" viewBox="0 0 304 536" font-family="Inter, system-ui, sans-serif">
+<rect width="304" height="536" fill="#F7F7F5"/>
+<g opacity="0.35"><path d="M 152 240 L 152 296" fill="none" stroke="#8A897F" stroke-width="1.5"/>
+<path d="M 152 296 L 158 288 L 146 288 Z" fill="#8A897F"/>
+</g>
+<g opacity="0.35"><path d="M 152 384 L 152 440" fill="none" stroke="#8A897F" stroke-width="1.5"/>
+<path d="M 152 440 L 158 432 L 146 432 Z" fill="#8A897F"/>
+</g>
+<g opacity="0.35"><path d="M 152 120 L 152 176" fill="none" stroke="#8A897F" stroke-width="1.5"/>
+<path d="M 152 176 L 158 168 L 146 168 Z" fill="#8A897F"/>
+</g>
+<g opacity="0.35">
+<rect x="72" y="176" width="160" height="64" rx="4" fill="#FFFFFF" stroke="#D8D7D3" stroke-width="1.5"/>
+<rect x="84" y="188" width="40" height="40" rx="4" fill="#B0468C"/>
+<text x="104" y="212" text-anchor="middle" font-size="11" font-weight="500" fill="#FFFFFF">APIGW</text>
+<text x="136" y="213" font-size="13" font-weight="500" fill="#1C1C1A">API Gateway</text>
+</g>
+<g>
+<rect x="72" y="440" width="160" height="64" rx="4" fill="#FFFFFF" stroke="#D8D7D3" stroke-width="1.5"/>
+<rect x="84" y="452" width="40" height="40" rx="4" fill="#4568C9"/>
+<text x="104" y="476" text-anchor="middle" font-size="11" font-weight="500" fill="#FFFFFF">DDB</text>
+<text x="136" y="471" font-size="13" font-weight="500" fill="#1C1C1A">Orders Table</text>
+<text x="136" y="487" font-size="11" fill="#6F6E69">Single-table d…</text>
+</g>
+<rect x="69" y="437" width="166" height="70" rx="7" fill="none" stroke="#5A57C9" stroke-width="1.5" opacity="0.8"/>
+<g opacity="0.35">
+<rect x="52" y="296" width="200" height="88" rx="6" fill="#FFFFFF" stroke="#D8D7D3" stroke-width="1.5"/>
+<rect x="52" y="296" width="4" height="88" rx="2" fill="#5A57C9"/>
+<text x="70" y="330" font-size="15" font-weight="500" fill="#1C1C1A">API Handlers</text>
+<text x="70" y="350" font-size="11" fill="#6F6E69">2 components</text>
+<rect x="224" y="356" width="16" height="16" rx="3" fill="#D9760A" opacity="0.6"/>
+<rect x="204" y="356" width="16" height="16" rx="3" fill="#D9760A" opacity="0.6"/>
+</g>
+<g opacity="0.35">
+<rect x="32" y="32" width="240" height="88" rx="6" fill="#FFFFFF" stroke="#D8D7D3" stroke-width="1.5" stroke-dasharray="4 3"/>
+<rect x="32" y="32" width="4" height="88" rx="2" fill="#6F6E69"/>
+<text x="50" y="66" font-size="15" font-weight="500" fill="#6F6E69">Storefront</text>
+<text x="50" y="86" font-size="11" fill="#6F6E69">Customer-facing web experience</text>
+<text x="260" y="54" text-anchor="end" font-size="10" font-weight="500" fill="#6F6E69">WEB</text>
+<rect x="244" y="92" width="16" height="16" rx="3" fill="#8A5FC9" opacity="0.6"/>
+<rect x="224" y="92" width="16" height="16" rx="3" fill="#C7362E" opacity="0.6"/>
+</g>
+<g opacity="0.35"><rect x="139" y="259" width="26" height="18" rx="2" fill="#FFFFFF" stroke="#D8D7D3" stroke-width="1"/><text x="152" y="272" text-anchor="middle" font-size="11" fill="#6F6E69">×2</text></g>
+<g opacity="0.35"><rect x="139" y="403" width="26" height="18" rx="2" fill="#FFFFFF" stroke="#D8D7D3" stroke-width="1"/><text x="152" y="416" text-anchor="middle" font-size="11" fill="#6F6E69">×2</text></g>
+<g opacity="0.35"><rect x="132" y="139" width="40" height="18" rx="2" fill="#FFFFFF" stroke="#D8D7D3" stroke-width="1"/><text x="152" y="152" text-anchor="middle" font-size="11" fill="#6F6E69">REST</text></g>
+<line x1="256" y1="472" x2="232" y2="472" stroke="#6F6E69" stroke-width="1" stroke-dasharray="2 3"/>
+<rect x="256" y="451" width="173.670895" height="42" rx="3" fill="#FFFFFF" stroke="#D8D7D3" stroke-width="1"/>
+<text x="268" y="468" font-size="11" fill="#1C1C1A">Encrypted at rest (KMS); see</text>
+<text x="268" y="483" font-size="11" fill="#1C1C1A">ADR-31</text>
+<rect x="150" y="16" width="137.75975600000004" height="27" rx="3" fill="#FBF3DC" stroke="#D8D7D3" stroke-width="1"/>
+<text x="162" y="33" font-size="11" fill="#1C1C1A">Audit scope: Q3 2026</text>
+</svg>
