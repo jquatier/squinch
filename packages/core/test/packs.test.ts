@@ -1,5 +1,4 @@
 import { describe, it, expect } from "vitest";
-import { searchIcons } from "../src/api.js";
 
 describe("searchIcons", () => {
   it("never lists an alias next to its canonical id", () => {
