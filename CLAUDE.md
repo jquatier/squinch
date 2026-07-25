@@ -19,6 +19,10 @@ deterministic rendering. Pre-alpha; Phase 2 (see docs/PLAN.md §3).
   (animations are CSS keyframes at constant px/s).
 - **Text metrics never come from the environment** — bundled font + precomputed
   metrics tables only (`src/metrics.generated.ts`). No canvas/DOM measurement.
+  Rendered SVGs embed the subsetted Inter faces as `@font-face` data-URIs
+  (`src/fonts.generated.ts`, family `SquinchInter`) so viewers draw the exact
+  font the metrics were measured from; regenerate both with `npm run
+  gen-metrics` / `npm run gen-fonts` in core.
 - **Core is isomorphic**: shared code imports no `node:` builtins. Node registers
   disk packs via `src/index.ts`; browsers call `registerPack` + `preloadIcons`
   (`src/browser.ts`). Tests boot packs through `test/setup.ts`.

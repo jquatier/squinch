@@ -2,6 +2,7 @@
 // DESIGN.md-lite; integers, LF, fixed attribute order — the string is the
 // artifact under byte-identity tests.
 import { fit, measure } from "../metrics.js";
+import { FONTS } from "../fonts.generated.js";
 import { iconMeta } from "../model/packs.js";
 import { iconAsset, symbolId } from "../packs/registry.js";
 import type { Theme } from "../themes/index.js";
@@ -18,6 +19,20 @@ export interface RenderOpts {
   highlight?: string[];
   notes?: SNote[];
   showDescriptions?: boolean;
+  /** Embed the subsetted Inter faces via @font-face (default true), so the
+   *  SVG renders with the exact font the metrics were measured from even in
+   *  sandboxed contexts like GitHub's <img>. Off = smaller output for hosts
+   *  that already serve Inter. */
+  embedFonts?: boolean;
+}
+
+// Dedicated family name: guarantees the embedded face wins over any page-level
+// Inter, so text width always matches the precomputed metrics tables.
+function fontDefs(): string {
+  const face = (w: "400" | "500") =>
+    `@font-face{font-family:SquinchInter;font-style:normal;font-weight:${w};` +
+    `src:url(data:font/woff2;base64,${FONTS[w]}) format("woff2")}`;
+  return `<style>${face("400")}${face("500")}</style>`;
 }
 
 function edgePath(pts: { x: number; y: number }[], lines: Positioned["lines"]): string {
@@ -338,8 +353,9 @@ export function renderSVG(p: Positioned, t: Theme, opts: RenderOpts = {}): strin
 
   const L: string[] = [];
   L.push(
-    `<svg xmlns="http://www.w3.org/2000/svg" width="${p.width}" height="${height}" viewBox="0 0 ${p.width} ${height}" font-family="Inter, system-ui, sans-serif">`,
+    `<svg xmlns="http://www.w3.org/2000/svg" width="${p.width}" height="${height}" viewBox="0 0 ${p.width} ${height}" font-family="SquinchInter, Inter, system-ui, sans-serif">`,
   );
+  if (opts.embedFonts !== false) L.push(fontDefs());
   L.push(`<rect width="${p.width}" height="${height}" fill="${t.canvas}"/>`);
   const defs = iconDefs(p);
   if (defs) L.push(defs);

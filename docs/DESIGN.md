@@ -113,6 +113,9 @@ deep nesting, gradient-era chrome.
 - Odd stroke widths on half-pixel offsets; positions and sizes integer after layout.
 - `shape-rendering: geometricPrecision`; consistent join/cap (`round`).
 - Text: bundled font, `text-rendering: optimizeLegibility`; no synthetic bold.
+  Exports embed the subsetted faces via `@font-face` data-URIs, so text renders
+  identically in sandboxed viewers (GitHub `<img>`) and on machines without the
+  font installed — what layout measured is what every viewer draws.
 - Export parity: SVG and PNG (resvg) must be visually identical; PNG at 2x default.
 
 ## 9. Quality gates (how "very good" stays true)

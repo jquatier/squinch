@@ -53,7 +53,7 @@ export function viewIndex(src: string): { name: string; scope?: string; title?: 
 /** One-call pipeline: source → SVG for a view (default: first/implicit view). */
 export async function render(
   src: string,
-  opts: { view?: string; theme?: string } = {},
+  opts: { view?: string; theme?: string; embedFonts?: boolean } = {},
 ): Promise<RenderResult> {
   return renderProject([{ name: "input", src }], opts);
 }
@@ -61,7 +61,7 @@ export async function render(
 /** Multi-file project pipeline: files merge into one model namespace (SPEC §2). */
 export async function renderProject(
   files: ProjectFile[],
-  opts: { view?: string; theme?: string } = {},
+  opts: { view?: string; theme?: string; embedFonts?: boolean } = {},
 ): Promise<RenderResult> {
   const built: BuildResult = buildProject(files);
   if (!built.ok) return { diagnostics: built.diagnostics, ok: false };
@@ -103,6 +103,7 @@ export async function renderProject(
       highlight: view.highlight,
       notes: view.notes,
       showDescriptions: view.showDescriptions,
+      embedFonts: opts.embedFonts,
     }),
     diagnostics,
     ok: true,
