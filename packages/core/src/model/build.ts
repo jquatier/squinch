@@ -1,16 +1,34 @@
-// Lezer tree → semantic model + diagnostics. Every diagnostic follows SPEC §9:
-// location + problem + likely fix.
+// Lezer trees → semantic model + diagnostics. Every diagnostic follows SPEC §9:
+// location + problem + likely fix. A project is one or more files merging into a
+// single model namespace: declarations are collected per file, resolution runs
+// across all of them (SPEC §2 "Projects").
 import type { SyntaxNode } from "@lezer/common";
 // @ts-ignore generated
 import { parser } from "../grammar/parser.js";
 import { iconMeta, iconIds, packs as packRegistry } from "./packs.js";
 import { suggest } from "./suggest.js";
 import type {
-  ArrowKind, BuildResult, Diagnostic, Loc, RelPos, SContainer, SEdge, SModel, SNode, SView, Side,
+  ArrowKind, BuildResult, Diagnostic, Loc, RelPos, SContainer, SEdge, SModel, SNode, SNote, SView, Side,
 } from "./types.js";
 
+export interface ProjectFile {
+  name: string;
+  src: string;
+}
+
+interface Ctx {
+  name: string;
+  src: string;
+  text: (n: SyntaxNode) => string;
+  str: (n: SyntaxNode) => string;
+  loc: (n: SyntaxNode) => Loc;
+}
+
 export function buildModel(src: string): BuildResult {
-  const tree = parser.parse(src);
+  return buildProject([{ name: "input", src }]);
+}
+
+export function buildProject(files: ProjectFile[]): BuildResult {
   const diagnostics: Diagnostic[] = [];
   const model: SModel = {
     packs: [],
@@ -20,152 +38,166 @@ export function buildModel(src: string): BuildResult {
     views: [],
   };
 
-  const text = (n: SyntaxNode) => src.slice(n.from, n.to);
-  const str = (n: SyntaxNode) => text(n).slice(1, -1); // strip quotes
-  const loc = (n: SyntaxNode): Loc => {
-    const before = src.slice(0, n.from);
-    const line = before.split("\n").length;
-    const col = n.from - before.lastIndexOf("\n");
-    return { from: n.from, to: n.to, line, col };
-  };
-  const error = (n: SyntaxNode, message: string, fix?: string) =>
-    diagnostics.push({ severity: "error", message, fix, loc: loc(n) });
-  const warn = (n: SyntaxNode, message: string, fix?: string) =>
-    diagnostics.push({ severity: "warning", message, fix, loc: loc(n) });
-
-  // parse errors first
-  tree.iterate({
-    enter(n) {
-      if (n.type.isError) {
-        const at = src.slice(Math.max(0, n.from - 12), n.from + 12).replace(/\n/g, "⏎");
-        diagnostics.push({
-          severity: "error",
-          message: `syntax error near \`${at}\``,
-          loc: loc(n.node),
-        });
-      }
+  const makeCtx = (name: string, src: string): Ctx => ({
+    name,
+    src,
+    text: (n) => src.slice(n.from, n.to),
+    str: (n) => src.slice(n.from + 1, n.to - 1),
+    loc: (n) => {
+      const before = src.slice(0, n.from);
+      return {
+        from: n.from,
+        to: n.to,
+        line: before.split("\n").length,
+        col: n.from - before.lastIndexOf("\n"),
+      };
     },
   });
+  const error = (ctx: Ctx, at: SyntaxNode | Loc, message: string, fix?: string) =>
+    diagnostics.push({
+      severity: "error", message, fix, file: ctx.name,
+      loc: "from" in at && "line" in at ? (at as Loc) : ctx.loc(at as SyntaxNode),
+    });
+  const warn = (ctx: Ctx, at: SyntaxNode | Loc, message: string, fix?: string) =>
+    diagnostics.push({
+      severity: "warning", message, fix, file: ctx.name,
+      loc: "from" in at && "line" in at ? (at as Loc) : ctx.loc(at as SyntaxNode),
+    });
 
-  // ── pass 1: declarations ─────────────────────────────────────────────────
-  interface RawEdge {
-    node: SyntaxNode;
-    scope: string; // container path the edge was declared in ("" = file)
-  }
-  const rawEdges: RawEdge[] = [];
-  const attrsOf = (block: SyntaxNode | null) => {
+  const attrsOf = (ctx: Ctx, block: SyntaxNode | null) => {
     const attrs: Record<string, string> = {};
     const tags: string[] = [];
     let description: string | undefined;
     if (block)
       for (const a of block.getChildren("Attr")) {
-        const key = text(a.getChild("Ident")!);
+        const key = ctx.text(a.getChild("Ident")!);
         const v = a.getChild("Value")!;
         const tagNodes = v.getChildren("Tag");
-        if (tagNodes.length) tags.push(...tagNodes.map((t) => text(t).slice(1)));
-        else if (key === "description") description = v.getChild("String") ? str(v.getChild("String")!) : text(v);
-        else attrs[key] = v.getChild("String") ? str(v.getChild("String")!) : text(v);
+        if (tagNodes.length) tags.push(...tagNodes.map((t) => ctx.text(t).slice(1)));
+        else if (key === "description")
+          description = v.getChild("String") ? ctx.str(v.getChild("String")!) : ctx.text(v);
+        else attrs[key] = v.getChild("String") ? ctx.str(v.getChild("String")!) : ctx.text(v);
       }
     return { attrs, tags, description };
   };
 
-  function walkContainer(body: SyntaxNode, parentPath: string) {
-    for (const decl of body.getChildren("NodeDecl")) {
-      const name = text(decl.getChild("Ident")!);
+  // ── phase A: declarations, per file ───────────────────────────────────────
+  const rawEdges: { node: SyntaxNode; scope: string; ctx: Ctx }[] = [];
+  const rawViews: { node: SyntaxNode; ctx: Ctx }[] = [];
+
+  for (const f of files) {
+    const ctx = makeCtx(f.name, f.src);
+    const tree = parser.parse(f.src);
+
+    tree.iterate({
+      enter(n) {
+        if (n.type.isError) {
+          const at = f.src.slice(Math.max(0, n.from - 12), n.from + 12).replace(/\n/g, "⏎");
+          error(ctx, n.node, `syntax error near \`${at}\``);
+        }
+      },
+    });
+
+    function walkContainer(body: SyntaxNode, parentPath: string) {
+      for (const decl of body.getChildren("NodeDecl")) {
+        const name = ctx.text(decl.getChild("Ident")!);
+        const path = parentPath ? `${parentPath}.${name}` : name;
+        const clash = model.nodes.get(path) ?? model.containers.get(path);
+        if (clash) {
+          error(ctx, decl, `duplicate id \`${name}\` in ${parentPath || "file"}`,
+            clash.file && clash.file !== ctx.name
+              ? `already declared in ${clash.file}`
+              : `ids must be unique within their container`);
+          continue;
+        }
+        const iconRef = decl.getChild("IconRef");
+        let icon: SNode["icon"];
+        if (iconRef) {
+          const [p, i] = iconRef.getChildren("Ident").map(ctx.text);
+          if (!packRegistry[p]) {
+            const s = suggest(p, Object.keys(packRegistry));
+            error(ctx, iconRef, `unknown pack \`${p}\``, s ? `did you mean \`${s}\`?` : undefined);
+          } else if (!iconMeta(p, i)) {
+            const s = suggest(i, iconIds(p));
+            error(ctx, iconRef, `unknown icon \`${p}/${i}\``,
+              s ? `did you mean \`${p}/${s}\`?` : `run \`squinch icons search ${i}\``);
+          } else icon = { pack: p, id: i };
+        }
+        const meta = attrsOf(ctx, decl.getChild("AttrBlock"));
+        const kinds = decl.getChildren("NodeKind").map((k) => ctx.text(k)) as SNode["kinds"];
+        const labelNode = decl.getChild("String");
+        model.nodes.set(path, {
+          path, name,
+          label: labelNode ? ctx.str(labelNode) : name,
+          icon, kinds,
+          description: meta.description,
+          tags: meta.tags,
+          attrs: meta.attrs,
+          loc: ctx.loc(decl),
+          file: ctx.name,
+        });
+        model.containers.get(parentPath)?.children.push(path);
+      }
+      for (const sub of body.getChildren("Container")) walkContainerDecl(sub, parentPath);
+      for (const e of body.getChildren("EdgeStmt")) rawEdges.push({ node: e, scope: parentPath, ctx });
+      const meta = attrsOf(ctx, body);
+      const c = model.containers.get(parentPath);
+      if (c) {
+        Object.assign(c.attrs, meta.attrs);
+        if (meta.description) c.attrs["description"] = meta.description;
+        c.tags.push(...meta.tags);
+      }
+    }
+
+    function walkContainerDecl(decl: SyntaxNode, parentPath: string) {
+      const name = ctx.text(decl.getChild("Ident")!);
       const path = parentPath ? `${parentPath}.${name}` : name;
-      if (model.nodes.has(path) || model.containers.has(path)) {
-        error(decl, `duplicate id \`${name}\` in ${parentPath || "file"}`,
-          `ids must be unique within their container`);
-        continue;
+      const clash = model.nodes.get(path) ?? model.containers.get(path);
+      if (clash) {
+        error(ctx, decl, `duplicate id \`${name}\``,
+          clash.file && clash.file !== ctx.name ? `already declared in ${clash.file}` : undefined);
+        return;
       }
-      const iconRef = decl.getChild("IconRef");
-      let icon: SNode["icon"];
-      if (iconRef) {
-        const [p, i] = iconRef.getChildren("Ident").map(text);
-        if (!packRegistry[p]) {
-          const s = suggest(p, Object.keys(packRegistry));
-          error(iconRef, `unknown pack \`${p}\``, s ? `did you mean \`${s}\`?` : undefined);
-        } else if (!iconMeta(p, i)) {
-          const s = suggest(i, iconIds(p));
-          error(iconRef, `unknown icon \`${p}/${i}\``,
-            s ? `did you mean \`${p}/${s}\`?` : `run \`squinch icons search ${i}\``);
-        } else icon = { pack: p, id: i };
-      }
-      const meta = attrsOf(decl.getChild("AttrBlock"));
-      const kinds = decl.getChildren("NodeKind").map((k) => text(k)) as SNode["kinds"];
       const labelNode = decl.getChild("String");
-      model.nodes.set(path, {
-        path, name,
-        label: labelNode ? str(labelNode) : name,
-        icon, kinds,
-        description: meta.description,
-        tags: meta.tags,
-        attrs: meta.attrs,
-        loc: loc(decl),
+      const kind = decl.getChild("system") ? "system" : "container";
+      model.containers.set(path, {
+        path, name, kind: kind as SContainer["kind"],
+        label: labelNode ? ctx.str(labelNode) : undefined,
+        children: [], attrs: {}, tags: [], loc: ctx.loc(decl), file: ctx.name,
       });
       model.containers.get(parentPath)?.children.push(path);
+      walkContainer(decl.getChild("ContainerBody")!, path);
     }
-    for (const sub of body.getChildren("Container")) walkContainerDecl(sub, parentPath);
-    for (const e of body.getChildren("EdgeStmt")) rawEdges.push({ node: e, scope: parentPath });
-    // container-level attrs (glyph/owner/…)
-    const meta = attrsOf(body);
-    const c = model.containers.get(parentPath);
-    if (c) {
-      Object.assign(c.attrs, meta.attrs);
-      if (meta.description) c.attrs["description"] = meta.description;
-      c.tags.push(...meta.tags);
+
+    const top = tree.topNode;
+    for (const p of top.getChildren("PackStmt")) {
+      const name = ctx.text(p.getChild("Ident")!);
+      if (!packRegistry[name]) {
+        const s = suggest(name, Object.keys(packRegistry));
+        error(ctx, p, `unknown pack \`${name}\``, s ? `did you mean \`${s}\`?` : undefined);
+      } else if (!model.packs.includes(name)) model.packs.push(name);
     }
+    const ft = top.getChildren("FileTheme")[0];
+    if (ft) model.fileTheme = ctx.text(ft.getChild("Ident")!);
+    for (const p of top.getChildren("PersonDecl")) {
+      const name = ctx.text(p.getChild("Ident")!);
+      const labelNode = p.getChild("String");
+      model.nodes.set(name, {
+        path: name, name,
+        label: labelNode ? ctx.str(labelNode) : name,
+        icon: { pack: "builtin", id: "person" },
+        kinds: ["person"], tags: [], attrs: {}, loc: ctx.loc(p), file: ctx.name,
+      });
+    }
+    for (const decl of top.getChildren("Container")) walkContainerDecl(decl, "");
+    for (const e of top.getChildren("EdgeStmt")) rawEdges.push({ node: e, scope: "", ctx });
+    for (const v of top.getChildren("View")) rawViews.push({ node: v, ctx });
   }
 
-  function walkContainerDecl(decl: SyntaxNode, parentPath: string) {
-    const name = text(decl.getChild("Ident")!);
-    const path = parentPath ? `${parentPath}.${name}` : name;
-    if (model.nodes.has(path) || model.containers.has(path)) {
-      error(decl, `duplicate id \`${name}\``);
-      return;
-    }
-    const labelNode = decl.getChild("String");
-    const kind = decl.getChild("system") ? "system" : "container";
-    model.containers.set(path, {
-      path, name, kind: kind as SContainer["kind"],
-      label: labelNode ? str(labelNode) : undefined,
-      children: [], attrs: {}, tags: [], loc: loc(decl),
-    });
-    model.containers.get(parentPath)?.children.push(path);
-    walkContainer(decl.getChild("ContainerBody")!, path);
-  }
-
-  const top = tree.topNode;
-  for (const p of top.getChildren("PackStmt")) {
-    const name = text(p.getChild("Ident")!);
-    if (!packRegistry[name]) {
-      const s = suggest(name, Object.keys(packRegistry));
-      error(p, `unknown pack \`${name}\``, s ? `did you mean \`${s}\`?` : undefined);
-    } else model.packs.push(name);
-  }
-  const ft = top.getChildren("FileTheme")[0];
-  if (ft) model.fileTheme = text(ft.getChild("Ident")!);
-  for (const p of top.getChildren("PersonDecl")) {
-    const name = text(p.getChild("Ident")!);
-    const labelNode = p.getChild("String");
-    model.nodes.set(name, {
-      path: name, name,
-      label: labelNode ? str(labelNode) : name,
-      icon: { pack: "builtin", id: "person" },
-      kinds: ["person"], tags: [], attrs: {}, loc: loc(p),
-    });
-  }
-  for (const decl of top.getChildren("Container")) walkContainerDecl(decl, "");
-  for (const d of top.getChildren("NodeDecl")) {
-    // top-level free nodes share walkContainer's logic via a fake body walk
-  }
-  for (const e of top.getChildren("EdgeStmt")) rawEdges.push({ node: e, scope: "" });
-
-  // ── resolution ───────────────────────────────────────────────────────────
+  // ── phase B: resolution across all files ─────────────────────────────────
   const allPaths = () => [...model.nodes.keys(), ...model.containers.keys()];
 
-  function resolve(ref: string, scope: string, at: SyntaxNode): string | undefined {
-    // lexical: try each enclosing scope, innermost first, then absolute
+  function resolve(ref: string, scope: string, at: SyntaxNode, ctx: Ctx): string | undefined {
     const scopes: string[] = [];
     let s = scope;
     while (s) {
@@ -178,26 +210,26 @@ export function buildModel(src: string): BuildResult {
       if (model.nodes.has(candidate) || model.containers.has(candidate)) return candidate;
     }
     const sug = suggest(ref.split(".").pop()!, allPaths().map((p) => p.split(".").pop()!));
-    error(at, `unknown id \`${ref}\``, sug ? `did you mean \`${sug}\`?` : undefined);
+    error(ctx, at, `unknown id \`${ref}\``, sug ? `did you mean \`${sug}\`?` : undefined);
     return undefined;
   }
 
   let edgeN = 0;
-  for (const { node, scope } of rawEdges) {
-    const fromPath = resolve(text(node.getChild("Path")!), scope, node);
-    const arrow = text(node.getChild("Arrow")!) as ArrowKind;
+  for (const { node, scope, ctx } of rawEdges) {
+    const fromPath = resolve(ctx.text(node.getChild("Path")!), scope, node, ctx);
+    const arrow = ctx.text(node.getChild("Arrow")!) as ArrowKind;
     const labelNode = node.getChild("String");
-    const meta = attrsOf(node.getChild("AttrBlock"));
+    const meta = attrsOf(ctx, node.getChild("AttrBlock"));
     for (const target of node.getChild("PathList")!.getChildren("Path")) {
-      const toPath = resolve(text(target), scope, target);
+      const toPath = resolve(ctx.text(target), scope, target, ctx);
       edgeN++;
       if (!fromPath || !toPath) continue;
       model.edges.push({
         id: `e${edgeN}`,
         from: fromPath, to: toPath, arrow,
-        label: labelNode ? str(labelNode) : undefined,
+        label: labelNode ? ctx.str(labelNode) : undefined,
         attrs: meta.attrs, tags: meta.tags,
-        loc: loc(node),
+        loc: ctx.loc(node), file: ctx.name,
       });
     }
   }
@@ -207,43 +239,44 @@ export function buildModel(src: string): BuildResult {
   model.edges = model.edges.filter((e) => {
     const key = `${e.from}|${e.arrow}|${e.to}|${e.label ?? ""}`;
     if (seen.has(key)) {
-      warn(
-        { from: e.loc.from, to: e.loc.to, type: { isError: false } } as any,
-        `duplicate edge ${e.from} ${e.arrow} ${e.to} merged`,
-      );
+      diagnostics.push({
+        severity: "warning",
+        message: `duplicate edge ${e.from} ${e.arrow} ${e.to} merged`,
+        loc: e.loc, file: e.file,
+      });
       return false;
     }
     seen.set(key, e);
     return true;
   });
 
-  // ── views ────────────────────────────────────────────────────────────────
-  for (const v of top.getChildren("View")) {
-    const name = text(v.getChild("Path")!);
+  // ── phase C: views ────────────────────────────────────────────────────────
+  for (const { node: v, ctx } of rawViews) {
+    const name = ctx.text(v.getChild("Path")!);
     const body = v.getChild("ViewBody")!;
     const view: SView = {
       name,
       include: [], includeStar: false, exclude: [], expand: [],
       context: "auto", highlight: [], showDescriptions: false, notes: [],
       layout: { place: [], routes: [] },
-      loc: loc(v),
+      loc: ctx.loc(v), file: ctx.name,
     };
     const scopeStmt = body.getChildren("ScopeStmt")[0];
-    if (scopeStmt) view.scope = resolve(text(scopeStmt.getChild("Path")!), "", scopeStmt);
+    if (scopeStmt) view.scope = resolve(ctx.text(scopeStmt.getChild("Path")!), "", scopeStmt, ctx);
     else if (model.containers.has(name)) view.scope = name; // auto: view <container>
     const title = body.getChildren("TitleStmt")[0];
-    if (title) view.title = str(title.getChild("String")!);
+    if (title) view.title = ctx.str(title.getChild("String")!);
     const theme = body.getChildren("ThemeStmt")[0];
-    if (theme) view.theme = text(theme.getChild("Ident")!);
+    if (theme) view.theme = ctx.text(theme.getChild("Ident")!);
     const inScope = view.scope ?? "";
 
     for (const inc of body.getChildren("IncludeStmt")) {
       if (inc.getChild("Star")) view.includeStar = true;
       for (const t of inc.getChild("TargetList")?.getChildren("Target") ?? []) {
         const tag = t.getChild("Tag");
-        if (tag) view.include.push({ tag: text(tag).slice(1) });
+        if (tag) view.include.push({ tag: ctx.text(tag).slice(1) });
         else {
-          const r = resolve(text(t.getChild("Path")!), inScope, t);
+          const r = resolve(ctx.text(t.getChild("Path")!), inScope, t, ctx);
           if (r) view.include.push(r);
         }
       }
@@ -251,63 +284,63 @@ export function buildModel(src: string): BuildResult {
     for (const exc of body.getChildren("ExcludeStmt")) {
       for (const t of exc.getChild("TargetList")?.getChildren("Target") ?? []) {
         const tag = t.getChild("Tag");
-        if (tag) view.exclude.push({ tag: text(tag).slice(1) });
+        if (tag) view.exclude.push({ tag: ctx.text(tag).slice(1) });
         else {
-          const r = resolve(text(t.getChild("Path")!), inScope, t);
+          const r = resolve(ctx.text(t.getChild("Path")!), inScope, t, ctx);
           if (r) view.exclude.push(r);
         }
       }
     }
     for (const ex of body.getChildren("ExpandStmt")) {
-      const r = resolve(text(ex.getChild("Path")!), inScope, ex);
+      const r = resolve(ctx.text(ex.getChild("Path")!), inScope, ex, ctx);
       if (r) view.expand.push(r);
     }
-    const ctx = body.getChildren("ContextStmt")[0];
-    if (ctx) view.context = ctx.getChild("off") ? "off" : "auto";
+    const ctxStmt = body.getChildren("ContextStmt")[0];
+    if (ctxStmt) view.context = ctxStmt.getChild("off") ? "off" : "auto";
     for (const h of body.getChildren("HighlightStmt"))
-      view.highlight.push(...h.getChildren("Tag").map((t) => text(t).slice(1)));
+      view.highlight.push(...h.getChildren("Tag").map((t) => ctx.text(t).slice(1)));
     if (body.getChildren("ShowStmt").length) view.showDescriptions = true;
     for (const n of body.getChildren("NoteStmt")) {
       const anchorNode = n.getChild("NoteAnchor")!;
-      const noteText = str(n.getChild("String")!);
-      const meta = attrsOf(n.getChild("AttrBlock"));
+      const noteText = ctx.str(n.getChild("String")!);
+      const meta = attrsOf(ctx, n.getChild("AttrBlock"));
       let anchor: SNote["anchor"] | undefined;
       const relpos = anchorNode.getChild("RelPos");
       const corner = anchorNode.getChild("Corner");
       if (relpos) {
-        const r = resolve(text(anchorNode.getChild("Path")!), inScope, anchorNode);
-        if (r) anchor = { kind: "relpos", relpos: text(relpos) as any, target: r };
+        const r = resolve(ctx.text(anchorNode.getChild("Path")!), inScope, anchorNode, ctx);
+        if (r) anchor = { kind: "relpos", relpos: ctx.text(relpos) as any, target: r };
       } else if (corner) {
-        anchor = { kind: "corner", corner: text(corner) as any };
+        anchor = { kind: "corner", corner: ctx.text(corner) as any };
       } else {
         const [a, b] = anchorNode.getChildren("Path");
-        const from = resolve(text(a), inScope, a);
-        const to = resolve(text(b), inScope, b);
+        const from = resolve(ctx.text(a), inScope, a, ctx);
+        const to = resolve(ctx.text(b), inScope, b, ctx);
         if (from && to) anchor = { kind: "edge", from, to };
       }
       if (anchor)
-        view.notes.push({ anchor, text: noteText, style: meta.attrs["style"], loc: loc(n) });
+        view.notes.push({ anchor, text: noteText, style: meta.attrs["style"], loc: ctx.loc(n) });
     }
 
     for (const lb of body.getChildren("LayoutBlock")) {
       const dir = lb.getChildren("DirectionStmt")[0];
-      if (dir) view.layout.direction = text(dir.lastChild!) as "down" | "right";
+      if (dir) view.layout.direction = ctx.text(dir.lastChild!) as "down" | "right";
       const den = lb.getChildren("DensityStmt")[0];
       if (den) {
-        const val = text(den.getChild("Ident")!);
+        const val = ctx.text(den.getChild("Ident")!);
         if (val === "compact" || val === "comfortable" || val === "spacious")
           view.layout.density = val;
-        else error(den, `unknown density \`${val}\``, "use compact | comfortable | spacious");
+        else error(ctx, den, `unknown density \`${val}\``, "use compact | comfortable | spacious");
       }
       const lin = lb.getChildren("LinesStmt")[0];
       if (lin) {
-        const val = text(lin.getChild("Ident")!);
+        const val = ctx.text(lin.getChild("Ident")!);
         if (val === "orthogonal" || val === "curved" || val === "straight")
           view.layout.lines = val;
-        else error(lin, `unknown lines style \`${val}\``, "use orthogonal | curved | straight");
+        else error(ctx, lin, `unknown lines style \`${val}\``, "use orthogonal | curved | straight");
       }
       for (const al of lb.getChildren("AlignStmt"))
-        warn(al, "`align` is not implemented yet — parsed and ignored for now");
+        warn(ctx, al, "`align` is not implemented yet — parsed and ignored for now");
       const rowsStmt = lb.getChildren("RowsStmt")[0];
       if (rowsStmt) {
         const rows: string[][] = [];
@@ -315,10 +348,10 @@ export function buildModel(src: string): BuildResult {
         for (const rank of rowsStmt.getChildren("Rank")) {
           const row: string[] = [];
           for (const pathNode of rank.getChildren("Path")) {
-            const r = resolve(text(pathNode), inScope, pathNode);
+            const r = resolve(ctx.text(pathNode), inScope, pathNode, ctx);
             if (!r) continue;
             if (placed.has(r)) {
-              error(pathNode, `\`${text(pathNode)}\` appears in \`rows\` twice`,
+              error(ctx, pathNode, `\`${ctx.text(pathNode)}\` appears in \`rows\` twice`,
                 "a node can hold only one rank position; remove one occurrence");
               continue;
             }
@@ -331,28 +364,28 @@ export function buildModel(src: string): BuildResult {
       }
       for (const pl of lb.getChildren("PlaceStmt")) {
         const [a, b] = pl.getChildren("Path");
-        const node = resolve(text(a), inScope, a);
-        const target = resolve(text(b), inScope, b);
+        const node = resolve(ctx.text(a), inScope, a, ctx);
+        const target = resolve(ctx.text(b), inScope, b, ctx);
         if (node && target)
           view.layout.place.push({
             node, target,
-            relpos: text(pl.getChild("RelPos")!) as RelPos,
-            loc: loc(pl),
+            relpos: ctx.text(pl.getChild("RelPos")!) as RelPos,
+            loc: ctx.loc(pl),
           });
       }
       for (const rt of lb.getChildren("RouteStmt")) {
         const [a, b] = rt.getChildren("Path");
-        const from = resolve(text(a), inScope, a);
-        const to = resolve(text(b), inScope, b);
+        const from = resolve(ctx.text(a), inScope, a, ctx);
+        const to = resolve(ctx.text(b), inScope, b, ctx);
         const sidesNodes = rt.getChildren("Side");
         const labelNode = rt.getChild("String");
         if (from && to)
           view.layout.routes.push({
             from, to,
-            label: labelNode ? str(labelNode) : undefined,
-            fromSide: sidesNodes[0] ? (text(sidesNodes[0]) as Side) : undefined,
-            toSide: sidesNodes[1] ? (text(sidesNodes[1]) as Side) : undefined,
-            loc: loc(rt),
+            label: labelNode ? ctx.str(labelNode) : undefined,
+            fromSide: sidesNodes[0] ? (ctx.text(sidesNodes[0]) as Side) : undefined,
+            toSide: sidesNodes[1] ? (ctx.text(sidesNodes[1]) as Side) : undefined,
+            loc: ctx.loc(rt),
           });
       }
     }
@@ -367,16 +400,16 @@ export function buildModel(src: string): BuildResult {
           severity: "error",
           message: `contradictory place hints: \`${pl.node}\` vs \`${pl.target}\` reference each other`,
           fix: "remove one of the two place statements",
-          loc: pl.loc,
+          loc: pl.loc, file: ctx.name,
         });
-      if (view.layout.rows && pl.relpos === "right-of" || pl.relpos === "left-of") {
+      if ((view.layout.rows && pl.relpos === "right-of") || pl.relpos === "left-of") {
         const inRows = view.layout.rows?.flat().includes(pl.node);
         if (inRows)
           diagnostics.push({
             severity: "error",
             message: `\`${pl.node}\` is placed via \`place\` but also listed in \`rows\``,
             fix: "a node takes hints from one source; remove it from rows or drop the place",
-            loc: pl.loc,
+            loc: pl.loc, file: ctx.name,
           });
       }
     }
@@ -394,7 +427,7 @@ export function formatDiagnostics(diags: Diagnostic[], file = "input"): string {
   return diags
     .map((d) => {
       const fix = d.fix ? `\n  ${d.fix}` : "";
-      return `${file}:${d.loc.line}:${d.loc.col}  ${d.severity}: ${d.message}${fix}`;
+      return `${d.file ?? file}:${d.loc.line}:${d.loc.col}  ${d.severity}: ${d.message}${fix}`;
     })
     .join("\n");
 }

@@ -10,6 +10,7 @@ export interface Diagnostic {
   message: string;
   fix?: string; // "did you mean …?" — always actionable when present
   loc: Loc;
+  file?: string; // set when built via buildProject
 }
 
 export interface SNode {
@@ -22,6 +23,7 @@ export interface SNode {
   tags: string[];
   attrs: Record<string, string>;
   loc: Loc;
+  file?: string;
 }
 
 export interface SContainer {
@@ -33,6 +35,7 @@ export interface SContainer {
   attrs: Record<string, string>;
   tags: string[];
   loc: Loc;
+  file?: string;
 }
 
 export type ArrowKind = "->" | "~>" | "<->" | "--";
@@ -46,6 +49,7 @@ export interface SEdge {
   attrs: Record<string, string>;
   tags: string[];
   loc: Loc;
+  file?: string;
 }
 
 export type Side = "north" | "south" | "east" | "west";
@@ -85,6 +89,7 @@ export interface SView {
     routes: { from: string; to: string; label?: string; fromSide?: Side; toSide?: Side; loc: Loc }[];
   };
   loc: Loc;
+  file?: string;
 }
 
 export interface SModel {

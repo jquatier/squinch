@@ -1,11 +1,13 @@
 // @squinch/core — parse → model → layout → render, end to end.
-import { buildModel, formatDiagnostics } from "./model/build.js";
+import { buildModel, buildProject, formatDiagnostics, type ProjectFile } from "./model/build.js";
 import { layoutView } from "./layout/layout.js";
 import { renderSVG } from "./render/svg.js";
+import { validateSVG } from "./render/validate.js";
 import { themes, type Theme } from "./themes/index.js";
 import type { BuildResult, Diagnostic, SView } from "./model/types.js";
 
-export { buildModel, formatDiagnostics, layoutView, renderSVG, themes };
+export { buildModel, buildProject, formatDiagnostics, layoutView, renderSVG, validateSVG, themes };
+export type { ProjectFile };
 export type * from "./model/types.js";
 export type { Positioned } from "./layout/layout.js";
 export type { Theme } from "./themes/index.js";
@@ -21,7 +23,15 @@ export async function render(
   src: string,
   opts: { view?: string; theme?: string } = {},
 ): Promise<RenderResult> {
-  const built: BuildResult = buildModel(src);
+  return renderProject([{ name: "input", src }], opts);
+}
+
+/** Multi-file project pipeline: files merge into one model namespace (SPEC §2). */
+export async function renderProject(
+  files: ProjectFile[],
+  opts: { view?: string; theme?: string } = {},
+): Promise<RenderResult> {
+  const built: BuildResult = buildProject(files);
   if (!built.ok) return { diagnostics: built.diagnostics, ok: false };
 
   let view: SView | undefined = opts.view
