@@ -31,7 +31,7 @@
 <rect x="224" y="356" width="16" height="16" rx="3" fill="#D9760A" opacity="0.6"/>
 <rect x="204" y="356" width="16" height="16" rx="3" fill="#D9760A" opacity="0.6"/>
 </g>
-<g opacity="0.35" opacity="0.75">
+<g opacity="0.35">
 <rect x="32" y="32" width="240" height="88" rx="6" fill="#FFFFFF" stroke="#D8D7D3" stroke-width="1.5" stroke-dasharray="4 3"/>
 <rect x="32" y="32" width="4" height="88" rx="2" fill="#6F6E69"/>
 <text x="50" y="66" font-size="15" font-weight="500" fill="#6F6E69">Storefront</text>

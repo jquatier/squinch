@@ -104,10 +104,11 @@ function leaf(n: PNode, t: Theme, opts: RenderOpts, dimmed: boolean, L: string[]
 }
 
 function card(n: PNode, t: Theme, dimmed: boolean, L: string[]) {
-  const op = dimmed ? ` opacity="${DIM}"` : "";
   const ctx = n.kind === "context-card";
+  // one opacity, never two: dim wins over the context fade
+  const op = dimmed ? ` opacity="${DIM}"` : ctx ? ` opacity="0.75"` : "";
   const stroke = ctx ? ` stroke-dasharray="4 3"` : "";
-  L.push(`<g${op}${ctx ? ` opacity="0.75"` : ""}>`);
+  L.push(`<g${op}>`);
   L.push(
     `<rect x="${n.x}" y="${n.y}" width="${n.w}" height="${n.h}" rx="6" fill="${t.surface}" stroke="${t.border}" stroke-width="1.5"${stroke}/>`,
   );

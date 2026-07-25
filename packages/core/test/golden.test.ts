@@ -24,6 +24,11 @@ describe("golden renders", () => {
         expect(r.ok).toBe(true);
         expect(r.svg).toBeDefined();
         expect(r.svg!.includes("\r")).toBe(false); // LF only
+        // well-formedness: no element may repeat an attribute (strict SVG parsers reject it)
+        for (const el of r.svg!.match(/<[a-z]+ [^>]*>/g) ?? []) {
+          const names = [...el.matchAll(/ ([a-z-]+)="/g)].map((m) => m[1]);
+          expect(new Set(names).size, `duplicate attribute in: ${el.slice(0, 80)}`).toBe(names.length);
+        }
         // determinism: render twice, byte-identical
         const again = await render(src, { theme, view: c.view });
         expect(again.svg).toBe(r.svg);
