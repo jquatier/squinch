@@ -28,6 +28,8 @@ jobs:
       - run: pnpm --filter @squinch/spa build
       # Phase-3 gauntlet solutions must stay green (regression over the skill+DSL)
       - run: npx tsx gauntlet/score.ts
+      # PLAN §2 performance budgets are acceptance criteria, not aspirations
+      - run: pnpm --filter @squinch/core bench
 
   phase0:
     strategy:

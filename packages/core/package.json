@@ -10,7 +10,8 @@
     "test": "npm run grammar && vitest run",
     "demo": "npm run grammar && tsx scripts/demo.ts",
     "gen-metrics": "tsx scripts/gen-metrics.ts && tsx scripts/gen-metrics-module.ts",
-    "gen-fonts": "tsx scripts/gen-fonts.ts"
+    "gen-fonts": "tsx scripts/gen-fonts.ts",
+    "bench": "npm run grammar && tsx scripts/bench.ts"
   },
   "dependencies": {
     "@lezer/common": "^1.5.2",
