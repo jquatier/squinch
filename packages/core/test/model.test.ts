@@ -1,8 +1,11 @@
 import { describe, it, expect } from "vitest";
 import { readFileSync } from "node:fs";
+import { fileURLToPath } from "node:url";
+import { join, dirname } from "node:path";
 import { buildModel } from "../src/model/build.js";
 
-const canonical = readFileSync("examples/orders.squinch", "utf8");
+const pkg = join(dirname(fileURLToPath(import.meta.url)), "..");
+const canonical = readFileSync(join(pkg, "examples/orders.squinch"), "utf8");
 
 describe("grammar + model builder", () => {
   it("builds the canonical example", () => {

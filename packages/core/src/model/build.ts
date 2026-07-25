@@ -112,6 +112,7 @@ export function buildModel(src: string): BuildResult {
     const c = model.containers.get(parentPath);
     if (c) {
       Object.assign(c.attrs, meta.attrs);
+      if (meta.description) c.attrs["description"] = meta.description;
       c.tags.push(...meta.tags);
     }
   }
@@ -220,7 +221,13 @@ export function buildModel(src: string): BuildResult {
   for (const v of top.getChildren("View")) {
     const name = text(v.getChild("Path")!);
     const body = v.getChild("ViewBody")!;
-    const view: SView = { name, layout: { place: [], routes: [] }, loc: loc(v) };
+    const view: SView = {
+      name,
+      include: [], includeStar: false, exclude: [], expand: [],
+      context: "auto", highlight: [], showDescriptions: false, notes: [],
+      layout: { place: [], routes: [] },
+      loc: loc(v),
+    };
     const scopeStmt = body.getChildren("ScopeStmt")[0];
     if (scopeStmt) view.scope = resolve(text(scopeStmt.getChild("Path")!), "", scopeStmt);
     else if (model.containers.has(name)) view.scope = name; // auto: view <container>
@@ -229,6 +236,58 @@ export function buildModel(src: string): BuildResult {
     const theme = body.getChildren("ThemeStmt")[0];
     if (theme) view.theme = text(theme.getChild("Ident")!);
     const inScope = view.scope ?? "";
+
+    for (const inc of body.getChildren("IncludeStmt")) {
+      if (inc.getChild("Star")) view.includeStar = true;
+      for (const t of inc.getChild("TargetList")?.getChildren("Target") ?? []) {
+        const tag = t.getChild("Tag");
+        if (tag) view.include.push({ tag: text(tag).slice(1) });
+        else {
+          const r = resolve(text(t.getChild("Path")!), inScope, t);
+          if (r) view.include.push(r);
+        }
+      }
+    }
+    for (const exc of body.getChildren("ExcludeStmt")) {
+      for (const t of exc.getChild("TargetList")?.getChildren("Target") ?? []) {
+        const tag = t.getChild("Tag");
+        if (tag) view.exclude.push({ tag: text(tag).slice(1) });
+        else {
+          const r = resolve(text(t.getChild("Path")!), inScope, t);
+          if (r) view.exclude.push(r);
+        }
+      }
+    }
+    for (const ex of body.getChildren("ExpandStmt")) {
+      const r = resolve(text(ex.getChild("Path")!), inScope, ex);
+      if (r) view.expand.push(r);
+    }
+    const ctx = body.getChildren("ContextStmt")[0];
+    if (ctx) view.context = ctx.getChild("off") ? "off" : "auto";
+    for (const h of body.getChildren("HighlightStmt"))
+      view.highlight.push(...h.getChildren("Tag").map((t) => text(t).slice(1)));
+    if (body.getChildren("ShowStmt").length) view.showDescriptions = true;
+    for (const n of body.getChildren("NoteStmt")) {
+      const anchorNode = n.getChild("NoteAnchor")!;
+      const noteText = str(n.getChild("String")!);
+      const meta = attrsOf(n.getChild("AttrBlock"));
+      let anchor: SNote["anchor"] | undefined;
+      const relpos = anchorNode.getChild("RelPos");
+      const corner = anchorNode.getChild("Corner");
+      if (relpos) {
+        const r = resolve(text(anchorNode.getChild("Path")!), inScope, anchorNode);
+        if (r) anchor = { kind: "relpos", relpos: text(relpos) as any, target: r };
+      } else if (corner) {
+        anchor = { kind: "corner", corner: text(corner) as any };
+      } else {
+        const [a, b] = anchorNode.getChildren("Path");
+        const from = resolve(text(a), inScope, a);
+        const to = resolve(text(b), inScope, b);
+        if (from && to) anchor = { kind: "edge", from, to };
+      }
+      if (anchor)
+        view.notes.push({ anchor, text: noteText, style: meta.attrs["style"], loc: loc(n) });
+    }
 
     for (const lb of body.getChildren("LayoutBlock")) {
       const dir = lb.getChildren("DirectionStmt")[0];

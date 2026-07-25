@@ -51,11 +51,31 @@ export interface SEdge {
 export type Side = "north" | "south" | "east" | "west";
 export type RelPos = "right-of" | "left-of" | "above" | "below";
 
+export type NoteAnchor =
+  | { kind: "relpos"; relpos: RelPos; target: string }
+  | { kind: "edge"; from: string; to: string }
+  | { kind: "corner"; corner: "top-left" | "top-right" | "bottom-left" | "bottom-right" };
+
+export interface SNote {
+  anchor: NoteAnchor;
+  text: string;
+  style?: string; // e.g. "warning"
+  loc: Loc;
+}
+
 export interface SView {
   name: string;
   title?: string;
   theme?: string;
   scope?: string; // container path
+  include: (string | { tag: string })[]; // "*" arrives as {star:true}? — "*" as literal path
+  includeStar: boolean;
+  exclude: (string | { tag: string })[];
+  expand: string[];
+  context: "auto" | "off";
+  highlight: string[]; // tag names, no '#'
+  showDescriptions: boolean;
+  notes: SNote[];
   layout: {
     direction?: "down" | "right";
     rows?: string[][]; // resolved paths

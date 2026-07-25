@@ -1,0 +1,52 @@
+// SPEC §10.2-style nesting example: landscape altitude + zoom + context.
+pack aws
+
+person customer "Customer"
+
+system web "Storefront" {
+  description: "Customer-facing web experience"
+  glyph: sys/webapp
+
+  cdn = aws/cloudfront "CDN"
+  app = aws/amplify    "Next.js App"
+  cdn -> app
+}
+
+system orders "Order Service" {
+  glyph: sys/api
+  tags: #core
+
+  api = aws/api-gateway "API Gateway"
+  container handlers "API Handlers" {
+    create = aws/lambda "Create" { tags: #pci }
+    get    = aws/lambda "Get"
+  }
+  db = aws/dynamodb "Orders Table" {
+    description: "Single-table design"
+    tags: #pci
+  }
+  api -> handlers.create, handlers.get
+  handlers.create -> db
+  handlers.get    -> db
+}
+
+customer -> web.cdn "browses"
+web.app  -> orders.api "REST"
+
+view landscape {
+  title "System Landscape"
+  include *
+}
+
+view orders {
+  scope orders
+}
+
+view orders-pci {
+  scope orders
+  title "PCI Surface"
+  highlight #pci
+  show descriptions
+  note right-of db "Encrypted at rest (KMS); see ADR-31"
+  note top-right "Audit scope: Q3 2026" { style: warning }
+}

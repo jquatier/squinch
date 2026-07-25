@@ -30,7 +30,13 @@ export async function render(
   if (!view) {
     // implicit default view: everything (auto view of sole top-level container)
     const first = [...built.model.containers.keys()][0];
-    view = { name: first ?? "default", scope: first, layout: { place: [], routes: [] }, loc: { from: 0, to: 0, line: 1, col: 1 } };
+    view = {
+      name: first ?? "default", scope: first,
+      include: [], includeStar: false, exclude: [], expand: [],
+      context: "auto", highlight: [], showDescriptions: false, notes: [],
+      layout: { place: [], routes: [] },
+      loc: { from: 0, to: 0, line: 1, col: 1 },
+    };
   }
 
   const themeName = opts.theme ?? view.theme ?? built.model.fileTheme ?? "light";
@@ -50,5 +56,13 @@ export async function render(
   const { positioned, diagnostics: layoutDiags } = await layoutView(built.model, view);
   diagnostics.push(...layoutDiags);
   if (diagnostics.some((d) => d.severity === "error")) return { diagnostics, ok: false };
-  return { svg: renderSVG(positioned, theme), diagnostics, ok: true };
+  return {
+    svg: renderSVG(positioned, theme, {
+      highlight: view.highlight,
+      notes: view.notes,
+      showDescriptions: view.showDescriptions,
+    }),
+    diagnostics,
+    ok: true,
+  };
 }

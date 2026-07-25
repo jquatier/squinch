@@ -1,29 +1,31 @@
-// SModel + SView → positioned diagram. Phase-0-proven architecture:
+// ViewGraph → positioned diagram. Phase-0-proven architecture:
 //   - declared ranks (rows/place) are ours, enforced via invisible scaffold edges
 //   - same-rank ("coplanar") edges bypass ELK → our deterministic coplanar router
 //   - one port per edge endpoint with FIXED_SIDE → ELK spreads ports + stubs
 // ELK owns between-rank; we own within-rank. Keep that boundary crisp.
 import ELK from "elkjs/lib/elk.bundled.js";
 import { measure } from "../metrics.js";
-import type { SModel, SEdge, SView, Side, Diagnostic } from "../model/types.js";
+import { resolveView } from "../view/resolve.js";
+import type { VNode, VEdge } from "../view/resolve.js";
+import type { SModel, SView, Side, Diagnostic } from "../model/types.js";
 
-const TIERS = [120, 160, 200, 240];
-const NODE_H = 64;
+const LEAF_TIERS = [120, 160, 200, 240];
+const CARD_TIERS = [200, 240, 280, 320];
+const LEAF_H = 64;
+const CARD_H = 88;
 const PLATE = 40;
 const PAD = 12;
 const SIDE_UP: Record<string, string> = { north: "NORTH", south: "SOUTH", east: "EAST", west: "WEST" };
+const SIDE_DOWN: Record<string, Side> = { NORTH: "north", SOUTH: "south", EAST: "east", WEST: "west" };
 
-export interface PNode {
-  path: string;
+export interface PNode extends VNode {
   x: number; y: number; w: number; h: number;
-  label: string;
-  icon?: { pack: string; id: string };
-  tags: string[];
+  rank: number;
 }
 export interface PPort { edge: string; node: string; side: Side; x: number; y: number }
 export interface PEdge {
   id: string; from: string; to: string;
-  label?: string; async: boolean;
+  label?: string; async: boolean; count: number;
   points: { x: number; y: number }[];
 }
 export interface Positioned {
@@ -32,62 +34,51 @@ export interface Positioned {
   nodes: PNode[]; edges: PEdge[]; ports: PPort[];
 }
 
-function nodeWidth(label: string): number {
-  const need = PAD + PLATE + PAD + measure(label, 13, "500") + PAD;
-  return TIERS.find((t) => t >= need) ?? TIERS[TIERS.length - 1];
+function sizeOf(n: VNode): { w: number; h: number } {
+  const isCard = n.kind === "card" || n.kind === "context-card";
+  if (isCard) {
+    const need = PAD + Math.max(measure(n.label, 15, "500"), measure(n.tagline ?? "", 11, "400")) + PAD + 28;
+    return { w: CARD_TIERS.find((t) => t >= need) ?? CARD_TIERS[CARD_TIERS.length - 1], h: CARD_H };
+  }
+  const need = PAD + PLATE + PAD + measure(n.label, 13, "500") + PAD;
+  return { w: LEAF_TIERS.find((t) => t >= need) ?? LEAF_TIERS[LEAF_TIERS.length - 1], h: LEAF_H };
 }
 
 export async function layoutView(
   model: SModel,
   view: SView,
 ): Promise<{ positioned: Positioned; diagnostics: Diagnostic[] }> {
-  const diagnostics: Diagnostic[] = [];
-  const scope = view.scope ?? "";
-  const container = scope ? model.containers.get(scope) : undefined;
+  const graph = resolveView(model, view);
+  const diagnostics = [...graph.diagnostics];
+  const byPath = new Map(graph.nodes.map((n) => [n.path, n]));
+  const memberPaths = graph.nodes.map((n) => n.path);
+  const edges: VEdge[] = graph.edges;
 
-  // v1 slice: leaf nodes of the scope (nested containers land with system cards)
-  const memberPaths = (container?.children ?? [...model.nodes.keys()]).filter((p) => {
-    if (model.containers.has(p)) {
-      diagnostics.push({
-        severity: "warning",
-        message: `nested container \`${p}\` not rendered yet (v1 slice)`,
-        loc: view.loc,
-      });
-      return false;
-    }
-    return true;
-  });
-  const members = new Set(memberPaths);
-  const edges = model.edges.filter((e) => members.has(e.from) && members.has(e.to));
-
-  // ── ranks: declared (rows/place) + natural fill for unhinted nodes ────────
+  // ── ranks: declared (rows/place) + natural fill ───────────────────────────
   const rank = new Map<string, number>();
-  view.layout.rows?.forEach((row, i) => row.forEach((p) => rank.set(p, i)));
+  view.layout.rows?.forEach((row, i) => row.forEach((p) => byPath.has(p) && rank.set(p, i)));
   for (const pl of view.layout.place) {
     const t = rank.get(pl.target);
     if (t !== undefined) rank.set(pl.node, t);
   }
-  // natural rank for anything unhinted (longest path over scope edges)
   const natAll = new Map(memberPaths.map((p) => [p, 0]));
   for (let i = 0; i < memberPaths.length; i++)
     for (const e of edges)
-      if (e.arrow !== "--")
-        natAll.set(e.to, Math.max(natAll.get(e.to)!, natAll.get(e.from)! + 1));
+      natAll.set(e.to, Math.max(natAll.get(e.to)!, natAll.get(e.from)! + 1));
   for (const p of memberPaths) if (!rank.has(p)) rank.set(p, natAll.get(p)!);
 
-  // model order: rows order first, placed nodes after their targets, rest appended
-  const order: string[] = view.layout.rows ? view.layout.rows.flat() : [];
+  // model order: rows first, placed after targets, rest in resolve order
+  const order: string[] = (view.layout.rows ?? []).flat().filter((p) => byPath.has(p));
   for (const pl of view.layout.place) {
     const i = order.indexOf(pl.target);
     if (i >= 0 && !order.includes(pl.node)) order.splice(i + 1, 0, pl.node);
   }
   for (const p of memberPaths) if (!order.includes(p)) order.push(p);
 
-  // ── split edges: coplanar (same rank) vs cross-rank (ELK's) ──────────────
+  // ── coplanar vs cross-rank ────────────────────────────────────────────────
   const coplanar = edges.filter((e) => rank.get(e.from) === rank.get(e.to));
   const elkEdges = edges.filter((e) => rank.get(e.from) !== rank.get(e.to));
 
-  // natural layer over ELK edges only → scaffold where too shallow
   const natural = new Map(memberPaths.map((p) => [p, 0]));
   for (let i = 0; i < memberPaths.length; i++)
     for (const e of elkEdges)
@@ -109,9 +100,8 @@ export async function layoutView(
     }
   }
 
-  // route hints keyed by from|to
   const routeOf = new Map(view.layout.routes.map((r) => [`${r.from}|${r.to}`, r]));
-  const sidesOf = (e: SEdge): { from: Side; to: Side } => {
+  const sidesOf = (e: VEdge): { from: Side; to: Side } => {
     const hint = routeOf.get(`${e.from}|${e.to}`);
     const down = rank.get(e.from)! <= rank.get(e.to)!;
     return {
@@ -121,7 +111,8 @@ export async function layoutView(
   };
 
   const children = order.map((p) => {
-    const n = model.nodes.get(p)!;
+    const n = byPath.get(p)!;
+    const { w, h } = sizeOf(n);
     const ports = elkEdges.flatMap((e) => {
       const s = sidesOf(e);
       const out: any[] = [];
@@ -131,16 +122,10 @@ export async function layoutView(
         out.push({ id: `${e.id}.dst`, width: 0, height: 0, layoutOptions: { "elk.port.side": SIDE_UP[s.to] } });
       return out;
     });
-    return {
-      id: p,
-      width: nodeWidth(n.label),
-      height: NODE_H,
-      ports,
-      layoutOptions: { "elk.portConstraints": "FIXED_SIDE" },
-    };
+    return { id: p, width: w, height: h, ports, layoutOptions: { "elk.portConstraints": "FIXED_SIDE" } };
   });
 
-  const graph = {
+  const elkGraph = {
     id: "root",
     layoutOptions: {
       "elk.algorithm": "layered",
@@ -162,19 +147,16 @@ export async function layoutView(
     ],
   };
 
-  const out: any = await new ELK().layout(graph as any);
+  const out: any = await new ELK().layout(elkGraph as any);
   const q = Math.round;
 
-  const nodes: PNode[] = out.children.map((c: any) => {
-    const n = model.nodes.get(c.id)!;
-    return {
-      path: c.id, x: q(c.x), y: q(c.y), w: q(c.width), h: q(c.height),
-      label: n.label, icon: n.icon, tags: n.tags,
-    };
-  });
+  const nodes: PNode[] = out.children.map((c: any) => ({
+    ...byPath.get(c.id)!,
+    x: q(c.x), y: q(c.y), w: q(c.width), h: q(c.height),
+    rank: rank.get(c.id)!,
+  }));
   const nodeById = new Map(nodes.map((n) => [n.path, n]));
 
-  const SIDE_DOWN: Record<string, Side> = { NORTH: "north", SOUTH: "south", EAST: "east", WEST: "west" };
   const ports: PPort[] = out.children.flatMap((c: any) =>
     (c.ports ?? [])
       .filter((p: any) => !p.id.startsWith("scaffold."))
@@ -194,7 +176,7 @@ export async function layoutView(
         const s = e.sections[0];
         const pts = [s.startPoint, ...(s.bendPoints ?? []), s.endPoint].map((p: any) => ({ x: q(p.x), y: q(p.y) }));
         const m = edges.find((me) => me.id === e.id)!;
-        return [e.id, { id: e.id, from: m.from, to: m.to, label: m.label, async: m.arrow === "~>", points: pts }];
+        return [e.id, { id: e.id, from: m.from, to: m.to, label: m.label, async: m.async, count: m.count, points: pts }];
       }),
   );
 
@@ -204,10 +186,11 @@ export async function layoutView(
     const b = nodeById.get(e.to)!;
     const [l, r] = a.x <= b.x ? [a, b] : [b, a];
     const blocked = nodes.some(
-      (n) => n.path !== a.path && n.path !== b.path && n.y === a.y && n.x > l.x && n.x < r.x,
+      (n) => n.path !== a.path && n.path !== b.path && n.rank === a.rank && n.x > l.x && n.x < r.x,
     );
+    const midY = (n: PNode) => n.y + Math.round(n.h / 2);
     if (!blocked) {
-      const y = a.y + Math.round(a.h / 2);
+      const y = midY(a);
       const pts = a.x <= b.x
         ? [{ x: a.x + a.w, y }, { x: b.x, y }]
         : [{ x: a.x, y }, { x: b.x + b.w, y }];
@@ -215,9 +198,9 @@ export async function layoutView(
         { edge: e.id, node: a.path, side: a.x <= b.x ? "east" : "west", x: pts[0].x, y },
         { edge: e.id, node: b.path, side: a.x <= b.x ? "west" : "east", x: pts[1].x, y },
       );
-      return { id: e.id, from: e.from, to: e.to, label: e.label, async: e.arrow === "~>", points: pts };
+      return { id: e.id, from: e.from, to: e.to, label: e.label, async: e.async, count: e.count, points: pts };
     }
-    const bandBottom = Math.max(...nodes.filter((n) => n.y === a.y).map((n) => n.y + n.h));
+    const bandBottom = Math.max(...nodes.filter((n) => n.rank === a.rank).map((n) => n.y + n.h));
     const lane = bandBottom + 24;
     const ax = a.x + Math.round(a.w / 2);
     const bx = b.x + Math.round(b.w / 2);
@@ -229,13 +212,16 @@ export async function layoutView(
       { edge: e.id, node: a.path, side: "south", x: ax, y: a.y + a.h },
       { edge: e.id, node: b.path, side: "south", x: bx, y: b.y + b.h },
     );
-    return { id: e.id, from: e.from, to: e.to, label: e.label, async: e.arrow === "~>", points: pts };
+    return { id: e.id, from: e.from, to: e.to, label: e.label, async: e.async, count: e.count, points: pts };
   });
 
   const coplanarById = new Map(coplanarEdges.map((e) => [e.id, e]));
   const pEdges: PEdge[] = edges.map((e) => elkPositioned.get(e.id) ?? coplanarById.get(e.id)!);
 
-  const height = Math.max(q(out.height), ...pEdges.flatMap((e) => e.points.map((p) => p.y + 32)));
+  const height = Math.max(
+    q(out.height),
+    ...pEdges.flatMap((e) => e.points.map((p) => p.y + 32)),
+  );
 
   return {
     positioned: { name: view.name, width: q(out.width), height, nodes, edges: pEdges, ports },

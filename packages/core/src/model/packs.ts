@@ -30,7 +30,29 @@ const builtin: Record<string, IconMeta> = {
   person: { code: "☺", color: "#6F6E69" },
 };
 
-export const packs: Record<string, Record<string, IconMeta>> = { aws, builtin };
+// First-party archetype glyphs (DESIGN §: sys pack) — text codes until the real
+// stroke-SVG set lands; used as card badges.
+const sys: Record<string, IconMeta> = {
+  api: { code: "API", color: "#6F6E69" },
+  webapp: { code: "WEB", color: "#6F6E69" },
+  mobile: { code: "MOB", color: "#6F6E69" },
+  service: { code: "SVC", color: "#6F6E69" },
+  worker: { code: "WRK", color: "#6F6E69" },
+  database: { code: "DB", color: "#6F6E69" },
+  cache: { code: "$", color: "#6F6E69" },
+  queue: { code: "Q", color: "#6F6E69" },
+  "event-bus": { code: "BUS", color: "#6F6E69" },
+  filestore: { code: "FS", color: "#6F6E69" },
+  search: { code: "SRCH", color: "#6F6E69" },
+  gateway: { code: "GW", color: "#6F6E69" },
+  auth: { code: "AUTH", color: "#6F6E69" },
+  monitor: { code: "MON", color: "#6F6E69" },
+  scheduler: { code: "CRON", color: "#6F6E69" },
+  org: { code: "ORG", color: "#6F6E69" },
+  internet: { code: "NET", color: "#6F6E69" },
+};
+
+export const packs: Record<string, Record<string, IconMeta>> = { aws, builtin, sys };
 
 export function iconMeta(pack: string, id: string): IconMeta | undefined {
   return packs[pack]?.[id];

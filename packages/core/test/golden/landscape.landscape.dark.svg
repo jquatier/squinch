@@ -1,0 +1,36 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="304" height="416" viewBox="0 0 304 416" font-family="Inter, system-ui, sans-serif">
+<rect width="304" height="416" fill="#161618"/>
+<g><path d="M 152 96 L 152 152" fill="none" stroke="#8D8C84" stroke-width="1.5"/>
+<path d="M 152 152 L 158 144 L 146 144 Z" fill="#8D8C84"/>
+</g>
+<g><path d="M 152 240 L 152 296" fill="none" stroke="#8D8C84" stroke-width="1.5"/>
+<path d="M 152 296 L 158 288 L 146 288 Z" fill="#8D8C84"/>
+</g>
+<g>
+<rect x="72" y="32" width="160" height="64" rx="4" fill="#212124" stroke="#3B3B40" stroke-width="1.5"/>
+<rect x="84" y="44" width="40" height="40" rx="4" fill="#6F6E69"/>
+<text x="104" y="68" text-anchor="middle" font-size="11" font-weight="500" fill="#FFFFFF">☺</text>
+<text x="136" y="69" font-size="13" font-weight="500" fill="#EDEDEA">Customer</text>
+</g>
+<g>
+<rect x="32" y="152" width="240" height="88" rx="6" fill="#212124" stroke="#3B3B40" stroke-width="1.5"/>
+<rect x="32" y="152" width="4" height="88" rx="2" fill="#8B88E8"/>
+<text x="50" y="186" font-size="15" font-weight="500" fill="#EDEDEA">Storefront</text>
+<text x="50" y="206" font-size="11" fill="#9C9B94">Customer-facing web experience</text>
+<text x="260" y="174" text-anchor="end" font-size="10" font-weight="500" fill="#9C9B94">WEB</text>
+<rect x="244" y="212" width="16" height="16" rx="3" fill="#8A5FC9" opacity="0.6"/>
+<rect x="224" y="212" width="16" height="16" rx="3" fill="#C7362E" opacity="0.6"/>
+</g>
+<g>
+<rect x="52" y="296" width="200" height="88" rx="6" fill="#212124" stroke="#3B3B40" stroke-width="1.5"/>
+<rect x="52" y="296" width="4" height="88" rx="2" fill="#8B88E8"/>
+<text x="70" y="330" font-size="15" font-weight="500" fill="#EDEDEA">Order Service</text>
+<text x="70" y="350" font-size="11" fill="#9C9B94">4 components</text>
+<text x="240" y="318" text-anchor="end" font-size="10" font-weight="500" fill="#9C9B94">API</text>
+<rect x="224" y="356" width="16" height="16" rx="3" fill="#B0468C" opacity="0.6"/>
+<rect x="204" y="356" width="16" height="16" rx="3" fill="#4568C9" opacity="0.6"/>
+<rect x="184" y="356" width="16" height="16" rx="3" fill="#D9760A" opacity="0.6"/>
+</g>
+<g><rect x="124" y="248" width="56" height="18" rx="2" fill="#212124" stroke="#3B3B40" stroke-width="1"/><text x="152" y="261" text-anchor="middle" font-size="11" fill="#9C9B94">browses</text></g>
+<g><rect x="132" y="259" width="40" height="18" rx="2" fill="#212124" stroke="#3B3B40" stroke-width="1"/><text x="152" y="272" text-anchor="middle" font-size="11" fill="#9C9B94">REST</text></g>
+</svg>

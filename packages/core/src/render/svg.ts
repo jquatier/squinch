@@ -1,14 +1,23 @@
-// Positioned + Theme → deterministic SVG string (DESIGN.md-lite; integers, LF,
-// fixed attribute order — the string is the artifact under byte-identity tests).
+// Positioned + Theme (+ view annotations) → deterministic SVG string.
+// DESIGN.md-lite; integers, LF, fixed attribute order — the string is the
+// artifact under byte-identity tests.
 import { fit, measure } from "../metrics.js";
 import { iconMeta } from "../model/packs.js";
 import type { Theme } from "../themes/index.js";
-import type { Positioned, PEdge } from "../layout/layout.js";
+import type { Positioned, PEdge, PNode } from "../layout/layout.js";
+import type { SNote } from "../model/types.js";
 
 const PLATE = 40;
 const PAD = 12;
 const R_NODE = 4;
 const R_EDGE = 8;
+const DIM = "0.35";
+
+export interface RenderOpts {
+  highlight?: string[];
+  notes?: SNote[];
+  showDescriptions?: boolean;
+}
 
 function roundedPath(pts: { x: number; y: number }[], r = R_EDGE): string {
   if (pts.length < 3)
@@ -44,7 +53,140 @@ function arrow(e: PEdge, t: Theme): string {
 const esc = (s: string) =>
   s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
 
-function edgeLabel(e: PEdge, t: Theme, nodeBottom: (p: string) => number): string {
+/** Greedy word-wrap against the metrics table; ≤maxLines, last line ellipsized. */
+function wrap(text: string, maxPx: number, sizePx: number, maxLines: number): string[] {
+  const words = text.split(" ");
+  const lines: string[] = [];
+  let cur = "";
+  for (const w of words) {
+    const attempt = cur ? `${cur} ${w}` : w;
+    if (measure(attempt, sizePx, "400") <= maxPx) cur = attempt;
+    else {
+      if (cur) lines.push(cur);
+      cur = w;
+      if (lines.length === maxLines - 1) break;
+    }
+  }
+  if (lines.length < maxLines) lines.push(cur);
+  const consumed = lines.join(" ").length;
+  if (consumed < text.length) {
+    const last = lines[lines.length - 1];
+    lines[lines.length - 1] = fit(`${last}${text.slice(consumed)}`, maxPx, sizePx, "400");
+  }
+  return lines;
+}
+
+function leaf(n: PNode, t: Theme, opts: RenderOpts, dimmed: boolean, L: string[]) {
+  const op = dimmed ? ` opacity="${DIM}"` : "";
+  const ctx = n.kind === "context-leaf";
+  const stroke = ctx ? ` stroke-dasharray="4 3"` : "";
+  L.push(`<g${op}>`);
+  L.push(
+    `<rect x="${n.x}" y="${n.y}" width="${n.w}" height="${n.h}" rx="${R_NODE}" fill="${t.surface}" stroke="${t.border}" stroke-width="1.5"${stroke}/>`,
+  );
+  const meta = n.icon ? iconMeta(n.icon.pack, n.icon.id) : undefined;
+  const px = n.x + PAD, py = n.y + PAD;
+  L.push(`<rect x="${px}" y="${py}" width="${PLATE}" height="${PLATE}" rx="4" fill="${meta?.color ?? t.muted}"${ctx ? ` opacity="0.55"` : ""}/>`);
+  L.push(
+    `<text x="${px + PLATE / 2}" y="${py + PLATE / 2 + 4}" text-anchor="middle" font-size="11" font-weight="500" fill="${t.plateText}">${esc(meta?.code ?? "?")}</text>`,
+  );
+  const maxLabel = n.w - PAD - PLATE - PAD - PAD;
+  const withDesc = opts.showDescriptions && n.description;
+  const labelY = withDesc ? n.y + n.h / 2 - 1 : n.y + n.h / 2 + 5;
+  L.push(
+    `<text x="${px + PLATE + PAD}" y="${labelY}" font-size="13" font-weight="500" fill="${ctx ? t.muted : t.ink}">${esc(fit(n.label, maxLabel, 13, "500"))}</text>`,
+  );
+  if (withDesc)
+    L.push(
+      `<text x="${px + PLATE + PAD}" y="${n.y + n.h / 2 + 15}" font-size="11" fill="${t.muted}">${esc(fit(n.description!, maxLabel, 11, "400"))}</text>`,
+    );
+  L.push(`</g>`);
+}
+
+function card(n: PNode, t: Theme, dimmed: boolean, L: string[]) {
+  const op = dimmed ? ` opacity="${DIM}"` : "";
+  const ctx = n.kind === "context-card";
+  const stroke = ctx ? ` stroke-dasharray="4 3"` : "";
+  L.push(`<g${op}${ctx ? ` opacity="0.75"` : ""}>`);
+  L.push(
+    `<rect x="${n.x}" y="${n.y}" width="${n.w}" height="${n.h}" rx="6" fill="${t.surface}" stroke="${t.border}" stroke-width="1.5"${stroke}/>`,
+  );
+  // accent bar (kind silhouette, DESIGN §3)
+  L.push(`<rect x="${n.x}" y="${n.y}" width="4" height="${n.h}" rx="2" fill="${ctx ? t.muted : t.accent}"/>`);
+  const tx = n.x + PAD + 6;
+  L.push(
+    `<text x="${tx}" y="${n.y + 34}" font-size="15" font-weight="500" fill="${ctx ? t.muted : t.ink}">${esc(fit(n.label, n.w - 60, 15, "500"))}</text>`,
+  );
+  if (n.tagline)
+    L.push(
+      `<text x="${tx}" y="${n.y + 54}" font-size="11" fill="${t.muted}">${esc(fit(n.tagline, n.w - 40, 11, "400"))}</text>`,
+    );
+  if (n.glyph) {
+    const g = iconMeta(n.glyph.pack, n.glyph.id);
+    if (g)
+      L.push(
+        `<text x="${n.x + n.w - PAD}" y="${n.y + 22}" text-anchor="end" font-size="10" font-weight="500" fill="${t.muted}">${esc(g.code)}</text>`,
+      );
+  }
+  // preview strip: up to 3 inner icons, bottom-right, 16px at 60%
+  n.preview.forEach((icon, i) => {
+    const meta = iconMeta(icon.pack, icon.id);
+    if (!meta) return;
+    const ix = n.x + n.w - PAD - 16 - i * 20;
+    const iy = n.y + n.h - PAD - 16;
+    L.push(`<rect x="${ix}" y="${iy}" width="16" height="16" rx="3" fill="${meta.color}" opacity="0.6"/>`);
+  });
+  L.push(`</g>`);
+}
+
+function notes(p: Positioned, t: Theme, list: SNote[], L: string[]) {
+  const byPath = new Map(p.nodes.map((n) => [n.path, n]));
+  for (const note of list) {
+    const inner = 176;
+    const lines = wrap(note.text, inner, 11, 3);
+    const w = Math.min(200, Math.max(...lines.map((l) => measure(l, 11, "400"))) + 24);
+    const h = lines.length * 15 + 12;
+    let x = 0, y = 0;
+    let leader: { x1: number; y1: number; x2: number; y2: number } | undefined;
+
+    if (note.anchor.kind === "relpos") {
+      const n = byPath.get(note.anchor.target);
+      if (!n) continue;
+      const rp = note.anchor.relpos;
+      if (rp === "right-of") { x = n.x + n.w + 24; y = n.y + Math.round(n.h / 2) - Math.round(h / 2); leader = { x1: x, y1: y + h / 2, x2: n.x + n.w, y2: n.y + n.h / 2 }; }
+      if (rp === "left-of") { x = n.x - 24 - w; y = n.y + Math.round(n.h / 2) - Math.round(h / 2); leader = { x1: x + w, y1: y + h / 2, x2: n.x, y2: n.y + n.h / 2 }; }
+      if (rp === "above") { x = n.x + Math.round(n.w / 2) - Math.round(w / 2); y = n.y - 24 - h; leader = { x1: x + w / 2, y1: y + h, x2: n.x + n.w / 2, y2: n.y }; }
+      if (rp === "below") { x = n.x + Math.round(n.w / 2) - Math.round(w / 2); y = n.y + n.h + 24; leader = { x1: x + w / 2, y1: y, x2: n.x + n.w / 2, y2: n.y + n.h }; }
+    } else if (note.anchor.kind === "edge") {
+      const e = p.edges.find(
+        (e) => e.from === (note.anchor as any).from && e.to === (note.anchor as any).to,
+      );
+      if (!e) continue;
+      const mid = e.points[Math.floor(e.points.length / 2) - 1] ?? e.points[0];
+      x = mid.x + 16;
+      y = mid.y - h - 8;
+      leader = { x1: x, y1: y + h, x2: mid.x, y2: mid.y };
+    } else {
+      const c = note.anchor.corner;
+      x = c.includes("left") ? 16 : p.width - w - 16;
+      y = c.includes("top") ? 16 : p.height - h - 16;
+    }
+    x = Math.round(x); y = Math.round(y);
+    const bg = note.style === "warning" ? t.warnTint : t.surface;
+    if (leader)
+      L.push(
+        `<line x1="${Math.round(leader.x1)}" y1="${Math.round(leader.y1)}" x2="${Math.round(leader.x2)}" y2="${Math.round(leader.y2)}" stroke="${t.muted}" stroke-width="1" stroke-dasharray="2 3"/>`,
+      );
+    L.push(`<rect x="${x}" y="${y}" width="${w}" height="${h}" rx="3" fill="${bg}" stroke="${t.border}" stroke-width="1"/>`);
+    lines.forEach((line, i) =>
+      L.push(
+        `<text x="${x + 12}" y="${y + 17 + i * 15}" font-size="11" fill="${t.ink}">${esc(line)}</text>`,
+      ),
+    );
+  }
+}
+
+function edgeLabel(e: PEdge, t: Theme, nodeBottom: (p: string) => number, dimmed: boolean): string {
   if (!e.label) return "";
   let best = 0, bi = 0;
   for (let i = 0; i < e.points.length - 1; i++) {
@@ -56,50 +198,56 @@ function edgeLabel(e: PEdge, t: Theme, nodeBottom: (p: string) => number): strin
   const w = Math.round(measure(e.label, 11, "400")) + 12;
   if (w > best - 8) my = Math.max(nodeBottom(e.from), nodeBottom(e.to)) + 17;
   const x = mx - Math.round(w / 2), y = my - 9;
+  const op = dimmed ? ` opacity="${DIM}"` : "";
   return (
-    `<rect x="${x}" y="${y}" width="${w}" height="18" rx="2" fill="${t.surface}" stroke="${t.border}" stroke-width="1"/>` +
-    `<text x="${mx}" y="${y + 13}" text-anchor="middle" font-size="11" fill="${t.muted}">${esc(e.label)}</text>`
+    `<g${op}><rect x="${x}" y="${y}" width="${w}" height="18" rx="2" fill="${t.surface}" stroke="${t.border}" stroke-width="1"/>` +
+    `<text x="${mx}" y="${y + 13}" text-anchor="middle" font-size="11" fill="${t.muted}">${esc(e.label)}</text></g>`
   );
 }
 
-export function renderSVG(p: Positioned, t: Theme): string {
+export function renderSVG(p: Positioned, t: Theme, opts: RenderOpts = {}): string {
   const L: string[] = [];
   L.push(
     `<svg xmlns="http://www.w3.org/2000/svg" width="${p.width}" height="${p.height}" viewBox="0 0 ${p.width} ${p.height}" font-family="Inter, system-ui, sans-serif">`,
   );
   L.push(`<rect width="${p.width}" height="${p.height}" fill="${t.canvas}"/>`);
 
+  const hl = opts.highlight ?? [];
+  const nodeMatches = (n: PNode) => hl.length === 0 || n.tags.some((tag) => hl.includes(tag));
+  const byPath = new Map(p.nodes.map((n) => [n.path, n]));
+  const edgeMatches = (e: PEdge) =>
+    hl.length === 0 || (nodeMatches(byPath.get(e.from)!) && nodeMatches(byPath.get(e.to)!));
+
   for (const e of p.edges) {
+    const dimmed = !edgeMatches(e);
     const col = e.async ? t.asyncEdge : t.edge;
     const dash = e.async ? ` stroke-dasharray="6 4"` : "";
-    L.push(`<path d="${roundedPath(e.points)}" fill="none" stroke="${col}" stroke-width="1.5"${dash}/>`);
+    const op = dimmed ? ` opacity="${DIM}"` : "";
+    L.push(`<g${op}><path d="${roundedPath(e.points)}" fill="none" stroke="${col}" stroke-width="1.5"${dash}/>`);
     L.push(arrow(e, t));
+    L.push(`</g>`);
   }
 
   for (const n of p.nodes) {
-    L.push(
-      `<rect x="${n.x}" y="${n.y}" width="${n.w}" height="${n.h}" rx="${R_NODE}" fill="${t.surface}" stroke="${t.border}" stroke-width="1.5"/>`,
-    );
-    const meta = n.icon ? iconMeta(n.icon.pack, n.icon.id) : undefined;
-    const px = n.x + PAD, py = n.y + PAD;
-    L.push(`<rect x="${px}" y="${py}" width="${PLATE}" height="${PLATE}" rx="4" fill="${meta?.color ?? t.muted}"/>`);
-    L.push(
-      `<text x="${px + PLATE / 2}" y="${py + PLATE / 2 + 4}" text-anchor="middle" font-size="11" font-weight="500" fill="${t.plateText}">${esc(meta?.code ?? "?")}</text>`,
-    );
-    const maxLabel = n.w - PAD - PLATE - PAD - PAD;
-    L.push(
-      `<text x="${px + PLATE + PAD}" y="${n.y + n.h / 2 + 5}" font-size="13" font-weight="500" fill="${t.ink}">${esc(fit(n.label, maxLabel, 13, "500"))}</text>`,
-    );
+    const dimmed = !nodeMatches(n);
+    if (n.kind === "card" || n.kind === "context-card") card(n, t, dimmed, L);
+    else leaf(n, t, opts, dimmed, L);
+    if (!dimmed && hl.length > 0)
+      L.push(
+        `<rect x="${n.x - 3}" y="${n.y - 3}" width="${n.w + 6}" height="${n.h + 6}" rx="${R_NODE + 3}" fill="none" stroke="${t.accent}" stroke-width="1.5" opacity="0.8"/>`,
+      );
   }
 
   const bottom = (path: string) => {
-    const n = p.nodes.find((x) => x.path === path)!;
+    const n = byPath.get(path)!;
     return n.y + n.h;
   };
   for (const e of p.edges) {
-    const lbl = edgeLabel(e, t, bottom);
+    const lbl = edgeLabel(e, t, bottom, !edgeMatches(e));
     if (lbl) L.push(lbl);
   }
+
+  if (opts.notes?.length) notes(p, t, opts.notes, L);
 
   L.push(`</svg>`);
   return L.join("\n") + "\n";

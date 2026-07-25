@@ -10,6 +10,8 @@ export interface Theme {
   edge: string;
   asyncEdge: string;
   plateText: string;
+  accent: string; // card accent bar, highlight ring
+  warnTint: string; // warning-styled note chips
 }
 
 export const light: Theme = {
@@ -22,6 +24,8 @@ export const light: Theme = {
   edge: "#8A897F",
   asyncEdge: "#7C74D9",
   plateText: "#FFFFFF",
+  accent: "#5A57C9",
+  warnTint: "#FBF3DC",
 };
 
 export const dark: Theme = {
@@ -34,6 +38,8 @@ export const dark: Theme = {
   edge: "#8D8C84",
   asyncEdge: "#968EE8",
   plateText: "#FFFFFF",
+  accent: "#8B88E8",
+  warnTint: "#3A3423",
 };
 
 export const themes: Record<string, Theme> = { light, dark };
