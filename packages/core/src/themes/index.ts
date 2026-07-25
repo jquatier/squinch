@@ -12,6 +12,7 @@ export interface Theme {
   plateText: string;
   accent: string; // card accent bar, highlight ring
   warnTint: string; // warning-styled note chips
+  surfaceAlt: string; // container-frame recession (DESIGN §5)
 }
 
 export const light: Theme = {
@@ -26,6 +27,7 @@ export const light: Theme = {
   plateText: "#FFFFFF",
   accent: "#5A57C9",
   warnTint: "#FBF3DC",
+  surfaceAlt: "#EFEFEC",
 };
 
 export const dark: Theme = {
@@ -40,6 +42,7 @@ export const dark: Theme = {
   plateText: "#FFFFFF",
   accent: "#8B88E8",
   warnTint: "#3A3423",
+  surfaceAlt: "#1D1D20",
 };
 
 export const themes: Record<string, Theme> = { light, dark };

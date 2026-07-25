@@ -19,6 +19,12 @@ export interface RenderOpts {
   showDescriptions?: boolean;
 }
 
+function edgePath(pts: { x: number; y: number }[], lines: Positioned["lines"]): string {
+  if (lines === "straight")
+    return `M ${pts[0].x} ${pts[0].y} L ${pts[pts.length - 1].x} ${pts[pts.length - 1].y}`;
+  return roundedPath(pts, lines === "curved" ? 24 : R_EDGE);
+}
+
 function roundedPath(pts: { x: number; y: number }[], r = R_EDGE): string {
   if (pts.length < 3)
     return `M ${pts[0].x} ${pts[0].y} L ${pts[pts.length - 1].x} ${pts[pts.length - 1].y}`;
@@ -247,12 +253,22 @@ export function renderSVG(p: Positioned, t: Theme, opts: RenderOpts = {}): strin
 
   const body: string[] = [];
 
+  // container frames first — recessed surface behind everything (DESIGN §5)
+  for (const f of p.frames) {
+    body.push(
+      `<rect x="${f.x}" y="${f.y}" width="${f.w}" height="${f.h}" rx="8" fill="${t.surfaceAlt}" stroke="${t.border}" stroke-width="1"/>`,
+    );
+    body.push(
+      `<text x="${f.x + 14}" y="${f.y + 24}" font-size="13" font-weight="500" fill="${t.muted}">${esc(f.label)}</text>`,
+    );
+  }
+
   for (const e of p.edges) {
     const dimmed = !edgeMatches(e);
     const col = e.async ? t.asyncEdge : t.edge;
     const dash = e.async ? ` stroke-dasharray="6 4"` : "";
     const op = dimmed ? ` opacity="${DIM}"` : "";
-    body.push(`<g${op}><path d="${roundedPath(e.points)}" fill="none" stroke="${col}" stroke-width="1.5"${dash}/>`);
+    body.push(`<g${op}><path d="${edgePath(e.points, p.lines)}" fill="none" stroke="${col}" stroke-width="1.5"${dash}/>`);
     body.push(arrow(e, t));
     body.push(`</g>`);
   }

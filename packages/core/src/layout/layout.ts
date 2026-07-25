@@ -23,6 +23,7 @@ export interface PNode extends VNode {
   rank: number;
 }
 export interface PPort { edge: string; node: string; side: Side; x: number; y: number }
+export interface PFrame { path: string; label: string; x: number; y: number; w: number; h: number }
 export interface PEdge {
   id: string; from: string; to: string;
   label?: string; async: boolean; count: number;
@@ -31,7 +32,8 @@ export interface PEdge {
 export interface Positioned {
   name: string;
   width: number; height: number;
-  nodes: PNode[]; edges: PEdge[]; ports: PPort[];
+  nodes: PNode[]; edges: PEdge[]; ports: PPort[]; frames: PFrame[];
+  lines: "orthogonal" | "curved" | "straight";
 }
 
 function sizeOf(n: VNode): { w: number; h: number } {
@@ -54,35 +56,73 @@ export async function layoutView(
   const memberPaths = graph.nodes.map((n) => n.path);
   const edges: VEdge[] = graph.edges;
 
-  // ── ranks: declared (rows/place) + natural fill ───────────────────────────
+  // Top "entities": frames count as one unit for ranking/order; framed nodes
+  // project to their frame. Inside frames, ELK's natural layering rules.
+  const entityOf = (p: string) => byPath.get(p)?.frame ?? p;
+  const entities = [
+    ...graph.frames.map((f) => f.path),
+    ...graph.nodes.filter((n) => !n.frame).map((n) => n.path),
+  ];
+  const entitySet = new Set(entities);
+
+  // ── ranks: declared (rows/place) + natural fill, at entity level ─────────
   const rank = new Map<string, number>();
-  view.layout.rows?.forEach((row, i) => row.forEach((p) => byPath.has(p) && rank.set(p, i)));
+  view.layout.rows?.forEach((row, i) =>
+    row.forEach((p) => entitySet.has(entityOf(p)) && rank.set(entityOf(p), i)),
+  );
   for (const pl of view.layout.place) {
-    const t = rank.get(pl.target);
-    if (t !== undefined) rank.set(pl.node, t);
+    const t = rank.get(entityOf(pl.target));
+    if (t !== undefined) rank.set(entityOf(pl.node), t);
   }
-  const natAll = new Map(memberPaths.map((p) => [p, 0]));
-  for (let i = 0; i < memberPaths.length; i++)
-    for (const e of edges)
-      natAll.set(e.to, Math.max(natAll.get(e.to)!, natAll.get(e.from)! + 1));
-  for (const p of memberPaths) if (!rank.has(p)) rank.set(p, natAll.get(p)!);
+  const natAll = new Map(entities.map((p) => [p, 0]));
+  for (let i = 0; i < entities.length; i++)
+    for (const e of edges) {
+      const ef = entityOf(e.from), et = entityOf(e.to);
+      if (ef !== et) natAll.set(et, Math.max(natAll.get(et)!, natAll.get(ef)! + 1));
+    }
+  for (const p of entities) if (!rank.has(p)) rank.set(p, natAll.get(p)!);
 
-  // model order: rows first, placed after targets, rest in resolve order
-  const order: string[] = (view.layout.rows ?? []).flat().filter((p) => byPath.has(p));
+  // model order over entities: rows first, placed after targets, rest in resolve order
+  const order: string[] = [];
+  for (const p of (view.layout.rows ?? []).flat().map(entityOf))
+    if (entitySet.has(p) && !order.includes(p)) order.push(p);
   for (const pl of view.layout.place) {
-    const i = order.indexOf(pl.target);
-    if (i >= 0 && !order.includes(pl.node)) order.splice(i + 1, 0, pl.node);
+    const i = order.indexOf(entityOf(pl.target));
+    const n = entityOf(pl.node);
+    if (i >= 0 && !order.includes(n)) order.splice(i + 1, 0, n);
   }
-  for (const p of memberPaths) if (!order.includes(p)) order.push(p);
+  for (const p of entities) if (!order.includes(p)) order.push(p);
 
-  // ── coplanar vs cross-rank ────────────────────────────────────────────────
-  const coplanar = edges.filter((e) => rank.get(e.from) === rank.get(e.to));
-  const elkEdges = edges.filter((e) => rank.get(e.from) !== rank.get(e.to));
+  // ── edge classes: inner (same entity) | coplanar (same rank, both bare) |
+  //    cross-rank (ELK's) ────────────────────────────────────────────────────
+  const inner = (e: VEdge) => entityOf(e.from) === entityOf(e.to) && byPath.get(e.from)?.frame;
+  const coplanar = edges.filter(
+    (e) =>
+      !inner(e) &&
+      rank.get(entityOf(e.from)) === rank.get(entityOf(e.to)) &&
+      !byPath.get(e.from)?.frame &&
+      !byPath.get(e.to)?.frame,
+  );
+  const coplanarSet = new Set(coplanar.map((e) => e.id));
+  for (const e of edges) {
+    if (
+      !inner(e) && !coplanarSet.has(e.id) &&
+      rank.get(entityOf(e.from)) === rank.get(entityOf(e.to))
+    )
+      diagnostics.push({
+        severity: "warning",
+        message: `same-rank edge ${e.from} → ${e.to} crosses an expanded container — layout quality may degrade`,
+        loc: view.loc,
+      });
+  }
+  const elkEdges = edges.filter((e) => !coplanarSet.has(e.id));
 
-  const natural = new Map(memberPaths.map((p) => [p, 0]));
-  for (let i = 0; i < memberPaths.length; i++)
-    for (const e of elkEdges)
-      natural.set(e.to, Math.max(natural.get(e.to)!, natural.get(e.from)! + 1));
+  const natural = new Map(entities.map((p) => [p, 0]));
+  for (let i = 0; i < entities.length; i++)
+    for (const e of elkEdges) {
+      const ef = entityOf(e.from), et = entityOf(e.to);
+      if (ef !== et) natural.set(et, Math.max(natural.get(et)!, natural.get(ef)! + 1));
+    }
   const scaffold: { id: string; from: string; to: string }[] = [];
   for (const p of order) {
     const declared = rank.get(p)!;
@@ -100,17 +140,39 @@ export async function layoutView(
     }
   }
 
-  const routeOf = new Map(view.layout.routes.map((r) => [`${r.from}|${r.to}`, r]));
+  // route hints: exact (from|to|label) beats pairwise (from|to); a pairwise hint
+  // on an ambiguous parallel pair is a check error per SPEC §4.
+  const routeExact = new Map(
+    view.layout.routes.filter((r) => r.label).map((r) => [`${r.from}|${r.to}|${r.label}`, r]),
+  );
+  const routePair = new Map(
+    view.layout.routes.filter((r) => !r.label).map((r) => [`${r.from}|${r.to}`, r]),
+  );
+  const pairCount = new Map<string, number>();
+  for (const e of edges) {
+    const k = `${e.from}|${e.to}`;
+    pairCount.set(k, (pairCount.get(k) ?? 0) + 1);
+  }
+  for (const r of view.layout.routes) {
+    if (!r.label && (pairCount.get(`${r.from}|${r.to}`) ?? 0) > 1)
+      diagnostics.push({
+        severity: "error",
+        message: `${pairCount.get(`${r.from}|${r.to}`)} edges match \`route ${r.from} -> ${r.to}\``,
+        fix: "add the edge's label to the route statement to disambiguate",
+        loc: r.loc,
+      });
+  }
   const sidesOf = (e: VEdge): { from: Side; to: Side } => {
-    const hint = routeOf.get(`${e.from}|${e.to}`);
-    const down = rank.get(e.from)! <= rank.get(e.to)!;
+    const hint =
+      routeExact.get(`${e.from}|${e.to}|${e.label}`) ?? routePair.get(`${e.from}|${e.to}`);
+    const down = rank.get(entityOf(e.from))! <= rank.get(entityOf(e.to))!;
     return {
       from: hint?.fromSide ?? (down ? "south" : "north"),
       to: hint?.toSide ?? (down ? "north" : "south"),
     };
   };
 
-  const children = order.map((p) => {
+  const leafChild = (p: string) => {
     const n = byPath.get(p)!;
     const { w, h } = sizeOf(n);
     const ports = elkEdges.flatMap((e) => {
@@ -123,8 +185,28 @@ export async function layoutView(
       return out;
     });
     return { id: p, width: w, height: h, ports, layoutOptions: { "elk.portConstraints": "FIXED_SIDE" } };
-  });
+  };
 
+  const frameLabels = new Map(graph.frames.map((f) => [f.path, f.label]));
+  const framedChildren = (framePath: string) =>
+    graph.nodes.filter((n) => n.frame === framePath).map((n) => leafChild(n.path));
+
+  const children = order.map((p) =>
+    frameLabels.has(p)
+      ? {
+          id: p,
+          layoutOptions: {
+            "elk.padding": "[top=44,left=16,bottom=16,right=16]",
+            "elk.spacing.nodeNode": "32",
+            "elk.layered.spacing.nodeNodeBetweenLayers": "40",
+          },
+          children: framedChildren(p),
+        }
+      : leafChild(p),
+  );
+
+  const density = view.layout.density ?? "comfortable";
+  const SP = { compact: [32, 40], comfortable: [48, 56], spacious: [72, 84] }[density];
   const elkGraph = {
     id: "root",
     layoutOptions: {
@@ -133,12 +215,13 @@ export async function layoutView(
       "elk.layered.considerModelOrder.strategy": "NODES_AND_EDGES",
       "elk.layered.crossingMinimization.forceNodeModelOrder": "true",
       "elk.edgeRouting": "ORTHOGONAL",
-      "elk.spacing.nodeNode": "48",
-      "elk.layered.spacing.nodeNodeBetweenLayers": "56",
+      "elk.spacing.nodeNode": String(SP[0]),
+      "elk.layered.spacing.nodeNodeBetweenLayers": String(SP[1]),
       "elk.layered.spacing.edgeNodeBetweenLayers": "24",
       "elk.spacing.edgeNode": "24",
       "elk.spacing.edgeEdge": "16",
       "elk.padding": "[top=32,left=32,bottom=32,right=32]",
+      "elk.hierarchyHandling": "INCLUDE_CHILDREN",
     },
     children,
     edges: [
@@ -150,24 +233,35 @@ export async function layoutView(
   const out: any = await new ELK().layout(elkGraph as any);
   const q = Math.round;
 
-  const nodes: PNode[] = out.children.map((c: any) => ({
-    ...byPath.get(c.id)!,
-    x: q(c.x), y: q(c.y), w: q(c.width), h: q(c.height),
-    rank: rank.get(c.id)!,
-  }));
-  const nodeById = new Map(nodes.map((n) => [n.path, n]));
-
-  const ports: PPort[] = out.children.flatMap((c: any) =>
-    (c.ports ?? [])
-      .filter((p: any) => !p.id.startsWith("scaffold."))
-      .map((p: any) => ({
+  // recursive extraction: compound (frame) children carry parent-relative coords
+  const nodes: PNode[] = [];
+  const frames: PFrame[] = [];
+  const ports: PPort[] = [];
+  const walk = (c: any, ox: number, oy: number) => {
+    const x = q(ox + c.x), y = q(oy + c.y);
+    if (frameLabels.has(c.id)) {
+      frames.push({ path: c.id, label: frameLabels.get(c.id)!, x, y, w: q(c.width), h: q(c.height) });
+      for (const child of c.children ?? []) walk(child, x, y);
+      return;
+    }
+    nodes.push({
+      ...byPath.get(c.id)!,
+      x, y, w: q(c.width), h: q(c.height),
+      rank: rank.get(entityOf(c.id))!,
+    });
+    for (const p of c.ports ?? []) {
+      if (p.id.startsWith("scaffold.")) continue;
+      ports.push({
         edge: p.id.replace(/\.(src|dst)$/, ""),
         node: c.id,
         side: SIDE_DOWN[p.layoutOptions?.["elk.port.side"] ?? "SOUTH"],
-        x: q(c.x + p.x),
-        y: q(c.y + p.y),
-      })),
-  );
+        x: q(x + p.x),
+        y: q(y + p.y),
+      });
+    }
+  };
+  for (const c of out.children) walk(c, 0, 0);
+  const nodeById = new Map(nodes.map((n) => [n.path, n]));
 
   const elkPositioned = new Map<string, PEdge>(
     out.edges
@@ -224,7 +318,10 @@ export async function layoutView(
   );
 
   return {
-    positioned: { name: view.name, width: q(out.width), height, nodes, edges: pEdges, ports },
+    positioned: {
+      name: view.name, width: q(out.width), height, nodes, edges: pEdges, ports, frames,
+      lines: view.layout.lines ?? "orthogonal",
+    },
     diagnostics,
   };
 }

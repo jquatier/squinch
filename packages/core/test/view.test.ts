@@ -49,6 +49,52 @@ describe("visibility resolution + edge lifting", () => {
     expect(db.tags).toContain("core"); // inherited from orders
   });
 
+  it("native parallel edges stay separate at their own altitude", () => {
+    const { model: m } = buildModel(
+      `system s "S" {\n a = aws/lambda "A"\n b = aws/dynamodb "B"\n a -> b "read"\n a -> b "write"\n}`,
+    );
+    const g = resolveView(m, {
+      name: "s", scope: "s",
+      include: [], includeStar: false, exclude: [], expand: [],
+      context: "auto", highlight: [], showDescriptions: false, notes: [],
+      layout: { place: [], routes: [] },
+      loc: { from: 0, to: 0, line: 1, col: 1 },
+    } as any);
+    expect(g.edges.length).toBe(2);
+    expect(g.edges.map((e) => e.label).sort()).toEqual(["read", "write"]);
+  });
+
+  it("route on an ambiguous parallel pair without label errors", async () => {
+    const { layoutView } = await import("../src/layout/layout.js");
+    const { model: m, ...rest } = buildModel(
+      `system s "S" {\n a = aws/lambda "A"\n b = aws/dynamodb "B"\n a -> b "read"\n a -> b "write"\n}\nview s {\n layout { route a -> b from east to west }\n}`,
+    );
+    const r = await layoutView(m, m.views[0]);
+    const err = r.diagnostics.find((d) => d.severity === "error");
+    expect(err?.message).toContain("2 edges match");
+    expect(err?.fix).toContain("label");
+  });
+
+  it("expand inlines children in a frame; edges de-aggregate", async () => {
+    const g = resolveView(model, view("orders-detail"));
+    expect(g.frames).toEqual([{ path: "orders.handlers", label: "API Handlers" }]);
+    const create = g.nodes.find((n) => n.path === "orders.handlers.create")!;
+    expect(create.frame).toBe("orders.handlers");
+    // internals visible → api edges are native again, no ×2 aggregate
+    expect(g.edges.every((e) => e.count === 1)).toBe(true);
+    expect(g.edges.some((e) => e.to === "orders.handlers.create")).toBe(true);
+    // geometric containment
+    const { layoutView } = await import("../src/layout/layout.js");
+    const { positioned } = await layoutView(model, view("orders-detail"));
+    const f = positioned.frames[0];
+    for (const child of positioned.nodes.filter((n) => n.frame === f.path)) {
+      expect(child.x).toBeGreaterThan(f.x);
+      expect(child.y).toBeGreaterThan(f.y);
+      expect(child.x + child.w).toBeLessThan(f.x + f.w);
+      expect(child.y + child.h).toBeLessThan(f.y + f.h);
+    }
+  });
+
   it("exclude wins last and removes subtrees", () => {
     const v = { ...view("orders"), exclude: ["orders.handlers"] };
     const g = resolveView(model, v);

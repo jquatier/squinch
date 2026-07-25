@@ -50,3 +50,9 @@ view orders-pci {
   note right-of db "Encrypted at rest (KMS); see ADR-31"
   note top-right "Audit scope: Q3 2026" { style: warning }
 }
+
+view orders-detail {
+  scope orders
+  title "Order Service — detail"
+  expand handlers
+}

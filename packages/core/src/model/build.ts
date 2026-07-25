@@ -292,6 +292,22 @@ export function buildModel(src: string): BuildResult {
     for (const lb of body.getChildren("LayoutBlock")) {
       const dir = lb.getChildren("DirectionStmt")[0];
       if (dir) view.layout.direction = text(dir.lastChild!) as "down" | "right";
+      const den = lb.getChildren("DensityStmt")[0];
+      if (den) {
+        const val = text(den.getChild("Ident")!);
+        if (val === "compact" || val === "comfortable" || val === "spacious")
+          view.layout.density = val;
+        else error(den, `unknown density \`${val}\``, "use compact | comfortable | spacious");
+      }
+      const lin = lb.getChildren("LinesStmt")[0];
+      if (lin) {
+        const val = text(lin.getChild("Ident")!);
+        if (val === "orthogonal" || val === "curved" || val === "straight")
+          view.layout.lines = val;
+        else error(lin, `unknown lines style \`${val}\``, "use orthogonal | curved | straight");
+      }
+      for (const al of lb.getChildren("AlignStmt"))
+        warn(al, "`align` is not implemented yet — parsed and ignored for now");
       const rowsStmt = lb.getChildren("RowsStmt")[0];
       if (rowsStmt) {
         const rows: string[][] = [];

@@ -78,6 +78,8 @@ export interface SView {
   notes: SNote[];
   layout: {
     direction?: "down" | "right";
+    density?: "compact" | "comfortable" | "spacious";
+    lines?: "orthogonal" | "curved" | "straight";
     rows?: string[][]; // resolved paths
     place: { node: string; relpos: RelPos; target: string; loc: Loc }[];
     routes: { from: string; to: string; label?: string; fromSide?: Side; toSide?: Side; loc: Loc }[];

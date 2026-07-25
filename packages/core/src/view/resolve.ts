@@ -13,6 +13,12 @@ export interface VNode {
   preview: { pack: string; id: string }[];
   tags: string[]; // effective (container-inherited)
   description?: string;
+  frame?: string; // parent frame path when inside an expanded container
+}
+
+export interface VFrame {
+  path: string;
+  label: string;
 }
 
 export interface VEdge {
@@ -27,6 +33,7 @@ export interface VEdge {
 export interface ViewGraph {
   nodes: VNode[];
   edges: VEdge[];
+  frames: VFrame[];
   diagnostics: Diagnostic[];
 }
 
@@ -56,16 +63,15 @@ export function resolveView(model: SModel, view: SView): ViewGraph {
         ...[...model.containers.keys()].filter((p) => !p.includes(".")),
       ];
 
-  // expand: v1 slice — inline children without a container frame (recession later)
+  // expand: inline the container's children inside a rendered frame
+  const frames: VFrame[] = [];
+  const frameOf = new Map<string, string>(); // child path → frame path
   for (const ex of view.expand) {
     const i = visible.indexOf(ex);
     const c = model.containers.get(ex);
     if (i >= 0 && c) {
-      diagnostics.push({
-        severity: "warning",
-        message: `expand \`${ex}\`: inlined without a container frame (recession rendering is coming)`,
-        loc: view.loc,
-      });
+      frames.push({ path: ex, label: c.label ?? c.name });
+      for (const child of c.children) frameOf.set(child, ex);
       visible.splice(i, 1, ...c.children);
     }
   }
@@ -134,33 +140,45 @@ export function resolveView(model: SModel, view: SView): ViewGraph {
   }
 
   // ── 5. edge lifting + aggregation over the final visible set ─────────────
+  // Native edges (endpoints unchanged by lifting) always render individually —
+  // parallel edges are legal and distinct at their own altitude. Only LIFTED
+  // edges aggregate into count-badged neutrals.
   const v = visSet();
   interface Group { edges: typeof model.edges; from: string; to: string }
   const groups = new Map<string, Group>();
+  const edges: VEdge[] = [];
+  const groupSlot = new Map<string, number>(); // key → index in edges[]
   for (const e of model.edges) {
     const f = liftIn(e.from, v);
     const t = liftIn(e.to, v);
     if (!f || !t || f === t) continue;
+    const lifted = f !== e.from || t !== e.to;
+    if (!lifted) {
+      edges.push({ id: e.id, from: f, to: t, label: e.label, async: e.arrow === "~>", count: 1 });
+      continue;
+    }
     const key = `${f}|${t}`;
-    if (!groups.has(key)) groups.set(key, { edges: [], from: f, to: t });
+    if (!groups.has(key)) {
+      groups.set(key, { edges: [], from: f, to: t });
+      groupSlot.set(key, edges.push(null as any) - 1); // reserve slot in declaration order
+    }
     groups.get(key)!.edges.push(e);
   }
-  const edges: VEdge[] = [...groups.values()].map((g) => {
+  for (const [key, g] of groups) {
+    const slot = groupSlot.get(key)!;
     if (g.edges.length === 1) {
       const e = g.edges[0];
-      return {
-        id: e.id, from: g.from, to: g.to,
-        label: e.label, async: e.arrow === "~>", count: 1,
+      edges[slot] = { id: e.id, from: g.from, to: g.to, label: e.label, async: e.arrow === "~>", count: 1 };
+    } else {
+      edges[slot] = {
+        id: `agg:${g.from}|${g.to}`,
+        from: g.from, to: g.to,
+        label: `×${g.edges.length}`,
+        async: g.edges.every((e) => e.arrow === "~>"),
+        count: g.edges.length,
       };
     }
-    return {
-      id: `agg:${g.from}|${g.to}`,
-      from: g.from, to: g.to,
-      label: `×${g.edges.length}`,
-      async: g.edges.every((e) => e.arrow === "~>"),
-      count: g.edges.length,
-    };
-  });
+  }
 
   // context cards must earn their spot: drop any without a surviving edge
   for (const c of [...contextSet]) {
@@ -205,6 +223,7 @@ export function resolveView(model: SModel, view: SView): ViewGraph {
           `${leaves.length} component${leaves.length === 1 ? "" : "s"}`,
         preview,
         tags: effectiveTags(path),
+        frame: frameOf.get(path),
       };
     }
     const n = model.nodes.get(path)!;
@@ -216,8 +235,9 @@ export function resolveView(model: SModel, view: SView): ViewGraph {
       preview: [],
       tags: effectiveTags(path),
       description: n.description,
+      frame: frameOf.get(path),
     };
   });
 
-  return { nodes, edges: finalEdges, diagnostics };
+  return { nodes, edges: finalEdges, frames, diagnostics };
 }
