@@ -1,0 +1,26 @@
+// Same-rank stress: six peers pinned to one row with chained and skipping
+// edges — adjacent pairs route straight, skips drop into the lane below.
+pack aws
+
+system row "One Row" {
+  a = aws/lambda "Alpha"
+  b = aws/lambda "Bravo"
+  c = aws/lambda "Charlie"
+  d = aws/lambda "Delta"
+  e = aws/lambda "Echo"
+  f = aws/lambda "Foxtrot"
+
+  a -> b
+  b -> c
+  c -> d
+  d -> e
+  e -> f
+  a -> d "skip"
+  b -> f "far skip"
+}
+
+view row {
+  layout {
+    rows [a b c d e f]
+  }
+}

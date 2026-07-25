@@ -1,0 +1,20 @@
+// Brutal fan-out: one gateway, twelve handlers. Port spread and stub
+// discipline have to keep this readable.
+pack aws
+
+system fan "Fan-out" {
+  gw = aws/api-gateway "Gateway"
+  h01 = aws/lambda "Orders"
+  h02 = aws/lambda "Refunds"
+  h03 = aws/lambda "Catalog"
+  h04 = aws/lambda "Search"
+  h05 = aws/lambda "Pricing"
+  h06 = aws/lambda "Sessions"
+  h07 = aws/lambda "Profiles"
+  h08 = aws/lambda "Carts"
+  h09 = aws/lambda "Reviews"
+  h10 = aws/lambda "Shipping"
+  h11 = aws/lambda "Taxes"
+  h12 = aws/lambda "Emails"
+  gw -> h01, h02, h03, h04, h05, h06, h07, h08, h09, h10, h11, h12
+}

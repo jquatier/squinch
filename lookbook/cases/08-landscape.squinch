@@ -1,0 +1,62 @@
+// A big landscape: eight system cards, a person and an external party.
+// Card grid rhythm, glyph badges, lifted-edge labels.
+pack aws
+
+person customer "Customer"
+partner = box "Payment Network" external
+
+system store "Storefront" {
+  description: "Web and mobile shopping"
+  glyph: sys/webapp
+  app = aws/lambda "App"
+}
+system search "Search" {
+  description: "Query and ranking"
+  glyph: sys/search
+  api = aws/lambda "API"
+}
+system orders "Orders" {
+  description: "Checkout and fulfilment"
+  glyph: sys/api
+  api = aws/lambda "API"
+}
+system pay "Payments" {
+  description: "Cards, wallets, settlement"
+  glyph: sys/service
+  api = aws/lambda "API"
+}
+system ident "Identity" {
+  description: "Accounts and sessions"
+  glyph: sys/auth
+  api = aws/lambda "API"
+}
+system notify "Notifications" {
+  description: "Email, SMS, push"
+  glyph: sys/queue
+  fan = aws/lambda "Fanout"
+}
+system ship "Shipping" {
+  description: "Carriers and tracking"
+  glyph: sys/worker
+  api = aws/lambda "API"
+}
+system ledger "Ledger" {
+  description: "Money movement of record"
+  glyph: sys/database
+  db = aws/aurora "Ledger DB" datastore
+}
+
+customer -> store.app "browses"
+store.app -> search.api "queries"
+store.app -> orders.api "checks out"
+orders.api -> pay.api "charges"
+orders.api -> ident.api "verifies"
+orders.api ~> notify.fan "order events"
+orders.api -> ship.api "books"
+pay.api -> partner "authorizes"
+pay.api -> ledger.db "posts"
+
+view landscape {
+  title "Retail Landscape"
+  include *
+}

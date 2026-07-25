@@ -94,3 +94,16 @@ describe("grammar + model builder", () => {
     const r = buildModel(`system s "S" {\n a = box "Legacy" external\n}`);
     expect(r.model.nodes.get("s.a")?.icon).toEqual({ pack: "builtin", id: "box" });
   });
+
+  it("layout block inside a system: diagnostics, not a crash", () => {
+    // the exact shape two independent agents crashed on (null .from in phase B)
+    const r = buildModel(
+      `pack aws\nsystem pipeline "P" {\n bucket = aws/s3 "B"\n handler = aws/lambda "H"\n bucket ~> handler "created"\n\n layout {\n  rows [bucket] [handler]\n }\n}\n`,
+    );
+    expect(r.ok).toBe(false);
+    const hint = r.diagnostics.find((d) => d.message.includes("layout hints live in views"));
+    expect(hint?.fix).toContain("view pipeline { layout");
+    // cascading syntax errors collapse to one per line
+    const lines = r.diagnostics.filter((d) => d.message.startsWith("syntax error")).map((d) => d.loc.line);
+    expect(new Set(lines).size).toBe(lines.length);
+  });

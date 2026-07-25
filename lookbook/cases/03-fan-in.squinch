@@ -1,0 +1,30 @@
+// The mirror image: twelve producers draining into one queue.
+pack aws
+
+system fanin "Fan-in" {
+  q = aws/sqs "Ingest Queue" datastore
+  p01 = aws/lambda "Web Events"
+  p02 = aws/lambda "Mobile Events"
+  p03 = aws/lambda "POS Events"
+  p04 = aws/lambda "Partner Feed"
+  p05 = aws/lambda "Returns"
+  p06 = aws/lambda "Inventory"
+  p07 = aws/lambda "Payments"
+  p08 = aws/lambda "Fraud Signals"
+  p09 = aws/lambda "Support Tickets"
+  p10 = aws/lambda "Emails"
+  p11 = aws/lambda "Crawler"
+  p12 = aws/lambda "Backfill"
+  p01 ~> q
+  p02 ~> q
+  p03 ~> q
+  p04 ~> q
+  p05 ~> q
+  p06 ~> q
+  p07 ~> q
+  p08 ~> q
+  p09 ~> q
+  p10 ~> q
+  p11 ~> q
+  p12 ~> q
+}

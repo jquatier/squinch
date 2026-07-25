@@ -89,18 +89,42 @@ export function buildProject(files: ProjectFile[]): BuildResult {
     const ctx = makeCtx(f.name, f.src);
     const tree = parser.parse(f.src);
 
+    let sawSyntaxError = false;
+    const errorLines = new Set<number>(); // one syntax error per line, not a cascade
     tree.iterate({
       enter(n: any) {
         if (n.type.isError) {
+          sawSyntaxError = true;
+          const line = f.src.slice(0, n.from).split("\n").length;
+          if (errorLines.has(line)) return;
+          errorLines.add(line);
           const at = f.src.slice(Math.max(0, n.from - 12), n.from + 12).replace(/\n/g, "⏎");
           error(ctx, n.node, `syntax error near \`${at}\``);
         }
       },
     });
+    // The most common authoring mistake: a `layout { }` block inside a
+    // system/container. It only manifests as cascading syntax errors, so name
+    // it explicitly with the fix.
+    if (sawSyntaxError) {
+      for (const c of tree.topNode.getChildren("Container")) {
+        const bodyText = f.src.slice(c.from, c.to);
+        const m = /^[ \t]*layout[ \t]*\{/m.exec(bodyText);
+        if (!m) continue;
+        const identNode = c.getChild("Ident");
+        const sys = identNode ? ctx.text(identNode) : "NAME";
+        const from = c.from + m.index + (m[0].length - m[0].trimStart().length);
+        error(ctx, ctx.loc({ from, to: from + "layout".length } as SyntaxNode),
+          `\`layout\` block inside \`${sys}\` — layout hints live in views, not systems`,
+          `move it below the system: view ${sys} { layout { … } }`);
+      }
+    }
 
     /** Declare one node; works at any depth, including the file top level. */
     function declareNode(decl: SyntaxNode, parentPath: string) {
-      const name = ctx.text(decl.getChild("Ident")!);
+      const identNode = decl.getChild("Ident");
+      if (!identNode) return; // partial node from error recovery
+      const name = ctx.text(identNode);
       const path = parentPath ? `${parentPath}.${name}` : name;
       const clash = model.nodes.get(path) ?? model.containers.get(path);
       if (clash) {
@@ -154,7 +178,9 @@ export function buildProject(files: ProjectFile[]): BuildResult {
     }
 
     function walkContainerDecl(decl: SyntaxNode, parentPath: string) {
-      const name = ctx.text(decl.getChild("Ident")!);
+      const identNode = decl.getChild("Ident");
+      if (!identNode) return; // partial node from error recovery; syntax error already reported
+      const name = ctx.text(identNode);
       const path = parentPath ? `${parentPath}.${name}` : name;
       const clash = model.nodes.get(path) ?? model.containers.get(path);
       if (clash) {
@@ -170,7 +196,8 @@ export function buildProject(files: ProjectFile[]): BuildResult {
         children: [], attrs: {}, tags: [], loc: ctx.loc(decl), file: ctx.name,
       });
       model.containers.get(parentPath)?.children.push(path);
-      walkContainer(decl.getChild("ContainerBody")!, path);
+      const body = decl.getChild("ContainerBody");
+      if (body) walkContainer(body, path);
     }
 
     const top = tree.topNode;
@@ -229,8 +256,11 @@ export function buildProject(files: ProjectFile[]): BuildResult {
 
   let edgeN = 0;
   for (const { node, scope, ctx } of rawEdges) {
-    const fromPath = resolve(ctx.text(node.getChild("Path")!), scope, node, ctx);
-    const arrow = ctx.text(node.getChild("Arrow")!) as ArrowKind;
+    const pathNode = node.getChild("Path");
+    const arrowNode = node.getChild("Arrow");
+    if (!pathNode || !arrowNode) continue; // partial node from error recovery
+    const fromPath = resolve(ctx.text(pathNode), scope, node, ctx);
+    const arrow = ctx.text(arrowNode) as ArrowKind;
     const labelNode = node.getChild("String");
     const meta = attrsOf(ctx, node.getChild("AttrBlock"));
     for (const target of node.getChild("PathList")!.getChildren("Path")) {
@@ -265,8 +295,11 @@ export function buildProject(files: ProjectFile[]): BuildResult {
 
   // ── phase C: views ────────────────────────────────────────────────────────
   for (const { node: v, ctx } of rawViews) {
-    const name = ctx.text(v.getChild("Path")!);
-    const body = v.getChild("ViewBody")!;
+    const nameNode = v.getChild("Path");
+    const bodyNode = v.getChild("ViewBody");
+    if (!nameNode || !bodyNode) continue; // partial node from error recovery
+    const name = ctx.text(nameNode);
+    const body = bodyNode;
     const view: SView = {
       name,
       include: [], includeStar: false, exclude: [], expand: [],

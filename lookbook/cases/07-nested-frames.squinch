@@ -1,0 +1,27 @@
+// Containers inside a system, both expanded: recessed frames must read as
+// grouping, not decoration, and edges must cross frame borders cleanly.
+pack aws
+
+system platform "Platform" {
+  gw = aws/api-gateway "Edge"
+
+  container ingest "Ingestion" {
+    recv  = aws/lambda "Receiver"
+    queue = aws/sqs    "Buffer" datastore
+    recv ~> queue
+  }
+
+  container store "Storage" {
+    writer = aws/lambda   "Writer"
+    tbl    = aws/dynamodb "Events" datastore
+    writer -> tbl
+  }
+
+  gw -> ingest.recv "POST /events"
+  ingest.queue ~> store.writer "drain"
+}
+
+view platform {
+  expand ingest
+  expand store
+}

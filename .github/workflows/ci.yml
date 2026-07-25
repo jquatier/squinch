@@ -30,6 +30,9 @@ jobs:
       - run: npx tsx gauntlet/score.ts
       # PLAN §2 performance budgets are acceptance criteria, not aspirations
       - run: pnpm --filter @squinch/core bench
+      # The lookbook (DESIGN §9) is snapshot-locked: regenerate and diff clean.
+      - run: npx tsx lookbook/build.ts
+      - run: git diff --exit-code lookbook/
 
   phase0:
     strategy:

@@ -227,12 +227,19 @@ function computePills(p: Positioned, edgeMatches: (e: PEdge) => boolean): Pill[]
       const len = Math.hypot(e.points[i + 1].x - e.points[i].x, e.points[i + 1].y - e.points[i].y);
       if (len > best) { best = len; bi = i; }
     }
-    const mx = Math.round((e.points[bi].x + e.points[bi + 1].x) / 2);
+    let mx = Math.round((e.points[bi].x + e.points[bi + 1].x) / 2);
     let my = Math.round((e.points[bi].y + e.points[bi + 1].y) / 2);
-    const w = Math.round(measure(e.label, 11, "400")) + 12;
+    // labels truncate like node labels do, and a pill never leaves the canvas
+    const maxW = Math.max(60, Math.min(240, p.width - 16));
+    const label = fit(e.label, maxW - 12, 11, "400");
+    const w = Math.round(measure(label, 11, "400")) + 12;
     const relocated = w > best - 8;
     if (relocated) my = Math.max(nodeBottom(e.from), nodeBottom(e.to)) + 17;
-    const pill: Pill = { x: mx - Math.round(w / 2), y: my - 9, w, h: 18, mx, label: e.label, dimmed: !edgeMatches(e) };
+    let x = mx - Math.round(w / 2);
+    if (x < 8) x = 8;
+    if (x + w > p.width - 8) x = p.width - 8 - w;
+    mx = x + Math.round(w / 2);
+    const pill: Pill = { x, y: my - 9, w, h: 18, mx, label, dimmed: !edgeMatches(e) };
     // collision resolution: shift down past nodes (when relocated) and earlier pills
     for (let guard = 0; guard < 50; guard++) {
       const hit =

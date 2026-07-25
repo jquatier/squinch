@@ -1,0 +1,20 @@
+// Hostile text: long labels, long descriptions, long edge labels.
+// Truncation must be graceful and pills must never collide.
+pack aws
+
+system verbose "Enterprise Integration Middleware Platform" {
+  description: "The strategic enterprise-wide business-to-business integration middleware modernization platform initiative"
+
+  gw = aws/api-gateway "Public Partner-Facing Integration Gateway With Rate Limiting"
+  orch = aws/step-functions "Long-Running Regulatory Compliance Orchestration Workflow" {
+    description: "Coordinates seventeen legacy subsystems across three regulatory jurisdictions and two data residency boundaries"
+  }
+  db = aws/dynamodb "Consolidated Multi-Tenant Transactional Ledger Table" datastore
+
+  gw -> orch "initiates the quarterly regulatory reconciliation batch process"
+  orch -> db "writes reconciled multi-jurisdiction settlement records"
+}
+
+view verbose {
+  show descriptions
+}

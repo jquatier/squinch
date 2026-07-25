@@ -1,0 +1,26 @@
+// Landscape lifting: four internal edges between two systems collapse into
+// one aggregated card-to-card edge with a ×4 badge.
+pack aws
+
+system front "Frontend" {
+  description: "Customer-facing surfaces"
+  glyph: sys/webapp
+  web    = aws/lambda "Web BFF"
+  mobile = aws/lambda "Mobile BFF"
+}
+
+system back "Backend" {
+  description: "Domain services"
+  glyph: sys/api
+  orders  = aws/lambda "Orders"
+  catalog = aws/lambda "Catalog"
+}
+
+front.web -> back.orders "checkout"
+front.web -> back.catalog "browse"
+front.mobile -> back.orders "checkout"
+front.mobile -> back.catalog "browse"
+
+view landscape {
+  include *
+}

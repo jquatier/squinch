@@ -1,0 +1,28 @@
+// The side-car idiom, three times over: place + route from east to west.
+pack aws
+
+system app "Order Service" {
+  api   = aws/api-gateway "API"
+  fn    = aws/lambda "Handler"
+  db    = aws/dynamodb "Orders" datastore
+  cache = aws/elasticache "Cache"
+  sync  = aws/lambda "Search Sync"
+  idx   = aws/opensearch "Index" datastore
+
+  api -> fn
+  fn -> db "writes"
+  fn -> cache "reads through"
+  db ~> sync "stream"
+  sync -> idx "indexes"
+}
+
+view app {
+  layout {
+    rows [api] [fn] [db]
+    place cache right-of fn
+    place sync right-of db
+    place idx right-of sync
+    route fn -> cache from east to west
+    route db ~> sync from east to west
+  }
+}

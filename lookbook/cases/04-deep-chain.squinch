@@ -1,0 +1,27 @@
+// An eight-stage pipeline, laid out left to right.
+pack aws
+
+system pipe "Pipeline" {
+  ingest    = aws/kinesis "Ingest"
+  validate  = aws/lambda  "Validate"
+  enrich    = aws/lambda  "Enrich"
+  dedupe    = aws/lambda  "Dedupe"
+  transform = aws/lambda  "Transform"
+  land      = aws/s3      "Data Lake" datastore
+  catalog   = aws/glue    "Catalog"
+  query     = aws/athena  "Query"
+
+  ingest ~> validate
+  validate -> enrich
+  enrich -> dedupe
+  dedupe -> transform
+  transform -> land "parquet"
+  land ~> catalog "crawl"
+  catalog -> query
+}
+
+view pipe {
+  layout {
+    direction right
+  }
+}

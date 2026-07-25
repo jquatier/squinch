@@ -1,0 +1,8 @@
+// The smallest possible diagram must still look composed, not lost on canvas.
+pack aws
+
+system tiny "Tiny" {
+  fn = aws/lambda   "Handler"
+  db = aws/dynamodb "Table"
+  fn -> db "reads"
+}

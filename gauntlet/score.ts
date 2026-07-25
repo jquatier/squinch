@@ -2,12 +2,15 @@
 // solution, renders every declared view in both themes, validates the SVG, and
 // checks the prompt's structural expectations. Run from the repo root:
 //
-//   npx tsx gauntlet/score.ts
+//   npx tsx gauntlet/score.ts [solutionsDir]
+//
+// solutionsDir defaults to gauntlet/solutions; pass another directory to score
+// an independent run (e.g. gauntlet/independent).
 //
 // Exit 0 only when every solution with a file present passes AND at least the
 // Phase-3 bar (8/10) is met.
 import { readFileSync, existsSync } from "node:fs";
-import { join, dirname } from "node:path";
+import { join, dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import {
   buildProject, renderProject, validateSVG, formatDiagnostics,
@@ -29,13 +32,14 @@ interface Prompt { id: string; prompt: string; expect: Expect }
 
 const here = dirname(fileURLToPath(import.meta.url));
 const prompts: Prompt[] = JSON.parse(readFileSync(join(here, "prompts.json"), "utf8"));
+const solutionsDir = process.argv[2] ? resolve(process.argv[2]) : join(here, "solutions");
 
 const BAR = 8;
 let passed = 0;
 const lines: string[] = [];
 
 for (const p of prompts) {
-  const file = join(here, "solutions", `${p.id}.squinch`);
+  const file = join(solutionsDir, `${p.id}.squinch`);
   const problems: string[] = [];
 
   if (!existsSync(file)) {

@@ -1,0 +1,31 @@
+// Ten services that all talk to each other far too much. The worst realistic
+// edge-density case: crossings are inevitable, chaos is not.
+pack aws
+
+system mesh "Chatty Microservices" {
+  a = aws/lambda "Auth"
+  b = aws/lambda "Billing"
+  c = aws/lambda "Catalog"
+  d = aws/lambda "Delivery"
+  e = aws/lambda "Email"
+  f = aws/lambda "Fraud"
+  g = aws/lambda "Gateway"
+  h = aws/lambda "History"
+  i = aws/lambda "Inventory"
+  j = aws/lambda "Journal"
+
+  g -> a, b, c, d
+  a -> h "audit"
+  b -> f "score"
+  b -> j "ledger"
+  c -> i "stock"
+  d -> i "reserve"
+  d -> e "notify"
+  f -> h "flag"
+  f -> j "case"
+  i -> j "movement"
+  e -> h "sent"
+  c -> h "views"
+  b -> e "invoice"
+  a -> j "logins"
+}

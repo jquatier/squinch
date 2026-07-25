@@ -271,10 +271,15 @@ export async function layoutView(
   const nodes: PNode[] = [];
   const frames: PFrame[] = [];
   const ports: PPort[] = [];
+  // ELK reports each edge in the coordinate system of its `container` node —
+  // for edges living fully inside an expanded frame, that's the frame, so we
+  // need every compound's absolute origin to translate them.
+  const containerOffset = new Map<string, { x: number; y: number }>([["root", { x: 0, y: 0 }]]);
   const walk = (c: any, ox: number, oy: number) => {
     const x = q(ox + c.x), y = q(oy + c.y);
     if (frameLabels.has(c.id)) {
       frames.push({ path: c.id, label: frameLabels.get(c.id)!, x, y, w: q(c.width), h: q(c.height) });
+      containerOffset.set(c.id, { x, y });
       for (const child of c.children ?? []) walk(child, x, y);
       return;
     }
@@ -302,13 +307,38 @@ export async function layoutView(
       .filter((e: any) => !e.id.startsWith("scaffold."))
       .map((e: any) => {
         const s = e.sections[0];
-        const pts = [s.startPoint, ...(s.bendPoints ?? []), s.endPoint].map((p: any) => ({ x: q(p.x), y: q(p.y) }));
+        const off = containerOffset.get(e.container ?? "root") ?? { x: 0, y: 0 };
+        const pts = [s.startPoint, ...(s.bendPoints ?? []), s.endPoint].map(
+          (p: any) => ({ x: q(p.x + off.x), y: q(p.y + off.y) }),
+        );
         const m = edges.find((me) => me.id === e.id)!;
         return [e.id, { id: e.id, from: m.from, to: m.to, label: m.label, async: m.async, count: m.count, points: pts }];
       }),
   );
 
   // ── coplanar router (ours): adjacent → straight; blocked → below-band ────
+  // Blocked edges of one rank share the band under it, but never a lane when
+  // their horizontal spans overlap: greedy interval packing, declaration order
+  // (deterministic), 16px between lanes.
+  const laneOf = new Map<string, number>();
+  const lanesByRank = new Map<number, { lo: number; hi: number }[][]>();
+  for (const e of coplanar) {
+    const a = nodeById.get(e.from)!;
+    const b = nodeById.get(e.to)!;
+    const [l, r] = a.x <= b.x ? [a, b] : [b, a];
+    const isBlocked = nodes.some(
+      (n) => n.path !== a.path && n.path !== b.path && n.rank === a.rank && n.x > l.x && n.x < r.x,
+    );
+    if (!isBlocked) continue;
+    const span = { lo: Math.min(a.x + a.w / 2, b.x + b.w / 2), hi: Math.max(a.x + a.w / 2, b.x + b.w / 2) };
+    const lanes = lanesByRank.get(a.rank) ?? [];
+    let li = lanes.findIndex((spans) => spans.every((s) => span.hi + 16 <= s.lo || span.lo >= s.hi + 16));
+    if (li === -1) { li = lanes.length; lanes.push([]); }
+    lanes[li].push(span);
+    lanesByRank.set(a.rank, lanes);
+    laneOf.set(e.id, li);
+  }
+
   const coplanarEdges: PEdge[] = coplanar.map((e) => {
     const a = nodeById.get(e.from)!;
     const b = nodeById.get(e.to)!;
@@ -329,7 +359,7 @@ export async function layoutView(
       return { id: e.id, from: e.from, to: e.to, label: e.label, async: e.async, count: e.count, points: pts };
     }
     const bandBottom = Math.max(...nodes.filter((n) => n.rank === a.rank).map((n) => n.y + n.h));
-    const lane = bandBottom + 24;
+    const lane = bandBottom + 24 + (laneOf.get(e.id) ?? 0) * 16;
     const ax = a.x + Math.round(a.w / 2);
     const bx = b.x + Math.round(b.w / 2);
     const pts = [

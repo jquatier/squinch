@@ -1,0 +1,25 @@
+// show descriptions on every node: two-line leaves must keep vertical rhythm.
+pack aws
+
+system obs "Observability" {
+  agent = aws/lambda "Collector" {
+    description: "Scrapes and batches metrics"
+  }
+  stream = aws/kinesis "Firehose" {
+    description: "Buffered delivery stream"
+  }
+  store = aws/s3 "Metrics Lake" datastore {
+    description: "Partitioned by day and service"
+  }
+  alarm = aws/lambda "Alerter" {
+    description: "Evaluates SLO burn rates"
+  }
+
+  agent ~> stream "batches"
+  stream ~> store "delivers"
+  store ~> alarm "hourly scan"
+}
+
+view obs {
+  show descriptions
+}

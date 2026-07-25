@@ -1,0 +1,26 @@
+// Annotation layer: tag highlight dims the rest; notes anchor to nodes,
+// edges and corners without colliding with anything.
+pack aws
+
+system pay "Payments" {
+  api   = aws/lambda "Payment API" { tags: #pci }
+  token = aws/lambda "Tokenizer"   { tags: #pci }
+  vault = aws/dynamodb "Card Vault" datastore { tags: #pci }
+  queue = aws/sqs "Settlement Queue" datastore
+  settle = aws/lambda "Settlement Worker"
+  ledger = aws/aurora "Ledger" datastore
+
+  api -> token "tokenize"
+  token -> vault "store"
+  api ~> queue "capture events"
+  queue ~> settle "drain"
+  settle -> ledger "post"
+}
+
+view pci {
+  scope pay
+  highlight #pci
+  note right-of vault "Tokens only; PANs never stored"
+  note on api -> token "p99 8ms"
+  note top-right "PCI DSS scope, audited quarterly" { style: warning }
+}

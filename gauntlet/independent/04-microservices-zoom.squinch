@@ -1,0 +1,52 @@
+pack aws
+
+gateway = aws/api-gateway "API Gateway" {
+  description: "Single entry point for all client traffic"
+}
+
+system catalog "Catalog Service" {
+  description: "Product catalog, search and pricing"
+
+  handler = aws/lambda   "Catalog API"
+  db      = aws/dynamodb "Catalog Table"
+
+  handler -> db "reads/writes"
+}
+
+system checkout "Checkout Service" {
+  description: "Cart, order placement and payment capture"
+
+  handler = aws/lambda   "Checkout API"
+  db      = aws/dynamodb "Orders Table"
+
+  handler -> db "reads/writes"
+}
+
+system identity "Identity Service" {
+  description: "Authentication, sessions and user profiles"
+
+  handler = aws/lambda   "Identity API"
+  db      = aws/dynamodb "Users Table"
+
+  handler -> db "reads/writes"
+}
+
+gateway -> catalog.handler, checkout.handler, identity.handler "routes requests"
+
+view landscape {
+  title "System Landscape"
+  include *
+
+  layout {
+    rows [gateway] [catalog checkout identity]
+  }
+}
+
+view checkout {
+  scope checkout
+  show descriptions
+
+  layout {
+    rows [handler] [db]
+  }
+}

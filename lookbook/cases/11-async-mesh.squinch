@@ -1,0 +1,28 @@
+// Event-driven estate: nearly every edge is async. Dashes must stay legible
+// at density, and the bus must not become a hairball.
+pack aws
+
+system events "Event Mesh" {
+  bus = aws/eventbridge "Event Bus"
+  orders   = aws/lambda "Orders"
+  billing  = aws/lambda "Billing"
+  email    = aws/lambda "Email"
+  audit    = aws/lambda "Audit"
+  metrics  = aws/lambda "Metrics"
+  dlq      = aws/sqs "DLQ" datastore
+  archive  = aws/s3 "Archive" datastore
+
+  orders ~> bus "order.*"
+  billing ~> bus "invoice.*"
+  bus ~> email "order.created"
+  bus ~> audit "*"
+  bus ~> metrics "*"
+  bus ~> archive "all events"
+  bus ~> dlq "failed delivery"
+}
+
+view events {
+  layout {
+    rows [orders billing] [bus] [email audit metrics archive dlq]
+  }
+}

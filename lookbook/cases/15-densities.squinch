@@ -1,0 +1,27 @@
+// The same model at all three densities — spacing tiers must feel deliberate.
+pack aws
+
+system svc "Service" {
+  gw = aws/api-gateway "Gateway"
+  a  = aws/lambda "Create"
+  b  = aws/lambda "Get"
+  db = aws/dynamodb "Table" datastore
+  gw -> a, b
+  a -> db "writes"
+  b -> db "reads"
+}
+
+view compact {
+  scope svc
+  layout { density compact }
+}
+
+view comfortable {
+  scope svc
+  layout { density comfortable }
+}
+
+view spacious {
+  scope svc
+  layout { density spacious }
+}
