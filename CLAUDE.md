@@ -24,6 +24,10 @@ deterministic rendering. Pre-alpha; currently in Phase 0 (see docs/PLAN.md §3).
   well; conflicting hints are check-time errors, never silently dropped.
 - **Errors serve the agent loop**: location + problem + likely fix (did-you-mean).
   `check --format json` and the human format carry identical information.
+- **Every rendered SVG is validated** with a real XML parser
+  (`src/render/validate.ts`, fast-xml-parser) in tests and tools — never assume
+  emitted markup is well-formed; browsers are lenient, strict parsers are not.
+  Label pills are collision-resolved; the golden suite asserts no two overlap.
 - **Pack SVGs are sanitized at load** (allowlist; strip scripts/handlers/
   foreignObject). AWS icons ship verbatim (CC-BY-ND): never modify the asset files —
   theme treatment is render-time only.
