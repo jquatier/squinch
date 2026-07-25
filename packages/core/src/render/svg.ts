@@ -187,69 +187,99 @@ function notes(p: Positioned, t: Theme, list: SNote[], L: string[]) {
   }
 }
 
-function edgeLabel(e: PEdge, t: Theme, nodeBottom: (p: string) => number, dimmed: boolean): string {
-  if (!e.label) return "";
-  let best = 0, bi = 0;
-  for (let i = 0; i < e.points.length - 1; i++) {
-    const len = Math.hypot(e.points[i + 1].x - e.points[i].x, e.points[i + 1].y - e.points[i].y);
-    if (len > best) { best = len; bi = i; }
+interface Pill { x: number; y: number; w: number; h: number; mx: number; label: string; dimmed: boolean }
+
+const intersects = (a: Pill | { x: number; y: number; w: number; h: number }, b: Pill, m = 4) =>
+  a.x < b.x + b.w + m && a.x + a.w + m > b.x && a.y < b.y + b.h + m && a.y + a.h + m > b.y;
+
+/**
+ * Compute all edge-label pills, then resolve collisions deterministically:
+ * a pill overlapping a node or an earlier pill shifts down until clear
+ * (DESIGN: a label never sits on another label — enforced, not hoped).
+ */
+function computePills(p: Positioned, edgeMatches: (e: PEdge) => boolean): Pill[] {
+  const byPath = new Map(p.nodes.map((n) => [n.path, n]));
+  const nodeBottom = (path: string) => {
+    const n = byPath.get(path)!;
+    return n.y + n.h;
+  };
+  const pills: Pill[] = [];
+  for (const e of p.edges) {
+    if (!e.label) continue;
+    let best = 0, bi = 0;
+    for (let i = 0; i < e.points.length - 1; i++) {
+      const len = Math.hypot(e.points[i + 1].x - e.points[i].x, e.points[i + 1].y - e.points[i].y);
+      if (len > best) { best = len; bi = i; }
+    }
+    const mx = Math.round((e.points[bi].x + e.points[bi + 1].x) / 2);
+    let my = Math.round((e.points[bi].y + e.points[bi + 1].y) / 2);
+    const w = Math.round(measure(e.label, 11, "400")) + 12;
+    const relocated = w > best - 8;
+    if (relocated) my = Math.max(nodeBottom(e.from), nodeBottom(e.to)) + 17;
+    const pill: Pill = { x: mx - Math.round(w / 2), y: my - 9, w, h: 18, mx, label: e.label, dimmed: !edgeMatches(e) };
+    // collision resolution: shift down past nodes (when relocated) and earlier pills
+    for (let guard = 0; guard < 50; guard++) {
+      const hit =
+        pills.some((q2) => intersects(q2, pill)) ||
+        (relocated && p.nodes.some((n2) => intersects(n2, pill)));
+      if (!hit) break;
+      pill.y += 22;
+    }
+    pills.push(pill);
   }
-  const mx = Math.round((e.points[bi].x + e.points[bi + 1].x) / 2);
-  let my = Math.round((e.points[bi].y + e.points[bi + 1].y) / 2);
-  const w = Math.round(measure(e.label, 11, "400")) + 12;
-  if (w > best - 8) my = Math.max(nodeBottom(e.from), nodeBottom(e.to)) + 17;
-  const x = mx - Math.round(w / 2), y = my - 9;
-  const op = dimmed ? ` opacity="${DIM}"` : "";
+  return pills;
+}
+
+function pillMarkup(pill: Pill, t: Theme): string {
+  const op = pill.dimmed ? ` opacity="${DIM}"` : "";
   return (
-    `<g${op}><rect x="${x}" y="${y}" width="${w}" height="18" rx="2" fill="${t.surface}" stroke="${t.border}" stroke-width="1"/>` +
-    `<text x="${mx}" y="${y + 13}" text-anchor="middle" font-size="11" fill="${t.muted}">${esc(e.label)}</text></g>`
+    `<g${op}><rect x="${pill.x}" y="${pill.y}" width="${pill.w}" height="${pill.h}" rx="2" fill="${t.surface}" stroke="${t.border}" stroke-width="1"/>` +
+    `<text x="${pill.mx}" y="${pill.y + 13}" text-anchor="middle" font-size="11" fill="${t.muted}">${esc(pill.label)}</text></g>`
   );
 }
 
 export function renderSVG(p: Positioned, t: Theme, opts: RenderOpts = {}): string {
-  const L: string[] = [];
-  L.push(
-    `<svg xmlns="http://www.w3.org/2000/svg" width="${p.width}" height="${p.height}" viewBox="0 0 ${p.width} ${p.height}" font-family="Inter, system-ui, sans-serif">`,
-  );
-  L.push(`<rect width="${p.width}" height="${p.height}" fill="${t.canvas}"/>`);
-
   const hl = opts.highlight ?? [];
   const nodeMatches = (n: PNode) => hl.length === 0 || n.tags.some((tag) => hl.includes(tag));
   const byPath = new Map(p.nodes.map((n) => [n.path, n]));
   const edgeMatches = (e: PEdge) =>
     hl.length === 0 || (nodeMatches(byPath.get(e.from)!) && nodeMatches(byPath.get(e.to)!));
 
+  const body: string[] = [];
+
   for (const e of p.edges) {
     const dimmed = !edgeMatches(e);
     const col = e.async ? t.asyncEdge : t.edge;
     const dash = e.async ? ` stroke-dasharray="6 4"` : "";
     const op = dimmed ? ` opacity="${DIM}"` : "";
-    L.push(`<g${op}><path d="${roundedPath(e.points)}" fill="none" stroke="${col}" stroke-width="1.5"${dash}/>`);
-    L.push(arrow(e, t));
-    L.push(`</g>`);
+    body.push(`<g${op}><path d="${roundedPath(e.points)}" fill="none" stroke="${col}" stroke-width="1.5"${dash}/>`);
+    body.push(arrow(e, t));
+    body.push(`</g>`);
   }
 
   for (const n of p.nodes) {
     const dimmed = !nodeMatches(n);
-    if (n.kind === "card" || n.kind === "context-card") card(n, t, dimmed, L);
-    else leaf(n, t, opts, dimmed, L);
+    if (n.kind === "card" || n.kind === "context-card") card(n, t, dimmed, body);
+    else leaf(n, t, opts, dimmed, body);
     if (!dimmed && hl.length > 0)
-      L.push(
+      body.push(
         `<rect x="${n.x - 3}" y="${n.y - 3}" width="${n.w + 6}" height="${n.h + 6}" rx="${R_NODE + 3}" fill="none" stroke="${t.accent}" stroke-width="1.5" opacity="0.8"/>`,
       );
   }
 
-  const bottom = (path: string) => {
-    const n = byPath.get(path)!;
-    return n.y + n.h;
-  };
-  for (const e of p.edges) {
-    const lbl = edgeLabel(e, t, bottom, !edgeMatches(e));
-    if (lbl) L.push(lbl);
-  }
+  // labels last, collision-resolved; canvas grows if a pill was pushed below
+  const pills = computePills(p, edgeMatches);
+  for (const pill of pills) body.push(pillMarkup(pill, t));
+  const height = Math.max(p.height, ...pills.map((pl) => pl.y + pl.h + 16));
 
-  if (opts.notes?.length) notes(p, t, opts.notes, L);
+  if (opts.notes?.length) notes({ ...p, height }, t, opts.notes, body);
 
+  const L: string[] = [];
+  L.push(
+    `<svg xmlns="http://www.w3.org/2000/svg" width="${p.width}" height="${height}" viewBox="0 0 ${p.width} ${height}" font-family="Inter, system-ui, sans-serif">`,
+  );
+  L.push(`<rect width="${p.width}" height="${height}" fill="${t.canvas}"/>`);
+  L.push(...body);
   L.push(`</svg>`);
   return L.join("\n") + "\n";
 }

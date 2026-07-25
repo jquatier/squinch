@@ -4,6 +4,7 @@ import { readFileSync, writeFileSync, mkdirSync, existsSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { join, dirname } from "node:path";
 import { render } from "../src/index.js";
+import { validateSVG } from "../src/render/validate.js";
 
 const pkg = join(dirname(fileURLToPath(import.meta.url)), "..");
 
@@ -24,11 +25,18 @@ describe("golden renders", () => {
         expect(r.ok).toBe(true);
         expect(r.svg).toBeDefined();
         expect(r.svg!.includes("\r")).toBe(false); // LF only
-        // well-formedness: no element may repeat an attribute (strict SVG parsers reject it)
-        for (const el of r.svg!.match(/<[a-z]+ [^>]*>/g) ?? []) {
-          const names = [...el.matchAll(/ ([a-z-]+)="/g)].map((m) => m[1]);
-          expect(new Set(names).size, `duplicate attribute in: ${el.slice(0, 80)}`).toBe(names.length);
-        }
+        // every render is validated with a real XML parser — non-negotiable
+        const valid = validateSVG(r.svg!);
+        expect(valid.error, valid.error).toBeUndefined();
+        // and no two label pills may overlap (DESIGN: labels never collide)
+        const pillRects = [...r.svg!.matchAll(/<rect x="(-?\d+)" y="(-?\d+)" width="(\d+)" height="18" rx="2"/g)]
+          .map((m) => ({ x: +m[1], y: +m[2], w: +m[3], h: 18 }));
+        for (let i = 0; i < pillRects.length; i++)
+          for (let j = i + 1; j < pillRects.length; j++) {
+            const a = pillRects[i], b = pillRects[j];
+            const overlap = a.x < b.x + b.w && a.x + a.w > b.x && a.y < b.y + b.h && a.y + a.h > b.y;
+            expect(overlap, `label pills ${i} and ${j} overlap`).toBe(false);
+          }
         // determinism: render twice, byte-identical
         const again = await render(src, { theme, view: c.view });
         expect(again.svg).toBe(r.svg);
