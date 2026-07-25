@@ -9,3 +9,4 @@ coverage/
 .env.*
 !.env.example
 spike/out/
+packages/*/out/

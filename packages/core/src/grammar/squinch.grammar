@@ -1,0 +1,105 @@
+// Squinch DSL — Lezer grammar, v1 slice (SPEC §8 minus [v1.1]/[v2] constructs).
+// Statements end at newline or ';'. Comments are // only — '#' belongs to tags.
+
+@top File { list<item> }
+
+item {
+  PackStmt |
+  PersonDecl |
+  Container |
+  NodeDecl |
+  EdgeStmt |
+  View |
+  FileTheme
+}
+
+s { nl | ";" }
+// statements separated by newline/';' — required, per SPEC.
+// Shape avoids adjacent separator runs: leading seps, then items each eating
+// their trailing seps, with an optional final unterminated item.
+list<x> { s* (x s+)* x? }
+
+kw<term> { @specialize[@name={term}]<Ident, term> }
+
+PackStmt { kw<"pack"> Ident (kw<"from"> String)? }
+FileTheme { kw<"theme"> Ident }
+PersonDecl { kw<"person"> Ident String? }
+
+Container {
+  (kw<"system"> | kw<"container">) Ident String? ContainerBody
+}
+ContainerBody { "{" list<NodeDecl | Container | EdgeStmt | Attr> "}" }
+
+NodeDecl { Ident "=" (IconRef | kw<"box">) String? NodeKind* AttrBlock? }
+NodeKind { kw<"external"> | kw<"datastore"> | kw<"person"> }
+IconRef { Ident "/" Ident }
+
+EdgeStmt { Path Arrow PathList String? AttrBlock? }
+PathList { Path ("," Path)* }
+Path { Ident ("." Ident)* }
+
+AttrBlock { "{" list<Attr> "}" }
+Attr { Ident ":" Value }
+Value { String | Number | Tag+ | IconRef | Path }
+
+View { kw<"view"> Path ViewBody }
+ViewBody { "{" list<viewStmt> "}" }
+viewStmt {
+  TitleStmt | ThemeStmt | ScopeStmt | IncludeStmt | ExcludeStmt |
+  ExpandStmt | ContextStmt | HighlightStmt | ShowStmt | NoteStmt | LayoutBlock
+}
+TitleStmt { kw<"title"> String }
+ThemeStmt { kw<"theme"> Ident }
+ScopeStmt { kw<"scope"> Path }
+IncludeStmt { kw<"include"> (Star | TargetList) }
+ExcludeStmt { kw<"exclude"> TargetList }
+ExpandStmt { kw<"expand"> Path }
+ContextStmt { kw<"context"> (kw<"auto"> | kw<"off">) }
+HighlightStmt { kw<"highlight"> Tag+ }
+ShowStmt { kw<"show"> kw<"descriptions"> }
+NoteStmt { kw<"note"> NoteAnchor String AttrBlock? }
+NoteAnchor { RelPos Path | kw<"on"> Path Arrow Path | Corner }
+Corner {
+  kw<"top-left"> | kw<"top-right"> | kw<"bottom-left"> | kw<"bottom-right">
+}
+TargetList { Target ("," Target)* }
+Target { Path | Tag }
+Star { "*" }
+
+LayoutBlock { kw<"layout"> "{" list<layoutStmt> "}" }
+layoutStmt {
+  DirectionStmt | LinesStmt | DensityStmt |
+  RowsStmt | ColsStmt | PlaceStmt | AlignStmt | RouteStmt
+}
+DirectionStmt { kw<"direction"> (kw<"down"> | kw<"right">) }
+LinesStmt { kw<"lines"> Ident }
+DensityStmt { kw<"density"> Ident }
+RowsStmt { kw<"rows"> Rank+ }
+ColsStmt { kw<"cols"> Rank+ }
+Rank { "[" Path+ "]" }
+PlaceStmt { kw<"place"> Path RelPos Path }
+AlignStmt { kw<"align"> Path Path+ }
+RouteStmt {
+  kw<"route"> Path Arrow Path String?
+  (kw<"from"> Side)? (kw<"to"> Side)?
+}
+RelPos { kw<"right-of"> | kw<"left-of"> | kw<"above"> | kw<"below"> }
+Side { kw<"north"> | kw<"south"> | kw<"east"> | kw<"west"> }
+
+@skip { space | Comment }
+
+@tokens {
+  space { $[ \t\r]+ }
+  nl { "\n" }
+  Comment { "//" ![\n]* }
+  // hyphen must be followed by alnum so `a->b` tokenizes as Ident Arrow Ident
+  Ident { $[a-zA-Z_] ($[a-zA-Z0-9_] | "-" $[a-zA-Z0-9_])* }
+  String { '"' !["\n]* '"' }
+  Number { $[0-9]+ ("." $[0-9]+)? }
+  Tag { "#" $[a-zA-Z0-9_-]+ }
+  Arrow { "->" | "~>" | "<->" | "--" }
+  "{" "}" "[" "]" "," "=" ":" "/" "*" ";"
+  @precedence { Comment, "/" }
+}
+
+@detectDelim

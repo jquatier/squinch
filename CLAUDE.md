@@ -40,7 +40,19 @@ layout mapping → themed renderer).
 
 ## Commands
 
-- `cd spike && npm run spike` — run Phase-0 cases + all exit-criteria assertions
-  (fails on golden hash mismatch; `cp out/*.svg out/hashes.json golden/` to rebless).
-- `cd spike && npm run gen-metrics` — regenerate metrics.json from the bundled Inter
-  fonts (build-time only; layout reads metrics.json exclusively).
+- `pnpm --filter @squinch/core test` — grammar build + full core suite (model
+  diagnostics, golden SVG byte-compare, determinism, spike parity).
+  `UPDATE_GOLDEN=1` to rebless goldens after an intentional visual change.
+- `cd packages/core && npm run demo [file.squinch]` — render examples to `out/` in
+  both themes.
+- `cd packages/core && npm run grammar` — regenerate Lezer parser from
+  `src/grammar/squinch.grammar`.
+- `cd spike && npm run spike` — Phase-0 exit-criteria harness (kept as regression).
+
+## Layout of @squinch/core
+
+`src/grammar` (Lezer DSL grammar → generated parser) → `src/model` (tree → semantic
+model + SPEC §9 diagnostics, pack registry, did-you-mean) → `src/layout` (hints →
+ELK + scaffold edges + coplanar router) → `src/render` (Positioned + theme → SVG) →
+`src/themes` (DESIGN.md token sets). Grammar note: comments are `//` only — `#` is
+reserved for tags.

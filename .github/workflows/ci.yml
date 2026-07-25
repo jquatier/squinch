@@ -1,7 +1,23 @@
-name: spike
+name: ci
 on: [push, pull_request]
 
 jobs:
+  core:
+    strategy:
+      matrix:
+        os: [ubuntu-latest, macos-latest]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      # Golden SVGs are committed from macOS — Linux must byte-match them.
+      - run: pnpm --filter @squinch/core test
+
   phase0:
     strategy:
       matrix:
