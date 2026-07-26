@@ -85,7 +85,7 @@
 <rect x="343" y="271" width="206" height="94" rx="7" fill="none" stroke="#8B88E8" stroke-width="1.5" opacity="0.8"/>
 <g><rect x="168" y="242" width="57" height="18" rx="2" fill="#212124" stroke="#3B3B40" stroke-width="1"/><text x="197" y="255" text-anchor="middle" font-size="11" fill="#9C9B94">enqueue</text></g>
 <g><rect x="96" y="610" width="83" height="18" rx="2" fill="#212124" stroke="#3B3B40" stroke-width="1"/><text x="138" y="623" text-anchor="middle" font-size="11" fill="#9C9B94">mark shipped</text></g>
-<g opacity="0.35"><rect x="183" y="356" width="60" height="18" rx="2" fill="#212124" stroke="#3B3B40" stroke-width="1"/><text x="213" y="369" text-anchor="middle" font-size="11" fill="#9C9B94">checkout</text></g>
+<g opacity="0.35"><rect x="183" y="115" width="60" height="18" rx="2" fill="#212124" stroke="#3B3B40" stroke-width="1"/><text x="213" y="128" text-anchor="middle" font-size="11" fill="#9C9B94">checkout</text></g>
 <g opacity="0.35"><rect x="284" y="369" width="73" height="18" rx="2" fill="#212124" stroke="#3B3B40" stroke-width="1"/><text x="321" y="382" text-anchor="middle" font-size="11" fill="#9C9B94">price check</text></g>
 <g opacity="0.35"><rect x="205" y="634" width="100" height="18" rx="2" fill="#212124" stroke="#3B3B40" stroke-width="1"/><text x="255" y="647" text-anchor="middle" font-size="11" fill="#9C9B94">decrement stock</text></g>
 <g><rect x="312" y="231" width="83" height="18" rx="2" fill="#212124" stroke="#3B3B40" stroke-width="1"/><text x="354" y="244" text-anchor="middle" font-size="11" fill="#9C9B94">verify identity</text></g>

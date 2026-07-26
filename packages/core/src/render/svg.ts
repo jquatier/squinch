@@ -398,7 +398,9 @@ function computePills(p: Positioned, rc: RC, edgeMatches: (e: PEdge) => boolean)
     const maxW = Math.max(60, Math.min(240, p.width - 16));
     const label = fit(e.label, maxW - 12, rc.fx(11), "400", rc.fam);
     const w = Math.round(measure(label, rc.fx(11), "400", rc.fam)) + 12;
-    const relocated = w > best - 8;
+    // a modest overhang past the segment's bends is fine (opaque pill bg);
+    // flee below only when the label truly dwarfs its longest segment
+    const relocated = w > best + 24;
     const a = e.points[bi], b = e.points[bi + 1];
 
     const rectAt = (fr: number): Pill => {

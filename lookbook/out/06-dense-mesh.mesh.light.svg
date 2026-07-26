@@ -112,8 +112,8 @@
 <g><rect x="619" y="253" width="52" height="18" rx="2" fill="#FFFFFF" stroke="#D8D7D3" stroke-width="1"/><text x="645" y="266" text-anchor="middle" font-size="11" fill="#6F6E69">reserve</text></g>
 <g><rect x="415" y="233" width="42" height="18" rx="2" fill="#FFFFFF" stroke="#D8D7D3" stroke-width="1"/><text x="436" y="246" text-anchor="middle" font-size="11" fill="#6F6E69">notify</text></g>
 <g><rect x="357" y="405" width="32" height="18" rx="2" fill="#FFFFFF" stroke="#D8D7D3" stroke-width="1"/><text x="373" y="418" text-anchor="middle" font-size="11" fill="#6F6E69">flag</text></g>
-<g><rect x="462" y="510" width="37" height="18" rx="2" fill="#FFFFFF" stroke="#D8D7D3" stroke-width="1"/><text x="481" y="523" text-anchor="middle" font-size="11" fill="#6F6E69">case</text></g>
-<g><rect x="548" y="510" width="67" height="18" rx="2" fill="#FFFFFF" stroke="#D8D7D3" stroke-width="1"/><text x="582" y="523" text-anchor="middle" font-size="11" fill="#6F6E69">movement</text></g>
+<g><rect x="462" y="407" width="37" height="18" rx="2" fill="#FFFFFF" stroke="#D8D7D3" stroke-width="1"/><text x="481" y="420" text-anchor="middle" font-size="11" fill="#6F6E69">case</text></g>
+<g><rect x="548" y="385" width="67" height="18" rx="2" fill="#FFFFFF" stroke="#D8D7D3" stroke-width="1"/><text x="582" y="398" text-anchor="middle" font-size="11" fill="#6F6E69">movement</text></g>
 <g><rect x="243" y="383" width="34" height="18" rx="2" fill="#FFFFFF" stroke="#D8D7D3" stroke-width="1"/><text x="260" y="396" text-anchor="middle" font-size="11" fill="#6F6E69">sent</text></g>
 <g><rect x="323" y="527" width="42" height="18" rx="2" fill="#FFFFFF" stroke="#D8D7D3" stroke-width="1"/><text x="344" y="540" text-anchor="middle" font-size="11" fill="#6F6E69">views</text></g>
 <g><rect x="167" y="241" width="49" height="18" rx="2" fill="#FFFFFF" stroke="#D8D7D3" stroke-width="1"/><text x="192" y="254" text-anchor="middle" font-size="11" fill="#6F6E69">invoice</text></g>
