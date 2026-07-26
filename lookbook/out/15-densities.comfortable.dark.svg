@@ -39,5 +39,5 @@
 <text x="116" y="309" font-size="13" font-weight="500" fill="#EDEDEA">Table</text>
 </g>
 <g><rect x="70" y="235" width="44" height="18" rx="2" fill="#212124" stroke="#3B3B40" stroke-width="1"/><text x="92" y="248" text-anchor="middle" font-size="11" fill="#9C9B94">writes</text></g>
-<g><rect x="123" y="231" width="41" height="18" rx="2" fill="#212124" stroke="#3B3B40" stroke-width="1"/><text x="144" y="244" text-anchor="middle" font-size="11" fill="#9C9B94">reads</text></g>
+<g><rect x="175" y="231" width="41" height="18" rx="2" fill="#212124" stroke="#3B3B40" stroke-width="1"/><text x="196" y="244" text-anchor="middle" font-size="11" fill="#9C9B94">reads</text></g>
 </svg>

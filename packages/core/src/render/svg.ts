@@ -386,54 +386,59 @@ function computePills(p: Positioned, rc: RC, edgeMatches: (e: PEdge) => boolean)
       band(f.x + 8, f.y + 6, Math.round(measure(f.label, rc.fx(13), "500", rc.fam)) + 12, 24),
     ]),
   ];
-  // a point measured backwards from the arrowhead along the polyline — edge
-  // labels answer "what does this arrow do to its destination", so they
-  // anchor near the target, never at the dead middle of a long wire
-  const pointFromEnd = (pts: { x: number; y: number }[], dist: number) => {
-    let remaining = dist;
-    for (let i = pts.length - 1; i > 0; i--) {
-      const a = pts[i], b = pts[i - 1];
-      const seg = Math.hypot(a.x - b.x, a.y - b.y);
-      if (seg >= remaining) {
-        const fr = remaining / seg;
-        return { x: Math.round(a.x + (b.x - a.x) * fr), y: Math.round(a.y + (b.y - a.y) * fr) };
-      }
-      remaining -= seg;
-    }
-    return pts[0];
-  };
-
   const pills: Pill[] = [];
   for (const e of p.edges) {
     if (!e.label) continue;
-    const total = e.points.reduce(
-      (acc, pt, i) => (i ? acc + Math.hypot(pt.x - e.points[i - 1].x, pt.y - e.points[i - 1].y) : 0),
-      0,
-    );
     // labels truncate like node labels do, and a pill never leaves the canvas
     const maxW = Math.max(60, Math.min(240, p.width - 16));
     const label = fit(e.label, maxW - 12, rc.fx(11), "400", rc.fam);
     const w = Math.round(measure(label, rc.fx(11), "400", rc.fam)) + 12;
 
-    const rectAt = (pt: { x: number; y: number }): Pill => {
-      let x = pt.x - Math.round(w / 2);
+    // Segments ranked by hosting quality: horizontal runs read like captions
+    // (1.25× weight); a segment must fit the pill's footprint along its axis
+    // with 10px clearance from each bend — a pill never straddles a corner.
+    const segs2: { a: { x: number; y: number }; b: { x: number; y: number }; len: number; horiz: boolean; fits: boolean }[] = [];
+    for (let i = 0; i < e.points.length - 1; i++) {
+      const a = e.points[i], b = e.points[i + 1];
+      const len = Math.hypot(b.x - a.x, b.y - a.y);
+      const horiz = Math.abs(b.x - a.x) >= Math.abs(b.y - a.y);
+      const footprint = horiz ? w : 18;
+      segs2.push({ a, b, len, horiz, fits: len >= footprint + 20 });
+    }
+    const ranked = [...segs2].sort(
+      (s1, s2) => (s2.len * (s2.horiz ? 1.25 : 1) * (s2.fits ? 1 : 0.1)) -
+                  (s1.len * (s1.horiz ? 1.25 : 1) * (s1.fits ? 1 : 0.1)),
+    );
+
+    const rectAt = (seg: (typeof segs2)[0], fr: number): Pill => {
+      let mx = Math.round(seg.a.x + (seg.b.x - seg.a.x) * fr);
+      const my = Math.round(seg.a.y + (seg.b.y - seg.a.y) * fr);
+      let x = mx - Math.round(w / 2);
       if (x < 8) x = 8;
       if (x + w > p.width - 8) x = p.width - 8 - w;
-      return { x, y: pt.y - 9, w, h: 18, mx: x + Math.round(w / 2), label, dimmed: !edgeMatches(e) };
+      mx = x + Math.round(w / 2);
+      return { x, y: my - 9, w, h: 18, mx, label, dimmed: !edgeMatches(e) };
     };
     const clear = (r: Pill) =>
       !fixed.some((o) => intersects(o, r)) && !pills.some((q2) => intersects(q2, r));
 
     let pill: Pill | undefined;
-    // candidates walk from just behind the arrowhead back toward the source
-    for (const d of [28, 44, 64, 92, 128, 176, 240, 320]) {
-      if (d > total - 20) break;
-      const cand = rectAt(pointFromEnd(e.points, d));
-      if (clear(cand)) { pill = cand; break; }
+    for (const seg of ranked.slice(0, 3)) {
+      if (!seg.fits) continue;
+      // midpoint first, sliding outward — but only within the corner-safe
+      // span (the pill's footprint plus 10px must stay inside the segment)
+      const footprint = seg.horiz ? w : 18;
+      const margin = (footprint / 2 + 10) / seg.len;
+      for (const fr of [0.5, 0.42, 0.58, 0.34, 0.66, 0.26, 0.74, 0.18, 0.82]) {
+        if (fr < margin || fr > 1 - margin) continue;
+        const cand = rectAt(seg, fr);
+        if (clear(cand)) { pill = cand; break; }
+      }
+      if (pill) break;
     }
     if (!pill) {
       // fallback: below the edge's nodes, shifting down past everything
-      pill = rectAt(pointFromEnd(e.points, Math.min(28, Math.max(0, total / 2))));
+      pill = rectAt(segs2[Math.floor(segs2.length / 2)] ?? segs2[0], 0.5);
       pill.y = Math.max(nodeBottom(e.from), nodeBottom(e.to)) + 17 - 9;
       for (let guard = 0; guard < 50; guard++) {
         const hit = pills.some((q2) => intersects(q2, pill!)) ||

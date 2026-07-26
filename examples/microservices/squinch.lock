@@ -1,13 +1,13 @@
 {
   "version": "0.0.0",
   "files": {
-    "microservices.landscape.light.svg": "26ee24cf7bf1a0e0",
-    "microservices.landscape.dark.svg": "cfdfae161a54ff97",
-    "microservices.catalog.light.svg": "70a0de0b157e2a5d",
-    "microservices.catalog.dark.svg": "edc8fecd9db8a802",
-    "microservices.orders.light.svg": "315e8a7645f09459",
-    "microservices.orders.dark.svg": "b13cd952018ba430",
-    "microservices.orders-pci.light.svg": "bc18e1d22fb08376",
-    "microservices.orders-pci.dark.svg": "88e893ada97b214c"
+    "microservices.landscape.light.svg": "a27669acdbe107cd",
+    "microservices.landscape.dark.svg": "588224b4d908aaf8",
+    "microservices.catalog.light.svg": "da8daa62cbd777af",
+    "microservices.catalog.dark.svg": "f7e58db2ce786970",
+    "microservices.orders.light.svg": "acb7cbca9908aba7",
+    "microservices.orders.dark.svg": "2d9a0d610130bb24",
+    "microservices.orders-pci.light.svg": "fa4ed855b56101d6",
+    "microservices.orders-pci.dark.svg": "7c08b939c0278839"
   }
 }
