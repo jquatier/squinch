@@ -56,7 +56,8 @@ describe("golden renders", () => {
     const src = readFileSync(join(pkg, "examples/orders.squinch"), "utf8");
     const r = await render(src, { theme: "light" });
     const spike = readFileSync(join(pkg, "../../spike/golden/canonical.svg"), "utf8");
-    const coords = (s: string) => s.match(/<rect x="\d+" y="\d+"/g);
+    // node rects only (leaf h=64) — label pills are placement policy, not layout
+    const coords = (s: string) => s.match(/<rect x="\d+" y="\d+" width="\d+" height="64"/g);
     expect(coords(r.svg!)).toEqual(coords(spike));
   });
 });

@@ -56,10 +56,10 @@
 <clipPath id="clip-sq-aws-aurora-292-404-40"><rect x="292" y="404" width="40" height="40" rx="4"/></clipPath><g clip-path="url(#clip-sq-aws-aurora-292-404-40)"><use href="#sq-aws-aurora" x="292" y="404" width="40" height="40"/></g>
 <text x="344" y="429" font-size="13" font-weight="500" fill="#EDEDEA">Ledger</text>
 </g>
-<g><rect x="171" y="111" width="56" height="18" rx="2" fill="#212124" stroke="#3B3B40" stroke-width="1"/><text x="199" y="124" text-anchor="middle" font-size="11" fill="#9C9B94">tokenize</text></g>
+<g><rect x="84" y="115" width="56" height="18" rx="2" fill="#212124" stroke="#3B3B40" stroke-width="1"/><text x="112" y="128" text-anchor="middle" font-size="11" fill="#9C9B94">tokenize</text></g>
 <g><rect x="92" y="235" width="39" height="18" rx="2" fill="#212124" stroke="#3B3B40" stroke-width="1"/><text x="112" y="248" text-anchor="middle" font-size="11" fill="#9C9B94">store</text></g>
-<g opacity="0.35"><rect x="295" y="224" width="90" height="18" rx="2" fill="#212124" stroke="#3B3B40" stroke-width="1"/><text x="340" y="237" text-anchor="middle" font-size="11" fill="#9C9B94">capture events</text></g>
-<g opacity="0.35"><rect x="321" y="248" width="38" height="18" rx="2" fill="#212124" stroke="#3B3B40" stroke-width="1"/><text x="340" y="261" text-anchor="middle" font-size="11" fill="#9C9B94">drain</text></g>
+<g opacity="0.35"><rect x="295" y="115" width="90" height="18" rx="2" fill="#212124" stroke="#3B3B40" stroke-width="1"/><text x="340" y="128" text-anchor="middle" font-size="11" fill="#9C9B94">capture events</text></g>
+<g opacity="0.35"><rect x="321" y="235" width="38" height="18" rx="2" fill="#212124" stroke="#3B3B40" stroke-width="1"/><text x="340" y="248" text-anchor="middle" font-size="11" fill="#9C9B94">drain</text></g>
 <g opacity="0.35"><rect x="322" y="355" width="35" height="18" rx="2" fill="#212124" stroke="#3B3B40" stroke-width="1"/><text x="340" y="368" text-anchor="middle" font-size="11" fill="#9C9B94">post</text></g>
 <line x1="216" y1="304" x2="192" y2="304" stroke="#9C9B94" stroke-width="1" stroke-dasharray="2 3"/>
 <rect x="216" y="290" width="191.73388499999996" height="27" rx="3" fill="#212124" stroke="#3B3B40" stroke-width="1"/>

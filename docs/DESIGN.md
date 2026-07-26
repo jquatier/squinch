@@ -65,6 +65,9 @@
   `~>` async. Small, sharp, consistent — never SVG default markers.
 - **Edge labels**: pill chips (11px, surface bg, radius 2, 1px border) with a canvas
   halo — a label never sits raw on a line, and never collides with another chip.
+  Placement anchors near the **arrowhead** (a label answers "what does this arrow
+  do to its destination"), walking back toward the source past obstacles — never
+  the dead middle of a long wire.
 - **Aggregate edges** (from lifting): medium weight, neutral, count badge as pill.
 - **Animation** (`~>`): CSS `stroke-dashoffset`, constant speed in px/s (not
   per-edge duration — long edges must not "flow faster"), subtle: motion you notice
