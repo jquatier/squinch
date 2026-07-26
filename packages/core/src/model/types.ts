@@ -103,11 +103,15 @@ export const ZONE_KINDS = [
 ] as const;
 export type ZoneKind = (typeof ZONE_KINDS)[number];
 
+export type ZoneLabelPos = "top-left" | "top-right" | "bottom-left" | "bottom-right";
+
 export interface SZone {
   id: string;
   label?: string;
   kind: ZoneKind;
   members: string[]; // resolved node/container paths, declaration order
+  icon?: { pack: string; id: string }; // optional 14px chip icon
+  labelPos: ZoneLabelPos; // which border corner the chip straddles
   loc: Loc;
   file?: string;
 }

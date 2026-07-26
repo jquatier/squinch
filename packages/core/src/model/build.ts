@@ -8,7 +8,7 @@ import { parser } from "../grammar/parser.js";
 import { iconExists, packExists, iconIds, allPackNames } from "./packs.js";
 import { suggest } from "./suggest.js";
 import type {
-  ArrowKind, BuildResult, Diagnostic, Loc, RelPos, SContainer, SEdge, SModel, SNode, SNote, SView, Side, SZone, ZoneKind,
+  ArrowKind, BuildResult, Diagnostic, Loc, RelPos, SContainer, SEdge, SModel, SNode, SNote, SView, Side, SZone, ZoneKind, ZoneLabelPos,
 } from "./types.js";
 import { ZONE_KINDS } from "./types.js";
 
@@ -336,8 +336,34 @@ export function buildProject(files: ProjectFile[]): BuildResult {
     }
     if (members.length === 0)
       warn(ctx, z, `zone \`${id}\` has no members`, `add \`contains <path>, …\``);
+    // optional chip attrs: icon (pack/id, validated like node icons) and
+    // label (which border corner the chip straddles)
+    const zAttrs = attrsOf(ctx, bodyNode);
+    let icon: SZone["icon"];
+    if (zAttrs.attrs.icon) {
+      const [p, i] = zAttrs.attrs.icon.split("/");
+      if (!p || !i || !packExists(p)) {
+        const s = p && suggest(p, allPackNames());
+        error(ctx, z, `unknown pack \`${p ?? zAttrs.attrs.icon}\` in zone icon`,
+          s ? `did you mean \`${s}/${i ?? ""}\`?` : `use \`icon: <pack>/<id>\``);
+      } else if (!iconExists(p, i)) {
+        const s = suggest(i, iconIds(p));
+        error(ctx, z, `unknown icon \`${p}/${i}\``,
+          s ? `did you mean \`${p}/${s}\`?` : `run \`squinch icons search ${i}\``);
+      } else icon = { pack: p, id: i };
+    }
+    const LABEL_POS: ZoneLabelPos[] = ["top-left", "top-right", "bottom-left", "bottom-right"];
+    let labelPos: ZoneLabelPos = "top-left";
+    if (zAttrs.attrs.label) {
+      if ((LABEL_POS as string[]).includes(zAttrs.attrs.label)) labelPos = zAttrs.attrs.label as ZoneLabelPos;
+      else {
+        const s = suggest(zAttrs.attrs.label, LABEL_POS);
+        error(ctx, z, `unknown zone label position \`${zAttrs.attrs.label}\``,
+          s ? `did you mean \`${s}\`?` : `one of: ${LABEL_POS.join(", ")}`);
+      }
+    }
     model.zones.push({
-      id, kind, members,
+      id, kind, members, icon, labelPos,
       label: labelNode ? ctx.str(labelNode) : undefined,
       loc: ctx.loc(z), file: ctx.name,
     });

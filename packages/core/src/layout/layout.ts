@@ -10,7 +10,7 @@ const ELK = ELKModule as unknown as { new (): { layout(graph: unknown): Promise<
 import { measure, type FontFamily } from "../metrics.js";
 import { resolveView } from "../view/resolve.js";
 import type { VNode, VEdge } from "../view/resolve.js";
-import type { SModel, SView, Side, Diagnostic, ZoneKind } from "../model/types.js";
+import type { SModel, SView, Side, Diagnostic, ZoneKind, ZoneLabelPos } from "../model/types.js";
 import type { ThemeFont } from "../themes/index.js";
 
 const LEAF_TIERS = [120, 160, 200, 240];
@@ -30,6 +30,8 @@ export interface PPort { edge: string; node: string; side: Side; x: number; y: n
 export interface PFrame { path: string; label: string; x: number; y: number; w: number; h: number }
 export interface PZone {
   id: string; label: string; kind: ZoneKind;
+  icon?: { pack: string; id: string };
+  labelPos: ZoneLabelPos;
   x: number; y: number; w: number; h: number;
   depth: number; // nesting depth, outermost = 0 (render order)
 }
@@ -94,7 +96,11 @@ export async function layoutView(
   // ranking and ELK layers freely inside it.
   const memberMatch = (path: string, member: string) =>
     path === member || path.startsWith(member + ".");
-  interface LZone { id: string; label: string; kind: ZoneKind; set: Set<string> }
+  interface LZone {
+    id: string; label: string; kind: ZoneKind;
+    icon?: { pack: string; id: string }; labelPos: ZoneLabelPos;
+    set: Set<string>;
+  }
   const zones: LZone[] = [];
   for (const z of model.zones) {
     const set = new Set(entities.filter((e) => z.members.some((m) => memberMatch(e, m))));
@@ -108,7 +114,11 @@ export async function layoutView(
           loc: z.loc,
         });
     }
-    if (set.size > 0) zones.push({ id: z.id, label: z.label ?? z.id, kind: z.kind, set });
+    if (set.size > 0)
+      zones.push({
+        id: z.id, label: z.label ?? z.id, kind: z.kind,
+        icon: z.icon, labelPos: z.labelPos, set,
+      });
   }
   for (let i = 0; i < zones.length; i++)
     for (let j = i + 1; j < zones.length; j++) {
@@ -388,7 +398,10 @@ export async function layoutView(
     const x = q(ox + c.x), y = q(oy + c.y);
     if (zoneById.has(c.id)) {
       const z = zoneById.get(c.id)!;
-      pZones.push({ id: z.id, label: z.label, kind: z.kind, x, y, w: q(c.width), h: q(c.height), depth });
+      pZones.push({
+        id: z.id, label: z.label, kind: z.kind, icon: z.icon, labelPos: z.labelPos,
+        x, y, w: q(c.width), h: q(c.height), depth,
+      });
       containerOffset.set(c.id, { x, y });
       for (const child of c.children ?? []) walk(child, x, y, depth + 1);
       return;

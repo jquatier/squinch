@@ -30,9 +30,11 @@ zone onprem "On-Premises" onprem {
 }
 zone cloud "AWS Cloud" cloud {
   contains ingest, core
+  label: bottom-right
 }
 zone vpc1 "VPC prod-main" vpc {
   contains core
+  icon: aws/virtual-private-cloud
 }
 
 view landscape {

@@ -384,7 +384,11 @@ function computePills(p: Positioned, rc: RC, edgeMatches: (e: PEdge) => boolean)
   return pills;
 }
 
-interface ZoneChip { x: number; y: number; w: number; h: number; label: string; col: string; zone: string }
+interface ZoneChip {
+  x: number; y: number; w: number; h: number;
+  label: string; col: string; zone: string;
+  icon?: { pack: string; id: string };
+}
 
 /**
  * Zone label chips straddle their zone's top border. ELK doesn't treat labels
@@ -411,12 +415,20 @@ function placeZoneChips(p: Positioned, rc: RC, t: Theme, pills: Pill[]): ZoneChi
   const obstacles = () => [...segs, ...p.nodes, ...pills, ...chips];
   for (const z of [...(p.zones ?? [])].sort((a, b) => a.depth - b.depth)) {
     const col = ZONE_TINT[z.kind](t);
-    const label = fit(z.label, z.w - 48, rc.fx(11), "500", rc.fam);
-    const w = Math.round(measure(label, rc.fx(11), "500", rc.fam)) + 16;
-    const y = z.y - 10;
-    const xMax = z.x + z.w - 12 - w;
-    let best = { x: z.x + 12, hits: Infinity };
-    for (let x = z.x + 12; x <= Math.max(z.x + 12, xMax); x += 16) {
+    const iconW = z.icon ? 18 : 0; // 14px icon + 4px gap
+    const label = fit(z.label, z.w - 48 - iconW, rc.fx(11), "500", rc.fam);
+    const w = Math.round(measure(label, rc.fx(11), "500", rc.fam)) + 16 + iconW;
+    // which border the chip straddles, and which way it slides to escape:
+    // left corners slide right, right corners slide left — always along the
+    // border the author chose.
+    const y = z.labelPos.startsWith("top") ? z.y - 10 : z.y + z.h - 10;
+    const xLo = z.x + 12;
+    const xHi = Math.max(xLo, z.x + z.w - 12 - w);
+    const fromRight = z.labelPos.endsWith("right");
+    let best = { x: fromRight ? xHi : xLo, hits: Infinity };
+    for (let step = 0; ; step++) {
+      const x = fromRight ? xHi - step * 16 : xLo + step * 16;
+      if (x < xLo || x > xHi) break;
       const rect = { x, y, w, h: 20 };
       const hits = obstacles().filter((o) =>
         o.x < rect.x + rect.w + 6 && o.x + o.w + 6 > rect.x &&
@@ -425,7 +437,7 @@ function placeZoneChips(p: Positioned, rc: RC, t: Theme, pills: Pill[]): ZoneChi
       if (hits < best.hits) best = { x, hits };
       if (hits === 0) break;
     }
-    chips.push({ x: best.x, y, w, h: 20, label, col, zone: z.id });
+    chips.push({ x: best.x, y, w, h: 20, label, col, zone: z.id, icon: z.icon });
   }
   return chips;
 }
@@ -438,9 +450,11 @@ function chipMarkup(c: ZoneChip, rc: RC, t: Theme): string {
     ? `<rect x="${c.x}" y="${c.y}" width="${c.w}" height="${c.h}" rx="2" fill="${t.canvas}"/>` +
       `<path d="${rc.sk.rect(c.x, c.y, c.w, c.h, { roughness: 0.6, multi: false })}" fill="none" stroke="${c.col}" stroke-width="1"/>`
     : `<rect x="${c.x}" y="${c.y}" width="${c.w}" height="${c.h}" rx="3" fill="${t.canvas}" stroke="${c.col}" stroke-width="1"/>`;
+  const icon = c.icon ? iconPlate(c.icon, c.x + 5, c.y + 3, 14, rc) : "";
+  const tx = c.x + 8 + (c.icon ? 16 : 0);
   return (
-    `<g data-kind="zone-chip" data-zone="${esc(c.zone)}">${halo}${chip}` +
-    `<text x="${c.x + 8}" y="${c.y + 14}" font-size="${rc.fx(11)}" font-weight="500" fill="${c.col}">${esc(c.label)}</text></g>`
+    `<g data-kind="zone-chip" data-zone="${esc(c.zone)}">${halo}${chip}${icon}` +
+    `<text x="${tx}" y="${c.y + 14}" font-size="${rc.fx(11)}" font-weight="500" fill="${c.col}">${esc(c.label)}</text></g>`
   );
 }
 
@@ -463,6 +477,7 @@ function iconDefs(p: Positioned): string {
     note(n.icon);
     for (const prev of n.preview) note(prev);
   }
+  for (const z of p.zones ?? []) note(z.icon);
   const symbols: string[] = [];
   for (const key of [...used.keys()].sort()) {
     const { pack, id } = used.get(key)!;

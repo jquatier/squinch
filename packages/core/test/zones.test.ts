@@ -160,6 +160,36 @@ view v {
     expect(again.svg).toBe(r.svg);
   });
 
+  it("zone chips can carry an icon and choose their corner", async () => {
+    const src = BASE + `
+zone cloud "AWS Cloud" cloud {
+  contains ingest, core
+  icon: aws/cloudfront
+  label: bottom-right
+}
+view landscape { include * }
+`;
+    const r = await render(src, { view: "landscape", theme: "light" });
+    expect(r.ok).toBe(true);
+    expect(validateSVG(r.svg!).ok).toBe(true);
+    const chip = r.svg!.match(/<g data-kind="zone-chip"[^>]*>(.*?)<\/g>/s)![1];
+    expect(chip).toContain("cloudfront"); // symbol <use> inside the chip
+    // bottom-right: chip straddles the BOTTOM border
+    const zone = r.svg!.match(/<g data-kind="zone"[^>]*><rect x="(-?\d+)" y="(-?\d+)" width="(\d+)" height="(\d+)"/)!;
+    const zoneBottom = +zone[2] + +zone[4];
+    const chipY = +chip.match(/<rect x="-?\d+" y="(-?\d+)"/)![1];
+    expect(Math.abs(chipY + 3 - (zoneBottom - 10))).toBeLessThanOrEqual(1); // halo y = chip y - 3
+  });
+
+  it("bad zone icon and label position get did-you-means", () => {
+    const icon = buildModel(BASE + `zone z "Z" cloud { contains core\n icon: aws/cloudfrunt }\n`);
+    expect(icon.ok).toBe(false);
+    expect(icon.diagnostics[0].fix).toContain("aws/cloudfront");
+    const pos = buildModel(BASE + `zone z "Z" cloud { contains core\n label: top-rigth }\n`);
+    expect(pos.ok).toBe(false);
+    expect(pos.diagnostics[0].fix).toContain("top-right");
+  });
+
   it("zone kinds show up as earned legend entries", async () => {
     const src = BASE + ZONES.replace("view landscape {\n  include *\n}", "view landscape {\n  include *\n  legend auto\n}");
     const r = await render(src, { view: "landscape" });
