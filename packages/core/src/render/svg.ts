@@ -389,30 +389,21 @@ function computePills(p: Positioned, rc: RC, edgeMatches: (e: PEdge) => boolean)
   const pills: Pill[] = [];
   for (const e of p.edges) {
     if (!e.label) continue;
+    let best = 0, bi = 0;
+    for (let i = 0; i < e.points.length - 1; i++) {
+      const len = Math.hypot(e.points[i + 1].x - e.points[i].x, e.points[i + 1].y - e.points[i].y);
+      if (len > best) { best = len; bi = i; }
+    }
     // labels truncate like node labels do, and a pill never leaves the canvas
     const maxW = Math.max(60, Math.min(240, p.width - 16));
     const label = fit(e.label, maxW - 12, rc.fx(11), "400", rc.fam);
     const w = Math.round(measure(label, rc.fx(11), "400", rc.fam)) + 12;
+    const relocated = w > best - 8;
+    const a = e.points[bi], b = e.points[bi + 1];
 
-    // Segments ranked by hosting quality: horizontal runs read like captions
-    // (1.25× weight); a segment must fit the pill's footprint along its axis
-    // with 10px clearance from each bend — a pill never straddles a corner.
-    const segs2: { a: { x: number; y: number }; b: { x: number; y: number }; len: number; horiz: boolean; fits: boolean }[] = [];
-    for (let i = 0; i < e.points.length - 1; i++) {
-      const a = e.points[i], b = e.points[i + 1];
-      const len = Math.hypot(b.x - a.x, b.y - a.y);
-      const horiz = Math.abs(b.x - a.x) >= Math.abs(b.y - a.y);
-      const footprint = horiz ? w : 18;
-      segs2.push({ a, b, len, horiz, fits: len >= footprint + 20 });
-    }
-    const ranked = [...segs2].sort(
-      (s1, s2) => (s2.len * (s2.horiz ? 1.25 : 1) * (s2.fits ? 1 : 0.1)) -
-                  (s1.len * (s1.horiz ? 1.25 : 1) * (s1.fits ? 1 : 0.1)),
-    );
-
-    const rectAt = (seg: (typeof segs2)[0], fr: number): Pill => {
-      let mx = Math.round(seg.a.x + (seg.b.x - seg.a.x) * fr);
-      const my = Math.round(seg.a.y + (seg.b.y - seg.a.y) * fr);
+    const rectAt = (fr: number): Pill => {
+      let mx = Math.round(a.x + (b.x - a.x) * fr);
+      const my = Math.round(a.y + (b.y - a.y) * fr);
       let x = mx - Math.round(w / 2);
       if (x < 8) x = 8;
       if (x + w > p.width - 8) x = p.width - 8 - w;
@@ -423,23 +414,18 @@ function computePills(p: Positioned, rc: RC, edgeMatches: (e: PEdge) => boolean)
       !fixed.some((o) => intersects(o, r)) && !pills.some((q2) => intersects(q2, r));
 
     let pill: Pill | undefined;
-    for (const seg of ranked.slice(0, 3)) {
-      if (!seg.fits) continue;
-      // midpoint first, sliding outward — but only within the corner-safe
-      // span (the pill's footprint plus 10px must stay inside the segment)
-      const footprint = seg.horiz ? w : 18;
-      const margin = (footprint / 2 + 10) / seg.len;
+    if (!relocated) {
+      // first choice: stay ON the edge — slide along the segment from its
+      // midpoint outward until the pill sits clear of every obstacle
       for (const fr of [0.5, 0.42, 0.58, 0.34, 0.66, 0.26, 0.74, 0.18, 0.82]) {
-        if (fr < margin || fr > 1 - margin) continue;
-        const cand = rectAt(seg, fr);
+        const cand = rectAt(fr);
         if (clear(cand)) { pill = cand; break; }
       }
-      if (pill) break;
     }
     if (!pill) {
       // fallback: below the edge's nodes, shifting down past everything
-      pill = rectAt(segs2[Math.floor(segs2.length / 2)] ?? segs2[0], 0.5);
-      pill.y = Math.max(nodeBottom(e.from), nodeBottom(e.to)) + 17 - 9;
+      pill = rectAt(0.5);
+      if (relocated) pill.y = Math.max(nodeBottom(e.from), nodeBottom(e.to)) + 17 - 9;
       for (let guard = 0; guard < 50; guard++) {
         const hit = pills.some((q2) => intersects(q2, pill!)) ||
           p.nodes.some((n2) => intersects(n2, pill!));
