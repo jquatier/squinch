@@ -327,7 +327,8 @@ layout {
 layout {
   route db ~> sync from east to west        // exit/entry sides        [v1]
   channel create, get, search -> db          // shared trunk (bus)
-  route search -> idx around files           // avoid a node's lane     [v1.1]
+  route search -> idx around files           // avoid a node's lane
+                                             // [not built — docs/notes/routing-hints.md]
   route api -> legacy via below-db           // coarse waypoint: a node-relative
                                              // region, never a coordinate [v1.1]
 }
