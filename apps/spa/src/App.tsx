@@ -1,6 +1,8 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Editor, type EditorApi } from "./Editor";
 import { IconPalette } from "./IconPalette";
+import { Presenter } from "./Presenter";
+import { Stage, useReducedMotion, type Box, type Intent } from "./Stage";
 import { compile, decodeShare, encodeShare, type Preview } from "./squinch";
 import { EXAMPLES } from "./examples";
 
@@ -12,6 +14,16 @@ const THEME_LABEL: Record<Theme, string> = {
 };
 
 const STORAGE_KEY = "squinch:source";
+
+/** The one card that stands for `inner` inside a view scoped to `outer` — the
+ *  element both altitudes have in common, and therefore the thing to anchor a
+ *  zoom on. Undefined when the two scopes aren't nested (a lateral hop). */
+function stepToward(outer: string | undefined, inner: string | undefined): string | undefined {
+  if (!inner) return undefined;
+  if (!outer) return inner.split(".")[0];
+  if (inner === outer || !inner.startsWith(`${outer}.`)) return undefined;
+  return `${outer}.${inner.slice(outer.length + 1).split(".")[0]}`;
+}
 
 function useDebounced<T>(value: T, ms: number): T {
   const [v, setV] = useState(value);
@@ -43,6 +55,10 @@ export function App() {
   const editorApi = useRef<EditorApi | null>(null);
   const [zoom, setZoom] = useState(1);
   const [fit, setFit] = useState(true);
+  const [intent, setIntent] = useState<Intent>();
+  const [presenting, setPresenting] = useState(false);
+  const token = useRef(0);
+  const reduced = useReducedMotion();
 
   const debounced = useDebounced(source, 180);
 
@@ -95,6 +111,30 @@ export function App() {
     [views, activeView],
   );
 
+  /** Every view change goes through here, so the canvas can animate the hop.
+   *  The direction is derived from how the two scopes relate — not from which
+   *  control was clicked — which means the breadcrumb, the view tabs and a
+   *  click on a card all behave consistently. */
+  const navigate = useCallback(
+    (name: string, rect?: Box) => {
+      if (!name || name === activeView) return;
+      const target = views.find((v) => v.name === name)?.scope;
+      const down = stepToward(activeScope, target);
+      const up = stepToward(target, activeScope);
+      setIntent(
+        down
+          ? { token: ++token.current, dir: "in", rect, path: down }
+          : up
+            ? { token: ++token.current, dir: "out", path: up }
+            : // a lateral hop (same scope, different lens) is not a zoom at all;
+              // with no anchor the stage falls back to a plain depth cut
+              { token: ++token.current, dir: "in" },
+      );
+      setView(name);
+    },
+    [views, activeView, activeScope],
+  );
+
   /** Ancestor trail of the current scope, each hop a view we can jump to. */
   const crumbs = useMemo(() => {
     const trail: { label: string; view?: string }[] = [];
@@ -110,6 +150,12 @@ export function App() {
     return trail;
   }, [views, activeScope]);
 
+  /** One altitude back up: the nearest ancestor that has a view of its own. */
+  const upView = useMemo(
+    () => [...crumbs].reverse().find((c) => c.view && c.view !== activeView)?.view,
+    [crumbs, activeView],
+  );
+
   const download = useCallback(() => {
     if (!shown) return;
     const blob = new Blob([shown], { type: "image/svg+xml" });
@@ -120,18 +166,17 @@ export function App() {
     URL.revokeObjectURL(a.href);
   }, [shown, activeView, theme]);
 
-  const onCanvasClick = useCallback(
-    (e: React.MouseEvent) => {
-      const el = (e.target as Element).closest?.("[data-path]");
-      const path = el?.getAttribute("data-path");
-      if (!path) return;
+  const onPick = useCallback(
+    (path: string, box: Box) => {
       const target = viewForPath(path);
-      if (target) {
-        setView(target.name);
-        flash(`Zoomed into ${path}`);
-      }
+      if (target) navigate(target.name, box);
     },
-    [viewForPath],
+    [viewForPath, navigate],
+  );
+
+  const cycleTheme = useCallback(
+    () => setTheme((t) => THEME_CYCLE[(THEME_CYCLE.indexOf(t) + 1) % THEME_CYCLE.length]),
+    [],
   );
 
   // Cmd/Ctrl-S exports, Cmd/Ctrl-\ toggles the editor pane
@@ -149,10 +194,31 @@ export function App() {
         e.preventDefault();
         setEditorOpen((o) => !o);
       }
+      if ((e.metaKey || e.ctrlKey) && e.key === "Enter") {
+        e.preventDefault();
+        setPresenting((p) => (p ? false : views.length > 0));
+      }
     };
     addEventListener("keydown", onKey);
     return () => removeEventListener("keydown", onKey);
-  }, [download]);
+  }, [download, views.length]);
+
+  if (presenting)
+    return (
+      <Presenter
+        svg={shown}
+        views={views}
+        activeView={activeView}
+        crumbs={crumbs}
+        upView={upView}
+        animate={!reduced}
+        intent={intent}
+        onNavigate={navigate}
+        onPick={onPick}
+        onCycleTheme={cycleTheme}
+        onExit={() => setPresenting(false)}
+      />
+    );
 
   return (
     <div className="flex h-screen flex-col bg-[var(--chrome)] text-[var(--fg)]">
@@ -193,7 +259,7 @@ export function App() {
             {views.map((v) => (
               <button
                 key={v.name}
-                onClick={() => setView(v.name)}
+                onClick={() => navigate(v.name)}
                 title={v.title}
                 className={`rounded px-2 py-1 text-[12px] transition-colors ${
                   v.name === activeView
@@ -207,12 +273,16 @@ export function App() {
           </div>
         )}
 
-        <button
-          onClick={() => setTheme(THEME_CYCLE[(THEME_CYCLE.indexOf(theme) + 1) % THEME_CYCLE.length])}
-          className={btn}
-          title="Cycle theme"
-        >
+        <button onClick={cycleTheme} className={btn} title="Cycle theme">
           {THEME_LABEL[theme]}
+        </button>
+        <button
+          onClick={() => views.length && setPresenting(true)}
+          disabled={!views.length}
+          className={`${btn} disabled:opacity-40`}
+          title="⌘⏎ — full-screen the views as a deck; arrows to step, click a card to zoom in"
+        >
+          Present
         </button>
         <button onClick={() => setPaletteOpen(true)} className={btn} title="⌘K — search pack icons, insert at cursor">
           Icons
@@ -235,7 +305,16 @@ export function App() {
           </section>
         )}
 
-        <section className="relative min-w-0 flex-1 overflow-auto bg-[var(--canvas)] [background-image:radial-gradient(var(--dot)_1px,transparent_1px)] [background-size:20px_20px]">
+        <Stage
+          svg={shown}
+          stale={!preview.ok}
+          animate={!reduced}
+          intent={intent}
+          fit={fit}
+          zoom={zoom}
+          onPick={onPick}
+          onBlank={upView ? () => navigate(upView) : undefined}
+        >
           <button
             onClick={() => setEditorOpen((o) => !o)}
             className="absolute left-3 top-3 z-10 rounded border border-[var(--line)] bg-[var(--surface)] px-2 py-1 text-[11px] text-[var(--muted)] hover:text-[var(--fg)]"
@@ -250,8 +329,12 @@ export function App() {
                   {i > 0 && <span className="opacity-50">›</span>}
                   <button
                     disabled={!c.view || c.view === activeView}
-                    onClick={() => c.view && setView(c.view)}
-                    className={c.view && c.view !== activeView ? "hover:text-[var(--fg)] hover:underline" : "text-[var(--fg)]"}
+                    onClick={() => c.view && navigate(c.view)}
+                    className={
+                      c.view && c.view !== activeView
+                        ? "cursor-zoom-out hover:text-[var(--fg)] hover:underline"
+                        : "text-[var(--fg)]"
+                    }
                   >
                     {c.label}
                   </button>
@@ -259,19 +342,6 @@ export function App() {
               ))}
             </nav>
           )}
-          <div className="flex min-h-full items-center justify-center p-10" onClick={onCanvasClick}>
-            {shown ? (
-              <div
-                className={`transition-opacity ${preview.ok ? "opacity-100" : "opacity-60"} ${
-                  fit ? "[&>svg]:h-auto [&>svg]:max-w-full" : ""
-                }`}
-                style={fit ? undefined : { transform: `scale(${zoom})`, transformOrigin: "center" }}
-                dangerouslySetInnerHTML={{ __html: shown }}
-              />
-            ) : (
-              <p className="text-[13px] text-[var(--muted)]">Rendering…</p>
-            )}
-          </div>
           <div className="absolute bottom-3 right-3 z-10 flex items-center gap-1 rounded border border-[var(--line)] bg-[var(--surface)] p-0.5 text-[11px]">
             <button
               onClick={() => { setFit(true); setZoom(1); }}
@@ -300,7 +370,7 @@ export function App() {
               {copied}
             </div>
           )}
-        </section>
+        </Stage>
       </main>
       <IconPalette
         open={paletteOpen}

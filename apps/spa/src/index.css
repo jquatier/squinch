@@ -59,6 +59,8 @@ body {
 }
 ::selection { background: color-mix(in srgb, var(--accent) 25%, transparent); }
 
-/* Cards that lead somewhere invite the click (SPEC: zoom navigation). */
+/* Cards that lead somewhere invite the click (SPEC: zoom navigation). Leaves
+   don't lead anywhere, so they must not inherit the backdrop's zoom-out. */
 [data-kind="card"], [data-kind="context-card"], [data-kind="frame"] { cursor: zoom-in; }
+[data-kind="leaf"], [data-kind="context-leaf"] { cursor: default; }
 [data-kind="card"]:hover rect:first-of-type { stroke: var(--accent); }

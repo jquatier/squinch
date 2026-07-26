@@ -149,7 +149,22 @@ product that costs money.
 - Typography: same bundled sans as the diagrams for wordmark/UI labels, mono for the
   editor — the app and its output visibly share one type system.
 - Details that read "expensive": real keyboard shortcuts surfaced in tooltips, Cmd-K
-  everywhere, buttery zoom/pan (trackpad-native), 200ms view transitions, exact-pixel
-  icon alignment, an empty state that renders a beautiful example diagram instead of
-  a blank pane.
+  everywhere, buttery zoom/pan (trackpad-native), exact-pixel icon alignment, an
+  empty state that renders a beautiful example diagram instead of a blank pane.
 - shadcn/ui stays as the component base — themed to this language, not its defaults.
+
+## 11. Altitudes on screen
+
+Views are altitudes over one model, so moving between them is navigation, not a
+slide change — and the chrome has to say so.
+
+- **Changing altitude is animated about the card you moved through**, the one
+  element the two views share, so the reader never has to re-find their place.
+  One motion, no picker; `prefers-reduced-motion` cuts straight through. The
+  geometry and everything rejected on the way: `docs/notes/zoom-transitions.md`.
+- **The way back is always on screen.** A breadcrumb of the ancestor trail, every
+  hop clickable, in the editor and in presentation alike.
+- **Presentation mode is the same views, full-bleed**: the declared views become
+  the deck in declaration order, arrows step, clicking a card still zooms in and
+  the deck follows. Nothing is authored twice. Chrome auto-hides while idle and
+  returns on the first movement.

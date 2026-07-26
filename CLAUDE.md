@@ -77,8 +77,10 @@ by independent cold agents** (`gauntlet/README.md` records what each run found).
 v1.1's DSL is done: zones, flows, tags, channels, cols, align, legend/titleblock.
 Deliberately *not* built, with reasons recorded: `route … around`/`via`
 (`docs/notes/routing-hints.md` — ELK already avoids nodes) and `grid` (rows and
-cols compose to the same thing). What remains is deployment and launch, not
-features.
+cols compose to the same thing). Work since then is in the playground, not the
+language: altitude changes animate as an anchored dive through the card you
+clicked (`docs/notes/zoom-transitions.md`, DESIGN §11), and presentation mode
+turns the declared views into a full-bleed deck.
 
 Key architecture from the spike, still binding: same-rank edges bypass ELK and use
 our coplanar router; declared ranks are enforced via invisible scaffold edges; an
