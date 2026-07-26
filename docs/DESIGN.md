@@ -68,6 +68,7 @@
   Placement: midpoint of the best-hosting segment (horizontal runs preferred —
   a label reads like a caption there), sliding outward past obstacles, and
   **never straddling a bend** — the pill keeps 10px clearance from corners.
+  Placement policy and its history: `docs/notes/edge-labels.md`.
 - **Aggregate edges** (from lifting): medium weight, neutral, count badge as pill.
 - **Animation** (`~>`): CSS `stroke-dashoffset`, constant speed in px/s (not
   per-edge duration — long edges must not "flow faster"), subtle: motion you notice

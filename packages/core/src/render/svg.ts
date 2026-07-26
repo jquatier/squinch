@@ -476,11 +476,15 @@ function computePills(p: Positioned, rc: RC, edgeMatches: (e: PEdge) => boolean)
   const pills: Pill[] = [];
   for (const e of p.edges) {
     if (!e.label) continue;
-    let best = 0, bi = 0;
-    for (let i = 0; i < e.points.length - 1; i++) {
-      const len = Math.hypot(e.points[i + 1].x - e.points[i].x, e.points[i + 1].y - e.points[i].y);
-      if (len > best) { best = len; bi = i; }
-    }
+    // Every segment is a candidate host, longest first. Trying only the
+    // longest was tunnel vision: a dogleg whose best run threads a crowded
+    // gutter would detach even with three clear runs of its own
+    // (docs/notes/edge-labels.md).
+    const segs = e.points.slice(0, -1).map((a, i) => {
+      const b = e.points[i + 1];
+      return { a, b, len: Math.hypot(b.x - a.x, b.y - a.y) };
+    }).sort((s1, s2) => s2.len - s1.len);
+    const best = segs[0]?.len ?? 0;
     // labels truncate like node labels do, and a pill never leaves the canvas
     const maxW = Math.max(60, Math.min(240, p.width - 16));
     const label = fit(e.label, maxW - 12, rc.fx(11), "400", rc.fam);
@@ -488,27 +492,31 @@ function computePills(p: Positioned, rc: RC, edgeMatches: (e: PEdge) => boolean)
     // a modest overhang past the segment's bends is fine (opaque pill bg);
     // flee below only when the label truly dwarfs its longest segment
     const relocated = w > best + 24;
-    const a = e.points[bi], b = e.points[bi + 1];
 
-    const rectAt = (fr: number): Pill => {
-      let mx = Math.round(a.x + (b.x - a.x) * fr);
-      const my = Math.round(a.y + (b.y - a.y) * fr);
+    const rectOn = (seg: { a: { x: number; y: number }; b: { x: number; y: number } }, fr: number): Pill => {
+      let mx = Math.round(seg.a.x + (seg.b.x - seg.a.x) * fr);
+      const my = Math.round(seg.a.y + (seg.b.y - seg.a.y) * fr);
       let x = mx - Math.round(w / 2);
       if (x < 8) x = 8;
       if (x + w > p.width - 8) x = p.width - 8 - w;
       mx = x + Math.round(w / 2);
       return { x, y: my - 9, w, h: 18, mx, label, dimmed: !edgeMatches(e), edgeId: e.id };
     };
+    const rectAt = (fr: number) => rectOn(segs[0], fr);
     const clear = (r: Pill) =>
       !fixed.some((o) => intersects(o, r)) && !pills.some((q2) => intersects(q2, r));
 
     let pill: Pill | undefined;
     if (!relocated) {
-      // first choice: stay ON the edge — slide along the segment from its
-      // midpoint outward until the pill sits clear of every obstacle
-      for (const fr of [0.5, 0.42, 0.58, 0.34, 0.66, 0.26, 0.74, 0.18, 0.82]) {
-        const cand = rectAt(fr);
-        if (clear(cand)) { pill = cand; break; }
+      // stay ON the edge: for each segment (longest first) slide from its
+      // midpoint outward; move to the next segment before ever detaching
+      for (const seg of segs) {
+        if (w > seg.len + 24) continue; // too short to host this label
+        for (const fr of [0.5, 0.42, 0.58, 0.34, 0.66, 0.26, 0.74, 0.18, 0.82]) {
+          const cand = rectOn(seg, fr);
+          if (clear(cand)) { pill = cand; break; }
+        }
+        if (pill) break;
       }
     }
     if (!pill) {
