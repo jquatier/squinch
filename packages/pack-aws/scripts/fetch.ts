@@ -36,13 +36,22 @@ const ALIASES: Record<string, string> = {
   "aws-cloud": "cloud",
 };
 
+/** An id has to be writable in the DSL, and the grammar's Ident token is
+ *  `[a-zA-Z_]([a-zA-Z0-9_] | -[a-zA-Z0-9_])*`. Amazon's filenames are not:
+ *  "Elemental-Appliances-&-Software" carries an ampersand, which parses as
+ *  nothing — the icon ships, gets indexed by `icons search`, and cannot be
+ *  referenced. Only the *name* is normalized; the SVG bytes stay verbatim. */
+const slug = (s: string): string =>
+  s.toLowerCase().replace(/[^a-z0-9_]+/g, "-").replace(/^-+|-+$/g, "");
+
 /** Arch_Amazon-DynamoDB_64.svg → dynamodb; Res_AWS-Cloud-logo_32.svg → aws-cloud-logo */
 function idFor(file: string): string {
-  return basename(file)
-    .replace(/^(Arch_|Res_)/, "")
-    .replace(/_(64|48|32)\.svg$/, "")
-    .replace(/^(Amazon|AWS)-/, "")
-    .toLowerCase();
+  return slug(
+    basename(file)
+      .replace(/^(Arch_|Res_)/, "")
+      .replace(/_(64|48|32)\.svg$/, "")
+      .replace(/^(Amazon|AWS)-/, ""),
+  );
 }
 
 /** Arch_Amazon-DynamoDB_64.svg → Amazon DynamoDB */

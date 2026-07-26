@@ -45,6 +45,15 @@ importers:
         specifier: ^19.2.8
         version: 19.2.8(react@19.2.8)
     devDependencies:
+      '@squinch/pack-aws':
+        specifier: workspace:*
+        version: link:../../packages/pack-aws
+      '@squinch/pack-azure':
+        specifier: workspace:*
+        version: link:../../packages/pack-azure
+      '@squinch/pack-logos':
+        specifier: workspace:*
+        version: link:../../packages/pack-logos
       '@tailwindcss/vite':
         specifier: ^4.3.3
         version: 4.3.3(vite@8.1.5(@types/node@26.1.1)(esbuild@0.28.1)(jiti@2.7.0)(tsx@4.23.1))
@@ -100,6 +109,9 @@ importers:
       '@squinch/pack-aws':
         specifier: workspace:*
         version: link:../pack-aws
+      '@squinch/pack-azure':
+        specifier: workspace:*
+        version: link:../pack-azure
       '@squinch/pack-logos':
         specifier: workspace:*
         version: link:../pack-logos
@@ -147,6 +159,15 @@ importers:
         specifier: ^7.0.2
         version: 7.0.2
 
+  packages/pack-azure:
+    devDependencies:
+      tsx:
+        specifier: ^4.23.1
+        version: 4.23.1
+      typescript:
+        specifier: ^7.0.2
+        version: 7.0.2
+
   packages/pack-logos:
     devDependencies:
       simple-icons:
@@ -167,6 +188,12 @@ importers:
       '@squinch/pack-aws':
         specifier: workspace:*
         version: link:../pack-aws
+      '@squinch/pack-azure':
+        specifier: workspace:*
+        version: link:../pack-azure
+      '@squinch/pack-logos':
+        specifier: workspace:*
+        version: link:../pack-logos
       vscode-languageclient:
         specifier: ^9.0.1
         version: 9.0.1

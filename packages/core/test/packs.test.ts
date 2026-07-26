@@ -10,11 +10,37 @@ describe("searchIcons", () => {
   it("alias-only matches stay reachable by their famous short names", () => {
     expect(searchIcons("sqs")).toContain("aws/sqs");
     expect(searchIcons("s3")).toContain("aws/s3");
+    expect(searchIcons("aks")).toContain("azure/aks");
   });
+});
+
+describe("every installed pack", () => {
+  // The grammar's Ident token. An id outside it cannot appear in an IconRef, so
+  // the icon ships, gets indexed by `icons search`, and is impossible to
+  // actually use. Both vendors produce such names — Amazon's
+  // "Elemental-Appliances-&-Software", Azure's "Virtual-Machines-(Classic)" and
+  // one filename with a trailing space — so the fetch scripts normalize, and
+  // this is the assertion that keeps them honest.
+  const IDENT = /^[a-zA-Z_]([a-zA-Z0-9_]|-[a-zA-Z0-9_])*$/;
+
+  for (const pack of allPackNames()) {
+    it(`${pack}: every id is writable in the DSL`, () => {
+      const bad = iconIds(pack).filter((id) => !IDENT.test(id));
+      expect(bad, `unreferenceable ids in ${pack}: ${bad.join(", ")}`).toEqual([]);
+    });
+
+    it(`${pack}: every alias points at an icon that exists`, () => {
+      const ids = new Set(iconIds(pack));
+      const dangling = Object.entries(packInfo(pack)?.aliases ?? {})
+        .filter(([, target]) => !ids.has(target))
+        .map(([alias, target]) => `${alias} → ${target}`);
+      expect(dangling, `dangling aliases in ${pack}`).toEqual([]);
+    });
+  }
 });
 import { sanitizeIcon } from "../src/packs/sanitize.js";
 import { iconAsset, hasIcon, iconTitle, packInfo, symbolId } from "../src/packs/registry.js";
-import { searchIcons, render, validateSVG } from "../src/index.js";
+import { searchIcons, render, validateSVG, allPackNames, iconIds } from "../src/index.js";
 
 describe("pack sanitizer", () => {
   const wrap = (inner: string) =>
@@ -28,6 +54,26 @@ describe("pack sanitizer", () => {
     expect(viewBox).toBe("0 0 80 80");
     expect(body).toContain(`fill="#8C4FFF"`);
     expect(body).toContain(`width="80"`);
+  });
+
+  it("namespaces gradient ids without touching the colours inside them", () => {
+    // The failure this guards: `#5ea0ef` in a stop-color is a hex colour, not
+    // an id reference. Namespacing it yields `#t-5ea0ef`, which is not a colour
+    // at all, so the gradient paints black — silently, and for every gradient
+    // icon in the pack.
+    const { body } = sanitizeIcon(
+      wrap(
+        `<defs><radialGradient id="g1"><stop offset="0.18" stop-color="#5ea0ef"/>` +
+          `<stop offset="1" stop-color="#0078d4"/></radialGradient></defs>` +
+          `<circle cx="9" cy="9" r="8.5" fill="url(#g1)"/>`,
+      ),
+      "t",
+    );
+    expect(body).toContain(`id="t-g1"`); // the id itself is namespaced
+    expect(body).toContain(`fill="url(#t-g1)"`); // and so is the reference
+    expect(body).toContain(`stop-color="#5ea0ef"`); // but the colour is untouched
+    expect(body).toContain(`stop-color="#0078d4"`);
+    expect(body).not.toContain("#t-5ea0ef");
   });
 
   it("strips scripts, event handlers and foreignObject", () => {

@@ -576,8 +576,8 @@
       "title": "Amazon ElastiCache",
       "category": "Databases"
     },
-    "elemental-appliances-&-software": {
-      "file": "elemental-appliances-&-software.svg",
+    "elemental-appliances-software": {
+      "file": "elemental-appliances-software.svg",
       "title": "AWS Elemental Appliances & Software",
       "category": "Media Services"
     },

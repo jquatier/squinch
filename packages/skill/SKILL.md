@@ -213,6 +213,16 @@ view shop {
 Short aliases exist for the famous ones (`s3`, `sqs`, `sns`, `eks`, `ecs`, `ecr`,
 `elb`, `glacier`, `opensearch`). When unsure: `squinch icons search <term>`.
 
+**Azure** has its own pack (636 icons). Short forms exist for the ones everybody
+abbreviates: `azure/aks` · `azure/vm` · `azure/vnet` · `azure/cosmos` ·
+`azure/functions` · `azure/sql` · `azure/blob` · `azure/service-bus` ·
+`azure/event-hub` · `azure/key-vault` · `azure/front-door` · `azure/app-gateway` ·
+`azure/load-balancer` · `azure/aci` · `azure/acr` · `azure/api-management` ·
+`azure/log-analytics` · `azure/redis`. Canonical ids read like the portal —
+`azure/app-services`, `azure/storage-accounts`, `azure/monitor`,
+`azure/application-insights`. Search the same way: `squinch icons search --pack azure <term>`.
+Don't mix packs for the same concept in one diagram; pick the cloud you're on.
+
 **Non-AWS things** come from the `logos` pack (124 product marks, plated in
 their brand colour): `logos/postgres` · `logos/mysql` · `logos/mongodb` ·
 `logos/redis` · `logos/kafka` · `logos/rabbitmq` · `logos/elasticsearch` ·

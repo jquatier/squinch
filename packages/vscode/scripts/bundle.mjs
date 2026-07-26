@@ -28,7 +28,7 @@ for (const entry of ["extension", "server"]) {
 }
 
 // packs ship beside the bundle: node-fs walks up from the module dir
-for (const name of ["pack-aws", "pack-logos"]) {
+for (const name of ["pack-aws", "pack-azure", "pack-logos"]) {
   const pack = join(root, "..", name);
   cpSync(join(pack, "pack.json"), join(root, name, "pack.json"), { force: true });
   cpSync(join(pack, "icons"), join(root, name, "icons"), { recursive: true, force: true });

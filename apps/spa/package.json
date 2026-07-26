@@ -4,13 +4,17 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "dev": "npm run sync-examples && vite",
-    "build": "npm run sync-examples && vite build",
+    "dev": "npm run sync-examples && npm run sync-packs && vite",
+    "build": "npm run sync-examples && npm run sync-packs && vite build",
     "preview": "vite preview",
     "typecheck": "tsc --noEmit",
-    "sync-examples": "tsx scripts/sync-examples.ts"
+    "sync-examples": "tsx scripts/sync-examples.ts",
+    "sync-packs": "tsx scripts/sync-packs.ts"
   },
   "devDependencies": {
+    "@squinch/pack-aws": "workspace:*",
+    "@squinch/pack-azure": "workspace:*",
+    "@squinch/pack-logos": "workspace:*",
     "@tailwindcss/vite": "^4.3.3",
     "@types/react": "^19.2.17",
     "@types/react-dom": "^19.2.3",

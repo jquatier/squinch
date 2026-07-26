@@ -13,6 +13,9 @@ packages/*/out/
 dist/
 
 # extension build output (bundler copies the icon pack beside dist/)
-packages/vscode/pack-aws/
-packages/vscode/pack-logos/
+packages/vscode/pack-*/
 *.vsix
+
+# SPA pack assets are copied from packages/pack-* by scripts/sync-packs.ts
+apps/spa/public/pack-*.json
+apps/spa/public/*-icons/

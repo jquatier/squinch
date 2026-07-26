@@ -55,12 +55,25 @@ deterministic rendering. Pre-alpha; Phase 2 (see docs/PLAN.md §3).
 ## Layout of the workspace
 
 `apps/spa` — the playground (Vite/React/Tailwind; imports `@squinch/core/browser`
-and fetches pack icons from `public/`). `packages/core` — the engine (see below).
+and fetches pack icons from `public/`, which `scripts/sync-packs.ts` generates —
+those assets are build output, gitignored, never committed).
+`packages/core` — the engine (see below).
 `packages/pack-aws` — 316 AWS icons
 (303 services + 13 group/boundary marks), verbatim + dual-licensed (see its NOTICE).
-`packages/pack-logos` — 124 curated Simple Icons marks (CC0) for the non-AWS
+`packages/pack-azure` — 636 Azure icons, verbatim under Microsoft's icon terms,
+which permit copying and distributing them **for architecture diagrams, training
+and documentation only** — narrower than an open-source licence (see its NOTICE).
+Nearly all of them are gradient artwork, which is the one thing that
+distinguishes them from the other packs.
+`packages/pack-logos` — 124 curated Simple Icons marks (CC0) for the non-cloud
 half of a stack; `monochrome: true` in its manifest makes the renderer plate and
-tint them. Both packs regenerate with `npm run fetch`; never hand-edit icons. `packages/cli` — the `squinch` binary,
+tint them. Every pack regenerates with `npm run fetch`; never hand-edit icons.
+Icon **ids must satisfy the grammar's `Ident`** — both vendors ship names that
+don't (`&`, parentheses, a trailing space), so the fetch scripts slug them and
+`packs.test.ts` asserts it across every installed pack.
+Deliberately absent: GCP. Google grants permission to *use* its Cloud icons in
+diagrams but publishes no redistribution grant, so we don't ship them.
+`packages/cli` — the `squinch` binary,
 thin wrapper over core: arg parsing, project loading (file *or* directory), and the
 lockfile model (`--sync`/`--check`). `packages/vscode` — the editor extension:
 `src/features.ts` is every piece of editor intelligence as pure functions (unit

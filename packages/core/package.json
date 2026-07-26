@@ -17,10 +17,11 @@
     "@lezer/common": "^1.5.2",
     "@lezer/lr": "^1.4.10",
     "@squinch/pack-aws": "workspace:*",
+    "@squinch/pack-azure": "workspace:*",
+    "@squinch/pack-logos": "workspace:*",
     "elkjs": "^0.12.0",
     "fast-xml-parser": "^5.10.1",
-    "roughjs": "^4.6.6",
-    "@squinch/pack-logos": "workspace:*"
+    "roughjs": "^4.6.6"
   },
   "devDependencies": {
     "@fontsource/caveat": "^5.3.0",

@@ -22,8 +22,21 @@ const ATTRS = new Set([
   "text-anchor", "dominant-baseline",
 ]);
 
-/** Attribute values that reference document ids, e.g. url(#foo) or #foo. */
+/** Attribute values that reference document ids as `url(#foo)`. */
 const REF_ATTRS = new Set(["clip-path", "mask", "filter", "fill", "stroke"]);
+
+/** Attributes whose value is a bare `#id` fragment rather than a colour.
+ *
+ *  `href`/`xlink:href` are the only SVG attributes shaped that way, and ATTRS
+ *  drops both today — so in practice nothing here fires. It stays an explicit
+ *  allowlist because the alternative (rewrite any value starting with `#`,
+ *  minus a denylist of known colour attributes) is what shipped, and it was
+ *  wrong: `stop-color="#5ea0ef"` is a hex colour, not a reference to an element
+ *  named `5ea0ef`. Namespacing it produced `#pack-5ea0ef`, an invalid colour
+ *  that paints black — which is every gradient in a pack of 597 gradient
+ *  icons, rendered as black blobs. A denylist can only ever be as complete as
+ *  the last pack to expose it. */
+const BARE_REF_ATTRS = new Set(["href", "xlink:href"]);
 
 export interface SanitizedIcon {
   /** Inner markup, ids namespaced, safe to inline. */
@@ -75,7 +88,7 @@ export function sanitizeIcon(svg: string, idPrefix: string): SanitizedIcon {
         if (name === "id") v = `${idPrefix}-${v}`;
         else if (REF_ATTRS.has(name) && v.includes("url(#"))
           v = v.replace(/url\(#([^)]+)\)/g, (_m, id) => `url(#${idPrefix}-${id})`);
-        else if (v.startsWith("#") && name !== "fill" && name !== "stroke")
+        else if (BARE_REF_ATTRS.has(name) && v.startsWith("#"))
           v = `#${idPrefix}-${v.slice(1)}`;
         kept[`@${name}`] = v;
       }

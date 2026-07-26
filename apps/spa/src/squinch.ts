@@ -13,11 +13,12 @@ export interface ViewRef {
 
 let ready: Promise<void> | undefined;
 
-/** Load every pack manifest once; icons stream in on demand. */
-const PACKS = [
-  { manifest: "pack-aws.json", icons: "icons" },
-  { manifest: "pack-logos.json", icons: "logo-icons" },
-];
+/** Load every pack manifest once; icons stream in on demand.
+ *  Paths match what scripts/sync-packs.ts writes into public/. */
+const PACKS = ["aws", "azure", "logos"].map((name) => ({
+  manifest: `pack-${name}.json`,
+  icons: `${name}-icons`,
+}));
 export function ensurePacks(): Promise<void> {
   ready ??= (async () => {
     await Promise.all(
