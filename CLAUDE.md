@@ -48,8 +48,8 @@ deterministic rendering. Pre-alpha; Phase 2 (see docs/PLAN.md §3).
 
 `apps/spa` — the playground (Vite/React/Tailwind; imports `@squinch/core/browser`
 and fetches pack icons from `public/`). `packages/core` — the engine (see below).
-`packages/pack-aws` — 303 AWS service
-icons, verbatim + dual-licensed (see its NOTICE). `packages/cli` — the `squinch` binary,
+`packages/pack-aws` — 316 AWS icons
+(303 services + 13 group/boundary marks), verbatim + dual-licensed (see its NOTICE). `packages/cli` — the `squinch` binary,
 thin wrapper over core: arg parsing, project loading (file *or* directory), and the
 lockfile model (`--sync`/`--check`). `examples/` — one directory per project, with
 committed SVGs that CI verifies. `spike/` — the Phase-0 harness, kept as regression.

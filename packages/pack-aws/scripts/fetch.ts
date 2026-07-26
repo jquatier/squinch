@@ -31,25 +31,30 @@ const ALIASES: Record<string, string> = {
   apigateway: "api-gateway",
   cloudwatch: "cloudwatch",
   glacier: "simple-storage-service-glacier",
+  // group/boundary icons (zone chips)
+  vpc: "virtual-private-cloud-vpc",
+  "aws-cloud": "cloud",
 };
 
-/** Arch_Amazon-DynamoDB_64.svg → dynamodb */
+/** Arch_Amazon-DynamoDB_64.svg → dynamodb; Res_AWS-Cloud-logo_32.svg → aws-cloud-logo */
 function idFor(file: string): string {
   return basename(file)
-    .replace(/^Arch_/, "")
-    .replace(/_64\.svg$/, "")
+    .replace(/^(Arch_|Res_)/, "")
+    .replace(/_(64|48|32)\.svg$/, "")
     .replace(/^(Amazon|AWS)-/, "")
     .toLowerCase();
 }
 
 /** Arch_Amazon-DynamoDB_64.svg → Amazon DynamoDB */
 function titleFor(file: string): string {
-  return basename(file).replace(/^Arch_/, "").replace(/_64\.svg$/, "").replace(/-/g, " ");
+  return basename(file).replace(/^(Arch_|Res_)/, "").replace(/_(64|48|32)\.svg$/, "").replace(/-/g, " ");
 }
 
-/** Arch_Compute → Compute */
+/** Arch_Compute → Compute; group icons → Group */
 const categoryFor = (path: string) =>
-  (path.match(/Arch_([A-Za-z-]+)\/64\//)?.[1] ?? "Other").replace(/-/g, " ");
+  path.includes("Architecture-Group-Icons")
+    ? "Group"
+    : (path.match(/Arch_([A-Za-z-]+)\/64\//)?.[1] ?? "Other").replace(/-/g, " ");
 
 async function resolveZipUrl(): Promise<string> {
   const flagIdx = process.argv.indexOf("--url");
@@ -72,15 +77,21 @@ const res = await fetch(url);
 if (!res.ok) throw new Error(`download failed: ${res.status}`);
 writeFileSync(zipPath, Buffer.from(await res.arrayBuffer()));
 
-// 64px architecture service icons are the set we ship.
+// 64px architecture service icons, plus the group/boundary icons (AWS Cloud
+// logo frame, Region, Account, VPC, subnets…) — the natural zone artwork.
 execFileSync("unzip", ["-o", "-q", zipPath, "Architecture-Service-Icons_*/*/64/*.svg", "-d", tmp]);
+execFileSync("unzip", ["-o", "-q", zipPath, "Architecture-Group-Icons_*/*.svg", "-d", tmp]);
 
 const svgs: string[] = [];
 const walk = (dir: string) => {
   for (const entry of readdirSync(dir, { withFileTypes: true })) {
     const p = join(dir, entry.name);
     if (entry.isDirectory()) walk(p);
-    else if (entry.name.endsWith(".svg") && !p.includes("__MACOSX")) svgs.push(p);
+    else if (
+      entry.name.endsWith(".svg") &&
+      !p.includes("__MACOSX") &&
+      !/_Dark\.svg$/i.test(entry.name) // ship the light variants; themes plate them
+    ) svgs.push(p);
   }
 };
 walk(tmp);

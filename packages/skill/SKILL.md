@@ -74,7 +74,7 @@ Rules that matter:
   boundaries: kinds `account | region | vpc | subnet | network | cloud |
   onprem | custom`. Zones must nest cleanly or stay disjoint in any one view,
   and may not cut through an expanded container. A zone only appears where
-  its members are visible. Optional chip attrs: `icon: aws/virtual-private-cloud`
+  its members are visible. Optional chip attrs: `icon: aws/vpc` (group icons: `cloud`, `region`, `account`, `vpc`, `private-subnet`, `public-subnet`, `corporate-data-center`)
   and `label: top-right` (corners: top-left default, top-right, bottom-left,
   bottom-right).
 

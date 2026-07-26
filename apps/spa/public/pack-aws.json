@@ -6,6 +6,11 @@
   "license": "CC-BY-ND-2.0",
   "attribution": "Amazon Web Services — https://aws.amazon.com/architecture/icons/",
   "icons": {
+    "account": {
+      "file": "account.svg",
+      "title": "AWS Account",
+      "category": "Group"
+    },
     "activate": {
       "file": "activate.svg",
       "title": "AWS Activate",
@@ -111,6 +116,11 @@
       "title": "AWS Auto Scaling",
       "category": "Management Tools"
     },
+    "auto-scaling-group": {
+      "file": "auto-scaling-group.svg",
+      "title": "Auto Scaling group",
+      "category": "Group"
+    },
     "b2b-data-interchange": {
       "file": "b2b-data-interchange.svg",
       "title": "AWS B2B Data Interchange",
@@ -191,6 +201,11 @@
       "title": "AWS Client VPN",
       "category": "Networking Content Delivery"
     },
+    "cloud": {
+      "file": "cloud.svg",
+      "title": "AWS Cloud",
+      "category": "Group"
+    },
     "cloud-control-api": {
       "file": "cloud-control-api.svg",
       "title": "AWS Cloud Control API",
@@ -205,6 +220,11 @@
       "file": "cloud-directory.svg",
       "title": "Amazon Cloud Directory",
       "category": "Security Identity"
+    },
+    "cloud-logo": {
+      "file": "cloud-logo.svg",
+      "title": "AWS Cloud logo",
+      "category": "Group"
     },
     "cloud-map": {
       "file": "cloud-map.svg",
@@ -341,6 +361,11 @@
       "title": "AWS Control Tower",
       "category": "Management Tools"
     },
+    "corporate-data-center": {
+      "file": "corporate-data-center.svg",
+      "title": "Corporate data center",
+      "category": "Group"
+    },
     "corretto": {
       "file": "corretto.svg",
       "title": "Amazon Corretto",
@@ -470,6 +495,11 @@
       "file": "ec2-image-builder.svg",
       "title": "Amazon EC2 Image Builder",
       "category": "Compute"
+    },
+    "ec2-instance-contents": {
+      "file": "ec2-instance-contents.svg",
+      "title": "EC2 instance contents",
+      "category": "Group"
     },
     "ecs-anywhere": {
       "file": "ecs-anywhere.svg",
@@ -826,6 +856,11 @@
       "title": "AWS IoT Greengrass",
       "category": "Internet of Things"
     },
+    "iot-greengrass-deployment": {
+      "file": "iot-greengrass-deployment.svg",
+      "title": "AWS IoT Greengrass Deployment",
+      "category": "Group"
+    },
     "iot-sitewise": {
       "file": "iot-sitewise.svg",
       "title": "AWS IoT SiteWise",
@@ -1121,6 +1156,11 @@
       "title": "AWS Private Certificate Authority",
       "category": "Security Identity"
     },
+    "private-subnet": {
+      "file": "private-subnet.svg",
+      "title": "Private subnet",
+      "category": "Group"
+    },
     "privatelink": {
       "file": "privatelink.svg",
       "title": "AWS PrivateLink",
@@ -1135,6 +1175,11 @@
       "file": "proton.svg",
       "title": "AWS Proton",
       "category": "Management Tools"
+    },
+    "public-subnet": {
+      "file": "public-subnet.svg",
+      "title": "Public subnet",
+      "category": "Group"
     },
     "pytorch-on-aws": {
       "file": "pytorch-on-aws.svg",
@@ -1165,6 +1210,11 @@
       "file": "redshift.svg",
       "title": "Amazon Redshift",
       "category": "Analytics"
+    },
+    "region": {
+      "file": "region.svg",
+      "title": "Region",
+      "category": "Group"
     },
     "rekognition": {
       "file": "rekognition.svg",
@@ -1266,6 +1316,11 @@
       "title": "Amazon Security Lake",
       "category": "Security Identity"
     },
+    "server-contents": {
+      "file": "server-contents.svg",
+      "title": "Server contents",
+      "category": "Group"
+    },
     "serverless-application-repository": {
       "file": "serverless-application-repository.svg",
       "title": "AWS Serverless Application Repository",
@@ -1335,6 +1390,11 @@
       "file": "snowball-edge.svg",
       "title": "AWS Snowball Edge",
       "category": "Storage"
+    },
+    "spot-fleet": {
+      "file": "spot-fleet.svg",
+      "title": "Spot Fleet",
+      "category": "Group"
     },
     "step-functions": {
       "file": "step-functions.svg",
@@ -1471,6 +1531,11 @@
       "title": "Amazon Virtual Private Cloud",
       "category": "Networking Content Delivery"
     },
+    "virtual-private-cloud-vpc": {
+      "file": "virtual-private-cloud-vpc.svg",
+      "title": "Virtual private cloud VPC",
+      "category": "Group"
+    },
     "vpc-lattice": {
       "file": "vpc-lattice.svg",
       "title": "Amazon VPC Lattice",
@@ -1524,6 +1589,7 @@
   },
   "aliases": {
     "apigateway": "api-gateway",
+    "aws-cloud": "cloud",
     "dynamo": "dynamodb",
     "ecr": "elastic-container-registry",
     "ecs": "elastic-container-service",
@@ -1534,6 +1600,7 @@
     "s3": "simple-storage-service",
     "ses": "simple-email-service",
     "sns": "simple-notification-service",
-    "sqs": "simple-queue-service"
+    "sqs": "simple-queue-service",
+    "vpc": "virtual-private-cloud-vpc"
   }
 }
