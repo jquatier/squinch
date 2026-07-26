@@ -126,3 +126,53 @@ describe("squinch cli", () => {
     expect(await main(["render", join(dir, "missing.squinch")])).toBe(2);
   });
 });
+
+describe("diff", () => {
+  const BASE = `pack aws
+system s "S" {
+  api = aws/lambda "API"
+  db  = aws/dynamodb "DB" datastore
+  api -> db "writes"
+}
+`;
+  const write = (name: string, src: string) => {
+    const p = join(dir, name);
+    writeFileSync(p, src);
+    return p;
+  };
+
+  it("compares two paths and separates the weights", async () => {
+    const before = write("before.squinch", BASE);
+    const after = write("after.squinch", BASE.replace("api -> db", "api ~> db").replace(`"DB"`, `"Orders"`));
+    expect(await main(["diff", before, after])).toBe(0);
+    const text = out.join("\n");
+    expect(text).toContain("structural");
+    expect(text).toContain("1 structural, 1 cosmetic");
+  });
+
+  it("--format json is machine-readable", async () => {
+    const before = write("before.squinch", BASE);
+    const after = write("after.squinch", BASE.replace("api -> db", "api ~> db"));
+    expect(await main(["diff", before, after, "--format", "json"])).toBe(0);
+    const parsed = JSON.parse(out.join("\n"));
+    expect(parsed.structural).toBe(1);
+    expect(parsed.changes[0].weight).toBe("structural");
+  });
+
+  it("--fail-on gates CI by weight", async () => {
+    const before = write("before.squinch", BASE);
+    const structural = write("structural.squinch", BASE.replace("api -> db", "api ~> db"));
+    const cosmetic = write("cosmetic.squinch", BASE.replace(`"DB"`, `"Orders"`));
+    expect(await main(["diff", before, structural, "--fail-on", "structural"])).toBe(1);
+    expect(await main(["diff", before, before, "--fail-on", "structural"])).toBe(0);
+    // a label edit must not trip the structural gate — that is the whole point
+    expect(await main(["diff", before, cosmetic, "--fail-on", "structural"])).toBe(0);
+    expect(await main(["diff", before, cosmetic, "--fail-on", "any"])).toBe(1);
+  });
+
+  it("rejects an unknown format with a usable message", async () => {
+    const before = write("before.squinch", BASE);
+    expect(await main(["diff", before, before, "--format", "xml"])).toBe(2);
+    expect(err.join("\n")).toContain("text | json | markdown");
+  });
+});

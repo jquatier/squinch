@@ -19,6 +19,7 @@ squinch check diagram.squinch --format json   # parse + lint; machine-readable
 squinch render diagram.squinch -o out.svg     # deterministic SVG (light theme)
 squinch render diagram.squinch --view NAME --theme dark -o out.svg   # themes: light | dark | sketch | sketch-dark
 squinch icons search <term>                   # find icon ids, e.g. "queue", "kafka"
+squinch diff --format json                    # what changed in the architecture
 ```
 
 1. Write the model first, with no `layout` block. Render it.

@@ -1,0 +1,69 @@
+name: "Squinch diagram diff"
+description: "Comment on a PR with what changed in the architecture, and optionally gate on structural changes."
+inputs:
+  path:
+    description: "Path to a .squinch file or a project directory"
+    required: true
+  base:
+    description: "Git ref to compare against (defaults to the PR base)"
+    required: false
+    default: ""
+  fail-on:
+    description: "Fail the job on change: structural | any | none"
+    required: false
+    default: "none"
+  comment:
+    description: "Post the summary as a PR comment"
+    required: false
+    default: "true"
+  version:
+    description: "squinch version to run"
+    required: false
+    default: "latest"
+runs:
+  using: composite
+  steps:
+    - uses: actions/setup-node@v4
+      with:
+        node-version: 22
+    - name: Compute the semantic diff
+      id: diff
+      shell: bash
+      run: |
+        set -euo pipefail
+        BASE="${{ inputs.base }}"
+        if [ -z "$BASE" ]; then BASE="origin/${{ github.event.pull_request.base.ref }}"; fi
+        # the base ref must exist locally: actions/checkout is shallow by default
+        git fetch --no-tags --depth=1 origin "${{ github.event.pull_request.base.ref }}" || true
+        REPORT=$(npx --yes squinch@${{ inputs.version }} diff "${{ inputs.path }}" \
+          --base "$BASE" --format markdown || true)
+        {
+          echo 'report<<SQUINCH_EOF'
+          echo "$REPORT"
+          echo 'SQUINCH_EOF'
+        } >> "$GITHUB_OUTPUT"
+    - name: Comment on the pull request
+      if: ${{ inputs.comment == 'true' && github.event_name == 'pull_request' }}
+      uses: actions/github-script@v7
+      with:
+        script: |
+          const body = `${{ steps.diff.outputs.report }}`;
+          if (!body.trim()) return;
+          // one comment per PR, updated in place — a review thread should not
+          // fill up with a new diagram summary on every push
+          const marker = "<!-- squinch-diff -->";
+          const { data: comments } = await github.rest.issues.listComments({
+            ...context.repo, issue_number: context.issue.number,
+          });
+          const mine = comments.find((c) => c.body?.includes(marker));
+          const payload = `${marker}\n${body}`;
+          if (mine) await github.rest.issues.updateComment({ ...context.repo, comment_id: mine.id, body: payload });
+          else await github.rest.issues.createComment({ ...context.repo, issue_number: context.issue.number, body: payload });
+    - name: Gate on the change weight
+      if: ${{ inputs.fail-on != 'none' }}
+      shell: bash
+      run: |
+        BASE="${{ inputs.base }}"
+        if [ -z "$BASE" ]; then BASE="origin/${{ github.event.pull_request.base.ref }}"; fi
+        npx --yes squinch@${{ inputs.version }} diff "${{ inputs.path }}" \
+          --base "$BASE" --fail-on "${{ inputs.fail-on }}"

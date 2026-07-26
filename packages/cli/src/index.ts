@@ -5,10 +5,12 @@ import { join, relative, isAbsolute } from "node:path";
 import { createHash } from "node:crypto";
 import {
   buildProject, renderProject, formatDiagnostics, validateSVG, searchIcons, themes,
+  diffProjects, formatDiff, formatDiffMarkdown,
   type Diagnostic,
 } from "@squinch/core";
 import { parseArgs, str } from "./args.js";
 import { loadInput, type Input } from "./project.js";
+import { isGitRepo, loadInputAtRef } from "./git.js";
 
 const VERSION = "0.0.0";
 const THEMES = ["light", "dark"] as const;
@@ -21,6 +23,12 @@ Usage
   squinch icons search <query> [--pack aws]   find icon ids
   squinch init [dir]                          scaffold a starter project
   squinch watch <path> [options]              re-render on change
+  squinch diff [<old>] [<new>] [options]      what changed in the architecture
+
+Diff options
+  --base <ref>      compare against a git ref (default: HEAD)
+  --format <fmt>    text | json | markdown (default: text)
+  --fail-on <what>  exit 1 on change: structural | any
 
 Render options
   --view <name>     view to render (default: first)
@@ -30,6 +38,47 @@ Render options
                     squinch.lock, and print a README <picture> snippet
   --check           verify committed SVGs match the source (CI gate)
 `;
+
+/**
+ * Semantic diff. Three shapes, in the order people reach for them:
+ *   squinch diff                 working tree vs HEAD (or --base <ref>)
+ *   squinch diff <path>          that project, working tree vs the ref
+ *   squinch diff <old> <new>     two paths on disk
+ */
+function cmdDiff(positionals: string[], flags: Record<string, string | boolean>): number {
+  const format = str(flags["format"]) ?? "text";
+  if (!["text", "json", "markdown"].includes(format))
+    throw new Error(`unknown --format \`${format}\` — use text | json | markdown`);
+  const failOn = str(flags["fail-on"]);
+  if (failOn && !["structural", "any"].includes(failOn))
+    throw new Error(`unknown --fail-on \`${failOn}\` — use structural | any`);
+
+  let before, after, subject: string;
+  if (positionals.length >= 2) {
+    before = loadInput(positionals[0]).files;
+    after = loadInput(positionals[1]).files;
+    subject = `${positionals[0]} → ${positionals[1]}`;
+  } else {
+    const path = positionals[0] ?? ".";
+    const ref = str(flags["base"]) ?? "HEAD";
+    if (!isGitRepo(process.cwd()))
+      throw new Error("not a git repository — pass two paths instead: squinch diff <old> <new>");
+    const at = loadInputAtRef(path, ref);
+    if (!at) throw new Error(`\`${path}\` does not exist at ${ref} — it looks new`);
+    before = at;
+    after = loadInput(path).files;
+    subject = `${ref} → working tree`;
+  }
+
+  const result = diffProjects(before, after);
+  if (format === "json") console.log(JSON.stringify({ subject, ...result }, null, 2));
+  else if (format === "markdown") console.log(formatDiffMarkdown(result));
+  else console.log(formatDiff(result));
+
+  if (failOn === "any" && !result.same) return 1;
+  if (failOn === "structural" && result.structural > 0) return 1;
+  return 0;
+}
 
 function reportDiagnostics(diags: Diagnostic[], json: boolean): void {
   if (json) {
@@ -262,6 +311,8 @@ export async function main(argv: string[]): Promise<number> {
       case "watch":
         if (!positionals[0]) throw new Error("usage: squinch watch <path>");
         return await cmdWatch(positionals[0], flags);
+      case "diff":
+        return cmdDiff(positionals, flags);
       default:
         console.error(`unknown command \`${command}\`\n\n${USAGE}`);
         return 2;

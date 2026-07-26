@@ -404,6 +404,25 @@ label       = string ;  attrs = "{" { ident ":" value } "}" ;
 Whitespace-insensitive; statements end at newline or `;`. Built with Lezer so the same
 grammar drives parsing, CodeMirror highlighting, and LSP autocomplete.
 
+## 8.5 Semantic diff
+
+`squinch diff` compares two *models*, never two renderings, and splits what it
+finds into **structural** (topology: who talks to whom, zone membership, flow
+steps, what a view hides) and **cosmetic** (labels, descriptions, layout hints,
+presentation). Reviewers should never have to squint to tell a re-ordered row
+from a new path into the payment vault.
+
+```bash
+squinch diff                          # working tree vs HEAD
+squinch diff old.squinch new.squinch  # two files or two project directories
+squinch diff --base v1.2.0            # against any git ref
+squinch diff --format json|markdown   # agents and CI; markdown for PR comments
+squinch diff --fail-on structural     # exit 1 when topology changes
+```
+
+Renames are reported as a removal plus an addition, with a *possible rename*
+note when the icon and neighbours match — a hint, never a silent assumption.
+
 ## 9. Error-message philosophy
 
 Errors are written for the agent loop — every diagnostic states location, problem, and
