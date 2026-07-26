@@ -11,3 +11,7 @@ coverage/
 spike/out/
 packages/*/out/
 dist/
+
+# extension build output (bundler copies the icon pack beside dist/)
+packages/vscode/pack-aws/
+*.vsix
