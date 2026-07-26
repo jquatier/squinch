@@ -216,7 +216,9 @@ export function buildProject(files: ProjectFile[]): BuildResult {
     const ft = top.getChildren("FileTheme")[0];
     if (ft) model.fileTheme = ctx.text(ft.getChild("Ident")!);
     for (const p of top.getChildren("PersonDecl")) {
-      const name = ctx.text(p.getChild("Ident")!);
+      const identNode = p.getChild("Ident");
+      if (!identNode) continue; // partial node from error recovery
+      const name = ctx.text(identNode);
       const labelNode = p.getChild("String");
       model.nodes.set(name, {
         path: name, name,
@@ -270,7 +272,10 @@ export function buildProject(files: ProjectFile[]): BuildResult {
     const arrow = ctx.text(arrowNode) as ArrowKind;
     const labelNode = node.getChild("String");
     const meta = attrsOf(ctx, node.getChild("AttrBlock"));
-    for (const target of node.getChild("PathList")!.getChildren("Path")) {
+    // an edge mid-typing (`a -> `) parses without a PathList — the editor
+    // asks us to build on every keystroke, so partial trees must not throw
+    const targets = node.getChild("PathList")?.getChildren("Path") ?? [];
+    for (const target of targets) {
       const toPath = resolve(ctx.text(target), scope, target, ctx);
       edgeN++;
       if (!fromPath || !toPath) continue;

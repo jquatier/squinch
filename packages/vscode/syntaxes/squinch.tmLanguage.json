@@ -1,0 +1,62 @@
+{
+  "$schema": "https://raw.githubusercontent.com/martinring/tmlanguage/master/tmlanguage.json",
+  "name": "Squinch",
+  "scopeName": "source.squinch",
+  "patterns": [
+    { "include": "#comment" },
+    { "include": "#string" },
+    { "include": "#tag" },
+    { "include": "#declaration" },
+    { "include": "#keyword" },
+    { "include": "#iconref" },
+    { "include": "#arrow" },
+    { "include": "#attr" },
+    { "include": "#number" }
+  ],
+  "repository": {
+    "comment": {
+      "match": "//.*$",
+      "name": "comment.line.double-slash.squinch"
+    },
+    "string": {
+      "begin": "\"",
+      "end": "\"",
+      "name": "string.quoted.double.squinch"
+    },
+    "tag": {
+      "match": "#[A-Za-z0-9_-]+",
+      "name": "entity.name.tag.squinch"
+    },
+    "declaration": {
+      "match": "^\\s*(system|container|zone|flow|view|person)\\s+([A-Za-z_][\\w-]*)",
+      "captures": {
+        "1": { "name": "keyword.control.squinch" },
+        "2": { "name": "entity.name.type.squinch" }
+      }
+    },
+    "keyword": {
+      "match": "\\b(pack|from|theme|box|external|datastore|person|scope|include|exclude|expand|context|auto|off|highlight|show|descriptions|flow|legend|titleblock|note|title|layout|direction|down|right|lines|density|rows|cols|place|align|route|contains|on|top-left|top-right|bottom-left|bottom-right|right-of|left-of|above|below|north|south|east|west)\\b",
+      "name": "keyword.control.squinch"
+    },
+    "iconref": {
+      "match": "\\b([A-Za-z][\\w-]*)(/)([A-Za-z0-9][\\w-]*)",
+      "captures": {
+        "1": { "name": "support.class.squinch" },
+        "2": { "name": "punctuation.separator.squinch" },
+        "3": { "name": "support.function.squinch" }
+      }
+    },
+    "arrow": {
+      "match": "(->|~>|<->|--)",
+      "name": "keyword.operator.squinch"
+    },
+    "attr": {
+      "match": "\\b([A-Za-z][\\w-]*)\\s*(:)",
+      "captures": {
+        "1": { "name": "variable.other.property.squinch" },
+        "2": { "name": "punctuation.separator.squinch" }
+      }
+    },
+    "number": { "match": "\\b\\d+(\\.\\d+)?\\b", "name": "constant.numeric.squinch" }
+  }
+}

@@ -55,7 +55,11 @@ and fetches pack icons from `public/`). `packages/core` — the engine (see belo
 `packages/pack-aws` — 316 AWS icons
 (303 services + 13 group/boundary marks), verbatim + dual-licensed (see its NOTICE). `packages/cli` — the `squinch` binary,
 thin wrapper over core: arg parsing, project loading (file *or* directory), and the
-lockfile model (`--sync`/`--check`). `examples/` — one directory per project, with
+lockfile model (`--sync`/`--check`). `packages/vscode` — the editor extension:
+`src/features.ts` is every piece of editor intelligence as pure functions (unit
+tested), `src/server.ts` a thin LSP shell over it, `src/extension.ts` the client
+plus preview webview; `test/server.test.ts` drives the *bundled* server over real
+stdio LSP. `examples/` — one directory per project, with
 committed SVGs that CI verifies. `spike/` — the Phase-0 harness, kept as regression.
 
 ## Current phase
@@ -85,6 +89,9 @@ expanded container is one "entity" for ranking, and ELK layers freely inside it.
 - `cd packages/core && npm run grammar` — regenerate Lezer parser from
   `src/grammar/squinch.grammar`.
 - `pnpm --filter @squinch/spa dev` — playground on :5180 (`.claude/launch.json`).
+- VS Code extension: <kbd>F5</kbd> ("Run Squinch extension") bundles core + the
+  extension and opens `examples/` in a dev host; or
+  `pnpm --filter squinch-vscode build`.
 - `cd spike && npm run spike` — Phase-0 exit-criteria harness (kept as regression).
 
 ## Layout of @squinch/core

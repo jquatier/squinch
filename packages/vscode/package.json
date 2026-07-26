@@ -1,0 +1,74 @@
+{
+  "name": "squinch-vscode",
+  "displayName": "Squinch",
+  "description": "Architecture diagrams as code — live preview, diagnostics, icon completion.",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "engines": { "vscode": "^1.90.0" },
+  "categories": ["Programming Languages", "Visualization"],
+  "activationEvents": [],
+  "main": "./dist/extension.cjs",
+  "scripts": {
+    "build": "node scripts/bundle.mjs",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run"
+  },
+  "contributes": {
+    "languages": [
+      {
+        "id": "squinch",
+        "aliases": ["Squinch", "squinch"],
+        "extensions": [".squinch"],
+        "configuration": "./language-configuration.json"
+      }
+    ],
+    "grammars": [
+      {
+        "language": "squinch",
+        "scopeName": "source.squinch",
+        "path": "./syntaxes/squinch.tmLanguage.json"
+      }
+    ],
+    "commands": [
+      {
+        "command": "squinch.preview",
+        "title": "Squinch: Open Preview to the Side",
+        "icon": "$(open-preview)"
+      }
+    ],
+    "menus": {
+      "editor/title": [
+        {
+          "command": "squinch.preview",
+          "when": "editorLangId == squinch",
+          "group": "navigation"
+        }
+      ]
+    },
+    "configuration": {
+      "title": "Squinch",
+      "properties": {
+        "squinch.preview.theme": {
+          "type": "string",
+          "enum": ["light", "dark", "sketch", "sketch-dark"],
+          "default": "light",
+          "description": "Theme used for the live preview."
+        }
+      }
+    }
+  },
+  "dependencies": {
+    "@squinch/core": "workspace:*",
+    "@squinch/pack-aws": "workspace:*",
+    "vscode-languageclient": "^9.0.1",
+    "vscode-languageserver": "^9.0.1",
+    "vscode-languageserver-textdocument": "^1.0.12"
+  },
+  "devDependencies": {
+    "@types/vscode": "^1.90.0",
+    "esbuild": "^0.28.1",
+    "typescript": "^7.0.2",
+    "vitest": "^4.1.10"
+  }
+}

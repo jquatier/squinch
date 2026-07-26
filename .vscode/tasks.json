@@ -1,0 +1,11 @@
+{
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "label": "squinch: bundle extension",
+      "type": "shell",
+      "command": "pnpm --filter @squinch/core build && pnpm --filter squinch-vscode build",
+      "problemMatcher": []
+    }
+  ]
+}

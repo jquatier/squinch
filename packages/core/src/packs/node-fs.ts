@@ -17,6 +17,9 @@ export function registerPackFromDisk(packageName: string): boolean {
   }
   candidates.push(join(here, "..", "..", "..", short));
   candidates.push(join(here, "..", "..", "..", "..", short));
+  // bundled hosts (the VS Code extension) ship the pack beside their output
+  candidates.push(join(here, short));
+  candidates.push(join(here, "..", short));
 
   for (const dir of candidates) {
     const manifestPath = join(dir, "pack.json");

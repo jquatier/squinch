@@ -95,6 +95,20 @@ describe("grammar + model builder", () => {
     expect(r.model.nodes.get("s.a")?.icon).toEqual({ pack: "builtin", id: "box" });
   });
 
+  it("half-typed input never throws — the editor builds on every keystroke", () => {
+    for (const partial of [
+      `system s "S" {\n a = aws/lambda "A"\n a -> \n}`,
+      `system s "S" {\n a = \n}`,
+      `system s "S" {\n a -> b,\n}`,
+      `view v {\n layout {\n rows [\n`,
+      `zone z "Z" vpc {\n contains \n}`,
+      `flow f "F" {\n a ->\n}`,
+      `system `,
+      `person `,
+    ])
+      expect(() => buildModel(partial), partial).not.toThrow();
+  });
+
   it("layout block inside a system: diagnostics, not a crash", () => {
     // the exact shape two independent agents crashed on (null .from in phase B)
     const r = buildModel(
