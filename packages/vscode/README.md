@@ -30,6 +30,24 @@ Or bundle by hand:
 pnpm --filter @squinch/core build && pnpm --filter squinch-vscode build
 ```
 
+## Installing it into your own VS Code
+
+Build a `.vsix` and install it — no marketplace account needed:
+
+```bash
+pnpm --filter @squinch/core build
+pnpm --filter squinch-vscode package     # writes packages/vscode/squinch.vsix
+code --install-extension packages/vscode/squinch.vsix
+```
+
+Then reload VS Code. (No `code` command? In VS Code: <kbd>⌘⇧P</kbd> → *Shell
+Command: Install 'code' command in PATH*. Or install from the UI: Extensions
+view → `…` menu → *Install from VSIX…*.)
+
+The package is self-contained — the bundle inlines the engine and the AWS icon
+pack ships beside it, so an installed copy needs nothing from this repo.
+Uninstall with `code --uninstall-extension squinch.squinch-vscode`.
+
 ## Layout
 
 `src/features.ts` holds every piece of editor intelligence as pure functions

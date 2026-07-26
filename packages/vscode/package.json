@@ -1,25 +1,38 @@
 {
   "name": "squinch-vscode",
   "displayName": "Squinch",
-  "description": "Architecture diagrams as code — live preview, diagnostics, icon completion.",
+  "description": "Architecture diagrams as code \u2014 live preview, diagnostics, icon completion.",
   "version": "0.0.0",
   "private": true,
   "type": "module",
-  "engines": { "vscode": "^1.90.0" },
-  "categories": ["Programming Languages", "Visualization"],
-  "activationEvents": ["onLanguage:squinch"],
+  "engines": {
+    "vscode": "^1.90.0"
+  },
+  "categories": [
+    "Programming Languages",
+    "Visualization"
+  ],
+  "activationEvents": [
+    "onLanguage:squinch"
+  ],
   "main": "./dist/extension.cjs",
   "scripts": {
     "build": "node scripts/bundle.mjs",
     "typecheck": "tsc --noEmit",
-    "test": "vitest run"
+    "test": "vitest run",
+    "package": "node scripts/bundle.mjs && vsce package --no-dependencies --out squinch.vsix"
   },
   "contributes": {
     "languages": [
       {
         "id": "squinch",
-        "aliases": ["Squinch", "squinch"],
-        "extensions": [".squinch"],
+        "aliases": [
+          "Squinch",
+          "squinch"
+        ],
+        "extensions": [
+          ".squinch"
+        ],
         "configuration": "./language-configuration.json"
       }
     ],
@@ -51,7 +64,12 @@
       "properties": {
         "squinch.preview.theme": {
           "type": "string",
-          "enum": ["light", "dark", "sketch", "sketch-dark"],
+          "enum": [
+            "light",
+            "dark",
+            "sketch",
+            "sketch-dark"
+          ],
           "default": "light",
           "description": "Theme used for the live preview."
         }
@@ -67,8 +85,16 @@
   },
   "devDependencies": {
     "@types/vscode": "^1.90.0",
+    "@vscode/vsce": "^3.9.2",
     "esbuild": "^0.28.1",
     "typescript": "^7.0.2",
     "vitest": "^4.1.10"
+  },
+  "publisher": "squinch",
+  "license": "Apache-2.0",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/jquatier/squinch.git",
+    "directory": "packages/vscode"
   }
 }

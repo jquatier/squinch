@@ -1,0 +1,10 @@
+# ship only what the extension host needs at runtime
+src/**
+test/**
+scripts/**
+node_modules/**
+tsconfig.json
+vitest.config.ts
+**/*.map
+**/*.ts
+.vscodeignore
