@@ -5,7 +5,7 @@
 // byte-for-byte what it was before sketch existed.
 import { fit, measure, type FontFamily } from "../metrics.js";
 import { FONTS } from "../fonts.generated.js";
-import { iconMeta } from "../model/packs.js";
+import { iconMeta, packMonochrome } from "../model/packs.js";
 import { iconAsset, symbolId } from "../packs/registry.js";
 import { makeSketcher, type Sketcher } from "./sketch.js";
 import type { Theme } from "../themes/index.js";
@@ -655,8 +655,9 @@ function iconPlate(
   const meta = icon ? iconMeta(icon.pack, icon.id) : undefined;
   const asset = icon ? iconAsset(icon.pack, icon.id) : undefined;
   const r = Math.max(2, Math.round(size / 10));
-  if (asset && icon && (icon.pack === "sys" || icon.pack === "builtin")) {
-    // house glyphs: colored plate + inset monoline artwork, tinted plate-text
+  if (asset && icon && (icon.pack === "sys" || icon.pack === "builtin" || packMonochrome(icon.pack))) {
+    // single-colour marks — our own glyphs and logo packs alike: a coloured
+    // plate with the mark knocked out of it, so a wordless logo still reads
     const pad = Math.round(size * 0.2);
     return (
       `<rect x="${x}" y="${y}" width="${size}" height="${size}" rx="${r}" fill="${meta?.color ?? t.muted}"${soften ? ` opacity="0.6"` : ""}/>` +

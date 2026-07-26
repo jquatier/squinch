@@ -32,3 +32,4 @@ export function registerPackFromDisk(packageName: string): boolean {
 }
 
 registerPackFromDisk("@squinch/pack-aws");
+registerPackFromDisk("@squinch/pack-logos");

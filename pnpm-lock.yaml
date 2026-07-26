@@ -97,6 +97,9 @@ importers:
       '@squinch/pack-aws':
         specifier: workspace:*
         version: link:../pack-aws
+      '@squinch/pack-logos':
+        specifier: workspace:*
+        version: link:../pack-logos
       elkjs:
         specifier: ^0.12.0
         version: 0.12.0
@@ -134,6 +137,18 @@ importers:
 
   packages/pack-aws:
     devDependencies:
+      tsx:
+        specifier: ^4.23.1
+        version: 4.23.1
+      typescript:
+        specifier: ^7.0.2
+        version: 7.0.2
+
+  packages/pack-logos:
+    devDependencies:
+      simple-icons:
+        specifier: ^16.27.1
+        version: 16.27.1
       tsx:
         specifier: ^4.23.1
         version: 4.23.1
@@ -1148,6 +1163,10 @@ packages:
   siginfo@2.0.0:
     resolution: {integrity: sha512-ybx0WO1/8bSBLEWXZvEd7gMW3Sn3JFlW3TvX1nREbDLRNQNaeNN8WK0meBwPdAaOI7TtRRRJn/Es1zhrrCHu7g==}
 
+  simple-icons@16.27.1:
+    resolution: {integrity: sha512-slZF8iKxkv7Lb9SF3L1AcIl5iYLNvDrKKm8yV69cG66XvxJ12SX+bYTgxRwCY4bXSmklGXoXaKEyVmEypOCeqw==}
+    engines: {node: '>=0.12.18'}
+
   source-map-js@1.2.1:
     resolution: {integrity: sha512-UXWMKhLOwVKb728IUtQPXxfYU+usdybtUrK/8uGE8CQMvrhOpwvzDBwj0QhSL7MQc7vIsISBG8VQ8+IDQxpfQA==}
     engines: {node: '>=0.10.0'}
@@ -2115,6 +2134,8 @@ snapshots:
   semver@7.8.5: {}
 
   siginfo@2.0.0: {}
+
+  simple-icons@16.27.1: {}
 
   source-map-js@1.2.1: {}
 

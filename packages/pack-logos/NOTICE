@@ -1,0 +1,16 @@
+Squinch logo pack
+=================
+
+Icon artwork in `icons/` comes from Simple Icons (https://simpleicons.org),
+released under CC0-1.0 (public domain dedication). The Simple Icons project
+requires no attribution; this notice records provenance anyway.
+
+The *brands* the icons depict are trademarks of their respective owners.
+Inclusion here is nominative use — identifying a product in an architecture
+diagram — and implies no endorsement or affiliation. Trademark law, not the
+icon licence, governs how these marks may be used; consult the owner's brand
+guidelines before using a logo in anything published or commercial.
+
+Icons are copied verbatim from the upstream package and regenerated with
+`npm run fetch`. Squinch renders them monochrome on a brand-coloured plate;
+that treatment is applied at render time and never modifies the source file.

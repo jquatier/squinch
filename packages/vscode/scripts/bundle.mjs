@@ -27,8 +27,10 @@ for (const entry of ["extension", "server"]) {
   });
 }
 
-// the pack ships beside the bundle: node-fs walks up from the module dir
-const pack = join(root, "..", "pack-aws");
-cpSync(join(pack, "pack.json"), join(root, "pack-aws", "pack.json"), { recursive: false, force: true });
-cpSync(join(pack, "icons"), join(root, "pack-aws", "icons"), { recursive: true, force: true });
-console.log("bundled dist/extension.cjs + dist/server.cjs (+ pack-aws)");
+// packs ship beside the bundle: node-fs walks up from the module dir
+for (const name of ["pack-aws", "pack-logos"]) {
+  const pack = join(root, "..", name);
+  cpSync(join(pack, "pack.json"), join(root, name, "pack.json"), { force: true });
+  cpSync(join(pack, "icons"), join(root, name, "icons"), { recursive: true, force: true });
+}
+console.log("bundled dist/extension.cjs + dist/server.cjs (+ packs)");

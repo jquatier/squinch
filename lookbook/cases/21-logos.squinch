@@ -1,0 +1,47 @@
+// A stack that isn't AWS — the case pack-logos exists for.
+pack logos
+
+person dev "Developers"
+
+system app "Storefront" {
+  description: "Next.js on Vercel"
+  glyph: sys/webapp
+  web = logos/nextdotjs "Next.js"
+  api = logos/nestjs "API"
+  web -> api "tRPC"
+}
+
+system data "Data Platform" {
+  description: "Operational + analytics"
+  glyph: sys/database
+  pg    = logos/postgres "PostgreSQL" datastore
+  redis = logos/redis "Cache"
+  kafka = logos/kafka "Events"
+  snow  = logos/snowflake "Warehouse" datastore
+  kafka ~> snow "load"
+}
+
+system ops "Platform" {
+  glyph: sys/monitor
+  k8s   = logos/k8s "Kubernetes"
+  graf  = logos/grafana "Grafana"
+  otel  = logos/opentelemetry "OTel"
+  otel ~> graf "metrics"
+}
+
+gh = logos/github "GitHub" external
+stripe = logos/stripe "Stripe" external
+
+dev -> gh "push"
+gh ~> ops.k8s "deploy"
+app.api -> data.pg "queries"
+app.api -> data.redis "cache"
+app.api ~> data.kafka "events"
+app.api -> stripe "charges"
+app.api ~> ops.otel "traces"
+
+view landscape {
+  title "Modern stack"
+  include *
+  legend auto
+}

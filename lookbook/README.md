@@ -141,3 +141,9 @@ committing a visual change. What looks bad here becomes the next fix.
 | light | dark |
 |---|---|
 | ![](out/20-align-hops.s.light.svg) | ![](out/20-align-hops.s.dark.svg) |
+
+## 21-logos — `landscape`
+
+| light | dark |
+|---|---|
+| ![](out/21-logos.landscape.light.svg) | ![](out/21-logos.landscape.dark.svg) |

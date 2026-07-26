@@ -5,3 +5,5 @@ allowBuilds:
   '@vscode/vsce-sign': set this to true or false
   esbuild: true
   keytar: set this to true or false
+minimumReleaseAgeExclude:
+  - simple-icons@16.27.1

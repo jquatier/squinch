@@ -175,6 +175,18 @@ view shop {
 Short aliases exist for the famous ones (`s3`, `sqs`, `sns`, `eks`, `ecs`, `ecr`,
 `elb`, `glacier`, `opensearch`). When unsure: `squinch icons search <term>`.
 
+**Non-AWS things** come from the `logos` pack (124 product marks, plated in
+their brand colour): `logos/postgres` · `logos/mysql` · `logos/mongodb` ·
+`logos/redis` · `logos/kafka` · `logos/rabbitmq` · `logos/elasticsearch` ·
+`logos/kubernetes` (`k8s`) · `logos/docker` · `logos/terraform` ·
+`logos/nginx` · `logos/github` · `logos/gitlab` · `logos/grafana` ·
+`logos/prometheus` · `logos/datadog` · `logos/sentry` · `logos/stripe` ·
+`logos/snowflake` · `logos/cloudflare` · `logos/vercel` · `logos/nextdotjs` ·
+`logos/react` · `logos/python` · `logos/nodedotjs` (`node`) · `logos/go` ·
+`logos/rust` · `logos/graphql`. Search the same way: `squinch icons search kafka`.
+Some brands (Slack, Twilio, Salesforce, Heroku, gRPC…) have no icon upstream —
+they were withdrawn on trademark request. Use `box` for those.
+
 First-party glyphs for system cards: `sys/api`, `sys/webapp`, `sys/mobile`,
 `sys/service`, `sys/worker`, `sys/database`, `sys/queue`, `sys/event-bus`,
 `sys/search`, `sys/gateway`, `sys/auth`, `sys/monitor`, `sys/scheduler`,

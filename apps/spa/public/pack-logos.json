@@ -1,0 +1,785 @@
+{
+  "name": "logos",
+  "title": "Product & technology logos",
+  "release": "16.27.1",
+  "source": "https://simpleicons.org",
+  "license": "CC0-1.0",
+  "attribution": "Simple Icons — https://simpleicons.org (marks are their owners' trademarks)",
+  "monochrome": true,
+  "icons": {
+    "akamai": {
+      "file": "akamai.svg",
+      "title": "Akamai",
+      "category": "Platform",
+      "color": "#0096D6"
+    },
+    "algolia": {
+      "file": "algolia.svg",
+      "title": "Algolia",
+      "category": "Service",
+      "color": "#003DFF"
+    },
+    "angular": {
+      "file": "angular.svg",
+      "title": "Angular",
+      "category": "Framework",
+      "color": "#0F0F11"
+    },
+    "ansible": {
+      "file": "ansible.svg",
+      "title": "Ansible",
+      "category": "Platform",
+      "color": "#EE0000"
+    },
+    "apache": {
+      "file": "apache.svg",
+      "title": "Apache",
+      "category": "Platform",
+      "color": "#D22128"
+    },
+    "apacheairflow": {
+      "file": "apacheairflow.svg",
+      "title": "Apache Airflow",
+      "category": "Data",
+      "color": "#017CEE"
+    },
+    "apachecassandra": {
+      "file": "apachecassandra.svg",
+      "title": "Apache Cassandra",
+      "category": "Database",
+      "color": "#1287B1"
+    },
+    "apacheflink": {
+      "file": "apacheflink.svg",
+      "title": "Apache Flink",
+      "category": "Data",
+      "color": "#E6526F"
+    },
+    "apachehadoop": {
+      "file": "apachehadoop.svg",
+      "title": "Apache Hadoop",
+      "category": "Data",
+      "color": "#66CCFF"
+    },
+    "apachekafka": {
+      "file": "apachekafka.svg",
+      "title": "Apache Kafka",
+      "category": "Messaging",
+      "color": "#231F20"
+    },
+    "apachepulsar": {
+      "file": "apachepulsar.svg",
+      "title": "Apache Pulsar",
+      "category": "Messaging",
+      "color": "#188FFF"
+    },
+    "apachespark": {
+      "file": "apachespark.svg",
+      "title": "Apache Spark",
+      "category": "Data",
+      "color": "#E25A1C"
+    },
+    "apollographql": {
+      "file": "apollographql.svg",
+      "title": "Apollo GraphQL",
+      "category": "Protocol",
+      "color": "#311C87"
+    },
+    "argo": {
+      "file": "argo.svg",
+      "title": "Argo",
+      "category": "Platform",
+      "color": "#EF7B4D"
+    },
+    "astro": {
+      "file": "astro.svg",
+      "title": "Astro",
+      "category": "Framework",
+      "color": "#BC52EE"
+    },
+    "atlassian": {
+      "file": "atlassian.svg",
+      "title": "Atlassian",
+      "category": "Service",
+      "color": "#0052CC"
+    },
+    "auth0": {
+      "file": "auth0.svg",
+      "title": "Auth0",
+      "category": "Service",
+      "color": "#EB5424"
+    },
+    "bitbucket": {
+      "file": "bitbucket.svg",
+      "title": "Bitbucket",
+      "category": "Source control",
+      "color": "#0052CC"
+    },
+    "bun": {
+      "file": "bun.svg",
+      "title": "Bun",
+      "category": "Runtime",
+      "color": "#000000"
+    },
+    "caddy": {
+      "file": "caddy.svg",
+      "title": "Caddy",
+      "category": "Gateway",
+      "color": "#1F88C0"
+    },
+    "celery": {
+      "file": "celery.svg",
+      "title": "Celery",
+      "category": "Messaging",
+      "color": "#37814A"
+    },
+    "ceph": {
+      "file": "ceph.svg",
+      "title": "Ceph",
+      "category": "Storage",
+      "color": "#EF5C55"
+    },
+    "circleci": {
+      "file": "circleci.svg",
+      "title": "CircleCI",
+      "category": "Source control",
+      "color": "#343434"
+    },
+    "clickhouse": {
+      "file": "clickhouse.svg",
+      "title": "ClickHouse",
+      "category": "Database",
+      "color": "#FFCC01"
+    },
+    "cloudflare": {
+      "file": "cloudflare.svg",
+      "title": "Cloudflare",
+      "category": "Platform",
+      "color": "#F38020"
+    },
+    "cockroachlabs": {
+      "file": "cockroachlabs.svg",
+      "title": "Cockroach Labs",
+      "category": "Database",
+      "color": "#6933FF"
+    },
+    "consul": {
+      "file": "consul.svg",
+      "title": "Consul",
+      "category": "Platform",
+      "color": "#F24C53"
+    },
+    "databricks": {
+      "file": "databricks.svg",
+      "title": "Databricks",
+      "category": "Data",
+      "color": "#FF3621"
+    },
+    "datadog": {
+      "file": "datadog.svg",
+      "title": "Datadog",
+      "category": "Observability",
+      "color": "#632CA6"
+    },
+    "deno": {
+      "file": "deno.svg",
+      "title": "Deno",
+      "category": "Runtime",
+      "color": "#000000"
+    },
+    "digitalocean": {
+      "file": "digitalocean.svg",
+      "title": "DigitalOcean",
+      "category": "Platform",
+      "color": "#0080FF"
+    },
+    "discord": {
+      "file": "discord.svg",
+      "title": "Discord",
+      "category": "Service",
+      "color": "#5865F2"
+    },
+    "django": {
+      "file": "django.svg",
+      "title": "Django",
+      "category": "Framework",
+      "color": "#092E20"
+    },
+    "docker": {
+      "file": "docker.svg",
+      "title": "Docker",
+      "category": "Platform",
+      "color": "#2496ED"
+    },
+    "dotnet": {
+      "file": "dotnet.svg",
+      "title": ".NET",
+      "category": "Runtime",
+      "color": "#512BD4"
+    },
+    "duckdb": {
+      "file": "duckdb.svg",
+      "title": "DuckDB",
+      "category": "Database",
+      "color": "#FFF000"
+    },
+    "elastic": {
+      "file": "elastic.svg",
+      "title": "Elastic",
+      "category": "Observability",
+      "color": "#005571"
+    },
+    "elasticsearch": {
+      "file": "elasticsearch.svg",
+      "title": "Elasticsearch",
+      "category": "Database",
+      "color": "#005571"
+    },
+    "elixir": {
+      "file": "elixir.svg",
+      "title": "Elixir",
+      "category": "Runtime",
+      "color": "#4B275F"
+    },
+    "envoyproxy": {
+      "file": "envoyproxy.svg",
+      "title": "Envoy Proxy",
+      "category": "Platform",
+      "color": "#AC6199"
+    },
+    "express": {
+      "file": "express.svg",
+      "title": "Express",
+      "category": "Framework",
+      "color": "#0A0A0A"
+    },
+    "fastapi": {
+      "file": "fastapi.svg",
+      "title": "FastAPI",
+      "category": "Framework",
+      "color": "#009688"
+    },
+    "fastly": {
+      "file": "fastly.svg",
+      "title": "Fastly",
+      "category": "Platform",
+      "color": "#FF282D"
+    },
+    "flask": {
+      "file": "flask.svg",
+      "title": "Flask",
+      "category": "Framework",
+      "color": "#3BABC3"
+    },
+    "git": {
+      "file": "git.svg",
+      "title": "Git",
+      "category": "Source control",
+      "color": "#F03C2E"
+    },
+    "github": {
+      "file": "github.svg",
+      "title": "GitHub",
+      "category": "Source control",
+      "color": "#181717"
+    },
+    "githubactions": {
+      "file": "githubactions.svg",
+      "title": "GitHub Actions",
+      "category": "Source control",
+      "color": "#2088FF"
+    },
+    "gitlab": {
+      "file": "gitlab.svg",
+      "title": "GitLab",
+      "category": "Source control",
+      "color": "#FC6D26"
+    },
+    "go": {
+      "file": "go.svg",
+      "title": "Go",
+      "category": "Runtime",
+      "color": "#00ADD8"
+    },
+    "googlecloud": {
+      "file": "googlecloud.svg",
+      "title": "Google Cloud",
+      "category": "Platform",
+      "color": "#4285F4"
+    },
+    "grafana": {
+      "file": "grafana.svg",
+      "title": "Grafana",
+      "category": "Observability",
+      "color": "#F46800"
+    },
+    "graphql": {
+      "file": "graphql.svg",
+      "title": "GraphQL",
+      "category": "Protocol",
+      "color": "#E10098"
+    },
+    "helm": {
+      "file": "helm.svg",
+      "title": "Helm",
+      "category": "Platform",
+      "color": "#0F1689"
+    },
+    "hubspot": {
+      "file": "hubspot.svg",
+      "title": "HubSpot",
+      "category": "Service",
+      "color": "#FF7A59"
+    },
+    "influxdb": {
+      "file": "influxdb.svg",
+      "title": "InfluxDB",
+      "category": "Database",
+      "color": "#22ADF6"
+    },
+    "istio": {
+      "file": "istio.svg",
+      "title": "Istio",
+      "category": "Platform",
+      "color": "#466BB0"
+    },
+    "jaeger": {
+      "file": "jaeger.svg",
+      "title": "Jaeger",
+      "category": "Observability",
+      "color": "#66CFE3"
+    },
+    "javascript": {
+      "file": "javascript.svg",
+      "title": "JavaScript",
+      "category": "Runtime",
+      "color": "#F7DF1E"
+    },
+    "jenkins": {
+      "file": "jenkins.svg",
+      "title": "Jenkins",
+      "category": "Source control",
+      "color": "#D24939"
+    },
+    "jira": {
+      "file": "jira.svg",
+      "title": "Jira",
+      "category": "Service",
+      "color": "#0052CC"
+    },
+    "kibana": {
+      "file": "kibana.svg",
+      "title": "Kibana",
+      "category": "Observability",
+      "color": "#005571"
+    },
+    "kong": {
+      "file": "kong.svg",
+      "title": "Kong",
+      "category": "Gateway",
+      "color": "#003459"
+    },
+    "kotlin": {
+      "file": "kotlin.svg",
+      "title": "Kotlin",
+      "category": "Runtime",
+      "color": "#7F52FF"
+    },
+    "kubernetes": {
+      "file": "kubernetes.svg",
+      "title": "Kubernetes",
+      "category": "Platform",
+      "color": "#326CE5"
+    },
+    "laravel": {
+      "file": "laravel.svg",
+      "title": "Laravel",
+      "category": "Framework",
+      "color": "#FF2D20"
+    },
+    "looker": {
+      "file": "looker.svg",
+      "title": "Looker",
+      "category": "Data",
+      "color": "#4285F4"
+    },
+    "mailgun": {
+      "file": "mailgun.svg",
+      "title": "Mailgun",
+      "category": "Service",
+      "color": "#F06B66"
+    },
+    "mariadb": {
+      "file": "mariadb.svg",
+      "title": "MariaDB",
+      "category": "Database",
+      "color": "#003545"
+    },
+    "meilisearch": {
+      "file": "meilisearch.svg",
+      "title": "Meilisearch",
+      "category": "Service",
+      "color": "#FF5CAA"
+    },
+    "minio": {
+      "file": "minio.svg",
+      "title": "MinIO",
+      "category": "Storage",
+      "color": "#C72E49"
+    },
+    "mongodb": {
+      "file": "mongodb.svg",
+      "title": "MongoDB",
+      "category": "Database",
+      "color": "#47A248"
+    },
+    "mysql": {
+      "file": "mysql.svg",
+      "title": "MySQL",
+      "category": "Database",
+      "color": "#4479A1"
+    },
+    "natsdotio": {
+      "file": "natsdotio.svg",
+      "title": "NATS.io",
+      "category": "Messaging",
+      "color": "#27AAE1"
+    },
+    "neo4j": {
+      "file": "neo4j.svg",
+      "title": "Neo4j",
+      "category": "Database",
+      "color": "#4581C3"
+    },
+    "nestjs": {
+      "file": "nestjs.svg",
+      "title": "NestJS",
+      "category": "Framework",
+      "color": "#E0234E"
+    },
+    "netlify": {
+      "file": "netlify.svg",
+      "title": "Netlify",
+      "category": "Platform",
+      "color": "#00C7B7"
+    },
+    "newrelic": {
+      "file": "newrelic.svg",
+      "title": "New Relic",
+      "category": "Observability",
+      "color": "#1CE783"
+    },
+    "nextdotjs": {
+      "file": "nextdotjs.svg",
+      "title": "Next.js",
+      "category": "Framework",
+      "color": "#000000"
+    },
+    "nginx": {
+      "file": "nginx.svg",
+      "title": "NGINX",
+      "category": "Platform",
+      "color": "#009639"
+    },
+    "nodedotjs": {
+      "file": "nodedotjs.svg",
+      "title": "Node.js",
+      "category": "Runtime",
+      "color": "#5FA04E"
+    },
+    "nuxt": {
+      "file": "nuxt.svg",
+      "title": "Nuxt",
+      "category": "Framework",
+      "color": "#00DC82"
+    },
+    "okta": {
+      "file": "okta.svg",
+      "title": "Okta",
+      "category": "Service",
+      "color": "#007DC1"
+    },
+    "openapiinitiative": {
+      "file": "openapiinitiative.svg",
+      "title": "OpenAPI Initiative",
+      "category": "Protocol",
+      "color": "#6BA539"
+    },
+    "openjdk": {
+      "file": "openjdk.svg",
+      "title": "OpenJDK",
+      "category": "Runtime",
+      "color": "#000000"
+    },
+    "opentelemetry": {
+      "file": "opentelemetry.svg",
+      "title": "OpenTelemetry",
+      "category": "Observability",
+      "color": "#000000"
+    },
+    "pagerduty": {
+      "file": "pagerduty.svg",
+      "title": "PagerDuty",
+      "category": "Observability",
+      "color": "#06AC38"
+    },
+    "php": {
+      "file": "php.svg",
+      "title": "PHP",
+      "category": "Runtime",
+      "color": "#777BB4"
+    },
+    "planetscale": {
+      "file": "planetscale.svg",
+      "title": "PlanetScale",
+      "category": "Database",
+      "color": "#000000"
+    },
+    "podman": {
+      "file": "podman.svg",
+      "title": "Podman",
+      "category": "Platform",
+      "color": "#892CA0"
+    },
+    "postgresql": {
+      "file": "postgresql.svg",
+      "title": "PostgreSQL",
+      "category": "Database",
+      "color": "#4169E1"
+    },
+    "prisma": {
+      "file": "prisma.svg",
+      "title": "Prisma",
+      "category": "Database",
+      "color": "#2D3748"
+    },
+    "prometheus": {
+      "file": "prometheus.svg",
+      "title": "Prometheus",
+      "category": "Observability",
+      "color": "#E6522C"
+    },
+    "python": {
+      "file": "python.svg",
+      "title": "Python",
+      "category": "Runtime",
+      "color": "#3776AB"
+    },
+    "rabbitmq": {
+      "file": "rabbitmq.svg",
+      "title": "RabbitMQ",
+      "category": "Messaging",
+      "color": "#FF6600"
+    },
+    "railway": {
+      "file": "railway.svg",
+      "title": "Railway",
+      "category": "Platform",
+      "color": "#0B0D0E"
+    },
+    "react": {
+      "file": "react.svg",
+      "title": "React",
+      "category": "Framework",
+      "color": "#61DAFB"
+    },
+    "redhatopenshift": {
+      "file": "redhatopenshift.svg",
+      "title": "Red Hat Open Shift",
+      "category": "Platform",
+      "color": "#EE0000"
+    },
+    "redis": {
+      "file": "redis.svg",
+      "title": "Redis",
+      "category": "Database",
+      "color": "#FF4438"
+    },
+    "render": {
+      "file": "render.svg",
+      "title": "Render",
+      "category": "Platform",
+      "color": "#000000"
+    },
+    "renovate": {
+      "file": "renovate.svg",
+      "title": "Renovate",
+      "category": "Source control",
+      "color": "#308BE3"
+    },
+    "ruby": {
+      "file": "ruby.svg",
+      "title": "Ruby",
+      "category": "Runtime",
+      "color": "#CC342D"
+    },
+    "rubyonrails": {
+      "file": "rubyonrails.svg",
+      "title": "Ruby on Rails",
+      "category": "Framework",
+      "color": "#D30001"
+    },
+    "rust": {
+      "file": "rust.svg",
+      "title": "Rust",
+      "category": "Runtime",
+      "color": "#000000"
+    },
+    "scala": {
+      "file": "scala.svg",
+      "title": "Scala",
+      "category": "Runtime",
+      "color": "#DC322F"
+    },
+    "sentry": {
+      "file": "sentry.svg",
+      "title": "Sentry",
+      "category": "Observability",
+      "color": "#362D59"
+    },
+    "shopify": {
+      "file": "shopify.svg",
+      "title": "Shopify",
+      "category": "Service",
+      "color": "#7AB55C"
+    },
+    "snowflake": {
+      "file": "snowflake.svg",
+      "title": "Snowflake",
+      "category": "Data",
+      "color": "#29B5E8"
+    },
+    "socketdotio": {
+      "file": "socketdotio.svg",
+      "title": "Socket.io",
+      "category": "Protocol",
+      "color": "#010101"
+    },
+    "sonarqubeserver": {
+      "file": "sonarqubeserver.svg",
+      "title": "SonarQube Server",
+      "category": "Source control",
+      "color": "#126ED3"
+    },
+    "splunk": {
+      "file": "splunk.svg",
+      "title": "Splunk",
+      "category": "Observability",
+      "color": "#000000"
+    },
+    "spring": {
+      "file": "spring.svg",
+      "title": "Spring",
+      "category": "Framework",
+      "color": "#6DB33F"
+    },
+    "sqlite": {
+      "file": "sqlite.svg",
+      "title": "SQLite",
+      "category": "Database",
+      "color": "#003B57"
+    },
+    "stripe": {
+      "file": "stripe.svg",
+      "title": "Stripe",
+      "category": "Service",
+      "color": "#635BFF"
+    },
+    "supabase": {
+      "file": "supabase.svg",
+      "title": "Supabase",
+      "category": "Database",
+      "color": "#3FCF8E"
+    },
+    "svelte": {
+      "file": "svelte.svg",
+      "title": "Svelte",
+      "category": "Framework",
+      "color": "#FF3E00"
+    },
+    "swagger": {
+      "file": "swagger.svg",
+      "title": "Swagger",
+      "category": "Protocol",
+      "color": "#85EA2D"
+    },
+    "swift": {
+      "file": "swift.svg",
+      "title": "Swift",
+      "category": "Runtime",
+      "color": "#F05138"
+    },
+    "terraform": {
+      "file": "terraform.svg",
+      "title": "Terraform",
+      "category": "Platform",
+      "color": "#844FBA"
+    },
+    "traefikproxy": {
+      "file": "traefikproxy.svg",
+      "title": "Traefik Proxy",
+      "category": "Gateway",
+      "color": "#24A1C1"
+    },
+    "typescript": {
+      "file": "typescript.svg",
+      "title": "TypeScript",
+      "category": "Runtime",
+      "color": "#3178C6"
+    },
+    "vault": {
+      "file": "vault.svg",
+      "title": "Vault",
+      "category": "Platform",
+      "color": "#FFEC6E"
+    },
+    "vercel": {
+      "file": "vercel.svg",
+      "title": "Vercel",
+      "category": "Platform",
+      "color": "#000000"
+    },
+    "vuedotjs": {
+      "file": "vuedotjs.svg",
+      "title": "Vue.js",
+      "category": "Framework",
+      "color": "#4FC08D"
+    },
+    "zoom": {
+      "file": "zoom.svg",
+      "title": "Zoom",
+      "category": "Service",
+      "color": "#0B5CFF"
+    }
+  },
+  "aliases": {
+    "actions": "githubactions",
+    "airflow": "apacheairflow",
+    "cassandra": "apachecassandra",
+    "envoy": "envoyproxy",
+    "es": "elasticsearch",
+    "flink": "apacheflink",
+    "gcp": "googlecloud",
+    "hadoop": "apachehadoop",
+    "java": "openjdk",
+    "js": "javascript",
+    "k8s": "kubernetes",
+    "kafka": "apachekafka",
+    "nats": "natsdotio",
+    "next": "nextdotjs",
+    "nextjs": "nextdotjs",
+    "node": "nodedotjs",
+    "nodejs": "nodedotjs",
+    "openapi": "openapiinitiative",
+    "openshift": "redhatopenshift",
+    "postgres": "postgresql",
+    "pulsar": "apachepulsar",
+    "rails": "rubyonrails",
+    "socketio": "socketdotio",
+    "sonarqube": "sonarqubeserver",
+    "spark": "apachespark",
+    "traefik": "traefikproxy",
+    "ts": "typescript",
+    "vue": "vuedotjs"
+  }
+}

@@ -1,0 +1,17 @@
+{
+  "name": "@squinch/pack-logos",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Product and technology logos for Squinch, from Simple Icons (CC0-1.0) — see NOTICE.",
+  "files": ["pack.json", "icons", "NOTICE"],
+  "scripts": {
+    "fetch": "tsx scripts/fetch.ts",
+    "typecheck": "tsc --noEmit"
+  },
+  "devDependencies": {
+    "simple-icons": "^16.27.1",
+    "tsx": "^4.23.1",
+    "typescript": "^7.0.2"
+  }
+}

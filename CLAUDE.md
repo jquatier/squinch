@@ -53,7 +53,10 @@ deterministic rendering. Pre-alpha; Phase 2 (see docs/PLAN.md §3).
 `apps/spa` — the playground (Vite/React/Tailwind; imports `@squinch/core/browser`
 and fetches pack icons from `public/`). `packages/core` — the engine (see below).
 `packages/pack-aws` — 316 AWS icons
-(303 services + 13 group/boundary marks), verbatim + dual-licensed (see its NOTICE). `packages/cli` — the `squinch` binary,
+(303 services + 13 group/boundary marks), verbatim + dual-licensed (see its NOTICE).
+`packages/pack-logos` — 124 curated Simple Icons marks (CC0) for the non-AWS
+half of a stack; `monochrome: true` in its manifest makes the renderer plate and
+tint them. Both packs regenerate with `npm run fetch`; never hand-edit icons. `packages/cli` — the `squinch` binary,
 thin wrapper over core: arg parsing, project loading (file *or* directory), and the
 lockfile model (`--sync`/`--check`). `packages/vscode` — the editor extension:
 `src/features.ts` is every piece of editor intelligence as pure functions (unit

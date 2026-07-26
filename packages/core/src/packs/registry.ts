@@ -12,8 +12,11 @@ export interface PackManifest {
   source?: string;
   license?: string;
   attribution?: string;
-  icons: Record<string, { file: string; title: string; category?: string }>;
+  icons: Record<string, { file: string; title: string; category?: string; color?: string }>;
   aliases?: Record<string, string>;
+  /** single-colour marks (e.g. Simple Icons): the renderer plates and tints
+   *  them rather than drawing the artwork on a neutral background. */
+  monochrome?: boolean;
 }
 
 /** Returns raw SVG text for a pack-relative file. May be async (browser). */
@@ -137,6 +140,19 @@ export async function preloadIcons(refs: { pack: string; id: string }[]): Promis
 
 export function glyph(packName: string, id: string): { code: string; color: string } | undefined {
   return BUILTIN_GLYPHS[packName]?.[id];
+}
+
+/** True when a pack's artwork is single-colour and wants the plate treatment. */
+export function packMonochrome(packName: string): boolean {
+  return packs.get(packName)?.manifest.monochrome === true;
+}
+
+/** A pack's declared brand colour for an icon, if it has one. */
+export function iconColor(packName: string, id: string): string | undefined {
+  const pack = packs.get(packName);
+  if (!pack) return undefined;
+  const key = canonical(pack, id);
+  return key ? pack.manifest.icons[key]?.color : undefined;
 }
 
 export function packInfo(packName: string): PackManifest | undefined {

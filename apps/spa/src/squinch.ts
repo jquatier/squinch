@@ -13,11 +13,19 @@ export interface ViewRef {
 
 let ready: Promise<void> | undefined;
 
-/** Load the AWS pack manifest once; icons stream in on demand. */
+/** Load every pack manifest once; icons stream in on demand. */
+const PACKS = [
+  { manifest: "pack-aws.json", icons: "icons" },
+  { manifest: "pack-logos.json", icons: "logo-icons" },
+];
 export function ensurePacks(): Promise<void> {
   ready ??= (async () => {
-    const manifest = (await (await fetch("pack-aws.json")).json()) as PackManifest;
-    registerPack(manifest, async (file) => (await fetch(`icons/${file}`)).text());
+    await Promise.all(
+      PACKS.map(async (p) => {
+        const manifest = (await (await fetch(p.manifest)).json()) as PackManifest;
+        registerPack(manifest, async (file) => (await fetch(`${p.icons}/${file}`)).text());
+      }),
+    );
   })();
   return ready;
 }
