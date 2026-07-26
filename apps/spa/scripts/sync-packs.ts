@@ -12,7 +12,10 @@ import { fileURLToPath } from "node:url";
 
 const require = createRequire(import.meta.url);
 const here = dirname(fileURLToPath(import.meta.url));
+// Everything in public/ is generated and gitignored, so on a fresh clone the
+// directory does not exist at all — git tracks no empty directories.
 const publicDir = join(here, "..", "public");
+mkdirSync(publicDir, { recursive: true });
 
 /** Every pack the playground offers. One line to add another. */
 const PACKS = ["@squinch/pack-aws", "@squinch/pack-azure", "@squinch/pack-logos"];
