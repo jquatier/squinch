@@ -454,7 +454,7 @@ function placeZoneChips(p: Positioned, rc: RC, t: Theme, pills: Pill[]): ZoneChi
   const obstacles = () => [...segs, ...p.nodes, ...pills, ...chips];
   for (const z of [...(p.zones ?? [])].sort((a, b) => a.depth - b.depth)) {
     const col = ZONE_TINT[z.kind](t);
-    const iconW = z.icon ? 18 : 0; // 14px icon + 4px gap
+    const iconW = z.icon ? 26 : 0; // 20px flush tab + 6px gap (AWS corner-tab look)
     const label = fit(z.label, z.w - 48 - iconW, rc.fx(11), "500", rc.fam);
     const w = Math.round(measure(label, rc.fx(11), "500", rc.fam)) + 16 + iconW;
     // which border the chip straddles, and which way it slides to escape:
@@ -489,8 +489,10 @@ function chipMarkup(c: ZoneChip, rc: RC, t: Theme): string {
     ? `<rect x="${c.x}" y="${c.y}" width="${c.w}" height="${c.h}" rx="2" fill="${t.canvas}"/>` +
       `<path d="${rc.sk.rect(c.x, c.y, c.w, c.h, { roughness: 0.6, multi: false })}" fill="none" stroke="${c.col}" stroke-width="1"/>`
     : `<rect x="${c.x}" y="${c.y}" width="${c.w}" height="${c.h}" rx="3" fill="${t.canvas}" stroke="${c.col}" stroke-width="1"/>`;
-  const icon = c.icon ? iconPlate(c.icon, c.x + 5, c.y + 3, 14, rc) : "";
-  const tx = c.x + 8 + (c.icon ? 16 : 0);
+  // the icon is a flush, full-height tab on the chip's left edge — the AWS
+  // boundary-label convention — never a padded thumbnail floating in the pill
+  const icon = c.icon ? iconPlate(c.icon, c.x, c.y, c.h, rc) : "";
+  const tx = c.x + 8 + (c.icon ? c.h + 4 : 0);
   return (
     `<g data-kind="zone-chip" data-zone="${esc(c.zone)}">${halo}${chip}${icon}` +
     `<text x="${tx}" y="${c.y + 14}" font-size="${rc.fx(11)}" font-weight="500" fill="${c.col}">${esc(c.label)}</text></g>`
