@@ -33,8 +33,23 @@ system s "S" {
     expect(validateSVG(r.svg!).ok).toBe(true);
     // plate in the brand colour, mark knocked out in plate-text
     expect(r.svg).toContain(`fill="#4169E1"`);
-    expect(r.svg).toContain(`<g color="#FFFFFF">`);
     expect(r.svg).toContain(`href="#sq-logos-postgresql"`);
+    // `fill` must be set, not just `color`: vendored marks carry no fill of
+    // their own and default to black — GitHub's near-black plate made that
+    // an invisible icon rather than an obviously wrong one
+    expect(r.svg).toContain(`<g color="#FFFFFF" fill="#FFFFFF">`);
+  });
+
+  it("a mark on a dark brand plate is not the same colour as the plate", async () => {
+    const r = await render(`pack logos
+system s "S" {
+ gh = logos/github "GitHub"
+}
+`, { theme: "light" });
+    const plate = /<rect x="\d+" y="\d+" width="40" height="40" rx="4" fill="(#[0-9A-Fa-f]{6})"/.exec(r.svg!)![1];
+    const tint = /<g color="(#[0-9A-Fa-f]{6})" fill="#[0-9A-Fa-f]{6}"><use href="#sq-logos-github"/.exec(r.svg!)![1];
+    expect(plate.toLowerCase()).toBe("#181717");
+    expect(tint.toLowerCase()).not.toBe(plate.toLowerCase());
   });
 
   it("stays deterministic and valid in every theme", async () => {

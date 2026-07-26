@@ -54,12 +54,12 @@
 </g>
 <g data-path="customer" data-kind="leaf">
 <rect x="138" y="32" width="160" height="64" rx="2" fill="#26292C"/><path d="M135.92 33.95 C193.19 32.81, 243.97 29.8, 297.66 29.9 M137.62 31.14 C181.24 32.81, 222.53 34.24, 297.61 31.64 M299.71 31.78 C298.59 51.19, 297.37 66.6, 299.38 95.04 M298.84 32.23 C297.87 51.67, 298.1 69.47, 298.66 95.53 M297.05 97.92 C261.38 96.22, 227.43 94.23, 137.21 96.37 M298.21 96.66 C244.13 95.8, 189.74 97.62, 137.31 96.83 M136.17 94.96 C136.44 77.52, 137.36 58.63, 136.38 33.09 M137.57 95.3 C136.93 76.54, 137.72 59.21, 137.71 31.77" fill="none" stroke="#C9C4B4" stroke-width="1.5" stroke-linecap="round"/>
-<rect x="150" y="44" width="40" height="40" rx="4" fill="#6F6E69"/><g color="#FFFFFF"><use href="#sq-builtin-person" x="158" y="52" width="24" height="24"/></g>
+<rect x="150" y="44" width="40" height="40" rx="4" fill="#6F6E69"/><g color="#FFFFFF" fill="#FFFFFF"><use href="#sq-builtin-person" x="158" y="52" width="24" height="24"/></g>
 <text x="202" y="69" font-size="17" font-weight="500" fill="#EFEBDD">Customer</text>
 </g>
 <g data-path="partner" data-kind="leaf">
 <rect x="32" y="586" width="200" height="64" rx="2" fill="#26292C"/><path d="M32.77 586.77 C105.36 584.06, 181.32 584.98, 233.2 585 M31.87 585.58 C101.86 584.26, 171.05 584.33, 232.65 586.22 M232.79 586.04 C233.28 605.69, 232.36 621.34, 230.9 650.77 M230.98 585.73 C231.39 607.04, 233.09 628.21, 231.62 649.99 M230.29 651.49 C166.85 649.2, 101.82 651.2, 32.18 648.85 M232.2 649.39 C153.46 648.99, 76.1 648.92, 31.92 649.13 M34.05 650.12 C32.59 627.4, 30.05 606.45, 30.89 586.05 M32.67 649.22 C32.21 626.88, 32.39 604.9, 33.06 584.9" fill="none" stroke="#C9C4B4" stroke-width="1.5" stroke-linecap="round"/>
-<rect x="44" y="598" width="40" height="40" rx="4" fill="#6F6E69"/><g color="#FFFFFF"><use href="#sq-builtin-box" x="52" y="606" width="24" height="24"/></g>
+<rect x="44" y="598" width="40" height="40" rx="4" fill="#6F6E69"/><g color="#FFFFFF" fill="#FFFFFF"><use href="#sq-builtin-box" x="52" y="606" width="24" height="24"/></g>
 <text x="96" y="623" font-size="17" font-weight="500" fill="#EFEBDD">Payment Network</text>
 </g>
 <g data-path="store" data-kind="card">

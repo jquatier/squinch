@@ -54,12 +54,12 @@
 </g>
 <g data-path="customer" data-kind="leaf">
 <rect x="138" y="32" width="160" height="64" rx="4" fill="#FFFFFF" stroke="#D8D7D3" stroke-width="1.5"/>
-<rect x="150" y="44" width="40" height="40" rx="4" fill="#6F6E69"/><g color="#FFFFFF"><use href="#sq-builtin-person" x="158" y="52" width="24" height="24"/></g>
+<rect x="150" y="44" width="40" height="40" rx="4" fill="#6F6E69"/><g color="#FFFFFF" fill="#FFFFFF"><use href="#sq-builtin-person" x="158" y="52" width="24" height="24"/></g>
 <text x="202" y="69" font-size="13" font-weight="500" fill="#1C1C1A">Customer</text>
 </g>
 <g data-path="partner" data-kind="leaf">
 <rect x="32" y="586" width="200" height="64" rx="4" fill="#FFFFFF" stroke="#D8D7D3" stroke-width="1.5"/>
-<rect x="44" y="598" width="40" height="40" rx="4" fill="#6F6E69"/><g color="#FFFFFF"><use href="#sq-builtin-box" x="52" y="606" width="24" height="24"/></g>
+<rect x="44" y="598" width="40" height="40" rx="4" fill="#6F6E69"/><g color="#FFFFFF" fill="#FFFFFF"><use href="#sq-builtin-box" x="52" y="606" width="24" height="24"/></g>
 <text x="96" y="623" font-size="13" font-weight="500" fill="#1C1C1A">Payment Network</text>
 </g>
 <g data-path="store" data-kind="card">

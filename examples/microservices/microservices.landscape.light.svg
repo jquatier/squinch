@@ -46,7 +46,7 @@
 </g>
 <g data-path="customer" data-kind="leaf">
 <rect x="340" y="32" width="160" height="64" rx="4" fill="#FFFFFF" stroke="#D8D7D3" stroke-width="1.5"/>
-<rect x="352" y="44" width="40" height="40" rx="4" fill="#6F6E69"/><g color="#FFFFFF"><use href="#sq-builtin-person" x="360" y="52" width="24" height="24"/></g>
+<rect x="352" y="44" width="40" height="40" rx="4" fill="#6F6E69"/><g color="#FFFFFF" fill="#FFFFFF"><use href="#sq-builtin-person" x="360" y="52" width="24" height="24"/></g>
 <text x="404" y="69" font-size="13" font-weight="500" fill="#1C1C1A">Customer</text>
 </g>
 <g data-path="web" data-kind="card">

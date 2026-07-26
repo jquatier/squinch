@@ -661,7 +661,11 @@ function iconPlate(
     const pad = Math.round(size * 0.2);
     return (
       `<rect x="${x}" y="${y}" width="${size}" height="${size}" rx="${r}" fill="${meta?.color ?? t.muted}"${soften ? ` opacity="0.6"` : ""}/>` +
-      `<g color="${t.plateText}"${soften ? ` opacity="0.9"` : ""}>` +
+      // `fill` as well as `color`: our own glyphs paint with currentColor, but
+      // vendored marks (Simple Icons) carry no fill at all and would default to
+      // black — invisible on a dark brand plate. fill is inherited, and any
+      // glyph that sets its own fill still wins.
+      `<g color="${t.plateText}" fill="${t.plateText}"${soften ? ` opacity="0.9"` : ""}>` +
       `<use href="#${symbolId(icon.pack, icon.id)}" x="${x + pad}" y="${y + pad}" width="${size - pad * 2}" height="${size - pad * 2}"/>` +
       `</g>`
     );

@@ -21,7 +21,7 @@
 </g>
 <g data-path="customer" data-kind="leaf">
 <rect x="72" y="32" width="160" height="64" rx="4" fill="#212124" stroke="#3B3B40" stroke-width="1.5"/>
-<rect x="84" y="44" width="40" height="40" rx="4" fill="#6F6E69"/><g color="#FFFFFF"><use href="#sq-builtin-person" x="92" y="52" width="24" height="24"/></g>
+<rect x="84" y="44" width="40" height="40" rx="4" fill="#6F6E69"/><g color="#FFFFFF" fill="#FFFFFF"><use href="#sq-builtin-person" x="92" y="52" width="24" height="24"/></g>
 <text x="136" y="69" font-size="13" font-weight="500" fill="#EDEDEA">Customer</text>
 </g>
 <g data-path="web" data-kind="card">

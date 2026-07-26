@@ -50,7 +50,7 @@
 </g>
 <g data-path="ops" data-kind="context-leaf">
 <rect x="176" y="32" width="160" height="64" rx="4" fill="#212124" stroke="#3B3B40" stroke-width="1.5" stroke-dasharray="4 3"/>
-<rect x="188" y="44" width="40" height="40" rx="4" fill="#6F6E69" opacity="0.6"/><g color="#FFFFFF" opacity="0.9"><use href="#sq-builtin-person" x="196" y="52" width="24" height="24"/></g>
+<rect x="188" y="44" width="40" height="40" rx="4" fill="#6F6E69" opacity="0.6"/><g color="#FFFFFF" fill="#FFFFFF" opacity="0.9"><use href="#sq-builtin-person" x="196" y="52" width="24" height="24"/></g>
 <text x="240" y="69" font-size="13" font-weight="500" fill="#9C9B94">Operator</text>
 </g>
 <g data-path="ledger" data-kind="context-card" opacity="0.75">

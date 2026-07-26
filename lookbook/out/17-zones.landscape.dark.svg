@@ -30,12 +30,12 @@
 </g>
 <g data-path="ops" data-kind="leaf">
 <rect x="52" y="60" width="160" height="64" rx="4" fill="#212124" stroke="#3B3B40" stroke-width="1.5"/>
-<rect x="64" y="72" width="40" height="40" rx="4" fill="#6F6E69"/><g color="#FFFFFF"><use href="#sq-builtin-person" x="72" y="80" width="24" height="24"/></g>
+<rect x="64" y="72" width="40" height="40" rx="4" fill="#6F6E69"/><g color="#FFFFFF" fill="#FFFFFF"><use href="#sq-builtin-person" x="72" y="80" width="24" height="24"/></g>
 <text x="116" y="97" font-size="13" font-weight="500" fill="#EDEDEA">Operators</text>
 </g>
 <g data-path="erp" data-kind="leaf">
 <rect x="260" y="60" width="160" height="64" rx="4" fill="#212124" stroke="#3B3B40" stroke-width="1.5"/>
-<rect x="272" y="72" width="40" height="40" rx="4" fill="#6F6E69"/><g color="#FFFFFF"><use href="#sq-builtin-box" x="280" y="80" width="24" height="24"/></g>
+<rect x="272" y="72" width="40" height="40" rx="4" fill="#6F6E69"/><g color="#FFFFFF" fill="#FFFFFF"><use href="#sq-builtin-box" x="280" y="80" width="24" height="24"/></g>
 <text x="324" y="97" font-size="13" font-weight="500" fill="#EDEDEA">Legacy ERP</text>
 </g>
 <g data-path="core" data-kind="card">
