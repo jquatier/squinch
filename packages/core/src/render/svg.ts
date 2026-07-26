@@ -10,7 +10,7 @@ import { iconAsset, symbolId } from "../packs/registry.js";
 import { makeSketcher, type Sketcher } from "./sketch.js";
 import type { Theme } from "../themes/index.js";
 import type { Positioned, PEdge, PNode, PZone } from "../layout/layout.js";
-import type { SNote, ZoneKind } from "../model/types.js";
+import type { SNote, ZoneColor, ZoneKind } from "../model/types.js";
 
 const PLATE = 40;
 const PAD = 12;
@@ -250,6 +250,21 @@ const ZONE_TINT: Record<ZoneKind, (t: Theme) => string> = {
   custom: (th) => th.zoneNeutral,
 };
 
+// explicit `color:` roles a zone may choose instead of its kind default —
+// still theme tokens, never hex in the DSL
+const ZONE_COLOR_ROLE: Record<ZoneColor, (t: Theme) => string> = {
+  account: (th) => th.zoneAccount,
+  network: (th) => th.zoneNetwork,
+  cloud: (th) => th.zoneCloud,
+  neutral: (th) => th.zoneNeutral,
+  ink: (th) => th.ink,
+  muted: (th) => th.muted,
+  accent: (th) => th.accent,
+};
+
+const zoneColor = (z: { kind: ZoneKind; color?: ZoneColor }, t: Theme) =>
+  z.color ? ZONE_COLOR_ROLE[z.color](t) : ZONE_TINT[z.kind](t);
+
 /** Legend of what's actually in the picture — never a fixed key (DESIGN:
  *  quiet structure; only earned entries). Returns markup + band height. */
 function legend(p: Positioned, rc: RC, y: number, L: string[]): { h: number; w: number } {
@@ -453,7 +468,7 @@ function placeZoneChips(p: Positioned, rc: RC, t: Theme, pills: Pill[]): ZoneChi
   });
   const obstacles = () => [...segs, ...p.nodes, ...pills, ...chips];
   for (const z of [...(p.zones ?? [])].sort((a, b) => a.depth - b.depth)) {
-    const col = ZONE_TINT[z.kind](t);
+    const col = zoneColor(z, t);
     const iconW = z.icon ? 26 : 0; // 20px flush tab + 6px gap (AWS corner-tab look)
     const label = fit(z.label, z.w - 48 - iconW, rc.fx(11), "500", rc.fam);
     const w = Math.round(measure(label, rc.fx(11), "500", rc.fam)) + 16 + iconW;
@@ -582,7 +597,7 @@ export function renderSVG(p: Positioned, t: Theme, opts: RenderOpts = {}): strin
   // chips render LAST (top layer, after edges) so their canvas halo knocks
   // out anything they must sit over — see placeZoneChips below.
   const zoneMarkup = (z: PZone): string => {
-    const col = ZONE_TINT[z.kind](t);
+    const col = zoneColor(z, t);
     const dash = ` stroke-dasharray="8 5"`;
     const boundary = rc.sk
       ? `<rect x="${z.x}" y="${z.y}" width="${z.w}" height="${z.h}" rx="2" fill="${col}" fill-opacity="0.04"/>` +

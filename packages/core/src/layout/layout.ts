@@ -10,7 +10,7 @@ const ELK = ELKModule as unknown as { new (): { layout(graph: unknown): Promise<
 import { measure, type FontFamily } from "../metrics.js";
 import { resolveView } from "../view/resolve.js";
 import type { VNode, VEdge } from "../view/resolve.js";
-import type { SModel, SView, Side, Diagnostic, ZoneKind, ZoneLabelPos } from "../model/types.js";
+import type { SModel, SView, Side, Diagnostic, ZoneColor, ZoneKind, ZoneLabelPos } from "../model/types.js";
 import type { ThemeFont } from "../themes/index.js";
 
 const LEAF_TIERS = [120, 160, 200, 240];
@@ -32,6 +32,7 @@ export interface PZone {
   id: string; label: string; kind: ZoneKind;
   icon?: { pack: string; id: string };
   labelPos: ZoneLabelPos;
+  color?: ZoneColor;
   x: number; y: number; w: number; h: number;
   depth: number; // nesting depth, outermost = 0 (render order)
 }
@@ -99,6 +100,7 @@ export async function layoutView(
   interface LZone {
     id: string; label: string; kind: ZoneKind;
     icon?: { pack: string; id: string }; labelPos: ZoneLabelPos;
+    color?: ZoneColor;
     set: Set<string>;
   }
   const zones: LZone[] = [];
@@ -117,7 +119,7 @@ export async function layoutView(
     if (set.size > 0)
       zones.push({
         id: z.id, label: z.label ?? z.id, kind: z.kind,
-        icon: z.icon, labelPos: z.labelPos, set,
+        icon: z.icon, labelPos: z.labelPos, color: z.color, set,
       });
   }
   for (let i = 0; i < zones.length; i++)
@@ -400,6 +402,7 @@ export async function layoutView(
       const z = zoneById.get(c.id)!;
       pZones.push({
         id: z.id, label: z.label, kind: z.kind, icon: z.icon, labelPos: z.labelPos,
+        color: z.color,
         x, y, w: q(c.width), h: q(c.height), depth,
       });
       containerOffset.set(c.id, { x, y });

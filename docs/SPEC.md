@@ -122,9 +122,11 @@ zone prod_account "Prod Account" account {
 }
 zone vpc_a "VPC A" vpc {
   contains orders.api, orders.handlers, orders.db
-  icon:  aws/vpc                      // optional 14px icon in the label chip
+  icon:  aws/vpc                      // optional icon, drawn as a flush chip tab
   label: top-right                    // chip corner: top-left (default) |
-}                                     //   top-right | bottom-left | bottom-right
+                                      //   top-right | bottom-left | bottom-right
+  color: ink                          // outline role: account | network | cloud |
+}                                     //   neutral | ink | muted | accent — never hex
 ```
 
 Zone kinds (`account | region | vpc | subnet | network | cloud | onprem | custom`)

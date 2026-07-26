@@ -181,6 +181,23 @@ view landscape { include * }
     expect(Math.abs(chipY + 3 - (zoneBottom - 10))).toBeLessThanOrEqual(1); // halo y = chip y - 3
   });
 
+  it("zone color is a theme role — override works, hex is rejected", async () => {
+    const src = BASE + `
+zone z "Custom" custom {
+  contains core
+  color: accent
+}
+view landscape { include * }
+`;
+    const r = await render(src, { view: "landscape", theme: "light" });
+    expect(r.ok).toBe(true);
+    // light theme accent
+    expect(r.svg!.match(/<g data-kind="zone"[^>]*>.*?stroke="#5A57C9"/s)).toBeTruthy();
+    const bad = buildModel(BASE + `zone z "Z" cloud { contains core\n color: "#ff0000" }\n`);
+    expect(bad.ok).toBe(false);
+    expect(bad.diagnostics[0].message).toContain("theme roles only, never hex");
+  });
+
   it("bad zone icon and label position get did-you-means", () => {
     const icon = buildModel(BASE + `zone z "Z" cloud { contains core\n icon: aws/cloudfrunt }\n`);
     expect(icon.ok).toBe(false);

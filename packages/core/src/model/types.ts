@@ -105,13 +105,21 @@ export type ZoneKind = (typeof ZONE_KINDS)[number];
 
 export type ZoneLabelPos = "top-left" | "top-right" | "bottom-left" | "bottom-right";
 
+// zone outline colors are THEME ROLES, never hex (SPEC: diagrams reference
+// roles) — four kind-group tints plus the general-purpose inks
+export const ZONE_COLORS = [
+  "account", "network", "cloud", "neutral", "ink", "muted", "accent",
+] as const;
+export type ZoneColor = (typeof ZONE_COLORS)[number];
+
 export interface SZone {
   id: string;
   label?: string;
   kind: ZoneKind;
   members: string[]; // resolved node/container paths, declaration order
-  icon?: { pack: string; id: string }; // optional 14px chip icon
+  icon?: { pack: string; id: string }; // optional chip icon (flush tab)
   labelPos: ZoneLabelPos; // which border corner the chip straddles
+  color?: ZoneColor; // outline/tint override; default derives from kind
   loc: Loc;
   file?: string;
 }

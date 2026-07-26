@@ -8,9 +8,9 @@ import { parser } from "../grammar/parser.js";
 import { iconExists, packExists, iconIds, allPackNames } from "./packs.js";
 import { suggest } from "./suggest.js";
 import type {
-  ArrowKind, BuildResult, Diagnostic, Loc, RelPos, SContainer, SEdge, SModel, SNode, SNote, SView, Side, SZone, ZoneKind, ZoneLabelPos,
+  ArrowKind, BuildResult, Diagnostic, Loc, RelPos, SContainer, SEdge, SModel, SNode, SNote, SView, Side, SZone, ZoneColor, ZoneKind, ZoneLabelPos,
 } from "./types.js";
-import { ZONE_KINDS } from "./types.js";
+import { ZONE_KINDS, ZONE_COLORS } from "./types.js";
 
 export interface ProjectFile {
   name: string;
@@ -352,6 +352,15 @@ export function buildProject(files: ProjectFile[]): BuildResult {
           s ? `did you mean \`${p}/${s}\`?` : `run \`squinch icons search ${i}\``);
       } else icon = { pack: p, id: i };
     }
+    let color: ZoneColor | undefined;
+    if (zAttrs.attrs.color) {
+      if ((ZONE_COLORS as readonly string[]).includes(zAttrs.attrs.color)) color = zAttrs.attrs.color as ZoneColor;
+      else {
+        const s = suggest(zAttrs.attrs.color, [...ZONE_COLORS]);
+        error(ctx, z, `unknown zone color \`${zAttrs.attrs.color}\` — theme roles only, never hex`,
+          s ? `did you mean \`${s}\`?` : `one of: ${ZONE_COLORS.join(", ")}`);
+      }
+    }
     const LABEL_POS: ZoneLabelPos[] = ["top-left", "top-right", "bottom-left", "bottom-right"];
     let labelPos: ZoneLabelPos = "top-left";
     if (zAttrs.attrs.label) {
@@ -363,7 +372,7 @@ export function buildProject(files: ProjectFile[]): BuildResult {
       }
     }
     model.zones.push({
-      id, kind, members, icon, labelPos,
+      id, kind, members, icon, labelPos, color,
       label: labelNode ? ctx.str(labelNode) : undefined,
       loc: ctx.loc(z), file: ctx.name,
     });
