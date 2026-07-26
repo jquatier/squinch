@@ -16,7 +16,15 @@ Language support and a live preview for `.squinch` architecture diagrams.
 
 From the repo root, press <kbd>F5</kbd> ("Run Squinch extension") — the
 pre-launch task bundles core and the extension, then opens `examples/` in a
-development host. Or bundle by hand:
+development host.
+
+The bundle task deliberately runs in a login+interactive shell: VS Code
+launched from the Dock inherits a minimal `PATH`, and Node version managers
+(nvm, fnm, volta, asdf) add `node`/`pnpm` from `~/.zshrc` or `~/.bashrc`, which
+a plain task shell never sources. If a task ever reports `command not found:
+pnpm`, that is the cause.
+
+Or bundle by hand:
 
 ```bash
 pnpm --filter @squinch/core build && pnpm --filter squinch-vscode build

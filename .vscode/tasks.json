@@ -2,9 +2,16 @@
   "version": "2.0.0",
   "tasks": [
     {
+      // Runs through a login+interactive shell on purpose: VS Code launched
+      // from the Dock inherits a minimal PATH, and Node version managers
+      // (nvm, fnm, volta, asdf) put node/pnpm on PATH from ~/.zshrc or
+      // ~/.bashrc — files a plain `zsh -c` task shell never sources.
       "label": "squinch: bundle extension",
       "type": "shell",
       "command": "pnpm --filter @squinch/core build && pnpm --filter squinch-vscode build",
+      "osx": { "options": { "shell": { "executable": "/bin/zsh", "args": ["-l", "-i", "-c"] } } },
+      "linux": { "options": { "shell": { "executable": "/bin/bash", "args": ["-l", "-i", "-c"] } } },
+      "presentation": { "reveal": "silent", "panel": "dedicated" },
       "problemMatcher": []
     }
   ]
