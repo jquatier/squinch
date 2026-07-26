@@ -65,10 +65,10 @@
   `~>` async. Small, sharp, consistent — never SVG default markers.
 - **Edge labels**: pill chips (11px, surface bg, radius 2, 1px border) with a canvas
   halo — a label never sits raw on a line, and never collides with another chip.
-  Placement: midpoint of the best-hosting segment (horizontal runs preferred —
-  a label reads like a caption there), sliding outward past obstacles, and
-  **never straddling a bend** — the pill keeps 10px clearance from corners.
-  Placement policy and its history: `docs/notes/edge-labels.md`.
+  Placement: the edge's own segments, longest first — midpoint of each,
+  sliding outward past every obstacle (nodes, zone bands, frame borders,
+  pills already placed); a label only detaches below its nodes when no
+  segment can host it. Policy and its history: `docs/notes/edge-labels.md`.
 - **Aggregate edges** (from lifting): medium weight, neutral, count badge as pill.
 - **Animation** (`~>`): CSS `stroke-dashoffset`, constant speed in px/s (not
   per-edge duration — long edges must not "flow faster"), subtle: motion you notice
