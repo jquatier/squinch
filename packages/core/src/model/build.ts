@@ -578,6 +578,27 @@ export function buildProject(files: ProjectFile[]): BuildResult {
         }
         view.layout.rows = rows;
       }
+      const colsStmt = lb.getChildren("ColsStmt")[0];
+      if (colsStmt) {
+        const cols: string[][] = [];
+        const placed = new Set<string>();
+        for (const rank of colsStmt.getChildren("Rank")) {
+          const col: string[] = [];
+          for (const pathNode of rank.getChildren("Path")) {
+            const r = resolve(ctx.text(pathNode), inScope, pathNode, ctx);
+            if (!r) continue;
+            if (placed.has(r)) {
+              error(ctx, pathNode, `\`${ctx.text(pathNode)}\` appears in \`cols\` twice`,
+                "a node can hold only one column position; remove one occurrence");
+              continue;
+            }
+            placed.add(r);
+            col.push(r);
+          }
+          cols.push(col);
+        }
+        view.layout.cols = cols;
+      }
       for (const pl of lb.getChildren("PlaceStmt")) {
         const [a, b] = pl.getChildren("Path");
         const node = resolve(ctx.text(a), inScope, a, ctx);

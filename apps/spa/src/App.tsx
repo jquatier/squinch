@@ -4,10 +4,11 @@ import { IconPalette } from "./IconPalette";
 import { compile, decodeShare, encodeShare, type Preview } from "./squinch";
 import { EXAMPLES } from "./examples";
 
-type Theme = "light" | "dark" | "sketch" | "sketch-dark";
-const THEME_CYCLE: Theme[] = ["light", "dark", "sketch", "sketch-dark"];
+type Theme = "light" | "dark" | "sketch" | "sketch-dark" | "contrast";
+const THEME_CYCLE: Theme[] = ["light", "dark", "sketch", "sketch-dark", "contrast"];
 const THEME_LABEL: Record<Theme, string> = {
   light: "Light", dark: "Dark", sketch: "Sketch", "sketch-dark": "Sketch dark",
+  contrast: "Contrast",
 };
 
 const STORAGE_KEY = "squinch:source";

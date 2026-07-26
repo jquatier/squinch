@@ -36,9 +36,9 @@ committing a visual change. What looks bad here becomes the next fix.
 
 ## 06-dense-mesh — `mesh`
 
-| light | dark | sketch | sketch-dark |
-|---|---|---|---|
-| ![](out/06-dense-mesh.mesh.light.svg) | ![](out/06-dense-mesh.mesh.dark.svg) | ![](out/06-dense-mesh.mesh.sketch.svg) | ![](out/06-dense-mesh.mesh.sketch-dark.svg) |
+| light | dark | sketch | sketch-dark | contrast |
+|---|---|---|---|---|
+| ![](out/06-dense-mesh.mesh.light.svg) | ![](out/06-dense-mesh.mesh.dark.svg) | ![](out/06-dense-mesh.mesh.sketch.svg) | ![](out/06-dense-mesh.mesh.sketch-dark.svg) | ![](out/06-dense-mesh.mesh.contrast.svg) |
 
 ## 07-nested-frames — `platform`
 
@@ -120,9 +120,9 @@ committing a visual change. What looks bad here becomes the next fix.
 
 ## 17-zones — `landscape`
 
-| light | dark | sketch | sketch-dark |
-|---|---|---|---|
-| ![](out/17-zones.landscape.light.svg) | ![](out/17-zones.landscape.dark.svg) | ![](out/17-zones.landscape.sketch.svg) | ![](out/17-zones.landscape.sketch-dark.svg) |
+| light | dark | sketch | sketch-dark | contrast |
+|---|---|---|---|---|
+| ![](out/17-zones.landscape.light.svg) | ![](out/17-zones.landscape.dark.svg) | ![](out/17-zones.landscape.sketch.svg) | ![](out/17-zones.landscape.sketch-dark.svg) | ![](out/17-zones.landscape.contrast.svg) |
 
 ## 18-flows — `shop`
 

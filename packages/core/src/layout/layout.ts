@@ -219,6 +219,19 @@ export async function layoutView(
   }
   for (const p of units) if (!order.includes(p)) order.push(p);
 
+  // `cols` pins horizontal bands: members of an earlier column sit left of a
+  // later one. Only columned units move — the slots they occupy in the model
+  // order are re-filled in column order, so everything else keeps its place.
+  if (view.layout.cols?.length) {
+    const colOf = new Map<string, number>();
+    view.layout.cols.forEach((col, i) => col.forEach((p) => colOf.set(unitOf(p), i)));
+    const slots: number[] = [];
+    order.forEach((p, i) => { if (colOf.has(p)) slots.push(i); });
+    const columned = slots.map((i) => order[i])
+      .sort((a, b) => colOf.get(a)! - colOf.get(b)! || order.indexOf(a) - order.indexOf(b));
+    slots.forEach((slot, i) => { order[slot] = columned[i]; });
+  }
+
   // ── edge classes: inner (same entity) | coplanar (same rank, both bare) |
   //    cross-rank (ELK's) ────────────────────────────────────────────────────
   const inner = (e: VEdge) => entityOf(e.from) === entityOf(e.to) && byPath.get(e.from)?.frame;
@@ -515,7 +528,12 @@ export async function layoutView(
   // "almost aligned" is precisely what DESIGN §1.4 forbids — so the final
   // snap is ours, same boundary as the coplanar router. The first-listed
   // element is the anchor; the rest move onto its axis.
-  if (view.layout.align.length) {
+  // a column is an align group: its members share one exact vertical axis
+  const alignGroups = [
+    ...view.layout.align,
+    ...(view.layout.cols ?? []).filter((c) => c.length > 1).map((nodes) => ({ nodes, loc: view.loc })),
+  ];
+  if (alignGroups.length) {
     const axis: "x" | "y" = view.layout.direction === "right" ? "y" : "x";
     const cross: "x" | "y" = axis === "x" ? "y" : "x";
     const span = axis === "x" ? "w" : "h";
@@ -551,7 +569,7 @@ export async function layoutView(
       }
     };
 
-    for (const group of view.layout.align) {
+    for (const group of alignGroups) {
       const anchor = nodeByPath.get(group.nodes[0]);
       if (!anchor) continue;
       const target = centre(anchor);

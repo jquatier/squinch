@@ -68,7 +68,8 @@
             "light",
             "dark",
             "sketch",
-            "sketch-dark"
+            "sketch-dark",
+            "contrast"
           ],
           "default": "light",
           "description": "Theme used for the live preview."

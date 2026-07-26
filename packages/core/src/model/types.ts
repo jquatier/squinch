@@ -87,7 +87,9 @@ export interface SView {
     direction?: "down" | "right";
     density?: "compact" | "comfortable" | "spacious";
     lines?: "orthogonal" | "curved" | "straight";
-    rows?: string[][]; // resolved paths
+    rows?: string[][]; // resolved paths — horizontal bands, top to bottom
+    /** vertical bands, left to right: members share an axis exactly */
+    cols?: string[][];
     place: { node: string; relpos: RelPos; target: string; loc: Loc }[];
     /** `align a b c` — b and c share a's axis exactly (a is the anchor). */
     align: { nodes: string[]; loc: Loc }[];

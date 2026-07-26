@@ -133,9 +133,8 @@ gauntlet is the product's actual test suite.
 **v1.1:** VSCode extension + LSP, sketch theme (rough.js), animated `~>` edges
 (implemented as CSS `stroke-dashoffset` keyframes so animation survives GitHub README
 `<img>` embeds — no JS in exported SVG, ever),
-Tier 2 channels/`around`, semantic diff (`squinch diff`), zones (ELK cross-hierarchy
-frames — needs its own mini-spike), numbered flows, legend/title block, Cmd-K search,
-`pack-logos`. **v2:** federation/imports, drag-to-hint writeback, flow stories, more
+Tier 2 channels/`around` and `pack-logos` remain; everything else on this list has
+shipped (semantic diff, zones, flows, legend/title block, Cmd-K search, contrast). **v2:** federation/imports, drag-to-hint writeback, flow stories, more
 packs.
 
 ## 4. Key risks

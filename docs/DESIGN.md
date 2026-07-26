@@ -98,7 +98,7 @@ Every theme is the full token set of §2 — never a palette swap on top of ligh
   (bundled, metrics-precomputed like everything else). Roughness/jitter is seeded
   from `hash(source)` — **deterministically rough**, so the lockfile model holds.
 - **`blueprint`** (v2): white-on-Prussian-blue monoline, mono glyphs only, grid dots.
-- **`contrast`** (v1.1): WCAG-first; encodes async/status with dash patterns and
+- **`contrast`**: WCAG-first; encodes async/status with dash patterns and
   markers, never color alone (this rule actually applies to *all* themes: color is
   reinforcement, shape/pattern is the encoding).
 

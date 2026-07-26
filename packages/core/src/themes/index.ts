@@ -130,6 +130,30 @@ export const sketchDark: Theme = {
   surfaceAlt: "#22252A",
 };
 
+// WCAG-first (DESIGN §6). Every text pair clears AAA (7:1) and every
+// structural stroke clears 3:1 — asserted in test/themes.test.ts, not eyeballed.
+// Meaning never rests on hue here: async is dashed with an open chevron,
+// context is dashed, zones are dashed and kind-tinted. Colour only reinforces.
+export const contrast: Theme = {
+  name: "contrast",
+  font: inter,
+  zoneAccount: "#8B0000",
+  zoneNetwork: "#00008B",
+  zoneCloud: "#4B0082",
+  zoneNeutral: "#1F1F1F",
+  canvas: "#FFFFFF",
+  surface: "#FFFFFF",
+  border: "#000000",
+  ink: "#000000",
+  muted: "#303030",
+  edge: "#000000",
+  asyncEdge: "#00008B",
+  plateText: "#FFFFFF",
+  accent: "#4B0082",
+  warnTint: "#FFE9A8",
+  surfaceAlt: "#E8E8E8",
+};
+
 export const themes: Record<string, Theme> = {
-  light, dark, sketch, "sketch-dark": sketchDark,
+  light, dark, sketch, "sketch-dark": sketchDark, contrast,
 };

@@ -73,6 +73,54 @@ describe("align", () => {
   });
 });
 
+describe("cols", () => {
+  const SRC = `pack aws
+system s "S" {
+  gw = aws/api-gateway "Gateway"
+  a1 = aws/lambda "Alpha API"
+  a2 = aws/dynamodb "Alpha DB" datastore
+  b1 = aws/lambda "Beta API"
+  b2 = aws/dynamodb "Beta DB" datastore
+  gw -> a1, b1
+  a1 -> a2
+  b1 -> b2
+}
+view s {
+  layout {
+    rows [gw] [a1 b1] [a2 b2]
+    cols [a1 a2] [b1 b2]
+  }
+}
+`;
+
+  it("gives each column one exact axis, ordered left to right", async () => {
+    const built = buildModel(SRC);
+    expect(built.ok).toBe(true);
+    const { positioned } = await layoutView(built.model, built.model.views.find((v) => v.name === "s")!);
+    const c = (id: string) => {
+      const n = positioned.nodes.find((x) => x.path === `s.${id}`)!;
+      return n.x + Math.round(n.w / 2);
+    };
+    expect(c("a1")).toBe(c("a2")); // exact, like align
+    expect(c("b1")).toBe(c("b2"));
+    expect(c("a1")).toBeLessThan(c("b1")); // declaration order = left to right
+  });
+
+  it("composes with rows — they pin different axes", async () => {
+    const built = buildModel(SRC);
+    const { positioned } = await layoutView(built.model, built.model.views.find((v) => v.name === "s")!);
+    const y = (id: string) => positioned.nodes.find((x) => x.path === `s.${id}`)!.y;
+    expect(y("a1")).toBe(y("b1")); // same row
+    expect(y("a2")).toBeGreaterThan(y("a1")); // next row down
+  });
+
+  it("rejects a node listed in two columns", () => {
+    const r = buildModel(SRC.replace("cols [a1 a2] [b1 b2]", "cols [a1 a2] [a1 b2]"));
+    expect(r.ok).toBe(false);
+    expect(r.diagnostics[0].message).toContain("appears in `cols` twice");
+  });
+});
+
 describe("crossing hops", () => {
   it("breaks the later edge where two unrelated wires cross", async () => {
     // a deliberate crossing: two independent pairs whose wires must cross
