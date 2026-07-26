@@ -113,6 +113,20 @@ export function Editor({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  // Re-sync when the source changes from outside the editor — picking an
+  // example, decoding a share link. CodeMirror owns its document after mount,
+  // so without this the pane keeps showing the old text until a reload.
+  // Typing is unaffected: our own onChange makes value equal the doc, and an
+  // equal value dispatches nothing, so there is no echo loop.
+  useEffect(() => {
+    const v = view.current;
+    if (!v || v.state.doc.toString() === value) return;
+    v.dispatch({
+      changes: { from: 0, to: v.state.doc.length, insert: value },
+      selection: { anchor: Math.min(v.state.selection.main.anchor, value.length) },
+    });
+  }, [value]);
+
   // Push compiler diagnostics into the gutter + underlines.
   useEffect(() => {
     const v = view.current;
