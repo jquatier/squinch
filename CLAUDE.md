@@ -67,12 +67,18 @@ committed SVGs that CI verifies. `spike/` — the Phase-0 harness, kept as regre
 
 ## Current phase
 
-Phase 0 passed (5/5 exit criteria; findings in docs/PLAN.md §3). **Phase 1 engine is
-complete**: grammar → model → visibility/lifting → layout → themed SVG, multi-file
-projects, cards/frames/zoom, highlight/notes. **Phase 2 in progress**: the CLI ships
-(check/render/icons/init/watch + lockfile model + GitHub Action) and the SPA
-playground runs (CodeMirror + live preview + click-to-zoom). Next: agent skill +
-the Phase-3 gauntlet.
+Phases 0–3 are complete. The engine (grammar → model → visibility/lifting →
+layout → themed SVG), the CLI (check/render/diff/icons/init/watch + lockfile
+model + Actions), the SPA playground, the VS Code extension + language server,
+two icon packs, and five themes all ship. Phase 3's bar — an agent producing
+clean diagrams from prose using only the skill + CLI — is certified at **16/16
+by independent cold agents** (`gauntlet/README.md` records what each run found).
+
+v1.1's DSL is done: zones, flows, tags, channels, cols, align, legend/titleblock.
+Deliberately *not* built, with reasons recorded: `route … around`/`via`
+(`docs/notes/routing-hints.md` — ELK already avoids nodes) and `grid` (rows and
+cols compose to the same thing). What remains is deployment and launch, not
+features.
 
 Key architecture from the spike, still binding: same-rank edges bypass ELK and use
 our coplanar router; declared ranks are enforced via invisible scaffold edges; an

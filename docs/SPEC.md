@@ -312,8 +312,10 @@ layout {
 
 - `rows`/`cols` pin nodes to ranks *and* order within the rank; unlisted nodes are
   auto-placed around them.
-- `grid [a b] [c d]` **[v1.1]** — full fixed grid escape hatch for when
-  auto-layout should get out of the way entirely; cells may be `_` (empty).
+- A full fixed grid needs no separate construct: `rows` and `cols` pin different
+  axes and compose, and a cell is empty simply by nobody occupying it —
+  `rows [a b] [c]` + `cols [a c] [b]` is a 2×2 with the bottom-right empty.
+  (The once-planned `grid` statement was dropped as redundant on that basis.)
 - Hints are per-view, keyed by node id (semantic + diffable). A hint referencing a
   removed/renamed id is a *warning*, never a silent relayout.
 - **Contradictions are errors, never silent**: conflicting hints (`place a right-of b`

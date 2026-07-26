@@ -167,7 +167,8 @@ view shop {
   bottom; order inside a bracket is left to right. Unlisted nodes place themselves.
 - `cols` is its transpose: one bracket group per vertical band, left to right.
   Members of a column share an exact axis, so a service and its database line
-  up. `rows` and `cols` compose — they pin different axes.
+  up. `rows` and `cols` compose — they pin different axes, so using both gives
+  you a full grid, and a cell is empty when nobody is placed in it.
 - A node goes in `rows` **or** gets a `place` — never both.
 - Edges between two nodes in the same row route automatically (straight when
   adjacent, under the band otherwise). `place x right-of y` + `route y ~> x from
