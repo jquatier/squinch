@@ -1,11 +1,18 @@
-// Subsets the bundled faces to the metrics repertoire and emits
-// src/fonts.generated.ts (base64 woff2), so every rendered SVG can embed the
-// exact face the metrics tables were measured from. Text then renders
-// identically everywhere — including GitHub's <img> sandbox — instead of
-// falling back to whatever the viewer has installed.
+// Subsets the bundled faces to the metrics repertoire, in two formats:
+//
+//   src/fonts.generated.ts  base64 woff2, embedded in every rendered SVG via
+//                           @font-face, so text renders identically everywhere
+//                           — including GitHub's <img> sandbox — instead of
+//                           falling back to whatever the viewer has installed.
+//   fonts/*.ttf             the same faces as sfnt, for rasterizers that can't
+//                           read @font-face. resvg is one (linebender/resvg#541
+//                           is open and blocked on WOFF2 support), so `squinch
+//                           render --format png` hands it these files directly.
+//                           Same subset, same source, one script — the two
+//                           formats cannot drift apart.
 //
 // Run: npm run gen-fonts   (build-time only; output is committed)
-import { readFileSync, writeFileSync } from "node:fs";
+import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { createRequire } from "node:module";
 import subsetFont from "subset-font";
 
@@ -17,17 +24,25 @@ const FILES: Record<string, string> = {
   caveat: "@fontsource/caveat/files/caveat-latin-WEIGHT-normal.woff2",
 };
 
+mkdirSync("fonts", { recursive: true });
+
 const out: Record<string, Record<string, string>> = {};
 for (const [family, pattern] of Object.entries(FILES)) {
   out[family] = {};
   for (const weight of Object.keys(metrics[family])) {
     const file = require.resolve(pattern.replace("WEIGHT", weight));
+    const source = readFileSync(file);
     const repertoire = Object.keys(metrics[family][weight].advances).join("");
-    const woff2 = await subsetFont(readFileSync(file), repertoire, {
-      targetFormat: "woff2",
-    });
+    const woff2 = await subsetFont(source, repertoire, { targetFormat: "woff2" });
     out[family][weight] = woff2.toString("base64");
-    console.log(`subset ${family} ${weight}: ${woff2.length} bytes (${repertoire.length} chars)`);
+    // sfnt keeps the source face's own family name (Inter / Caveat) — which is
+    // exactly what the theme's CSS stack falls through to after SquinchInter.
+    const sfnt = await subsetFont(source, repertoire, { targetFormat: "sfnt" });
+    writeFileSync(`fonts/${family}-${weight}.ttf`, sfnt);
+    console.log(
+      `subset ${family} ${weight}: ${woff2.length}b woff2, ${sfnt.length}b sfnt` +
+        ` (${repertoire.length} chars)`,
+    );
   }
 }
 

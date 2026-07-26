@@ -45,10 +45,12 @@
     },
     "./grammar": {
       "default": "./dist/grammar/parser.js"
-    }
+    },
+    "./fonts/*": "./fonts/*"
   },
   "files": [
     "dist",
+    "fonts",
     "metrics.json"
   ]
 }

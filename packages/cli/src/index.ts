@@ -33,7 +33,11 @@ Diff options
 Render options
   --view <name>     view to render (default: first)
   --theme <name>    ${Object.keys(themes).join(" | ")} (default: view's theme)
-  -o <file>         output path (default: stdout)
+  -o <file>         output path (default: stdout; .png rasterizes)
+  --format <fmt>    svg | png (default: inferred from -o)
+  --scale <n>       png only: multiply the diagram's natural size
+  --width <px>      png only: exact output width (height follows)
+  --background <c>  png only: flatten onto a colour (default: transparent)
   --sync            write every view × theme next to the source, refresh
                     squinch.lock, and print a README <picture> snippet
   --check           verify committed SVGs match the source (CI gate)
@@ -213,11 +217,48 @@ async function cmdRender(path: string, flags: Record<string, string | boolean>):
 
   const svg = await renderOne(input, view ?? viewNames(input)[0], theme ?? "light");
   const out = str(flags.o) ?? str(flags.output);
+  // png is inferred from the output extension, so `-o d.png` just works; the
+  // explicit --format is for piping, and for saying so when both are present.
+  const format = str(flags.format) ?? (out?.endsWith(".png") ? "png" : "svg");
+  if (format !== "svg" && format !== "png")
+    throw new Error(`unknown --format \`${format}\` — use svg | png`);
+
+  if (format === "png") {
+    if (!out) throw new Error("png is binary — give it a destination, e.g. -o diagram.png");
+    const { svgToPng } = await import("./raster.js");
+    const scale = str(flags.scale);
+    const width = str(flags.width);
+    if (scale && width) throw new Error("--scale and --width both set — pick one");
+    const n = (v: string, what: string) => {
+      const parsed = Number(v);
+      if (!Number.isFinite(parsed) || parsed <= 0) throw new Error(`--${what} must be a positive number`);
+      return parsed;
+    };
+    const png = svgToPng(svg, {
+      width: width
+        ? n(width, "width")
+        : scale
+          ? Math.round(svgWidth(svg) * n(scale, "scale"))
+          : undefined,
+      background: str(flags.background),
+    });
+    writeFileSync(out, png);
+    console.error(`wrote ${out}`);
+    return 0;
+  }
+
   if (out) {
     writeFileSync(out, svg);
     console.error(`wrote ${out}`);
   } else console.log(svg.trimEnd());
   return 0;
+}
+
+/** The root <svg width="…">, which the renderer always emits in px. */
+function svgWidth(svg: string): number {
+  const m = svg.match(/<svg[^>]*\swidth="(\d+)"/);
+  if (!m) throw new Error("could not read the diagram's width");
+  return Number(m[1]);
 }
 
 async function cmdIcons(positionals: string[], flags: Record<string, string | boolean>): Promise<number> {

@@ -127,6 +127,83 @@ describe("squinch cli", () => {
   });
 });
 
+/** PNG dimensions live in the IHDR chunk, bytes 16..24 of a well-formed file. */
+function pngSize(buf: Buffer): { w: number; h: number } {
+  expect(buf.subarray(0, 8)).toEqual(Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]));
+  return { w: buf.readUInt32BE(16), h: buf.readUInt32BE(20) };
+}
+
+describe("png export", () => {
+  const write = () => {
+    const f = join(dir, "d.squinch");
+    writeFileSync(f, GOOD);
+    return f;
+  };
+  /** the same diagram as SVG, for comparing against its rasterization */
+  const refSvg = async (f: string) => {
+    await main(["render", f, "-o", join(dir, "ref.svg")]);
+    return readFileSync(join(dir, "ref.svg"), "utf8");
+  };
+
+  it("infers png from the output extension, at the diagram's natural size", async () => {
+    const f = write();
+    const svg = await refSvg(f);
+    const target = join(dir, "d.png");
+    expect(await main(["render", f, "-o", target])).toBe(0);
+    const { w } = pngSize(readFileSync(target));
+    expect(w).toBe(Number(svg.match(/<svg[^>]*\swidth="(\d+)"/)![1]));
+  });
+
+  it("--scale and --width resize, keeping the aspect ratio", async () => {
+    const f = write();
+    await main(["render", f, "-o", join(dir, "1x.png")]);
+    const base = pngSize(readFileSync(join(dir, "1x.png")));
+
+    await main(["render", f, "--scale", "2", "-o", join(dir, "2x.png")]);
+    expect(pngSize(readFileSync(join(dir, "2x.png")))).toEqual({ w: base.w * 2, h: base.h * 2 });
+
+    await main(["render", f, "--width", "400", "-o", join(dir, "w.png")]);
+    const wide = pngSize(readFileSync(join(dir, "w.png")));
+    expect(wide.w).toBe(400);
+    expect(wide.h / wide.w).toBeCloseTo(base.h / base.w, 1);
+  });
+
+  it("is deterministic, and never reads fonts from the machine", async () => {
+    // The whole risk of rasterizing: resvg ignores the @font-face our SVGs
+    // embed, so if the sfnt faces weren't wired up it would quietly substitute
+    // an installed font — or drop the text — and still exit 0. Two renders
+    // matching byte-for-byte only proves repeatability, so also assert the
+    // text is actually *there*: a diagram with no glyphs drawn compresses far
+    // smaller than one with them.
+    const f = write();
+    const svg = await refSvg(f);
+    await main(["render", f, "-o", join(dir, "a.png")]);
+    await main(["render", f, "-o", join(dir, "b.png")]);
+    const a = readFileSync(join(dir, "a.png"));
+    expect(a.equals(readFileSync(join(dir, "b.png")))).toBe(true);
+
+    // Rasterizing the same SVG with an empty font set is what "resvg couldn't
+    // find our faces" would look like. It must not match what we ship.
+    const { Resvg } = await import("@resvg/resvg-js");
+    const fontless = new Resvg(svg, {
+      font: { loadSystemFonts: false, fontFiles: [], defaultFontFamily: "Inter" },
+    }).render().asPng();
+    expect(a.length).toBeGreaterThan(fontless.length);
+  });
+
+  it("rejects png to stdout, unknown formats, and conflicting sizes", async () => {
+    const f = write();
+    expect(await main(["render", f, "--format", "png"])).toBe(2);
+    expect(err.join()).toContain("give it a destination");
+    expect(await main(["render", f, "--format", "webp", "-o", join(dir, "x")])).toBe(2);
+    expect(err.join()).toContain("use svg | png");
+    expect(await main(["render", f, "--scale", "2", "--width", "400", "-o", join(dir, "x.png")])).toBe(2);
+    expect(err.join()).toContain("pick one");
+    expect(await main(["render", f, "--scale", "-1", "-o", join(dir, "x.png")])).toBe(2);
+    expect(err.join()).toContain("positive number");
+  });
+});
+
 describe("diff", () => {
   const BASE = `pack aws
 system s "S" {

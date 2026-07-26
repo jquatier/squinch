@@ -57,6 +57,39 @@ export async function compile(
   return { ...result, views };
 }
 
+/** Rasterize for the places an SVG won't paste: slides, docs, chat.
+ *
+ *  Everything happens in the page — an <img> decodes the SVG (fonts and all,
+ *  since they travel inside it as data-URIs) and a canvas re-encodes it. No
+ *  server, no library. Returns an object URL, or undefined if the browser
+ *  refused to decode; the caller revokes it. */
+export async function svgToPng(svg: string, scale = 2): Promise<string | undefined> {
+  const src = URL.createObjectURL(new Blob([svg], { type: "image/svg+xml" }));
+  try {
+    const img = new Image();
+    img.decoding = "sync";
+    await new Promise<void>((ok, fail) => {
+      img.onload = () => ok();
+      img.onerror = () => fail(new Error("decode failed"));
+      img.src = src;
+    });
+    // The <svg> carries explicit width/height, so naturalWidth is the design
+    // size — no viewBox maths needed.
+    const canvas = document.createElement("canvas");
+    canvas.width = img.naturalWidth * scale;
+    canvas.height = img.naturalHeight * scale;
+    const ctx = canvas.getContext("2d");
+    if (!ctx) return undefined;
+    ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+    const blob = await new Promise<Blob | null>((r) => canvas.toBlob(r, "image/png"));
+    return blob ? URL.createObjectURL(blob) : undefined;
+  } catch {
+    return undefined;
+  } finally {
+    URL.revokeObjectURL(src);
+  }
+}
+
 /** Share links keep the source in the fragment — it never reaches a server. */
 export function encodeShare(source: string): string {
   return btoa(String.fromCharCode(...new TextEncoder().encode(source)))

@@ -26,7 +26,11 @@ deterministic rendering. Pre-alpha; Phase 2 (see docs/PLAN.md §3).
   Rendered SVGs embed the subsetted Inter faces as `@font-face` data-URIs
   (`src/fonts.generated.ts`, family `SquinchInter`) so viewers draw the exact
   font the metrics were measured from; regenerate both with `npm run
-  gen-metrics` / `npm run gen-fonts` in core.
+  gen-metrics` / `npm run gen-fonts` in core. `gen-fonts` emits the same subset
+  twice — woff2 for the SVG, and `packages/core/fonts/*.ttf` for rasterizers
+  that can't read `@font-face`. **resvg is one of them**, so PNG export hands it
+  those files with `loadSystemFonts: false`; drop that and PNGs silently pick up
+  whatever font the machine has.
 - **Core is isomorphic**: shared code imports no `node:` builtins. Node registers
   disk packs via `src/index.ts`; browsers call `registerPack` + `preloadIcons`
   (`src/browser.ts`). Tests boot packs through `test/setup.ts`.
@@ -99,6 +103,8 @@ output survives, as a second-implementation oracle
 - `pnpm -r typecheck` — tsc across packages (CI runs this first).
 - `pnpm --filter @squinch/core build` — required before using the CLI binary.
 - `node packages/cli/bin/squinch.js <cmd>` — the CLI (check/render/icons/init/watch).
+  `render -o x.png` rasterizes via resvg (`src/raster.ts`); rebuild the CLI
+  (`pnpm --filter squinch build`) before testing the binary — `bin/` runs `dist/`.
 - `node packages/cli/bin/squinch.js render examples/orders --check` — dogfood gate;
   after any intentional renderer change, re-run `--sync` on both example projects
   and commit the SVGs, or CI fails.

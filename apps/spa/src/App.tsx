@@ -3,7 +3,7 @@ import { Editor, type EditorApi } from "./Editor";
 import { IconPalette } from "./IconPalette";
 import { Presenter } from "./Presenter";
 import { Stage, useReducedMotion, type Box, type Intent } from "./Stage";
-import { compile, decodeShare, encodeShare, type Preview } from "./squinch";
+import { compile, decodeShare, encodeShare, svgToPng, type Preview } from "./squinch";
 import { EXAMPLES } from "./examples";
 
 type Theme = "light" | "dark" | "sketch" | "sketch-dark" | "contrast";
@@ -156,15 +156,32 @@ export function App() {
     [crumbs, activeView],
   );
 
+  /** Hand a blob URL to the browser as a download. The URL is revoked on a
+   *  later tick, not immediately: the click only *starts* the save, and
+   *  revoking synchronously can pull the data out from under it. */
+  const save = useCallback((url: string, ext: string) => {
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `${activeView ?? "diagram"}.${theme}.${ext}`;
+    a.click();
+    setTimeout(() => URL.revokeObjectURL(url), 10_000);
+  }, [activeView, theme]);
+
   const download = useCallback(() => {
     if (!shown) return;
-    const blob = new Blob([shown], { type: "image/svg+xml" });
-    const a = document.createElement("a");
-    a.href = URL.createObjectURL(blob);
-    a.download = `${activeView ?? "diagram"}.${theme}.svg`;
-    a.click();
-    URL.revokeObjectURL(a.href);
-  }, [shown, activeView, theme]);
+    save(URL.createObjectURL(new Blob([shown], { type: "image/svg+xml" })), "svg");
+  }, [shown, save]);
+
+  const downloadPng = useCallback(async () => {
+    if (!shown) return;
+    // The browser is the rasterizer here, and it honours the @font-face our
+    // SVGs embed — so unlike the CLI there are no fonts to wire up. 2× because
+    // a PNG's whole reason to exist is being pasted somewhere, usually a
+    // retina screen.
+    const png = await svgToPng(shown, 2);
+    if (!png) return flash("Could not export PNG");
+    save(png, "png");
+  }, [shown, save]);
 
   const onPick = useCallback(
     (path: string, box: Box) => {
@@ -292,6 +309,9 @@ export function App() {
         </button>
         <button onClick={download} className={btn} title="⌘S">
           Export SVG
+        </button>
+        <button onClick={downloadPng} className={btn} title="Rasterize at 2× — for slides and docs">
+          PNG
         </button>
       </header>
 
