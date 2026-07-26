@@ -9,31 +9,41 @@
 <symbol id="sq-aws-opensearch-service" viewBox="0 0 80 80"><title>Icon-Architecture/64/Arch_Amazon-OpenSearch-Service_64</title><g id="aws-opensearch-service-Icon-Architecture/64/Arch_Amazon-OpenSearch-Service_64" stroke="none" stroke-width="1" fill="none" fill-rule="evenodd"><g id="aws-opensearch-service-Icon-Architecture-BG/64/Analytics" fill="#8C4FFF"><rect id="aws-opensearch-service-Rectangle" x="0" y="0" width="80" height="80"/></g><path d="M44.26,51.33 C39.843,51.33 36.25,47.737 36.25,43.321 C36.25,38.904 39.843,35.311 44.26,35.311 C48.677,35.311 52.27,38.904 52.27,43.321 C52.27,47.737 48.677,51.33 44.26,51.33 L44.26,51.33 Z M44.26,33.311 C38.74,33.311 34.25,37.801 34.25,43.321 C34.25,48.84 38.74,53.33 44.26,53.33 C49.78,53.33 54.27,48.84 54.27,43.321 C54.27,37.801 49.78,33.311 44.26,33.311 L44.26,33.311 Z M64.548,61.346 C63.897,62.067 62.777,62.127 62.052,61.477 L53.712,53.954 C54.593,53.17 55.384,52.29 56.049,51.313 L64.416,58.851 C65.139,59.503 65.197,60.624 64.548,61.346 L64.548,61.346 Z M32.011,43.321 C32.011,36.566 37.506,31.071 44.26,31.071 C51.014,31.071 56.509,36.566 56.509,43.321 C56.509,50.075 51.014,55.57 44.26,55.57 C37.506,55.57 32.011,50.075 32.011,43.321 L32.011,43.321 Z M57.063,49.535 C57.98,47.654 58.509,45.55 58.509,43.321 C58.509,35.463 52.117,29.071 44.26,29.071 C36.403,29.071 30.011,35.463 30.011,43.321 C30.011,51.178 36.403,57.57 44.26,57.57 C47.159,57.57 49.856,56.695 52.109,55.202 L60.714,62.964 C61.432,63.609 62.333,63.927 63.232,63.9260024 C64.263,63.9260024 65.29,63.508 66.034,62.685 C67.42,61.143 67.296,58.757 65.756,57.366 L57.063,49.535 Z M67,20 L67,54 L65,54 L65,21 L57,21 L57,32 L55,32 L55,20 C55,19.448 55.448,19 56,19 L66,19 C66.553,19 67,19.448 67,20 L67,20 Z M51,61 L53,61 L53,66 C53,66.553 52.553,67 52,67 L42,67 C41.447,67 41,66.553 41,66 L41,60 L43,60 L43,65 L51,65 L51,61 Z M43,26 L41,26 L41,14 C41,13.448 41.447,13 42,13 L52,13 C52.553,13 53,13.448 53,14 L53,28 L51,28 L51,15 L43,15 L43,26 Z M37,59 L39,59 L39,66 C39,66.553 38.553,67 38,67 L28,67 C27.448,67 27,66.553 27,66 L27,51 L29,51 L29,65 L37,65 L37,59 Z M29,36 L27,36 L27,23 C27,22.448 27.448,22 28,22 L38,22 C38.553,22 39,22.448 39,23 L39,27 L37,27 L37,24 L29,24 L29,36 Z M15,65 L23,65 L23,31 L15,31 L15,65 Z M24,29 L14,29 C13.448,29 13,29.448 13,30 L13,66 C13,66.553 13.448,67 14,67 L24,67 C24.553,67 25,66.553 25,66 L25,30 C25,29.448 24.553,29 24,29 L24,29 Z" id="aws-opensearch-service-Amazon-OpenSearch-Service_Icon_64_Squid" fill="#FFFFFF"/></g></symbol>
 <symbol id="sq-aws-simple-storage-service" viewBox="0 0 80 80"><title>Icon-Architecture/64/Arch_Amazon-Simple-Storage-Service_64</title><g id="aws-simple-storage-service-Icon-Architecture/64/Arch_Amazon-Simple-Storage-Service_64" stroke="none" stroke-width="1" fill="none" fill-rule="evenodd"><g id="aws-simple-storage-service-Icon-Architecture-BG/64/Storage" fill="#7AA116"><rect id="aws-simple-storage-service-Rectangle" x="0" y="0" width="80" height="80"/></g><g id="aws-simple-storage-service-Icon-Service/64/Amazon-Simple-Storage-Service_64" transform="translate(12.999900, 11.999600)" fill="#FFFFFF"><path d="M47.836,30.893 L48.22,28.189 C51.761,30.31 51.807,31.186 51.8060132,31.21 C51.8,31.215 51.196,31.719 47.836,30.893 L47.836,30.893 Z M45.893,30.353 C39.773,28.501 31.25,24.591 27.801,22.961 C27.801,22.947 27.805,22.934 27.805,22.92 C27.805,21.595 26.727,20.517 25.401,20.517 C24.077,20.517 22.999,21.595 22.999,22.92 C22.999,24.245 24.077,25.323 25.401,25.323 C25.983,25.323 26.511,25.106 26.928,24.761 C30.986,26.682 39.443,30.535 45.608,32.355 L43.17,49.561 C43.163,49.608 43.16,49.655 43.16,49.702 C43.16,51.217 36.453,54 25.494,54 C14.419,54 7.641,51.217 7.641,49.702 C7.641,49.656 7.638,49.611 7.632,49.566 L2.538,12.359 C6.947,15.394 16.43,17 25.5,17 C34.556,17 44.023,15.4 48.441,12.374 L45.893,30.353 Z M2,8.478 C2.072,7.162 9.634,2 25.5,2 C41.364,2 48.927,7.161 49,8.478 L49,8.927 C48.13,11.878 38.33,15 25.5,15 C12.648,15 2.843,11.868 2,8.913 L2,8.478 Z M51,8.5 C51,5.035 41.066,0 25.5,0 C9.934,0 0,5.035 0,8.5 L0.094,9.254 L5.642,49.778 C5.775,54.31 17.861,56 25.494,56 C34.966,56 45.029,53.822 45.159,49.781 L47.555,32.884 C48.888,33.203 49.985,33.366 50.866,33.366 C52.049,33.366 52.849,33.077 53.334,32.499 C53.732,32.025 53.884,31.451 53.77,30.84 C53.511,29.456 51.868,27.964 48.522,26.055 L50.898,9.293 L51,8.5 Z" id="aws-simple-storage-service-Amazon-Simple-Storage-Service-Icon_64_Squid"/></g></g></symbol>
 </defs>
-<g><path d="M 428 96 L 428 112 Q 428 120 420 120 L 248 120 Q 240 120 240 128 L 240 152" fill="none" stroke="#8A897F" stroke-width="1.5"/>
+<g>
+<path d="M 428 96 L 428 112 Q 428 120 420 120 L 248 120 Q 240 120 240 128 L 240 152" fill="none" stroke="#8A897F" stroke-width="1.5"/>
 <path d="M 240 152 L 246 144 L 234 144 Z" fill="#8A897F"/>
 </g>
-<g><path d="M 468 96 L 468 152" fill="none" stroke="#8A897F" stroke-width="1.5"/>
+<g>
+<path d="M 468 96 L 468 152" fill="none" stroke="#8A897F" stroke-width="1.5"/>
 <path d="M 468 152 L 474 144 L 462 144 Z" fill="#8A897F"/>
 </g>
-<g><path d="M 508 96 L 508 112 Q 508 120 516 120 L 688 120 Q 696 120 696 128 L 696 152" fill="none" stroke="#8A897F" stroke-width="1.5"/>
+<g>
+<path d="M 508 96 L 508 112 Q 508 120 516 120 L 688 120 Q 696 120 696 128 L 696 152" fill="none" stroke="#8A897F" stroke-width="1.5"/>
 <path d="M 696 152 L 702 144 L 690 144 Z" fill="#8A897F"/>
 </g>
-<g><path d="M 190 216 L 190 232 Q 190 240 182 240 L 93 240 Q 85 240 85 248 L 85 284" fill="none" stroke="#8A897F" stroke-width="1.5"/>
+<g>
+<path d="M 190 216 L 190 232 Q 190 240 182 240 L 93 240 Q 85 240 85 248 L 85 284" fill="none" stroke="#8A897F" stroke-width="1.5"/>
 <path d="M 85 284 L 91 276 L 79 276 Z" fill="#8A897F"/>
 </g>
-<g><path d="M 290 216 L 290 232 Q 290 240 298 240 L 500 240 Q 508 240 508 248 L 508 284" fill="none" stroke="#8A897F" stroke-width="1.5"/>
+<g>
+<path d="M 290 216 L 290 232 Q 290 240 298 240 L 500 240 Q 508 240 508 248 L 508 284" fill="none" stroke="#8A897F" stroke-width="1.5"/>
 <path d="M 508 284 L 514 276 L 502 276 Z" fill="#8A897F"/>
 </g>
-<g><path d="M 468 216 L 468 242 Q 468 250 460 250 L 147 250 Q 139 250 139 258 L 139 284" fill="none" stroke="#8A897F" stroke-width="1.5"/>
+<g>
+<path d="M 468 216 L 468 236" fill="none" stroke="#8A897F" stroke-width="1.5"/>
+<path d="M 468 244 L 468 247 Q 468 250 465 250 L 147 250 Q 139 250 139 258 L 139 284" fill="none" stroke="#8A897F" stroke-width="1.5"/>
 <path d="M 139 284 L 145 276 L 133 276 Z" fill="#8A897F"/>
 </g>
-<g><path d="M 696 216 L 696 284" fill="none" stroke="#8A897F" stroke-width="1.5"/>
+<g>
+<path d="M 696 216 L 696 284" fill="none" stroke="#8A897F" stroke-width="1.5"/>
 <path d="M 696 284 L 702 276 L 690 276 Z" fill="#8A897F"/>
 </g>
-<g><path class="sq-flow" d="M 192 316 L 240 316" fill="none" stroke="#7C74D9" stroke-width="1.5" stroke-dasharray="6 4"/>
+<g>
+<path class="sq-flow" d="M 192 316 L 240 316" fill="none" stroke="#7C74D9" stroke-width="1.5" stroke-dasharray="6 4"/>
 <path d="M 232 322 L 240 316 L 232 310" fill="none" stroke="#7C74D9" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
 </g>
-<g><path d="M 320 348 L 320 364 Q 320 372 328 372 L 688 372 Q 696 372 696 364 L 696 348" fill="none" stroke="#8A897F" stroke-width="1.5"/>
+<g>
+<path d="M 320 348 L 320 364 Q 320 372 328 372 L 688 372 Q 696 372 696 364 L 696 348" fill="none" stroke="#8A897F" stroke-width="1.5"/>
 <path d="M 696 348 L 690 356 L 702 356 Z" fill="#8A897F"/>
 </g>
 <g data-path="orders.api" data-kind="leaf">

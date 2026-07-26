@@ -16,25 +16,32 @@
 <symbol id="sq-sys-search" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><circle cx="10.5" cy="10.5" r="5.5"/><path d="m14.7 14.7 5.3 5.3"/></g></symbol>
 <symbol id="sq-sys-webapp" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4.5" width="18" height="15" rx="2"/><path d="M3 9h18"/><circle cx="5.9" cy="6.75" r="0.8" fill="currentColor" stroke="none"/><circle cx="8.4" cy="6.75" r="0.8" fill="currentColor" stroke="none"/></g></symbol>
 </defs>
-<g><path d="M 420 96 L 420 152" fill="none" stroke="#8A897F" stroke-width="1.5"/>
+<g>
+<path d="M 420 96 L 420 152" fill="none" stroke="#8A897F" stroke-width="1.5"/>
 <path d="M 420 152 L 426 144 L 414 144 Z" fill="#8A897F"/>
 </g>
-<g><path d="M 420 240 L 420 296" fill="none" stroke="#8A897F" stroke-width="1.5"/>
+<g>
+<path d="M 420 240 L 420 296" fill="none" stroke="#8A897F" stroke-width="1.5"/>
 <path d="M 420 296 L 426 288 L 414 288 Z" fill="#8A897F"/>
 </g>
-<g><path d="M 370 360 L 370 376 Q 370 384 362 384 L 160 384 Q 152 384 152 392 L 152 416" fill="none" stroke="#8A897F" stroke-width="1.5"/>
+<g>
+<path d="M 370 360 L 370 376 Q 370 384 362 384 L 160 384 Q 152 384 152 392 L 152 416" fill="none" stroke="#8A897F" stroke-width="1.5"/>
 <path d="M 152 416 L 158 408 L 146 408 Z" fill="#8A897F"/>
 </g>
-<g><path d="M 420 360 L 420 416" fill="none" stroke="#8A897F" stroke-width="1.5"/>
+<g>
+<path d="M 420 360 L 420 416" fill="none" stroke="#8A897F" stroke-width="1.5"/>
 <path d="M 420 416 L 426 408 L 414 408 Z" fill="#8A897F"/>
 </g>
-<g><path d="M 470 360 L 470 376 Q 470 384 478 384 L 660 384 Q 668 384 668 392 L 668 416" fill="none" stroke="#8A897F" stroke-width="1.5"/>
+<g>
+<path d="M 470 360 L 470 376 Q 470 384 478 384 L 660 384 Q 668 384 668 392 L 668 416" fill="none" stroke="#8A897F" stroke-width="1.5"/>
 <path d="M 668 416 L 674 408 L 662 408 Z" fill="#8A897F"/>
 </g>
-<g><path d="M 320 460 L 272 460" fill="none" stroke="#8A897F" stroke-width="1.5"/>
+<g>
+<path d="M 320 460 L 272 460" fill="none" stroke="#8A897F" stroke-width="1.5"/>
 <path d="M 272 460 L 280 454 L 280 466 Z" fill="#8A897F"/>
 </g>
-<g><path d="M 520 460 L 568 460" fill="none" stroke="#8A897F" stroke-width="1.5"/>
+<g>
+<path d="M 520 460 L 568 460" fill="none" stroke="#8A897F" stroke-width="1.5"/>
 <path d="M 568 460 L 560 466 L 560 454 Z" fill="#8A897F"/>
 </g>
 <g data-path="customer" data-kind="leaf">

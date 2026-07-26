@@ -16,13 +16,16 @@
 <g data-kind="zone" data-zone="onprem" data-zone-kind="onprem"><rect x="32" y="32" width="408" height="112" rx="8" fill="#8F8C82" fill-opacity="0.04" stroke="#8F8C82" stroke-width="1.5" stroke-dasharray="8 5"/></g>
 <g data-kind="zone" data-zone="cloud" data-zone-kind="cloud"><rect x="140" y="210" width="340" height="333" rx="8" fill="#9C93E8" fill-opacity="0.04" stroke="#9C93E8" stroke-width="1.5" stroke-dasharray="8 5"/></g>
 <g data-kind="zone" data-zone="vpc1" data-zone-kind="vpc"><rect x="160" y="387" width="280" height="136" rx="8" fill="#6E9CD0" fill-opacity="0.04" stroke="#6E9CD0" stroke-width="1.5" stroke-dasharray="8 5"/></g>
-<g><path class="sq-flow" d="M 340 124 L 340 238" fill="none" stroke="#968EE8" stroke-width="1.5" stroke-dasharray="6 4"/>
+<g>
+<path class="sq-flow" d="M 340 124 L 340 238" fill="none" stroke="#968EE8" stroke-width="1.5" stroke-dasharray="6 4"/>
 <path d="M 346 230 L 340 238 L 334 230" fill="none" stroke="#968EE8" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
 </g>
-<g><path d="M 340 326 L 340 415" fill="none" stroke="#8D8C84" stroke-width="1.5"/>
+<g>
+<path d="M 340 326 L 340 415" fill="none" stroke="#8D8C84" stroke-width="1.5"/>
 <path d="M 340 415 L 346 407 L 334 407 Z" fill="#8D8C84"/>
 </g>
-<g><path d="M 132 124 L 132 165 Q 132 173 140 173 L 201 173 Q 209 173 209 181 L 209 328 Q 209 336 217 336 L 252 336 Q 260 336 260 344 L 260 415" fill="none" stroke="#8D8C84" stroke-width="1.5"/>
+<g>
+<path d="M 132 124 L 132 165 Q 132 173 140 173 L 201 173 Q 209 173 209 181 L 209 328 Q 209 336 217 336 L 252 336 Q 260 336 260 344 L 260 415" fill="none" stroke="#8D8C84" stroke-width="1.5"/>
 <path d="M 260 415 L 266 407 L 254 407 Z" fill="#8D8C84"/>
 </g>
 <g data-path="ops" data-kind="leaf">

@@ -9,10 +9,12 @@
 <symbol id="sq-sys-database" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><ellipse cx="12" cy="6" rx="7" ry="2.75"/><path d="M5 6v12c0 1.52 3.13 2.75 7 2.75s7-1.23 7-2.75V6"/><path d="M5 12c0 1.52 3.13 2.75 7 2.75s7-1.23 7-2.75"/></g></symbol>
 <symbol id="sq-sys-service" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3.5 19 7.75v8.5L12 20.5 5 16.25v-8.5Z"/></g></symbol>
 </defs>
-<g><path d="M 132 96 L 132 152" fill="none" stroke="#8A897F" stroke-width="1.5"/>
+<g>
+<path d="M 132 96 L 132 152" fill="none" stroke="#8A897F" stroke-width="1.5"/>
 <path d="M 132 152 L 138 144 L 126 144 Z" fill="#8A897F"/>
 </g>
-<g><path d="M 132 240 L 132 296" fill="none" stroke="#8A897F" stroke-width="1.5"/>
+<g>
+<path d="M 132 240 L 132 296" fill="none" stroke="#8A897F" stroke-width="1.5"/>
 <path d="M 132 296 L 138 288 L 126 288 Z" fill="#8A897F"/>
 </g>
 <g data-path="ops" data-kind="leaf">

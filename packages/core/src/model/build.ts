@@ -446,7 +446,7 @@ export function buildProject(files: ProjectFile[]): BuildResult {
       name,
       include: [], includeStar: false, exclude: [], expand: [],
       context: "auto", highlight: [], showDescriptions: false, legend: false, notes: [],
-      layout: { place: [], routes: [] },
+      layout: { place: [], routes: [], align: [] },
       loc: ctx.loc(v), file: ctx.name,
     };
     const scopeStmt = body.getChildren("ScopeStmt")[0];
@@ -544,8 +544,14 @@ export function buildProject(files: ProjectFile[]): BuildResult {
           view.layout.lines = val;
         else error(ctx, lin, `unknown lines style \`${val}\``, "use orthogonal | curved | straight");
       }
-      for (const al of lb.getChildren("AlignStmt"))
-        warn(ctx, al, "`align` is not implemented yet — parsed and ignored for now");
+      for (const al of lb.getChildren("AlignStmt")) {
+        const nodes = al.getChildren("Path")
+          .map((pathNode) => resolve(ctx.text(pathNode), inScope, pathNode, ctx))
+          .filter((r): r is string => !!r);
+        if (nodes.length >= 2) view.layout.align.push({ nodes, loc: ctx.loc(al) });
+        else if (nodes.length === 1)
+          warn(ctx, al, "`align` needs at least two elements", "align a b — b takes a's axis");
+      }
       const rowsStmt = lb.getChildren("RowsStmt")[0];
       if (rowsStmt) {
         const rows: string[][] = [];
@@ -632,7 +638,7 @@ export function buildProject(files: ProjectFile[]): BuildResult {
       auto: true,
       include: [], includeStar: false, exclude: [], expand: [],
       context: "auto", highlight: [], showDescriptions: false, legend: false, notes: [],
-      layout: { place: [], routes: [] },
+      layout: { place: [], routes: [], align: [] },
       loc: model.containers.get(path)!.loc,
       file: model.containers.get(path)!.file,
     });

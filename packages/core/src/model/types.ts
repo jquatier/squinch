@@ -89,6 +89,8 @@ export interface SView {
     lines?: "orthogonal" | "curved" | "straight";
     rows?: string[][]; // resolved paths
     place: { node: string; relpos: RelPos; target: string; loc: Loc }[];
+    /** `align a b c` — b and c share a's axis exactly (a is the anchor). */
+    align: { nodes: string[]; loc: Loc }[];
     routes: { from: string; to: string; label?: string; fromSide?: Side; toSide?: Side; loc: Loc }[];
   };
   loc: Loc;

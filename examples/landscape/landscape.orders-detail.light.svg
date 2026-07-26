@@ -11,19 +11,24 @@
 </defs>
 <rect data-path="orders.handlers" data-kind="frame" x="32" y="301" width="304" height="124" rx="8" fill="#EFEFEC" stroke="#D8D7D3" stroke-width="1"/>
 <text x="46" y="325" font-size="13" font-weight="500" fill="#6F6E69">API Handlers</text>
-<g><path d="M 206 240 L 206 256 Q 206 264 198 264 L 116 264 Q 108 264 108 272 L 108 345" fill="none" stroke="#8A897F" stroke-width="1.5"/>
+<g>
+<path d="M 206 240 L 206 256 Q 206 264 198 264 L 116 264 Q 108 264 108 272 L 108 345" fill="none" stroke="#8A897F" stroke-width="1.5"/>
 <path d="M 108 345 L 114 337 L 102 337 Z" fill="#8A897F"/>
 </g>
-<g><path d="M 260 240 L 260 345" fill="none" stroke="#8A897F" stroke-width="1.5"/>
+<g>
+<path d="M 260 240 L 260 345" fill="none" stroke="#8A897F" stroke-width="1.5"/>
 <path d="M 260 345 L 266 337 L 254 337 Z" fill="#8A897F"/>
 </g>
-<g><path d="M 108 409 L 108 446 Q 108 454 116 454 L 198 454 Q 206 454 206 462 L 206 486" fill="none" stroke="#8A897F" stroke-width="1.5"/>
+<g>
+<path d="M 108 409 L 108 446 Q 108 454 116 454 L 198 454 Q 206 454 206 462 L 206 486" fill="none" stroke="#8A897F" stroke-width="1.5"/>
 <path d="M 206 486 L 212 478 L 200 478 Z" fill="#8A897F"/>
 </g>
-<g><path d="M 260 409 L 260 486" fill="none" stroke="#8A897F" stroke-width="1.5"/>
+<g>
+<path d="M 260 409 L 260 486" fill="none" stroke="#8A897F" stroke-width="1.5"/>
 <path d="M 260 486 L 266 478 L 254 478 Z" fill="#8A897F"/>
 </g>
-<g><path d="M 233 120 L 233 176" fill="none" stroke="#8A897F" stroke-width="1.5"/>
+<g>
+<path d="M 233 120 L 233 176" fill="none" stroke="#8A897F" stroke-width="1.5"/>
 <path d="M 233 176 L 239 168 L 227 168 Z" fill="#8A897F"/>
 </g>
 <g data-path="orders.handlers.create" data-kind="leaf">

@@ -12,28 +12,36 @@
 <symbol id="sq-sys-auth" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><rect x="5.5" y="10.5" width="13" height="9.5" rx="1.5"/><path d="M8.5 10.5V8c0-2 1.5-3.5 3.5-3.5S15.5 6 15.5 8v2.5"/><circle cx="12" cy="15.25" r="1.1" fill="currentColor" stroke="none"/></g></symbol>
 <symbol id="sq-sys-search" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><circle cx="10.5" cy="10.5" r="5.5"/><path d="m14.7 14.7 5.3 5.3"/></g></symbol>
 </defs>
-<g><path d="M 352 216 L 352 232 Q 352 240 344 240 L 40 240 Q 32 240 32 248 L 32 378 Q 32 386 40 386 L 86 386 Q 94 386 94 394 L 94 420" fill="none" stroke="#8A897F" stroke-width="1.5"/>
+<g>
+<path d="M 352 216 L 352 232 Q 352 240 344 240 L 40 240 Q 32 240 32 248 L 32 378 Q 32 386 40 386 L 86 386 Q 94 386 94 394 L 94 420" fill="none" stroke="#8A897F" stroke-width="1.5"/>
 <path d="M 94 420 L 100 412 L 88 412 Z" fill="#8A897F"/>
 </g>
-<g><path class="sq-flow" d="M 378 216 L 378 242 Q 378 250 370 250 L 165 250 Q 157 250 157 258 L 157 290" fill="none" stroke="#7C74D9" stroke-width="1.5" stroke-dasharray="6 4"/>
+<g>
+<path class="sq-flow" d="M 378 216 L 378 242 Q 378 250 370 250 L 165 250 Q 157 250 157 258 L 157 290" fill="none" stroke="#7C74D9" stroke-width="1.5" stroke-dasharray="6 4"/>
 <path d="M 163 282 L 157 290 L 151 282" fill="none" stroke="#7C74D9" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
 </g>
-<g><path class="sq-flow" d="M 257 322 L 305 322" fill="none" stroke="#7C74D9" stroke-width="1.5" stroke-dasharray="6 4"/>
+<g>
+<path class="sq-flow" d="M 257 322 L 305 322" fill="none" stroke="#7C74D9" stroke-width="1.5" stroke-dasharray="6 4"/>
 <path d="M 297 328 L 305 322 L 297 316" fill="none" stroke="#7C74D9" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
 </g>
-<g><path d="M 372 354 L 372 378 Q 372 386 364 386 L 162 386 Q 154 386 154 394 L 154 420" fill="none" stroke="#8A897F" stroke-width="1.5"/>
+<g>
+<path d="M 372 354 L 372 378 Q 372 386 364 386 L 162 386 Q 154 386 154 394 L 154 420" fill="none" stroke="#8A897F" stroke-width="1.5"/>
 <path d="M 154 420 L 160 412 L 148 412 Z" fill="#8A897F"/>
 </g>
-<g><path d="M 405 96 L 405 152" fill="none" stroke="#8A897F" stroke-width="1.5"/>
+<g>
+<path d="M 405 96 L 405 152" fill="none" stroke="#8A897F" stroke-width="1.5"/>
 <path d="M 405 152 L 411 144 L 399 144 Z" fill="#8A897F"/>
 </g>
-<g><path d="M 458 216 L 458 232 Q 458 240 466 240 L 769 240 Q 777 240 777 248 L 777 378 Q 777 386 769 386 L 506 386 Q 498 386 498 394 L 498 420" fill="none" stroke="#8A897F" stroke-width="1.5"/>
+<g>
+<path d="M 458 216 L 458 232 Q 458 240 466 240 L 769 240 Q 777 240 777 248 L 777 378 Q 777 386 769 386 L 506 386 Q 498 386 498 394 L 498 420" fill="none" stroke="#8A897F" stroke-width="1.5"/>
 <path d="M 498 420 L 504 412 L 492 412 Z" fill="#8A897F"/>
 </g>
-<g><path d="M 438 354 L 438 420" fill="none" stroke="#8A897F" stroke-width="1.5"/>
+<g>
+<path d="M 438 354 L 438 420" fill="none" stroke="#8A897F" stroke-width="1.5"/>
 <path d="M 438 420 L 444 412 L 432 412 Z" fill="#8A897F"/>
 </g>
-<g><path d="M 432 216 L 432 242 Q 432 250 440 250 L 645 250 Q 653 250 653 258 L 653 274" fill="none" stroke="#8A897F" stroke-width="1.5"/>
+<g>
+<path d="M 432 216 L 432 242 Q 432 250 440 250 L 645 250 Q 653 250 653 258 L 653 274" fill="none" stroke="#8A897F" stroke-width="1.5"/>
 <path d="M 653 274 L 659 266 L 647 266 Z" fill="#8A897F"/>
 </g>
 <g data-path="orders.api" data-kind="leaf">

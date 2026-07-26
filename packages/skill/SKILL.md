@@ -131,6 +131,7 @@ view shop {
     lines orthogonal                  // orthogonal (default) | curved | straight
     rows [api] [create get search] [db files idx]   // pin rank + order
     place sync right-of db            // right-of | left-of | above | below
+    align gw db                       // exact shared axis; first one is the anchor
     route db ~> sync from east to west              // which side an edge exits/enters
     route api -> db "write" from south              // label disambiguates parallels
   }
@@ -151,6 +152,7 @@ view shop {
 | Layers feel arbitrary / related things scattered | Add `rows`, one group per conceptual tier (entry, handlers, storage) |
 | One node belongs beside another (stream sync, DLQ, cache) | `place X right-of Y` and route the connecting edge `from east to west` |
 | Edge exits a silly side | `route a -> b from south to north` (sides: north/south/east/west) |
+| A wire jogs slightly instead of running straight | `align a b` — b takes a's axis exactly (a is the anchor) |
 | Diagram too cramped / too airy | `density spacious` / `density compact` |
 | Too many boxes at once | Split into views: a landscape with `include *`, plus per-system views |
 | Show only one concern (PCI, GDPR, a team) | Tag the elements, then `include #pci` / `exclude #deprecated` — inherited tags count |

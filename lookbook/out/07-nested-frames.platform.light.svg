@@ -12,16 +12,20 @@
 <text x="46" y="181" font-size="13" font-weight="500" fill="#6F6E69">Ingestion</text>
 <rect data-path="platform.store" data-kind="frame" x="52" y="451" width="152" height="228" rx="8" fill="#EFEFEC" stroke="#D8D7D3" stroke-width="1"/>
 <text x="66" y="475" font-size="13" font-weight="500" fill="#6F6E69">Storage</text>
-<g><path class="sq-flow" d="M 128 265 L 128 305" fill="none" stroke="#7C74D9" stroke-width="1.5" stroke-dasharray="6 4"/>
+<g>
+<path class="sq-flow" d="M 128 265 L 128 305" fill="none" stroke="#7C74D9" stroke-width="1.5" stroke-dasharray="6 4"/>
 <path d="M 134 297 L 128 305 L 122 297" fill="none" stroke="#7C74D9" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
 </g>
-<g><path d="M 128 559 L 128 599" fill="none" stroke="#8A897F" stroke-width="1.5"/>
+<g>
+<path d="M 128 559 L 128 599" fill="none" stroke="#8A897F" stroke-width="1.5"/>
 <path d="M 128 599 L 134 591 L 122 591 Z" fill="#8A897F"/>
 </g>
-<g><path d="M 128 96 L 128 201" fill="none" stroke="#8A897F" stroke-width="1.5"/>
+<g>
+<path d="M 128 96 L 128 201" fill="none" stroke="#8A897F" stroke-width="1.5"/>
 <path d="M 128 201 L 134 193 L 122 193 Z" fill="#8A897F"/>
 </g>
-<g><path class="sq-flow" d="M 128 369 L 128 495" fill="none" stroke="#7C74D9" stroke-width="1.5" stroke-dasharray="6 4"/>
+<g>
+<path class="sq-flow" d="M 128 369 L 128 495" fill="none" stroke="#7C74D9" stroke-width="1.5" stroke-dasharray="6 4"/>
 <path d="M 134 487 L 128 495 L 122 487" fill="none" stroke="#7C74D9" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
 </g>
 <g data-path="platform.ingest.recv" data-kind="leaf">

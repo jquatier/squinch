@@ -135,3 +135,9 @@ committing a visual change. What looks bad here becomes the next fix.
 | light | dark |
 |---|---|
 | ![](out/19-glyphs.sheet.light.svg) | ![](out/19-glyphs.sheet.dark.svg) |
+
+## 20-align-hops — `s`
+
+| light | dark |
+|---|---|
+| ![](out/20-align-hops.s.light.svg) | ![](out/20-align-hops.s.dark.svg) |

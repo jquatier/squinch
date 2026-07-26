@@ -509,6 +509,93 @@ export async function layoutView(
   const coplanarById = new Map(coplanarEdges.map((e) => [e.id, e]));
   const pEdges: PEdge[] = edges.map((e) => elkPositioned.get(e.id) ?? coplanarById.get(e.id)!);
 
+  // ── align (SPEC §6): an exact shared axis ─────────────────────────────────
+  // ELK gets within ~7px and no further (spiked: scaffold edges,
+  // favorStraightEdges and straightness priority all plateau there), and
+  // "almost aligned" is precisely what DESIGN §1.4 forbids — so the final
+  // snap is ours, same boundary as the coplanar router. The first-listed
+  // element is the anchor; the rest move onto its axis.
+  if (view.layout.align.length) {
+    const axis: "x" | "y" = view.layout.direction === "right" ? "y" : "x";
+    const cross: "x" | "y" = axis === "x" ? "y" : "x";
+    const span = axis === "x" ? "w" : "h";
+    const nodeByPath = new Map(nodes.map((n) => [n.path, n]));
+    const centre = (n: PNode) => n[axis] + Math.round(n[span] / 2);
+
+    /** Shift the run of points anchored at one end of an edge. */
+    const shiftEnd = (e: PEdge, atStart: boolean, d: number) => {
+      const pts = e.points;
+      const endVal = atStart ? pts[0][axis] : pts[pts.length - 1][axis];
+      let run = 0;
+      while (
+        run < pts.length &&
+        (atStart ? pts[run] : pts[pts.length - 1 - run])[axis] === endVal
+      ) run++;
+      if (run >= pts.length) {
+        // a dead-straight edge: it must gain a jog, or it would go diagonal
+        const a = atStart ? pts[0] : pts[pts.length - 1];
+        const b = atStart ? pts[pts.length - 1] : pts[0];
+        const mid = Math.round((a[cross] + b[cross]) / 2);
+        const mk = (av: number, cv: number) =>
+          (axis === "x" ? { x: av, y: cv } : { x: cv, y: av });
+        const moved = [
+          mk(a[axis] + d, a[cross]), mk(a[axis] + d, mid),
+          mk(b[axis], mid), mk(b[axis], b[cross]),
+        ];
+        e.points = atStart ? moved : moved.reverse();
+        return;
+      }
+      for (let i = 0; i < run; i++) {
+        const pt = atStart ? pts[i] : pts[pts.length - 1 - i];
+        pt[axis] += d;
+      }
+    };
+
+    for (const group of view.layout.align) {
+      const anchor = nodeByPath.get(group.nodes[0]);
+      if (!anchor) continue;
+      const target = centre(anchor);
+      for (const path of group.nodes.slice(1)) {
+        const n = nodeByPath.get(path);
+        if (!n) continue;
+        const d = target - centre(n);
+        if (d === 0) continue;
+        if (byPath.get(path)?.frame) {
+          diagnostics.push({
+            severity: "warning",
+            message: `align skipped \`${path}\` — it sits inside an expanded container`,
+            fix: `align the container itself, or drop the expand in this view`,
+            loc: group.loc,
+          });
+          continue;
+        }
+        // never create an overlap to satisfy a hint
+        const moved = { ...n, [axis]: n[axis] + d } as PNode;
+        const clash = nodes.find(
+          (o) =>
+            o.path !== path && o.rank === n.rank &&
+            moved.x < o.x + o.w + 16 && moved.x + moved.w + 16 > o.x &&
+            moved.y < o.y + o.h + 16 && moved.y + moved.h + 16 > o.y,
+        );
+        if (clash) {
+          diagnostics.push({
+            severity: "warning",
+            message: `align skipped \`${path}\` — moving it onto \`${group.nodes[0]}\`'s axis would collide with \`${clash.path}\``,
+            fix: `reorder that row, or align \`${clash.path}\` too`,
+            loc: group.loc,
+          });
+          continue;
+        }
+        n[axis] += d;
+        for (const pt of ports) if (pt.node === path) pt[axis] += d;
+        for (const e of pEdges) {
+          if (e.from === path) shiftEnd(e, true, d);
+          if (e.to === path) shiftEnd(e, false, d);
+        }
+      }
+    }
+  }
+
   const height = Math.max(
     q(out.height),
     ...pEdges.flatMap((e) => e.points.map((p) => p.y + 32)),
@@ -516,7 +603,9 @@ export async function layoutView(
 
   return {
     positioned: {
-      name: view.name, width: q(out.width), height, nodes, edges: pEdges, ports, frames,
+      name: view.name,
+      width: Math.max(q(out.width), ...nodes.map((n) => n.x + n.w + 32)),
+      height, nodes, edges: pEdges, ports, frames,
       zones: pZones,
       flow: graph.flow,
       lines: view.layout.lines ?? "orthogonal",

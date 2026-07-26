@@ -1,0 +1,113 @@
+// align (SPEC §6): an EXACT shared axis — ELK plateaus ~7px off, which is the
+// one thing DESIGN §1.4 forbids, so layout snaps it. Crossing hops (DESIGN
+// §4): crossings break the later edge so they can't read as junctions.
+import { describe, it, expect } from "vitest";
+import { buildModel, layoutView, render } from "../src/index.js";
+import { validateSVG } from "../src/render/validate.js";
+
+const SRC = `pack aws
+system s "S" {
+  gw = aws/api-gateway "Gateway Service"
+  a  = aws/lambda "A"
+  b  = aws/lambda "B"
+  c  = aws/lambda "C"
+  db = aws/dynamodb "Orders" datastore
+  gw -> a, b, c
+  b -> db
+}
+view s {
+  layout {
+    rows [gw] [a b c] [db]
+    align gw db
+  }
+}
+`;
+
+const centre = (n: { x: number; w: number }) => n.x + Math.round(n.w / 2);
+
+describe("align", () => {
+  it("puts the aligned node on the anchor's axis exactly", async () => {
+    const built = buildModel(SRC);
+    expect(built.ok).toBe(true);
+    const view = built.model.views.find((v) => v.name === "s")!;
+    const { positioned } = await layoutView(built.model, view);
+    const gw = positioned.nodes.find((n) => n.path === "s.gw")!;
+    const db = positioned.nodes.find((n) => n.path === "s.db")!;
+    expect(centre(db)).toBe(centre(gw)); // exact, not "close"
+  });
+
+  it("keeps edges attached to the node it moved", async () => {
+    const r = await render(SRC, { view: "s", theme: "light" });
+    expect(r.ok).toBe(true);
+    expect(validateSVG(r.svg!).ok).toBe(true);
+    const built = buildModel(SRC);
+    const { positioned } = await layoutView(built.model, built.model.views.find((v) => v.name === "s")!);
+    const db = positioned.nodes.find((n) => n.path === "s.db")!;
+    const into = positioned.edges.find((e) => e.to === "s.db")!;
+    const tip = into.points[into.points.length - 1];
+    // the arrow still lands on the node's top edge
+    expect(tip.x).toBeGreaterThanOrEqual(db.x);
+    expect(tip.x).toBeLessThanOrEqual(db.x + db.w);
+    expect(Math.abs(tip.y - db.y)).toBeLessThanOrEqual(2);
+    // and every segment stayed axis-aligned (no diagonals introduced)
+    for (const e of positioned.edges)
+      for (let i = 0; i < e.points.length - 1; i++) {
+        const p = e.points[i], q = e.points[i + 1];
+        expect(p.x === q.x || p.y === q.y, `diagonal in ${e.id}`).toBe(true);
+      }
+  });
+
+  it("refuses to create an overlap, and says why", async () => {
+    // aligning `a` onto gw's axis would drop it on top of `b`
+    const src = SRC.replace("align gw db", "align gw a");
+    const built = buildModel(src);
+    const { diagnostics } = await layoutView(built.model, built.model.views.find((v) => v.name === "s")!);
+    const d = diagnostics.find((x) => x.message.includes("align skipped"));
+    expect(d?.message).toContain("would collide");
+    expect(d?.fix).toBeTruthy();
+  });
+
+  it("align with one element warns", () => {
+    const r = buildModel(SRC.replace("align gw db", "align gw"));
+    expect(r.diagnostics.some((d) => d.message.includes("needs at least two"))).toBe(true);
+  });
+});
+
+describe("crossing hops", () => {
+  it("breaks the later edge where two unrelated wires cross", async () => {
+    // a deliberate crossing: two independent pairs whose wires must cross
+    const src = `pack aws
+system s "S" {
+  a1 = aws/lambda "A1"
+  b1 = aws/lambda "B1"
+  a2 = aws/lambda "A2"
+  b2 = aws/lambda "B2"
+  a1 -> b2
+  a2 -> b1
+}
+view s { layout { rows [a1 a2] [b1 b2] } }
+`;
+    const r = await render(src, { view: "s", theme: "light" });
+    expect(r.ok).toBe(true);
+    expect(validateSVG(r.svg!).ok).toBe(true);
+    // 2 edges but 3 path elements — one edge was split by a hop
+    const edgePaths = r.svg!.match(/<path d="M[^"]*" fill="none" stroke="#8A897F"/g) ?? [];
+    expect(edgePaths.length).toBeGreaterThan(2);
+  });
+
+  it("never hops where edges merely share a node", async () => {
+    const src = `pack aws
+system s "S" {
+  gw = aws/lambda "GW"
+  a = aws/lambda "A"
+  b = aws/lambda "B"
+  gw -> a
+  gw -> b
+}
+view s { layout { rows [gw] [a b] } }
+`;
+    const r = await render(src, { view: "s", theme: "light" });
+    const edgePaths = r.svg!.match(/<path d="M[^"]*" fill="none" stroke="#8A897F"/g) ?? [];
+    expect(edgePaths.length).toBe(2); // untouched — a junction, not a crossing
+  });
+});

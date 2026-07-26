@@ -1,0 +1,24 @@
+// Two craft rules at once: `align` snaps entry and store onto one exact
+// axis (ELK alone leaves them ~7px off), and the deliberate crossings
+// below get hop breaks so they can never read as junctions.
+pack aws
+
+system s "Aligned + Hopped" {
+  gw = aws/api-gateway "Edge Gateway"
+  a  = aws/lambda "Alpha"
+  b  = aws/lambda "Bravo"
+  c  = aws/lambda "Charlie"
+  db = aws/aurora "System of Record" datastore
+
+  gw -> a, b, c
+  b -> db
+  a -> db "writes"
+  c -> db "reads"
+}
+
+view s {
+  layout {
+    rows [gw] [a b c] [db]
+    align gw db
+  }
+}

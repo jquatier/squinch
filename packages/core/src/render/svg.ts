@@ -96,6 +96,75 @@ function roundedPath(pts: { x: number; y: number }[], r = R_EDGE): string {
   return d;
 }
 
+/**
+ * Crossing hops (DESIGN §4): where two unrelated wires cross, the later edge
+ * takes a small gap so a crossing can never read as a junction. Deterministic:
+ * declaration order decides who hops, and only perpendicular axis-aligned
+ * segments count. Edges that share an endpoint are connected, not crossing.
+ */
+const HOP = 4; // half-gap in px — an 8px break total
+function hopPoints(edges: PEdge[]): Map<string, { x: number; y: number }[]> {
+  const hops = new Map<string, { x: number; y: number }[]>();
+  const segsOf = (e: PEdge) => {
+    const out: { a: { x: number; y: number }; b: { x: number; y: number }; horiz: boolean }[] = [];
+    for (let i = 0; i < e.points.length - 1; i++) {
+      const a = e.points[i], b = e.points[i + 1];
+      if (a.x === b.x && a.y === b.y) continue;
+      out.push({ a, b, horiz: Math.abs(b.x - a.x) >= Math.abs(b.y - a.y) });
+    }
+    return out;
+  };
+  const between = (v: number, p: number, q: number, pad: number) =>
+    v >= Math.min(p, q) + pad && v <= Math.max(p, q) - pad;
+  for (let i = 0; i < edges.length; i++)
+    for (let j = i + 1; j < edges.length; j++) {
+      const A = edges[i], B = edges[j];
+      // connected edges meet at a node — that is a junction, not a crossing
+      if (A.from === B.from || A.from === B.to || A.to === B.from || A.to === B.to) continue;
+      for (const sa of segsOf(A))
+        for (const sb of segsOf(B)) {
+          if (sa.horiz === sb.horiz) continue;
+          const h = sa.horiz ? sa : sb;
+          const v = sa.horiz ? sb : sa;
+          // the crossing must sit clear of both segments' own bends
+          if (!between(v.a.x, h.a.x, h.b.x, HOP + 2)) continue;
+          if (!between(h.a.y, v.a.y, v.b.y, HOP + 2)) continue;
+          const pt = { x: v.a.x, y: h.a.y };
+          (hops.get(B.id) ?? hops.set(B.id, []).get(B.id)!).push(pt);
+        }
+    }
+  return hops;
+}
+
+/** Break a polyline into sub-polylines around each hop point. */
+function splitAtHops(
+  pts: { x: number; y: number }[],
+  hops: { x: number; y: number }[],
+): { x: number; y: number }[][] {
+  const out: { x: number; y: number }[][] = [];
+  let cur: { x: number; y: number }[] = [pts[0]];
+  for (let i = 0; i < pts.length - 1; i++) {
+    const a = pts[i], b = pts[i + 1];
+    const len = Math.hypot(b.x - a.x, b.y - a.y) || 1;
+    const ux = (b.x - a.x) / len, uy = (b.y - a.y) / len;
+    const on = hops
+      .filter((h) =>
+        Math.min(a.x, b.x) - 1 <= h.x && h.x <= Math.max(a.x, b.x) + 1 &&
+        Math.min(a.y, b.y) - 1 <= h.y && h.y <= Math.max(a.y, b.y) + 1)
+      .map((h) => ({ h, d: Math.hypot(h.x - a.x, h.y - a.y) }))
+      .filter((x) => x.d > HOP + 2 && x.d < len - HOP - 2)
+      .sort((p, q) => p.d - q.d);
+    for (const { h, d } of on) {
+      cur.push({ x: Math.round(a.x + ux * (d - HOP)), y: Math.round(a.y + uy * (d - HOP)) });
+      out.push(cur);
+      cur = [{ x: Math.round(a.x + ux * (d + HOP)), y: Math.round(a.y + uy * (d + HOP)) }];
+    }
+    cur.push(b);
+  }
+  out.push(cur);
+  return out.filter((seg) => seg.length >= 2);
+}
+
 function arrow(e: PEdge, t: Theme): string {
   const n = e.points.length;
   const tip = e.points[n - 1], prev = e.points[n - 2];
@@ -653,6 +722,7 @@ export function renderSVG(p: Positioned, t: Theme, opts: RenderOpts = {}): strin
     );
   }
 
+  const hops = hopPoints(p.edges);
   for (const e of p.edges) {
     const dimmed = !edgeMatches(e);
     const col = e.async ? t.asyncEdge : t.edge;
@@ -662,10 +732,15 @@ export function renderSVG(p: Positioned, t: Theme, opts: RenderOpts = {}): strin
     // prefers-reduced-motion turns it off entirely
     const anim = e.async && e.animate ? ` class="sq-flow"` : "";
     const op = dimmed ? ` opacity="${DIM}"` : "";
-    const d = edgePath(e.points, p.lines);
-    body.push(
-      `<g${op}><path${anim} d="${rc.sk ? rc.sk.path(d) : d}" fill="none" stroke="${col}" stroke-width="1.5"${dash}${rc.sk ? ` stroke-linecap="round"` : ""}/>`,
-    );
+    const myHops = hops.get(e.id);
+    const runs = myHops?.length ? splitAtHops(e.points, myHops) : [e.points];
+    body.push(`<g${op}>`);
+    for (const run of runs) {
+      const d = edgePath(run, p.lines);
+      body.push(
+        `<path${anim} d="${rc.sk ? rc.sk.path(d) : d}" fill="none" stroke="${col}" stroke-width="1.5"${dash}${rc.sk ? ` stroke-linecap="round"` : ""}/>`,
+      );
+    }
     body.push(arrow(e, t));
     body.push(`</g>`);
   }
