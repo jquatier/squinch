@@ -125,8 +125,9 @@ zone vpc_a "VPC A" vpc {
   icon:  aws/vpc                      // optional icon, drawn as a flush chip tab
   label: top-right                    // chip corner: top-left (default) |
                                       //   top-right | bottom-left | bottom-right
-  color: ink                          // outline role: account | network | cloud |
-}                                     //   neutral | ink | muted | accent — never hex
+  color: ink                          // e.g. match a dark provider mark; roles:
+}                                     //   account | network | cloud | neutral |
+                                      //   ink | muted | accent — never hex
 ```
 
 Zone kinds (`account | region | vpc | subnet | network | cloud | onprem | custom`)
