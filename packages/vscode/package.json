@@ -7,7 +7,7 @@
   "type": "module",
   "engines": { "vscode": "^1.90.0" },
   "categories": ["Programming Languages", "Visualization"],
-  "activationEvents": [],
+  "activationEvents": ["onLanguage:squinch"],
   "main": "./dist/extension.cjs",
   "scripts": {
     "build": "node scripts/bundle.mjs",
