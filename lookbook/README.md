@@ -123,3 +123,9 @@ committing a visual change. What looks bad here becomes the next fix.
 | light | dark | sketch | sketch-dark |
 |---|---|---|---|
 | ![](out/17-zones.landscape.light.svg) | ![](out/17-zones.landscape.dark.svg) | ![](out/17-zones.landscape.sketch.svg) | ![](out/17-zones.landscape.sketch-dark.svg) |
+
+## 18-flows — `shop`
+
+| light | dark |
+|---|---|
+| ![](out/18-flows.shop.light.svg) | ![](out/18-flows.shop.dark.svg) |

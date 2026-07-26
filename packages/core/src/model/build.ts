@@ -8,7 +8,7 @@ import { parser } from "../grammar/parser.js";
 import { iconExists, packExists, iconIds, allPackNames } from "./packs.js";
 import { suggest } from "./suggest.js";
 import type {
-  ArrowKind, BuildResult, Diagnostic, Loc, RelPos, SContainer, SEdge, SModel, SNode, SNote, SView, Side, SZone, ZoneColor, ZoneKind, ZoneLabelPos,
+  ArrowKind, BuildResult, Diagnostic, Loc, RelPos, SContainer, SEdge, SModel, SNode, SNote, SView, Side, SFlow, SZone, ZoneColor, ZoneKind, ZoneLabelPos,
 } from "./types.js";
 import { ZONE_KINDS, ZONE_COLORS } from "./types.js";
 
@@ -37,6 +37,7 @@ export function buildProject(files: ProjectFile[]): BuildResult {
     containers: new Map(),
     edges: [],
     zones: [],
+    flows: [],
     views: [],
   };
 
@@ -87,6 +88,7 @@ export function buildProject(files: ProjectFile[]): BuildResult {
   const rawEdges: { node: SyntaxNode; scope: string; ctx: Ctx }[] = [];
   const rawViews: { node: SyntaxNode; ctx: Ctx }[] = [];
   const rawZones: { node: SyntaxNode; ctx: Ctx }[] = [];
+  const rawFlows: { node: SyntaxNode; ctx: Ctx }[] = [];
 
   for (const f of files) {
     const ctx = makeCtx(f.name, f.src);
@@ -227,6 +229,7 @@ export function buildProject(files: ProjectFile[]): BuildResult {
     for (const decl of top.getChildren("Container")) walkContainerDecl(decl, "");
     for (const e of top.getChildren("EdgeStmt")) rawEdges.push({ node: e, scope: "", ctx });
     for (const z of top.getChildren("ZoneDecl")) rawZones.push({ node: z, ctx });
+    for (const fl of top.getChildren("FlowDecl")) rawFlows.push({ node: fl, ctx });
     for (const v of top.getChildren("View")) rawViews.push({ node: v, ctx });
   }
 
@@ -298,6 +301,61 @@ export function buildProject(files: ProjectFile[]): BuildResult {
   });
 
   // ── phase C: views ────────────────────────────────────────────────────────
+  // flows: chains resolve against the finished namespace AND must walk
+  // existing edges — a flow annotates structure, it never creates it
+  for (const { node: fl, ctx } of rawFlows) {
+    const identNode = fl.getChild("Ident");
+    const bodyNode = fl.getChild("FlowBody");
+    if (!identNode || !bodyNode) continue; // partial node from error recovery
+    const id = ctx.text(identNode);
+    if (model.flows.some((f) => f.id === id)) {
+      error(ctx, fl, `duplicate flow \`${id}\``);
+      continue;
+    }
+    const labelNode = fl.getChild("String");
+    // flows read best with bare ids (SPEC example: api -> create -> db) — a
+    // bare ref binds when exactly one node path ends with it
+    const resolveFlowPath = (ref: string, at: SyntaxNode): string | undefined => {
+      if (model.nodes.has(ref) || model.containers.has(ref)) return ref;
+      if (!ref.includes(".")) {
+        const matches = [...model.nodes.keys()].filter((k) => k.endsWith(`.${ref}`));
+        if (matches.length === 1) return matches[0];
+        if (matches.length > 1) {
+          error(ctx, at, `ambiguous flow step \`${ref}\``,
+            `use a full path: ${matches.join(" | ")}`);
+          return undefined;
+        }
+      }
+      return resolve(ref, "", at, ctx);
+    };
+    const steps: SFlow["steps"] = [];
+    for (const chain of bodyNode.getChildren("FlowChain")) {
+      const paths = chain.getChildren("Path").map((p) => resolveFlowPath(ctx.text(p), p));
+      for (let i = 0; i < paths.length - 1; i++) {
+        const from = paths[i], to = paths[i + 1];
+        if (!from || !to) continue;
+        const exists = model.edges.some(
+          (e) =>
+            (e.from === from && e.to === to) ||
+            (e.arrow === "<->" && e.from === to && e.to === from),
+        );
+        if (!exists) {
+          error(ctx, chain, `flow \`${id}\` step ${steps.length + 1}: no edge \`${from}\` → \`${to}\``,
+            `flows number existing edges — declare \`${from} -> ${to}\` first`);
+          continue;
+        }
+        steps.push({ from, to });
+      }
+    }
+    if (steps.length === 0)
+      warn(ctx, fl, `flow \`${id}\` has no steps`);
+    model.flows.push({
+      id, steps,
+      label: labelNode ? ctx.str(labelNode) : undefined,
+      loc: ctx.loc(fl), file: ctx.name,
+    });
+  }
+
   // zones: members resolve against the finished namespace (SPEC §Zones)
   for (const { node: z, ctx } of rawZones) {
     const identNode = z.getChild("Ident");
@@ -429,7 +487,20 @@ export function buildProject(files: ProjectFile[]): BuildResult {
     if (ctxStmt) view.context = ctxStmt.getChild("off") ? "off" : "auto";
     for (const h of body.getChildren("HighlightStmt"))
       view.highlight.push(...h.getChildren("Tag").map((t) => ctx.text(t).slice(1)));
-    if (body.getChildren("ShowStmt").length) view.showDescriptions = true;
+    for (const show of body.getChildren("ShowStmt")) {
+      const flowKw = show.getChild("flow");
+      if (!flowKw) { view.showDescriptions = true; continue; }
+      const idNode = show.getChildren("Ident").pop();
+      if (!idNode) continue;
+      const flowId = ctx.text(idNode);
+      if (!model.flows.some((f) => f.id === flowId)) {
+        const s = suggest(flowId, model.flows.map((f) => f.id));
+        error(ctx, show, `unknown flow \`${flowId}\``,
+          s ? `did you mean \`${s}\`?` : `declare it: flow ${flowId} { a -> b -> c }`);
+        continue;
+      }
+      view.showFlow = flowId;
+    }
     const legendStmt = body.getChildren("LegendStmt")[0];
     if (legendStmt) view.legend = !legendStmt.getChild("off");
     const tb = body.getChildren("TitleBlockStmt")[0];

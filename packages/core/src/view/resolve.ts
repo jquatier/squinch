@@ -35,6 +35,10 @@ export interface ViewGraph {
   nodes: VNode[];
   edges: VEdge[];
   frames: VFrame[];
+  /** `show flow` badges: edge id → step numbers (a lifted edge can carry
+   *  several); numbering is the flow's own — steps hidden at this altitude
+   *  keep their numbers out of the sequence, truthfully. */
+  flow?: { label: string; byEdge: Record<string, number[]> };
   diagnostics: Diagnostic[];
 }
 
@@ -252,5 +256,28 @@ export function resolveView(model: SModel, view: SView): ViewGraph {
     };
   });
 
-  return { nodes, edges: finalEdges, frames, diagnostics };
+  // ── flow badges (SPEC §Flows): map each step onto the edge that renders
+  // it at this altitude — steps whose endpoints lift into the same card
+  // simply don't appear here.
+  let flow: ViewGraph["flow"];
+  if (view.showFlow) {
+    const f = model.flows.find((fl) => fl.id === view.showFlow);
+    if (f) {
+      const v = visSet();
+      const byEdge: Record<string, number[]> = {};
+      f.steps.forEach((step, i) => {
+        const from = liftIn(step.from, v);
+        const to = liftIn(step.to, v);
+        if (!from || !to || from === to) return;
+        const edge = finalEdges.find(
+          (e) => (e.from === from && e.to === to) || (e.from === to && e.to === from),
+        );
+        if (!edge) return;
+        (byEdge[edge.id] ??= []).push(i + 1);
+      });
+      flow = { label: f.label ?? f.id, byEdge };
+    }
+  }
+
+  return { nodes, edges: finalEdges, frames, flow, diagnostics };
 }

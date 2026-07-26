@@ -79,6 +79,7 @@ export interface SView {
   context: "auto" | "off";
   highlight: string[]; // tag names, no '#'
   showDescriptions: boolean;
+  showFlow?: string; // flow id — render ①②③ badges on that flow's edges
   legend: boolean; // `legend auto` — key of the styles actually used (off by default)
   titleblock?: Record<string, string>; // drafting corner block key/values
   notes: SNote[];
@@ -124,12 +125,23 @@ export interface SZone {
   file?: string;
 }
 
+// Numbered paths (SPEC §Flows): an ordered walk over EXISTING edges — flows
+// annotate the model, they never create structure.
+export interface SFlow {
+  id: string;
+  label?: string;
+  steps: { from: string; to: string }[]; // resolved, declaration order = numbering
+  loc: Loc;
+  file?: string;
+}
+
 export interface SModel {
   packs: string[];
   nodes: Map<string, SNode>;
   containers: Map<string, SContainer>;
   edges: SEdge[];
   zones: SZone[];
+  flows: SFlow[];
   views: SView[];
   fileTheme?: string;
 }

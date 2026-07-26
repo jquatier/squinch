@@ -292,6 +292,13 @@ function legend(p: Positioned, rc: RC, y: number, L: string[]): { h: number; w: 
       sample: (x, cy) => `<rect x="${x + 2}" y="${cy - 7}" width="20" height="14" rx="2" fill="${t.surface}" stroke="${t.border}" stroke-width="1.5" stroke-dasharray="4 3"/>`,
       label: "context",
     });
+  if (p.flow && Object.keys(p.flow.byEdge).length)
+    items.push({
+      sample: (x, cy) =>
+        `<circle cx="${x + 12}" cy="${cy}" r="8" fill="${t.accent}"/>` +
+        `<text x="${x + 12}" y="${cy + 3}" text-anchor="middle" font-size="${rc.fx(9)}" font-weight="500" fill="${t.plateText}">1</text>`,
+      label: `flow: ${p.flow.label}`,
+    });
   // zone kinds present in this render, in kind-list order, deduped
   const kindsPresent = [...new Set((p.zones ?? []).map((z) => z.kind))];
   for (const kind of kindsPresent) {
@@ -349,7 +356,11 @@ function titleblock(
   }
 }
 
-interface Pill { x: number; y: number; w: number; h: number; mx: number; label: string; dimmed: boolean }
+interface Pill {
+  x: number; y: number; w: number; h: number;
+  mx: number; label: string; dimmed: boolean;
+  edgeId?: string;
+}
 
 const intersects = (a: Pill | { x: number; y: number; w: number; h: number }, b: Pill, m = 4) =>
   a.x < b.x + b.w + m && a.x + a.w + m > b.x && a.y < b.y + b.h + m && a.y + a.h + m > b.y;
@@ -410,7 +421,7 @@ function computePills(p: Positioned, rc: RC, edgeMatches: (e: PEdge) => boolean)
       if (x < 8) x = 8;
       if (x + w > p.width - 8) x = p.width - 8 - w;
       mx = x + Math.round(w / 2);
-      return { x, y: my - 9, w, h: 18, mx, label, dimmed: !edgeMatches(e) };
+      return { x, y: my - 9, w, h: 18, mx, label, dimmed: !edgeMatches(e), edgeId: e.id };
     };
     const clear = (r: Pill) =>
       !fixed.some((o) => intersects(o, r)) && !pills.some((q2) => intersects(q2, r));
@@ -656,6 +667,62 @@ export function renderSVG(p: Positioned, t: Theme, opts: RenderOpts = {}): strin
   for (const pill of pills) body.push(pillMarkup(pill, rc));
   // zone label chips last: slid clear of edges where possible, haloed always
   for (const chip of placeZoneChips(p, rc, t, pills)) body.push(chipMarkup(chip, rc, t));
+  // flow step badges: numbered circles just after each edge leaves its
+  // source, sliding further along the wire past pills, nodes and each other
+  if (p.flow) {
+    const placedBadges: { x: number; y: number; w: number; h: number }[] = [];
+    const pointFromStart = (pts: { x: number; y: number }[], dist: number) => {
+      let remaining = dist;
+      for (let i = 0; i < pts.length - 1; i++) {
+        const a = pts[i], b2 = pts[i + 1];
+        const seg = Math.hypot(b2.x - a.x, b2.y - a.y);
+        if (seg >= remaining)
+          return {
+            x: Math.round(a.x + ((b2.x - a.x) / seg) * remaining),
+            y: Math.round(a.y + ((b2.y - a.y) / seg) * remaining),
+          };
+        remaining -= seg;
+      }
+      return pts[pts.length - 1];
+    };
+    for (const e of p.edges) {
+      const nums = p.flow.byEdge[e.id];
+      if (!nums?.length) continue;
+      const total = e.points.reduce(
+        (acc, pt, i) => (i ? acc + Math.hypot(pt.x - e.points[i - 1].x, pt.y - e.points[i - 1].y) : 0),
+        0,
+      );
+      const text = nums.join("·");
+      const rWide = Math.max(9, Math.round(measure(text, rc.fx(10), "500", rc.fam) / 2) + 5);
+      let cx = 0, cy = 0;
+      const docked = pills.find((q2) => q2.edgeId === e.id);
+      if (docked) {
+        // the edge has a label: the badge docks to the pill's left —
+        // "③ record" reads as one unit, and can't collide by construction
+        cx = docked.x - rWide - 4;
+        cy = docked.y + 9;
+      } else {
+        for (const d of [18, 36, 54, 78, 102, 134]) {
+          const pt = pointFromStart(e.points, Math.min(d, total / 2));
+          cx = pt.x; cy = pt.y;
+          const rect = { x: cx - rWide, y: cy - 9, w: rWide * 2, h: 18 };
+          const hit =
+            pills.some((q2) => intersects(q2, rect as any)) ||
+            placedBadges.some((q2) => intersects(q2 as any, rect as any)) ||
+            p.nodes.some((n2) => intersects(n2, rect as any));
+          if (!hit || d >= total / 2) break;
+        }
+      }
+      placedBadges.push({ x: cx - rWide, y: cy - 9, w: rWide * 2, h: 18 });
+      body.push(
+        `<g data-kind="flow-step">` +
+          (rWide > 9
+            ? `<rect x="${cx - rWide}" y="${cy - 9}" width="${rWide * 2}" height="18" rx="9" fill="${t.accent}"/>`
+            : `<circle cx="${cx}" cy="${cy}" r="9" fill="${t.accent}"/>`) +
+          `<text x="${cx}" y="${cy + 4}" text-anchor="middle" font-size="${rc.fx(10)}" font-weight="500" fill="${t.plateText}">${esc(text)}</text></g>`,
+      );
+    }
+  }
   let height = Math.max(p.height, ...pills.map((pl) => pl.y + pl.h + 16));
 
   if (opts.notes?.length) notes({ ...p, height }, rc, opts.notes, body);

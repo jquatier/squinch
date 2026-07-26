@@ -1,0 +1,28 @@
+// Numbered flows: the "how does a request actually travel" lens.
+// Steps badge the edges in declaration order; branches keep counting.
+pack aws
+
+system shop "Checkout" {
+  api    = aws/api-gateway "API"
+  cart   = aws/lambda "Cart"
+  pay    = aws/lambda "Payment"
+  db     = aws/dynamodb "Orders" datastore
+  queue  = aws/sqs "Fulfilment Queue" datastore
+  worker = aws/lambda "Fulfilment"
+
+  api -> cart "add / checkout"
+  cart -> pay "charge"
+  pay -> db "record"
+  pay ~> queue "order placed"
+  queue ~> worker "drain"
+}
+
+flow order "Place an order" {
+  api -> cart -> pay -> db
+  pay ~> queue ~> worker
+}
+
+view shop {
+  show flow order
+  legend auto
+}

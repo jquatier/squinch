@@ -46,6 +46,7 @@ export interface Positioned {
   width: number; height: number;
   nodes: PNode[]; edges: PEdge[]; ports: PPort[]; frames: PFrame[];
   zones: PZone[];
+  flow?: { label: string; byEdge: Record<string, number[]> };
   lines: "orthogonal" | "curved" | "straight";
 }
 
@@ -517,6 +518,7 @@ export async function layoutView(
     positioned: {
       name: view.name, width: q(out.width), height, nodes, edges: pEdges, ports, frames,
       zones: pZones,
+      flow: graph.flow,
       lines: view.layout.lines ?? "orthogonal",
     },
     diagnostics,

@@ -107,6 +107,17 @@ view shop {                 // name matching a system = that system's view
 }
 ```
 
+Numbered flows badge a request's path over existing edges (steps count in
+declaration order; bare ids bind when unambiguous):
+
+```squinch
+flow checkout "Checkout" {
+  api -> create -> db        // steps 1, 2
+  create ~> files            // step 3 — branches keep counting
+}
+view shop { show flow checkout }
+```
+
 Zoomed views automatically show outside neighbours as muted **context** cards —
 don't add them yourself; if one appears that you don't want, `context off`.
 

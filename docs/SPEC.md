@@ -142,7 +142,7 @@ zone as a whole and the engine lays out freely inside it (`rows` can pin a zone
 by its id). A zone that would cut through an expanded container (containing some
 of its children but not the container itself) is a render error in that view.
 
-### Flows (numbered paths) **[v1.1]**
+### Flows (numbered paths)
 
 ```squinch
 flow checkout "Checkout" {
@@ -151,7 +151,7 @@ flow checkout "Checkout" {
 }
 
 view orders {
-  show flow checkout           // renders ①②③… badges on the flow's edges
+  show flow checkout           // numbered step badges on the flow's edges
 }
 ```
 
