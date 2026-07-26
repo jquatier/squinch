@@ -384,6 +384,66 @@ function computePills(p: Positioned, rc: RC, edgeMatches: (e: PEdge) => boolean)
   return pills;
 }
 
+interface ZoneChip { x: number; y: number; w: number; h: number; label: string; col: string; zone: string }
+
+/**
+ * Zone label chips straddle their zone's top border. ELK doesn't treat labels
+ * as routing obstacles (spiked: outside compound labels get routed straight
+ * through), so this is ours, same philosophy as computePills: slide the chip
+ * right along the border in grid steps to the first spot clear of edges,
+ * nodes and pills — falling back to the least-crossed spot. The canvas halo
+ * (drawn in chipMarkup) keeps even the fallback legible.
+ */
+function placeZoneChips(p: Positioned, rc: RC, t: Theme, pills: Pill[]): ZoneChip[] {
+  const chips: ZoneChip[] = [];
+  // axis-aligned segment bboxes; the corner rounding deviates ≤8px → margin
+  const segs = p.edges.flatMap((e) => {
+    const out: { x: number; y: number; w: number; h: number }[] = [];
+    for (let i = 0; i < e.points.length - 1; i++) {
+      const a = e.points[i], b = e.points[i + 1];
+      out.push({
+        x: Math.min(a.x, b.x), y: Math.min(a.y, b.y),
+        w: Math.abs(b.x - a.x), h: Math.abs(b.y - a.y),
+      });
+    }
+    return out;
+  });
+  const obstacles = () => [...segs, ...p.nodes, ...pills, ...chips];
+  for (const z of [...(p.zones ?? [])].sort((a, b) => a.depth - b.depth)) {
+    const col = ZONE_TINT[z.kind](t);
+    const label = fit(z.label, z.w - 48, rc.fx(11), "500", rc.fam);
+    const w = Math.round(measure(label, rc.fx(11), "500", rc.fam)) + 16;
+    const y = z.y - 10;
+    const xMax = z.x + z.w - 12 - w;
+    let best = { x: z.x + 12, hits: Infinity };
+    for (let x = z.x + 12; x <= Math.max(z.x + 12, xMax); x += 16) {
+      const rect = { x, y, w, h: 20 };
+      const hits = obstacles().filter((o) =>
+        o.x < rect.x + rect.w + 6 && o.x + o.w + 6 > rect.x &&
+        o.y < rect.y + rect.h + 6 && o.y + o.h + 6 > rect.y,
+      ).length;
+      if (hits < best.hits) best = { x, hits };
+      if (hits === 0) break;
+    }
+    chips.push({ x: best.x, y, w, h: 20, label, col, zone: z.id });
+  }
+  return chips;
+}
+
+function chipMarkup(c: ZoneChip, rc: RC, t: Theme): string {
+  // halo first: a canvas knockout 3px proud of the chip, so any edge the chip
+  // must sit over reads as deliberately interrupted, never collided-with
+  const halo = `<rect x="${c.x - 3}" y="${c.y - 3}" width="${c.w + 6}" height="${c.h + 6}" rx="4" fill="${t.canvas}"/>`;
+  const chip = rc.sk
+    ? `<rect x="${c.x}" y="${c.y}" width="${c.w}" height="${c.h}" rx="2" fill="${t.canvas}"/>` +
+      `<path d="${rc.sk.rect(c.x, c.y, c.w, c.h, { roughness: 0.6, multi: false })}" fill="none" stroke="${c.col}" stroke-width="1"/>`
+    : `<rect x="${c.x}" y="${c.y}" width="${c.w}" height="${c.h}" rx="3" fill="${t.canvas}" stroke="${c.col}" stroke-width="1"/>`;
+  return (
+    `<g data-kind="zone-chip" data-zone="${esc(c.zone)}">${halo}${chip}` +
+    `<text x="${c.x + 8}" y="${c.y + 14}" font-size="${rc.fx(11)}" font-weight="500" fill="${c.col}">${esc(c.label)}</text></g>`
+  );
+}
+
 function pillMarkup(pill: Pill, rc: RC): string {
   const { t } = rc;
   const op = pill.dimmed ? ` opacity="${DIM}"` : "";
@@ -462,8 +522,9 @@ export function renderSVG(p: Positioned, t: Theme, opts: RenderOpts = {}): strin
   const body: string[] = [];
 
   // zone boundaries first — the classic dashed deployment frame, behind
-  // everything, outermost first (DESIGN §5). Kind picks the tint; the label
-  // chip straddles the top-left border, outside the flow of nodes.
+  // everything, outermost first (DESIGN §5). Kind picks the tint. The label
+  // chips render LAST (top layer, after edges) so their canvas halo knocks
+  // out anything they must sit over — see placeZoneChips below.
   const zoneMarkup = (z: PZone): string => {
     const col = ZONE_TINT[z.kind](t);
     const dash = ` stroke-dasharray="8 5"`;
@@ -471,16 +532,7 @@ export function renderSVG(p: Positioned, t: Theme, opts: RenderOpts = {}): strin
       ? `<rect x="${z.x}" y="${z.y}" width="${z.w}" height="${z.h}" rx="2" fill="${col}" fill-opacity="0.04"/>` +
         `<path d="${rc.sk.rect(z.x, z.y, z.w, z.h, { multi: false })}" fill="none" stroke="${col}" stroke-width="1.5"${dash} stroke-linecap="round"/>`
       : `<rect x="${z.x}" y="${z.y}" width="${z.w}" height="${z.h}" rx="8" fill="${col}" fill-opacity="0.04" stroke="${col}" stroke-width="1.5"${dash}/>`;
-    const label = fit(z.label, z.w - 48, rc.fx(11), "500", rc.fam);
-    const chipW = Math.round(measure(label, rc.fx(11), "500", rc.fam)) + 16;
-    const chipX = z.x + 12, chipY = z.y - 10;
-    const chip =
-      (rc.sk
-        ? `<rect x="${chipX}" y="${chipY}" width="${chipW}" height="20" rx="2" fill="${t.canvas}"/>` +
-          `<path d="${rc.sk.rect(chipX, chipY, chipW, 20, { roughness: 0.6, multi: false })}" fill="none" stroke="${col}" stroke-width="1"/>`
-        : `<rect x="${chipX}" y="${chipY}" width="${chipW}" height="20" rx="3" fill="${t.canvas}" stroke="${col}" stroke-width="1"/>`) +
-      `<text x="${chipX + 8}" y="${chipY + 14}" font-size="${rc.fx(11)}" font-weight="500" fill="${col}">${esc(label)}</text>`;
-    return `<g data-kind="zone" data-zone="${esc(z.id)}" data-zone-kind="${z.kind}">${boundary}${chip}</g>`;
+    return `<g data-kind="zone" data-zone="${esc(z.id)}" data-zone-kind="${z.kind}">${boundary}</g>`;
   };
   for (const z of [...(p.zones ?? [])].sort((a, b) => a.depth - b.depth)) body.push(zoneMarkup(z));
 
@@ -529,6 +581,8 @@ export function renderSVG(p: Positioned, t: Theme, opts: RenderOpts = {}): strin
   // labels last, collision-resolved; canvas grows if a pill was pushed below
   const pills = computePills(p, rc, edgeMatches);
   for (const pill of pills) body.push(pillMarkup(pill, rc));
+  // zone label chips last: slid clear of edges where possible, haloed always
+  for (const chip of placeZoneChips(p, rc, t, pills)) body.push(chipMarkup(chip, rc, t));
   let height = Math.max(p.height, ...pills.map((pl) => pl.y + pl.h + 16));
 
   if (opts.notes?.length) notes({ ...p, height }, rc, opts.notes, body);

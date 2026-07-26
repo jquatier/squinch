@@ -124,6 +124,42 @@ view landscape { include * }
     expect(r.svg).not.toContain(`data-kind="zone"`);
   });
 
+  it("chips slide along the border away from crossing edges, and carry a halo", async () => {
+    // adversarial: src feeds the zone's leftmost member, so the edge drops
+    // through the default chip spot (top-left). ELK won't avoid labels
+    // (spiked) — placeZoneChips must slide the chip right.
+    const src = `pack aws
+src = aws/lambda "Source"
+a = aws/lambda "Alpha"
+b = aws/lambda "Bravo"
+c = aws/lambda "Charlie"
+src -> a
+zone net "Network Segment Alpha" network {
+  contains a, b, c
+}
+view v {
+  include *
+  layout { rows [src] [a b c] }
+}
+`;
+    const r = await render(src, { view: "v", theme: "light" });
+    expect(r.ok).toBe(true);
+    const chipGroup = r.svg!.match(/<g data-kind="zone-chip"[^>]*>(.*?)<\/g>/s)?.[1] ?? "";
+    // halo present: first rect is the canvas knockout, 3px proud
+    const rects = [...chipGroup.matchAll(/<rect x="(-?\d+)" y="(-?\d+)" width="(\d+)"/g)].map((m) => ({
+      x: +m[1], y: +m[2], w: +m[3],
+    }));
+    expect(rects.length).toBeGreaterThanOrEqual(2);
+    expect(rects[0].x).toBe(rects[1].x - 3); // halo wraps chip
+    // the zone boundary's left edge:
+    const zx = +(r.svg!.match(/<g data-kind="zone"[^>]*><rect x="(-?\d+)"/)?.[1] ?? NaN);
+    // chip slid right of the default (zx + 12) to clear the crossing edge
+    expect(rects[1].x).toBeGreaterThan(zx + 12);
+    // and in both themes it stays deterministic
+    const again = await render(src, { view: "v", theme: "light" });
+    expect(again.svg).toBe(r.svg);
+  });
+
   it("zone kinds show up as earned legend entries", async () => {
     const src = BASE + ZONES.replace("view landscape {\n  include *\n}", "view landscape {\n  include *\n  legend auto\n}");
     const r = await render(src, { view: "landscape" });
