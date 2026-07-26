@@ -350,6 +350,27 @@ function computePills(p: Positioned, rc: RC, edgeMatches: (e: PEdge) => boolean)
     const n = byPath.get(path)!;
     return n.y + n.h;
   };
+  // Fixed obstacles a pill must never sit on: nodes, zone borders (thin bands
+  // — the interior tint is fine to cross), frame borders and frame titles.
+  // Sitting ON its own edge line is the point of a pill; other edges are
+  // handled by the pill's opaque background.
+  const band = (x: number, y: number, w: number, h: number) => ({ x, y, w, h });
+  const fixed = [
+    ...p.nodes,
+    ...(p.zones ?? []).flatMap((z) => [
+      band(z.x - 2, z.y - 2, z.w + 4, 4),
+      band(z.x - 2, z.y + z.h - 2, z.w + 4, 4),
+      band(z.x - 2, z.y - 2, 4, z.h + 4),
+      band(z.x + z.w - 2, z.y - 2, 4, z.h + 4),
+    ]),
+    ...p.frames.flatMap((f) => [
+      band(f.x - 1, f.y - 1, f.w + 2, 2),
+      band(f.x - 1, f.y + f.h - 1, f.w + 2, 2),
+      band(f.x - 1, f.y - 1, 2, f.h + 2),
+      band(f.x + f.w - 1, f.y - 1, 2, f.h + 2),
+      band(f.x + 8, f.y + 6, Math.round(measure(f.label, rc.fx(13), "500", rc.fam)) + 12, 24),
+    ]),
+  ];
   const pills: Pill[] = [];
   for (const e of p.edges) {
     if (!e.label) continue;
@@ -358,26 +379,44 @@ function computePills(p: Positioned, rc: RC, edgeMatches: (e: PEdge) => boolean)
       const len = Math.hypot(e.points[i + 1].x - e.points[i].x, e.points[i + 1].y - e.points[i].y);
       if (len > best) { best = len; bi = i; }
     }
-    let mx = Math.round((e.points[bi].x + e.points[bi + 1].x) / 2);
-    let my = Math.round((e.points[bi].y + e.points[bi + 1].y) / 2);
     // labels truncate like node labels do, and a pill never leaves the canvas
     const maxW = Math.max(60, Math.min(240, p.width - 16));
     const label = fit(e.label, maxW - 12, rc.fx(11), "400", rc.fam);
     const w = Math.round(measure(label, rc.fx(11), "400", rc.fam)) + 12;
     const relocated = w > best - 8;
-    if (relocated) my = Math.max(nodeBottom(e.from), nodeBottom(e.to)) + 17;
-    let x = mx - Math.round(w / 2);
-    if (x < 8) x = 8;
-    if (x + w > p.width - 8) x = p.width - 8 - w;
-    mx = x + Math.round(w / 2);
-    const pill: Pill = { x, y: my - 9, w, h: 18, mx, label, dimmed: !edgeMatches(e) };
-    // collision resolution: shift down past nodes (when relocated) and earlier pills
-    for (let guard = 0; guard < 50; guard++) {
-      const hit =
-        pills.some((q2) => intersects(q2, pill)) ||
-        (relocated && p.nodes.some((n2) => intersects(n2, pill)));
-      if (!hit) break;
-      pill.y += 22;
+    const a = e.points[bi], b = e.points[bi + 1];
+
+    const rectAt = (fr: number): Pill => {
+      let mx = Math.round(a.x + (b.x - a.x) * fr);
+      const my = Math.round(a.y + (b.y - a.y) * fr);
+      let x = mx - Math.round(w / 2);
+      if (x < 8) x = 8;
+      if (x + w > p.width - 8) x = p.width - 8 - w;
+      mx = x + Math.round(w / 2);
+      return { x, y: my - 9, w, h: 18, mx, label, dimmed: !edgeMatches(e) };
+    };
+    const clear = (r: Pill) =>
+      !fixed.some((o) => intersects(o, r)) && !pills.some((q2) => intersects(q2, r));
+
+    let pill: Pill | undefined;
+    if (!relocated) {
+      // first choice: stay ON the edge — slide along the segment from its
+      // midpoint outward until the pill sits clear of every obstacle
+      for (const fr of [0.5, 0.42, 0.58, 0.34, 0.66, 0.26, 0.74, 0.18, 0.82]) {
+        const cand = rectAt(fr);
+        if (clear(cand)) { pill = cand; break; }
+      }
+    }
+    if (!pill) {
+      // fallback: below the edge's nodes, shifting down past everything
+      pill = rectAt(0.5);
+      if (relocated) pill.y = Math.max(nodeBottom(e.from), nodeBottom(e.to)) + 17 - 9;
+      for (let guard = 0; guard < 50; guard++) {
+        const hit = pills.some((q2) => intersects(q2, pill!)) ||
+          p.nodes.some((n2) => intersects(n2, pill!));
+        if (!hit) break;
+        pill.y += 22;
+      }
     }
     pills.push(pill);
   }

@@ -49,6 +49,6 @@
 <clipPath id="clip-sq-aws-api-gateway-80-44-40"><rect x="80" y="44" width="40" height="40" rx="4"/></clipPath><g clip-path="url(#clip-sq-aws-api-gateway-80-44-40)"><use href="#sq-aws-api-gateway" x="80" y="44" width="40" height="40"/></g>
 <text x="132" y="69" font-size="13" font-weight="500" fill="#1C1C1A">Edge</text>
 </g>
-<g><rect x="86" y="140" width="84" height="18" rx="2" fill="#FFFFFF" stroke="#D8D7D3" stroke-width="1"/><text x="128" y="153" text-anchor="middle" font-size="11" fill="#6F6E69">POST /events</text></g>
+<g><rect x="86" y="131" width="84" height="18" rx="2" fill="#FFFFFF" stroke="#D8D7D3" stroke-width="1"/><text x="128" y="144" text-anchor="middle" font-size="11" fill="#6F6E69">POST /events</text></g>
 <g><rect x="109" y="423" width="38" height="18" rx="2" fill="#FFFFFF" stroke="#D8D7D3" stroke-width="1"/><text x="128" y="436" text-anchor="middle" font-size="11" fill="#6F6E69">drain</text></g>
 </svg>
