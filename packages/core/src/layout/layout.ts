@@ -522,6 +522,60 @@ export async function layoutView(
   const coplanarById = new Map(coplanarEdges.map((e) => [e.id, e]));
   const pEdges: PEdge[] = edges.map((e) => elkPositioned.get(e.id) ?? coplanarById.get(e.id)!);
 
+  // ── channels (SPEC §6 Tier 2): one trunk instead of N crossing lines ─────
+  // Several edges into the same target drop to a shared horizontal trunk,
+  // run along it, and enter the target as one line. Ours to compute: ELK
+  // routes each edge independently and has no notion of a bus.
+  for (const ch of view.layout.channels) {
+    const target = nodes.find((n) => n.path === ch.target);
+    const members = ch.sources
+      .map((src) => ({
+        src,
+        node: nodes.find((n) => n.path === src),
+        edge: pEdges.find((e) => e.from === src && e.to === ch.target),
+      }))
+      .filter((m) => m.node && m.edge);
+    if (!target || members.length < 2) {
+      diagnostics.push({
+        severity: "warning",
+        message: `channel into \`${ch.target}\`: ${
+          !target ? "the target is not visible here" : "fewer than two of its edges are"
+        }`,
+        fix: "channels only apply where every member edge is visible in the view",
+        loc: ch.loc,
+      });
+      continue;
+    }
+    // the trunk sits between the sources' lowest edge and the target
+    const lowest = Math.max(...members.map((m) => m.node!.y + m.node!.h));
+    const trunkY = Math.round((lowest + target.y) / 2);
+    if (trunkY <= lowest || trunkY >= target.y) {
+      diagnostics.push({
+        severity: "warning",
+        message: `channel into \`${ch.target}\` has no room for a trunk`,
+        fix: "the sources must sit above the target — check `rows`",
+        loc: ch.loc,
+      });
+      continue;
+    }
+    const entryX = target.x + Math.round(target.w / 2);
+    for (const m of members) {
+      const sx = m.node!.x + Math.round(m.node!.w / 2);
+      m.edge!.points = [
+        { x: sx, y: m.node!.y + m.node!.h },
+        { x: sx, y: trunkY },
+        { x: entryX, y: trunkY },
+        { x: entryX, y: target.y },
+      ];
+      // ports move with the geometry, so labels and badges follow the wire
+      for (const port of ports)
+        if (port.edge === m.edge!.id)
+          Object.assign(port, port.node === ch.target
+            ? { x: entryX, y: target.y, side: "north" as Side }
+            : { x: sx, y: m.node!.y + m.node!.h, side: "south" as Side });
+    }
+  }
+
   // ── align (SPEC §6): an exact shared axis ─────────────────────────────────
   // ELK gets within ~7px and no further (spiked: scaffold edges,
   // favorStraightEdges and straightness priority all plateau there), and

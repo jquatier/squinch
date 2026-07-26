@@ -321,12 +321,12 @@ layout {
   fail `check` with both locations named. A silently dropped hint would strand the
   agent loop; a clear conflict error gets fixed in one iteration.
 
-### Tier 2 — edge routing **[partially v1.1]**
+### Tier 2 — edge routing **[`around`/`via` are v1.1]**
 
 ```squinch
 layout {
   route db ~> sync from east to west        // exit/entry sides        [v1]
-  channel create, get, search -> db          // shared trunk (bus)      [v1.1]
+  channel create, get, search -> db          // shared trunk (bus)
   route search -> idx around files           // avoid a node's lane     [v1.1]
   route api -> legacy via below-db           // coarse waypoint: a node-relative
                                              // region, never a coordinate [v1.1]

@@ -94,6 +94,8 @@ export interface SView {
     /** `align a b c` — b and c share a's axis exactly (a is the anchor). */
     align: { nodes: string[]; loc: Loc }[];
     routes: { from: string; to: string; label?: string; fromSide?: Side; toSide?: Side; loc: Loc }[];
+    /** `channel a, b, c -> db` — those edges merge into one trunk (SPEC §6 Tier 2). */
+    channels: { sources: string[]; target: string; loc: Loc }[];
   };
   loc: Loc;
   file?: string;

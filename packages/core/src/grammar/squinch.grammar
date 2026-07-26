@@ -87,7 +87,7 @@ Star { "*" }
 LayoutBlock { kw<"layout"> "{" list<layoutStmt> "}" }
 layoutStmt {
   DirectionStmt | LinesStmt | DensityStmt |
-  RowsStmt | ColsStmt | PlaceStmt | AlignStmt | RouteStmt
+  RowsStmt | ColsStmt | PlaceStmt | AlignStmt | RouteStmt | ChannelStmt
 }
 DirectionStmt { kw<"direction"> (kw<"down"> | kw<"right">) }
 LinesStmt { kw<"lines"> Ident }
@@ -97,6 +97,8 @@ ColsStmt { kw<"cols"> Rank+ }
 Rank { "[" Path+ "]" }
 PlaceStmt { kw<"place"> Path RelPos Path }
 AlignStmt { kw<"align"> Path Path+ }
+// channel a, b, c -> db  — several edges share one trunk into the target
+ChannelStmt { kw<"channel"> PathList Arrow Path }
 RouteStmt {
   kw<"route"> Path Arrow Path String?
   (kw<"from"> Side)? (kw<"to"> Side)?

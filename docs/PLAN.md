@@ -133,7 +133,7 @@ gauntlet is the product's actual test suite.
 **v1.1:** VSCode extension + LSP, sketch theme (rough.js), animated `~>` edges
 (implemented as CSS `stroke-dashoffset` keyframes so animation survives GitHub README
 `<img>` embeds — no JS in exported SVG, ever),
-Tier 2 channels/`around` remains; everything else on this list has
+`around`/`via` waypoints and the `grid` escape hatch remain; everything else on this list has
 shipped (semantic diff, zones, flows, legend/title block, Cmd-K search, contrast,
 `pack-logos`). **v2:** federation/imports, drag-to-hint writeback, flow stories, more
 packs.

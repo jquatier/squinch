@@ -451,7 +451,7 @@ export function buildProject(files: ProjectFile[]): BuildResult {
       name,
       include: [], includeStar: false, exclude: [], expand: [],
       context: "auto", highlight: [], showDescriptions: false, legend: false, notes: [],
-      layout: { place: [], routes: [], align: [] },
+      layout: { place: [], routes: [], align: [], channels: [] },
       loc: ctx.loc(v), file: ctx.name,
     };
     const scopeStmt = body.getChildren("ScopeStmt")[0];
@@ -599,6 +599,23 @@ export function buildProject(files: ProjectFile[]): BuildResult {
         }
         view.layout.cols = cols;
       }
+      for (const ch of lb.getChildren("ChannelStmt")) {
+        const list = ch.getChild("PathList");
+        const targetNode = ch.getChildren("Path").at(-1);
+        if (!list || !targetNode) continue; // partial node from error recovery
+        const target = resolve(ctx.text(targetNode), inScope, targetNode, ctx);
+        const sources = list.getChildren("Path")
+          .filter((p) => p !== targetNode)
+          .map((p) => resolve(ctx.text(p), inScope, p, ctx))
+          .filter((r): r is string => !!r);
+        if (!target) continue;
+        if (sources.length < 2) {
+          warn(ctx, ch, "`channel` needs at least two sources",
+            "one source is just an edge — use `route` to steer it");
+          continue;
+        }
+        view.layout.channels.push({ sources, target, loc: ctx.loc(ch) });
+      }
       for (const pl of lb.getChildren("PlaceStmt")) {
         const [a, b] = pl.getChildren("Path");
         const node = resolve(ctx.text(a), inScope, a, ctx);
@@ -664,7 +681,7 @@ export function buildProject(files: ProjectFile[]): BuildResult {
       auto: true,
       include: [], includeStar: false, exclude: [], expand: [],
       context: "auto", highlight: [], showDescriptions: false, legend: false, notes: [],
-      layout: { place: [], routes: [], align: [] },
+      layout: { place: [], routes: [], align: [], channels: [] },
       loc: model.containers.get(path)!.loc,
       file: model.containers.get(path)!.file,
     });

@@ -147,3 +147,15 @@ committing a visual change. What looks bad here becomes the next fix.
 | light | dark |
 |---|---|
 | ![](out/21-logos.landscape.light.svg) | ![](out/21-logos.landscape.dark.svg) |
+
+## 22-channel — `plain`
+
+| light | dark |
+|---|---|
+| ![](out/22-channel.plain.light.svg) | ![](out/22-channel.plain.dark.svg) |
+
+## 22-channel — `bussed`
+
+| light | dark |
+|---|---|
+| ![](out/22-channel.bussed.light.svg) | ![](out/22-channel.bussed.dark.svg) |

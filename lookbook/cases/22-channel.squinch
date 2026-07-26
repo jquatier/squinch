@@ -1,0 +1,21 @@
+pack aws
+system s "Orders" {
+  api    = aws/api-gateway "API"
+  create = aws/lambda "Create"
+  get    = aws/lambda "Get"
+  search = aws/lambda "Search"
+  db     = aws/dynamodb "Orders Table" datastore
+  api -> create, get, search
+  create -> db "put"
+  get -> db "read"
+  search -> db "scan"
+}
+view plain { scope s
+  layout { rows [api] [create get search] [db] }
+}
+view bussed { scope s
+  layout {
+    rows [api] [create get search] [db]
+    channel create, get, search -> db
+  }
+}

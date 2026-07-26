@@ -104,4 +104,6 @@ export const
   east = 118,
   west = 119,
   to = 120,
-  FileTheme = 121
+  ChannelStmt = 121,
+  channel = 122,
+  FileTheme = 123
