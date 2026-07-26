@@ -207,6 +207,27 @@ view landscape { include * }
     expect(pos.diagnostics[0].fix).toContain("top-right");
   });
 
+  it("a zone with no visible members says so, in views the author wrote", async () => {
+    // found by a cold-run agent: they declared a VPC around a node that sits
+    // inside a collapsed card, and the boundary silently never appeared
+    const src = BASE + `
+zone vpc1 "VPC" vpc { contains core.db }
+view landscape { include * }
+`;
+    const r = await render(src, { view: "landscape" });
+    expect(r.ok).toBe(true); // a warning, not an error — the diagram is fine
+    const d = r.diagnostics.find((x) => x.message.includes("no visible members"));
+    expect(d?.severity).toBe("warning");
+    expect(d?.fix).toContain("core.db");
+    expect(d?.fix).toContain("expand");
+  });
+
+  it("auto views stay quiet — the author did not write them", async () => {
+    const src = BASE + `zone vpc1 "VPC" vpc { contains core.db }\n`;
+    const r = await render(src, { view: "ingest" });
+    expect(r.diagnostics.some((x) => x.message.includes("no visible members"))).toBe(false);
+  });
+
   it("zone kinds show up as earned legend entries", async () => {
     const src = BASE + ZONES.replace("view landscape {\n  include *\n}", "view landscape {\n  include *\n  legend auto\n}");
     const r = await render(src, { view: "landscape" });

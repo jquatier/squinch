@@ -38,7 +38,8 @@ person customer "Customer"            // human actor
 
 system shop "Order Service" {         // systems/containers nest arbitrarily
   description: "Checkout and orders"  // optional; shows on the collapsed card
-  glyph: sys/api                      // optional badge for the collapsed card
+  glyph: sys/api                      // badge for the collapsed card — any pack
+                                      // icon works (aws/…, logos/…), not just sys/…
   tags: #core                         // tags inherit to everything inside
 
   api    = aws/api-gateway "API Gateway"        // id = pack/icon "Label"
@@ -47,11 +48,14 @@ system shop "Order Service" {         // systems/containers nest arbitrarily
     tags: #pci
   }
   db     = aws/dynamodb    "Orders Table"
-  legacy = box             "Old Billing" external   // `box` = no icon; kinds: external, datastore, person
+  legacy = box             "Old Billing" external   // `box` = no icon
+  // kinds: `external` (not ours — someone else's system), `datastore` (holds
+  // state), `person` (a human actor). They are semantic, and themes style them.
 
   api -> create                       // sync edge (solid)
   api -> create, get, search          // fan-out
   db ~> sync "DynamoDB stream"        // async edge (dashed); label optional
+  api -> create { tags: #hot-path }   // edges take tags and attrs too
   a <-> b                             // bidirectional;  a -- b  undirected
 }
 
@@ -87,9 +91,9 @@ Every system automatically gets a zoomable view. Declare views to customize or t
 add lenses:
 
 ```squinch
-view landscape {
-  title "System Landscape"
-  include *                 // all top-level entities as collapsed cards
+view landscape {            // views take no positional label, unlike
+  title "System Landscape"  // `system id "Label"` — the title is a statement
+  include *                 // all TOP-LEVEL entities, as collapsed cards
 }
 
 view shop {                 // name matching a system = that system's view
@@ -108,16 +112,32 @@ view shop {                 // name matching a system = that system's view
 }
 ```
 
-Numbered flows badge a request's path over existing edges (steps count in
-declaration order; bare ids bind when unambiguous):
+Numbered flows badge a request's path over **edges that already exist** — a
+flow annotates the model, it never creates connections. Every step must match
+an edge you declared (steps count in declaration order; bare ids bind when
+unambiguous, otherwise use full paths):
 
 ```squinch
+system shop "Shop" {
+  api = aws/api-gateway "API"; create = aws/lambda "Create"
+  db = aws/dynamodb "Orders"; files = aws/s3 "Files"
+  api -> create                    // these edges…
+  create -> db
+  create ~> files
+}
 flow checkout "Checkout" {
-  api -> create -> db        // steps 1, 2
-  create ~> files            // step 3 — branches keep counting
+  api -> create -> db              // …are what the flow numbers: steps 1, 2
+  create ~> files                  // step 3 — branches keep counting
 }
 view shop { show flow checkout }
 ```
+
+A step with no backing edge is a check error telling you to declare it first.
+
+Grouping vs. nesting: `include *` shows only *top-level* entities, so wrapping
+several services in a parent `system` purely to group them collapses them into
+one card at landscape altitude. If they should stay individually visible but
+share a boundary, keep them top-level and group them with a `zone`.
 
 Zoomed views automatically show outside neighbours as muted **context** cards —
 don't add them yourself; if one appears that you don't want, `context off`.
@@ -130,10 +150,13 @@ view shop {
     direction down                    // down (default) | right
     density comfortable               // compact | comfortable | spacious
     lines orthogonal                  // orthogonal (default) | curved | straight
-    rows [api] [create get search] [db files idx]   // pin rank + order
+    rows [api] [create get search] [db files idx]   // horizontal bands, top to bottom
+    cols [create db] [get files]      // vertical bands, left to right (shared axis)
     place sync right-of db            // right-of | left-of | above | below
     align gw db                       // exact shared axis; first one is the anchor
     channel create, get, search -> db // one trunk into a shared target, not N lines
+                                      // (the edges stay declared in the model;
+                                      //  this only merges how they are drawn)
     route db ~> sync from east to west              // which side an edge exits/enters
     route api -> db "write" from south              // label disambiguates parallels
   }
@@ -142,6 +165,9 @@ view shop {
 
 - `rows` is the workhorse: one bracket group per horizontal band, listed top to
   bottom; order inside a bracket is left to right. Unlisted nodes place themselves.
+- `cols` is its transpose: one bracket group per vertical band, left to right.
+  Members of a column share an exact axis, so a service and its database line
+  up. `rows` and `cols` compose — they pin different axes.
 - A node goes in `rows` **or** gets a `place` — never both.
 - Edges between two nodes in the same row route automatically (straight when
   adjacent, under the band otherwise). `place x right-of y` + `route y ~> x from
@@ -153,15 +179,18 @@ view shop {
 |---|---|
 | Layers feel arbitrary / related things scattered | Add `rows`, one group per conceptual tier (entry, handlers, storage) |
 | One node belongs beside another (stream sync, DLQ, cache) | `place X right-of Y` and route the connecting edge `from east to west` |
+| "a node can hold only one rank position" error | You listed a node in `rows` *and* gave it a `place` — drop it from the `rows` band; `place` positions it relative to its target |
 | Several things all write to one store, crossing each other | `channel a, b, c -> db` — they merge into one trunk |
 | Edge exits a silly side | `route a -> b from south to north` (sides: north/south/east/west) |
 | A wire jogs slightly instead of running straight | `align a b` — b takes a's axis exactly (a is the anchor) |
 | Diagram too cramped / too airy | `density spacious` / `density compact` |
 | Too many boxes at once | Split into views: a landscape with `include *`, plus per-system views |
-| Show only one concern (PCI, GDPR, a team) | Tag the elements, then `include #pci` / `exclude #deprecated` — inherited tags count |
+| Show only one concern (PCI, GDPR, a team) | `highlight #pci` — spotlights matches, dims the rest. `include` **adds** to a view and cannot narrow one; to actually remove things use `exclude #tag` or `exclude <id>` |
 | A neighbour system clutters a zoomed view | `exclude thatSystem` or `context off` |
 | "hint conflict … runs upward" error | Your `rows` contradict an edge's direction — move the target to a lower row |
 | "N edges match route …" error | Add the edge's label to the `route` statement |
+| "zone … cuts through expanded container" | The zone holds *some* children of a container you `expand`ed — contain the whole container, or drop the `expand` in that view |
+| "zone … has no visible members" | Its members are inside collapsed cards at this altitude — `expand` one, scope the view to them, or contain the container itself |
 | Need a VPC / network boundary / cloud-vs-on-prem split | `zone id "Label" vpc { contains a, b }` — kinds: account, region, vpc, subnet, network, cloud, onprem, custom |
 | Icon unknown | `squinch icons search <term>`; the error's `did you mean` is usually right |
 

@@ -5,7 +5,24 @@
     "expect": {
       "minNodes": 7,
       "minAsync": 1,
-      "icons": [["api-gateway"], ["lambda"], ["dynamodb"], ["s3"], ["opensearch", "opensearch-service"]]
+      "icons": [
+        [
+          "api-gateway"
+        ],
+        [
+          "lambda"
+        ],
+        [
+          "dynamodb"
+        ],
+        [
+          "s3"
+        ],
+        [
+          "opensearch",
+          "opensearch-service"
+        ]
+      ]
     }
   },
   {
@@ -14,7 +31,22 @@
     "expect": {
       "minNodes": 4,
       "requirePerson": true,
-      "icons": [["elastic-load-balancing", "elb"], ["ecs", "fargate"], ["aurora"], ["elasticache"]]
+      "icons": [
+        [
+          "elastic-load-balancing",
+          "elb"
+        ],
+        [
+          "ecs",
+          "fargate"
+        ],
+        [
+          "aurora"
+        ],
+        [
+          "elasticache"
+        ]
+      ]
     }
   },
   {
@@ -23,7 +55,23 @@
     "expect": {
       "minNodes": 6,
       "minAsync": 3,
-      "icons": [["eventbridge"], ["sqs"], ["sns"], ["s3"], ["lambda"]]
+      "icons": [
+        [
+          "eventbridge"
+        ],
+        [
+          "sqs"
+        ],
+        [
+          "sns"
+        ],
+        [
+          "s3"
+        ],
+        [
+          "lambda"
+        ]
+      ]
     }
   },
   {
@@ -33,7 +81,14 @@
       "minSystems": 3,
       "minViews": 2,
       "minNodes": 7,
-      "icons": [["api-gateway"], ["lambda"]]
+      "icons": [
+        [
+          "api-gateway"
+        ],
+        [
+          "lambda"
+        ]
+      ]
     }
   },
   {
@@ -43,7 +98,24 @@
       "minNodes": 5,
       "minAsync": 1,
       "requirePerson": true,
-      "icons": [["kinesis", "kinesis-data-streams"], ["lambda"], ["s3"], ["glue"], ["athena"]]
+      "icons": [
+        [
+          "kinesis",
+          "kinesis-data-streams"
+        ],
+        [
+          "lambda"
+        ],
+        [
+          "s3"
+        ],
+        [
+          "glue"
+        ],
+        [
+          "athena"
+        ]
+      ]
     }
   },
   {
@@ -52,7 +124,23 @@
     "expect": {
       "minNodes": 5,
       "minAsync": 1,
-      "icons": [["s3"], ["lambda"], ["rekognition"], ["dynamodb"], ["sns"]]
+      "icons": [
+        [
+          "s3"
+        ],
+        [
+          "lambda"
+        ],
+        [
+          "rekognition"
+        ],
+        [
+          "dynamodb"
+        ],
+        [
+          "sns"
+        ]
+      ]
     }
   },
   {
@@ -61,7 +149,20 @@
     "expect": {
       "minNodes": 5,
       "requireExternal": true,
-      "icons": [["api-gateway"], ["step-functions"], ["lambda"], ["aurora"]]
+      "icons": [
+        [
+          "api-gateway"
+        ],
+        [
+          "step-functions"
+        ],
+        [
+          "lambda"
+        ],
+        [
+          "aurora"
+        ]
+      ]
     }
   },
   {
@@ -73,7 +174,17 @@
       "requireTag": "pci",
       "requireHighlight": true,
       "minNotes": 1,
-      "icons": [["lambda"], ["dynamodb"], ["sqs"]]
+      "icons": [
+        [
+          "lambda"
+        ],
+        [
+          "dynamodb"
+        ],
+        [
+          "sqs"
+        ]
+      ]
     }
   },
   {
@@ -82,18 +193,148 @@
     "expect": {
       "minNodes": 6,
       "minAsync": 1,
-      "icons": [["api-gateway"], ["lambda"], ["sagemaker", "sagemaker-ai"], ["dynamodb"], ["s3"]]
+      "icons": [
+        [
+          "api-gateway"
+        ],
+        [
+          "lambda"
+        ],
+        [
+          "sagemaker",
+          "sagemaker-ai"
+        ],
+        [
+          "dynamodb"
+        ],
+        [
+          "s3"
+        ]
+      ]
     }
   },
   {
     "id": "10-hybrid-legacy",
-    "prompt": "A legacy on-premises ERP system (no cloud icon — it is not an AWS service) feeds a sync worker Lambda over an asynchronous link; the worker writes to an RDS database used by a new admin dashboard web app, which administrators (people) use.",
+    "prompt": "A legacy on-premises ERP system (no cloud icon \u2014 it is not an AWS service) feeds a sync worker Lambda over an asynchronous link; the worker writes to an RDS database used by a new admin dashboard web app, which administrators (people) use.",
     "expect": {
       "minNodes": 4,
       "minAsync": 1,
       "requirePerson": true,
       "requireExternal": true,
-      "icons": [["lambda"], ["rds"]]
+      "icons": [
+        [
+          "lambda"
+        ],
+        [
+          "rds"
+        ]
+      ]
+    }
+  },
+  {
+    "id": "11-zones-hybrid",
+    "prompt": "Draw our hybrid estate: an on-premises data centre running a legacy Oracle-style ERP (no cloud icon) and the operators who use it, feeding an AWS cloud where an ingestion Lambda writes to an Aurora database. Put a boundary around the on-prem side and around the AWS side, and mark the database's VPC separately.",
+    "expect": {
+      "minNodes": 4,
+      "minZones": 3,
+      "icons": [
+        [
+          "lambda"
+        ],
+        [
+          "aurora"
+        ]
+      ]
+    }
+  },
+  {
+    "id": "12-flow-checkout",
+    "prompt": "A checkout path: API Gateway to a cart Lambda, cart to a payment Lambda, payment writes to DynamoDB and asynchronously publishes to an SQS queue that a fulfilment worker drains. Number the steps of the checkout journey so a reader can follow the order of events, and show a legend.",
+    "expect": {
+      "minNodes": 5,
+      "minAsync": 1,
+      "minFlows": 1,
+      "requireFlowShown": true,
+      "icons": [
+        [
+          "lambda"
+        ],
+        [
+          "dynamodb"
+        ],
+        [
+          "sqs"
+        ]
+      ]
+    }
+  },
+  {
+    "id": "13-channel-fanin",
+    "prompt": "Five Lambda handlers (create, read, update, delete, search) all write to one DynamoDB table behind an API Gateway. The five lines converging on the table look like spaghetti \u2014 make them share a single trunk into the table instead.",
+    "expect": {
+      "minNodes": 6,
+      "requireChannel": true,
+      "icons": [
+        [
+          "api-gateway"
+        ],
+        [
+          "lambda"
+        ],
+        [
+          "dynamodb"
+        ]
+      ]
+    }
+  },
+  {
+    "id": "14-tag-lens",
+    "prompt": "A payments platform: API Lambda, tokenizer Lambda, card vault on DynamoDB, an analytics Lambda and a Redshift warehouse. Tag everything in PCI scope, then give me two views \u2014 the full picture, and an auditor's view that shows only the PCI-tagged parts.",
+    "expect": {
+      "minNodes": 5,
+      "minViews": 2,
+      "requireTag": "pci",
+      "icons": [
+        [
+          "lambda"
+        ],
+        [
+          "dynamodb"
+        ]
+      ],
+      "requireNarrowerView": true
+    }
+  },
+  {
+    "id": "15-logos-stack",
+    "prompt": "Our stack has nothing to do with AWS: a Next.js frontend, a NestJS API, PostgreSQL, Redis for caching, Kafka for events, and Grafana watching it all. Developers push to GitHub which deploys to Kubernetes. Use the real product logos.",
+    "expect": {
+      "minNodes": 6,
+      "requirePack": "logos",
+      "requirePerson": true
+    }
+  },
+  {
+    "id": "16-everything",
+    "prompt": "Document our order platform end to end: customers hit a CloudFront-fronted storefront, which calls an API Gateway routing to catalog, orders and payments services, each with its own Lambda and database. Orders publishes events to EventBridge that a fulfilment worker consumes. Everything except the storefront runs inside a production VPC. Tag the payments path as sensitive. Give me a landscape view and a zoomed view of the orders service.",
+    "expect": {
+      "minSystems": 3,
+      "minViews": 2,
+      "minNodes": 8,
+      "minAsync": 1,
+      "minZones": 1,
+      "requireTag": "sensitive",
+      "icons": [
+        [
+          "cloudfront"
+        ],
+        [
+          "api-gateway"
+        ],
+        [
+          "eventbridge"
+        ]
+      ]
     }
   }
 ]

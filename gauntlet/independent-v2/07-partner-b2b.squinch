@@ -1,0 +1,28 @@
+pack aws
+
+partner = box "Partner Company" external {
+  description: "Their system calls our public API"
+}
+
+system platform "Our Platform" {
+  description: "Public ingress and order processing"
+
+  gateway  = aws/api-gateway    "API Gateway"
+  workflow = aws/step-functions "Request Workflow"
+  validate = aws/lambda         "Validation Lambda"
+  billing  = aws/lambda         "Billing Lambda"
+  db       = aws/aurora         "Aurora"
+
+  gateway ~> workflow "start execution"
+  workflow -> validate "validate request"
+  workflow -> billing "charge order"
+  billing -> db "write invoice"
+}
+
+partner -> platform.gateway "submits request"
+
+view platform {
+  layout {
+    rows [gateway] [workflow] [validate billing] [db]
+  }
+}

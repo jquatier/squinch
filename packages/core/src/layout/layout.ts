@@ -122,6 +122,19 @@ export async function layoutView(
         id: z.id, label: z.label ?? z.id, kind: z.kind,
         icon: z.icon, labelPos: z.labelPos, color: z.color, set,
       });
+    else if (!view.auto)
+      // A zone follows visibility by design, but vanishing in silence is not
+      // the same thing: the author asked for this boundary in a view they
+      // wrote, so say why it is not there (SPEC §6: never silently dropped).
+      diagnostics.push({
+        severity: "warning",
+        message: `zone \`${z.id}\` has no visible members in view \`${view.name}\``,
+        fix: z.members.length
+          ? `its members (${z.members.join(", ")}) are inside collapsed cards here — ` +
+            `\`expand\` one, or scope the view to them`
+          : "the zone contains nothing",
+        loc: z.loc,
+      });
   }
   for (let i = 0; i < zones.length; i++)
     for (let j = i + 1; j < zones.length; j++) {
@@ -392,7 +405,15 @@ export async function layoutView(
     },
     children,
     edges: [
-      ...elkEdges.map((e) => ({ id: e.id, sources: [`${e.id}.src`], targets: [`${e.id}.dst`] })),
+      // Ports live on leaves. An endpoint that is an expanded frame (or a zone)
+      // has none, so attach to the compound itself — otherwise ELK is handed a
+      // port id that does not exist and throws a raw JsonImportException,
+      // which is exactly the un-actionable failure CLAUDE.md forbids.
+      ...elkEdges.map((e) => ({
+        id: e.id,
+        sources: [frameLabels.has(e.from) || zoneById.has(e.from) ? e.from : `${e.id}.src`],
+        targets: [frameLabels.has(e.to) || zoneById.has(e.to) ? e.to : `${e.id}.dst`],
+      })),
       ...scaffold.map((s) => ({ id: s.id, sources: [s.from], targets: [s.to] })),
     ],
   };

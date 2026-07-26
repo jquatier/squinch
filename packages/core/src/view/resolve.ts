@@ -129,9 +129,11 @@ export function resolveView(model: SModel, view: SView): ViewGraph {
         message: `include #${inc.tag}: nothing is tagged #${inc.tag}`,
         loc: view.loc,
       });
+    let added = 0;
     for (const target of targets) {
       explicitSet.add(target);
       if (visible.includes(target)) continue;
+      added++;
       visible.push(target);
       // a deeper explicit include supersedes its lifted top-level context card
       const top = topOf(target);
@@ -141,6 +143,23 @@ export function resolveView(model: SModel, view: SView): ViewGraph {
       }
       if (!scope || !target.startsWith(`${scope}.`)) contextSet.add(target);
     }
+    // `include` ADDS to a view (SPEC §5 rule stack); it cannot narrow one.
+    // Reading it as a filter is the natural mistake — a cold-run agent wrote
+    // `include #pci` for "show only the PCI parts", got a clean check and an
+    // unfiltered diagram. Silence there is the bug.
+    if (added === 0 && targets.length > 0)
+      diagnostics.push({
+        severity: "warning",
+        message: typeof inc === "string"
+          ? `include \`${inc}\` changed nothing — it is already visible here`
+          : `include #${inc.tag} changed nothing — every match is already visible here`,
+        fix: typeof inc === "string"
+          ? "`include` adds elements to a view; drop the line, or did you mean `exclude`?"
+          : `\`include\` adds elements, it cannot narrow a view. To focus on one concern ` +
+            `use \`highlight #${inc.tag}\` (dims the rest), or remove what you do not want ` +
+            `with \`exclude\``,
+        loc: view.loc,
+      });
   }
 
   // ── 4. exclude wins last (removes whole subtrees) ─────────────────────────

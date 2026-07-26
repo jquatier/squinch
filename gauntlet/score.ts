@@ -4,8 +4,9 @@
 //
 //   npx tsx gauntlet/score.ts [solutionsDir]
 //
-// solutionsDir defaults to gauntlet/solutions; pass another directory to score
-// an independent run (e.g. gauntlet/independent).
+// solutionsDir defaults to gauntlet/independent-v2 — the current certified
+// cold-run set, which doubles as CI's regression corpus. Pass another directory
+// to score a different run (e.g. gauntlet/independent, the first certification).
 //
 // Exit 0 only when every solution with a file present passes AND at least the
 // Phase-3 bar (8/10) is met.
@@ -22,19 +23,30 @@ interface Expect {
   minViews?: number;
   minAsync?: number;
   minNotes?: number;
+  minZones?: number;
+  minFlows?: number;
   requirePerson?: boolean;
   requireExternal?: boolean;
   requireHighlight?: boolean;
   requireTag?: string;
+  /** some declared view must show strictly fewer elements than the widest —
+   *  i.e. a real lens exists, however the author chose to build it */
+  requireNarrowerView?: boolean;
+  /** a view must render a declared flow */
+  requireFlowShown?: boolean;
+  /** a view must use a channel trunk */
+  requireChannel?: boolean;
+  /** at least one node must use an icon from this pack */
+  requirePack?: string;
   icons?: string[][];
 }
 interface Prompt { id: string; prompt: string; expect: Expect }
 
 const here = dirname(fileURLToPath(import.meta.url));
 const prompts: Prompt[] = JSON.parse(readFileSync(join(here, "prompts.json"), "utf8"));
-const solutionsDir = process.argv[2] ? resolve(process.argv[2]) : join(here, "solutions");
+const solutionsDir = process.argv[2] ? resolve(process.argv[2]) : join(here, "independent-v2");
 
-const BAR = 8;
+const BAR = 13; // 16 prompts, same ~80% bar as the original 8/10
 let passed = 0;
 const lines: string[] = [];
 
@@ -99,6 +111,26 @@ for (const p of prompts) {
   if (e.requireHighlight && !m.views.some((v) => v.highlight.length > 0))
     problems.push("no highlight view");
   if (e.requireTag && !allTags.has(e.requireTag)) problems.push(`missing tag #${e.requireTag}`);
+  if (e.minZones && m.zones.length < e.minZones)
+    problems.push(`zones ${m.zones.length} < ${e.minZones}`);
+  if (e.minFlows && m.flows.length < e.minFlows)
+    problems.push(`flows ${m.flows.length} < ${e.minFlows}`);
+  if (e.requireFlowShown && !m.views.some((v) => v.showFlow))
+    problems.push("no view renders a flow (`show flow <id>`)");
+  if (e.requireChannel && !m.views.some((v) => v.layout.channels.length))
+    problems.push("no channel trunk");
+  if (e.requireNarrowerView) {
+    const counts = await Promise.all(
+      explicit.map(async (v) => {
+        const r = await renderProject([{ name: `${p.id}.squinch`, src }], { view: v.name });
+        return r.ok ? (r.svg!.match(/data-kind="(leaf|card)"/g) ?? []).length : 0;
+      }),
+    );
+    if (counts.length < 2 || Math.min(...counts) >= Math.max(...counts))
+      problems.push("no view narrows the picture — every view shows the same elements");
+  }
+  if (e.requirePack && !nodes.some((n) => n.icon?.pack === e.requirePack))
+    problems.push(`no icon from the \`${e.requirePack}\` pack`);
   for (const anyOf of e.icons ?? [])
     if (!anyOf.some((id) => iconIdsUsed.has(id)))
       problems.push(`missing icon: ${anyOf.join(" | ")}`);

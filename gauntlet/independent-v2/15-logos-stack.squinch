@@ -1,0 +1,39 @@
+pack logos
+
+person developer "Developer"
+
+repo = logos/github "GitHub"
+
+system platform "Kubernetes Cluster" {
+  glyph: logos/kubernetes
+
+  frontend = logos/nextdotjs "Frontend"
+  api      = logos/nestjs    "API"
+
+  frontend -> api "requests"
+}
+
+db      = logos/postgresql  "PostgreSQL" datastore
+cache   = logos/redis       "Redis"      datastore
+events  = logos/apachekafka "Kafka"
+grafana = logos/grafana     "Grafana"
+
+developer -> repo "push"
+repo -> platform.frontend, platform.api "deploys"
+
+platform.api -> db "reads/writes"
+platform.api -> cache "caches"
+platform.api ~> events "publishes events"
+
+grafana -> platform.frontend, platform.api, db, cache, events "monitors"
+
+view stack {
+  title "Our Stack"
+  include *
+  expand platform
+  legend auto
+
+  layout {
+    rows [developer] [repo grafana] [platform.frontend platform.api] [db cache events]
+  }
+}

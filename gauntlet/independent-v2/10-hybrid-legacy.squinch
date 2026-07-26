@@ -1,0 +1,28 @@
+pack aws
+
+person admin "Administrator"
+
+legacy_erp = box "Legacy ERP System" external {
+  description: "On-premises ERP; not an AWS service"
+}
+
+worker    = aws/lambda "Sync Worker"
+db        = aws/rds    "App Database"
+dashboard = box "Admin Dashboard" {
+  glyph: sys/webapp
+  description: "New web app for administrators"
+}
+
+legacy_erp ~> worker "nightly sync feed"
+worker -> db "writes records"
+dashboard -> db "reads/writes"
+admin -> dashboard "manages"
+
+view landscape {
+  title "Hybrid Legacy Integration"
+  include *
+
+  layout {
+    rows [admin legacy_erp] [worker dashboard] [db]
+  }
+}

@@ -1,0 +1,59 @@
+pack aws
+
+person customer "Customer"
+
+storefront = aws/cloudfront "Storefront" {
+  description: "CloudFront-fronted storefront"
+}
+
+gateway = aws/api-gateway "API Gateway"
+
+system catalog "Catalog Service" {
+  fn = aws/lambda   "Catalog Handler"
+  db = aws/dynamodb "Catalog Table"
+  fn -> db
+}
+
+system orders "Orders Service" {
+  fn = aws/lambda   "Orders Handler"
+  db = aws/dynamodb "Orders Table"
+  fn -> db
+}
+
+system payments "Payments Service" {
+  tags: #sensitive
+
+  fn = aws/lambda   "Payments Handler"
+  db = aws/dynamodb "Payments Table"
+  fn -> db
+}
+
+bus = aws/eventbridge "Event Bus"
+
+system fulfilment "Fulfilment Worker" {
+  worker = aws/lambda "Worker"
+}
+
+customer -> storefront "browses"
+storefront -> gateway "checkout"
+
+gateway -> catalog.fn  "route"
+gateway -> orders.fn   "route"
+gateway -> payments.fn "route" { tags: #sensitive }
+
+orders.fn ~> bus "order placed"
+bus ~> fulfilment.worker "consume"
+
+zone prod_vpc "Production VPC" vpc {
+  contains gateway, catalog, orders, payments, bus, fulfilment
+}
+
+view landscape {
+  title "Order Platform — Landscape"
+  include *
+}
+
+view orders {
+  scope orders
+  title "Orders Service"
+}
