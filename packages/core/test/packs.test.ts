@@ -123,9 +123,10 @@ system s "S" {
     expect(r.svg).not.toMatch(/<use[^>]*clip-path/);
   });
 
-  it("falls back to a labelled plate for iconless nodes", async () => {
+  it("box nodes render the first-party cube glyph on their plate", async () => {
     const r = await render(`system s "S" {\n a = box "Plain"\n}`, { theme: "light" });
     expect(r.ok).toBe(true);
-    expect(r.svg).not.toContain("<use ");
+    expect(r.svg).toContain(`href="#sq-builtin-box"`);
+    expect(r.svg).toContain('stroke="currentColor"');
   });
 });

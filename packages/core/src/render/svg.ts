@@ -175,11 +175,18 @@ function card(n: PNode, rc: RC, dimmed: boolean, L: string[]) {
       `<text x="${tx}" y="${n.y + 54}" font-size="${rc.fx(11)}" fill="${t.muted}">${esc(fit(n.tagline, n.w - 40, rc.fx(11), "400", rc.fam))}</text>`,
     );
   if (n.glyph) {
-    const g = iconMeta(n.glyph.pack, n.glyph.id);
-    if (g)
+    const asset = iconAsset(n.glyph.pack, n.glyph.id);
+    if (asset)
       L.push(
-        `<text x="${n.x + n.w - PAD}" y="${n.y + 22}" text-anchor="end" font-size="${rc.fx(10)}" font-weight="500" fill="${t.muted}">${esc(g.code)}</text>`,
+        `<g color="${t.muted}"><use href="#${symbolId(n.glyph.pack, n.glyph.id)}" x="${n.x + n.w - PAD - 18}" y="${n.y + 10}" width="18" height="18"/></g>`,
       );
+    else {
+      const g = iconMeta(n.glyph.pack, n.glyph.id);
+      if (g)
+        L.push(
+          `<text x="${n.x + n.w - PAD}" y="${n.y + 22}" text-anchor="end" font-size="${rc.fx(10)}" font-weight="500" fill="${t.muted}">${esc(g.code)}</text>`,
+        );
+    }
   }
   // preview strip: up to 3 inner icons, bottom-right, 16px at 60%
   n.preview.forEach((icon, i) => {
@@ -544,6 +551,7 @@ function iconDefs(p: Positioned): string {
   };
   for (const n of p.nodes) {
     note(n.icon);
+    note(n.glyph);
     for (const prev of n.preview) note(prev);
   }
   for (const z of p.zones ?? []) note(z.icon);
@@ -570,6 +578,16 @@ function iconPlate(
   const meta = icon ? iconMeta(icon.pack, icon.id) : undefined;
   const asset = icon ? iconAsset(icon.pack, icon.id) : undefined;
   const r = Math.max(2, Math.round(size / 10));
+  if (asset && icon && (icon.pack === "sys" || icon.pack === "builtin")) {
+    // house glyphs: colored plate + inset monoline artwork, tinted plate-text
+    const pad = Math.round(size * 0.2);
+    return (
+      `<rect x="${x}" y="${y}" width="${size}" height="${size}" rx="${r}" fill="${meta?.color ?? t.muted}"${soften ? ` opacity="0.6"` : ""}/>` +
+      `<g color="${t.plateText}"${soften ? ` opacity="0.9"` : ""}>` +
+      `<use href="#${symbolId(icon.pack, icon.id)}" x="${x + pad}" y="${y + pad}" width="${size - pad * 2}" height="${size - pad * 2}"/>` +
+      `</g>`
+    );
+  }
   if (asset && icon) {
     // clip-path directly on <use> stops it instantiating in some renderers —
     // wrap instead, so the artwork still gets our rounded plate corners.

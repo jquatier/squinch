@@ -2,6 +2,7 @@
 //   Node  : registerPackFromDisk() in ./node-fs.ts (used by the CLI + tests)
 //   Browser: registerPack() with a fetch-backed loader, then preloadIcons()
 // Rendering itself stays synchronous, so assets must be resident before render.
+import { SYS_GLYPH_ART, SYS_GLYPH_VIEWBOX } from "./sysGlyphs.js";
 import { sanitizeIcon, type SanitizedIcon } from "./sanitize.js";
 
 export interface PackManifest {
@@ -103,6 +104,9 @@ const cacheKey = (packName: string, key: string) => `${packName}/${key}`;
 
 /** Synchronous lookup used by the renderer; undefined until loaded. */
 export function iconAsset(packName: string, id: string): SanitizedIcon | undefined {
+  // first-party glyph artwork ships in-core (browser-safe, no preload needed)
+  const art = SYS_GLYPH_ART[packName]?.[id];
+  if (art) return { viewBox: SYS_GLYPH_VIEWBOX, body: art };
   const pack = packs.get(packName);
   if (!pack) return undefined;
   const key = canonical(pack, id);

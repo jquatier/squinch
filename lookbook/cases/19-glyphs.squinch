@@ -1,0 +1,30 @@
+// The first-party glyph sheet: every sys/* on a card badge AND a plate,
+// plus builtin person/box. Monoline house style, theme-tinted.
+person user "Person Glyph"
+legacy = box "Box Glyph" external
+
+system g1 "API"       { glyph: sys/api; n = box "api" }
+system g2 "Web App"   { glyph: sys/webapp; n = box "webapp" }
+system g3 "Mobile"    { glyph: sys/mobile; n = box "mobile" }
+system g4 "Service"   { glyph: sys/service; n = box "service" }
+system g5 "Worker"    { glyph: sys/worker; n = box "worker" }
+system g6 "Database"  { glyph: sys/database; n = box "database" }
+system g7 "Cache"     { glyph: sys/cache; n = box "cache" }
+system g8 "Queue"     { glyph: sys/queue; n = box "queue" }
+system g9 "Event Bus" { glyph: sys/event-bus; n = box "event-bus" }
+system g10 "Filestore" { glyph: sys/filestore; n = box "filestore" }
+system g11 "Search"   { glyph: sys/search; n = box "search" }
+system g12 "Gateway"  { glyph: sys/gateway; n = box "gateway" }
+system g13 "Auth"     { glyph: sys/auth; n = box "auth" }
+system g14 "Monitor"  { glyph: sys/monitor; n = box "monitor" }
+system g15 "Scheduler" { glyph: sys/scheduler; n = box "scheduler" }
+system g16 "Org"      { glyph: sys/org; n = box "org" }
+system g17 "Internet" { glyph: sys/internet; n = box "internet" }
+
+view sheet {
+  title "Glyph sheet"
+  include *
+  layout {
+    rows [user legacy g1 g2 g3] [g4 g5 g6 g7 g8] [g9 g10 g11 g12 g13] [g14 g15 g16 g17]
+  }
+}

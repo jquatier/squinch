@@ -129,3 +129,9 @@ committing a visual change. What looks bad here becomes the next fix.
 | light | dark |
 |---|---|
 | ![](out/18-flows.shop.light.svg) | ![](out/18-flows.shop.dark.svg) |
+
+## 19-glyphs — `sheet`
+
+| light | dark |
+|---|---|
+| ![](out/19-glyphs.sheet.light.svg) | ![](out/19-glyphs.sheet.dark.svg) |
