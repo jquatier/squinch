@@ -55,6 +55,10 @@ system shop "Order Service" {         // systems/containers nest arbitrarily
 }
 
 customer -> shop.api "places order"   // cross-system edges use dotted paths
+
+zone prod_vpc "VPC prod" vpc {        // deployment boundary — cross-cuts the
+  contains shop                       // ownership tree; renders as the classic
+}                                     // dashed frame around its members
 ```
 
 Rules that matter:
@@ -66,6 +70,11 @@ Rules that matter:
   `prefers-reduced-motion`). Opt out per edge: `{ animate: false }`.
 - `layout { }` blocks go inside a `view`, **never** inside a `system` —
   structure and layout stay separate. Same for `highlight`, `note`, `expand`.
+- Zones (`zone id "Label" kind { contains a, b.c }`) mark deployment
+  boundaries: kinds `account | region | vpc | subnet | network | cloud |
+  onprem | custom`. Zones must nest cleanly or stay disjoint in any one view,
+  and may not cut through an expanded container. A zone only appears where
+  its members are visible.
 
 ## Views (altitudes)
 
@@ -132,6 +141,7 @@ view shop {
 | A neighbour system clutters a zoomed view | `exclude thatSystem` or `context off` |
 | "hint conflict … runs upward" error | Your `rows` contradict an edge's direction — move the target to a lower row |
 | "N edges match route …" error | Add the edge's label to the `route` statement |
+| Need a VPC / network boundary / cloud-vs-on-prem split | `zone id "Label" vpc { contains a, b }` — kinds: account, region, vpc, subnet, network, cloud, onprem, custom |
 | Icon unknown | `squinch icons search <term>`; the error's `did you mean` is usually right |
 
 ## Icons you'll use constantly (aws pack)

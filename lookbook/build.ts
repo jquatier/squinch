@@ -18,7 +18,7 @@ mkdirSync(outDir, { recursive: true });
 
 const THEMES = ["light", "dark"];
 // sketch snapshots on a curated subset (the Caveat embed adds ~110KB per SVG)
-const SKETCH_CASES = new Set(["01-minimal", "06-dense-mesh", "08-landscape", "10-highlight-notes"]);
+const SKETCH_CASES = new Set(["01-minimal", "06-dense-mesh", "08-landscape", "10-highlight-notes", "17-zones"]);
 const cases = readdirSync(join(here, "cases")).filter((f) => f.endsWith(".squinch")).sort();
 
 interface Cell { caseName: string; view: string; files: Record<string, string> }

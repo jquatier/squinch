@@ -96,11 +96,28 @@ export interface SView {
   auto?: boolean;
 }
 
+// Deployment boundaries (SPEC §Zones): cross-cutting membership, separate
+// from the ownership hierarchy. Kind drives the frame styling.
+export const ZONE_KINDS = [
+  "account", "region", "vpc", "subnet", "network", "cloud", "onprem", "custom",
+] as const;
+export type ZoneKind = (typeof ZONE_KINDS)[number];
+
+export interface SZone {
+  id: string;
+  label?: string;
+  kind: ZoneKind;
+  members: string[]; // resolved node/container paths, declaration order
+  loc: Loc;
+  file?: string;
+}
+
 export interface SModel {
   packs: string[];
   nodes: Map<string, SNode>;
   containers: Map<string, SContainer>;
   edges: SEdge[];
+  zones: SZone[];
   views: SView[];
   fileTheme?: string;
 }

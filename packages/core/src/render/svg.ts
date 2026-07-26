@@ -9,8 +9,8 @@ import { iconMeta } from "../model/packs.js";
 import { iconAsset, symbolId } from "../packs/registry.js";
 import { makeSketcher, type Sketcher } from "./sketch.js";
 import type { Theme } from "../themes/index.js";
-import type { Positioned, PEdge, PNode } from "../layout/layout.js";
-import type { SNote } from "../model/types.js";
+import type { Positioned, PEdge, PNode, PZone } from "../layout/layout.js";
+import type { SNote, ZoneKind } from "../model/types.js";
 
 const PLATE = 40;
 const PAD = 12;
@@ -238,6 +238,18 @@ function notes(p: Positioned, rc: RC, list: SNote[], L: string[]) {
   }
 }
 
+// zone-kind → tint token (DESIGN §5: kind-tinted, low opacity)
+const ZONE_TINT: Record<ZoneKind, (t: Theme) => string> = {
+  account: (th) => th.zoneAccount,
+  region: (th) => th.zoneNeutral,
+  vpc: (th) => th.zoneNetwork,
+  subnet: (th) => th.zoneNetwork,
+  network: (th) => th.zoneNetwork,
+  cloud: (th) => th.zoneCloud,
+  onprem: (th) => th.zoneNeutral,
+  custom: (th) => th.zoneNeutral,
+};
+
 /** Legend of what's actually in the picture — never a fixed key (DESIGN:
  *  quiet structure; only earned entries). Returns markup + band height. */
 function legend(p: Positioned, rc: RC, y: number, L: string[]): { h: number; w: number } {
@@ -265,6 +277,16 @@ function legend(p: Positioned, rc: RC, y: number, L: string[]): { h: number; w: 
       sample: (x, cy) => `<rect x="${x + 2}" y="${cy - 7}" width="20" height="14" rx="2" fill="${t.surface}" stroke="${t.border}" stroke-width="1.5" stroke-dasharray="4 3"/>`,
       label: "context",
     });
+  // zone kinds present in this render, in kind-list order, deduped
+  const kindsPresent = [...new Set((p.zones ?? []).map((z) => z.kind))];
+  for (const kind of kindsPresent) {
+    const col = ZONE_TINT[kind](t);
+    items.push({
+      sample: (x, cy) =>
+        `<rect x="${x + 2}" y="${cy - 7}" width="20" height="14" rx="2" fill="${col}" fill-opacity="0.04" stroke="${col}" stroke-width="1" stroke-dasharray="4 3"/>`,
+      label: kind,
+    });
+  }
   if (!items.length) return { h: 0, w: 0 };
   const cy = y + 12;
   let x = 16;
@@ -438,6 +460,29 @@ export function renderSVG(p: Positioned, t: Theme, opts: RenderOpts = {}): strin
     hl.length === 0 || (nodeMatches(byPath.get(e.from)!) && nodeMatches(byPath.get(e.to)!));
 
   const body: string[] = [];
+
+  // zone boundaries first — the classic dashed deployment frame, behind
+  // everything, outermost first (DESIGN §5). Kind picks the tint; the label
+  // chip straddles the top-left border, outside the flow of nodes.
+  const zoneMarkup = (z: PZone): string => {
+    const col = ZONE_TINT[z.kind](t);
+    const dash = ` stroke-dasharray="8 5"`;
+    const boundary = rc.sk
+      ? `<rect x="${z.x}" y="${z.y}" width="${z.w}" height="${z.h}" rx="2" fill="${col}" fill-opacity="0.04"/>` +
+        `<path d="${rc.sk.rect(z.x, z.y, z.w, z.h, { multi: false })}" fill="none" stroke="${col}" stroke-width="1.5"${dash} stroke-linecap="round"/>`
+      : `<rect x="${z.x}" y="${z.y}" width="${z.w}" height="${z.h}" rx="8" fill="${col}" fill-opacity="0.04" stroke="${col}" stroke-width="1.5"${dash}/>`;
+    const label = fit(z.label, z.w - 48, rc.fx(11), "500", rc.fam);
+    const chipW = Math.round(measure(label, rc.fx(11), "500", rc.fam)) + 16;
+    const chipX = z.x + 12, chipY = z.y - 10;
+    const chip =
+      (rc.sk
+        ? `<rect x="${chipX}" y="${chipY}" width="${chipW}" height="20" rx="2" fill="${t.canvas}"/>` +
+          `<path d="${rc.sk.rect(chipX, chipY, chipW, 20, { roughness: 0.6, multi: false })}" fill="none" stroke="${col}" stroke-width="1"/>`
+        : `<rect x="${chipX}" y="${chipY}" width="${chipW}" height="20" rx="3" fill="${t.canvas}" stroke="${col}" stroke-width="1"/>`) +
+      `<text x="${chipX + 8}" y="${chipY + 14}" font-size="${rc.fx(11)}" font-weight="500" fill="${col}">${esc(label)}</text>`;
+    return `<g data-kind="zone" data-zone="${esc(z.id)}" data-zone-kind="${z.kind}">${boundary}${chip}</g>`;
+  };
+  for (const z of [...(p.zones ?? [])].sort((a, b) => a.depth - b.depth)) body.push(zoneMarkup(z));
 
   // container frames first — recessed surface behind everything (DESIGN §5)
   for (const f of p.frames) {

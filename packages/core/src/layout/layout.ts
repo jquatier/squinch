@@ -10,7 +10,7 @@ const ELK = ELKModule as unknown as { new (): { layout(graph: unknown): Promise<
 import { measure, type FontFamily } from "../metrics.js";
 import { resolveView } from "../view/resolve.js";
 import type { VNode, VEdge } from "../view/resolve.js";
-import type { SModel, SView, Side, Diagnostic } from "../model/types.js";
+import type { SModel, SView, Side, Diagnostic, ZoneKind } from "../model/types.js";
 import type { ThemeFont } from "../themes/index.js";
 
 const LEAF_TIERS = [120, 160, 200, 240];
@@ -28,6 +28,11 @@ export interface PNode extends VNode {
 }
 export interface PPort { edge: string; node: string; side: Side; x: number; y: number }
 export interface PFrame { path: string; label: string; x: number; y: number; w: number; h: number }
+export interface PZone {
+  id: string; label: string; kind: ZoneKind;
+  x: number; y: number; w: number; h: number;
+  depth: number; // nesting depth, outermost = 0 (render order)
+}
 export interface PEdge {
   id: string; from: string; to: string;
   label?: string; async: boolean; animate: boolean; count: number;
@@ -37,6 +42,7 @@ export interface Positioned {
   name: string;
   width: number; height: number;
   nodes: PNode[]; edges: PEdge[]; ports: PPort[]; frames: PFrame[];
+  zones: PZone[];
   lines: "orthogonal" | "curved" | "straight";
 }
 
@@ -80,26 +86,95 @@ export async function layoutView(
   ];
   const entitySet = new Set(entities);
 
+  // ── zones (SPEC §Zones): cross-cutting boundaries → ELK compounds ────────
+  // A zone's effective members in this view are the visible entities matching
+  // any declared member path (exactly, or as a descendant). Zones must form a
+  // clean hierarchy — with each other AND with expanded frames — so the whole
+  // picture stays a tree ELK can lay out; like frames, a zone is one unit for
+  // ranking and ELK layers freely inside it.
+  const memberMatch = (path: string, member: string) =>
+    path === member || path.startsWith(member + ".");
+  interface LZone { id: string; label: string; kind: ZoneKind; set: Set<string> }
+  const zones: LZone[] = [];
+  for (const z of model.zones) {
+    const set = new Set(entities.filter((e) => z.members.some((m) => memberMatch(e, m))));
+    for (const n of graph.nodes) {
+      if (!n.frame || set.has(n.frame)) continue;
+      if (z.members.some((m) => memberMatch(n.path, m)))
+        diagnostics.push({
+          severity: "error",
+          message: `zone \`${z.id}\` cuts through expanded container \`${n.frame}\` (member \`${n.path}\`)`,
+          fix: `contain the whole container (\`contains ${n.frame}\`), or don't expand it in this view`,
+          loc: z.loc,
+        });
+    }
+    if (set.size > 0) zones.push({ id: z.id, label: z.label ?? z.id, kind: z.kind, set });
+  }
+  for (let i = 0; i < zones.length; i++)
+    for (let j = i + 1; j < zones.length; j++) {
+      const A = zones[i], B = zones[j];
+      const shared = [...A.set].filter((e) => B.set.has(e));
+      if (!shared.length) continue;
+      const aOnly = [...A.set].filter((e) => !B.set.has(e));
+      const bOnly = [...B.set].filter((e) => !A.set.has(e));
+      if (aOnly.length && bOnly.length)
+        diagnostics.push({
+          severity: "error",
+          message: `zones \`${A.id}\` and \`${B.id}\` partially overlap — visible zones must nest or stay disjoint`,
+          fix: `shared: ${shared.join(", ")} · only ${A.id}: ${aOnly.join(", ")} · only ${B.id}: ${bOnly.join(", ")}`,
+          loc: view.loc,
+        });
+    }
+  // nesting: parent = smallest strictly-containing zone; entity → smallest zone
+  const zoneParent = new Map<string, LZone | undefined>();
+  for (const z of zones) {
+    let parent: LZone | undefined;
+    for (const cand of zones) {
+      if (cand === z || cand.set.size <= z.set.size) continue;
+      if (![...z.set].every((e) => cand.set.has(e))) continue;
+      if (!parent || cand.set.size < parent.set.size) parent = cand;
+    }
+    zoneParent.set(z.id, parent);
+  }
+  const entityZone = new Map<string, LZone>();
+  for (const e of entities) {
+    let best: LZone | undefined;
+    for (const z of zones) if (z.set.has(e) && (!best || z.set.size < best.set.size)) best = z;
+    if (best) entityZone.set(e, best);
+  }
+  const outerZoneOf = (e: string): string | undefined => {
+    let z = entityZone.get(e);
+    while (z && zoneParent.get(z.id)) z = zoneParent.get(z.id);
+    return z?.id;
+  };
+  // the ranking/order granularity: outermost zone, else frame, else the node
+  const unitOf = (p: string) => outerZoneOf(entityOf(p)) ?? entityOf(p);
+  const units = [
+    ...zones.filter((z) => !zoneParent.get(z.id)).map((z) => z.id),
+    ...entities.filter((e) => !entityZone.has(e)),
+  ];
+  const unitSet = new Set(units);
+
   // ── ranks: declared (rows/place) pinned; everything else floats around them.
   // Context cards arrive *above* the scope's first row, so unhinted nodes may
   // take negative ranks and the whole grid is normalized afterwards. Declared
   // rows are relative to each other — context must never push them down.
   const declared = new Map<string, number>();
   view.layout.rows?.forEach((row, i) =>
-    row.forEach((p) => entitySet.has(entityOf(p)) && declared.set(entityOf(p), i)),
+    row.forEach((p) => unitSet.has(unitOf(p)) && declared.set(unitOf(p), i)),
   );
   for (const pl of view.layout.place) {
-    const t = declared.get(entityOf(pl.target));
-    if (t !== undefined) declared.set(entityOf(pl.node), t);
+    const t = declared.get(unitOf(pl.target));
+    if (t !== undefined) declared.set(unitOf(pl.node), t);
   }
 
   const rank = new Map<string, number>(declared);
   const crossEdges = edges
-    .map((e) => [entityOf(e.from), entityOf(e.to)] as const)
+    .map((e) => [unitOf(e.from), unitOf(e.to)] as const)
     .filter(([a, b]) => a !== b);
   // Relax until stable: successors sit below predecessors; unpinned predecessors
   // of a pinned node float above it (possibly negative).
-  for (let pass = 0; pass < entities.length + 2; pass++) {
+  for (let pass = 0; pass < units.length + 2; pass++) {
     let changed = false;
     for (const [a, b] of crossEdges) {
       const ra = rank.get(a), rb = rank.get(b);
@@ -115,57 +190,59 @@ export async function layoutView(
     }
     if (!changed) break;
   }
-  for (const p of entities) if (!rank.has(p)) rank.set(p, 0);
+  for (const p of units) if (!rank.has(p)) rank.set(p, 0);
   // normalize to 0-based
   const minRank = Math.min(...rank.values());
   if (minRank !== 0) for (const [k, v] of rank) rank.set(k, v - minRank);
 
-  // model order over entities: rows first, placed after targets, rest in resolve order
+  // model order over units: rows first, placed after targets, rest in resolve order
   const order: string[] = [];
-  for (const p of (view.layout.rows ?? []).flat().map(entityOf))
-    if (entitySet.has(p) && !order.includes(p)) order.push(p);
+  for (const p of (view.layout.rows ?? []).flat().map(unitOf))
+    if (unitSet.has(p) && !order.includes(p)) order.push(p);
   for (const pl of view.layout.place) {
-    const i = order.indexOf(entityOf(pl.target));
-    const n = entityOf(pl.node);
+    const i = order.indexOf(unitOf(pl.target));
+    const n = unitOf(pl.node);
     if (i >= 0 && !order.includes(n)) order.splice(i + 1, 0, n);
   }
-  for (const p of entities) if (!order.includes(p)) order.push(p);
+  for (const p of units) if (!order.includes(p)) order.push(p);
 
   // ── edge classes: inner (same entity) | coplanar (same rank, both bare) |
   //    cross-rank (ELK's) ────────────────────────────────────────────────────
   const inner = (e: VEdge) => entityOf(e.from) === entityOf(e.to) && byPath.get(e.from)?.frame;
+  // the coplanar router only handles bare nodes: unframed AND unzoned
   const coplanar = edges.filter(
     (e) =>
       !inner(e) &&
-      rank.get(entityOf(e.from)) === rank.get(entityOf(e.to)) &&
-      !byPath.get(e.from)?.frame &&
-      !byPath.get(e.to)?.frame,
+      rank.get(unitOf(e.from)) === rank.get(unitOf(e.to)) &&
+      unitOf(e.from) === e.from &&
+      unitOf(e.to) === e.to,
   );
   const coplanarSet = new Set(coplanar.map((e) => e.id));
   for (const e of edges) {
     if (
       !inner(e) && !coplanarSet.has(e.id) &&
-      rank.get(entityOf(e.from)) === rank.get(entityOf(e.to))
+      unitOf(e.from) !== unitOf(e.to) &&
+      rank.get(unitOf(e.from)) === rank.get(unitOf(e.to))
     )
       diagnostics.push({
         severity: "warning",
-        message: `same-rank edge ${e.from} → ${e.to} crosses an expanded container — layout quality may degrade`,
+        message: `same-rank edge ${e.from} → ${e.to} crosses an expanded container or zone — layout quality may degrade`,
         loc: view.loc,
       });
   }
   const elkEdges = edges.filter((e) => !coplanarSet.has(e.id));
 
-  const natural = new Map(entities.map((p) => [p, 0]));
-  for (let i = 0; i < entities.length; i++)
+  const natural = new Map(units.map((p) => [p, 0]));
+  for (let i = 0; i < units.length; i++)
     for (const e of elkEdges) {
-      const ef = entityOf(e.from), et = entityOf(e.to);
+      const ef = unitOf(e.from), et = unitOf(e.to);
       if (ef !== et) natural.set(et, Math.max(natural.get(et)!, natural.get(ef)! + 1));
     }
   // A conflict is only a *user* error when two explicitly declared nodes
   // contradict each other — an edge that runs upward between declared rows.
   // Context and other unhinted nodes never trigger it; they float (see above).
   for (const e of edges) {
-    const a = entityOf(e.from), b = entityOf(e.to);
+    const a = unitOf(e.from), b = unitOf(e.to);
     if (a === b || !declared.has(a) || !declared.has(b)) continue;
     if (declared.get(a)! > declared.get(b)!)  // equal ranks are legal (coplanar)
       diagnostics.push({
@@ -211,7 +288,7 @@ export async function layoutView(
   const sidesOf = (e: VEdge): { from: Side; to: Side } => {
     const hint =
       routeExact.get(`${e.from}|${e.to}|${e.label}`) ?? routePair.get(`${e.from}|${e.to}`);
-    const down = rank.get(entityOf(e.from))! <= rank.get(entityOf(e.to))!;
+    const down = rank.get(unitOf(e.from))! <= rank.get(unitOf(e.to))!;
     return {
       from: hint?.fromSide ?? (down ? "south" : "north"),
       to: hint?.toSide ?? (down ? "north" : "south"),
@@ -237,7 +314,10 @@ export async function layoutView(
   const framedChildren = (framePath: string) =>
     graph.nodes.filter((n) => n.frame === framePath).map((n) => leafChild(n.path));
 
-  const children = order.map((p) =>
+  const density = view.layout.density ?? "comfortable";
+  const SP = { compact: [32, 40], comfortable: [48, 56], spacious: [72, 84] }[density];
+
+  const entityElk = (p: string): any =>
     frameLabels.has(p)
       ? {
           id: p,
@@ -248,11 +328,25 @@ export async function layoutView(
           },
           children: framedChildren(p),
         }
-      : leafChild(p),
-  );
+      : leafChild(p);
 
-  const density = view.layout.density ?? "comfortable";
-  const SP = { compact: [32, 40], comfortable: [48, 56], spacious: [72, 84] }[density];
+  // zone compound: child zones (declaration order) then direct entities
+  // (resolve order) — both deterministic. Inherits the view's density.
+  const zoneElk = (z: LZone): any => ({
+    id: z.id,
+    layoutOptions: {
+      "elk.padding": "[top=28,left=20,bottom=20,right=20]",
+      "elk.spacing.nodeNode": String(SP[0]),
+      "elk.layered.spacing.nodeNodeBetweenLayers": String(SP[1]),
+    },
+    children: [
+      ...zones.filter((c) => zoneParent.get(c.id) === z).map(zoneElk),
+      ...entities.filter((e) => entityZone.get(e) === z).map(entityElk),
+    ],
+  });
+  const zoneById = new Map(zones.map((z) => [z.id, z]));
+
+  const children = order.map((p) => (zoneById.has(p) ? zoneElk(zoneById.get(p)!) : entityElk(p)));
   const elkGraph = {
     id: "root",
     layoutOptions: {
@@ -280,20 +374,29 @@ export async function layoutView(
   const out: any = await new ELK().layout(elkGraph as any);
   const q = Math.round;
 
-  // recursive extraction: compound (frame) children carry parent-relative coords
+  // recursive extraction: compound (zone/frame) children carry parent-relative
+  // coords
   const nodes: PNode[] = [];
   const frames: PFrame[] = [];
+  const pZones: PZone[] = [];
   const ports: PPort[] = [];
   // ELK reports each edge in the coordinate system of its `container` node —
   // for edges living fully inside an expanded frame, that's the frame, so we
   // need every compound's absolute origin to translate them.
   const containerOffset = new Map<string, { x: number; y: number }>([["root", { x: 0, y: 0 }]]);
-  const walk = (c: any, ox: number, oy: number) => {
+  const walk = (c: any, ox: number, oy: number, depth = 0) => {
     const x = q(ox + c.x), y = q(oy + c.y);
+    if (zoneById.has(c.id)) {
+      const z = zoneById.get(c.id)!;
+      pZones.push({ id: z.id, label: z.label, kind: z.kind, x, y, w: q(c.width), h: q(c.height), depth });
+      containerOffset.set(c.id, { x, y });
+      for (const child of c.children ?? []) walk(child, x, y, depth + 1);
+      return;
+    }
     if (frameLabels.has(c.id)) {
       frames.push({ path: c.id, label: frameLabels.get(c.id)!, x, y, w: q(c.width), h: q(c.height) });
       containerOffset.set(c.id, { x, y });
-      for (const child of c.children ?? []) walk(child, x, y);
+      for (const child of c.children ?? []) walk(child, x, y, depth + 1);
       return;
     }
     nodes.push({
@@ -397,6 +500,7 @@ export async function layoutView(
   return {
     positioned: {
       name: view.name, width: q(out.width), height, nodes, edges: pEdges, ports, frames,
+      zones: pZones,
       lines: view.layout.lines ?? "orthogonal",
     },
     diagnostics,

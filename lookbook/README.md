@@ -117,3 +117,9 @@ committing a visual change. What looks bad here becomes the next fix.
 | light | dark |
 |---|---|
 | ![](out/16-legend-titleblock.pay.light.svg) | ![](out/16-legend-titleblock.pay.dark.svg) |
+
+## 17-zones — `landscape`
+
+| light | dark | sketch | sketch-dark |
+|---|---|---|---|
+| ![](out/17-zones.landscape.light.svg) | ![](out/17-zones.landscape.dark.svg) | ![](out/17-zones.landscape.sketch.svg) | ![](out/17-zones.landscape.sketch-dark.svg) |

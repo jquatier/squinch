@@ -27,6 +27,11 @@ export interface Theme {
   font: ThemeFont;
   /** present = hand-drawn strokes via the seeded rough generator (DESIGN §6) */
   sketch?: { roughness: number; bowing: number };
+  /** zone boundary tints by kind group (DESIGN §5: kind-tinted, low opacity) */
+  zoneAccount: string;
+  zoneNetwork: string;
+  zoneCloud: string;
+  zoneNeutral: string;
 }
 
 const inter: ThemeFont = {
@@ -43,6 +48,10 @@ const caveat: ThemeFont = {
 export const light: Theme = {
   name: "light",
   font: inter,
+  zoneAccount: "#B5544C",
+  zoneNetwork: "#3A6EA8",
+  zoneCloud: "#6B5FC9",
+  zoneNeutral: "#7A776E",
   canvas: "#F7F7F5",
   surface: "#FFFFFF",
   border: "#D8D7D3",
@@ -59,6 +68,10 @@ export const light: Theme = {
 export const dark: Theme = {
   name: "dark",
   font: inter,
+  zoneAccount: "#D08078",
+  zoneNetwork: "#6E9CD0",
+  zoneCloud: "#9C93E8",
+  zoneNeutral: "#8F8C82",
   canvas: "#161618",
   surface: "#212124",
   border: "#3B3B40",
@@ -78,6 +91,10 @@ export const sketch: Theme = {
   name: "sketch",
   font: caveat,
   sketch: { roughness: 1.1, bowing: 1 },
+  zoneAccount: "#A34E44",
+  zoneNetwork: "#2F6396",
+  zoneCloud: "#5F51C0",
+  zoneNeutral: "#6E675A",
   canvas: "#FAF6EE",
   surface: "#FFFDF7",
   border: "#4A453C",
@@ -96,6 +113,10 @@ export const sketchDark: Theme = {
   name: "sketch-dark",
   font: caveat,
   sketch: { roughness: 1.1, bowing: 1 },
+  zoneAccount: "#D89890",
+  zoneNetwork: "#88AEDC",
+  zoneCloud: "#B0A8F0",
+  zoneNeutral: "#A39E8F",
   canvas: "#1E2022",
   surface: "#26292C",
   border: "#C9C4B4",

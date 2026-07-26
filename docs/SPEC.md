@@ -110,7 +110,7 @@ never as a grid of its inner provider icons. Zooming/`expand` swaps the card for
 internals. Provider icons (e.g. `aws/*`) belong to leaf nodes; landscape-altitude
 identity comes from shape + label + accent.
 
-### Zones (deployment boundaries) **[v1.1]**
+### Zones (deployment boundaries)
 
 Ownership nesting (`system`/`container`) and deployment boundaries (VPC, account,
 region, subnet) are different hierarchies — a zone is **cross-cutting** and declared
@@ -125,11 +125,17 @@ zone vpc_a "VPC A" vpc {
 }
 ```
 
-Zone kinds (`account | region | vpc | subnet | custom`) drive the frame styling —
+Zone kinds (`account | region | vpc | subnet | network | cloud | onprem | custom`)
+drive the frame styling —
 the classic dashed boundary with a corner label. Constraint: within any single view,
 visible zones must form a clean hierarchy (nested or disjoint); partial overlap is a
 render error naming the offending members. Zones are model facts (deployment truth),
 but only render in views where their members are visible.
+
+For layout, a zone is one unit — like an expanded container, ranks apply to the
+zone as a whole and the engine lays out freely inside it (`rows` can pin a zone
+by its id). A zone that would cut through an expanded container (containing some
+of its children but not the container itself) is a render error in that view.
 
 ### Flows (numbered paths) **[v1.1]**
 
@@ -340,7 +346,7 @@ Missing pack/icon never fails a render: placeholder box + warning diagnostic.
 ```ebnf
 file        = { statement } ;
 statement   = pack | import | node | container | edge | view | theme | expose
-            | zone | flow ;
+            | zone | flow ;                    (* flow: v1.1 *)
 
 zone        = "zone" ident [ label ] [ ident ] "{" "contains" pathlist "}" ;  (* v1.1 *)
 flow        = "flow" ident [ label ] "{" { chain } "}" ;                      (* v1.1 *)

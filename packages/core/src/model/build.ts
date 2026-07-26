@@ -8,8 +8,9 @@ import { parser } from "../grammar/parser.js";
 import { iconExists, packExists, iconIds, allPackNames } from "./packs.js";
 import { suggest } from "./suggest.js";
 import type {
-  ArrowKind, BuildResult, Diagnostic, Loc, RelPos, SContainer, SEdge, SModel, SNode, SNote, SView, Side,
+  ArrowKind, BuildResult, Diagnostic, Loc, RelPos, SContainer, SEdge, SModel, SNode, SNote, SView, Side, SZone, ZoneKind,
 } from "./types.js";
+import { ZONE_KINDS } from "./types.js";
 
 export interface ProjectFile {
   name: string;
@@ -35,6 +36,7 @@ export function buildProject(files: ProjectFile[]): BuildResult {
     nodes: new Map(),
     containers: new Map(),
     edges: [],
+    zones: [],
     views: [],
   };
 
@@ -84,6 +86,7 @@ export function buildProject(files: ProjectFile[]): BuildResult {
   // ── phase A: declarations, per file ───────────────────────────────────────
   const rawEdges: { node: SyntaxNode; scope: string; ctx: Ctx }[] = [];
   const rawViews: { node: SyntaxNode; ctx: Ctx }[] = [];
+  const rawZones: { node: SyntaxNode; ctx: Ctx }[] = [];
 
   for (const f of files) {
     const ctx = makeCtx(f.name, f.src);
@@ -223,6 +226,7 @@ export function buildProject(files: ProjectFile[]): BuildResult {
     for (const decl of top.getChildren("NodeDecl")) declareNode(decl, "");
     for (const decl of top.getChildren("Container")) walkContainerDecl(decl, "");
     for (const e of top.getChildren("EdgeStmt")) rawEdges.push({ node: e, scope: "", ctx });
+    for (const z of top.getChildren("ZoneDecl")) rawZones.push({ node: z, ctx });
     for (const v of top.getChildren("View")) rawViews.push({ node: v, ctx });
   }
 
@@ -294,6 +298,51 @@ export function buildProject(files: ProjectFile[]): BuildResult {
   });
 
   // ── phase C: views ────────────────────────────────────────────────────────
+  // zones: members resolve against the finished namespace (SPEC §Zones)
+  for (const { node: z, ctx } of rawZones) {
+    const identNode = z.getChild("Ident");
+    const bodyNode = z.getChild("ZoneBody");
+    if (!identNode || !bodyNode) continue; // partial node from error recovery
+    const id = ctx.text(identNode);
+    if (model.zones.some((existing) => existing.id === id)) {
+      error(ctx, z, `duplicate zone \`${id}\``,
+        `zone ids are global — rename one of the declarations`);
+      continue;
+    }
+    const labelNode = z.getChild("String");
+    const kindNode = z.getChild("ZoneKind");
+    let kind: ZoneKind = "custom";
+    if (kindNode) {
+      const raw = ctx.text(kindNode);
+      if ((ZONE_KINDS as readonly string[]).includes(raw)) kind = raw as ZoneKind;
+      else {
+        const sug = suggest(raw, [...ZONE_KINDS]);
+        error(ctx, kindNode, `unknown zone kind \`${raw}\``,
+          sug ? `did you mean \`${sug}\`?` : `one of: ${ZONE_KINDS.join(", ")}`);
+        continue;
+      }
+    }
+    const members: string[] = [];
+    for (const c of bodyNode.getChildren("ContainsStmt")) {
+      const list = c.getChild("PathList");
+      if (!list) continue;
+      for (const p of list.getChildren("Path")) {
+        const resolved = resolve(ctx.text(p), "", p, ctx);
+        if (!resolved) continue;
+        if (members.includes(resolved))
+          warn(ctx, p, `\`${resolved}\` listed twice in zone \`${id}\``);
+        else members.push(resolved);
+      }
+    }
+    if (members.length === 0)
+      warn(ctx, z, `zone \`${id}\` has no members`, `add \`contains <path>, …\``);
+    model.zones.push({
+      id, kind, members,
+      label: labelNode ? ctx.str(labelNode) : undefined,
+      loc: ctx.loc(z), file: ctx.name,
+    });
+  }
+
   for (const { node: v, ctx } of rawViews) {
     const nameNode = v.getChild("Path");
     const bodyNode = v.getChild("ViewBody");

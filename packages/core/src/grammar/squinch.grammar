@@ -9,6 +9,7 @@ item {
   Container |
   NodeDecl |
   EdgeStmt |
+  ZoneDecl |
   View |
   FileTheme
 }
@@ -30,6 +31,12 @@ PersonDecl { kw<"person"> Ident String? }
 Container {
   (kw<"system"> | kw<"container">) Ident String? ContainerBody
 }
+
+// zone id "Label" kind { contains a, b.c }  — deployment boundary (SPEC §Zones)
+ZoneDecl { kw<"zone"> Ident String? ZoneKind? ZoneBody }
+ZoneKind { Ident }
+ZoneBody { "{" list<ContainsStmt | Attr> "}" }
+ContainsStmt { kw<"contains"> PathList }
 ContainerBody { "{" list<NodeDecl | Container | EdgeStmt | Attr> "}" }
 
 NodeDecl { Ident "=" (IconRef | kw<"box">) String? NodeKind* AttrBlock? }

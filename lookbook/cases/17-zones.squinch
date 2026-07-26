@@ -1,0 +1,42 @@
+// Deployment boundaries: cloud vs on-prem, with a VPC nested inside the
+// cloud. Zones cross-cut ownership; chips straddle the dashed borders.
+pack aws
+
+person ops "Operators"
+erp = box "Legacy ERP" external
+
+system ingest "Ingestion" {
+  description: "Batch intake and normalization"
+  glyph: sys/queue
+  gw = aws/api-gateway "Gateway"
+  fn = aws/lambda "Sync Worker"
+  gw -> fn
+}
+
+system core "Core Platform" {
+  description: "APIs and the system of record"
+  glyph: sys/api
+  api = aws/lambda "API"
+  db  = aws/aurora "Database" datastore
+  api -> db
+}
+
+erp ~> ingest.gw "nightly batch"
+ingest.fn -> core.api "normalized events"
+ops -> core.api "operates"
+
+zone onprem "On-Premises" onprem {
+  contains erp, ops
+}
+zone cloud "AWS Cloud" cloud {
+  contains ingest, core
+}
+zone vpc1 "VPC prod-main" vpc {
+  contains core
+}
+
+view landscape {
+  title "Hybrid Estate"
+  include *
+  legend auto
+}
