@@ -87,8 +87,12 @@ All five pass → proceed to Phase 1. Any fail → decision gate, in order of pr
 different ELK options/algorithms, post-processing workaround, relax the specific hint's
 contract, or (last resort, big scope) custom layered layout.
 
-> **Phase 0 outcome (2026-07-24): ALL FIVE CRITERIA PASS** (`spike/`, enforced in CI
-> on macOS + Linux against committed golden hashes). Key findings, binding on Phase 1:
+> **Phase 0 outcome (2026-07-24): ALL FIVE CRITERIA PASS**, hand-built harness,
+> enforced in CI on macOS + Linux against committed golden hashes. The harness
+> itself is retired now that Phase 1's real engine subsumes it; its canonical
+> output lives on as an independent-implementation oracle at
+> `packages/core/test/golden/phase0-canonical.svg`, diffed against the real
+> engine's layout in `golden.test.ts`. Key findings, binding on Phase 1:
 > 1. **ELK layered cannot keep an edge's endpoints in one layer** — any in-layer edge
 >    forces re-layering; `layerChoiceConstraint` and INTERACTIVE layering don't help
 >    (verified minimal-case). Architecture: same-rank ("coplanar") edges are excluded

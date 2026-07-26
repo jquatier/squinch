@@ -63,7 +63,7 @@ lockfile model (`--sync`/`--check`). `packages/vscode` — the editor extension:
 tested), `src/server.ts` a thin LSP shell over it, `src/extension.ts` the client
 plus preview webview; `test/server.test.ts` drives the *bundled* server over real
 stdio LSP. `examples/` — one directory per project, with
-committed SVGs that CI verifies. `spike/` — the Phase-0 harness, kept as regression.
+committed SVGs that CI verifies.
 
 ## Current phase
 
@@ -82,15 +82,20 @@ language: altitude changes animate as an anchored dive through the card you
 clicked (`docs/notes/zoom-transitions.md`, DESIGN §11), and presentation mode
 turns the declared views into a full-bleed deck.
 
-Key architecture from the spike, still binding: same-rank edges bypass ELK and use
+Key architecture from Phase 0, still binding: same-rank edges bypass ELK and use
 our coplanar router; declared ranks are enforced via invisible scaffold edges; an
 expanded container is one "entity" for ranking, and ELK layers freely inside it.
+The Phase-0 hand-built harness that proved this is retired; only its canonical
+output survives, as a second-implementation oracle
+(`packages/core/test/golden/phase0-canonical.svg`, checked in `golden.test.ts`).
 
 ## Commands
 
 - `pnpm -r test` — every package. Core suite covers model diagnostics, golden SVG
-  byte-compare, XML validity, determinism, spike parity. `UPDATE_GOLDEN=1` to
-  rebless goldens after an *intentional* visual change.
+  byte-compare, XML validity, determinism, Phase-0 layout parity. `UPDATE_GOLDEN=1`
+  to rebless goldens after an *intentional* visual change (never touches
+  `phase0-canonical.svg` — that one is a frozen external reference, not ours to
+  rebless).
 - `pnpm -r typecheck` — tsc across packages (CI runs this first).
 - `pnpm --filter @squinch/core build` — required before using the CLI binary.
 - `node packages/cli/bin/squinch.js <cmd>` — the CLI (check/render/icons/init/watch).
@@ -103,7 +108,6 @@ expanded container is one "entity" for ranking, and ELK layers freely inside it.
 - VS Code extension: <kbd>F5</kbd> ("Run Squinch extension") bundles core + the
   extension and opens `examples/` in a dev host; or
   `pnpm --filter squinch-vscode build`.
-- `cd spike && npm run spike` — Phase-0 exit-criteria harness (kept as regression).
 
 ## Layout of @squinch/core
 

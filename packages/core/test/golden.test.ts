@@ -53,9 +53,14 @@ describe("golden renders", () => {
   }
 
   it("layout parity with the Phase-0 spike", async () => {
+    // test/golden/phase0-canonical.svg is the untouched output of the Phase-0
+    // hand-built harness (see docs/PLAN.md §3) — a second, independently
+    // written implementation of the same layout decisions. Diffing against it
+    // catches drift the engine's own goldens can't: those would just get
+    // re-blessed alongside a bug. This file is never regenerated.
     const src = readFileSync(join(pkg, "examples/orders.squinch"), "utf8");
     const r = await render(src, { theme: "light" });
-    const spike = readFileSync(join(pkg, "../../spike/golden/canonical.svg"), "utf8");
+    const spike = readFileSync(join(pkg, "test/golden/phase0-canonical.svg"), "utf8");
     // node rects only (leaf h=64) — label pills are placement policy, not layout
     const coords = (s: string) => s.match(/<rect x="\d+" y="\d+" width="\d+" height="64"/g);
     expect(coords(r.svg!)).toEqual(coords(spike));
