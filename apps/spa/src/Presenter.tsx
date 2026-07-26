@@ -16,9 +16,14 @@ export interface PresenterProps {
   crumbs: { label: string; view?: string }[];
   /** one altitude up, if there is one */
   upView?: string;
+  /** the flow this view narrates, if any, and how far it runs */
+  flow?: { label: string; steps: number };
+  /** which hop is currently lit (1-based) */
+  flowStep: number;
+  onFlowStep(step: number): void;
   animate: boolean;
   intent?: Intent;
-  onNavigate(name: string, rect?: Box): void;
+  onNavigate(name: string, rect?: Box, enterAtEnd?: boolean): void;
   onPick(path: string, box: Box): void;
   onCycleTheme(): void;
   onExit(): void;
@@ -28,7 +33,8 @@ const HINT =
   "→ ← step · click a card to zoom in, the backdrop to come out · T theme · F fullscreen · Esc exit";
 
 export function Presenter({
-  svg, views, activeView, crumbs, upView, animate, intent, onNavigate, onPick, onCycleTheme, onExit,
+  svg, views, activeView, crumbs, upView, flow, flowStep, onFlowStep,
+  animate, intent, onNavigate, onPick, onCycleTheme, onExit,
 }: PresenterProps) {
   const at = Math.max(0, views.findIndex((v) => v.name === activeView));
   const current = views[at];
@@ -36,12 +42,19 @@ export function Presenter({
   const [hint, setHint] = useState(true);
   const idleTimer = useRef<number | undefined>(undefined);
 
+  // One key does both jobs, in the order a narrator needs them: walk the
+  // current view's flow to its end, and only then move to the next view. Going
+  // back unwinds the same way. A view with no flow is just a one-step view.
   const step = useCallback(
     (by: number) => {
+      const nextStep = flowStep + by;
+      if (flow && nextStep >= 1 && nextStep <= flow.steps) return onFlowStep(nextStep);
       const next = views[at + by];
-      if (next) onNavigate(next.name);
+      // stepping back lands on the previous slide's *last* hop, so a story can
+      // be unwound as smoothly as it was told
+      if (next) onNavigate(next.name, undefined, by < 0);
     },
-    [views, at, onNavigate],
+    [views, at, flow, flowStep, onFlowStep, onNavigate],
   );
 
   // Full screen is best-effort: it needs a user gesture, and the click that got
@@ -150,7 +163,17 @@ export function Presenter({
       >
         <div className="flex items-end justify-between gap-6 px-6 pb-4 text-[12px]">
           <div className="min-w-0">
-            <div className="truncate font-medium">{current?.title ?? current?.name ?? ""}</div>
+            <div className="flex items-baseline gap-2">
+              <span className="truncate font-medium">{current?.title ?? current?.name ?? ""}</span>
+              {flow && (
+                <span className="shrink-0 text-[11px] text-[var(--muted)]">
+                  {/* a view named after the flow it narrates shouldn't say it twice */}
+                  {flow.label !== (current?.title ?? current?.name) && `${flow.label} · `}
+                  step <span className="tabular-nums text-[var(--fg)]">{flowStep}</span>
+                  <span className="tabular-nums">/{flow.steps}</span>
+                </span>
+              )}
+            </div>
             {hint && <div className="mt-0.5 truncate text-[11px] text-[var(--muted)]">{HINT}</div>}
           </div>
           <div className="pointer-events-auto flex shrink-0 items-center gap-3 text-[var(--muted)]">

@@ -83,8 +83,10 @@ Deliberately *not* built, with reasons recorded: `route … around`/`via`
 (`docs/notes/routing-hints.md` — ELK already avoids nodes) and `grid` (rows and
 cols compose to the same thing). Work since then is in the playground, not the
 language: altitude changes animate as an anchored dive through the card you
-clicked (`docs/notes/zoom-transitions.md`, DESIGN §11), and presentation mode
-turns the declared views into a full-bleed deck.
+clicked (`docs/notes/zoom-transitions.md`, DESIGN §11), presentation mode turns
+the declared views into a full-bleed deck, and a `show flow` view can be walked
+one hop at a time (`flowStep` render option — counted over hops *visible in that
+view*, never the flow's declared numbering). PNG export ships in both surfaces.
 
 Key architecture from Phase 0, still binding: same-rank edges bypass ELK and use
 our coplanar router; declared ranks are enforced via invisible scaffold edges; an

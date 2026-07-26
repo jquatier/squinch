@@ -57,6 +57,9 @@ export function App() {
   const [fit, setFit] = useState(true);
   const [intent, setIntent] = useState<Intent>();
   const [presenting, setPresenting] = useState(false);
+  // How much of the current view's flow has been narrated. Presentation only:
+  // while authoring you want the whole flow at once, not a story.
+  const [flowStep, setFlowStep] = useState(1);
   const token = useRef(0);
   const reduced = useReducedMotion();
 
@@ -74,7 +77,7 @@ export function App() {
 
   useEffect(() => {
     let stale = false;
-    compile(debounced, { view, theme }).then((next) => {
+    compile(debounced, { view, theme, flowStep: presenting ? flowStep : undefined }).then((next) => {
       if (stale) return;
       setPreview(next);
       // last-good preview: never blank the canvas while typing
@@ -83,7 +86,12 @@ export function App() {
     return () => {
       stale = true;
     };
-  }, [debounced, view, theme]);
+  }, [debounced, view, theme, presenting, flowStep]);
+
+  // Settle an "enter at the end" overshoot once the view's length is known.
+  useEffect(() => {
+    if (preview.flow && flowStep > preview.flow.steps) setFlowStep(preview.flow.steps);
+  }, [preview.flow, flowStep]);
 
   const shown = preview.svg ?? lastGood;
   const errors = preview.diagnostics.filter((d) => d.severity === "error");
@@ -116,7 +124,7 @@ export function App() {
    *  control was clicked — which means the breadcrumb, the view tabs and a
    *  click on a card all behave consistently. */
   const navigate = useCallback(
-    (name: string, rect?: Box) => {
+    (name: string, rect?: Box, enterAtEnd = false) => {
       if (!name || name === activeView) return;
       const target = views.find((v) => v.name === name)?.scope;
       const down = stepToward(activeScope, target);
@@ -131,6 +139,12 @@ export function App() {
               { token: ++token.current, dir: "in" },
       );
       setView(name);
+      // A slide opens on its first hop — unless you reversed into it, in which
+      // case you arrive where you left, at the end, and can keep unwinding.
+      // How many hops that is isn't known until it renders, so overshoot and
+      // let the clamp below settle it; the renderer clamps too, so the first
+      // frame is already right.
+      setFlowStep(enterAtEnd ? Number.MAX_SAFE_INTEGER : 1);
     },
     [views, activeView, activeScope],
   );
@@ -228,6 +242,9 @@ export function App() {
         activeView={activeView}
         crumbs={crumbs}
         upView={upView}
+        flow={preview.flow}
+        flowStep={flowStep}
+        onFlowStep={setFlowStep}
         animate={!reduced}
         intent={intent}
         onNavigate={navigate}

@@ -36,6 +36,18 @@ export interface RenderOpts {
   /** Sketch-theme jitter seed — hash(source), threaded in by the API so
    *  roughness is a pure function of the input (never randomness). */
   seed?: number;
+  /** Reveal this many hops of a `show flow`, dimming everything the request has
+   *  not reached yet and picking out the current one. A viewer concern — the
+   *  DSL declares the flow, the presenter walks it — so it lives here and not
+   *  in the model. Omitted, the whole flow shows at once, as before.
+   *
+   *  Counted over the hops **visible in this view**, not the flow's declared
+   *  numbering: a flow that starts two systems away has its opening steps
+   *  lifted out of a scoped view, and walking declared numbers there would
+   *  spend the first presses on frames where nothing happens. `1` is always
+   *  the first hop you can actually see. Badges still read their declared
+   *  number — that's the flow's real shape. */
+  flowStep?: number;
 }
 
 /** Everything the emitters need beyond geometry: theme, type, jitter. */
@@ -165,13 +177,14 @@ function splitAtHops(
   return out.filter((seg) => seg.length >= 2);
 }
 
-function arrow(e: PEdge, t: Theme): string {
+function arrow(e: PEdge, t: Theme, accent = false): string {
   const n = e.points.length;
   const tip = e.points[n - 1], prev = e.points[n - 2];
   const dx = Math.sign(tip.x - prev.x), dy = Math.sign(tip.y - prev.y);
   const bx = tip.x - dx * 8, by = tip.y - dy * 8;
   const p1 = `${bx + dy * 6} ${by + dx * 6}`, p2 = `${bx - dy * 6} ${by - dx * 6}`;
-  const col = e.async ? t.asyncEdge : t.edge;
+  // the head has to travel with the line, or a highlighted hop ends in a grey point
+  const col = accent ? t.accent : e.async ? t.asyncEdge : t.edge;
   return e.async
     ? `<path d="M ${p1} L ${tip.x} ${tip.y} L ${p2}" fill="none" stroke="${col}" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>`
     : `<path d="M ${tip.x} ${tip.y} L ${p1} L ${p2} Z" fill="${col}"/>`;
@@ -698,10 +711,34 @@ export function renderSVG(p: Positioned, t: Theme, opts: RenderOpts = {}): strin
     sk: t.sketch ? makeSketcher(opts.seed ?? 1, t.sketch.roughness, t.sketch.bowing) : null,
   };
   const hl = opts.highlight ?? [];
-  const nodeMatches = (n: PNode) => hl.length === 0 || n.tags.some((tag) => hl.includes(tag));
   const byPath = new Map(p.nodes.map((n) => [n.path, n]));
+
+  // Walking a flow (`flowStep`) dims by *progress* rather than by tag: an edge
+  // is reached once one of its step numbers is due, and a node once an edge
+  // touching it is. Both dimming rules compose — a highlighted view that also
+  // steps a flow dims anything failing either test.
+  const stepsOf = (e: PEdge): number[] => p.flow?.byEdge[e.id] ?? [];
+  const walking = opts.flowStep !== undefined && !!p.flow;
+  // the declared step numbers that render here, in order — the ordinal indexes
+  // into this, so hop 1 is the first one on screen whatever it is called
+  const visible = p.flow
+    ? [...new Set(Object.values(p.flow.byEdge).flat())].sort((a, b) => a - b)
+    : [];
+  const step = walking
+    ? visible[Math.min(Math.max(opts.flowStep!, 0), visible.length) - 1]
+    : undefined;
+  const edgeReached = (e: PEdge) =>
+    !walking || (step !== undefined && stepsOf(e).some((s) => s <= step));
+  const reachedNodes = new Set<string>();
+  if (walking)
+    for (const e of p.edges) if (edgeReached(e)) reachedNodes.add(e.from), reachedNodes.add(e.to);
+
+  const nodeMatches = (n: PNode) =>
+    (hl.length === 0 || n.tags.some((tag) => hl.includes(tag))) &&
+    (!walking || reachedNodes.has(n.path));
   const edgeMatches = (e: PEdge) =>
-    hl.length === 0 || (nodeMatches(byPath.get(e.from)!) && nodeMatches(byPath.get(e.to)!));
+    (hl.length === 0 || (nodeMatches(byPath.get(e.from)!) && nodeMatches(byPath.get(e.to)!))) &&
+    edgeReached(e);
 
   const body: string[] = [];
 
@@ -738,7 +775,11 @@ export function renderSVG(p: Positioned, t: Theme, opts: RenderOpts = {}): strin
   const hops = hopPoints(p.edges);
   for (const e of p.edges) {
     const dimmed = !edgeMatches(e);
-    const col = e.async ? t.asyncEdge : t.edge;
+    // the hop being narrated right now: accent-coloured and heavier, so the
+    // eye lands on it without having to hunt for the badge
+    const current = step !== undefined && stepsOf(e).includes(step);
+    const col = current ? t.accent : e.async ? t.asyncEdge : t.edge;
+    const weight = current ? 2.5 : 1.5;
     const dash = e.async ? ` stroke-dasharray="6 4"` : "";
     // async flow animation: dashes drift source→target at constant px/s (one
     // shared keyframe, so long edges never "flow faster"); CSS only, and
@@ -751,10 +792,10 @@ export function renderSVG(p: Positioned, t: Theme, opts: RenderOpts = {}): strin
     for (const run of runs) {
       const d = edgePath(run, p.lines);
       body.push(
-        `<path${anim} d="${rc.sk ? rc.sk.path(d) : d}" fill="none" stroke="${col}" stroke-width="1.5"${dash}${rc.sk ? ` stroke-linecap="round"` : ""}/>`,
+        `<path${anim} d="${rc.sk ? rc.sk.path(d) : d}" fill="none" stroke="${col}" stroke-width="${weight}"${dash}${rc.sk ? ` stroke-linecap="round"` : ""}/>`,
       );
     }
-    body.push(arrow(e, t));
+    body.push(arrow(e, t, current));
     body.push(`</g>`);
   }
 
@@ -792,8 +833,12 @@ export function renderSVG(p: Positioned, t: Theme, opts: RenderOpts = {}): strin
       return pts[pts.length - 1];
     };
     for (const e of p.edges) {
-      const nums = p.flow.byEdge[e.id];
-      if (!nums?.length) continue;
+      // while walking, a badge only appears once its step is due — an edge
+      // carrying steps 2 and 5 reads "2" until the story reaches 5
+      const nums = (p.flow.byEdge[e.id] ?? []).filter(
+        (s) => !walking || (step !== undefined && s <= step),
+      );
+      if (!nums.length) continue;
       const total = e.points.reduce(
         (acc, pt, i) => (i ? acc + Math.hypot(pt.x - e.points[i - 1].x, pt.y - e.points[i - 1].y) : 0),
         0,
@@ -820,8 +865,14 @@ export function renderSVG(p: Positioned, t: Theme, opts: RenderOpts = {}): strin
         }
       }
       placedBadges.push({ x: cx - rWide, y: cy - 9, w: rWide * 2, h: 18 });
+      // steps already narrated recede; only the current one stays at full weight
+      const done = walking && step !== undefined && !nums.includes(step);
+      const halo = walking && !done
+        ? `<rect x="${cx - rWide - 3}" y="${cy - 12}" width="${rWide * 2 + 6}" height="24" rx="12" fill="none" stroke="${t.accent}" stroke-width="1.5" opacity="0.45"/>`
+        : "";
       body.push(
-        `<g data-kind="flow-step">` +
+        `<g data-kind="flow-step"${done ? ` opacity="0.55"` : ""}>` +
+          halo +
           (rWide > 9
             ? `<rect x="${cx - rWide}" y="${cy - 9}" width="${rWide * 2}" height="18" rx="9" fill="${t.accent}"/>`
             : `<circle cx="${cx}" cy="${cy}" r="9" fill="${t.accent}"/>`) +

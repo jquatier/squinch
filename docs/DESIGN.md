@@ -168,3 +168,13 @@ slide change — and the chrome has to say so.
   the deck in declaration order, arrows step, clicking a card still zooms in and
   the deck follows. Nothing is authored twice. Chrome auto-hides while idle and
   returns on the first movement.
+- **A flow is a story, and stepping tells it**: one arrow key walks the current
+  view's flow hop by hop before moving to the next view, and unwinds the same
+  way in reverse. The live hop takes the accent and the heavier stroke, hops
+  already told recede, and anything the request has not reached is dimmed.
+  Hops are counted **as seen in this view**, never by the flow's declared
+  numbering — a flow that begins two systems away has its opening steps lifted
+  out of a scoped view, and counting declared numbers there spends the first
+  presses on frames where nothing happens. Badges still read their declared
+  number: that is the flow's real shape, and it is what the reader is being
+  told about.

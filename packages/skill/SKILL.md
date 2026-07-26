@@ -135,6 +135,11 @@ view shop { show flow checkout }
 
 A step with no backing edge is a check error telling you to declare it first.
 
+A flow is also a story: in the playground's **Present** mode the arrow keys walk
+a `show flow` view one hop at a time, lighting the current edge and dimming what
+the request hasn't reached. Nothing extra to author — declare the flow, and any
+view that shows it can be walked.
+
 Grouping vs. nesting: `include *` shows only *top-level* entities, so wrapping
 several services in a parent `system` purely to group them collapses them into
 one card at landscape altitude. If they should stay individually visible but

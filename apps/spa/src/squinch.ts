@@ -35,11 +35,13 @@ export interface Preview {
   diagnostics: Diagnostic[];
   ok: boolean;
   views: ViewRef[];
+  /** set when the active view shows a flow — `steps` is how far it can be walked */
+  flow?: { label: string; steps: number };
 }
 
 export async function compile(
   source: string,
-  opts: { view?: string; theme: string },
+  opts: { view?: string; theme: string; flowStep?: number },
 ): Promise<Preview> {
   await ensurePacks();
   const built = buildProject([{ name: "diagram.squinch", src: source }]);
@@ -53,7 +55,7 @@ export async function compile(
   // Rendering is synchronous, so the artwork has to be resident first.
   await preloadIcons(iconsUsedBy(source));
   const view = views.find((v) => v.name === opts.view)?.name ?? views[0]?.name;
-  const result = await render(source, { view, theme: opts.theme });
+  const result = await render(source, { view, theme: opts.theme, flowStep: opts.flowStep });
   return { ...result, views };
 }
 

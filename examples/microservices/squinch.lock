@@ -8,6 +8,8 @@
     "microservices.orders.light.svg": "aae63ff57f000e1d",
     "microservices.orders.dark.svg": "b41d69d0c416caf2",
     "microservices.orders-pci.light.svg": "890bcf8c931b83a2",
-    "microservices.orders-pci.dark.svg": "cd3c113cc3b4be22"
+    "microservices.orders-pci.dark.svg": "cd3c113cc3b4be22",
+    "microservices.checkout.light.svg": "b91f7479d202f022",
+    "microservices.checkout.dark.svg": "931024572297b0b5"
   }
 }

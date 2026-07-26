@@ -74,6 +74,18 @@ orders.api    -> catalog.api  "price check"
 orders.worker -> catalog.api  "decrement stock"
 orders.api    -> accounts.api "verify identity"
 
+// ── a numbered walk over edges that already exist ──────────────────────────
+// A flow annotates the model, it never adds to it: every step below is one of
+// the connections declared above. `squinch present` (or the playground) walks
+// these one at a time.
+flow checkout "Placing an order" {
+  customer -> web.cdn -> gw -> orders.api
+  orders.api -> orders.db
+  orders.api ~> orders.queue
+  orders.queue ~> orders.worker
+  orders.worker -> catalog.api
+}
+
 // ── views: the same model at four altitudes ────────────────────────────────
 
 view landscape {
@@ -109,4 +121,13 @@ view orders-pci {
   show descriptions
   note right-of db "Card tokens only; PAN never stored"
   note top-right "Audit scope: Q3" { style: warning }
+}
+
+view checkout {
+  scope orders
+  title "Placing an order"
+  show flow checkout
+  layout {
+    rows [api] [queue worker] [db]
+  }
 }
