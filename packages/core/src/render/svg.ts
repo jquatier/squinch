@@ -349,11 +349,7 @@ function titleblock(
   }
 }
 
-interface Pill {
-  x: number; y: number; w: number; h: number;
-  mx: number; label: string; dimmed: boolean;
-  vert?: boolean; // rotated 90° onto a vertical wire (reads bottom-to-top)
-}
+interface Pill { x: number; y: number; w: number; h: number; mx: number; label: string; dimmed: boolean }
 
 const intersects = (a: Pill | { x: number; y: number; w: number; h: number }, b: Pill, m = 4) =>
   a.x < b.x + b.w + m && a.x + a.w + m > b.x && a.y < b.y + b.h + m && a.y + a.h + m > b.y;
@@ -426,11 +422,6 @@ function computePills(p: Positioned, rc: RC, edgeMatches: (e: PEdge) => boolean)
     const clear = (r: Pill) =>
       !fixed.some((o) => intersects(o, r)) && !pills.some((q2) => intersects(q2, r));
 
-    const rectVertAt = (seg: (typeof segs2)[0], fr: number, dx: number): Pill => {
-      const mx = Math.round(seg.a.x + (seg.b.x - seg.a.x) * fr);
-      const my = Math.round(seg.a.y + (seg.b.y - seg.a.y) * fr);
-      return { x: mx - 9 + dx, y: my - Math.round(w / 2), w: 18, h: w, mx, label, dimmed: !edgeMatches(e), vert: true };
-    };
     let pill: Pill | undefined;
     for (const seg of ranked.slice(0, 3)) {
       if (!seg.fits) continue;
@@ -444,25 +435,6 @@ function computePills(p: Positioned, rc: RC, edgeMatches: (e: PEdge) => boolean)
         if (clear(cand)) { pill = cand; break; }
       }
       if (pill) break;
-    }
-    if (!pill) {
-      // flip 90° when needed: a narrow vertical corridor can't host a flat
-      // pill, but it can host one rotated onto the wire itself
-      for (const seg of ranked) {
-        if (seg.horiz || seg.len < w + 20) continue;
-        const margin = (w / 2 + 10) / seg.len;
-        for (const fr of [0.5, 0.42, 0.58, 0.34, 0.66, 0.26, 0.74]) {
-          if (fr < margin || fr > 1 - margin) continue;
-          // a ±6px perpendicular nudge keeps the wire under the pill but is
-          // enough to clear a tight corridor beside a card
-          for (const dx of [0, -6, 6]) {
-            const cand = rectVertAt(seg, fr, dx);
-            if (clear(cand)) { pill = cand; break; }
-          }
-          if (pill) break;
-        }
-        if (pill) break;
-      }
     }
     if (!pill) {
       // fallback: below the edge's nodes, shifting down past everything
@@ -559,16 +531,6 @@ function chipMarkup(c: ZoneChip, rc: RC, t: Theme): string {
 function pillMarkup(pill: Pill, rc: RC): string {
   const { t } = rc;
   const op = pill.dimmed ? ` opacity="${DIM}"` : "";
-  if (pill.vert) {
-    // rotated onto the wire: reads bottom-to-top (drafting convention);
-    // baseline offset mirrors the horizontal pill's 13px-from-top
-    const cx = pill.x + 13;
-    const cy = pill.y + Math.round(pill.h / 2);
-    return (
-      `<g${op}>` + box(rc, pill.x, pill.y, pill.w, pill.h, 2, t.surface, t.border, 1) +
-      `<text x="${cx}" y="${cy}" text-anchor="middle" font-size="${rc.fx(11)}" fill="${t.muted}" transform="rotate(-90 ${cx} ${cy})">${esc(pill.label)}</text></g>`
-    );
-  }
   return (
     `<g${op}>` + box(rc, pill.x, pill.y, pill.w, pill.h, 2, t.surface, t.border, 1) +
     `<text x="${pill.mx}" y="${pill.y + 13}" text-anchor="middle" font-size="${rc.fx(11)}" fill="${t.muted}">${esc(pill.label)}</text></g>`
