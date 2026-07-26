@@ -87,9 +87,10 @@ committed SVGs that CI verifies.
 Phases 0–3 are complete. The engine (grammar → model → visibility/lifting →
 layout → themed SVG), the CLI (check/render/diff/icons/init/watch + lockfile
 model + Actions), the SPA playground, the VS Code extension + language server,
-two icon packs, and five themes all ship. Phase 3's bar — an agent producing
-clean diagrams from prose using only the skill + CLI — is certified at **16/16
-by independent cold agents** (`gauntlet/README.md` records what each run found).
+three icon packs, and five themes all ship. Phase 3's bar — an agent producing
+clean diagrams from prose using only the skill + CLI — is certified at **20/20
+by independent cold agents** (`gauntlet/README.md` records what each run found;
+round 3's seven defects are why the number alone is not the point).
 
 v1.1's DSL is done: zones, flows, tags, channels, cols, align, legend/titleblock.
 Deliberately *not* built, with reasons recorded: `route … around`/`via`

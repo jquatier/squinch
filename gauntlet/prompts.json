@@ -336,5 +336,94 @@
         ]
       ]
     }
+  },
+  {
+    "id": "17-azure-webapp",
+    "prompt": "Draw our Azure web application: customers reach it through Azure Front Door, which fronts an App Service running the web tier. The App Service reads and writes Azure SQL, caches in Redis, pulls secrets from Key Vault, and reports telemetry to Application Insights. Show the telemetry as asynchronous.",
+    "expect": {
+      "minNodes": 6,
+      "minAsync": 1,
+      "requirePerson": true,
+      "requirePack": "azure",
+      "icons": [
+        [
+          "front-door",
+          "front-door-and-cdn-profiles"
+        ],
+        [
+          "app-service",
+          "app-services"
+        ],
+        [
+          "sql",
+          "sql-database"
+        ],
+        [
+          "key-vault",
+          "key-vaults"
+        ]
+      ]
+    }
+  },
+  {
+    "id": "18-azure-zones",
+    "prompt": "Our Azure estate, with the network boundaries drawn: a virtual network contains a private subnet with an AKS cluster and a Container Registry it pulls images from. Azure SQL sits outside the subnet but inside the same virtual network. An Application Gateway sits in front of the whole thing, and everything lives inside one Azure subscription. Show the subscription, the virtual network and the subnet as separate boundaries.",
+    "expect": {
+      "minNodes": 4,
+      "minZones": 3,
+      "requirePack": "azure",
+      "icons": [
+        [
+          "aks",
+          "kubernetes-services"
+        ],
+        [
+          "acr",
+          "container-registries"
+        ]
+      ]
+    }
+  },
+  {
+    "id": "19-azure-order-flow",
+    "prompt": "Show how an order travels through our Azure system, numbered step by step: the shopper hits API Management, which calls an Azure Function. The function writes the order to Cosmos DB and then publishes a message to Service Bus, which a second function picks up to handle fulfilment. Number the path an order takes so I can walk a room through it.",
+    "expect": {
+      "minNodes": 5,
+      "minFlows": 1,
+      "minAsync": 1,
+      "requireFlowShown": true,
+      "requirePack": "azure",
+      "icons": [
+        [
+          "cosmos",
+          "cosmosdb",
+          "azure-cosmos-db"
+        ],
+        [
+          "service-bus",
+          "azure-service-bus"
+        ]
+      ]
+    }
+  },
+  {
+    "id": "20-multicloud-migration",
+    "prompt": "We are mid-migration and I need one picture of it. On-premises we still run a PostgreSQL database and a RabbitMQ broker on our own hardware. In Azure we have an AKS cluster running the new services and Azure SQL as the target database. A sync job copies from the old Postgres to Azure SQL nightly, asynchronously. Use real product logos for the on-prem software and Azure icons for the Azure side, and put a boundary around each side.",
+    "expect": {
+      "minNodes": 5,
+      "minZones": 2,
+      "minAsync": 1,
+      "requirePack": "azure",
+      "icons": [
+        [
+          "postgres",
+          "postgresql"
+        ],
+        [
+          "aks",
+          "kubernetes-services"
+        ]
+      ]
+    }
   }
 ]

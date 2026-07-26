@@ -253,3 +253,40 @@ system s "S" {
     expect(err.join("\n")).toContain("text | json | markdown");
   });
 });
+
+describe("round-3 gauntlet findings", () => {
+  const write = () => {
+    const f = join(dir, "d.squinch");
+    writeFileSync(f, `${GOOD}\nview other { scope app }\n`);
+    return f;
+  };
+
+  it("a view name that doesn't exist is an error, not a different diagram", async () => {
+    // It used to fall through to the implicit default: exit 0, an SVG written,
+    // and none of the named view's settings applied. In a loop driven by exit
+    // codes a typo bought you a plausible, wrong picture and said nothing.
+    const f = write();
+    expect(await main(["render", f, "--view", "ap", "-o", join(dir, "x.svg")])).toBe(2);
+    expect(err.join()).toContain("unknown view `ap`");
+    expect(err.join()).toContain("did you mean");
+    expect(existsSync(join(dir, "x.svg"))).toBe(false);
+  });
+
+  it("check reports the views, so `render every view` is actionable", async () => {
+    const f = write();
+    expect(await main(["check", f, "--format", "json"])).toBe(0);
+    const payload = JSON.parse(out.join("\n"));
+    expect(payload.views.map((v: { name: string }) => v.name)).toContain("other");
+    out = [];
+    err = [];
+    await main(["check", f]);
+    expect(err.join("\n")).toContain("views:");
+  });
+
+  it("icon search names the short forms it found the icon under", async () => {
+    expect(await main(["icons", "search", "--pack", "azure", "key vault"])).toBe(0);
+    const line = out.join("\n");
+    expect(line).toContain("azure/key-vaults");
+    expect(line).toContain("azure/key-vault"); // the alias SKILL.md teaches
+  });
+});

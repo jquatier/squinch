@@ -12,6 +12,32 @@ describe("searchIcons", () => {
     expect(searchIcons("s3")).toContain("aws/s3");
     expect(searchIcons("aks")).toContain("azure/aks");
   });
+
+  // Every cold-run agent typed the product's real name and was told it did not
+  // exist, because the match was a raw substring against the id: "front door"
+  // never occurs in "front-door-and-cdn-profiles". Two of them concluded the
+  // documentation was wrong and nearly rewrote correct files.
+  it("matches the words people actually type, in any order", () => {
+    expect(searchIcons("front door", "azure")).toContain("azure/front-door-and-cdn-profiles");
+    expect(searchIcons("key vault", "azure")).toContain("azure/key-vaults");
+    expect(searchIcons("api management", "azure")).toContain("azure/api-management-services");
+    expect(searchIcons("management api", "azure")).toContain("azure/api-management-services");
+    // and against the human title, not just the id
+    expect(searchIcons("gateway", "aws")).toContain("aws/api-gateway");
+  });
+
+  it("singular and plural find each other", () => {
+    // Azure ships "Container Registries" and "Data Factories"; nobody searches
+    // for those spellings.
+    expect(searchIcons("container registry", "azure")).toContain("azure/container-registries");
+    expect(searchIcons("data factory", "azure")).toContain("azure/data-factories");
+  });
+
+  it("short acronyms are never stemmed into false positives", () => {
+    // `sqs` → `sq` would match the `sq` inside `postgresql`
+    expect(searchIcons("sqs")).not.toContain("azure/arc-postgresql");
+    expect(searchIcons("sqs").every((h) => h.includes("sqs"))).toBe(true);
+  });
 });
 
 describe("every installed pack", () => {

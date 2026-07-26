@@ -33,9 +33,15 @@ squinch diff --format json                    # what changed in the architecture
 
 ```squinch
 // comments are // only (# belongs to tags)
-pack aws                              // enable an icon pack
+pack aws                              // enable an icon pack (aws | azure | logos —
+pack azure                            //  declare each one you use)
 
 person customer "Customer"            // human actor
+gw = aws/api-gateway "Edge Gateway"   // components may sit at the top level too,
+                                      // not only inside a `system` — that's how
+                                      // you keep things individually visible at
+                                      // landscape altitude and group them with
+                                      // a `zone` instead
 
 system shop "Order Service" {         // systems/containers nest arbitrarily
   description: "Checkout and orders"  // optional; shows on the collapsed card
@@ -80,11 +86,21 @@ Rules that matter:
   boundaries: kinds `account | region | vpc | subnet | network | cloud |
   onprem | custom`. Zones must nest cleanly or stay disjoint in any one view,
   and may not cut through an expanded container. A zone only appears where
-  its members are visible. Optional attrs: `icon: aws/vpc` (group icons: `cloud`, `region`, `account`,
-  `vpc`, `private-subnet`, `public-subnet`, `corporate-data-center`),
-  `label: top-right` (corners: top-left default, top-right, bottom-left,
-  bottom-right), and `color: ink` (theme roles only — account, network, cloud,
-  neutral, ink, muted, accent; never hex).
+  its members are visible. Optional attrs: `icon:` — **any** pack icon, e.g.
+  `azure/vnet` or `logos/docker`; AWS also ships purpose-made group marks
+  (`aws/cloud`, `aws/region`, `aws/account`, `aws/vpc`, `aws/private-subnet`,
+  `aws/public-subnet`, `aws/corporate-data-center`) — `label: top-right`
+  (corners: top-left default, top-right, bottom-left, bottom-right), and
+  `color: ink` (theme roles only — account, network, cloud, neutral, ink,
+  muted, accent; never hex).
+- **A zone's `kind` already picks its colour**, so two nested zones of related
+  kinds (say `network` inside `vpc`) come out nearly the same shade. Set
+  `color:` on the inner one to tell them apart.
+- **Rank hints don't reach inside a zone.** A zone is laid out as one block, so
+  `rows`/`cols`/`place` order zones *relative to each other*, and ELK arranges
+  the members within. Listing members of a single zone in `rows` does nothing —
+  `check` warns when it spots this. If the ranking matters more than the
+  boundary, drop the zone.
 
 ## Views (altitudes)
 
@@ -93,7 +109,10 @@ add lenses:
 
 ```squinch
 view landscape {            // views take no positional label, unlike
-  title "System Landscape"  // `system id "Label"` — the title is a statement
+  title "System Landscape"  // `system id "Label"` — the title is a statement.
+                            // NOTE: `title` is *only drawn* inside a
+                            // `titleblock` (below). On its own it names the
+                            // view for tooling and nothing appears in the SVG.
   include *                 // all TOP-LEVEL entities, as collapsed cards
 }
 
@@ -102,11 +121,14 @@ view shop {                 // name matching a system = that system's view
   exclude legacy            // trim noise (removes the subtree)
   expand workers            // inline one child container in a frame
   highlight #pci            // spotlight matches, dim everything else
-  show descriptions         // inline description lines under labels
+  show descriptions         // inline description lines under labels — these are
+                            // clipped to the card width with an ellipsis and
+                            // nothing warns you, so keep them to ~4 words
   note right-of db "Single-table design; see ADR-42"
   note top-right "Audit scope: Q3" { style: warning }
   legend auto               // footer key of the styles actually used
-  titleblock {              // drafting-style corner block (uses `title`)
+  titleblock {              // drafting-style corner block — this is what
+                            // actually renders the view's `title`
     version: "2026-07"
     owner: team-orders
   }
@@ -134,6 +156,11 @@ view shop { show flow checkout }
 ```
 
 A step with no backing edge is a check error telling you to declare it first.
+`flow` blocks live at the **top level**, beside your systems — not inside a
+`system` and not inside a `view` (the view only says `show flow <id>`). From out
+there, write steps as full paths (`shop.api -> shop.create`). A step may cross a
+view's `scope`: an edge from a context card into the scope still gets its
+number.
 
 A flow is also a story: in the playground's **Present** mode the arrow keys walk
 a `show flow` view one hop at a time, lighting the current edge and dimming what
@@ -200,6 +227,11 @@ view shop {
 | "zone … has no visible members" | Its members are inside collapsed cards at this altitude — `expand` one, scope the view to them, or contain the container itself |
 | Need a VPC / network boundary / cloud-vs-on-prem split | `zone id "Label" vpc { contains a, b }` — kinds: account, region, vpc, subnet, network, cloud, onprem, custom |
 | Icon unknown | `squinch icons search <term>`; the error's `did you mean` is usually right |
+| Everything takes a long detour around the canvas | Check whether an edge points *against* the flow. Reversing one back-edge to face the direction traffic actually travels beats any hint |
+| "rank hints on … have no effect" warning | Those nodes are all inside one zone, which lays out as a single block. Order the zones instead, or drop the boundary |
+| "align skipped … outside zone" warning | The snap would have dragged a member out of its own boundary. Align it with something inside the zone |
+| A numbered step's badge sits past its target node | The edge label is too wide for that run — shorten it, or the badge gets evicted and the reading order looks wrong |
+| Not sure which views exist | `squinch check <path>` lists them (`--format json` puts them in `views`) |
 
 ## Icons you'll use constantly (aws pack)
 
@@ -221,7 +253,10 @@ abbreviates: `azure/aks` · `azure/vm` · `azure/vnet` · `azure/cosmos` ·
 `azure/log-analytics` · `azure/redis`. Canonical ids read like the portal —
 `azure/app-services`, `azure/storage-accounts`, `azure/monitor`,
 `azure/application-insights`. Search the same way: `squinch icons search --pack azure <term>`.
-Don't mix packs for the same concept in one diagram; pick the cloud you're on.
+Pick one cloud's pack and stay with it — don't draw the same concept as
+`aws/…` in one box and `azure/…` in the next. Combining a cloud pack with
+`logos` is a different thing and completely normal: it's how you draw a hybrid
+estate, with `logos/postgres` on the on-prem side and `azure/sql` in the cloud.
 
 **Non-AWS things** come from the `logos` pack (124 product marks, plated in
 their brand colour): `logos/postgres` · `logos/mysql` · `logos/mongodb` ·

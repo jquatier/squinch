@@ -8,6 +8,7 @@ import { themes, type Theme } from "./themes/index.js";
 import { allPackNames, iconIds, iconMeta, iconExists, packExists, iconTitle } from "./model/packs.js";
 import { packInfo } from "./packs/registry.js";
 import { diffModels, formatDiff, formatDiffMarkdown } from "./diff/diff.js";
+import { suggest } from "./model/suggest.js";
 import type { BuildResult, Diagnostic, SView } from "./model/types.js";
 
 export { buildModel, buildProject, formatDiagnostics, layoutView, renderSVG, validateSVG, themes };
@@ -49,18 +50,40 @@ export function iconsUsedBy(files: ProjectFile[] | string): { pack: string; id: 
 }
 
 /** Icon search across installed packs — powers `squinch icons search`.
- *  Aliases are searchable (query `sqs` finds it) but a canonical id and its
- *  alias never both appear for one query — one icon, one row. */
+ *
+ *  Matches every whitespace-separated word of the query against the id *and*
+ *  the human title, treating `-` as a space. A raw substring test against the
+ *  id alone is what shipped, and it failed on the most natural query anyone
+ *  types: "front door", "key vault", "api management", "container registry"
+ *  and "data factory" all returned nothing while the icons were right there.
+ *
+ *  A canonical id and its alias never both appear — one icon, one row. Callers
+ *  that want to *show* the short forms (the CLI does, because SKILL.md teaches
+ *  them and a result of only `azure/key-vaults` reads as proof that
+ *  `azure/key-vault` doesn't exist) can look them up via `packInfo`. */
 export function searchIcons(query: string, pack?: string): string[] {
-  const q = query.toLowerCase();
+  // Vendors are inconsistent about number — Azure has "Container Registries"
+  // and "Data Factories" where everyone searches "container registry" and
+  // "data factory" — so both sides are singularized before comparing.
+  // Short words are left alone: stemming `sqs` to `sq` makes it match the `sq`
+  // inside `postgresql`, and acronyms are exactly what people search by.
+  const stem = (w: string) =>
+    w.length < 5 ? w
+      : w.endsWith("ies") ? `${w.slice(0, -3)}y`
+      : w.endsWith("s") ? w.slice(0, -1)
+      : w;
+  const norm = (s: string) => s.toLowerCase().split(/[\s-]+/).filter(Boolean).map(stem).join(" ");
+  const words = norm(query).split(" ").filter(Boolean);
   const hits: string[] = [];
   for (const name of allPackNames()) {
     if (pack && name !== pack) continue;
     const aliases = packInfo(name)?.aliases ?? {};
-    const matched = new Set(iconIds(name).filter((id) => id.includes(q)));
-    for (const id of matched) {
-      const target = aliases[id];
-      if (target && matched.has(target)) continue; // canonical row already covers it
+    const haystack = (id: string) => norm(`${id} ${iconTitle(name, id) ?? ""}`);
+    const matched = new Set(
+      iconIds(name).filter((id) => words.every((w) => haystack(id).includes(w))),
+    );
+    for (const id of [...matched].sort()) {
+      if (aliases[id] && matched.has(aliases[id])) continue; // canonical covers it
       hits.push(`${name}/${id}`);
     }
   }
@@ -107,6 +130,29 @@ export async function renderProject(
   let view: SView | undefined = opts.view
     ? built.model.views.find((v) => v.name === opts.view)
     : built.model.views[0];
+  // A view name that doesn't exist used to fall through to the implicit default
+  // below: a *different* diagram, rendered successfully, exit 0. In an agent
+  // loop driven by exit codes that is the worst possible failure — a typo buys
+  // you a plausible picture with none of your view's settings.
+  if (opts.view && !view) {
+    const names = built.model.views.map((v) => v.name);
+    return {
+      diagnostics: [
+        ...built.diagnostics,
+        {
+          severity: "error",
+          message: `unknown view \`${opts.view}\``,
+          fix: names.length
+            ? ((m) => (m ? `did you mean \`${m}\`? ` : "") + `views: ${names.join(", ")}`)(
+                suggest(opts.view, names),
+              )
+            : "this project declares no views",
+          loc: { from: 0, to: 0, line: 1, col: 1 },
+        },
+      ],
+      ok: false,
+    };
+  }
   if (!view) {
     // implicit default view: everything (auto view of sole top-level container)
     const first = [...built.model.containers.keys()][0];

@@ -4,12 +4,12 @@
 //
 //   npx tsx gauntlet/score.ts [solutionsDir]
 //
-// solutionsDir defaults to gauntlet/independent-v2 — the current certified
+// solutionsDir defaults to gauntlet/independent-v3 — the current certified
 // cold-run set, which doubles as CI's regression corpus. Pass another directory
-// to score a different run (e.g. gauntlet/independent, the first certification).
+// to score an earlier run (gauntlet/independent-v2, gauntlet/independent).
 //
 // Exit 0 only when every solution with a file present passes AND at least the
-// Phase-3 bar (8/10) is met.
+// Phase-3 bar (~80%) is met.
 import { readFileSync, existsSync } from "node:fs";
 import { join, dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -44,9 +44,9 @@ interface Prompt { id: string; prompt: string; expect: Expect }
 
 const here = dirname(fileURLToPath(import.meta.url));
 const prompts: Prompt[] = JSON.parse(readFileSync(join(here, "prompts.json"), "utf8"));
-const solutionsDir = process.argv[2] ? resolve(process.argv[2]) : join(here, "independent-v2");
+const solutionsDir = process.argv[2] ? resolve(process.argv[2]) : join(here, "independent-v3");
 
-const BAR = 13; // 16 prompts, same ~80% bar as the original 8/10
+const BAR = 16; // 20 prompts, same ~80% bar as the original 8/10
 let passed = 0;
 const lines: string[] = [];
 

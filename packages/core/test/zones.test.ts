@@ -235,3 +235,80 @@ view landscape { include * }
     for (const kind of ["onprem", "cloud", "vpc"]) expect(r.svg).toContain(`>${kind}</text>`);
   });
 });
+
+// ── round-3 gauntlet findings: zones silently defeating layout hints ────────
+describe("zones vs layout hints", () => {
+  const SRC = `pack aws
+a = aws/api-gateway "A"
+b = aws/lambda "B"
+c = aws/dynamodb "C" datastore
+a -> b
+b -> c
+`;
+
+  it("says so when a rank hint is inert because one zone swallows it", async () => {
+    // unitOf() ranks by outermost zone, so members of one zone collapse to a
+    // single unit: rows between them are discarded AND the "runs upward" check
+    // compares that unit against itself. The render came out byte-identical to
+    // having no layout block, with check exiting 0 and reporting nothing.
+    const src = `${SRC}zone z "Z" account { contains a, b, c }
+view v {
+  include *
+  layout { rows [c] [b] [a] }
+}
+`;
+    const r = await render(src, { view: "v", theme: "light" });
+    expect(r.ok).toBe(true);
+    const w = r.diagnostics.find((d) => d.message.includes("have no effect"));
+    expect(w?.severity).toBe("warning");
+    expect(w?.message).toContain("`z`");
+    expect(w?.fix).toContain("between* zones");
+  });
+
+  it("still reports a real rank conflict when no zone is involved", async () => {
+    const src = `${SRC}view v {
+  include *
+  layout { rows [c] [b] [a] }
+}
+`;
+    const r = await render(src, { view: "v", theme: "light" });
+    expect(r.ok).toBe(false);
+    expect(r.diagnostics.some((d) => d.message.includes("runs upward"))).toBe(true);
+  });
+
+  it("refuses an align that would drag a member outside its own boundary", async () => {
+    // The zone frame is sized by ELK long before the align pass moves nodes, so
+    // an unchecked snap drew the member outside the boundary containing it —
+    // a false claim, rendered cleanly, check exit 0.
+    const src = `pack logos
+pg = logos/postgresql "PG" datastore
+far = logos/redis "Far"
+web = logos/nginx "Web"
+web -> pg
+web -> far
+zone onprem "On-Prem" onprem { contains pg }
+view v {
+  include *
+  layout { align far pg }
+}
+`;
+    const r = await render(src, { view: "v", theme: "light" });
+    expect(r.ok).toBe(true);
+    const w = r.diagnostics.find((d) => d.message.includes("outside zone"));
+    expect(w?.severity).toBe("warning");
+    expect(w?.message).toContain("`onprem`");
+
+    // and the node really is still inside the frame it claims to be in
+    const zone = r.svg!.match(
+      /data-kind="zone"[^>]*>.*?<rect x="(\d+)" y="(\d+)" width="(\d+)" height="(\d+)"/s,
+    )!;
+    const [zx, zy, zw, zh] = zone.slice(1, 5).map(Number);
+    const node = [
+      ...r.svg!.matchAll(
+        /data-path="([^"]+)" data-kind="leaf"[^>]*>\s*<rect x="(\d+)" y="(\d+)" width="(\d+)" height="(\d+)"/g,
+      ),
+    ].find((m) => m[1] === "pg")!;
+    const [nx, ny, nw, nh] = node.slice(2, 6).map(Number);
+    expect(nx >= zx && ny >= zy && nx + nw <= zx + zw && ny + nh <= zy + zh).toBe(true);
+  });
+});

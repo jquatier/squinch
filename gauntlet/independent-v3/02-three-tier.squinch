@@ -1,0 +1,26 @@
+pack aws
+
+person user "User"
+
+system webapp "Web App" {
+  description: "Classic three-tier web application"
+
+  lb      = aws/elb         "Load Balancer"
+  service = aws/ecs         "App Service" {
+    description: "ECS service running on Fargate"
+  }
+  db      = aws/aurora      "Database" datastore
+  cache   = aws/elasticache "Cache" datastore
+
+  lb -> service "routes requests"
+  service -> db "reads/writes"
+  service -> cache "reads/writes"
+}
+
+user -> webapp.lb "HTTPS request"
+
+view webapp {
+  layout {
+    rows [lb] [service] [db cache]
+  }
+}

@@ -194,6 +194,37 @@ export async function layoutView(
     if (t !== undefined) declared.set(unitOf(pl.node), t);
   }
 
+  // Ranking granularity is the outermost zone (`unitOf`), so nodes sharing one
+  // collapse to a single unit and any rank hint between them is discarded —
+  // along with the "runs upward" check, which would be comparing a unit against
+  // itself. Wrapping a diagram in one boundary is the normal shape for a cloud
+  // estate, and it turned `rows` into dead code that reported nothing: a whole
+  // `layout` block rendering byte-identical to no block at all. Hints may be
+  // unimplementable here, but they must never be silent (SPEC §9).
+  {
+    const zoneIds = new Set(zones.map((z) => z.id));
+    const inertRows = (view.layout.rows ?? [])
+      .flat()
+      .filter((p) => unitOf(p) !== entityOf(p) && zoneIds.has(unitOf(p)));
+    const inertPlace = view.layout.place
+      .filter((pl) => unitOf(pl.node) === unitOf(pl.target) && zoneIds.has(unitOf(pl.node)))
+      .map((pl) => pl.node);
+    const stuck = [...new Set([...inertRows, ...inertPlace])];
+    if (stuck.length) {
+      const zone = unitOf(stuck[0]);
+      diagnostics.push({
+        severity: "warning",
+        message:
+          `rank hints on ${stuck.map((p) => `\`${p}\``).join(", ")} have no effect — ` +
+          `zone \`${zone}\` is laid out as one block, and its members are ranked inside it by ELK`,
+        fix:
+          `rows/cols/place order things *between* zones, not within one. ` +
+          `Order the zones themselves, or drop the boundary if the ranking matters more.`,
+        loc: view.loc,
+      });
+    }
+  }
+
   const rank = new Map<string, number>(declared);
   const crossEdges = edges
     .map((e) => [unitOf(e.from), unitOf(e.to)] as const)
@@ -664,6 +695,23 @@ export async function layoutView(
         }
         // never create an overlap to satisfy a hint
         const moved = { ...n, [axis]: n[axis] + d } as PNode;
+        // Zone frames are sized by ELK, long before this pass moves anything,
+        // so an unchecked snap can leave a member drawn outside the boundary
+        // that is supposed to contain it — the diagram then asserts something
+        // false, silently, with check exiting 0. Purely geometric: whatever
+        // encloses the node now must still enclose it after.
+        const encloses = (z: PZone, m: { x: number; y: number; w: number; h: number }) =>
+          m.x >= z.x && m.y >= z.y && m.x + m.w <= z.x + z.w && m.y + m.h <= z.y + z.h;
+        const escaped = pZones.find((z) => encloses(z, n) && !encloses(z, moved));
+        if (escaped) {
+          diagnostics.push({
+            severity: "warning",
+            message: `align skipped \`${path}\` — moving it onto \`${group.nodes[0]}\`'s axis would take it outside zone \`${escaped.id}\``,
+            fix: `align \`${path}\` with something inside \`${escaped.id}\`, or drop it from the zone`,
+            loc: group.loc,
+          });
+          continue;
+        }
         const clash = nodes.find(
           (o) =>
             o.path !== path && o.rank === n.rank &&

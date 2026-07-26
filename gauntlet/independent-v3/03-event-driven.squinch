@@ -1,0 +1,37 @@
+pack aws
+
+orders = box "Order Service" external
+
+bus = aws/eventbridge "Event Bus"
+
+system emailNotifier "Email Notifier" {
+  notifier = aws/lambda "Notify Handler"
+  topic    = aws/sns    "Order Notifications"
+
+  notifier -> topic "publish"
+}
+
+system analytics "Analytics Writer" {
+  writer = aws/lambda "Analytics Handler"
+  lake   = aws/s3     "Data Lake"
+
+  writer -> lake "write records"
+}
+
+dlq = aws/sqs "Dead Letter Queue"
+
+orders ~> bus "order events"
+bus ~> emailNotifier.notifier "order.created"
+bus ~> analytics.writer "order.created"
+bus ~> dlq "failed events"
+
+view landscape {
+  title "Order Events — Event-Driven Flow"
+  include *
+
+  layout {
+    rows [orders] [bus] [emailNotifier analytics]
+    place dlq right-of bus
+    route bus ~> dlq from east to west
+  }
+}

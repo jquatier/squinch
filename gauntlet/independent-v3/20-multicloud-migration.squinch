@@ -1,0 +1,50 @@
+// Mid-migration picture: what still runs in our own data centre, and what
+// already runs in Azure.
+pack azure
+pack logos
+
+postgres = logos/postgresql "PostgreSQL" datastore {
+  description: "Legacy store"
+}
+rabbit = logos/rabbitmq "RabbitMQ" {
+  description: "Event broker"
+}
+
+aks = azure/aks "AKS Cluster" {
+  description: "New services"
+}
+azsql = azure/azure-sql "Azure SQL" datastore {
+  description: "Migration target"
+}
+sync = azure/data-factories "Sync Job" {
+  description: "Nightly copy"
+}
+
+postgres ~> sync "nightly extract"
+sync ~> azsql "load"
+rabbit ~> aks "events"
+aks -> azsql "reads and writes"
+
+zone dc "On-Premises" onprem {
+  contains postgres, rabbit
+}
+
+zone az "Azure" cloud {
+  contains aks, azsql, sync
+}
+
+view landscape {
+  title "Mid-Migration Landscape"
+  include *
+  show descriptions
+  legend auto
+  titleblock {
+    version: "mid-migration"
+    owner: platform
+  }
+  layout {
+    direction right
+    route rabbit ~> aks from east to west
+    route postgres ~> sync from east to west
+  }
+}

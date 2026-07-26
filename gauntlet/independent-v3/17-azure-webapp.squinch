@@ -1,0 +1,36 @@
+// Azure web application — edge → web tier → backing services
+pack azure
+
+person customer "Customer"
+
+system webapp "Contoso Web" {
+  description: "Public Azure web application"
+  glyph: sys/webapp
+
+  fd    = azure/front-door           "Front Door"
+  app   = azure/app-services         "App Service" {
+    description: "Web tier"
+  }
+  sql   = azure/sql                  "Azure SQL" datastore
+  cache = azure/redis                "Redis Cache" datastore
+  kv    = azure/key-vault            "Key Vault"
+  ai    = azure/application-insights "Application Insights"
+
+  fd  -> app   "routes"
+  app -> sql   "reads/writes"
+  app -> cache "caches"
+  app -> kv    "reads secrets"
+  app ~> ai    "telemetry"
+}
+
+customer -> webapp.fd "browses"
+
+view webapp {
+  scope webapp
+  title "Azure Web Application"
+  show descriptions
+  layout {
+    direction down
+    rows [fd] [app] [sql cache kv ai]
+  }
+}

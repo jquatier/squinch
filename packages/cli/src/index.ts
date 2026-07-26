@@ -4,7 +4,7 @@ import { readFileSync, writeFileSync, mkdirSync, existsSync, watch as fsWatch } 
 import { join, relative, isAbsolute } from "node:path";
 import { createHash } from "node:crypto";
 import {
-  buildProject, renderProject, formatDiagnostics, validateSVG, searchIcons, themes,
+  buildProject, renderProject, formatDiagnostics, validateSVG, searchIcons, themes, packInfo,
   diffProjects, formatDiff, formatDiffMarkdown,
   type Diagnostic,
 } from "@squinch/core";
@@ -84,12 +84,24 @@ function cmdDiff(positionals: string[], flags: Record<string, string | boolean>)
   return 0;
 }
 
-function reportDiagnostics(diags: Diagnostic[], json: boolean): void {
+interface ViewInfo { name: string; scope?: string; auto?: boolean }
+
+function reportDiagnostics(diags: Diagnostic[], json: boolean, views?: ViewInfo[]): void {
   if (json) {
     const errors = diags.filter((d) => d.severity === "error").length;
     console.log(
       JSON.stringify(
-        { ok: errors === 0, errors, warnings: diags.length - errors, diagnostics: diags },
+        {
+          ok: errors === 0,
+          errors,
+          warnings: diags.length - errors,
+          diagnostics: diags,
+          // The quality bar asks authors to render every view they declared,
+          // and nothing told them what those were: every cold-run agent ended
+          // up copying the file elsewhere and running `--sync` to read the
+          // filenames back off disk.
+          ...(views ? { views } : {}),
+        },
         null,
         2,
       ),
@@ -150,15 +162,23 @@ async function cmdCheck(path: string, json: boolean): Promise<number> {
         for (const d of r.diagnostics)
           if (!all.some((x) => x.message === d.message && x.loc.from === d.loc.from)) all.push(d);
       }
-  reportDiagnostics(all, json);
+  const views: ViewInfo[] = built.ok
+    ? built.model.views.map((v) => ({ name: v.name, scope: v.scope, auto: v.auto }))
+    : [];
+  reportDiagnostics(all, json, views);
   const errors = all.filter((d) => d.severity === "error").length;
   const warnings = all.length - errors;
-  if (!json)
+  if (!json) {
     console.error(
       errors === 0 && warnings === 0
         ? `${input.files.length} file(s) OK`
         : `\n${errors} error(s), ${warnings} warning(s)`,
     );
+    if (views.length)
+      console.error(
+        `views: ${views.map((v) => (v.auto ? `${v.name} (auto)` : v.name)).join(", ")}`,
+      );
+  }
   return errors ? 1 : 0;
 }
 
@@ -273,7 +293,20 @@ async function cmdIcons(positionals: string[], flags: Record<string, string | bo
     console.error(`no icons match \`${query}\``);
     return 1;
   }
-  console.log(hits.join("\n"));
+  // Name the short forms on the row. Search returns one row per icon, so
+  // without this an author who was told to write `azure/key-vault` sees only
+  // `azure/key-vaults` and concludes the documented name is wrong.
+  console.log(
+    hits
+      .map((hit) => {
+        const [pack, id] = [hit.slice(0, hit.indexOf("/")), hit.slice(hit.indexOf("/") + 1)];
+        const short = Object.entries(packInfo(pack)?.aliases ?? {})
+          .filter(([, target]) => target === id)
+          .map(([alias]) => `${pack}/${alias}`);
+        return short.length ? `${hit}  (or ${short.join(", ")})` : hit;
+      })
+      .join("\n"),
+  );
   return 0;
 }
 

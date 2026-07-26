@@ -1,0 +1,48 @@
+// Order journey through the Azure stack
+pack azure
+
+person shopper "Shopper"
+
+system orders "Order Processing" {
+  description: "Takes an order and drives it to fulfilment"
+  glyph: sys/service
+
+  apim   = azure/api-management "API Management" {
+    description: "Public edge"
+  }
+  create = azure/functions "Order Function" {
+    description: "Validates and persists"
+  }
+  db     = azure/cosmos "Cosmos DB" datastore
+  bus    = azure/service-bus "Service Bus"
+  fulfil = azure/functions "Fulfilment Function" {
+    description: "Ships the order"
+  }
+
+  apim -> create "submit order"
+  create -> db "write order"
+  create ~> bus "OrderPlaced"
+  bus ~> fulfil "picks up"
+}
+
+shopper -> orders.apim "places order"
+
+flow order_journey "Order journey" {
+  shopper -> orders.apim
+  orders.apim -> orders.create
+  orders.create -> orders.db
+  orders.create ~> orders.bus
+  orders.bus ~> orders.fulfil
+}
+
+view orders {
+  title "Order journey — Azure"
+  scope orders
+  show flow order_journey
+  show descriptions
+  legend auto
+  layout {
+    direction down
+    rows [apim] [create] [db bus] [fulfil]
+  }
+}
