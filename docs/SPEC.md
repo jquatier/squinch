@@ -236,7 +236,9 @@ too. Themes style them as callouts; the sketch theme renders them handwritten.
 - Every `system`/`container` gets an auto-generated default view (`view <path>`), so
   double-click-to-zoom always works even with zero `view` blocks written. Declaring
   `view <path>` explicitly *is* the customization of that auto view.
-- `include`/`exclude` accept ids, paths, and tags (`include #pci`). **[tags v1.1]**
+- `include`/`exclude` accept ids, paths, and tags (`include #pci`) — tag targets
+  match every element whose *effective* (inherited) tags qualify; explicit
+  includes never have to earn their spot the way auto context does.
 
 ### Visibility resolution (what's shown at each level)
 

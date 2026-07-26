@@ -108,40 +108,54 @@ export function resolveView(model: SModel, view: SView): ViewGraph {
   }
   visible.push(...contextSet);
 
+  // a tag target expands to every element whose EFFECTIVE tags match —
+  // inherited tags count (SPEC: tags inherit to everything inside).
+  // Deterministic order: containers in declaration order, then nodes.
+  const tagMatches = (tag: string): string[] => [
+    ...[...model.containers.keys()].filter((p) => p && effectiveTags(p).includes(tag)),
+    ...[...model.nodes.keys()].filter((p) => effectiveTags(p).includes(tag)),
+  ];
+
   // ── 3. include (explicit adds override the top-level context lift) ───────
+  // Explicitly included elements are exempt from the context rules below:
+  // they never have to EARN their spot, and edges among them render even
+  // though both endpoints are context-styled — the user asked for them.
+  const explicitSet = new Set<string>();
   for (const inc of view.include) {
-    if (typeof inc !== "string") {
+    const targets = typeof inc === "string" ? [inc] : tagMatches(inc.tag);
+    if (typeof inc !== "string" && targets.length === 0)
       diagnostics.push({
         severity: "warning",
-        message: `include #${inc.tag}: tag-based include is not built yet (v1.1)`,
+        message: `include #${inc.tag}: nothing is tagged #${inc.tag}`,
         loc: view.loc,
       });
-      continue;
-    }
-    if (!visible.includes(inc)) {
-      visible.push(inc);
+    for (const target of targets) {
+      explicitSet.add(target);
+      if (visible.includes(target)) continue;
+      visible.push(target);
       // a deeper explicit include supersedes its lifted top-level context card
-      const top = topOf(inc);
-      if (contextSet.has(top) && top !== inc) {
+      const top = topOf(target);
+      if (contextSet.has(top) && top !== target) {
         contextSet.delete(top);
         visible = visible.filter((p) => p !== top);
       }
-      if (!scope || !inc.startsWith(`${scope}.`)) contextSet.add(inc);
+      if (!scope || !target.startsWith(`${scope}.`)) contextSet.add(target);
     }
   }
 
   // ── 4. exclude wins last (removes whole subtrees) ─────────────────────────
   for (const exc of view.exclude) {
-    if (typeof exc !== "string") {
+    const targets = typeof exc === "string" ? [exc] : tagMatches(exc.tag);
+    if (typeof exc !== "string" && targets.length === 0)
       diagnostics.push({
         severity: "warning",
-        message: `exclude #${exc.tag}: tag-based exclude is not built yet (v1.1)`,
+        message: `exclude #${exc.tag}: nothing is tagged #${exc.tag}`,
         loc: view.loc,
       });
-      continue;
+    for (const target of targets) {
+      visible = visible.filter((p) => p !== target && !p.startsWith(`${target}.`));
+      contextSet.delete(target);
     }
-    visible = visible.filter((p) => p !== exc && !p.startsWith(`${exc}.`));
-    contextSet.delete(exc);
   }
 
   // ── 5. edge lifting + aggregation over the final visible set ─────────────
@@ -195,10 +209,18 @@ export function resolveView(model: SModel, view: SView): ViewGraph {
   // Context exists to show how the scope connects outward. An edge between two
   // *outsiders* is their business, not this view's — suppress it, or zooming
   // into one service drags in the whole neighbourhood's wiring.
-  const scopeEdges = edges.filter((e) => !(contextSet.has(e.from) && contextSet.has(e.to)));
+  const scopeEdges = edges.filter(
+    (e) =>
+      !(
+        contextSet.has(e.from) && contextSet.has(e.to) &&
+        !explicitSet.has(e.from) && !explicitSet.has(e.to)
+      ),
+  );
 
-  // context cards must earn their spot: drop any without a surviving edge
+  // context cards must earn their spot: drop any without a surviving edge —
+  // except explicit includes, which were asked for by name
   for (const c of [...contextSet]) {
+    if (explicitSet.has(c)) continue;
     if (!scopeEdges.some((e) => e.from === c || e.to === c)) {
       contextSet.delete(c);
       visible = visible.filter((p) => p !== c);

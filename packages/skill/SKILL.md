@@ -153,6 +153,7 @@ view shop {
 | Edge exits a silly side | `route a -> b from south to north` (sides: north/south/east/west) |
 | Diagram too cramped / too airy | `density spacious` / `density compact` |
 | Too many boxes at once | Split into views: a landscape with `include *`, plus per-system views |
+| Show only one concern (PCI, GDPR, a team) | Tag the elements, then `include #pci` / `exclude #deprecated` — inherited tags count |
 | A neighbour system clutters a zoomed view | `exclude thatSystem` or `context off` |
 | "hint conflict … runs upward" error | Your `rows` contradict an edge's direction — move the target to a lower row |
 | "N edges match route …" error | Add the edge's label to the `route` statement |
