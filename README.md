@@ -28,10 +28,10 @@ in git next to the code it describes.
   context. The breadcrumb takes you back up.</em>
 </p>
 
-<picture>
-  <source media="(prefers-color-scheme: dark)" srcset="examples/orders/orders.orders.dark.svg">
-  <img alt="Order Service" src="examples/orders/orders.orders.light.svg">
-</picture>
+## From source to diagram
+
+The whole file — structure first, then a separate `view` that says how to draw
+it. Delete the `layout` block and it still renders well; the hints only steer.
 
 ```squinch
 system orders "Order Service" {
@@ -53,6 +53,11 @@ view orders {
   }
 }
 ```
+
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="examples/orders/orders.orders.dark.svg">
+  <img alt="Order Service" src="examples/orders/orders.orders.light.svg">
+</picture>
 
 ## Status
 
