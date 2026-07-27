@@ -1,6 +1,10 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Editor, type EditorApi } from "./Editor";
 import { IconPalette } from "./IconPalette";
+// The brand mark, cropped from docs/assets/logo.svg by viewBox alone — its
+// gradients are userSpaceOnUse against the original 1536x1024 coordinates, so
+// the window moves, never the paths.
+import markUrl from "./mark.svg";
 import { Presenter } from "./Presenter";
 import { Stage, useReducedMotion, type Box, type Intent } from "./Stage";
 import { compile, decodeShare, encodeShare, svgToPng, type Preview } from "./squinch";
@@ -258,7 +262,7 @@ export function App() {
     <div className="flex h-screen flex-col bg-[var(--chrome)] text-[var(--fg)]">
       <header className="flex items-center gap-3 border-b border-[var(--line)] px-4 py-2.5">
         <div className="flex items-center gap-2">
-          <Mark />
+          <img src={markUrl} width={18} height={18} alt="" />
           <span className="text-[13px] font-medium tracking-tight">squinch</span>
           <span className="rounded bg-[var(--chip)] px-1.5 py-0.5 text-[10px] text-[var(--muted)]">
             playground
@@ -452,21 +456,5 @@ function Diagnostics({
         </div>
       ))}
     </div>
-  );
-}
-
-/** The squinch itself: a dome carried on four corner arches. */
-function Mark() {
-  return (
-    <svg width="18" height="18" viewBox="0 0 100 100" aria-hidden>
-      <rect x="12" y="12" width="76" height="76" fill="none" stroke="var(--muted)" strokeWidth="6" />
-      <g fill="none" stroke="var(--accent)" strokeWidth="9" strokeLinecap="round">
-        <path d="M 35.74 12 A 23.74 23.74 0 0 1 12 35.74" />
-        <path d="M 64.26 12 A 23.74 23.74 0 0 0 88 35.74" />
-        <path d="M 64.26 88 A 23.74 23.74 0 0 1 88 64.26" />
-        <path d="M 35.74 88 A 23.74 23.74 0 0 0 12 64.26" />
-      </g>
-      <circle cx="50" cy="50" r="30" fill="none" stroke="currentColor" strokeWidth="7" />
-    </svg>
   );
 }
