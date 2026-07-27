@@ -28,11 +28,15 @@ const SYSTEM = "catalog";
 
 /** Canvas. Wide enough for a landscape to read in a README column. */
 const W = 900, H = 620, PAD = 28;
+/** Displayed width of the wordmark; its height follows from the asset. */
+const LOGO_W = 132;
 /** A reserved strip along the bottom for the wordmark. Without it the diagram
  *  fills the full height and the landscape's bottom row collides with the
- *  logo — the artwork is centred, so there is no corner it reliably avoids. */
-const FOOT = 56;
-const STAGE_H = H - FOOT;
+ *  logo — the artwork is centred, so there is no corner it reliably avoids.
+ *  Sized from the logo once it is measured, so the gap below it matches the
+ *  gap to its right exactly. */
+let FOOT = 0;
+let STAGE_H = H;
 const FPS = 20;
 /** Stage.tsx's constants, so the GIF moves exactly like the product. */
 const CAP = 3.2, TRAVEL = 0.62;
@@ -135,7 +139,7 @@ let MARK = { href: "", w: 0, h: 0 };
 const watermark = () =>
   MARK.href
     ? `<image href="${MARK.href}" x="${(W - PAD - MARK.w).toFixed(1)}" ` +
-      `y="${(STAGE_H + (FOOT - MARK.h) / 2).toFixed(1)}" ` +
+      `y="${(H - PAD - MARK.h).toFixed(1)}" ` +
       `width="${MARK.w}" height="${MARK.h}" opacity="0.9"/>`
     : "";
 
@@ -192,7 +196,6 @@ const build = async (theme: string) => {
   // so dropped straight in, each shows as a pale or black box against the
   // canvas. Key the flat background out. Verified not to punch holes in the
   // mark: nothing inside it is pure white or pure black.
-  const LOGO_W = 132;
   const small = join(tmp, "logo.png");
   const key = theme === "dark" ? "0x000000" : "0xFDFDFD";
   // 2x the display size, so resvg has pixels to sample down from
@@ -207,6 +210,9 @@ const build = async (theme: string) => {
     w: LOGO_W,
     h: Math.round((lh / lw) * LOGO_W),
   };
+  // equal margin right and below: the band is the logo plus one PAD
+  FOOT = PAD + MARK.h;
+  STAGE_H = H - FOOT;
   const land = await view("landscape", theme);
   const ord = await view(SYSTEM, theme);
 
