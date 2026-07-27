@@ -27,6 +27,6 @@ view orders {
   layout {
     rows [api] [create get search] [db files idx]
     place sync right-of db
-    route db ~> sync from east to west
+    route db ~> sync from east to west   // control the edge, not just the graph
   }
 }

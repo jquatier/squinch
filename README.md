@@ -34,22 +34,35 @@ The whole file — structure first, then a separate `view` that says how to draw
 it. Delete the `layout` block and it still renders well; the hints only steer.
 
 ```squinch
+pack aws
+
 system orders "Order Service" {
   api    = aws/api-gateway "API Gateway"
   create = aws/lambda      "Create Handler"
-  db     = aws/dynamodb    "Orders Table"
+  get    = aws/lambda      "Get Handler"
+  search = aws/lambda      "Search Handler"
+  db     = aws/dynamodb    "Orders Table" {
+    description: "Single-table design, on-demand capacity"
+    tags: #pci
+  }
+  files  = aws/s3          "Assets"
+  idx    = aws/opensearch  "Search Index"
   sync   = aws/lambda      "Stream Sync"
 
-  api -> create
-  create -> db
-  db ~> sync "DynamoDB stream"
+  api -> create, get, search
+  create -> db, files
+  get    -> db
+  search -> idx
+  db  ~> sync "DynamoDB stream"
+  sync -> idx "index updates"
 }
 
 view orders {
+  theme dark
   layout {
-    rows [api] [create] [db]
+    rows [api] [create get search] [db files idx]
     place sync right-of db
-    route db ~> sync from east to west     // control the edge, not just the graph
+    route db ~> sync from east to west   // control the edge, not just the graph
   }
 }
 ```
