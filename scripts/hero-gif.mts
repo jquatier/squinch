@@ -28,6 +28,12 @@ const SYSTEM = "catalog";
 
 /** Canvas. Wide enough for a landscape to read in a README column. */
 const W = 900, H = 620, PAD = 28;
+/** Vertical breathing room is tighter than horizontal: the artboards are wider
+ *  than they are tall, so height is the binding constraint and every pixel of
+ *  vertical padding shrinks the diagram. */
+const PAD_V = 14;
+/** Gap above the wordmark, and below it. */
+const LOGO_GAP = 8, LOGO_BOTTOM = 16;
 /** Displayed width of the wordmark; its height follows from the asset. */
 const LOGO_W = 132;
 /** A reserved strip along the bottom for the wordmark. Without it the diagram
@@ -81,7 +87,7 @@ function readSource(): string {
 /** Where an art board sits on the canvas: contained, centred, never upscaled
  *  past 1:1 so the diagram keeps its designed weight. */
 function fitOf(a: Art) {
-  const s = Math.min((W - PAD * 2) / a.w, (STAGE_H - PAD * 2) / a.h, 1);
+  const s = Math.min((W - PAD * 2) / a.w, (STAGE_H - PAD_V * 2) / a.h, 1);
   return { s, x: (W - a.w * s) / 2, y: (STAGE_H - a.h * s) / 2 };
 }
 
@@ -139,7 +145,7 @@ let MARK = { href: "", w: 0, h: 0 };
 const watermark = () =>
   MARK.href
     ? `<image href="${MARK.href}" x="${(W - PAD - MARK.w).toFixed(1)}" ` +
-      `y="${(H - PAD - MARK.h).toFixed(1)}" ` +
+      `y="${(H - LOGO_BOTTOM - MARK.h).toFixed(1)}" ` +
       `width="${MARK.w}" height="${MARK.h}" opacity="0.9"/>`
     : "";
 
@@ -210,8 +216,9 @@ const build = async (theme: string) => {
     w: LOGO_W,
     h: Math.round((lh / lw) * LOGO_W),
   };
-  // equal margin right and below: the band is the logo plus one PAD
-  FOOT = PAD + MARK.h;
+  // the band is only as tall as the logo needs — anything more reads as a hole
+  // between the diagram and the mark
+  FOOT = LOGO_GAP + MARK.h + LOGO_BOTTOM;
   STAGE_H = H - FOOT;
   const land = await view("landscape", theme);
   const ord = await view(SYSTEM, theme);
