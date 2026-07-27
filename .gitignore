@@ -19,3 +19,6 @@ packages/vscode/pack-*/
 # SPA pack assets are copied from packages/pack-* by scripts/sync-packs.ts
 apps/spa/public/pack-*.json
 apps/spa/public/*-icons/
+
+# scratch frames for scripts/hero-gif.mts
+.hero-tmp/

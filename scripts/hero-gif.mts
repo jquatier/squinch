@@ -1,0 +1,301 @@
+// The README's hero animation: a landscape diagram, a dive into one system,
+// and back out. Generated, never screen-recorded — the frames are the real
+// renderer's output, so the GIF cannot drift from what the tool actually draws,
+// and it can be regenerated after any visual change.
+//
+//   npx tsx scripts/hero-gif.mts
+//
+// Requires ffmpeg (maintainer machines only; never runs in CI).
+//
+// The motion is the app's own, re-derived rather than re-implemented: same
+// anchored dive as apps/spa/src/Stage.tsx, same constants, same easing. Both
+// altitudes move about the one card they have in common, so the eye tracks it
+// through the cut — see docs/notes/zoom-transitions.md.
+import { execFileSync } from "node:child_process";
+import { mkdirSync, readFileSync, rmSync, statSync, writeFileSync } from "node:fs";
+import { dirname, join } from "node:path";
+import { fileURLToPath } from "node:url";
+import { renderProject, themes } from "../packages/core/dist/index.js";
+import { svgToPng } from "../packages/cli/src/raster.js";
+
+const root = join(dirname(fileURLToPath(import.meta.url)), "..");
+const out = (theme: string) => join(root, `docs/assets/zoom-${theme}.gif`);
+const tmp = join(root, ".hero-tmp");
+
+/** Which system the pointer opens. Must be a top-level system with a view of
+ *  its own — the card is the anchor and the view is what the dive lands in. */
+const SYSTEM = "catalog";
+
+/** Canvas. Wide enough for a landscape to read in a README column. */
+const W = 900, H = 600, PAD = 28;
+const FPS = 20;
+/** Stage.tsx's constants, so the GIF moves exactly like the product. */
+const CAP = 3.2, TRAVEL = 0.62;
+
+/** cubic-bezier(.32,.72,0,1) — the app's dive easing, front-loaded so most of
+ *  the distance is covered early and the landing is soft. */
+function ease(t: number): number {
+  const [x1, y1, x2, y2] = [0.32, 0.72, 0, 1];
+  const cx = 3 * x1, bx = 3 * (x2 - x1) - cx, ax = 1 - cx - bx;
+  const cy = 3 * y1, by = 3 * (y2 - y1) - cy, ay = 1 - cy - by;
+  const fx = (u: number) => ((ax * u + bx) * u + cx) * u;
+  let u = t;
+  for (let i = 0; i < 8; i++) {
+    const err = fx(u) - t;
+    if (Math.abs(err) < 1e-6) break;
+    const d = (3 * ax * u + 2 * bx) * u + cx;
+    if (Math.abs(d) < 1e-6) break;
+    u -= err / d;
+  }
+  return ((ay * u + by) * u + cy) * u;
+}
+
+const clamp = (v: number, lo: number, hi: number) => Math.min(hi, Math.max(lo, v));
+const lerp = (a: number, b: number, t: number) => a + (b - a) * t;
+
+interface Art { svg: string; w: number; h: number }
+
+async function view(name: string, theme: string): Promise<Art> {
+  const r = await renderProject(
+    [{ name: "shop.squinch", src: readSource() }],
+    { view: name, theme },
+  );
+  if (!r.ok) throw new Error(`render failed for ${name}`);
+  const m = r.svg!.match(/<svg[^>]*width="(\d+)" height="(\d+)"/)!;
+  return { svg: r.svg!, w: +m[1], h: +m[2] };
+}
+
+function readSource(): string {
+  return readFileSync(join(root, "examples/microservices/shop.squinch"), "utf8");
+}
+
+/** Where an art board sits on the canvas: contained, centred, never upscaled
+ *  past 1:1 so the diagram keeps its designed weight. */
+function fitOf(a: Art) {
+  const s = Math.min((W - PAD * 2) / a.w, (H - PAD * 2) / a.h, 1);
+  return { s, x: (W - a.w * s) / 2, y: (H - a.h * s) / 2 };
+}
+
+/** SVG has no transform-origin, so a scale about a point becomes an explicit
+ *  translate. p → O + d + k(p − O). */
+const about = (o: { x: number; y: number }, d: { x: number; y: number }, k: number) =>
+  `translate(${(o.x + d.x - k * o.x).toFixed(3)} ${(o.y + d.y - k * o.y).toFixed(3)}) scale(${k.toFixed(5)})`;
+
+/** Two whole SVGs share one document here, and ids are document-global: the
+ *  second board's `<use href="#i-lambda">` would resolve against the first
+ *  board's `<symbol>`. Namespace one of them. */
+const isolate = (svg: string, tag: string) =>
+  svg
+    .replace(/\bid="([^"]+)"/g, `id="${tag}-$1"`)
+    .replace(/href="#([^"]+)"/g, `href="#${tag}-$1"`)
+    .replace(/url\(#([^)]+)\)/g, `url(#${tag}-$1)`);
+
+/** One board, placed and transformed.
+ *
+ *  The `<svg>` wrapper is stripped and its children inlined into a `<g>`: a
+ *  nested viewport inside a heavily scaled group makes resvg's bbox maths
+ *  degenerate and panic outright (an unwrap on a None rect, killing the
+ *  process). Each board's viewBox is `0 0 w h` with matching width/height, so
+ *  the wrapper implies no transform of its own and dropping it is lossless. */
+function board(a: Art, tag: string, extra: string, opacity: number): string {
+  const f = fitOf(a);
+  const guts = isolate(a.svg, tag).replace(/^<svg[^>]*>/, "").replace(/<\/svg>\s*$/, "");
+  const inner = `<g>${guts}</g>`;
+  return (
+    `<g opacity="${opacity.toFixed(3)}">` +
+    `<g transform="${extra}">` +
+    `<g transform="translate(${f.x.toFixed(3)} ${f.y.toFixed(3)}) scale(${f.s.toFixed(5)})">` +
+    inner +
+    `</g></g></g>`
+  );
+}
+
+/** Frames are drawn on a canvas three times the target and cropped back down.
+ *  resvg panics outright — an unwrap on a None rect, taking the process with
+ *  it — when a scaled group lands wholly outside the viewport, which is every
+ *  frame of a dive past ~2.2×. Margin means nothing is ever fully outside. */
+const M = { x: W, y: H };
+const BIG = { w: W * 3, h: H * 3 };
+
+/** The frame's own chrome — background, breadcrumb, pointer, ripple — drawn
+ *  from the theme's tokens so the animation matches the diagram it wraps and
+ *  follows any future change to the palette. */
+let T = themes.light;
+
+const caption = (crumbs: string[]) => {
+  const trail = crumbs
+    .map((c, i) =>
+      `<tspan fill="${i === crumbs.length - 1 ? T.ink : T.muted}">${c}</tspan>` +
+      (i < crumbs.length - 1 ? `<tspan fill="${T.border}"> › </tspan>` : ""),
+    )
+    .join("");
+  return `<text x="28" y="42" font-family="Inter" font-size="15" font-weight="500">${trail}</text>`;
+};
+
+/** A pointer, drawn dark on light with a thin light outline so it stays legible
+ *  over icons and edges alike. Origin is the tip. */
+const cursor = (x: number, y: number, alpha: number, pressed: boolean) => {
+  if (alpha <= 0.01) return "";
+  const s = pressed ? 0.88 : 1;
+  return (
+    `<g transform="translate(${x.toFixed(2)} ${y.toFixed(2)}) scale(${s})" opacity="${alpha.toFixed(3)}">` +
+    `<path d="M 0 0 L 0 18 L 4.8 13.8 L 7.6 20 L 10.4 18.7 L 7.6 12.7 L 13.3 12.7 Z" ` +
+    `fill="${T.ink}" stroke="${T.canvas}" stroke-width="1.4" stroke-linejoin="round"/></g>`
+  );
+};
+
+/** The click itself: a ring that expands and fades from the point of contact. */
+const ripple = (x: number, y: number, t: number) => {
+  if (t < 0 || t > 1) return "";
+  const r = lerp(5, 30, ease(t));
+  const a = (1 - t) * 0.65;
+  return (
+    `<circle cx="${x.toFixed(2)}" cy="${y.toFixed(2)}" r="${r.toFixed(2)}" fill="none" ` +
+    `stroke="${T.accent}" stroke-width="${(2.4 * (1 - t) + 0.6).toFixed(2)}" opacity="${a.toFixed(3)}"/>`
+  );
+};
+
+const frame = (body: string, crumbs: string[]) =>
+  `<svg xmlns="http://www.w3.org/2000/svg" width="${BIG.w}" height="${BIG.h}" ` +
+  `viewBox="${-M.x} ${-M.y} ${BIG.w} ${BIG.h}">` +
+  `<rect x="${-M.x}" y="${-M.y}" width="${BIG.w}" height="${BIG.h}" fill="${T.canvas}"/>` +
+  `${body}${caption(crumbs)}</svg>`;
+
+const build = async (theme: string) => {
+  T = (themes as Record<string, typeof themes.light>)[theme];
+  const land = await view("landscape", theme);
+  const ord = await view(SYSTEM, theme);
+
+  // The anchor: the "Order Service" card, in canvas coordinates.
+  const card = land.svg.match(
+    new RegExp(
+      `data-path="${SYSTEM}" data-kind="card"[^>]*>\\s*<rect x="(\\d+)" y="(\\d+)" width="(\\d+)" height="(\\d+)"`,
+    ),
+  );
+  if (!card) throw new Error(`could not find the \`${SYSTEM}\` card to dive through`);
+  const f = fitOf(land);
+  const A = {
+    x: f.x + (+card[1] + +card[3] / 2) * f.s,
+    y: f.y + (+card[2] + +card[4] / 2) * f.s,
+    w: +card[3] * f.s,
+    h: +card[4] * f.s,
+  };
+  const V = { x: W / 2, y: H / 2 };
+  const k = clamp(Math.min(W / A.w, H / A.h), 1.15, CAP);
+  const kIn = 1 + (k - 1) * TRAVEL;
+  const d = { x: V.x - A.x, y: V.y - A.y };
+
+  /** One dive frame. `t` runs 0→1; `into` picks the direction. */
+  const dive = (t: number, into: boolean) => {
+    const e = ease(t);
+    // outgoing flies past, anchored on the card; incoming emerges from it
+    const outK = into ? lerp(1, k, e) : lerp(1, 1 / k, e);
+    const outD = { x: d.x * e * (into ? 1 : -1), y: d.y * e * (into ? 1 : -1) };
+    const inK = into ? lerp(1 / kIn, 1, e) : lerp(kIn, 1, e);
+    const inD = into
+      ? { x: -d.x * (1 - e), y: -d.y * (1 - e) }
+      : { x: d.x * (1 - e), y: d.y * (1 - e) };
+    // the ghost clears out early and the arrival lands late, so the two are
+    // never both at full strength
+    const outA = clamp(1 - t / 0.55, 0, 1);
+    const inA = clamp((t - 0.25) / 0.6, 0, 1);
+    const [leaving, arriving] = into ? [land, ord] : [ord, land];
+    const [lTag, aTag] = into ? ["a", "b"] : ["b", "a"];
+    // A fully transparent board is omitted, not drawn at opacity 0: resvg
+    // panics computing the bbox of an invisible transformed group.
+    const vis = (a: Art, tag: string, tf: string, alpha: number) =>
+      alpha > 0.005 ? board(a, tag, tf, alpha) : "";
+    return frame(
+      vis(leaving, lTag, about(into ? A : V, outD, outK), outA) +
+        vis(arriving, aTag, about(into ? V : A, inD, inK), inA),
+      // the trail flips at the midpoint, where the arriving altitude takes over
+      into === e > 0.5 ? ["landscape", SYSTEM] : ["landscape"],
+    );
+  };
+
+  const still = (a: Art, tag: string, crumbs: string[], overlay = "") =>
+    frame(board(a, tag, "translate(0 0)", 1) + overlay, crumbs);
+
+  // Where the pointer goes. Clicking the card is how you descend; clicking the
+  // breadcrumb is how you come back — the same two affordances the app has, so
+  // the GIF teaches the interaction rather than just showing the motion.
+  const CARD = { x: A.x + 6, y: A.y - 4 };
+  const CRUMB = { x: 58, y: 34 };
+  const START = { x: W - 150, y: H - 90 };
+
+  /** Pointer travelling from `a` to `b` across `n` frames, clicking at the end:
+   *  the ring starts on the frame the press lands, and the arrow dips with it. */
+  const approach = (
+    art: Art, tag: string, crumbs: string[],
+    from: { x: number; y: number }, to: { x: number; y: number },
+    idle: number, travel: number, dwell: number,
+  ) => {
+    const out: string[] = [];
+    for (let i = 0; i < idle; i++) out.push(still(art, tag, crumbs));
+    for (let i = 0; i < travel; i++) {
+      const e = ease((i + 1) / travel);
+      out.push(still(art, tag, crumbs,
+        cursor(lerp(from.x, to.x, e), lerp(from.y, to.y, e), 1, false)));
+    }
+    for (let i = 0; i < dwell; i++) {
+      const t = i / dwell;
+      out.push(still(art, tag, crumbs, ripple(to.x, to.y, t) + cursor(to.x, to.y, 1, i < 2)));
+    }
+    return out;
+  };
+
+  const frames: string[] = [];
+  const hold = (svg: string, n: number) => { for (let i = 0; i < n; i++) frames.push(svg); };
+
+  // Long holds on purpose: the story is that the *contents change* — five
+  // systems become one system's internals — and that needs reading time. The
+  // dive itself is only the join between the two.
+  // read the landscape, reach for the Order Service card, press it
+  frames.push(...approach(land, "a", ["landscape"], START, CARD, 16, 12, 8));
+  // the dive carries the pointer for a moment, then lets it go
+  for (let i = 1; i <= 11; i++) {
+    const t = i / 12;
+    frames.push(
+      dive(t, true).replace("</svg>", `${cursor(CARD.x, CARD.y, Math.max(0, 1 - t * 2.2), false)}</svg>`),
+    );
+  }
+  // read the detail, then reach for the breadcrumb to come back up
+  frames.push(...approach(ord, "b", ["landscape", SYSTEM], CARD, CRUMB, 22, 12, 8));
+  for (let i = 1; i <= 11; i++) {
+    const t = i / 12;
+    frames.push(
+      dive(t, false).replace("</svg>", `${cursor(CRUMB.x, CRUMB.y, Math.max(0, 1 - t * 2.2), false)}</svg>`),
+    );
+  }
+  hold(still(land, "a", ["landscape"]), 16);
+
+  rmSync(tmp, { recursive: true, force: true });
+  mkdirSync(tmp, { recursive: true });
+  frames.forEach((svg, i) => {
+    if (process.env.DUMP_SVG) { writeFileSync(join(tmp, `f${String(i).padStart(4,"0")}.svg`), svg); return; }
+    writeFileSync(join(tmp, `f${String(i).padStart(4, "0")}.png`), svgToPng(svg));
+    if (i % 20 === 0) console.log(`  frame ${i + 1}/${frames.length}`);
+  });
+  // DUMP_SVG=1 writes the frame SVGs instead of rasterizing — how the resvg
+  // panic above was cornered, and the first thing to reach for if it returns.
+  if (process.env.DUMP_SVG) { console.log("dumped SVGs to", tmp); return; }
+
+  // Two passes: build a palette from the whole clip, then map to it. One-pass
+  // GIF encoding picks a palette from frame 1 and bands everything after it.
+  const OUT = out(theme);
+  const pal = join(tmp, "palette.png");
+  const args = (a: string[]) => execFileSync("ffmpeg", ["-y", "-hide_banner", "-loglevel", "error", ...a]);
+  const crop = `crop=${W}:${H}:${M.x}:${M.y}`;
+  args(["-framerate", String(FPS), "-i", join(tmp, "f%04d.png"),
+        "-vf", `${crop},palettegen=max_colors=192:stats_mode=diff`, pal]);
+  mkdirSync(dirname(OUT), { recursive: true });
+  args(["-framerate", String(FPS), "-i", join(tmp, "f%04d.png"), "-i", pal,
+        "-lavfi", `[0:v]${crop}[c];[c][1:v]paletteuse=dither=bayer:bayer_scale=3`,
+        "-loop", "0", OUT]);
+  rmSync(tmp, { recursive: true, force: true });
+
+  const kb = Math.round(statSync(OUT).size / 1024);
+  console.log(`wrote ${OUT} — ${frames.length} frames, ${(frames.length / FPS).toFixed(1)}s, ${kb} KB`);
+};
+
+for (const theme of ["light", "dark"]) await build(theme);

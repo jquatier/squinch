@@ -15,6 +15,19 @@ write fluently and humans control precisely — with real layout and edge-routin
 control, cloud icon packs, C4-style zooming, and deterministic rendering that lives
 in git next to the code it describes.
 
+<p align="center">
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="docs/assets/zoom-dark.gif">
+    <img src="docs/assets/zoom-light.gif"
+         alt="Clicking the Catalog Service card on a landscape of five systems opens it into its own internals — API, products table, search index and stream sync — with the gateway and order service left as muted context; clicking the breadcrumb closes it again."
+         width="900">
+  </picture>
+  <br>
+  <em>Click a system to go inside it. One model, two altitudes — the card
+  doesn't magnify, it opens, and the neighbours it talks to stay on screen as
+  context. The breadcrumb takes you back up.</em>
+</p>
+
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="examples/orders/orders.orders.dark.svg">
   <img alt="Order Service" src="examples/orders/orders.orders.light.svg">
