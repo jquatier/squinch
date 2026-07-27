@@ -1,3 +1,10 @@
+<p align="center">
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="docs/assets/logo-dark.png">
+    <img src="docs/assets/logo-light.png" alt="Squinch — AI-Native Architecture Diagrams" width="500">
+  </picture>
+</p>
+
 # Squinch
 
 > *squinch (n.) — the corner arch that lets a round dome sit on a square room; the
