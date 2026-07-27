@@ -328,12 +328,7 @@ export function App() {
         <button onClick={share} className={btn} title="Copy a link — the source travels in the URL fragment">
           Share
         </button>
-        <button onClick={download} className={btn} title="⌘S">
-          Export SVG
-        </button>
-        <button onClick={downloadPng} className={btn} title="Rasterize at 2× — for slides and docs">
-          PNG
-        </button>
+        <ExportMenu onSvg={download} onPng={downloadPng} />
       </header>
 
       <main className="flex min-h-0 flex-1">
@@ -424,6 +419,75 @@ export function App() {
 
 const btn =
   "rounded border border-[var(--line)] bg-[var(--surface)] px-2.5 py-1 text-[12px] text-[var(--muted)] transition-colors hover:text-[var(--fg)] hover:border-[var(--line-strong)]";
+
+/** One Export button over both formats. They are the same intent — get the
+ *  picture out — and two of the header's six buttons was a lot of chrome to
+ *  spend saying so. ⌘S still goes straight to SVG without opening anything.
+ *
+ *  Dismiss is bound on pointerdown rather than click so the menu is already
+ *  gone by the time a click lands on whatever is underneath it. */
+function ExportMenu({ onSvg, onPng }: { onSvg: () => void; onPng: () => void }) {
+  const [open, setOpen] = useState(false);
+  const wrap = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!open) return;
+    const away = (e: PointerEvent) => {
+      if (!wrap.current?.contains(e.target as Node)) setOpen(false);
+    };
+    const esc = (e: KeyboardEvent) => e.key === "Escape" && setOpen(false);
+    addEventListener("pointerdown", away);
+    addEventListener("keydown", esc);
+    return () => {
+      removeEventListener("pointerdown", away);
+      removeEventListener("keydown", esc);
+    };
+  }, [open]);
+
+  const item =
+    "block w-full px-3 py-1.5 text-left text-[12px] text-[var(--muted)] transition-colors hover:bg-[var(--chip)] hover:text-[var(--fg)]";
+
+  return (
+    <div ref={wrap} className="relative">
+      <button
+        onClick={() => setOpen((o) => !o)}
+        aria-haspopup="menu"
+        aria-expanded={open}
+        className={btn}
+        title="Save the diagram — ⌘S for SVG"
+      >
+        Export ▾
+      </button>
+      {open && (
+        <div
+          role="menu"
+          className="absolute right-0 z-40 mt-1 w-44 overflow-hidden rounded border border-[var(--line)] bg-[var(--chrome)] py-1 shadow-xl"
+        >
+          <button
+            role="menuitem"
+            className={item}
+            onClick={() => {
+              setOpen(false);
+              onSvg();
+            }}
+          >
+            SVG <span className="text-[var(--muted)] opacity-60">⌘S</span>
+          </button>
+          <button
+            role="menuitem"
+            className={item}
+            onClick={() => {
+              setOpen(false);
+              onPng();
+            }}
+          >
+            PNG <span className="text-[var(--muted)] opacity-60">2×</span>
+          </button>
+        </div>
+      )}
+    </div>
+  );
+}
 
 function Diagnostics({
   errors,
