@@ -88,7 +88,21 @@ that both humans and LLMs can reason about:
 
 - **`rows [api] [create get search]`** — pin ranks and their order
 - **`place sync right-of db`** — relative placement, no geometry
-- **`route db ~> sync from east to west`** — say which side an edge leaves from
+- **`align get db`** — put two nodes on a shared axis
+- **`route db ~> sync from east to west`** — pick the sides an edge leaves *and* enters
+
+Three tiers, in the order you reach for them: auto-layout underneath, relative
+placement on top of it (`rows`, `cols`, `place`, `align`), explicit edge routing
+last (`route`, `channel`). Delete every hint and the diagram still renders well.
+
+Hints that contradict each other are **check-time errors, never silently
+dropped** — a dropped hint strands the agent loop, a named conflict gets fixed
+in one iteration:
+
+```
+conflict.squinch:9:5  error: contradictory place hints: `s.a` vs `s.b` reference each other
+  remove one of the two place statements
+```
 
 ## Written by agents, and tested that way
 
