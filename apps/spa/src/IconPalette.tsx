@@ -5,9 +5,44 @@ import { useEffect, useRef, useState } from "react";
 import { glyph, packInfo, searchIcons } from "@squinch/core/browser";
 import { ensurePacks } from "./squinch";
 
-// aliases (aws/sqs) have no file of their own — the image is the canonical's
-const iconFile = (pack: string, id: string) =>
-  packInfo(pack)?.aliases?.[id] ?? id;
+/** How an entry previews, matching what the renderer would draw for it.
+ *
+ *  Artwork URLs are `<pack>-icons/<file>`, the layout sync-packs.ts writes into
+ *  public/ — one directory per pack, and the file name comes from the manifest
+ *  rather than the id, since aliases (aws/sqs) have no file of their own and
+ *  resolve to the canonical entry's.
+ *
+ *  Monochrome packs get the plate-and-tint treatment the renderer gives them:
+ *  Simple Icons marks are near-black, so drawn raw they are invisible against
+ *  the dark chrome — which looks exactly like a broken image. */
+function Thumb({ pack, id }: { pack: string; id: string }) {
+  const g = glyph(pack, id); // builtin/sys entries are lettered plates, not files
+  if (g)
+    return (
+      <span
+        className="flex h-5 w-5 shrink-0 items-center justify-center rounded-[3px] text-[8px] font-medium text-white"
+        style={{ backgroundColor: g.color }}
+      >
+        {g.code}
+      </span>
+    );
+
+  const manifest = packInfo(pack);
+  const icon = manifest?.icons[manifest.aliases?.[id] ?? id];
+  if (!icon) return <span className="h-5 w-5 shrink-0" />;
+  const src = `${pack}-icons/${icon.file}`;
+
+  if (!manifest?.monochrome)
+    return <img src={src} alt="" className="h-5 w-5 shrink-0 rounded-[3px]" />;
+  return (
+    <span
+      className="flex h-5 w-5 shrink-0 items-center justify-center rounded-[3px]"
+      style={{ backgroundColor: icon.color ?? "#6F6E69" }}
+    >
+      <img src={src} alt="" className="h-3 w-3 brightness-0 invert" />
+    </span>
+  );
+}
 
 const MAX = 24;
 
@@ -85,7 +120,6 @@ export function IconPalette({
           )}
           {results.map((ref, i) => {
             const [pack, id] = ref.split("/");
-            const g = glyph(pack, id); // builtin/sys entries are lettered plates, not files
             return (
               <button
                 key={ref}
@@ -96,16 +130,7 @@ export function IconPalette({
                   i === sel ? "bg-[var(--chip)]" : ""
                 }`}
               >
-                {g ? (
-                  <span
-                    className="flex h-5 w-5 items-center justify-center rounded-[3px] text-[8px] font-medium text-white"
-                    style={{ backgroundColor: g.color }}
-                  >
-                    {g.code}
-                  </span>
-                ) : (
-                  <img src={`icons/${iconFile(pack, id)}.svg`} alt="" className="h-5 w-5 rounded-[3px]" />
-                )}
+                <Thumb pack={pack} id={id} />
                 <span className="text-[var(--fg)]">{ref}</span>
               </button>
             );
