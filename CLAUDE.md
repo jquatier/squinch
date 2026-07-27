@@ -101,6 +101,12 @@ clicked (`docs/notes/zoom-transitions.md`, DESIGN §11), presentation mode turns
 the declared views into a full-bleed deck, and a `show flow` view can be walked
 one hop at a time (`flowStep` render option — counted over hops *visible in that
 view*, never the flow's declared numbering). PNG export ships in both surfaces.
+`--adaptive` emits one SVG carrying both palettes behind
+`prefers-color-scheme` (`src/render/adaptive.ts`): the pair is rendered off one
+shared layout and merged by walking their attributes **positionally**, never by
+substituting colour literals — pack artwork shares hexes with the theme, so a
+search-and-replace would recolour someone else's trademark. Only themes with the
+same font can pair (`Theme.pairsWith`); type metrics drive layout.
 
 Key architecture from Phase 0, still binding: same-rank edges bypass ELK and use
 our coplanar router; declared ranks are enforced via invisible scaffold edges; an

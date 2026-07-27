@@ -27,6 +27,12 @@ export interface Theme {
   font: ThemeFont;
   /** present = hand-drawn strokes via the seeded rough generator (DESIGN §6) */
   sketch?: { roughness: number; bowing: number };
+  /** The dark counterpart this theme can share one adaptive file with. Only
+   *  themes with the same font can pair: type metrics drive layout, so a
+   *  cross-font pair would draw two different diagrams. `contrast` has none by
+   *  design — it is a deliberate accessibility choice, not a default to be
+   *  swapped out from under someone by their OS setting. */
+  pairsWith?: string;
   /** zone boundary tints by kind group (DESIGN §5: kind-tinted, low opacity) */
   zoneAccount: string;
   zoneNetwork: string;
@@ -48,6 +54,7 @@ const caveat: ThemeFont = {
 export const light: Theme = {
   name: "light",
   font: inter,
+  pairsWith: "dark",
   zoneAccount: "#B5544C",
   zoneNetwork: "#3A6EA8",
   zoneCloud: "#6B5FC9",
@@ -90,6 +97,7 @@ export const dark: Theme = {
 export const sketch: Theme = {
   name: "sketch",
   font: caveat,
+  pairsWith: "sketch-dark",
   sketch: { roughness: 1.1, bowing: 1 },
   zoneAccount: "#A34E44",
   zoneNetwork: "#2F6396",

@@ -4,6 +4,7 @@ import { buildModel, buildProject, formatDiagnostics, type ProjectFile } from ".
 import { layoutView } from "./layout/layout.js";
 import { renderSVG } from "./render/svg.js";
 import { validateSVG } from "./render/validate.js";
+import { mergeAdaptive } from "./render/adaptive.js";
 import { themes, type Theme } from "./themes/index.js";
 import { allPackNames, iconIds, iconMeta, iconExists, packExists, iconTitle } from "./model/packs.js";
 import { packInfo } from "./packs/registry.js";
@@ -114,7 +115,16 @@ export function viewIndex(src: string): { name: string; scope?: string; title?: 
 /** One-call pipeline: source → SVG for a view (default: first/implicit view). */
 export async function render(
   src: string,
-  opts: { view?: string; theme?: string; embedFonts?: boolean; flowStep?: number } = {},
+  opts: {
+    view?: string;
+    theme?: string;
+    embedFonts?: boolean;
+    flowStep?: number;
+    /** Emit one file carrying both palettes, switched by `prefers-color-scheme`
+     *  — for embedding somewhere you do not control the background. Requires a
+     *  theme with a `pairsWith` counterpart. */
+    adaptive?: boolean;
+  } = {},
 ): Promise<RenderResult> {
   return renderProject([{ name: "input", src }], opts);
 }
@@ -122,7 +132,16 @@ export async function render(
 /** Multi-file project pipeline: files merge into one model namespace (SPEC §2). */
 export async function renderProject(
   files: ProjectFile[],
-  opts: { view?: string; theme?: string; embedFonts?: boolean; flowStep?: number } = {},
+  opts: {
+    view?: string;
+    theme?: string;
+    embedFonts?: boolean;
+    flowStep?: number;
+    /** Emit one file carrying both palettes, switched by `prefers-color-scheme`
+     *  — for embedding somewhere you do not control the background. Requires a
+     *  theme with a `pairsWith` counterpart. */
+    adaptive?: boolean;
+  } = {},
 ): Promise<RenderResult> {
   const built: BuildResult = buildProject(files);
   if (!built.ok) return { diagnostics: built.diagnostics, ok: false };
@@ -189,8 +208,12 @@ export async function renderProject(
         steps: new Set(Object.values(positioned.flow.byEdge).flat()).size,
       }
     : undefined;
-  return {
-    svg: renderSVG(positioned, theme, {
+  // One geometry, drawn once per palette. Layout depends on the theme only
+  // through its font, and an adaptive pair shares that font — so both draws
+  // come off the same `positioned` and cannot disagree about anything but
+  // colour. That is what makes folding them into one file safe.
+  const draw = (th: Theme) =>
+    renderSVG(positioned, th, {
       highlight: view.highlight,
       notes: view.notes,
       showDescriptions: view.showDescriptions,
@@ -201,9 +224,27 @@ export async function renderProject(
       flowStep: opts.flowStep,
       // sketch jitter is a pure function of the source text (never randomness)
       seed: fnv1a(files.map((f) => f.src).join("\u0000")),
-    }),
-    diagnostics,
-    ok: true,
-    ...(flow ? { flow } : {}),
-  };
+    });
+
+  let svg = draw(theme);
+  if (opts.adaptive) {
+    const pair = theme.pairsWith ? themes[theme.pairsWith] : undefined;
+    if (!pair) {
+      const pairable = Object.values(themes).filter((x) => x.pairsWith).map((x) => x.name);
+      return {
+        diagnostics: [...diagnostics, {
+          severity: "error",
+          message: `theme \`${themeName}\` has no dark counterpart to pair with`,
+          fix:
+            "an adaptive SVG is a light theme carrying a dark override; " +
+            `render one of: ${pairable.join(", ")}`,
+          loc: view.loc,
+        }],
+        ok: false,
+      };
+    }
+    svg = mergeAdaptive(svg, draw(pair));
+  }
+
+  return { svg, diagnostics, ok: true, ...(flow ? { flow } : {}) };
 }

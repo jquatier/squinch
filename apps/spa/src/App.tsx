@@ -8,6 +8,7 @@ import markUrl from "./mark.svg";
 import { Presenter } from "./Presenter";
 import { Stage, useReducedMotion, type Box, type Intent } from "./Stage";
 import { compile, decodeShare, encodeShare, svgToPng, type Preview } from "./squinch";
+import { themes } from "@squinch/core/browser";
 import { EXAMPLES } from "./examples";
 
 type Theme = "light" | "dark" | "sketch" | "sketch-dark" | "contrast";
@@ -98,6 +99,17 @@ export function App() {
   }, [preview.flow, flowStep]);
 
   const shown = preview.svg ?? lastGood;
+  // The light half of the adaptive pair for whatever is on screen: the theme
+  // itself if it declares a dark counterpart, otherwise the one that declares
+  // *it*. Undefined for contrast, which deliberately has no pair. Read off the
+  // theme table rather than restated here, so adding a pair needs one edit.
+  const adaptiveBase = useMemo(
+    () =>
+      themes[theme]?.pairsWith
+        ? theme
+        : Object.values(themes).find((t) => t.pairsWith === theme)?.name,
+    [theme],
+  );
   const errors = preview.diagnostics.filter((d) => d.severity === "error");
   const warnings = preview.diagnostics.filter((d) => d.severity === "warning");
 
@@ -177,10 +189,10 @@ export function App() {
   /** Hand a blob URL to the browser as a download. The URL is revoked on a
    *  later tick, not immediately: the click only *starts* the save, and
    *  revoking synchronously can pull the data out from under it. */
-  const save = useCallback((url: string, ext: string) => {
+  const save = useCallback((url: string, ext: string, variant?: string) => {
     const a = document.createElement("a");
     a.href = url;
-    a.download = `${activeView ?? "diagram"}.${theme}.${ext}`;
+    a.download = `${activeView ?? "diagram"}.${variant ?? theme}.${ext}`;
     a.click();
     setTimeout(() => URL.revokeObjectURL(url), 10_000);
   }, [activeView, theme]);
@@ -200,6 +212,21 @@ export function App() {
     if (!png) return flash("Could not export PNG");
     save(png, "png");
   }, [shown, save]);
+
+  /** One file that follows the reader's colour scheme — for embedding
+   *  somewhere the background isn't ours to pick. Compiled on demand rather
+   *  than kept alongside the preview: the canvas only ever shows one palette,
+   *  so carrying the other around all the time would be waste. */
+  const downloadAdaptive = useCallback(async () => {
+    if (!adaptiveBase) return;
+    const r = await compile(source, { view: activeView, theme: adaptiveBase, adaptive: true });
+    if (!r.svg) return flash("Could not export adaptive SVG");
+    save(
+      URL.createObjectURL(new Blob([r.svg], { type: "image/svg+xml" })),
+      "svg",
+      "adaptive",
+    );
+  }, [adaptiveBase, source, activeView, save]);
 
   const onPick = useCallback(
     (path: string, box: Box) => {
@@ -328,7 +355,11 @@ export function App() {
         <button onClick={share} className={btn} title="Copy a link — the source travels in the URL fragment">
           Share
         </button>
-        <ExportMenu onSvg={download} onPng={downloadPng} />
+        <ExportMenu
+          onSvg={download}
+          onPng={downloadPng}
+          onAdaptive={adaptiveBase ? downloadAdaptive : undefined}
+        />
       </header>
 
       <main className="flex min-h-0 flex-1">
@@ -426,7 +457,16 @@ const btn =
  *
  *  Dismiss is bound on pointerdown rather than click so the menu is already
  *  gone by the time a click lands on whatever is underneath it. */
-function ExportMenu({ onSvg, onPng }: { onSvg: () => void; onPng: () => void }) {
+function ExportMenu({
+  onSvg,
+  onPng,
+  onAdaptive,
+}: {
+  onSvg: () => void;
+  onPng: () => void;
+  /** absent when the current theme has no dark counterpart (contrast) */
+  onAdaptive?: () => void;
+}) {
   const [open, setOpen] = useState(false);
   const wrap = useRef<HTMLDivElement>(null);
 
@@ -482,6 +522,22 @@ function ExportMenu({ onSvg, onPng }: { onSvg: () => void; onPng: () => void }) 
             }}
           >
             PNG <span className="text-[var(--muted)] opacity-60">2×</span>
+          </button>
+          <button
+            role="menuitem"
+            disabled={!onAdaptive}
+            title={
+              onAdaptive
+                ? "One file carrying both palettes — for embedding where you don't pick the background"
+                : "Contrast has no dark counterpart to pair with"
+            }
+            className={`${item} disabled:opacity-40 disabled:hover:bg-transparent`}
+            onClick={() => {
+              setOpen(false);
+              onAdaptive?.();
+            }}
+          >
+            SVG <span className="text-[var(--muted)] opacity-60">light + dark</span>
           </button>
         </div>
       )}

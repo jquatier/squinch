@@ -351,6 +351,13 @@ expose api, db               // [v2] this file's public surface for importers
 
 Missing pack/icon never fails a render: placeholder box + warning diagnostic.
 
+Themes come in pairs that can share one file. `light`/`dark` and
+`sketch`/`sketch-dark` each draw the same geometry — a pair must share a font,
+because type metrics drive layout — so a render can carry both palettes and let
+`prefers-color-scheme` choose (`squinch render --adaptive`). `contrast` has no pair by
+design: it is a deliberate accessibility choice, not a default for the reader's
+OS to swap out from under them.
+
 ## 8. Grammar sketch (informal EBNF)
 
 ```ebnf

@@ -33,6 +33,8 @@ Diff options
 Render options
   --view <name>     view to render (default: first)
   --theme <name>    ${Object.keys(themes).join(" | ")} (default: view's theme)
+  --adaptive        one SVG carrying both palettes, switched by the reader's
+                    prefers-color-scheme (light or sketch; svg only)
   -o <file>         output path (default: stdout; .png rasterizes)
   --format <fmt>    svg | png (default: inferred from -o)
   --scale <n>       png only: multiply the diagram's natural size
@@ -135,8 +137,13 @@ function viewNames(input: Input): string[] {
   return auto.length ? auto : ["default"];
 }
 
-async function renderOne(input: Input, view: string, theme: string): Promise<string> {
-  const r = await renderProject(input.files, { view, theme });
+async function renderOne(
+  input: Input,
+  view: string,
+  theme: string,
+  adaptive = false,
+): Promise<string> {
+  const r = await renderProject(input.files, { view, theme, adaptive });
   if (!r.ok) {
     reportDiagnostics(r.diagnostics, false);
     throw new Error(`render failed for view \`${view}\``);
@@ -235,7 +242,8 @@ async function cmdRender(path: string, flags: Record<string, string | boolean>):
     return 0;
   }
 
-  const svg = await renderOne(input, view ?? viewNames(input)[0], theme ?? "light");
+  const adaptive = !!flags.adaptive;
+  const svg = await renderOne(input, view ?? viewNames(input)[0], theme ?? "light", adaptive);
   const out = str(flags.o) ?? str(flags.output);
   // png is inferred from the output extension, so `-o d.png` just works; the
   // explicit --format is for piping, and for saying so when both are present.
@@ -245,6 +253,10 @@ async function cmdRender(path: string, flags: Record<string, string | boolean>):
 
   if (format === "png") {
     if (!out) throw new Error("png is binary — give it a destination, e.g. -o diagram.png");
+    // A raster has one palette by definition, and resvg would silently bake in
+    // the light one. Say so rather than hand back a file that ignored the flag.
+    if (adaptive)
+      throw new Error("--adaptive has no meaning for png — a raster carries one palette; render two, or drop --adaptive");
     const { svgToPng } = await import("./raster.js");
     const scale = str(flags.scale);
     const width = str(flags.width);

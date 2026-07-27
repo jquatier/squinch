@@ -91,6 +91,23 @@ Commit the source *and* the render. Reviewers see the picture in the diff; CI ma
 sure it never drifts from the source. (Add `.github/actions/squinch-check` to your
 workflow to enforce it.)
 
+### One file that follows the reader's theme
+
+Embedding a diagram somewhere you don't control the background — a docs site, a
+wiki, an internal portal — usually means shipping two files and a `<picture>`.
+`--adaptive` folds both palettes into one SVG and lets `prefers-color-scheme`
+pick:
+
+```bash
+squinch render diagrams/ --view landscape --adaptive -o architecture.svg
+```
+
+The light theme stays in the presentation attributes and the dark one rides in a
+`@media` block, so anything that ignores CSS — including the resvg rasterizer
+behind PNG export — still draws the light theme correctly rather than nothing.
+It costs about 1.5% over a single render, versus two whole files. Still no
+script: a stylesheet is not code.
+
 ## C4-style zoom
 
 One hierarchical model; altitudes are derived. Collapsed systems render as cards
@@ -121,8 +138,8 @@ node packages/cli/bin/squinch.js init my-diagrams
 node packages/cli/bin/squinch.js render my-diagrams --sync
 ```
 
-CLI: `check` (with `--format json` for agents), `render` (`--view`, `--theme`, `-o`,
-`--sync`, `--check`), `icons search`, `init`, `watch`.
+CLI: `check` (with `--format json` for agents), `render` (`--view`, `--theme`,
+`--adaptive`, `-o`, `--sync`, `--check`), `icons search`, `init`, `watch`.
 
 ## Docs
 
