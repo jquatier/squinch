@@ -201,8 +201,46 @@ export async function layoutView(
     downward ? rp === "above" || rp === "below" : rp === "left-of" || rp === "right-of";
   const towardsStart = (rp: RelPos) => rp === "above" || rp === "left-of";
 
+  const crossEdges = edges
+    .map((e) => [unitOf(e.from), unitOf(e.to)] as const)
+    .filter(([a, b]) => a !== b);
+
+  /** Relax until stable: successors sit below predecessors; unpinned
+   *  predecessors of a pinned node float above it (possibly negative). */
+  const relax = (pins: Map<string, number>): Map<string, number> => {
+    const out = new Map(pins);
+    for (let pass = 0; pass < units.length + 2; pass++) {
+      let changed = false;
+      for (const [a, b] of crossEdges) {
+        const ra = out.get(a), rb = out.get(b);
+        if (!pins.has(b)) {
+          const want = Math.max(rb ?? 0, (ra ?? 0) + 1);
+          if (want !== rb) { out.set(b, want); changed = true; }
+        }
+        if (!pins.has(a)) {
+          const cap = (out.get(b) ?? 0) - 1;
+          const want = rb !== undefined ? Math.min(ra ?? cap, cap) : ra ?? 0;
+          if (want !== ra) { out.set(a, want); changed = true; }
+        }
+      }
+      if (!changed) break;
+    }
+    for (const p of units) if (!out.has(p)) out.set(p, 0);
+    return out;
+  };
+
+  // `place` needs its target's rank — but that only existed for targets pinned
+  // by `rows`, so `place x below y` where y wasn't in a rows band was silently
+  // discarded, and in a diagram with no `rows` at all *every* place did nothing.
+  // A target's natural rank is knowable, it just isn't known yet: relax once to
+  // learn it, pin the placed nodes against that, then relax again.
+  const beforePlace = relax(declared);
   for (const pl of view.layout.place) {
-    const t = declared.get(unitOf(pl.target));
+    // Already-pinned first, so places chain: `place idx right-of sync` has to
+    // see where the *previous* `place sync right-of db` put sync, not sync's
+    // natural rank. The relaxed value is only the fallback, for a target
+    // nothing has pinned.
+    const t = declared.get(unitOf(pl.target)) ?? beforePlace.get(unitOf(pl.target));
     if (t === undefined) continue;
     declared.set(
       unitOf(pl.node),
@@ -241,29 +279,8 @@ export async function layoutView(
     }
   }
 
-  const rank = new Map<string, number>(declared);
-  const crossEdges = edges
-    .map((e) => [unitOf(e.from), unitOf(e.to)] as const)
-    .filter(([a, b]) => a !== b);
-  // Relax until stable: successors sit below predecessors; unpinned predecessors
-  // of a pinned node float above it (possibly negative).
-  for (let pass = 0; pass < units.length + 2; pass++) {
-    let changed = false;
-    for (const [a, b] of crossEdges) {
-      const ra = rank.get(a), rb = rank.get(b);
-      if (!declared.has(b)) {
-        const want = Math.max(rb ?? 0, (ra ?? 0) + 1);
-        if (want !== rb) { rank.set(b, want); changed = true; }
-      }
-      if (!declared.has(a)) {
-        const cap = (rank.get(b) ?? 0) - 1;
-        const want = rb !== undefined ? Math.min(ra ?? cap, cap) : ra ?? 0;
-        if (want !== ra) { rank.set(a, want); changed = true; }
-      }
-    }
-    if (!changed) break;
-  }
-  for (const p of units) if (!rank.has(p)) rank.set(p, 0);
+  // second pass, now that `place` has pinned what it resolved against
+  const rank = relax(declared);
   // normalize to 0-based
   const minRank = Math.min(...rank.values());
   if (minRank !== 0) for (const [k, v] of rank) rank.set(k, v - minRank);
@@ -272,17 +289,24 @@ export async function layoutView(
   const order: string[] = [];
   for (const p of (view.layout.rows ?? []).flat().map(unitOf))
     if (unitSet.has(p) && !order.includes(p)) order.push(p);
+  // Everything else in resolve order *before* `place` runs, so a placed node
+  // can be moved next to its target even when neither is in a `rows` band.
+  // Seeding only from rows meant `indexOf(target)` was -1 in a diagram without
+  // rows, and the reorder was skipped — so `left-of` did nothing there.
+  for (const p of units) if (!order.includes(p)) order.push(p);
   for (const pl of view.layout.place) {
-    const i = order.indexOf(unitOf(pl.target));
     const n = unitOf(pl.node);
-    if (i < 0 || order.includes(n)) continue;
+    const from = order.indexOf(n);
+    if (from < 0) continue;
+    order.splice(from, 1);
+    const i = order.indexOf(unitOf(pl.target));
+    if (i < 0) { order.splice(from, 0, n); continue; } // target not here: leave it be
     // Within a band, model order *is* left-to-right, so `left-of` has to land
     // before its target. Across bands (above/below) the node sits in a
     // different row entirely and this only decides which column it lands near,
     // so keep it adjacent to the target.
     order.splice(!changesBand(pl.relpos) && towardsStart(pl.relpos) ? i : i + 1, 0, n);
   }
-  for (const p of units) if (!order.includes(p)) order.push(p);
 
   // `cols` pins horizontal bands: members of an earlier column sit left of a
   // later one. Only columned units move — the slots they occupy in the model

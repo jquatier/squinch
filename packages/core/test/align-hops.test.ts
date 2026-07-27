@@ -224,6 +224,79 @@ view s {
     expect(new Set(svgs).size).toBe(4);
   });
 
+  it("works with no `rows` block at all", async () => {
+    // `place` resolved its target's rank out of the *declared* map, which only
+    // `rows` populated — so in a diagram without rows (most diagrams) every
+    // `place` was silently discarded. Symptom: half the layout controls in the
+    // playground appeared to do nothing.
+    const NOROWS = (place: string) => `pack aws
+system s "S" {
+  api = aws/api-gateway "API"
+  create = aws/lambda "Create"
+  files = aws/s3 "Files" datastore
+  db = aws/dynamodb "DB" datastore
+  api -> create
+  create -> files
+  create -> db
+}
+view s {
+  layout {
+    ${place}
+  }
+}
+`;
+    const at = async (place: string) => {
+      const r = await render(NOROWS(place), { view: "s", theme: "light" });
+      expect(r.ok).toBe(true);
+      const out: Record<string, { x: number; y: number }> = {};
+      for (const m of r.svg!.matchAll(
+        /data-path="s\.(\w+)" data-kind="leaf"[^>]*>\s*<rect x="(\d+)" y="(\d+)"/g,
+      ))
+        out[m[1]] = { x: +m[2], y: +m[3] };
+      return out;
+    };
+    const none = await at("");
+    expect(none.db.x).toBeGreaterThan(none.files.x); // natural order
+    const left = await at("place db left-of files");
+    expect(left.db.x).toBeLessThan(left.files.x); // and the hint flips it
+    const below = await at("place db below files");
+    expect(below.db.y).toBeGreaterThan(below.files.y);
+  });
+
+  it("chained places resolve against where the previous one put the target", async () => {
+    // `place idx right-of sync` must see sync's *placed* rank, not its natural
+    // one — the lookbook's side-car case is built on exactly this chain.
+    const src = `pack aws
+system s "S" {
+  api = aws/api-gateway "API"
+  fn = aws/lambda "Handler"
+  db = aws/dynamodb "Orders" datastore
+  sync = aws/lambda "Sync"
+  idx = aws/opensearch "Index" datastore
+  api -> fn
+  fn -> db
+  db ~> sync
+  sync -> idx
+}
+view s {
+  layout {
+    rows [api] [fn] [db]
+    place sync right-of db
+    place idx right-of sync
+  }
+}
+`;
+    const r = await render(src, { view: "s", theme: "light" });
+    const at: Record<string, number> = {};
+    for (const m of r.svg!.matchAll(
+      /data-path="s\.(\w+)" data-kind="leaf"[^>]*>\s*<rect x="\d+" y="(\d+)"/g,
+    ))
+      at[m[1]] = +m[2];
+    // all three share db's band
+    expect(at.sync).toBe(at.db);
+    expect(at.idx).toBe(at.db);
+  });
+
   it("`direction right` swaps which pair changes band", async () => {
     // ranks run left-to-right, so left-of/right-of move between columns and
     // above/below order within one
