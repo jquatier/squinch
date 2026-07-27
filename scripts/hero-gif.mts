@@ -27,7 +27,12 @@ const tmp = join(root, ".hero-tmp");
 const SYSTEM = "catalog";
 
 /** Canvas. Wide enough for a landscape to read in a README column. */
-const W = 900, H = 600, PAD = 28;
+const W = 900, H = 620, PAD = 28;
+/** A reserved strip along the bottom for the wordmark. Without it the diagram
+ *  fills the full height and the landscape's bottom row collides with the
+ *  logo — the artwork is centred, so there is no corner it reliably avoids. */
+const FOOT = 56;
+const STAGE_H = H - FOOT;
 const FPS = 20;
 /** Stage.tsx's constants, so the GIF moves exactly like the product. */
 const CAP = 3.2, TRAVEL = 0.62;
@@ -72,8 +77,8 @@ function readSource(): string {
 /** Where an art board sits on the canvas: contained, centred, never upscaled
  *  past 1:1 so the diagram keeps its designed weight. */
 function fitOf(a: Art) {
-  const s = Math.min((W - PAD * 2) / a.w, (H - PAD * 2) / a.h, 1);
-  return { s, x: (W - a.w * s) / 2, y: (H - a.h * s) / 2 };
+  const s = Math.min((W - PAD * 2) / a.w, (STAGE_H - PAD * 2) / a.h, 1);
+  return { s, x: (W - a.w * s) / 2, y: (STAGE_H - a.h * s) / 2 };
 }
 
 /** SVG has no transform-origin, so a scale about a point becomes an explicit
@@ -121,6 +126,18 @@ const BIG = { w: W * 3, h: H * 3 };
  *  from the theme's tokens so the animation matches the diagram it wraps and
  *  follows any future change to the palette. */
 let T = themes.light;
+/** The wordmark, pre-scaled and base64'd once per theme. Embedding the
+ *  1440px original into all 116 frames would mean resvg downscaling it 116
+ *  times and ~490 KB of base64 per frame on disk. */
+let MARK = { href: "", w: 0, h: 0 };
+
+/** Bottom-right of the *visible* crop, not the padded canvas. */
+const watermark = () =>
+  MARK.href
+    ? `<image href="${MARK.href}" x="${(W - PAD - MARK.w).toFixed(1)}" ` +
+      `y="${(STAGE_H + (FOOT - MARK.h) / 2).toFixed(1)}" ` +
+      `width="${MARK.w}" height="${MARK.h}" opacity="0.9"/>`
+    : "";
 
 const caption = (crumbs: string[]) => {
   const trail = crumbs
@@ -159,10 +176,37 @@ const frame = (body: string, crumbs: string[]) =>
   `<svg xmlns="http://www.w3.org/2000/svg" width="${BIG.w}" height="${BIG.h}" ` +
   `viewBox="${-M.x} ${-M.y} ${BIG.w} ${BIG.h}">` +
   `<rect x="${-M.x}" y="${-M.y}" width="${BIG.w}" height="${BIG.h}" fill="${T.canvas}"/>` +
-  `${body}${caption(crumbs)}</svg>`;
+  `${body}${caption(crumbs)}${watermark()}</svg>`;
 
 const build = async (theme: string) => {
   T = (themes as Record<string, typeof themes.light>)[theme];
+
+  // Wipe first: both themes write f0000.png… into the same directory, and a
+  // stale frame from the previous run would be swept into the encode.
+  rmSync(tmp, { recursive: true, force: true });
+  mkdirSync(tmp, { recursive: true });
+
+  // logo-dark.png is the *dark-mode* variant (light ink), which is what the
+  // dark frames need — the same pairing the README's <picture> uses.
+  // The logo assets have no alpha — light sits on #FDFDFD, dark on #000000 —
+  // so dropped straight in, each shows as a pale or black box against the
+  // canvas. Key the flat background out. Verified not to punch holes in the
+  // mark: nothing inside it is pure white or pure black.
+  const LOGO_W = 132;
+  const small = join(tmp, "logo.png");
+  const key = theme === "dark" ? "0x000000" : "0xFDFDFD";
+  // 2x the display size, so resvg has pixels to sample down from
+  execFileSync("ffmpeg", ["-y", "-hide_banner", "-loglevel", "error",
+    "-i", join(root, `docs/assets/logo-${theme}.png`),
+    "-vf", `scale=${LOGO_W * 2}:-1,colorkey=${key}:0.12:0.0,format=rgba`, small]);
+  const raw = readFileSync(small);
+  // PNG IHDR: width and height are big-endian u32 at bytes 16 and 20
+  const lw = raw.readUInt32BE(16), lh = raw.readUInt32BE(20);
+  MARK = {
+    href: `data:image/png;base64,${raw.toString("base64")}`,
+    w: LOGO_W,
+    h: Math.round((lh / lw) * LOGO_W),
+  };
   const land = await view("landscape", theme);
   const ord = await view(SYSTEM, theme);
 
@@ -180,7 +224,7 @@ const build = async (theme: string) => {
     w: +card[3] * f.s,
     h: +card[4] * f.s,
   };
-  const V = { x: W / 2, y: H / 2 };
+  const V = { x: W / 2, y: STAGE_H / 2 };
   const k = clamp(Math.min(W / A.w, H / A.h), 1.15, CAP);
   const kIn = 1 + (k - 1) * TRAVEL;
   const d = { x: V.x - A.x, y: V.y - A.y };
@@ -221,7 +265,7 @@ const build = async (theme: string) => {
   // the GIF teaches the interaction rather than just showing the motion.
   const CARD = { x: A.x + 6, y: A.y - 4 };
   const CRUMB = { x: 58, y: 34 };
-  const START = { x: W - 150, y: H - 90 };
+  const START = { x: W - 150, y: STAGE_H - 70 };
 
   /** Pointer travelling from `a` to `b` across `n` frames, clicking at the end:
    *  the ring starts on the frame the press lands, and the arrow dips with it. */
@@ -269,8 +313,6 @@ const build = async (theme: string) => {
   }
   hold(still(land, "a", ["landscape"]), 16);
 
-  rmSync(tmp, { recursive: true, force: true });
-  mkdirSync(tmp, { recursive: true });
   frames.forEach((svg, i) => {
     if (process.env.DUMP_SVG) { writeFileSync(join(tmp, `f${String(i).padStart(4,"0")}.svg`), svg); return; }
     writeFileSync(join(tmp, `f${String(i).padStart(4, "0")}.png`), svgToPng(svg));
