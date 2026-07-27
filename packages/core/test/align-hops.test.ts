@@ -159,3 +159,78 @@ view s { layout { rows [gw] [a b] } }
     expect(edgePaths.length).toBe(2); // untouched — a junction, not a crossing
   });
 });
+
+// ── `place` honours its direction ──────────────────────────────────────────
+// It didn't. `relpos` was parsed, validated, and documented with four options,
+// then never read by the layout engine: both consumers copied the target's rank
+// and spliced the node in *after* it, so all four directions produced a
+// byte-identical SVG and `place x left-of y` silently meant right-of. Found by
+// building a drag-to-hint spike and noticing that dragging left and dragging
+// right gave the same picture.
+describe("place direction", () => {
+  const SRC = (place: string, dir = "") => `pack aws
+system s "S" {
+  api = aws/api-gateway "API"
+  create = aws/lambda "Create"
+  files = aws/s3 "Files" datastore
+  db = aws/dynamodb "DB" datastore
+  api -> create
+  create -> files
+  create -> db
+}
+view s {
+  layout {
+    ${dir}
+    rows [api] [create] [files]
+    ${place}
+  }
+}
+`;
+  const posOf = async (place: string, dir = "") => {
+    const r = await render(SRC(place, dir), { view: "s", theme: "light" });
+    expect(r.ok).toBe(true);
+    const at: Record<string, { x: number; y: number }> = {};
+    for (const m of r.svg!.matchAll(
+      /data-path="s\.(\w+)" data-kind="leaf"[^>]*>\s*<rect x="(\d+)" y="(\d+)"/g,
+    ))
+      at[m[1]] = { x: +m[2], y: +m[3] };
+    return at;
+  };
+
+  it("left-of puts the node before its target; right-of after", async () => {
+    const right = await posOf("place db right-of files");
+    const left = await posOf("place db left-of files");
+    expect(right.db.x).toBeGreaterThan(right.files.x);
+    expect(left.db.x).toBeLessThan(left.files.x);
+    expect(left.db.y).toBe(left.files.y); // same band either way
+  });
+
+  it("above and below move the node to a different band", async () => {
+    const base = await posOf("place db right-of files");
+    const above = await posOf("place db above files");
+    const below = await posOf("place db below files");
+    expect(above.db.y).toBeLessThan(above.files.y);
+    expect(below.db.y).toBeGreaterThan(below.files.y);
+    expect(above.db.y).not.toBe(base.db.y);
+  });
+
+  it("all four directions are distinguishable", async () => {
+    const svgs = await Promise.all(
+      ["right-of", "left-of", "above", "below"].map(async (d) => {
+        const r = await render(SRC(`place db ${d} files`), { view: "s", theme: "light" });
+        return r.svg!;
+      }),
+    );
+    expect(new Set(svgs).size).toBe(4);
+  });
+
+  it("`direction right` swaps which pair changes band", async () => {
+    // ranks run left-to-right, so left-of/right-of move between columns and
+    // above/below order within one
+    const right = await posOf("place db right-of files", "direction right");
+    const below = await posOf("place db below files", "direction right");
+    expect(right.db.x).toBeGreaterThan(right.files.x);
+    expect(below.db.x).toBe(below.files.x);
+    expect(below.db.y).toBeGreaterThan(below.files.y);
+  });
+});

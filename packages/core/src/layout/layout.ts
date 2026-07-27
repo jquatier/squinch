@@ -10,7 +10,7 @@ const ELK = ELKModule as unknown as { new (): { layout(graph: unknown): Promise<
 import { measure, type FontFamily } from "../metrics.js";
 import { resolveView } from "../view/resolve.js";
 import type { VNode, VEdge } from "../view/resolve.js";
-import type { SModel, SView, Side, Diagnostic, ZoneColor, ZoneKind, ZoneLabelPos } from "../model/types.js";
+import type { SModel, SView, Side, Diagnostic, RelPos, ZoneColor, ZoneKind, ZoneLabelPos } from "../model/types.js";
 import type { ThemeFont } from "../themes/index.js";
 
 const LEAF_TIERS = [120, 160, 200, 240];
@@ -189,9 +189,25 @@ export async function layoutView(
   view.layout.rows?.forEach((row, i) =>
     row.forEach((p) => unitSet.has(unitOf(p)) && declared.set(unitOf(p), i)),
   );
+  // `place`'s direction word decides whether the node changes band or just its
+  // position within one, and which axis is which depends on `direction`:
+  // laying out downward, ranks are rows, so above/below move between them and
+  // left-of/right-of order within one. Laying out to the right, ranks are
+  // columns and the pairs swap. (Before this, relpos was parsed, validated and
+  // documented — then never read: all four directions produced byte-identical
+  // output, so `place x left-of y` silently meant right-of.)
+  const downward = view.layout.direction !== "right";
+  const changesBand = (rp: RelPos) =>
+    downward ? rp === "above" || rp === "below" : rp === "left-of" || rp === "right-of";
+  const towardsStart = (rp: RelPos) => rp === "above" || rp === "left-of";
+
   for (const pl of view.layout.place) {
     const t = declared.get(unitOf(pl.target));
-    if (t !== undefined) declared.set(unitOf(pl.node), t);
+    if (t === undefined) continue;
+    declared.set(
+      unitOf(pl.node),
+      changesBand(pl.relpos) ? t + (towardsStart(pl.relpos) ? -1 : 1) : t,
+    );
   }
 
   // Ranking granularity is the outermost zone (`unitOf`), so nodes sharing one
@@ -259,7 +275,12 @@ export async function layoutView(
   for (const pl of view.layout.place) {
     const i = order.indexOf(unitOf(pl.target));
     const n = unitOf(pl.node);
-    if (i >= 0 && !order.includes(n)) order.splice(i + 1, 0, n);
+    if (i < 0 || order.includes(n)) continue;
+    // Within a band, model order *is* left-to-right, so `left-of` has to land
+    // before its target. Across bands (above/below) the node sits in a
+    // different row entirely and this only decides which column it lands near,
+    // so keep it adjacent to the target.
+    order.splice(!changesBand(pl.relpos) && towardsStart(pl.relpos) ? i : i + 1, 0, n);
   }
   for (const p of units) if (!order.includes(p)) order.push(p);
 
