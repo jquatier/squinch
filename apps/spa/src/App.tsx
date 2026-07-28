@@ -301,7 +301,9 @@ export function App() {
             className="rounded border border-[var(--line)] bg-[var(--surface)] px-2 py-1 text-[12px] outline-none"
             value=""
             onChange={(e) => {
-              const ex = EXAMPLES.find((x) => x.name === e.target.value);
+              // keyed by group too: `landscape` is both an example project and
+              // a lookbook case, and matching on name alone loaded the wrong one
+              const ex = EXAMPLES.find((x) => `${x.group}/${x.name}` === e.target.value);
               if (ex) {
                 setSource(ex.source);
                 setView(undefined);
@@ -309,10 +311,14 @@ export function App() {
             }}
           >
             <option value="">Examples…</option>
-            {EXAMPLES.map((ex) => (
-              <option key={ex.name} value={ex.name}>
-                {ex.name}
-              </option>
+            {[...new Set(EXAMPLES.map((ex) => ex.group))].map((group) => (
+              <optgroup key={group} label={group}>
+                {EXAMPLES.filter((ex) => ex.group === group).map((ex) => (
+                  <option key={`${ex.group}/${ex.name}`} value={`${ex.group}/${ex.name}`}>
+                    {ex.name}
+                  </option>
+                ))}
+              </optgroup>
             ))}
           </select>
         </div>

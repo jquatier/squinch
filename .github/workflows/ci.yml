@@ -23,7 +23,7 @@ jobs:
       # Dogfood: the repo's own committed diagrams must stay in sync.
       - run: node packages/cli/bin/squinch.js render examples/orders --check
       - run: node packages/cli/bin/squinch.js render examples/products-api --check
-      - run: node packages/cli/bin/squinch.js render examples/landscape --check
+      - run: node packages/cli/bin/squinch.js render examples/storefront --check
       - run: node packages/cli/bin/squinch.js render examples/microservices --check
       # the playground must keep building (it embeds core via the browser entry)
       - run: pnpm --filter @squinch/spa build

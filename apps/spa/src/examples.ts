@@ -1,15 +1,138 @@
-// GENERATED from examples/ by scripts/sync-examples.ts — do not edit.
-export const EXAMPLES: { name: string; source: string }[] = [
+// GENERATED from examples/ and lookbook/cases/ by scripts/sync-examples.ts — do not edit.
+export const EXAMPLES: { name: string; group: string; source: string }[] = [
   {
-    "name": "Microservices (zoom)",
+    "name": "Microservices",
+    "group": "Examples",
     "source": "// A microservices storefront — built to show what zoom is for.\n//\n// At landscape altitude you see five participants and how they talk. Zoom into\n// any service and its API/datastore/search internals appear, with its neighbours\n// collapsing into muted context cards. Nothing about the model changes between\n// altitudes; only the view does.\npack aws\n\nperson customer \"Customer\"\n\nsystem web \"Storefront\" {\n  description: \"React SPA on S3 behind CloudFront\"\n  glyph: sys/webapp\n\n  cdn    = aws/cloudfront \"CloudFront\"\n  bucket = aws/s3         \"React SPA\"\n  cdn -> bucket \"origin\"\n}\n\n// The edge gateway is a single component, so it lives at the top level.\ngw = aws/api-gateway \"Edge Gateway\"\n\nsystem catalog \"Catalog Service\" {\n  description: \"Products, browse and search\"\n  glyph: sys/search\n  tags: #public\n\n  api  = aws/lambda     \"Catalog API\"\n  db   = aws/dynamodb   \"Products\"\n  idx  = aws/opensearch \"Product Index\"\n  sync = aws/lambda     \"Index Sync\"\n\n  api -> db\n  api -> idx  \"search\"\n  db  ~> sync \"product stream\"\n  sync -> idx \"reindex\"\n}\n\nsystem orders \"Order Service\" {\n  description: \"Cart, checkout, fulfillment\"\n  glyph: sys/api\n  tags: #pci\n\n  api    = aws/lambda   \"Orders API\"\n  db     = aws/dynamodb \"Orders\"\n  queue  = aws/sqs      \"Fulfillment Queue\"\n  worker = aws/lambda   \"Fulfillment Worker\"\n\n  api -> db\n  api ~> queue \"enqueue\"\n  queue ~> worker\n  worker -> db \"mark shipped\"\n}\n\nsystem accounts \"Account Service\" {\n  description: \"Identity and profiles\"\n  glyph: sys/auth\n  tags: #pci\n\n  api = aws/lambda \"Accounts API\"\n  db  = aws/rds    \"Accounts DB\"\n  api -> db\n}\n\n// ── cross-service wiring ───────────────────────────────────────────────────\ncustomer -> web.cdn \"browses\"\nweb.cdn  -> gw      \"REST /api\"\n\ngw -> catalog.api  \"browse\"\ngw -> orders.api   \"checkout\"\ngw -> accounts.api \"profile\"\n\norders.api    -> catalog.api  \"price check\"\norders.worker -> catalog.api  \"decrement stock\"\norders.api    -> accounts.api \"verify identity\"\n\n// ── a numbered walk over edges that already exist ──────────────────────────\n// A flow annotates the model, it never adds to it: every step below is one of\n// the connections declared above. `squinch present` (or the playground) walks\n// these one at a time.\nflow checkout \"Placing an order\" {\n  customer -> web.cdn -> gw -> orders.api\n  orders.api -> orders.db\n  orders.api ~> orders.queue\n  orders.queue ~> orders.worker\n  orders.worker -> catalog.api\n}\n\n// ── views: the same model at four altitudes ────────────────────────────────\n\nview landscape {\n  title \"Storefront — landscape\"\n  include *\n  layout {\n    rows [customer] [web] [gw] [catalog orders accounts]\n  }\n}\n\nview catalog {\n  scope catalog\n  title \"Catalog Service\"\n  layout {\n    rows [api] [db idx]\n    place sync right-of idx\n    route db ~> sync \"product stream\" from east to west\n  }\n}\n\nview orders {\n  scope orders\n  title \"Order Service\"\n  layout {\n    rows [api] [queue worker] [db]\n  }\n}\n\nview orders-pci {\n  scope orders\n  title \"Order Service — PCI surface\"\n  highlight #pci\n  show descriptions\n  note right-of db \"Card tokens only; PAN never stored\"\n  note top-right \"Audit scope: Q3\" { style: warning }\n}\n\nview checkout {\n  scope orders\n  title \"Placing an order\"\n  show flow checkout\n  layout {\n    rows [api] [queue worker] [db]\n  }\n}\n"
   },
   {
-    "name": "Order service",
+    "name": "Orders",
+    "group": "Examples",
     "source": "// The canonical example — SPEC §10.1\npack aws\n\nsystem orders \"Order Service\" {\n  api    = aws/api-gateway \"API Gateway\"\n  create = aws/lambda      \"Create Handler\"\n  get    = aws/lambda      \"Get Handler\"\n  search = aws/lambda      \"Search Handler\"\n  db     = aws/dynamodb    \"Orders Table\" {\n    description: \"Single-table design, on-demand capacity\"\n    tags: #pci\n  }\n  files  = aws/s3          \"Assets\"\n  idx    = aws/opensearch  \"Search Index\"\n  sync   = aws/lambda      \"Stream Sync\"\n\n  api -> create, get, search\n  create -> db, files\n  get    -> db\n  search -> idx\n  db  ~> sync \"DynamoDB stream\"\n  sync -> idx \"index updates\"\n}\n\nview orders {\n  theme dark\n  layout {\n    rows [api] [create get search] [db files idx]\n    place sync right-of db\n    route db ~> sync from east to west   // control the edge, not just the graph\n  }\n}\n"
   },
   {
+    "name": "Products api",
+    "group": "Examples",
+    "source": "// A products API on AWS: edge, a service in a VPC, a self-warming index.\npack aws\n\nperson shopper \"Shopper\"\n\ncdn = aws/cloudfront \"CloudFront\"\n\nalb = aws/elb     \"Application Load Balancer\"\napp = aws/fargate \"Products API\" {\n  description: \"ECS on Fargate, private subnets across two AZs\"\n}\n\ndb      = aws/dynamodb   \"Products Table\" datastore {\n  description: \"Single-table design, on-demand capacity\"\n}\nindexer = aws/lambda     \"Stream Indexer\"\nsearch  = aws/opensearch \"Search Index\" datastore\n\nshopper -> cdn \"api.example.com\"\ncdn -> alb \"/products/*\"\nalb -> app\napp -> db     \"read / write\"\napp -> search \"search products\"\n\n// A stream needs a consumer — this is what keeps the index in step.\ndb ~> indexer \"DynamoDB stream\"\nindexer -> search \"index updates\"\n\nzone vpc \"VPC prod-main\" vpc {\n  contains alb, app\n  icon: aws/vpc\n  label: bottom-right   // clear of the edge arriving at the top\n}\n\nview products {\n  title \"Products API — edge to index\"\n  legend auto\n  layout {\n    // `alb` names the VPC's rank — one member is enough to place a zone.\n    rows [shopper cdn] [alb] [db indexer search]\n  }\n}\n"
+  },
+  {
+    "name": "Storefront",
+    "group": "Examples",
+    "source": "// SPEC §10.2-style nesting example: landscape altitude + zoom + context.\npack aws\n\nperson customer \"Customer\"\n\nsystem web \"Storefront\" {\n  description: \"Customer-facing web experience\"\n  glyph: sys/webapp\n\n  cdn = aws/cloudfront \"CDN\"\n  app = aws/amplify    \"Next.js App\"\n  cdn -> app\n}\n\nsystem orders \"Order Service\" {\n  glyph: sys/api\n  tags: #core\n\n  api = aws/api-gateway \"API Gateway\"\n  container handlers \"API Handlers\" {\n    create = aws/lambda \"Create\" { tags: #pci }\n    get    = aws/lambda \"Get\"\n  }\n  db = aws/dynamodb \"Orders Table\" {\n    description: \"Single-table design\"\n    tags: #pci\n  }\n  api -> handlers.create, handlers.get\n  handlers.create -> db\n  handlers.get    -> db\n}\n\ncustomer -> web.cdn \"browses\"\nweb.app  -> orders.api \"REST\"\n\nview landscape {\n  title \"System Landscape\"\n  include *\n}\n\nview orders {\n  scope orders\n}\n\nview orders-pci {\n  scope orders\n  title \"PCI Surface\"\n  highlight #pci\n  show descriptions\n  note right-of db \"Encrypted at rest (KMS); see ADR-31\"\n  note top-right \"Audit scope: Q3 2026\" { style: warning }\n}\n\nview orders-detail {\n  scope orders\n  title \"Order Service — detail\"\n  expand handlers\n}\n"
+  },
+  {
     "name": "Starter",
+    "group": "Examples",
     "source": "pack aws\n\nsystem app \"My Service\" {\n  api = aws/api-gateway \"API Gateway\"\n  fn  = aws/lambda      \"Handler\"\n  db  = aws/dynamodb    \"Table\"\n\n  api -> fn\n  fn  -> db\n}\n\nview app {\n  layout {\n    rows [api] [fn] [db]\n  }\n}\n"
+  },
+  {
+    "name": "Minimal",
+    "group": "Lookbook",
+    "source": "// The smallest possible diagram must still look composed, not lost on canvas.\npack aws\n\nsystem tiny \"Tiny\" {\n  fn = aws/lambda   \"Handler\"\n  db = aws/dynamodb \"Table\"\n  fn -> db \"reads\"\n}\n"
+  },
+  {
+    "name": "Fan out",
+    "group": "Lookbook",
+    "source": "// Brutal fan-out: one gateway, twelve handlers. Port spread and stub\n// discipline have to keep this readable.\npack aws\n\nsystem fan \"Fan-out\" {\n  gw = aws/api-gateway \"Gateway\"\n  h01 = aws/lambda \"Orders\"\n  h02 = aws/lambda \"Refunds\"\n  h03 = aws/lambda \"Catalog\"\n  h04 = aws/lambda \"Search\"\n  h05 = aws/lambda \"Pricing\"\n  h06 = aws/lambda \"Sessions\"\n  h07 = aws/lambda \"Profiles\"\n  h08 = aws/lambda \"Carts\"\n  h09 = aws/lambda \"Reviews\"\n  h10 = aws/lambda \"Shipping\"\n  h11 = aws/lambda \"Taxes\"\n  h12 = aws/lambda \"Emails\"\n  gw -> h01, h02, h03, h04, h05, h06, h07, h08, h09, h10, h11, h12\n}\n"
+  },
+  {
+    "name": "Fan in",
+    "group": "Lookbook",
+    "source": "// The mirror image: twelve producers draining into one queue.\npack aws\n\nsystem fanin \"Fan-in\" {\n  q = aws/sqs \"Ingest Queue\" datastore\n  p01 = aws/lambda \"Web Events\"\n  p02 = aws/lambda \"Mobile Events\"\n  p03 = aws/lambda \"POS Events\"\n  p04 = aws/lambda \"Partner Feed\"\n  p05 = aws/lambda \"Returns\"\n  p06 = aws/lambda \"Inventory\"\n  p07 = aws/lambda \"Payments\"\n  p08 = aws/lambda \"Fraud Signals\"\n  p09 = aws/lambda \"Support Tickets\"\n  p10 = aws/lambda \"Emails\"\n  p11 = aws/lambda \"Crawler\"\n  p12 = aws/lambda \"Backfill\"\n  p01 ~> q\n  p02 ~> q\n  p03 ~> q\n  p04 ~> q\n  p05 ~> q\n  p06 ~> q\n  p07 ~> q\n  p08 ~> q\n  p09 ~> q\n  p10 ~> q\n  p11 ~> q\n  p12 ~> q\n}\n"
+  },
+  {
+    "name": "Deep chain",
+    "group": "Lookbook",
+    "source": "// An eight-stage pipeline, laid out left to right.\npack aws\n\nsystem pipe \"Pipeline\" {\n  ingest    = aws/kinesis \"Ingest\"\n  validate  = aws/lambda  \"Validate\"\n  enrich    = aws/lambda  \"Enrich\"\n  dedupe    = aws/lambda  \"Dedupe\"\n  transform = aws/lambda  \"Transform\"\n  land      = aws/s3      \"Data Lake\" datastore\n  catalog   = aws/glue    \"Catalog\"\n  query     = aws/athena  \"Query\"\n\n  ingest ~> validate\n  validate -> enrich\n  enrich -> dedupe\n  dedupe -> transform\n  transform -> land \"parquet\"\n  land ~> catalog \"crawl\"\n  catalog -> query\n}\n\nview pipe {\n  layout {\n    direction right\n  }\n}\n"
+  },
+  {
+    "name": "Long labels",
+    "group": "Lookbook",
+    "source": "// Hostile text: long labels, long descriptions, long edge labels.\n// Truncation must be graceful and pills must never collide.\npack aws\n\nsystem verbose \"Enterprise Integration Middleware Platform\" {\n  description: \"The strategic enterprise-wide business-to-business integration middleware modernization platform initiative\"\n\n  gw = aws/api-gateway \"Public Partner-Facing Integration Gateway With Rate Limiting\"\n  orch = aws/step-functions \"Long-Running Regulatory Compliance Orchestration Workflow\" {\n    description: \"Coordinates seventeen legacy subsystems across three regulatory jurisdictions and two data residency boundaries\"\n  }\n  db = aws/dynamodb \"Consolidated Multi-Tenant Transactional Ledger Table\" datastore\n\n  gw -> orch \"initiates the quarterly regulatory reconciliation batch process\"\n  orch -> db \"writes reconciled multi-jurisdiction settlement records\"\n}\n\nview verbose {\n  show descriptions\n}\n"
+  },
+  {
+    "name": "Dense mesh",
+    "group": "Lookbook",
+    "source": "// Ten services that all talk to each other far too much. The worst realistic\n// edge-density case: crossings are inevitable, chaos is not.\npack aws\n\nsystem mesh \"Chatty Microservices\" {\n  a = aws/lambda \"Auth\"\n  b = aws/lambda \"Billing\"\n  c = aws/lambda \"Catalog\"\n  d = aws/lambda \"Delivery\"\n  e = aws/lambda \"Email\"\n  f = aws/lambda \"Fraud\"\n  g = aws/lambda \"Gateway\"\n  h = aws/lambda \"History\"\n  i = aws/lambda \"Inventory\"\n  j = aws/lambda \"Journal\"\n\n  g -> a, b, c, d\n  a -> h \"audit\"\n  b -> f \"score\"\n  b -> j \"ledger\"\n  c -> i \"stock\"\n  d -> i \"reserve\"\n  d -> e \"notify\"\n  f -> h \"flag\"\n  f -> j \"case\"\n  i -> j \"movement\"\n  e -> h \"sent\"\n  c -> h \"views\"\n  b -> e \"invoice\"\n  a -> j \"logins\"\n}\n"
+  },
+  {
+    "name": "Nested frames",
+    "group": "Lookbook",
+    "source": "// Containers inside a system, both expanded: recessed frames must read as\n// grouping, not decoration, and edges must cross frame borders cleanly.\npack aws\n\nsystem platform \"Platform\" {\n  gw = aws/api-gateway \"Edge\"\n\n  container ingest \"Ingestion\" {\n    recv  = aws/lambda \"Receiver\"\n    queue = aws/sqs    \"Buffer\" datastore\n    recv ~> queue\n  }\n\n  container store \"Storage\" {\n    writer = aws/lambda   \"Writer\"\n    tbl    = aws/dynamodb \"Events\" datastore\n    writer -> tbl\n  }\n\n  gw -> ingest.recv \"POST /events\"\n  ingest.queue ~> store.writer \"drain\"\n}\n\nview platform {\n  expand ingest\n  expand store\n}\n"
+  },
+  {
+    "name": "Landscape",
+    "group": "Lookbook",
+    "source": "// A big landscape: eight system cards, a person and an external party.\n// Card grid rhythm, glyph badges, lifted-edge labels.\npack aws\n\nperson customer \"Customer\"\npartner = box \"Payment Network\" external\n\nsystem store \"Storefront\" {\n  description: \"Web and mobile shopping\"\n  glyph: sys/webapp\n  app = aws/lambda \"App\"\n}\nsystem search \"Search\" {\n  description: \"Query and ranking\"\n  glyph: sys/search\n  api = aws/lambda \"API\"\n}\nsystem orders \"Orders\" {\n  description: \"Checkout and fulfilment\"\n  glyph: sys/api\n  api = aws/lambda \"API\"\n}\nsystem pay \"Payments\" {\n  description: \"Cards, wallets, settlement\"\n  glyph: sys/service\n  api = aws/lambda \"API\"\n}\nsystem ident \"Identity\" {\n  description: \"Accounts and sessions\"\n  glyph: sys/auth\n  api = aws/lambda \"API\"\n}\nsystem notify \"Notifications\" {\n  description: \"Email, SMS, push\"\n  glyph: sys/queue\n  fan = aws/lambda \"Fanout\"\n}\nsystem ship \"Shipping\" {\n  description: \"Carriers and tracking\"\n  glyph: sys/worker\n  api = aws/lambda \"API\"\n}\nsystem ledger \"Ledger\" {\n  description: \"Money movement of record\"\n  glyph: sys/database\n  db = aws/aurora \"Ledger DB\" datastore\n}\n\ncustomer -> store.app \"browses\"\nstore.app -> search.api \"queries\"\nstore.app -> orders.api \"checks out\"\norders.api -> pay.api \"charges\"\norders.api -> ident.api \"verifies\"\norders.api ~> notify.fan \"order events\"\norders.api -> ship.api \"books\"\npay.api -> partner \"authorizes\"\npay.api -> ledger.db \"posts\"\n\nview landscape {\n  title \"Retail Landscape\"\n  include *\n}\n"
+  },
+  {
+    "name": "Coplanar row",
+    "group": "Lookbook",
+    "source": "// Same-rank stress: six peers pinned to one row with chained and skipping\n// edges — adjacent pairs route straight, skips drop into the lane below.\npack aws\n\nsystem row \"One Row\" {\n  a = aws/lambda \"Alpha\"\n  b = aws/lambda \"Bravo\"\n  c = aws/lambda \"Charlie\"\n  d = aws/lambda \"Delta\"\n  e = aws/lambda \"Echo\"\n  f = aws/lambda \"Foxtrot\"\n\n  a -> b\n  b -> c\n  c -> d\n  d -> e\n  e -> f\n  a -> d \"skip\"\n  b -> f \"far skip\"\n}\n\nview row {\n  layout {\n    rows [a b c d e f]\n  }\n}\n"
+  },
+  {
+    "name": "Highlight notes",
+    "group": "Lookbook",
+    "source": "// Annotation layer: tag highlight dims the rest; notes anchor to nodes,\n// edges and corners without colliding with anything.\npack aws\n\nsystem pay \"Payments\" {\n  api   = aws/lambda \"Payment API\" { tags: #pci }\n  token = aws/lambda \"Tokenizer\"   { tags: #pci }\n  vault = aws/dynamodb \"Card Vault\" datastore { tags: #pci }\n  queue = aws/sqs \"Settlement Queue\" datastore\n  settle = aws/lambda \"Settlement Worker\"\n  ledger = aws/aurora \"Ledger\" datastore\n\n  api -> token \"tokenize\"\n  token -> vault \"store\"\n  api ~> queue \"capture events\"\n  queue ~> settle \"drain\"\n  settle -> ledger \"post\"\n}\n\nview pci {\n  scope pay\n  highlight #pci\n  note right-of vault \"Tokens only; PANs never stored\"\n  note on api -> token \"p99 8ms\"\n  note top-right \"PCI DSS scope, audited quarterly\" { style: warning }\n}\n"
+  },
+  {
+    "name": "Async mesh",
+    "group": "Lookbook",
+    "source": "// Event-driven estate: nearly every edge is async. Dashes must stay legible\n// at density, and the bus must not become a hairball.\npack aws\n\nsystem events \"Event Mesh\" {\n  bus = aws/eventbridge \"Event Bus\"\n  orders   = aws/lambda \"Orders\"\n  billing  = aws/lambda \"Billing\"\n  email    = aws/lambda \"Email\"\n  audit    = aws/lambda \"Audit\"\n  metrics  = aws/lambda \"Metrics\"\n  dlq      = aws/sqs \"DLQ\" datastore\n  archive  = aws/s3 \"Archive\" datastore\n\n  orders ~> bus \"order.*\"\n  billing ~> bus \"invoice.*\"\n  bus ~> email \"order.created\"\n  bus ~> audit \"*\"\n  bus ~> metrics \"*\"\n  bus ~> archive \"all events\"\n  bus ~> dlq \"failed delivery\"\n}\n\nview events {\n  layout {\n    rows [orders billing] [bus] [email audit metrics archive dlq]\n  }\n}\n"
+  },
+  {
+    "name": "Lifted aggregate",
+    "group": "Lookbook",
+    "source": "// Landscape lifting: four internal edges between two systems collapse into\n// one aggregated card-to-card edge with a ×4 badge.\npack aws\n\nsystem front \"Frontend\" {\n  description: \"Customer-facing surfaces\"\n  glyph: sys/webapp\n  web    = aws/lambda \"Web BFF\"\n  mobile = aws/lambda \"Mobile BFF\"\n}\n\nsystem back \"Backend\" {\n  description: \"Domain services\"\n  glyph: sys/api\n  orders  = aws/lambda \"Orders\"\n  catalog = aws/lambda \"Catalog\"\n}\n\nfront.web -> back.orders \"checkout\"\nfront.web -> back.catalog \"browse\"\nfront.mobile -> back.orders \"checkout\"\nfront.mobile -> back.catalog \"browse\"\n\nview landscape {\n  include *\n}\n"
+  },
+  {
+    "name": "Descriptions",
+    "group": "Lookbook",
+    "source": "// show descriptions on every node: two-line leaves must keep vertical rhythm.\npack aws\n\nsystem obs \"Observability\" {\n  agent = aws/lambda \"Collector\" {\n    description: \"Scrapes and batches metrics\"\n  }\n  stream = aws/kinesis \"Firehose\" {\n    description: \"Buffered delivery stream\"\n  }\n  store = aws/s3 \"Metrics Lake\" datastore {\n    description: \"Partitioned by day and service\"\n  }\n  alarm = aws/lambda \"Alerter\" {\n    description: \"Evaluates SLO burn rates\"\n  }\n\n  agent ~> stream \"batches\"\n  stream ~> store \"delivers\"\n  store ~> alarm \"hourly scan\"\n}\n\nview obs {\n  show descriptions\n}\n"
+  },
+  {
+    "name": "Sidecar routes",
+    "group": "Lookbook",
+    "source": "// The side-car idiom, three times over: place + route from east to west.\npack aws\n\nsystem app \"Order Service\" {\n  api   = aws/api-gateway \"API\"\n  fn    = aws/lambda \"Handler\"\n  db    = aws/dynamodb \"Orders\" datastore\n  cache = aws/elasticache \"Cache\"\n  sync  = aws/lambda \"Search Sync\"\n  idx   = aws/opensearch \"Index\" datastore\n\n  api -> fn\n  fn -> db \"writes\"\n  fn -> cache \"reads through\"\n  db ~> sync \"stream\"\n  sync -> idx \"indexes\"\n}\n\nview app {\n  layout {\n    rows [api] [fn] [db]\n    place cache right-of fn\n    place sync right-of db\n    place idx right-of sync\n    route fn -> cache from east to west\n    route db ~> sync from east to west\n  }\n}\n"
+  },
+  {
+    "name": "Densities",
+    "group": "Lookbook",
+    "source": "// The same model at all three densities — spacing tiers must feel deliberate.\npack aws\n\nsystem svc \"Service\" {\n  gw = aws/api-gateway \"Gateway\"\n  a  = aws/lambda \"Create\"\n  b  = aws/lambda \"Get\"\n  db = aws/dynamodb \"Table\" datastore\n  gw -> a, b\n  a -> db \"writes\"\n  b -> db \"reads\"\n}\n\nview compact {\n  scope svc\n  layout { density compact }\n}\n\nview comfortable {\n  scope svc\n  layout { density comfortable }\n}\n\nview spacious {\n  scope svc\n  layout { density spacious }\n}\n"
+  },
+  {
+    "name": "Legend titleblock",
+    "group": "Lookbook",
+    "source": "// Footer furniture: an earned legend (sync/async/aggregate/context) and a\n// drafting-style titleblock — stacked or side-by-side depending on width.\npack aws\n\nperson ops \"Operator\"\n\nsystem pay \"Payments\" {\n  description: \"Settlement and payouts\"\n  glyph: sys/service\n  api = aws/lambda \"Payment API\"\n  q   = aws/sqs \"Settlement Queue\" datastore\n  w   = aws/lambda \"Settlement Worker\"\n  api ~> q \"capture\"\n  q ~> w \"drain\"\n  api -> w \"health\"\n}\n\nsystem ledger \"Ledger\" {\n  description: \"Money movement of record\"\n  glyph: sys/database\n  db = aws/aurora \"Ledger DB\" datastore\n}\n\nops -> pay.api \"reconciles\"\npay.w -> ledger.db \"posts\"\npay.api -> ledger.db \"balance check\"\n\nview overview {\n  title \"Payments — money path\"\n  include *\n  legend auto\n  titleblock {\n    version: \"2026-07\"\n    owner: team-payments\n    status: \"reviewed\"\n  }\n}\n\nview pay {\n  title \"Payments internals\"\n  legend auto\n  titleblock {\n    version: \"2026-07\"\n  }\n}\n"
+  },
+  {
+    "name": "Zones",
+    "group": "Lookbook",
+    "source": "// Deployment boundaries: cloud vs on-prem, with a VPC nested inside the\n// cloud. Zones cross-cut ownership; chips straddle the dashed borders.\npack aws\n\nperson ops \"Operators\"\nerp = box \"Legacy ERP\" external\n\nsystem ingest \"Ingestion\" {\n  description: \"Batch intake and normalization\"\n  glyph: sys/queue\n  gw = aws/api-gateway \"Gateway\"\n  fn = aws/lambda \"Sync Worker\"\n  gw -> fn\n}\n\nsystem core \"Core Platform\" {\n  description: \"APIs and the system of record\"\n  glyph: sys/api\n  api = aws/lambda \"API\"\n  db  = aws/aurora \"Database\" datastore\n  api -> db\n}\n\nerp ~> ingest.gw \"nightly batch\"\ningest.fn -> core.api \"normalized events\"\nops -> core.api \"operates\"\n\nzone onprem \"On-Premises\" onprem {\n  contains erp, ops\n}\nzone cloud \"AWS Cloud\" cloud {\n  contains ingest, core\n  icon: aws/cloud\n  label: bottom-right\n}\nzone vpc1 \"VPC prod-main\" vpc {\n  contains core\n  icon: aws/vpc\n}\n\nview landscape {\n  title \"Hybrid Estate\"\n  include *\n  legend auto\n}\n"
+  },
+  {
+    "name": "Flows",
+    "group": "Lookbook",
+    "source": "// Numbered flows: the \"how does a request actually travel\" lens.\n// Steps badge the edges in declaration order; branches keep counting.\npack aws\n\nsystem shop \"Checkout\" {\n  api    = aws/api-gateway \"API\"\n  cart   = aws/lambda \"Cart\"\n  pay    = aws/lambda \"Payment\"\n  db     = aws/dynamodb \"Orders\" datastore\n  queue  = aws/sqs \"Fulfilment Queue\" datastore\n  worker = aws/lambda \"Fulfilment\"\n\n  api -> cart \"add / checkout\"\n  cart -> pay \"charge\"\n  pay -> db \"record\"\n  pay ~> queue \"order placed\"\n  queue ~> worker \"drain\"\n}\n\nflow order \"Place an order\" {\n  api -> cart -> pay -> db\n  pay ~> queue ~> worker\n}\n\nview shop {\n  show flow order\n  legend auto\n}\n"
+  },
+  {
+    "name": "Glyphs",
+    "group": "Lookbook",
+    "source": "// The first-party glyph sheet: every sys/* on a card badge AND a plate,\n// plus builtin person/box. Monoline house style, theme-tinted.\nperson user \"Person Glyph\"\nlegacy = box \"Box Glyph\" external\n\nsystem g1 \"API\"       { glyph: sys/api; n = box \"api\" }\nsystem g2 \"Web App\"   { glyph: sys/webapp; n = box \"webapp\" }\nsystem g3 \"Mobile\"    { glyph: sys/mobile; n = box \"mobile\" }\nsystem g4 \"Service\"   { glyph: sys/service; n = box \"service\" }\nsystem g5 \"Worker\"    { glyph: sys/worker; n = box \"worker\" }\nsystem g6 \"Database\"  { glyph: sys/database; n = box \"database\" }\nsystem g7 \"Cache\"     { glyph: sys/cache; n = box \"cache\" }\nsystem g8 \"Queue\"     { glyph: sys/queue; n = box \"queue\" }\nsystem g9 \"Event Bus\" { glyph: sys/event-bus; n = box \"event-bus\" }\nsystem g10 \"Filestore\" { glyph: sys/filestore; n = box \"filestore\" }\nsystem g11 \"Search\"   { glyph: sys/search; n = box \"search\" }\nsystem g12 \"Gateway\"  { glyph: sys/gateway; n = box \"gateway\" }\nsystem g13 \"Auth\"     { glyph: sys/auth; n = box \"auth\" }\nsystem g14 \"Monitor\"  { glyph: sys/monitor; n = box \"monitor\" }\nsystem g15 \"Scheduler\" { glyph: sys/scheduler; n = box \"scheduler\" }\nsystem g16 \"Org\"      { glyph: sys/org; n = box \"org\" }\nsystem g17 \"Internet\" { glyph: sys/internet; n = box \"internet\" }\n\nview sheet {\n  title \"Glyph sheet\"\n  include *\n  layout {\n    rows [user legacy g1 g2 g3] [g4 g5 g6 g7 g8] [g9 g10 g11 g12 g13] [g14 g15 g16 g17]\n  }\n}\n"
+  },
+  {
+    "name": "Align hops",
+    "group": "Lookbook",
+    "source": "// Two craft rules at once: `align` snaps entry and store onto one exact\n// axis (ELK alone leaves them ~7px off), and the deliberate crossings\n// below get hop breaks so they can never read as junctions.\npack aws\n\nsystem s \"Aligned + Hopped\" {\n  gw = aws/api-gateway \"Edge Gateway\"\n  a  = aws/lambda \"Alpha\"\n  b  = aws/lambda \"Bravo\"\n  c  = aws/lambda \"Charlie\"\n  db = aws/aurora \"System of Record\" datastore\n\n  gw -> a, b, c\n  b -> db\n  a -> db \"writes\"\n  c -> db \"reads\"\n}\n\nview s {\n  layout {\n    rows [gw] [a b c] [db]\n    align gw db\n  }\n}\n"
+  },
+  {
+    "name": "Logos",
+    "group": "Lookbook",
+    "source": "// A stack that isn't AWS — the case pack-logos exists for.\npack logos\n\nperson dev \"Developers\"\n\nsystem app \"Storefront\" {\n  description: \"Next.js on Vercel\"\n  glyph: sys/webapp\n  web = logos/nextdotjs \"Next.js\"\n  api = logos/nestjs \"API\"\n  web -> api \"tRPC\"\n}\n\nsystem data \"Data Platform\" {\n  description: \"Operational + analytics\"\n  glyph: sys/database\n  pg    = logos/postgres \"PostgreSQL\" datastore\n  redis = logos/redis \"Cache\"\n  kafka = logos/kafka \"Events\"\n  snow  = logos/snowflake \"Warehouse\" datastore\n  kafka ~> snow \"load\"\n}\n\nsystem ops \"Platform\" {\n  glyph: sys/monitor\n  k8s   = logos/k8s \"Kubernetes\"\n  graf  = logos/grafana \"Grafana\"\n  otel  = logos/opentelemetry \"OTel\"\n  otel ~> graf \"metrics\"\n}\n\ngh = logos/github \"GitHub\" external\nstripe = logos/stripe \"Stripe\" external\n\ndev -> gh \"push\"\ngh ~> ops.k8s \"deploy\"\napp.api -> data.pg \"queries\"\napp.api -> data.redis \"cache\"\napp.api ~> data.kafka \"events\"\napp.api -> stripe \"charges\"\napp.api ~> ops.otel \"traces\"\n\nview landscape {\n  title \"Modern stack\"\n  include *\n  legend auto\n}\n"
+  },
+  {
+    "name": "Channel",
+    "group": "Lookbook",
+    "source": "pack aws\nsystem s \"Orders\" {\n  api    = aws/api-gateway \"API\"\n  create = aws/lambda \"Create\"\n  get    = aws/lambda \"Get\"\n  search = aws/lambda \"Search\"\n  db     = aws/dynamodb \"Orders Table\" datastore\n  api -> create, get, search\n  create -> db \"put\"\n  get -> db \"read\"\n  search -> db \"scan\"\n}\nview plain { scope s\n  layout { rows [api] [create get search] [db] }\n}\nview bussed { scope s\n  layout {\n    rows [api] [create get search] [db]\n    channel create, get, search -> db\n  }\n}\n"
   }
 ];
