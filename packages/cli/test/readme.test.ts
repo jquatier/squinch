@@ -14,27 +14,22 @@ import { dirname, join } from "node:path";
 const root = join(dirname(fileURLToPath(import.meta.url)), "..", "..", "..");
 
 describe("README", () => {
-  it("quotes examples/orders verbatim under `From source to diagram`", () => {
+  it("quotes examples/products-api verbatim under `From source to diagram`", () => {
     const readme = readFileSync(join(root, "README.md"), "utf8");
     const block = /## From source to diagram[\s\S]*?```squinch\n([\s\S]*?)```/.exec(readme);
     expect(block, "the section or its squinch block is missing").not.toBeNull();
 
-    const source = readFileSync(join(root, "examples", "orders", "orders.squinch"), "utf8");
-    // the in-repo spec cross-reference is the one line the README omits
-    const expected =
-      source
-        .split("\n")
-        .filter((l) => !l.startsWith("// The canonical example"))
-        .join("\n")
-        .trim() + "\n";
-
-    expect(block![1]).toBe(expected);
+    const source = readFileSync(
+      join(root, "examples", "products-api", "products-api.squinch"),
+      "utf8",
+    );
+    expect(block![1]).toBe(source.trim() + "\n");
   });
 
   it("points that section at the render of the same view", () => {
     const readme = readFileSync(join(root, "README.md"), "utf8");
     const after = readme.slice(readme.indexOf("## From source to diagram"));
-    expect(after).toContain("examples/orders/orders.orders.light.svg");
-    expect(after).toContain("examples/orders/orders.orders.dark.svg");
+    expect(after).toContain("examples/products-api/products-api.products.light.svg");
+    expect(after).toContain("examples/products-api/products-api.products.dark.svg");
   });
 });

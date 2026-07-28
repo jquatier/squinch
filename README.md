@@ -23,60 +23,71 @@ in git next to the code it describes.
          width="900">
   </picture>
   <br>
-  <em>Click a system to go inside it. One model, two altitudes — the card
-  doesn't magnify, it opens, and the neighbours it talks to stay on screen as
-  context. The breadcrumb takes you back up.</em>
+  <em>Click a system to go inside it. The breadcrumb takes you back up.</em>
 </p>
+
+**C4-style zoom, from one model.** The altitudes are derived, never drawn twice:
+a collapsed system is a card previewing what is inside; opening it shows the
+internals while the neighbours it talks to stay on screen as muted context; and
+edges that crossed the boundary re-anchor themselves, aggregating behind a count
+badge when several collapse into one. Nothing is duplicated, so nothing can
+drift — see [examples/microservices](examples/microservices) for the source.
 
 ## From source to diagram
 
 The whole file — structure first, then a separate `view` that says how to draw
-it. Delete the `layout` block and it still renders well; the hints only steer.
+it. No coordinates anywhere: the boundary says what is inside the VPC, and the
+layout falls out of the graph.
 
 ```squinch
+// A products API on AWS: edge, a service in a VPC, a self-warming index.
 pack aws
 
-system orders "Order Service" {
-  api    = aws/api-gateway "API Gateway"
-  create = aws/lambda      "Create Handler"
-  get    = aws/lambda      "Get Handler"
-  search = aws/lambda      "Search Handler"
-  db     = aws/dynamodb    "Orders Table" {
-    description: "Single-table design, on-demand capacity"
-    tags: #pci
-  }
-  files  = aws/s3          "Assets"
-  idx    = aws/opensearch  "Search Index"
-  sync   = aws/lambda      "Stream Sync"
+person shopper "Shopper"
 
-  api -> create, get, search
-  create -> db, files
-  get    -> db
-  search -> idx
-  db  ~> sync "DynamoDB stream"
-  sync -> idx "index updates"
+cdn = aws/cloudfront "CloudFront"
+
+alb = aws/elb     "Application Load Balancer"
+app = aws/fargate "Products API" {
+  description: "ECS on Fargate, private subnets across two AZs"
 }
 
-view orders {
-  theme dark
+db      = aws/dynamodb   "Products Table" datastore {
+  description: "Single-table design, on-demand capacity"
+}
+indexer = aws/lambda     "Stream Indexer"
+search  = aws/opensearch "Search Index" datastore
+
+shopper -> cdn "api.example.com"
+cdn -> alb "/products/*"
+alb -> app
+app -> db     "read / write"
+app -> search "search products"
+
+// A stream needs a consumer — this is what keeps the index in step.
+db ~> indexer "DynamoDB stream"
+indexer -> search "index updates"
+
+zone vpc "VPC prod-main" vpc {
+  contains alb, app
+  icon: aws/vpc
+  label: bottom-right   // clear of the edge arriving at the top
+}
+
+view products {
+  title "Products API — edge to index"
+  legend auto
   layout {
-    rows [api] [create get search] [db files idx]
-    place sync right-of db
-    route db ~> sync from east to west   // control the edge, not just the graph
+    // `alb` names the VPC's rank — one member is enough to place a zone.
+    rows [shopper cdn] [alb] [db indexer search]
   }
 }
 ```
 
 <picture>
-  <source media="(prefers-color-scheme: dark)" srcset="examples/orders/orders.orders.dark.svg">
-  <img alt="Order Service" src="examples/orders/orders.orders.light.svg">
+  <source media="(prefers-color-scheme: dark)" srcset="examples/products-api/products-api.products.dark.svg">
+  <img alt="Products API — CloudFront to an ALB and a Fargate service in a VPC, reading from a DynamoDB table whose stream feeds an OpenSearch index" src="examples/products-api/products-api.products.light.svg">
 </picture>
-
-## Status
-
-🚧 **Pre-alpha.** It works end to end — parser, model, layout, renderer, CLI,
-VS Code extension, browser playground, three icon packs — but nothing is
-published to npm yet. Build from source (below) if you want to play.
 
 ## Why
 
@@ -103,6 +114,91 @@ in one iteration:
 conflict.squinch:9:5  error: contradictory place hints: `s.a` vs `s.b` reference each other
   remove one of the two place statements
 ```
+
+## What it can draw
+
+Every picture below is a committed render from [lookbook/](lookbook/), rebuilt
+and byte-compared on every push — so none of them can quietly stop being true.
+
+<table>
+<tr>
+<td width="50%" valign="top">
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="lookbook/out/17-zones.landscape.dark.svg">
+  <img alt="Deployment boundaries" src="lookbook/out/17-zones.landscape.light.svg" width="100%">
+</picture>
+<b>Deployment boundaries</b><br>
+<code>zone</code> — cloud, VPC, on-prem, nested, each kind-tinted, with chips that straddle the border
+</td>
+<td width="50%" valign="top">
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="lookbook/out/10-highlight-notes.pci.dark.svg">
+  <img alt="Tag lenses and notes" src="lookbook/out/10-highlight-notes.pci.light.svg" width="100%">
+</picture>
+<b>Tag lenses and notes</b><br>
+<code>highlight #pci</code> dims everything off-topic; notes anchor to the node they are about
+</td>
+</tr>
+<tr>
+<td width="50%" valign="top">
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="lookbook/out/18-flows.shop.dark.svg">
+  <img alt="Numbered flows" src="lookbook/out/18-flows.shop.light.svg" width="100%">
+</picture>
+<b>Numbered flows</b><br>
+<code>flow</code> declares a request path; <code>show flow</code> badges the steps in order along the edges
+</td>
+<td width="50%" valign="top">
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="lookbook/out/16-legend-titleblock.pay.dark.svg">
+  <img alt="Legend and titleblock" src="lookbook/out/16-legend-titleblock.pay.light.svg" width="100%">
+</picture>
+<b>Legend and titleblock</b><br>
+<code>legend auto</code> keys only the styles the diagram actually uses; <code>titleblock</code> is drafting-style metadata
+</td>
+</tr>
+<tr>
+<td width="50%" valign="top">
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="lookbook/out/22-channel.bussed.dark.svg">
+  <img alt="Channel trunks" src="lookbook/out/22-channel.bussed.light.svg" width="100%">
+</picture>
+<b>Channel trunks</b><br>
+<code>channel a, b, c -&gt; db</code> collapses many converging edges into one trunk instead of a fan
+</td>
+<td width="50%" valign="top">
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="lookbook/out/14-sidecar-routes.app.dark.svg">
+  <img alt="Edge routing" src="lookbook/out/14-sidecar-routes.app.light.svg" width="100%">
+</picture>
+<b>Edge routing</b><br>
+<code>place</code> puts the sidecar beside its owner; <code>route … from east to west</code> picks the sides
+</td>
+</tr>
+<tr>
+<td width="50%" valign="top">
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="lookbook/out/21-logos.landscape.dark.svg">
+  <img alt="Beyond the clouds" src="lookbook/out/21-logos.landscape.light.svg" width="100%">
+</picture>
+<b>Beyond the clouds</b><br>
+<code>pack logos</code> for the non-cloud half of a stack, plated and tinted; the <code>×n</code> badge aggregates lifted edges
+</td>
+<td width="50%" valign="top">
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="lookbook/out/20-align-hops.s.dark.svg">
+  <img alt="Craft details" src="lookbook/out/20-align-hops.s.light.svg" width="100%">
+</picture>
+<b>Craft details</b><br>
+<code>align</code> snaps nodes onto one axis, and crossing edges hop rather than blur into a junction
+</td>
+</tr>
+</table>
+
+Also in the language: `cols` to pin the other axis, `datastore` / `external`
+node kinds, descriptions, and container nesting. Async edges (`~>`) are dashed
+and animate at a constant speed — CSS keyframes, never script. Full grammar in
+[docs/SPEC.md](docs/SPEC.md).
 
 ## Written by agents, and tested that way
 
@@ -163,74 +259,31 @@ behind PNG export — still draws the light theme correctly rather than nothing.
 It costs about 1.5% over a single render, versus two whole files. Still no
 script: a stylesheet is not code.
 
-## C4-style zoom
-
-One hierarchical model; altitudes are derived. Collapsed systems render as cards
-with a preview of what is inside; zooming shows internals while neighbours collapse
-into muted context cards, and cross-boundary edges re-anchor automatically —
-aggregating with a count badge when several collapse into one.
-
-<picture>
-  <source media="(prefers-color-scheme: dark)" srcset="examples/microservices/microservices.landscape.dark.svg">
-  <img alt="Microservices landscape" src="examples/microservices/microservices.landscape.light.svg">
-</picture>
-
-Zoom into the catalog service and its API, table, search index and stream sync
-appear — with the gateway and order service reduced to context:
-
-<picture>
-  <source media="(prefers-color-scheme: dark)" srcset="examples/microservices/microservices.catalog.dark.svg">
-  <img alt="Catalog service" src="examples/microservices/microservices.catalog.light.svg">
-</picture>
-
-Same model, no duplication — see [examples/microservices](examples/microservices).
-
-## Beyond nodes and arrows
-
-Structure is only half of an architecture diagram. The rest is the annotation
-people actually argue about in review:
-
-```squinch
-zone vpc1 "VPC prod-main" vpc {     // deployment boundaries, nestable
-  contains shop
-  icon: aws/vpc
-}
-
-flow order "Place an order" {       // a numbered request path
-  api -> cart -> pay -> db
-  pay ~> queue ~> worker
-}
-
-view checkout {
-  show flow order                   // badge the steps along the edges
-  legend auto                       // a key of the styles this view uses
-  titleblock {
-    owner: team-payments
-    status: "reviewed"
-  }
-}
-```
-
-Also in the language: `#tags` and tag lenses for cross-cutting concerns,
-`channel` trunks for many edges converging on one path, `cols` and `align` to
-compose layout, `datastore` / `external` node kinds, descriptions, and notes.
-Async edges (`~>`) are dashed and animate at a constant speed — as CSS
-keyframes, never script. Full grammar in [docs/SPEC.md](docs/SPEC.md).
-
 ## Themes
 
-Five, and dark is designed rather than inverted. `contrast` is WCAG-first —
-every text pair clears AAA and every structural stroke clears 3:1, asserted in
-tests rather than eyeballed, with meaning never resting on hue alone.
+Five, and dark is designed rather than inverted — not a palette flipped through
+a filter. The same two nodes, four ways:
 
-`sketch` renders the same model hand-drawn, and is still perfectly
-deterministic: the jitter is seeded from `hash(source)`, so the same file always
-produces the same wobble.
+<table>
+<tr>
+<th align="center"><code>light</code></th>
+<th align="center"><code>dark</code></th>
+<th align="center"><code>sketch</code></th>
+<th align="center"><code>sketch-dark</code></th>
+</tr>
+<tr>
+<td align="center"><img alt="The same two-node diagram in the Light theme" src="lookbook/out/01-minimal.tiny.light.svg" width="180"></td>
+<td align="center"><img alt="The same two-node diagram in the Dark theme" src="lookbook/out/01-minimal.tiny.dark.svg" width="180"></td>
+<td align="center"><img alt="The same two-node diagram in the Sketch theme" src="lookbook/out/01-minimal.tiny.sketch.svg" width="180"></td>
+<td align="center"><img alt="The same two-node diagram in the Sketch dark theme" src="lookbook/out/01-minimal.tiny.sketch-dark.svg" width="180"></td>
+</tr>
+</table>
 
-<picture>
-  <source media="(prefers-color-scheme: dark)" srcset="lookbook/out/08-landscape.landscape.sketch-dark.svg">
-  <img alt="The same landscape rendered in the sketch theme" src="lookbook/out/08-landscape.landscape.sketch.svg">
-</picture>
+`sketch` is hand-drawn and still perfectly deterministic: the jitter is seeded
+from `hash(source)`, so the same file always produces the same wobble. The fifth
+theme, `contrast`, is WCAG-first — every text pair clears AAA and every
+structural stroke clears 3:1, asserted in tests rather than eyeballed, with
+meaning never resting on hue alone.
 
 The [lookbook](lookbook/) renders 22 deliberately awkward cases — dense meshes,
 long labels, deep nesting, coplanar rows — to 64 committed SVGs across the
@@ -277,6 +330,12 @@ The **playground** is the app in the animation at the top: click a system to
 dive into it, walk a flow one hop at a time, ⌘K to search 1,076 icons, and
 full-screen the declared views as a presentation deck. Run it locally with
 `pnpm --filter @squinch/spa dev`.
+
+## Status
+
+🚧 **Pre-alpha.** It works end to end — parser, model, layout, renderer, CLI,
+VS Code extension, browser playground, three icon packs — but nothing is
+published to npm yet. Build from source (below) if you want to play.
 
 ## Try it from source
 

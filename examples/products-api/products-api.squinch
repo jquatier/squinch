@@ -1,0 +1,42 @@
+// A products API on AWS: edge, a service in a VPC, a self-warming index.
+pack aws
+
+person shopper "Shopper"
+
+cdn = aws/cloudfront "CloudFront"
+
+alb = aws/elb     "Application Load Balancer"
+app = aws/fargate "Products API" {
+  description: "ECS on Fargate, private subnets across two AZs"
+}
+
+db      = aws/dynamodb   "Products Table" datastore {
+  description: "Single-table design, on-demand capacity"
+}
+indexer = aws/lambda     "Stream Indexer"
+search  = aws/opensearch "Search Index" datastore
+
+shopper -> cdn "api.example.com"
+cdn -> alb "/products/*"
+alb -> app
+app -> db     "read / write"
+app -> search "search products"
+
+// A stream needs a consumer — this is what keeps the index in step.
+db ~> indexer "DynamoDB stream"
+indexer -> search "index updates"
+
+zone vpc "VPC prod-main" vpc {
+  contains alb, app
+  icon: aws/vpc
+  label: bottom-right   // clear of the edge arriving at the top
+}
+
+view products {
+  title "Products API — edge to index"
+  legend auto
+  layout {
+    // `alb` names the VPC's rank — one member is enough to place a zone.
+    rows [shopper cdn] [alb] [db indexer search]
+  }
+}
