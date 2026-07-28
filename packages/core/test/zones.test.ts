@@ -265,6 +265,54 @@ view v {
     expect(w?.fix).toContain("between* zones");
   });
 
+  it("stays quiet when one member is named — that ranks the zone, and it works", async () => {
+    // Naming a member records the rank against its *unit*, which is the zone,
+    // so a single mention is how you position the whole boundary against
+    // everything outside it. Warning here told people a hint they could watch
+    // working had no effect — and the advice ("order the zones themselves")
+    // pointed at something the language has no syntax for.
+    const src = `${SRC}zone z "Z" account { contains a, b }
+view v {
+  include *
+  layout { rows [a] [c] }
+}
+`;
+    const r = await render(src, { view: "v", theme: "light" });
+    expect(r.ok).toBe(true);
+    expect(r.diagnostics.find((d) => d.message.includes("have no effect"))).toBeUndefined();
+  });
+
+  it("and the hint it stays quiet about genuinely moves the diagram", async () => {
+    // The guard against silencing the warning by breaking the feature instead
+    // of fixing the diagnostic. A zone with ranks on both sides of it is the
+    // shape where naming one member matters: without that band the zone drifts
+    // up into the caller's rank and the nodes below it scatter.
+    const src = (band: string) => `pack aws
+edge = aws/cloudfront "Edge"
+alb  = aws/elb "ALB"
+app  = aws/fargate "App"
+tbl  = aws/dynamodb "Table" datastore
+ix   = aws/lambda "Indexer"
+idx  = aws/opensearch "Index" datastore
+edge -> alb
+alb -> app
+app -> tbl
+app -> idx
+tbl ~> ix
+ix -> idx
+zone z "VPC" vpc { contains alb, app }
+view v {
+  include *
+  layout { rows [edge]${band} [tbl ix idx] }
+}
+`;
+    const pinned = await render(src(" [alb]"), { view: "v", theme: "light" });
+    const loose = await render(src(""), { view: "v", theme: "light" });
+    expect(pinned.ok && loose.ok).toBe(true);
+    expect(pinned.diagnostics.find((d) => d.message.includes("have no effect"))).toBeUndefined();
+    expect(pinned.svg).not.toBe(loose.svg);
+  });
+
   it("still reports a real rank conflict when no zone is involved", async () => {
     const src = `${SRC}view v {
   include *

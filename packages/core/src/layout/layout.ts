@@ -257,9 +257,27 @@ export async function layoutView(
   // unimplementable here, but they must never be silent (SPEC §9).
   {
     const zoneIds = new Set(zones.map((z) => z.id));
-    const inertRows = (view.layout.rows ?? [])
-      .flat()
-      .filter((p) => unitOf(p) !== entityOf(p) && zoneIds.has(unitOf(p)));
+    // Naming a zone member in `rows` is *not* automatically inert: the rank is
+    // recorded against the member's unit, which is the zone, so naming one
+    // member is exactly how you rank the whole zone against everything outside
+    // it — and that works. It only goes nowhere when the same zone is named
+    // from more than one band, because the second write overwrites the first
+    // and the ordering that was being asked for is the one thing ELK decides
+    // internally. Warning on the single-member case told people a hint they
+    // could see working had no effect.
+    const bandsPerZone = new Map<string, Map<number, Set<string>>>();
+    (view.layout.rows ?? []).forEach((row, i) =>
+      row.forEach((p) => {
+        const zone = unitOf(p);
+        if (zone === entityOf(p) || !zoneIds.has(zone)) return;
+        const bands = bandsPerZone.get(zone) ?? new Map<number, Set<string>>();
+        bandsPerZone.set(zone, bands);
+        (bands.get(i) ?? bands.set(i, new Set()).get(i)!).add(p);
+      }),
+    );
+    const inertRows = [...bandsPerZone.values()]
+      .filter((bands) => bands.size > 1)
+      .flatMap((bands) => [...bands.values()].flatMap((s) => [...s]));
     const inertPlace = view.layout.place
       .filter((pl) => unitOf(pl.node) === unitOf(pl.target) && zoneIds.has(unitOf(pl.node)))
       .map((pl) => pl.node);
@@ -273,7 +291,8 @@ export async function layoutView(
           `zone \`${zone}\` is laid out as one block, and its members are ranked inside it by ELK`,
         fix:
           `rows/cols/place order things *between* zones, not within one. ` +
-          `Order the zones themselves, or drop the boundary if the ranking matters more.`,
+          `Name a single member to rank the zone as a whole, ` +
+          `or drop the boundary if the order inside it matters more.`,
         loc: view.loc,
       });
     }
