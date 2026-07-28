@@ -50,6 +50,20 @@ export interface RenderOpts {
   flowStep?: number;
 }
 
+/** The accent bar down a live system card carries the brand ramp off the
+ *  Squinch mark — magenta through to light blue, top to bottom. Brand, not
+ *  theme: the same two stops in light and dark, exactly as the logo behaves,
+ *  which also means an adaptive render has nothing to switch here.
+ *
+ *  In objectBoundingBox units, so every bar runs the full ramp over its own
+ *  height rather than sampling a slice of one diagram-wide gradient — a short
+ *  card and a tall one should look like the same object. */
+const ACCENT_GRAD = "sq-accent";
+const accentDefs = () =>
+  `<defs><linearGradient id="${ACCENT_GRAD}" x1="0" y1="0" x2="0" y2="1">` +
+  `<stop offset="0" stop-color="#C441FE"/><stop offset="1" stop-color="#15B6FF"/>` +
+  `</linearGradient></defs>`;
+
 /** Everything the emitters need beyond geometry: theme, type, jitter. */
 interface RC {
   t: Theme;
@@ -246,8 +260,13 @@ function card(n: PNode, rc: RC, dimmed: boolean, L: string[]) {
   const stroke = ctx ? ` stroke-dasharray="4 3"` : "";
   L.push(`<g data-path="${esc(n.path)}" data-kind="${n.kind}"${op}>`);
   L.push(box(rc, n.x, n.y, n.w, n.h, 6, t.surface, t.border, 1.5, stroke));
-  // accent bar (kind silhouette, DESIGN §3)
-  L.push(`<rect x="${n.x}" y="${n.y}" width="4" height="${n.h}" rx="2" fill="${ctx ? t.muted : t.accent}"/>`);
+  // accent bar (kind silhouette, DESIGN §3). A live card carries the brand
+  // ramp; a context card stays muted, because the bar is what tells the two
+  // apart at a glance and colour is the cheapest way to say "this one is the
+  // subject".
+  L.push(
+    `<rect x="${n.x}" y="${n.y}" width="4" height="${n.h}" rx="2" fill="${ctx ? t.muted : `url(#${ACCENT_GRAD})`}"/>`,
+  );
   const tx = n.x + PAD + 6;
   L.push(
     `<text x="${tx}" y="${n.y + 34}" font-size="${rc.fx(15)}" font-weight="500" fill="${ctx ? t.muted : t.ink}">${esc(fit(n.label, n.w - 60, rc.fx(15), "500", rc.fam))}</text>`,
@@ -913,6 +932,9 @@ export function renderSVG(p: Positioned, t: Theme, opts: RenderOpts = {}): strin
         `@keyframes sq-flow{to{stroke-dashoffset:-10}}}</style>`,
     );
   L.push(`<rect width="${p.width}" height="${height}" fill="${t.canvas}"/>`);
+  // only when something references it — a diagram of plain nodes should not
+  // carry a gradient it never draws
+  if (p.nodes.some((n) => n.kind === "card")) L.push(accentDefs());
   const defs = iconDefs(p);
   if (defs) L.push(defs);
   L.push(...body);

@@ -48,6 +48,11 @@
   title 15/550, tagline 11 muted, glyph badge top-right `20×20` mono, `preview`
   strip = up to 3 icons at `16×16` bottom-right at 60% opacity, owner/status badges
   as `11px` pills. Hatched surface variant for `external`.
+  The accent bar on a *live* card carries the brand ramp off the Squinch mark —
+  `#C441FE` to `#15B6FF`, top to bottom over the card's own height. It is brand
+  rather than theme: identical in light and dark, as the logo is. A **context**
+  card keeps the flat `muted` bar, so the one that is the subject and the one
+  that is scenery never read alike.
 - **Labels**: wrap at container width, max 2 lines, then ellipsis; full text on
   hover (SPA/VSCode) and in `<title>` (static SVG). Lint nudges labels > ~40 chars.
 
