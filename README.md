@@ -19,11 +19,13 @@ in git next to the code it describes.
   <picture>
     <source media="(prefers-color-scheme: dark)" srcset="docs/assets/zoom-dark.gif">
     <img src="docs/assets/zoom-light.gif"
-         alt="Clicking the Catalog Service card on a landscape of five systems opens it into its own internals — API, products table, search index and stream sync — with the gateway and order service left as muted context; clicking the breadcrumb closes it again."
+         alt="On a landscape of five systems, clicking the Catalog Service card opens it into its own internals — API, products table, search index and stream sync, with the product stream animating between table and index — while the gateway and order service stay as muted context. The breadcrumb closes it again, and clicking Account Service opens that one the same way."
          width="900">
   </picture>
   <br>
-  <em>Click a system to go inside it. The breadcrumb takes you back up.</em>
+  <em>Click a system to go inside it, the breadcrumb to come back up. Any
+  system opens — the altitude is a property of the model, not a second
+  diagram.</em>
 </p>
 
 **C4-style zoom, from one model.** The altitudes are derived, never drawn twice:

@@ -1,7 +1,12 @@
-// The README's hero animation: a landscape diagram, a dive into one system,
-// and back out. Generated, never screen-recorded — the frames are the real
-// renderer's output, so the GIF cannot drift from what the tool actually draws,
-// and it can be regenerated after any visual change.
+// The README's hero animation: a landscape diagram, a dive into a system and
+// back out, then the same into a second one — two round trips, because one
+// dive shows a zoom and two show that the altitude belongs to the model rather
+// than to a particular diagram.
+//
+// Generated, never screen-recorded — the frames are the real renderer's output,
+// so the GIF cannot drift from what the tool actually draws, and it can be
+// regenerated after any visual change. It has already earned that twice: once
+// when the wordmark moved, and once when system cards took the brand gradient.
 //
 //   npx tsx scripts/hero-gif.mts
 //
@@ -22,9 +27,12 @@ const root = join(dirname(fileURLToPath(import.meta.url)), "..");
 const out = (theme: string) => join(root, `docs/assets/zoom-${theme}.gif`);
 const tmp = join(root, ".hero-tmp");
 
-/** Which system the pointer opens. Must be a top-level system with a view of
- *  its own — the card is the anchor and the view is what the dive lands in. */
-const SYSTEM = "catalog";
+/** The systems the pointer opens, in order — dive in, come back up, dive into
+ *  the next. Each must be a top-level system with a view of its own: the card
+ *  is the anchor and the view is what the dive lands in. Two of them is the
+ *  point, not decoration — one dive shows a zoom, two show that the altitude
+ *  is a property of the *model* and any system has one. */
+const SYSTEMS = ["catalog", "accounts"];
 
 /** Canvas. Wide enough for a landscape to read in a README column. */
 const W = 900, H = 620, PAD = 28;
@@ -64,6 +72,17 @@ function ease(t: number): number {
   }
   return ((ay * u + by) * u + cy) * u;
 }
+
+/** The renderer animates async edges with a CSS keyframe — 10px of dashoffset
+ *  every 0.9s, `.sq-flow` in the emitted <style>. resvg rasterizes statically
+ *  and would freeze every dash mid-stride, so the clip has to advance the phase
+ *  itself: same period, same direction, sampled at this frame's wall time. The
+ *  first cut of this GIF simply lost the stream animation to that. */
+const FLOW_PERIOD = 0.9, FLOW_DASH = 10;
+const flowAt = (frameIndex: number, svg: string) => {
+  const off = -FLOW_DASH * (((frameIndex / FPS) / FLOW_PERIOD) % 1);
+  return svg.replace(/class="sq-flow"/g, `class="sq-flow" stroke-dashoffset="${off.toFixed(3)}"`);
+};
 
 const clamp = (v: number, lo: number, hi: number) => Math.min(hi, Math.max(lo, v));
 const lerp = (a: number, b: number, t: number) => a + (b - a) * t;
@@ -221,29 +240,38 @@ const build = async (theme: string) => {
   FOOT = LOGO_GAP + MARK.h + LOGO_BOTTOM;
   STAGE_H = H - FOOT;
   const land = await view("landscape", theme);
-  const ord = await view(SYSTEM, theme);
-
-  // The anchor: the "Order Service" card, in canvas coordinates.
-  const card = land.svg.match(
-    new RegExp(
-      `data-path="${SYSTEM}" data-kind="card"[^>]*>\\s*<rect x="(\\d+)" y="(\\d+)" width="(\\d+)" height="(\\d+)"`,
-    ),
-  );
-  if (!card) throw new Error(`could not find the \`${SYSTEM}\` card to dive through`);
-  const f = fitOf(land);
-  const A = {
-    x: f.x + (+card[1] + +card[3] / 2) * f.s,
-    y: f.y + (+card[2] + +card[4] / 2) * f.s,
-    w: +card[3] * f.s,
-    h: +card[4] * f.s,
-  };
   const V = { x: W / 2, y: STAGE_H / 2 };
-  const k = clamp(Math.min(W / A.w, H / A.h), 1.15, CAP);
-  const kIn = 1 + (k - 1) * TRAVEL;
-  const d = { x: V.x - A.x, y: V.y - A.y };
+
+  /** Everything a dive into one system needs: its view, the card it is
+   *  anchored on in canvas coordinates, and the scale/offset that carries one
+   *  into the other. Derived per system so each dive is anchored on its own
+   *  card — the whole point of the motion is that the card you pressed is the
+   *  thing that opens. */
+  const target = async (name: string) => {
+    const art = await view(name, theme);
+    const card = land.svg.match(
+      new RegExp(
+        `data-path="${name}" data-kind="card"[^>]*>\\s*<rect x="(\\d+)" y="(\\d+)" width="(\\d+)" height="(\\d+)"`,
+      ),
+    );
+    if (!card) throw new Error(`could not find the \`${name}\` card to dive through`);
+    const f = fitOf(land);
+    const A = {
+      x: f.x + (+card[1] + +card[3] / 2) * f.s,
+      y: f.y + (+card[2] + +card[4] / 2) * f.s,
+      w: +card[3] * f.s,
+      h: +card[4] * f.s,
+    };
+    const k = clamp(Math.min(W / A.w, H / A.h), 1.15, CAP);
+    return { name, art, A, k, kIn: 1 + (k - 1) * TRAVEL, d: { x: V.x - A.x, y: V.y - A.y } };
+  };
+  const targets = [];
+  for (const name of SYSTEMS) targets.push(await target(name));
+  type Target = (typeof targets)[number];
 
   /** One dive frame. `t` runs 0→1; `into` picks the direction. */
-  const dive = (t: number, into: boolean) => {
+  const dive = (t: number, into: boolean, g: Target) => {
+    const { art: ord, A, k, kIn, d } = g;
     const e = ease(t);
     // outgoing flies past, anchored on the card; incoming emerges from it
     const outK = into ? lerp(1, k, e) : lerp(1, 1 / k, e);
@@ -266,7 +294,7 @@ const build = async (theme: string) => {
       vis(leaving, lTag, about(into ? A : V, outD, outK), outA) +
         vis(arriving, aTag, about(into ? V : A, inD, inK), inA),
       // the trail flips at the midpoint, where the arriving altitude takes over
-      into === e > 0.5 ? ["landscape", SYSTEM] : ["landscape"],
+      into === e > 0.5 ? ["landscape", g.name] : ["landscape"],
     );
   };
 
@@ -276,7 +304,7 @@ const build = async (theme: string) => {
   // Where the pointer goes. Clicking the card is how you descend; clicking the
   // breadcrumb is how you come back — the same two affordances the app has, so
   // the GIF teaches the interaction rather than just showing the motion.
-  const CARD = { x: A.x + 6, y: A.y - 4 };
+  const cardPoint = (g: Target) => ({ x: g.A.x + 6, y: g.A.y - 4 });
   const CRUMB = { x: 58, y: 34 };
   const START = { x: W - 150, y: STAGE_H - 70 };
 
@@ -304,29 +332,43 @@ const build = async (theme: string) => {
   const frames: string[] = [];
   const hold = (svg: string, n: number) => { for (let i = 0; i < n; i++) frames.push(svg); };
 
-  // Long holds on purpose: the story is that the *contents change* — five
-  // systems become one system's internals — and that needs reading time. The
-  // dive itself is only the join between the two.
-  // read the landscape, reach for the Order Service card, press it
-  frames.push(...approach(land, "a", ["landscape"], START, CARD, 16, 12, 8));
-  // the dive carries the pointer for a moment, then lets it go
-  for (let i = 1; i <= 11; i++) {
-    const t = i / 12;
-    frames.push(
-      dive(t, true).replace("</svg>", `${cursor(CARD.x, CARD.y, Math.max(0, 1 - t * 2.2), false)}</svg>`),
-    );
-  }
-  // read the detail, then reach for the breadcrumb to come back up
-  frames.push(...approach(ord, "b", ["landscape", SYSTEM], CARD, CRUMB, 22, 12, 8));
-  for (let i = 1; i <= 11; i++) {
-    const t = i / 12;
-    frames.push(
-      dive(t, false).replace("</svg>", `${cursor(CRUMB.x, CRUMB.y, Math.max(0, 1 - t * 2.2), false)}</svg>`),
-    );
-  }
-  hold(still(land, "a", ["landscape"]), 16);
+  // Holds are long enough to read and no longer: the story is that the
+  // *contents change*, and with two round trips the clip pays for every held
+  // frame twice. They also cost more than they used to — while an animated
+  // edge is on screen no two frames are identical, so the encoder cannot
+  // collapse a dwell into one.
+  // One round trip: reach for a card, dive, read the internals, climb back out
+  // on the breadcrumb. The pointer starts wherever it was left, so the second
+  // trip continues the first rather than teleporting.
+  let from = START;
+  targets.forEach((g, i) => {
+    const CARD = cardPoint(g);
+    // the first landscape needs reading time; by the second the viewer knows it
+    frames.push(...approach(land, "a", ["landscape"], from, CARD, i === 0 ? 10 : 6, 12, 6));
+    // the dive carries the pointer for a moment, then lets it go
+    for (let j = 1; j <= 11; j++) {
+      const t = j / 12;
+      frames.push(
+        dive(t, true, g).replace("</svg>", `${cursor(CARD.x, CARD.y, Math.max(0, 1 - t * 2.2), false)}</svg>`),
+      );
+    }
+    // read the detail, then reach for the breadcrumb to come back up
+    frames.push(...approach(g.art, "b", ["landscape", g.name], CARD, CRUMB, 12, 12, 6));
+    for (let j = 1; j <= 11; j++) {
+      const t = j / 12;
+      frames.push(
+        dive(t, false, g).replace("</svg>", `${cursor(CRUMB.x, CRUMB.y, Math.max(0, 1 - t * 2.2), false)}</svg>`),
+      );
+    }
+    from = CRUMB;
+  });
+  hold(still(land, "a", ["landscape"]), 10);
 
-  frames.forEach((svg, i) => {
+  // Phase is stamped here rather than in the timeline: held frames push the
+  // same string N times, and only the output index knows how far the clip has
+  // run by the time each one is drawn.
+  frames.forEach((raw, i) => {
+    const svg = flowAt(i, raw);
     if (process.env.DUMP_SVG) { writeFileSync(join(tmp, `f${String(i).padStart(4,"0")}.svg`), svg); return; }
     writeFileSync(join(tmp, `f${String(i).padStart(4, "0")}.png`), svgToPng(svg));
     if (i % 20 === 0) console.log(`  frame ${i + 1}/${frames.length}`);
@@ -342,10 +384,10 @@ const build = async (theme: string) => {
   const args = (a: string[]) => execFileSync("ffmpeg", ["-y", "-hide_banner", "-loglevel", "error", ...a]);
   const crop = `crop=${W}:${H}:${M.x}:${M.y}`;
   args(["-framerate", String(FPS), "-i", join(tmp, "f%04d.png"),
-        "-vf", `${crop},palettegen=max_colors=192:stats_mode=diff`, pal]);
+        "-vf", `${crop},palettegen=max_colors=128:stats_mode=diff`, pal]);
   mkdirSync(dirname(OUT), { recursive: true });
   args(["-framerate", String(FPS), "-i", join(tmp, "f%04d.png"), "-i", pal,
-        "-lavfi", `[0:v]${crop}[c];[c][1:v]paletteuse=dither=bayer:bayer_scale=3`,
+        "-lavfi", `[0:v]${crop}[c];[c][1:v]paletteuse=dither=bayer:bayer_scale=5`,
         "-loop", "0", OUT]);
   rmSync(tmp, { recursive: true, force: true });
 

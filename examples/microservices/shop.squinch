@@ -114,6 +114,11 @@ view orders {
   }
 }
 
+view accounts {
+  scope accounts
+  title "Account Service"
+}
+
 view orders-pci {
   scope orders
   title "Order Service — PCI surface"

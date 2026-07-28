@@ -7,6 +7,8 @@
     "microservices.catalog.dark.svg": "566b9da18000cd5e",
     "microservices.orders.light.svg": "aae63ff57f000e1d",
     "microservices.orders.dark.svg": "b41d69d0c416caf2",
+    "microservices.accounts.light.svg": "ee0bbf07a5206d37",
+    "microservices.accounts.dark.svg": "4b3fffbeb852efb3",
     "microservices.orders-pci.light.svg": "890bcf8c931b83a2",
     "microservices.orders-pci.dark.svg": "cd3c113cc3b4be22",
     "microservices.checkout.light.svg": "b91f7479d202f022",
