@@ -1,8 +1,14 @@
 # Squinch — DSL Spec v0 (draft)
 
 > Naming (decided 2026-07-24): file ext `.squinch`, CLI binary `squinch`, npm scope
-> `@squinch/*` (CLI published as bare `squinch`). Constructs marked **[v1.1]** /
-> **[v2]** are specced for direction but not built in v1.
+> `@squinch/*` (CLI published as bare `squinch`).
+>
+> **What is not built.** Everything here parses and renders today *except* four
+> constructs, which are errors rather than no-ops (§12): `import` and `expose`
+> (federation, **[v2]** — §10.4), and the `around` / `via` route modifiers
+> (§6 Tier 2), which are a deliberate no — see
+> [notes/routing-hints.md](notes/routing-hints.md). Anything without such a
+> marker ships.
 >
 > Companion docs: [DESIGN.md](DESIGN.md) (design language), [PLAN.md](PLAN.md)
 > (build plan).
@@ -155,8 +161,9 @@ view orders {
 }
 ```
 
-A static precursor to animated flow stories [v2]: same construct, presentation mode
-later steps through it.
+Presentation mode walks the same construct one hop at a time (`flowStep`),
+counted over the hops *visible in that view* rather than the flow's declared
+numbering — a scoped view can lift the opening steps out.
 
 ### Built-in packs
 
@@ -214,7 +221,7 @@ view shop {
   highlight #pci                // spotlight matching elements, dim the rest;
                                 // SPA renders tag chips for interactive toggling
   show descriptions             // render descriptions inline (off by default)
-  show flow checkout            // ①②③ badges along a declared flow   [v1.1]
+  show flow checkout            // ①②③ badges along a declared flow
   legend auto                   // auto | off — legend of the edge styles
                                 // and kinds this view actually uses
   titleblock {                  // drafting-style corner block
@@ -251,7 +258,7 @@ A deterministic rule stack, evaluated in fixed order:
    (the foreign *system* as one muted/hatched card — `web`, not `web.app`) at the
    periphery. `context off` disables; explicitly `include web.app` overrides the
    top-level lift and anchors edges to the deeper node instead.
-3. **Explicit `include`** adds elements (or tag matches [v1.1]).
+3. **Explicit `include`** adds elements, or every element carrying a tag.
 4. **`exclude` wins last** — removes an element and its entire subtree, beating
    scope, context, expand, and include.
 5. **Derived content follows visibility, never drives it**: edges render iff both
@@ -323,21 +330,35 @@ layout {
   fail `check` with both locations named. A silently dropped hint would strand the
   agent loop; a clear conflict error gets fixed in one iteration.
 
-### Tier 2 — edge routing **[`around`/`via` are v1.1]**
+### Tier 2 — edge routing
 
 ```squinch
 layout {
-  route db ~> sync from east to west        // exit/entry sides        [v1]
+  route db ~> sync from east to west         // exit/entry sides
   channel create, get, search -> db          // shared trunk (bus)
-  route search -> idx around files           // avoid a node's lane
-                                             // [not built — docs/notes/routing-hints.md]
-  route api -> legacy via below-db           // coarse waypoint: a node-relative
-                                             // region, never a coordinate [v1.1]
 }
 ```
 
+Two more were specced here and are **not built** — both are parse errors, not
+no-ops:
+
+```squinch
+route search -> idx around files             // avoid a node's lane
+route api -> legacy via below-db             // a node-relative region, never a coordinate
+```
+
+`around` is a deliberate no rather than a backlog item: ELK already routes
+around nodes, so the hint mostly restated what the layout was doing anyway, and
+the cases it did change were better fixed by reversing a back-edge.
+[notes/routing-hints.md](notes/routing-hints.md) records the whole argument,
+including what it *was* meant to fix, so it does not get built twice. `via`
+waits on the same evidence.
+
 The GUI's drag-to-adjust writes Tier 1/2 statements back into the source — the canvas
-is a hint-authoring device, never a coordinate store. **[v2]**
+is a hint-authoring device, never a coordinate store. **[v2]** Spiked and shelved
+on `spike/drag-to-hint`: the probe found two real `place` bugs, and concluded
+that `place` is the wrong primitive to hang a drag off — reordering *within* a
+band is the gesture people reach for, and the language has no hint for it.
 
 ## 7. Packs, themes, exposure
 
@@ -363,14 +384,14 @@ OS to swap out from under them.
 ```ebnf
 file        = { statement } ;
 statement   = pack | import | node | container | edge | view | theme | expose
-            | zone | flow ;                    (* flow: v1.1 *)
+            | zone | flow ;
 
-zone        = "zone" ident [ label ] [ ident ] "{" "contains" pathlist "}" ;  (* v1.1 *)
-flow        = "flow" ident [ label ] "{" { chain } "}" ;                      (* v1.1 *)
+zone        = "zone" ident [ label ] [ ident ] "{" "contains" pathlist "}" ;
+flow        = "flow" ident [ label ] "{" { chain } "}" ;
 chain       = path { arrow path } ;
 
 pack        = "pack" ident [ "from" string ] ;
-import      = "import" string "as" ident ;                        (* v2 *)
+import      = "import" string "as" ident ;               (* v2, not built *)
 container   = ("system" | "container") ident [ label ] "{"
                 { ident ":" value      (* card attrs: glyph, preview, owner, ... *)
                 | node | container | edge } "}" ;
@@ -383,7 +404,7 @@ arrow       = "->" | "~>" | "<->" | "--" ;
 path        = ident { "." ident } ;
 pathlist    = path { "," path } ;
 theme       = "theme" ident ;
-expose      = "expose" pathlist ;                                 (* v2 *)
+expose      = "expose" pathlist ;                       (* v2, not built *)
 
 view        = "view" path "{" { viewstmt } "}" ;
 viewstmt    = "title" string | "theme" ident | "scope" path
@@ -405,7 +426,8 @@ layoutstmt  = "direction" ("down"|"right") | "lines" ident | "density" ident
             | "channel" pathlist arrow path ;
 rank        = "[" path { path } "]" ;
 relpos      = "right-of" | "left-of" | "above" | "below" ;
-routemod    = "from" side | "to" side | "around" path | "via" region ;
+routemod    = "from" side | "to" side
+            | "around" path | "via" region ;   (* not built — §6, routing-hints.md *)
 side        = "north" | "south" | "east" | "west" ;
 
 label       = string ;  attrs = "{" { ident ":" value } "}" ;
@@ -636,5 +658,9 @@ Shipped as a skill for coding agents:
 ## 12. Consistency rules (spec meta)
 
 - Every construct used in §10 examples appears in §3–7 and the §8 grammar.
-- Anything marked [v1.1]/[v2] must degrade gracefully when absent: unknown *future*
-  keywords are errors today (no silent acceptance).
+- A construct that is not built is a parse error, never a silent no-op, and the
+  grammar sketch in §8 says so inline — reading the EBNF alone must not imply
+  something works. The four are listed at the top of this document.
+- No `[v1.1]` markers: the v1.1 constructs (zones, flows, tags, channels, cols,
+  align, legend, titleblock) all shipped, and a marker claiming otherwise
+  understates the language to anyone designing against it.

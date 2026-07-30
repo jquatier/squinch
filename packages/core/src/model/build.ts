@@ -179,6 +179,21 @@ export function buildProject(files: ProjectFile[]): BuildResult {
         Object.assign(c.attrs, meta.attrs);
         if (meta.description) c.attrs["description"] = meta.description;
         c.tags.push(...meta.tags);
+        // `glyph:` used to be the one icon reference nobody checked: the view
+        // layer splits it on `/` and shrugs, so a typo drew a `?` plate, exited
+        // 0, and left you to notice by eye. Same two errors as a zone `icon:`.
+        if (meta.attrs["glyph"]) {
+          const [p, i] = meta.attrs["glyph"].split("/");
+          if (!p || !i || !packExists(p)) {
+            const s = p && suggest(p, allPackNames());
+            error(ctx, body, `unknown pack \`${p ?? meta.attrs["glyph"]}\` in glyph`,
+              s ? `did you mean \`${s}/${i ?? ""}\`?` : `use \`glyph: <pack>/<id>\``);
+          } else if (!iconExists(p, i)) {
+            const s = suggest(i, iconIds(p));
+            error(ctx, body, `unknown icon \`${p}/${i}\` in glyph`,
+              s ? `did you mean \`${p}/${s}\`?` : `run \`squinch icons search ${i}\``);
+          }
+        }
       }
     }
 

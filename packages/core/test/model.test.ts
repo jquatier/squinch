@@ -121,3 +121,39 @@ describe("grammar + model builder", () => {
     const lines = r.diagnostics.filter((d) => d.message.startsWith("syntax error")).map((d) => d.loc.line);
     expect(new Set(lines).size).toBe(lines.length);
   });
+
+  describe("glyph: is a real icon reference", () => {
+    // It was the one icon reference nobody validated. `view/resolve.ts` splits it
+    // on `/` and shrugs, so a typo drew a `?` plate and exited 0 — the silent
+    // class, where check passes and only a reader notices.
+    const src = (glyph: string) =>
+      `pack aws\nsystem s "S" {\n  glyph: ${glyph}\n  a = aws/lambda "A"\n}\n`;
+
+    it("accepts one that resolves", () => {
+      expect(buildModel(src("sys/api")).ok).toBe(true);
+    });
+
+    it("rejects an unknown id, and points at the search command", () => {
+      const r = buildModel(src("sys/nope"));
+      expect(r.ok).toBe(false);
+      const d = r.diagnostics.find((x) => x.message.includes("in glyph"));
+      expect(d?.message).toContain("unknown icon `sys/nope`");
+      expect(d?.fix).toContain("squinch icons search nope");
+    });
+
+    it("rejects an unknown pack, and suggests a real one", () => {
+      const r = buildModel(src("sysx/api"));
+      expect(r.ok).toBe(false);
+      const d = r.diagnostics.find((x) => x.message.includes("in glyph"));
+      expect(d?.message).toContain("unknown pack `sysx`");
+      expect(d?.fix).toContain("did you mean `sys/");
+    });
+
+    it("rejects a value that is not a pack/id pair at all", () => {
+      const r = buildModel(src("notapath"));
+      expect(r.ok).toBe(false);
+      expect(r.diagnostics.find((x) => x.message.includes("in glyph"))?.fix).toContain(
+        "glyph: <pack>/<id>",
+      );
+    });
+  });
