@@ -5,7 +5,7 @@ person customer "Customer"
 
 system webapp "Contoso Web" {
   description: "Public Azure web application"
-  glyph: sys/webapp
+  glyph: sys/app-window
 
   fd    = azure/front-door           "Front Door"
   app   = azure/app-services         "App Service" {

@@ -687,7 +687,7 @@ function iconPlate(
   const meta = icon ? iconMeta(icon.pack, icon.id) : undefined;
   const asset = icon ? iconAsset(icon.pack, icon.id) : undefined;
   const r = Math.max(2, Math.round(size / 10));
-  if (asset && icon && (icon.pack === "sys" || icon.pack === "builtin" || packMonochrome(icon.pack))) {
+  if (asset && icon && (icon.pack === "builtin" || packMonochrome(icon.pack))) {
     // single-colour marks — our own glyphs and logo packs alike: a coloured
     // plate with the mark knocked out of it, so a wordless logo still reads
     const pad = Math.round(size * 0.2);

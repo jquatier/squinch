@@ -36,7 +36,7 @@ describe("visibility resolution + edge lifting", () => {
     const g = resolveView(model, view("landscape"));
     const webCard = g.nodes.find((n) => n.path === "web")!;
     expect(webCard.tagline).toBe("Customer-facing web experience");
-    expect(webCard.glyph).toEqual({ pack: "sys", id: "webapp" });
+    expect(webCard.glyph).toEqual({ pack: "sys", id: "app-window" });
     expect(webCard.preview.length).toBe(2); // cdn + app icons
     const ordersCard = g.nodes.find((n) => n.path === "orders")!;
     expect(ordersCard.tagline).toBe("4 components");

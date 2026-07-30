@@ -5,7 +5,7 @@ person shopper "Shopper"
 
 system orders "Order Processing" {
   description: "Takes an order and drives it to fulfilment"
-  glyph: sys/service
+  glyph: sys/hexagon
 
   apim   = azure/api-management "API Management" {
     description: "Public edge"

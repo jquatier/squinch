@@ -7,7 +7,7 @@ erp = box "Legacy ERP" external
 
 system ingest "Ingestion" {
   description: "Batch intake and normalization"
-  glyph: sys/queue
+  glyph: sys/list
   gw = aws/api-gateway "Gateway"
   fn = aws/lambda "Sync Worker"
   gw -> fn
@@ -15,7 +15,7 @@ system ingest "Ingestion" {
 
 system core "Core Platform" {
   description: "APIs and the system of record"
-  glyph: sys/api
+  glyph: sys/code
   api = aws/lambda "API"
   db  = aws/aurora "Database" datastore
   api -> db

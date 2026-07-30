@@ -9,7 +9,7 @@ legacy_erp = box "Legacy ERP System" external {
 worker    = aws/lambda "Sync Worker"
 db        = aws/rds    "App Database"
 dashboard = box "Admin Dashboard" {
-  glyph: sys/webapp
+  glyph: sys/app-window
   description: "New web app for administrators"
 }
 

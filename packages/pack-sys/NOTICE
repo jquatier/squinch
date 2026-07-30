@@ -1,0 +1,30 @@
+Squinch system pack
+===================
+
+Icon artwork in `icons/` comes from Lucide (https://lucide.dev), released under
+the ISC licence. The full licence text is in LICENSE-ICONS.txt.
+
+Copyright (c) for portions of Lucide are held by Cole Bemis 2013-2022 as part of
+Feather (MIT). All other copyright (c) for Lucide are held by Lucide Contributors
+2022.
+
+ISC permits use, copying, modification and distribution with the copyright
+notice retained, so unlike the cloud packs there is no no-derivatives
+constraint here. The files in `icons/` are nonetheless copied **verbatim**, at
+Lucide's own 2px stroke weight: keeping them byte-faithful means the set stays a
+single coherent hand, and `npm run fetch` can pick up upstream fixes without
+re-applying local edits. Theme treatment (the neutral plate, the currentColor
+tint) happens at render time in @squinch/core, never here.
+
+This is the `sys` pack — the generic half of Squinch's icon vocabulary, for the
+things no cloud vendor draws: servers, racks, laptops, factories, network gear,
+and plain shapes for when nothing else fits. It resolves without a `pack`
+statement. Curated by role rather than vendored whole; Lucide ships over 2,000
+icons and the list in scripts/fetch.ts is the subset that earns its place in an
+architecture diagram. Add an id, run `npm run fetch`, commit the result.
+
+Packaging code (scripts/, pack.json)
+------------------------------------
+Copyright the Squinch authors, licensed under Apache-2.0 with the rest of the
+repository. pack.json is generated metadata (ids, titles, categories), not an
+adaptation of the artwork.

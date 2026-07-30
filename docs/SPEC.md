@@ -95,7 +95,7 @@ Descriptions render as the card tagline, in hover cards, and inline via a view's
 
 ```squinch
 system shop "Order Service" {
-  glyph:   sys/api            // optional badge on the collapsed card
+  glyph:   sys/code           // optional badge on the collapsed card
   preview: auto               // none | auto | [api db] — mini-strip of inner icons
   owner:   team-orders
 
@@ -167,12 +167,16 @@ numbering — a scoped view can lift the opening steps out.
 
 ### Built-in packs
 
-Always available without a `pack` statement: `builtin` (`box`, `person`), `sys`
-(~30 first-party archetype glyphs: api, webapp, mobile, service, worker, database,
-cache, queue, event-bus, filestore, search, ml-model, scheduler, gateway, auth,
-monitor, org, internet, device, …; stroke-based/`currentColor`, theme-tintable), and
-`logos` (third-party brand marks, Simple Icons-sourced) ships as a normal installable
-pack.
+Available without a `pack` statement: `builtin` (`box`, `person` — language
+sugar, drawn in core) and `sys`, the generic set. Nothing enforces the
+distinction: a pack resolves once it is *registered*, and `pack` is a
+declaration of intent rather than a gate.
+
+`sys` is 147 icons from Lucide (ISC), covering what no cloud vendor draws —
+servers, racks, laptops, factories, network gear — plus plain shapes for when
+nothing else fits. Ids are Lucide's own names; `squinch icons search` is the way
+in. `logos` (third-party brand marks, Simple Icons) ships as a normal
+installable pack.
 
 ## 4. Edges
 

@@ -98,7 +98,33 @@ export function sanitizeIcon(svg: string, idPrefix: string): SanitizedIcon {
     return out;
   };
 
-  const body = builder.build(clean(root.svg as any[]));
+  // The root <svg>'s presentation attributes are *inherited* by everything
+  // inside it, and the body gets lifted out of that root into a <symbol> — so
+  // dropping them silently restyles the artwork. Stroke-only sets are where it
+  // shows: Lucide puts `fill="none" stroke="currentColor" stroke-width="2"` on
+  // the root and nothing on the paths, so without this the shapes fall back to
+  // the SVG defaults — filled black, unstroked — and every icon renders as a
+  // solid blob. Hoist them onto a wrapping <g> so inheritance survives the move.
+  //
+  // Only inheritable paint/stroke/text properties: geometry (`width`, `x`,
+  // `viewBox`) describes the root viewport, not its children, and carrying it
+  // down would move the artwork.
+  const INHERITED = [
+    "fill", "stroke", "stroke-width", "stroke-linecap", "stroke-linejoin",
+    "stroke-dasharray", "stroke-opacity", "fill-opacity", "fill-rule",
+    "clip-rule", "opacity", "font-size", "font-family", "text-anchor",
+    "dominant-baseline",
+  ];
+  const inherited: Record<string, unknown> = {};
+  for (const name of INHERITED) {
+    const v = attrOf(root, name);
+    if (v !== undefined && v !== null) inherited[`@${name}`] = String(v);
+  }
+
+  const children = clean(root.svg as any[]);
+  const body = builder.build(
+    Object.keys(inherited).length ? [{ g: children, ":@": inherited }] : children,
+  );
   return { body, viewBox };
 }
 

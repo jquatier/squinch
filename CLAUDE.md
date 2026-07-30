@@ -67,10 +67,28 @@ Nearly all of them are gradient artwork, which is the one thing that
 distinguishes them from the other packs.
 `packages/pack-logos` — 124 curated Simple Icons marks (CC0) for the non-cloud
 half of a stack; `monochrome: true` in its manifest makes the renderer plate and
-tint them. Every pack regenerates with `npm run fetch`; never hand-edit icons.
-Icon **ids must satisfy the grammar's `Ident`** — both vendors ship names that
-don't (`&`, parentheses, a trailing space), so the fetch scripts slug them and
-`packs.test.ts` asserts it across every installed pack.
+tint them.
+`packages/pack-sys` — 147 curated Lucide icons (ISC): the generic set for what no
+vendor draws (servers, hardware, network gear) plus plain shapes as a last
+resort. Also `monochrome: true`. It is the `sys/*` prefix, and like `builtin` it
+resolves with **no `pack` statement** — which is a property of being registered,
+not of the DSL: `model.packs` is recorded and never read, so `pack` is a
+declaration of intent. Registration is hardcoded in four places, all one-liners:
+`core/src/packs/node-fs.ts`, `apps/spa/scripts/sync-packs.ts` +
+`apps/spa/src/squinch.ts`, and `packages/vscode/scripts/bundle.mjs` (miss the
+last and `packExists` is false in the bundled extension).
+A pack name must never appear in **both** `BUILTIN_GLYPHS` and the pack registry:
+`iconIds` short-circuits on the former, so the disk icons would vanish from
+search, completions and `squinch icons` while `hasIcon` still accepted them.
+Every pack regenerates with `npm run fetch`; never hand-edit icons.
+Icon **ids must satisfy the grammar's `Ident`** — both cloud vendors ship names
+that don't (`&`, parentheses, a trailing space), so the fetch scripts slug them
+and `packs.test.ts` asserts it across every installed pack.
+The sanitizer **hoists the source `<svg>`'s inherited presentation attributes
+onto a wrapping `<g>`** (`packs/sanitize.ts`): the body is lifted out of its root
+into a `<symbol>`, and stroke-only sets like Lucide put `fill="none"
+stroke="currentColor"` on the root and nothing on the paths — drop those and
+every icon renders as a solid black blob.
 Deliberately absent: GCP. Google grants permission to *use* its Cloud icons in
 diagrams but publishes no redistribution grant, so we don't ship them.
 `packages/cli` — the `squinch` binary,
@@ -87,7 +105,7 @@ committed SVGs that CI verifies.
 Phases 0–3 are complete. The engine (grammar → model → visibility/lifting →
 layout → themed SVG), the CLI (check/render/diff/icons/init/watch + lockfile
 model + Actions), the SPA playground, the VS Code extension + language server,
-three icon packs, and five themes all ship. Phase 3's bar — an agent producing
+four icon packs, and five themes all ship. Phase 3's bar — an agent producing
 clean diagrams from prose using only the skill + CLI — is certified at **20/20
 by independent cold agents** (`gauntlet/README.md` records what each run found;
 round 3's seven defects are why the number alone is not the point).

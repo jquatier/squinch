@@ -5,7 +5,7 @@ person dev "Developers"
 
 system app "Storefront" {
   description: "Next.js on Vercel"
-  glyph: sys/webapp
+  glyph: sys/app-window
   web = logos/nextdotjs "Next.js"
   api = logos/nestjs "API"
   web -> api "tRPC"
@@ -22,7 +22,7 @@ system data "Data Platform" {
 }
 
 system ops "Platform" {
-  glyph: sys/monitor
+  glyph: sys/activity
   k8s   = logos/k8s "Kubernetes"
   graf  = logos/grafana "Grafana"
   otel  = logos/opentelemetry "OTel"

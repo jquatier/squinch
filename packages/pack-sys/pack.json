@@ -1,0 +1,790 @@
+{
+  "name": "sys",
+  "title": "System, infrastructure & shapes",
+  "release": "1.27.0",
+  "source": "https://lucide.dev",
+  "license": "ISC",
+  "attribution": "Lucide — https://lucide.dev (ISC); portions from Feather (MIT)",
+  "monochrome": true,
+  "icons": {
+    "activity": {
+      "file": "activity.svg",
+      "title": "Activity",
+      "category": "Observability"
+    },
+    "antenna": {
+      "file": "antenna.svg",
+      "title": "Antenna",
+      "category": "Messaging"
+    },
+    "app-window": {
+      "file": "app-window.svg",
+      "title": "App window",
+      "category": "App"
+    },
+    "archive": {
+      "file": "archive.svg",
+      "title": "Archive",
+      "category": "Data"
+    },
+    "arrow-left-right": {
+      "file": "arrow-left-right.svg",
+      "title": "Arrow left right",
+      "category": "Network"
+    },
+    "asterisk": {
+      "file": "asterisk.svg",
+      "title": "Asterisk",
+      "category": "Shapes"
+    },
+    "battery": {
+      "file": "battery.svg",
+      "title": "Battery",
+      "category": "Hardware"
+    },
+    "bell": {
+      "file": "bell.svg",
+      "title": "Bell",
+      "category": "Messaging"
+    },
+    "binary": {
+      "file": "binary.svg",
+      "title": "Binary",
+      "category": "Data"
+    },
+    "blocks": {
+      "file": "blocks.svg",
+      "title": "Blocks",
+      "category": "App"
+    },
+    "bookmark": {
+      "file": "bookmark.svg",
+      "title": "Bookmark",
+      "category": "Data"
+    },
+    "box": {
+      "file": "box.svg",
+      "title": "Box",
+      "category": "Compute"
+    },
+    "boxes": {
+      "file": "boxes.svg",
+      "title": "Boxes",
+      "category": "Compute"
+    },
+    "braces": {
+      "file": "braces.svg",
+      "title": "Braces",
+      "category": "App"
+    },
+    "briefcase": {
+      "file": "briefcase.svg",
+      "title": "Briefcase",
+      "category": "People"
+    },
+    "bug": {
+      "file": "bug.svg",
+      "title": "Bug",
+      "category": "Observability"
+    },
+    "building": {
+      "file": "building.svg",
+      "title": "Building",
+      "category": "Places"
+    },
+    "building-2": {
+      "file": "building-2.svg",
+      "title": "Building 2",
+      "category": "Places"
+    },
+    "cable": {
+      "file": "cable.svg",
+      "title": "Cable",
+      "category": "Network"
+    },
+    "calendar-clock": {
+      "file": "calendar-clock.svg",
+      "title": "Calendar clock",
+      "category": "Process"
+    },
+    "chart-bar": {
+      "file": "chart-bar.svg",
+      "title": "Chart bar",
+      "category": "Observability"
+    },
+    "chart-line": {
+      "file": "chart-line.svg",
+      "title": "Chart line",
+      "category": "Observability"
+    },
+    "chart-pie": {
+      "file": "chart-pie.svg",
+      "title": "Chart pie",
+      "category": "Observability"
+    },
+    "check-check": {
+      "file": "check-check.svg",
+      "title": "Check check",
+      "category": "Process"
+    },
+    "circle": {
+      "file": "circle.svg",
+      "title": "Circle",
+      "category": "Shapes"
+    },
+    "circle-dot": {
+      "file": "circle-dot.svg",
+      "title": "Circle dot",
+      "category": "Shapes"
+    },
+    "circle-play": {
+      "file": "circle-play.svg",
+      "title": "Circle play",
+      "category": "Process"
+    },
+    "clipboard-list": {
+      "file": "clipboard-list.svg",
+      "title": "Clipboard list",
+      "category": "Observability"
+    },
+    "clock": {
+      "file": "clock.svg",
+      "title": "Clock",
+      "category": "Process"
+    },
+    "code": {
+      "file": "code.svg",
+      "title": "Code",
+      "category": "App"
+    },
+    "cog": {
+      "file": "cog.svg",
+      "title": "Cog",
+      "category": "Compute"
+    },
+    "component": {
+      "file": "component.svg",
+      "title": "Component",
+      "category": "Compute"
+    },
+    "contact": {
+      "file": "contact.svg",
+      "title": "Contact",
+      "category": "People"
+    },
+    "container": {
+      "file": "container.svg",
+      "title": "Container",
+      "category": "Compute"
+    },
+    "cpu": {
+      "file": "cpu.svg",
+      "title": "Cpu",
+      "category": "Compute"
+    },
+    "database": {
+      "file": "database.svg",
+      "title": "Database",
+      "category": "Data"
+    },
+    "diamond": {
+      "file": "diamond.svg",
+      "title": "Diamond",
+      "category": "Shapes"
+    },
+    "disc": {
+      "file": "disc.svg",
+      "title": "Disc",
+      "category": "Hardware"
+    },
+    "door-open": {
+      "file": "door-open.svg",
+      "title": "Door open",
+      "category": "App"
+    },
+    "dot": {
+      "file": "dot.svg",
+      "title": "Dot",
+      "category": "Shapes"
+    },
+    "earth": {
+      "file": "earth.svg",
+      "title": "Earth",
+      "category": "Places"
+    },
+    "ethernet-port": {
+      "file": "ethernet-port.svg",
+      "title": "Ethernet port",
+      "category": "Network"
+    },
+    "eye": {
+      "file": "eye.svg",
+      "title": "Eye",
+      "category": "Observability"
+    },
+    "eye-off": {
+      "file": "eye-off.svg",
+      "title": "Eye off",
+      "category": "Security"
+    },
+    "factory": {
+      "file": "factory.svg",
+      "title": "Factory",
+      "category": "Places"
+    },
+    "file": {
+      "file": "file.svg",
+      "title": "File",
+      "category": "Data"
+    },
+    "files": {
+      "file": "files.svg",
+      "title": "Files",
+      "category": "Data"
+    },
+    "filter": {
+      "file": "filter.svg",
+      "title": "Filter",
+      "category": "Data"
+    },
+    "fingerprint": {
+      "file": "fingerprint.svg",
+      "title": "Fingerprint",
+      "category": "Security"
+    },
+    "folder": {
+      "file": "folder.svg",
+      "title": "Folder",
+      "category": "Data"
+    },
+    "folder-open": {
+      "file": "folder-open.svg",
+      "title": "Folder open",
+      "category": "Data"
+    },
+    "funnel": {
+      "file": "funnel.svg",
+      "title": "Funnel",
+      "category": "Data"
+    },
+    "gauge": {
+      "file": "gauge.svg",
+      "title": "Gauge",
+      "category": "Observability"
+    },
+    "git-branch": {
+      "file": "git-branch.svg",
+      "title": "Git branch",
+      "category": "Process"
+    },
+    "git-fork": {
+      "file": "git-fork.svg",
+      "title": "Git fork",
+      "category": "Network"
+    },
+    "git-merge": {
+      "file": "git-merge.svg",
+      "title": "Git merge",
+      "category": "Process"
+    },
+    "globe": {
+      "file": "globe.svg",
+      "title": "Globe",
+      "category": "Network"
+    },
+    "grid-2x2": {
+      "file": "grid-2x2.svg",
+      "title": "Grid 2x2",
+      "category": "Shapes"
+    },
+    "handshake": {
+      "file": "handshake.svg",
+      "title": "Handshake",
+      "category": "People"
+    },
+    "hard-drive": {
+      "file": "hard-drive.svg",
+      "title": "Hard drive",
+      "category": "Hardware"
+    },
+    "hard-drive-download": {
+      "file": "hard-drive-download.svg",
+      "title": "Hard drive download",
+      "category": "Data"
+    },
+    "hard-drive-upload": {
+      "file": "hard-drive-upload.svg",
+      "title": "Hard drive upload",
+      "category": "Data"
+    },
+    "hexagon": {
+      "file": "hexagon.svg",
+      "title": "Hexagon",
+      "category": "Compute"
+    },
+    "hourglass": {
+      "file": "hourglass.svg",
+      "title": "Hourglass",
+      "category": "Process"
+    },
+    "house": {
+      "file": "house.svg",
+      "title": "House",
+      "category": "Places"
+    },
+    "id-card": {
+      "file": "id-card.svg",
+      "title": "Id card",
+      "category": "People"
+    },
+    "inbox": {
+      "file": "inbox.svg",
+      "title": "Inbox",
+      "category": "Messaging"
+    },
+    "key-round": {
+      "file": "key-round.svg",
+      "title": "Key round",
+      "category": "Security"
+    },
+    "keyboard": {
+      "file": "keyboard.svg",
+      "title": "Keyboard",
+      "category": "Hardware"
+    },
+    "landmark": {
+      "file": "landmark.svg",
+      "title": "Landmark",
+      "category": "Places"
+    },
+    "laptop": {
+      "file": "laptop.svg",
+      "title": "Laptop",
+      "category": "Hardware"
+    },
+    "layers": {
+      "file": "layers.svg",
+      "title": "Layers",
+      "category": "Compute"
+    },
+    "list": {
+      "file": "list.svg",
+      "title": "List",
+      "category": "Messaging"
+    },
+    "list-ordered": {
+      "file": "list-ordered.svg",
+      "title": "List ordered",
+      "category": "Messaging"
+    },
+    "lock": {
+      "file": "lock.svg",
+      "title": "Lock",
+      "category": "Security"
+    },
+    "lock-keyhole": {
+      "file": "lock-keyhole.svg",
+      "title": "Lock keyhole",
+      "category": "Security"
+    },
+    "log-in": {
+      "file": "log-in.svg",
+      "title": "Log in",
+      "category": "App"
+    },
+    "log-out": {
+      "file": "log-out.svg",
+      "title": "Log out",
+      "category": "App"
+    },
+    "mail": {
+      "file": "mail.svg",
+      "title": "Mail",
+      "category": "Messaging"
+    },
+    "map": {
+      "file": "map.svg",
+      "title": "Map",
+      "category": "Places"
+    },
+    "map-pin": {
+      "file": "map-pin.svg",
+      "title": "Map pin",
+      "category": "Places"
+    },
+    "megaphone": {
+      "file": "megaphone.svg",
+      "title": "Megaphone",
+      "category": "Messaging"
+    },
+    "merge": {
+      "file": "merge.svg",
+      "title": "Merge",
+      "category": "Network"
+    },
+    "message-square": {
+      "file": "message-square.svg",
+      "title": "Message square",
+      "category": "Messaging"
+    },
+    "microchip": {
+      "file": "microchip.svg",
+      "title": "Microchip",
+      "category": "Compute"
+    },
+    "monitor": {
+      "file": "monitor.svg",
+      "title": "Monitor",
+      "category": "Hardware"
+    },
+    "mouse": {
+      "file": "mouse.svg",
+      "title": "Mouse",
+      "category": "Hardware"
+    },
+    "network": {
+      "file": "network.svg",
+      "title": "Network",
+      "category": "Network"
+    },
+    "octagon": {
+      "file": "octagon.svg",
+      "title": "Octagon",
+      "category": "Shapes"
+    },
+    "package": {
+      "file": "package.svg",
+      "title": "Package",
+      "category": "Compute"
+    },
+    "pause": {
+      "file": "pause.svg",
+      "title": "Pause",
+      "category": "Process"
+    },
+    "pentagon": {
+      "file": "pentagon.svg",
+      "title": "Pentagon",
+      "category": "Shapes"
+    },
+    "play": {
+      "file": "play.svg",
+      "title": "Play",
+      "category": "Process"
+    },
+    "plug": {
+      "file": "plug.svg",
+      "title": "Plug",
+      "category": "Hardware"
+    },
+    "power": {
+      "file": "power.svg",
+      "title": "Power",
+      "category": "Hardware"
+    },
+    "printer": {
+      "file": "printer.svg",
+      "title": "Printer",
+      "category": "Hardware"
+    },
+    "puzzle": {
+      "file": "puzzle.svg",
+      "title": "Puzzle",
+      "category": "App"
+    },
+    "radio": {
+      "file": "radio.svg",
+      "title": "Radio",
+      "category": "Messaging"
+    },
+    "radio-tower": {
+      "file": "radio-tower.svg",
+      "title": "Radio tower",
+      "category": "Network"
+    },
+    "refresh-cw": {
+      "file": "refresh-cw.svg",
+      "title": "Refresh cw",
+      "category": "Process"
+    },
+    "repeat": {
+      "file": "repeat.svg",
+      "title": "Repeat",
+      "category": "Process"
+    },
+    "route": {
+      "file": "route.svg",
+      "title": "Route",
+      "category": "App"
+    },
+    "router": {
+      "file": "router.svg",
+      "title": "Router",
+      "category": "Network"
+    },
+    "rss": {
+      "file": "rss.svg",
+      "title": "Rss",
+      "category": "Network"
+    },
+    "satellite-dish": {
+      "file": "satellite-dish.svg",
+      "title": "Satellite dish",
+      "category": "Network"
+    },
+    "save": {
+      "file": "save.svg",
+      "title": "Save",
+      "category": "Data"
+    },
+    "scan": {
+      "file": "scan.svg",
+      "title": "Scan",
+      "category": "Observability"
+    },
+    "scan-face": {
+      "file": "scan-face.svg",
+      "title": "Scan face",
+      "category": "Security"
+    },
+    "search": {
+      "file": "search.svg",
+      "title": "Search",
+      "category": "Data"
+    },
+    "send": {
+      "file": "send.svg",
+      "title": "Send",
+      "category": "Messaging"
+    },
+    "server": {
+      "file": "server.svg",
+      "title": "Server",
+      "category": "Compute"
+    },
+    "server-cog": {
+      "file": "server-cog.svg",
+      "title": "Server cog",
+      "category": "Compute"
+    },
+    "settings": {
+      "file": "settings.svg",
+      "title": "Settings",
+      "category": "Compute"
+    },
+    "shapes": {
+      "file": "shapes.svg",
+      "title": "Shapes",
+      "category": "Shapes"
+    },
+    "share-2": {
+      "file": "share-2.svg",
+      "title": "Share 2",
+      "category": "Network"
+    },
+    "sheet": {
+      "file": "sheet.svg",
+      "title": "Sheet",
+      "category": "Data"
+    },
+    "shield": {
+      "file": "shield.svg",
+      "title": "Shield",
+      "category": "Security"
+    },
+    "shield-alert": {
+      "file": "shield-alert.svg",
+      "title": "Shield alert",
+      "category": "Security"
+    },
+    "shield-check": {
+      "file": "shield-check.svg",
+      "title": "Shield check",
+      "category": "Security"
+    },
+    "siren": {
+      "file": "siren.svg",
+      "title": "Siren",
+      "category": "Observability"
+    },
+    "smartphone": {
+      "file": "smartphone.svg",
+      "title": "Smartphone",
+      "category": "Hardware"
+    },
+    "split": {
+      "file": "split.svg",
+      "title": "Split",
+      "category": "Network"
+    },
+    "square": {
+      "file": "square.svg",
+      "title": "Square",
+      "category": "Shapes"
+    },
+    "square-dashed": {
+      "file": "square-dashed.svg",
+      "title": "Square dashed",
+      "category": "Shapes"
+    },
+    "square-function": {
+      "file": "square-function.svg",
+      "title": "Square function",
+      "category": "App"
+    },
+    "star": {
+      "file": "star.svg",
+      "title": "Star",
+      "category": "Shapes"
+    },
+    "store": {
+      "file": "store.svg",
+      "title": "Store",
+      "category": "Places"
+    },
+    "table": {
+      "file": "table.svg",
+      "title": "Table",
+      "category": "Data"
+    },
+    "tablet": {
+      "file": "tablet.svg",
+      "title": "Tablet",
+      "category": "Hardware"
+    },
+    "tags": {
+      "file": "tags.svg",
+      "title": "Tags",
+      "category": "Data"
+    },
+    "terminal": {
+      "file": "terminal.svg",
+      "title": "Terminal",
+      "category": "Compute"
+    },
+    "thermometer": {
+      "file": "thermometer.svg",
+      "title": "Thermometer",
+      "category": "Observability"
+    },
+    "timer": {
+      "file": "timer.svg",
+      "title": "Timer",
+      "category": "Process"
+    },
+    "triangle": {
+      "file": "triangle.svg",
+      "title": "Triangle",
+      "category": "Shapes"
+    },
+    "unlock": {
+      "file": "unlock.svg",
+      "title": "Unlock",
+      "category": "Security"
+    },
+    "usb": {
+      "file": "usb.svg",
+      "title": "Usb",
+      "category": "Hardware"
+    },
+    "user": {
+      "file": "user.svg",
+      "title": "User",
+      "category": "People"
+    },
+    "user-check": {
+      "file": "user-check.svg",
+      "title": "User check",
+      "category": "Security"
+    },
+    "user-cog": {
+      "file": "user-cog.svg",
+      "title": "User cog",
+      "category": "People"
+    },
+    "users": {
+      "file": "users.svg",
+      "title": "Users",
+      "category": "People"
+    },
+    "warehouse": {
+      "file": "warehouse.svg",
+      "title": "Warehouse",
+      "category": "Places"
+    },
+    "waypoints": {
+      "file": "waypoints.svg",
+      "title": "Waypoints",
+      "category": "Network"
+    },
+    "webcam": {
+      "file": "webcam.svg",
+      "title": "Webcam",
+      "category": "Hardware"
+    },
+    "webhook": {
+      "file": "webhook.svg",
+      "title": "Webhook",
+      "category": "App"
+    },
+    "wifi": {
+      "file": "wifi.svg",
+      "title": "Wifi",
+      "category": "Network"
+    },
+    "workflow": {
+      "file": "workflow.svg",
+      "title": "Workflow",
+      "category": "App"
+    },
+    "zap": {
+      "file": "zap.svg",
+      "title": "Zap",
+      "category": "Messaging"
+    }
+  },
+  "aliases": {
+    "alert": "siren",
+    "blob": "folder",
+    "broker": "radio-tower",
+    "browser": "app-window",
+    "bucket": "folder",
+    "cdn": "earth",
+    "cert": "shield-check",
+    "cron": "clock",
+    "cube": "box",
+    "db": "database",
+    "desktop": "monitor",
+    "disk": "hard-drive",
+    "dns": "globe",
+    "egress": "log-out",
+    "firewall": "shield",
+    "fn": "square-function",
+    "gear": "cog",
+    "host": "server",
+    "ingress": "log-in",
+    "job": "cog",
+    "lambda": "zap",
+    "lb": "share-2",
+    "load-balancer": "share-2",
+    "logs": "clipboard-list",
+    "metrics": "chart-line",
+    "office": "building-2",
+    "onprem": "factory",
+    "pc": "monitor",
+    "people": "users",
+    "phone": "smartphone",
+    "plant": "factory",
+    "pubsub": "radio-tower",
+    "rack": "server",
+    "retry": "refresh-cw",
+    "screen": "monitor",
+    "secret": "lock-keyhole",
+    "ssd": "hard-drive",
+    "team": "users",
+    "topic": "radio-tower",
+    "trace": "activity",
+    "vault": "lock-keyhole",
+    "vm": "server"
+  }
+}

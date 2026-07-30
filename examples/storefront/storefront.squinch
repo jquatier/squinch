@@ -5,7 +5,7 @@ person customer "Customer"
 
 system web "Storefront" {
   description: "Customer-facing web experience"
-  glyph: sys/webapp
+  glyph: sys/app-window
 
   cdn = aws/cloudfront "CDN"
   app = aws/amplify    "Next.js App"
@@ -13,7 +13,7 @@ system web "Storefront" {
 }
 
 system orders "Order Service" {
-  glyph: sys/api
+  glyph: sys/code
   tags: #core
 
   api = aws/api-gateway "API Gateway"

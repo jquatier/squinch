@@ -6,7 +6,7 @@ person ops "Operator"
 
 system pay "Payments" {
   description: "Settlement and payouts"
-  glyph: sys/service
+  glyph: sys/hexagon
   api = aws/lambda "Payment API"
   q   = aws/sqs "Settlement Queue" datastore
   w   = aws/lambda "Settlement Worker"

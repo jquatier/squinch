@@ -27,30 +27,16 @@ interface Registered {
   load: AssetLoader;
 }
 
-/** Built-in fallbacks: no assets, drawn by the renderer itself. */
+/** Built-in fallbacks: no assets, drawn by the renderer itself.
+ *
+ *  `sys` used to live here too. It is a real disk pack now (@squinch/pack-sys,
+ *  Lucide), and a name present in BOTH this map and the pack registry is a trap:
+ *  `iconIds` short-circuits on this map, so every disk icon would vanish from
+ *  search, completions and `squinch icons` while `hasIcon` still accepted it. */
 export const BUILTIN_GLYPHS: Record<string, Record<string, { code: string; color: string }>> = {
   builtin: {
     box: { code: "▢", color: "#6F6E69" },
     person: { code: "☺", color: "#6F6E69" },
-  },
-  sys: {
-    api: { code: "API", color: "#6F6E69" },
-    webapp: { code: "WEB", color: "#6F6E69" },
-    mobile: { code: "MOB", color: "#6F6E69" },
-    service: { code: "SVC", color: "#6F6E69" },
-    worker: { code: "WRK", color: "#6F6E69" },
-    database: { code: "DB", color: "#6F6E69" },
-    cache: { code: "$", color: "#6F6E69" },
-    queue: { code: "Q", color: "#6F6E69" },
-    "event-bus": { code: "BUS", color: "#6F6E69" },
-    filestore: { code: "FS", color: "#6F6E69" },
-    search: { code: "SRCH", color: "#6F6E69" },
-    gateway: { code: "GW", color: "#6F6E69" },
-    auth: { code: "AUTH", color: "#6F6E69" },
-    monitor: { code: "MON", color: "#6F6E69" },
-    scheduler: { code: "CRON", color: "#6F6E69" },
-    org: { code: "ORG", color: "#6F6E69" },
-    internet: { code: "NET", color: "#6F6E69" },
   },
 };
 

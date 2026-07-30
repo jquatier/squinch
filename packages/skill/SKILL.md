@@ -33,8 +33,9 @@ squinch diff --format json                    # what changed in the architecture
 
 ```squinch
 // comments are // only (# belongs to tags)
-pack aws                              // enable an icon pack (aws | azure | logos —
-pack azure                            //  declare each one you use)
+pack aws                              // enable a vendor icon pack (aws | azure |
+pack azure                            //  logos — declare each one you use).
+                                      //  `sys` and `builtin` need no declaration.
 
 person customer "Customer"            // human actor
 gw = aws/api-gateway "Edge Gateway"   // components may sit at the top level too,
@@ -45,8 +46,9 @@ gw = aws/api-gateway "Edge Gateway"   // components may sit at the top level too
 
 system shop "Order Service" {         // systems/containers nest arbitrarily
   description: "Checkout and orders"  // optional; shows on the collapsed card
-  glyph: sys/api                      // badge for the collapsed card — any pack
+  glyph: sys/code                     // badge for the collapsed card — any pack
                                       // icon works (aws/…, logos/…), not just sys/…
+                                      // a bad ref is a check error, not a `?` plate
   tags: #core                         // tags inherit to everything inside
 
   api    = aws/api-gateway "API Gateway"        // id = pack/icon "Label"
@@ -270,10 +272,26 @@ their brand colour): `logos/postgres` · `logos/mysql` · `logos/mongodb` ·
 Some brands (Slack, Twilio, Salesforce, Heroku, gRPC…) have no icon upstream —
 they were withdrawn on trademark request. Use `box` for those.
 
-First-party glyphs for system cards: `sys/api`, `sys/webapp`, `sys/mobile`,
-`sys/service`, `sys/worker`, `sys/database`, `sys/queue`, `sys/event-bus`,
-`sys/search`, `sys/gateway`, `sys/auth`, `sys/monitor`, `sys/scheduler`,
-`sys/cache`, `sys/filestore`, `sys/org`, `sys/internet`.
+`sys/*` is the generic set — 147 Lucide icons for anything no vendor draws, and
+it needs no `pack` statement. Use it for on-prem and physical things, and as the
+last resort when nothing else fits. Ids are Lucide's own names, so
+`squinch icons search <word>` is the way to find one rather than guessing:
+
+- **compute / app** — `server`, `container`, `cpu`, `code`, `app-window`,
+  `hexagon`, `terminal`, `cog`, `webhook`, `workflow`, `route`
+- **hardware** — `laptop`, `monitor`, `smartphone`, `hard-drive`, `printer`
+- **network** — `network`, `router`, `wifi`, `radio-tower`, `globe`, `share-2`
+- **security** — `lock`, `lock-keyhole`, `key-round`, `shield`, `shield-check`
+- **data** — `database`, `folder`, `search`, `archive`, `table`, `file`
+- **places** — `factory`, `warehouse`, `building-2`, `house`, `earth`
+- **process / observability** — `clock`, `timer`, `repeat`, `activity`, `gauge`,
+  `chart-line`, `siren`, `bug`
+- **shapes, when nothing fits** — `box`, `circle`, `square`, `triangle`,
+  `diamond`, `hexagon`, `star`
+
+Short aliases exist for words you would type instead: `gear`→`cog`,
+`cube`→`box`, `db`→`database`, `rack`/`vm`/`host`→`server`, `disk`→`hard-drive`,
+`firewall`→`shield`, `vault`→`lock-keyhole`, `cron`→`clock`, `lb`→`share-2`.
 
 ## Quality bar before you call it done
 

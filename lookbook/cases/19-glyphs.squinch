@@ -1,30 +1,52 @@
-// The first-party glyph sheet: every sys/* on a card badge AND a plate,
-// plus builtin person/box. Monoline house style, theme-tinted.
-person user "Person Glyph"
-legacy = box "Box Glyph" external
+// The generic-icon sheet: `sys/*` on a card badge AND on a plate, one per role,
+// plus builtin person/box. Lucide (ISC) at its own 2px stroke, painted with
+// currentColor so themes tint it — muted on badges, plate-text on plates.
+//
+// A sample, not the whole pack: 147 ids would make an unreadable sheet. The
+// point is to show every treatment at both sizes, and to catch a stroke weight
+// that reads too heavy on an 18px badge.
+person user "Person"
+legacy = box "Box" external
 
-system g1 "API"       { glyph: sys/api; n = box "api" }
-system g2 "Web App"   { glyph: sys/webapp; n = box "webapp" }
-system g3 "Mobile"    { glyph: sys/mobile; n = box "mobile" }
-system g4 "Service"   { glyph: sys/service; n = box "service" }
-system g5 "Worker"    { glyph: sys/worker; n = box "worker" }
-system g6 "Database"  { glyph: sys/database; n = box "database" }
-system g7 "Cache"     { glyph: sys/cache; n = box "cache" }
-system g8 "Queue"     { glyph: sys/queue; n = box "queue" }
-system g9 "Event Bus" { glyph: sys/event-bus; n = box "event-bus" }
-system g10 "Filestore" { glyph: sys/filestore; n = box "filestore" }
-system g11 "Search"   { glyph: sys/search; n = box "search" }
-system g12 "Gateway"  { glyph: sys/gateway; n = box "gateway" }
-system g13 "Auth"     { glyph: sys/auth; n = box "auth" }
-system g14 "Monitor"  { glyph: sys/monitor; n = box "monitor" }
-system g15 "Scheduler" { glyph: sys/scheduler; n = box "scheduler" }
-system g16 "Org"      { glyph: sys/org; n = box "org" }
-system g17 "Internet" { glyph: sys/internet; n = box "internet" }
+// compute + app
+system g1 "Server"    { glyph: sys/server;     n = sys/server "server" }
+system g2 "Container" { glyph: sys/container;  n = sys/container "container" }
+system g3 "Code"      { glyph: sys/code;       n = sys/code "code" }
+system g4 "Web App"   { glyph: sys/app-window; n = sys/app-window "app-window" }
+system g5 "Service"   { glyph: sys/hexagon;    n = sys/hexagon "hexagon" }
+
+// hardware + places
+system g6 "Laptop"    { glyph: sys/laptop;     n = sys/laptop "laptop" }
+system g7 "Disk"      { glyph: sys/hard-drive; n = sys/hard-drive "hard-drive" }
+system g8 "Factory"   { glyph: sys/factory;    n = sys/factory "factory" }
+system g9 "Warehouse" { glyph: sys/warehouse;  n = sys/warehouse "warehouse" }
+system g10 "Org"      { glyph: sys/building-2; n = sys/building-2 "building-2" }
+
+// network + security
+system g11 "Network"  { glyph: sys/network;    n = sys/network "network" }
+system g12 "Router"   { glyph: sys/router;     n = sys/router "router" }
+system g13 "Wifi"     { glyph: sys/wifi;       n = sys/wifi "wifi" }
+system g14 "Auth"     { glyph: sys/lock;       n = sys/lock "lock" }
+system g15 "Shield"   { glyph: sys/shield;     n = sys/shield "shield" }
+
+// data + process
+system g16 "Database" { glyph: sys/database;   n = sys/database "database" }
+system g17 "Files"    { glyph: sys/folder;     n = sys/folder "folder" }
+system g18 "Search"   { glyph: sys/search;     n = sys/search "search" }
+system g19 "Schedule" { glyph: sys/clock;      n = sys/clock "clock" }
+system g20 "Monitor"  { glyph: sys/activity;   n = sys/activity "activity" }
+
+// shapes, for when nothing else fits
+system g21 "Gear"     { glyph: sys/cog;        n = sys/cog "cog" }
+system g22 "Cube"     { glyph: sys/box;        n = sys/box "box" }
+system g23 "Circle"   { glyph: sys/circle;     n = sys/circle "circle" }
+system g24 "Triangle" { glyph: sys/triangle;   n = sys/triangle "triangle" }
+system g25 "Diamond"  { glyph: sys/diamond;    n = sys/diamond "diamond" }
 
 view sheet {
-  title "Glyph sheet"
+  title "Generic icon sheet — sys/* (Lucide)"
   include *
   layout {
-    rows [user legacy g1 g2 g3] [g4 g5 g6 g7 g8] [g9 g10 g11 g12 g13] [g14 g15 g16 g17]
+    rows [user legacy g1 g2 g3] [g4 g5 g6 g7 g8] [g9 g10 g11 g12 g13] [g14 g15 g16 g17 g18] [g19 g20 g21 g22 g23] [g24 g25]
   }
 }

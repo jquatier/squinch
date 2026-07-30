@@ -10,7 +10,7 @@ person customer "Customer"
 
 system web "Storefront" {
   description: "React SPA on S3 behind CloudFront"
-  glyph: sys/webapp
+  glyph: sys/app-window
 
   cdn    = aws/cloudfront "CloudFront"
   bucket = aws/s3         "React SPA"
@@ -38,7 +38,7 @@ system catalog "Catalog Service" {
 
 system orders "Order Service" {
   description: "Cart, checkout, fulfillment"
-  glyph: sys/api
+  glyph: sys/code
   tags: #pci
 
   api    = aws/lambda   "Orders API"
@@ -54,7 +54,7 @@ system orders "Order Service" {
 
 system accounts "Account Service" {
   description: "Identity and profiles"
-  glyph: sys/auth
+  glyph: sys/lock
   tags: #pci
 
   api = aws/lambda "Accounts API"

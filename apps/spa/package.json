@@ -15,6 +15,7 @@
     "@squinch/pack-aws": "workspace:*",
     "@squinch/pack-azure": "workspace:*",
     "@squinch/pack-logos": "workspace:*",
+    "@squinch/pack-sys": "workspace:*",
     "@tailwindcss/vite": "^4.3.3",
     "@types/react": "^19.2.17",
     "@types/react-dom": "^19.2.3",

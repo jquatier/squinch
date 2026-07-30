@@ -130,15 +130,23 @@ describe("grammar + model builder", () => {
       `pack aws\nsystem s "S" {\n  glyph: ${glyph}\n  a = aws/lambda "A"\n}\n`;
 
     it("accepts one that resolves", () => {
-      expect(buildModel(src("sys/api")).ok).toBe(true);
+      expect(buildModel(src("sys/code")).ok).toBe(true);
     });
 
-    it("rejects an unknown id, and points at the search command", () => {
-      const r = buildModel(src("sys/nope"));
+    it("rejects a near-miss id with the id it probably meant", () => {
+      const r = buildModel(src("sys/serve"));
       expect(r.ok).toBe(false);
       const d = r.diagnostics.find((x) => x.message.includes("in glyph"));
-      expect(d?.message).toContain("unknown icon `sys/nope`");
-      expect(d?.fix).toContain("squinch icons search nope");
+      expect(d?.message).toContain("unknown icon `sys/serve`");
+      expect(d?.fix).toContain("did you mean `sys/server`?");
+    });
+
+    it("falls back to the search command when nothing is close", () => {
+      const r = buildModel(src("sys/zzzzzz"));
+      expect(r.ok).toBe(false);
+      expect(r.diagnostics.find((x) => x.message.includes("in glyph"))?.fix).toContain(
+        "squinch icons search zzzzzz",
+      );
     });
 
     it("rejects an unknown pack, and suggests a real one", () => {

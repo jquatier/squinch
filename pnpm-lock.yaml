@@ -54,6 +54,9 @@ importers:
       '@squinch/pack-logos':
         specifier: workspace:*
         version: link:../../packages/pack-logos
+      '@squinch/pack-sys':
+        specifier: workspace:*
+        version: link:../../packages/pack-sys
       '@tailwindcss/vite':
         specifier: ^4.3.3
         version: 4.3.3(vite@8.1.5(@types/node@26.1.1)(esbuild@0.28.1)(jiti@2.7.0)(tsx@4.23.1))
@@ -115,6 +118,9 @@ importers:
       '@squinch/pack-logos':
         specifier: workspace:*
         version: link:../pack-logos
+      '@squinch/pack-sys':
+        specifier: workspace:*
+        version: link:../pack-sys
       elkjs:
         specifier: ^0.12.0
         version: 0.12.0
@@ -180,6 +186,18 @@ importers:
         specifier: ^7.0.2
         version: 7.0.2
 
+  packages/pack-sys:
+    devDependencies:
+      lucide-static:
+        specifier: ^1.27.0
+        version: 1.27.0
+      tsx:
+        specifier: ^4.23.1
+        version: 4.23.1
+      typescript:
+        specifier: ^7.0.2
+        version: 7.0.2
+
   packages/vscode:
     dependencies:
       '@squinch/core':
@@ -194,6 +212,9 @@ importers:
       '@squinch/pack-logos':
         specifier: workspace:*
         version: link:../pack-logos
+      '@squinch/pack-sys':
+        specifier: workspace:*
+        version: link:../pack-sys
       vscode-languageclient:
         specifier: ^9.0.1
         version: 9.0.1
@@ -1188,6 +1209,9 @@ packages:
 
   lodash@4.18.1:
     resolution: {integrity: sha512-dMInicTPVE8d1e5otfwmmjlxkZoUpiVLwyeTdUsi/Caj/gfzzblBcCE5sRHV/AsjuCmxWrte2TNGSYuCeCq+0Q==}
+
+  lucide-static@1.27.0:
+    resolution: {integrity: sha512-ev1Wufm+RsKpQ6CfmS0PgYF+NTB1aaltfE+jUgBYGB8PV5b5qqHpzsTLPsMWFRFdpVMv66eIK8/Xf9d8cl3HhA==}
 
   magic-string@0.30.21:
     resolution: {integrity: sha512-vd2F4YUyEXKGcLHoq+TEyCjxueSeHnFxyyjNp80yg0XV4vUhnDer/lvvlqM/arB5bXQN5K2/3oinyCRyx8T2CQ==}
@@ -2209,6 +2233,8 @@ snapshots:
       lightningcss-win32-x64-msvc: 1.33.0
 
   lodash@4.18.1: {}
+
+  lucide-static@1.27.0: {}
 
   magic-string@0.30.21:
     dependencies:

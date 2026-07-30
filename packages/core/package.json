@@ -19,6 +19,7 @@
     "@squinch/pack-aws": "workspace:*",
     "@squinch/pack-azure": "workspace:*",
     "@squinch/pack-logos": "workspace:*",
+    "@squinch/pack-sys": "workspace:*",
     "elkjs": "^0.12.0",
     "fast-xml-parser": "^5.10.1",
     "roughjs": "^4.6.6"

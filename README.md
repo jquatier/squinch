@@ -293,7 +293,7 @@ themes, and CI fails if any of them changes unintentionally.
 
 ## Icons
 
-**1,076 marks across three packs**, all chosen because they can be
+**1,223 marks across four packs**, all chosen because they can be
 redistributed:
 
 | Pack | Count | Terms |
@@ -301,23 +301,27 @@ redistributed:
 | [`pack-aws`](packages/pack-aws) | 316 | CC-BY-ND 2.0 — the same basis AWS uses for its own PlantUML icons |
 | [`pack-azure`](packages/pack-azure) | 636 | Microsoft's icon terms: copy and distribute **for architecture diagrams, training and documentation** |
 | [`pack-logos`](packages/pack-logos) | 124 | CC0, from [Simple Icons](https://simpleicons.org) — the non-cloud half of a stack |
+| [`pack-sys`](packages/pack-sys) | 147 | ISC, from [Lucide](https://lucide.dev) — the generic set: servers, hardware, network gear, shapes |
 
 ```console
-$ squinch icons search queue
-aws/simple-queue-service  (or aws/sqs)
-azure/storage-queue
-sys/queue
+$ squinch icons search factory
+azure/data-factories
+sys/factory  (or sys/onprem, sys/plant)
 ```
 
-Short aliases resolve to the canonical id, and `sys/*` are drawn glyphs for the
-generic shapes no vendor ships.
+Aliases collapse onto the canonical id, so the word you reach for usually works
+— `gear`, `cube`, `db`, `rack`, `firewall`, `vault`, `cron` all land somewhere
+sensible. `sys/*` is the generic half, for everything no cloud vendor draws, and
+it is the one pack needing no `pack` statement.
 
-Two constraints travel to you, not just to us. The artwork ships **byte-for-byte
-verbatim and must not be modified** — not recoloured, not reshaped, not run
-through an SVG optimizer; Squinch applies all theme treatment at render time and
-never touches the asset. And Azure's grant is narrower than an open-source
-licence: it covers architecture diagrams, training and documentation, and does
-not travel to other uses. Each pack's NOTICE has the details.
+Two constraints travel to you, not just to us. The **cloud** artwork must not be
+modified — not recoloured, not reshaped, not run through an SVG optimizer;
+Squinch applies all theme treatment at render time and never touches the asset.
+And Azure's grant is narrower than an open-source licence: it covers
+architecture diagrams, training and documentation, and does not travel to other
+uses. Lucide's ISC and Simple Icons' CC0 carry no such limits, though those are
+shipped verbatim too so `npm run fetch` can pick up upstream fixes without
+re-applying local edits. Each pack's NOTICE has the details.
 
 Deliberately absent: GCP. Google grants permission to *use* its Cloud icons in
 diagrams but publishes no redistribution grant, so we don't ship them.

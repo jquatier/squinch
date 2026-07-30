@@ -4,14 +4,14 @@ pack aws
 
 system front "Frontend" {
   description: "Customer-facing surfaces"
-  glyph: sys/webapp
+  glyph: sys/app-window
   web    = aws/lambda "Web BFF"
   mobile = aws/lambda "Mobile BFF"
 }
 
 system back "Backend" {
   description: "Domain services"
-  glyph: sys/api
+  glyph: sys/code
   orders  = aws/lambda "Orders"
   catalog = aws/lambda "Catalog"
 }

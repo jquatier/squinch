@@ -7,7 +7,7 @@ partner = box "Payment Network" external
 
 system store "Storefront" {
   description: "Web and mobile shopping"
-  glyph: sys/webapp
+  glyph: sys/app-window
   app = aws/lambda "App"
 }
 system search "Search" {
@@ -17,27 +17,27 @@ system search "Search" {
 }
 system orders "Orders" {
   description: "Checkout and fulfilment"
-  glyph: sys/api
+  glyph: sys/code
   api = aws/lambda "API"
 }
 system pay "Payments" {
   description: "Cards, wallets, settlement"
-  glyph: sys/service
+  glyph: sys/hexagon
   api = aws/lambda "API"
 }
 system ident "Identity" {
   description: "Accounts and sessions"
-  glyph: sys/auth
+  glyph: sys/lock
   api = aws/lambda "API"
 }
 system notify "Notifications" {
   description: "Email, SMS, push"
-  glyph: sys/queue
+  glyph: sys/list
   fan = aws/lambda "Fanout"
 }
 system ship "Shipping" {
   description: "Carriers and tracking"
-  glyph: sys/worker
+  glyph: sys/cog
   api = aws/lambda "API"
 }
 system ledger "Ledger" {
