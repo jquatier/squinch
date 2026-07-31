@@ -671,16 +671,24 @@ export function buildProject(files: ProjectFile[]): BuildResult {
           fix: "remove one of the two place statements",
           loc: pl.loc, file: ctx.name,
         });
-      if ((view.layout.rows && pl.relpos === "right-of") || pl.relpos === "left-of") {
-        const inRows = view.layout.rows?.flat().includes(pl.node);
-        if (inRows)
-          diagnostics.push({
-            severity: "error",
-            message: `\`${pl.node}\` is placed via \`place\` but also listed in \`rows\``,
-            fix: "a node takes hints from one source; remove it from rows or drop the place",
-            loc: pl.loc, file: ctx.name,
-          });
-      }
+      // A node takes its position from one source. This once read
+      // `(rows && relpos === "right-of") || relpos === "left-of"`, which bound
+      // the wrong way and, worse, listed only the horizontal directions — so
+      // `place x above y` on a node already in `rows` sailed through with exit
+      // 0 and one of the two hints silently ignored. Vertical is the direction
+      // `rows` actually pins, so those were the two that mattered most.
+      const band = view.layout.rows?.flat().includes(pl.node)
+        ? "rows"
+        : view.layout.cols?.flat().includes(pl.node)
+          ? "cols"
+          : undefined;
+      if (band)
+        diagnostics.push({
+          severity: "error",
+          message: `\`${pl.node}\` is placed via \`place\` but also listed in \`${band}\``,
+          fix: `a node takes hints from one source; remove it from ${band} or drop the place`,
+          loc: pl.loc, file: ctx.name,
+        });
     }
     model.views.push(view);
   }

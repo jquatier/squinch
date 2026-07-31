@@ -204,7 +204,11 @@ view shop {
   Members of a column share an exact axis, so a service and its database line
   up. `rows` and `cols` compose — they pin different axes, so using both gives
   you a full grid, and a cell is empty when nobody is placed in it.
-- A node goes in `rows` **or** gets a `place` — never both.
+- A node goes in `rows`/`cols` **or** gets a `place` — never both, in any
+  direction. That is why `sync` is missing from the bands in the example above:
+  a placed node is positioned relative to its target, so listing it in a band as
+  well is a check-time error. Naming every node in `rows` is the natural move
+  when a request asks for tiers, and it is the one that collides with this.
 - Edges between two nodes in the same row route automatically (straight when
   adjacent, under the band otherwise). `place x right-of y` + `route y ~> x from
   east to west` is the idiom for a side-car (stream processors, caches, DLQs).
@@ -215,7 +219,8 @@ view shop {
 |---|---|
 | Layers feel arbitrary / related things scattered | Add `rows`, one group per conceptual tier (entry, handlers, storage) |
 | One node belongs beside another (stream sync, DLQ, cache) | `place X right-of Y` and route the connecting edge `from east to west` |
-| "a node can hold only one rank position" error | You listed a node in `rows` *and* gave it a `place` — drop it from the `rows` band; `place` positions it relative to its target |
+| "`x` is placed via `place` but also listed in `rows`" error | Drop `x` from the `rows` band and keep the `place` — a placed node is positioned relative to its target, so it must not be listed in a band as well |
+| "`x` appears in `rows` twice" error | A node can hold only one rank position; remove one of the two occurrences |
 | Several things all write to one store, crossing each other | `channel a, b, c -> db` — they merge into one trunk |
 | Edge exits a silly side | `route a -> b from south to north` (sides: north/south/east/west) |
 | A wire jogs slightly instead of running straight | `align a b` — b takes a's axis exactly (a is the anchor) |

@@ -63,6 +63,38 @@ describe("grammar + model builder", () => {
     expect(r.diagnostics[0].message).toContain("twice");
   });
 
+  describe("a node takes its position from one source", () => {
+    // The guard used to list only `right-of`/`left-of`, so `above`/`below` —
+    // the directions that collide with `rows` on the axis `rows` actually pins
+    // — passed with exit 0 and one hint silently dropped. A cold gauntlet agent
+    // wrote exactly this shape ("lay it out in tiers", plus the side-car idiom).
+    const src = (rank: string, relpos: string) =>
+      `system s "S" {\n a = aws/lambda "A"\n b = aws/lambda "B"\n c = aws/lambda "C"\n}\n` +
+      `view s {\n layout {\n  ${rank}\n  place c ${relpos} b\n }\n}`;
+
+    for (const relpos of ["right-of", "left-of", "above", "below"])
+      it(`catches \`place … ${relpos}\` on a node already in rows`, () => {
+        const r = buildModel(src("rows [a] [b c]", relpos));
+        expect(r.ok).toBe(false);
+        const d = r.diagnostics.find((x) => x.message.includes("but also listed in"));
+        expect(d?.message).toContain("`rows`");
+        expect(d?.fix).toContain("remove it from rows");
+      });
+
+    it("catches it for `cols` too — same conflict, other axis", () => {
+      const r = buildModel(src("cols [a] [b c]", "right-of"));
+      expect(r.ok).toBe(false);
+      expect(
+        r.diagnostics.find((x) => x.message.includes("but also listed in"))?.message,
+      ).toContain("`cols`");
+    });
+
+    it("leaves the side-car idiom alone — the placed node is in no band", () => {
+      const r = buildModel(src("rows [a] [b]", "right-of"));
+      expect(r.diagnostics.some((d) => d.message.includes("but also listed in"))).toBe(false);
+    });
+  });
+
   it("errors on contradictory place hints", () => {
     const r = buildModel(
       `system s "S" {\n a = aws/lambda "A"\n b = aws/lambda "B"\n}\nview s {\n layout { place a right-of b\n place b right-of a }\n}`,
