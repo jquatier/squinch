@@ -1,6 +1,7 @@
 packages:
   - packages/*
   - apps/*
+  - gauntlet
 allowBuilds:
   '@vscode/vsce-sign': set this to true or false
   esbuild: true

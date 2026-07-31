@@ -219,11 +219,12 @@ no examples, no human layout fixes, no coaching. A deterministic scorer checks
 the structure, icons, tags and views of every solution, and CI regression-tests
 the whole corpus on every push.
 
-The agents are kept genuinely cold: one prompt each, no shared context, and no
-access to `examples/`, `lookbook/`, `docs/`, the gauntlet itself, or the engine
-source. Every prompt is re-run from scratch as the language grows, and the bar
-rises with it — the corpus has gone 10 → 16 → 20 prompts as zones, flows, tag
-lenses, channels and a second cloud pack landed.
+The agents are kept genuinely cold, and physically so: each one runs in a
+sandbox holding nothing but SKILL.md, its prompt and a `squinch` binary, with
+this repository unreachable from inside — no examples, no docs, no engine
+source, and no previous answers to copy. Every prompt is re-run from scratch as
+the language grows, and the bar rises with it — the corpus has gone 10 → 16 → 20
+prompts as zones, flows, tag lenses, channels and a second cloud pack landed.
 
 The current round scores **20/20** with zero human layout fixes. Every round is
 written up in [gauntlet/README.md](gauntlet/README.md) — what was asked, how it

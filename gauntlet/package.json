@@ -1,1 +1,18 @@
-{ "type": "module" }
+{
+  "name": "@squinch/gauntlet",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Cold-agent acceptance run + deterministic scorer (docs/PLAN.md §3).",
+  "scripts": {
+    "round": "tsx run.ts",
+    "score": "tsx score.ts",
+    "typecheck": "tsc --noEmit"
+  },
+  "devDependencies": {
+    "esbuild": "^0.28.1",
+    "tsx": "^4.23.1",
+    "@types/node": "^26.1.1",
+    "typescript": "^7.0.2"
+  }
+}

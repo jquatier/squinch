@@ -22,3 +22,6 @@ apps/spa/public/*-icons/
 
 # scratch frames for scripts/hero-gif.mts
 .hero-tmp/
+
+# per-prompt sandboxes + transcripts for gauntlet/run.ts
+gauntlet/.run/

@@ -7,17 +7,46 @@ layout fixes** (the original ≥ 8/10 bar, at the current prompt count).
 
 - `prompts.json` — the prompts plus machine-checkable expectations
   (structure, icons, tags, views).
-- `independent-v3/` — the current certification set: 20 solutions authored cold
-  by fresh agents. CI regression-tests this corpus on every push.
-- `independent-v2/` — the second run (16 prompts), kept as a record.
-- `independent/` — the first certification run (10 prompts), kept as a record.
+- `solutions/` — the current certification set: 20 solutions authored cold by
+  fresh agents. Each round overwrites it, so what is committed is always the
+  latest reviewed run. CI regression-tests this corpus on every push.
+- `run.ts` — the round itself: one sandboxed `claude -p` session per prompt.
+  The protocol it enforces is documented in its own header, next to the code
+  that enforces it.
 - `score.ts` — deterministic scorer: builds each solution, renders every
-  declared view in both themes, validates the SVG, checks expectations.
+  declared view, validates the SVG, checks expectations. No model, no network.
+
+## Running a round
 
 ```bash
-npx tsx gauntlet/score.ts                          # the current certified set
-npx tsx gauntlet/score.ts gauntlet/independent-v2  # an earlier run, for comparison
+npx tsx gauntlet/run.ts
 ```
+
+Twenty cold agents, one per prompt, each in a sandbox holding nothing but
+`SKILL.md`, the prompt, and a `squinch` binary — the repo is not reachable from
+inside, so there are no examples and no previous answers to copy. Takes a few
+minutes and costs real money; it is maintainer-only and never runs in CI.
+
+```bash
+npx tsx gauntlet/run.ts 03 17 --keep     # a subset, keeping the sandboxes
+npx tsx gauntlet/run.ts --model opus     # a different model
+npx tsx gauntlet/score.ts                # the free half: score what is committed
+npx tsx gauntlet/score.ts --deep         # + every theme, PNG, determinism
+```
+
+The report is keyed on the thing worth knowing: **check calls per prompt**. One
+call, exit 0, no warnings means the skill carried that prompt with no fixes.
+Anything above one prints the diagnostic the agent hit, which is the raw
+material for a `SKILL.md` edit — that loop, not the score, is what rounds 2 and
+3 were actually worth.
+
+A failed session leaves the committed solution untouched and reports
+`no-solution`: losing a good diagram to one rate-limited session is the worst
+thing a maintenance script can do. `--prune` opts into strict overwrite.
+
+Rounds 1–3 were orchestrated by hand, one conversation per prompt; the earlier
+rounds' solution directories are gone with them. The findings below are the part
+worth keeping, and the originals remain in git history.
 
 ## Results
 

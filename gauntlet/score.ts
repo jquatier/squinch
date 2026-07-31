@@ -2,20 +2,31 @@
 // solution, renders every declared view in both themes, validates the SVG, and
 // checks the prompt's structural expectations. Run from the repo root:
 //
-//   npx tsx gauntlet/score.ts [solutionsDir]
+//   npx tsx gauntlet/score.ts [solutionsDir] [--deep] [--json]
 //
-// solutionsDir defaults to gauntlet/independent-v3 — the current certified
-// cold-run set, which doubles as CI's regression corpus. Pass another directory
-// to score an earlier run (gauntlet/independent-v2, gauntlet/independent).
+// solutionsDir defaults to gauntlet/solutions — whatever the last `run.ts`
+// round produced and the maintainer reviewed. Pass a directory to score a
+// stashed run for comparison.
 //
-// Exit 0 only when every solution with a file present passes AND at least the
-// Phase-3 bar (~80%) is met.
+// --deep adds renderer coverage beyond "does it draw": every theme, a PNG
+// through resvg, a determinism byte-compare, the auto views, and two structural
+// probes (see below). `run.ts` always passes it; CI's per-push step does not,
+// for speed.
+//
+// --json emits [{id, pass, problems}] so run.ts can merge results structurally
+// rather than scraping PASS/FAIL text.
+//
+// **Exit 0 only when every prompt passes.** BAR is what a *run* is judged
+// against — "did this cold round clear the Phase-3 bar" — but the committed
+// corpus is the reviewed current state, so one silent failure in it is a
+// regression, not an acceptable 19/20.
 import { readFileSync, existsSync } from "node:fs";
 import { join, dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import {
-  buildProject, renderProject, validateSVG, formatDiagnostics,
+  buildProject, renderProject, validateSVG, formatDiagnostics, themes,
 } from "../packages/core/dist/index.js";
+import { svgToPng } from "../packages/cli/src/raster.js";
 
 interface Expect {
   minNodes?: number;
@@ -44,11 +55,18 @@ interface Prompt { id: string; prompt: string; expect: Expect }
 
 const here = dirname(fileURLToPath(import.meta.url));
 const prompts: Prompt[] = JSON.parse(readFileSync(join(here, "prompts.json"), "utf8"));
-const solutionsDir = process.argv[2] ? resolve(process.argv[2]) : join(here, "independent-v3");
+const args = process.argv.slice(2);
+const DEEP = args.includes("--deep");
+const JSON_OUT = args.includes("--json");
+const positional = args.find((a) => !a.startsWith("--"));
+const solutionsDir = positional ? resolve(positional) : join(here, "solutions");
 
-const BAR = 16; // 20 prompts, same ~80% bar as the original 8/10
+/** The bar a cold *run* is judged against (docs/PLAN.md §3). Not the exit
+ *  condition — see the header. */
+const BAR = 16;
 let passed = 0;
 const lines: string[] = [];
+const results: { id: string; pass: boolean; problems: string[] }[] = [];
 
 for (const p of prompts) {
   const file = join(solutionsDir, `${p.id}.squinch`);
@@ -56,6 +74,7 @@ for (const p of prompts) {
 
   if (!existsSync(file)) {
     lines.push(`FAIL  ${p.id}  no solution file`);
+    results.push({ id: p.id, pass: false, problems: ["no solution file"] });
     continue;
   }
   const src = readFileSync(file, "utf8");
@@ -63,22 +82,75 @@ for (const p of prompts) {
   const errors = built.diagnostics.filter((d) => d.severity === "error");
   if (errors.length) {
     lines.push(`FAIL  ${p.id}  check errors:\n${formatDiagnostics(errors)}`);
+    results.push({ id: p.id, pass: false, problems: errors.map((d) => d.message) });
     continue;
   }
   const warnings = built.diagnostics.filter((d) => d.severity === "warning");
 
-  // render every explicitly declared view (or the sole auto view) in both themes
+  // render every explicitly declared view (or the sole auto view). Shallow does
+  // light+dark, which is the CI gate; --deep sweeps every theme the engine
+  // declares — read off `themes` rather than a literal, so a sixth is covered
+  // the day it lands.
   const explicit = built.model.views.filter((v) => !v.auto);
   const views = (explicit.length ? explicit : built.model.views.slice(0, 1)).map((v) => v.name);
+  const sweep = DEEP ? Object.keys(themes) : ["light", "dark"];
+  const render = (view: string, opts: Record<string, unknown> = {}) =>
+    renderProject([{ name: `${p.id}.squinch`, src }], { view, theme: "light", ...opts });
+
   for (const view of views)
-    for (const theme of ["light", "dark"]) {
-      const r = await renderProject([{ name: `${p.id}.squinch`, src }], { view, theme });
+    for (const theme of sweep) {
+      const r = await render(view, { theme });
       if (!r.ok) problems.push(`render failed: ${view}/${theme}`);
       else {
         const valid = validateSVG(r.svg!);
         if (!valid.ok) problems.push(`invalid SVG (${view}/${theme}): ${valid.error}`);
       }
     }
+
+  if (DEEP) {
+    // Auto views: the SPA zooms into them and nothing else in CI draws one.
+    for (const v of built.model.views.filter((x) => x.auto)) {
+      const r = await render(v.name);
+      if (!r.ok) problems.push(`render failed: auto view ${v.name}`);
+      else if (!validateSVG(r.svg!).ok) problems.push(`invalid SVG: auto view ${v.name}`);
+    }
+
+    // Determinism is the product's premise; asserted elsewhere only on
+    // synthetic input. Here it runs over 20 real diagrams for free.
+    const a = await render(views[0]);
+    const b = await render(views[0]);
+    if (a.ok && b.ok && a.svg !== b.svg) problems.push("non-deterministic render");
+
+    // resvg *panics* rather than throwing when it dislikes geometry, and these
+    // are the most varied real inputs available to point at it.
+    if (a.ok)
+      try {
+        svgToPng(a.svg!);
+      } catch (err) {
+        problems.push(`png rasterize failed: ${(err as Error).message.slice(0, 80)}`);
+      }
+
+    // There is deliberately no "do the layout hints change the render" probe
+    // here, though round 3's finding #1 was exactly that. Tried and removed: a
+    // render-diff cannot tell a *discarded* hint from a merely *redundant* one,
+    // and redundant is the common case — `rows [fd] [app] [sql cache kv ai]`
+    // over a fan-out describes what ELK already does, so the SVGs match and the
+    // hint is still honoured. It fired on 6 of 20 good solutions. The real
+    // defect now has a real detector: the engine warns on hints it drops, and
+    // warnings below are already a failure.
+
+    // Probe — view distinctness. Two declared views drawing the same picture
+    // means one of them is inert; generalises `requireNarrowerView`.
+    if (views.length > 1) {
+      const svgs = await Promise.all(views.map(async (v) => (await render(v)).svg));
+      const seen = new Map<string, string>();
+      for (let i = 0; i < views.length; i++) {
+        const prev = svgs[i] && seen.get(svgs[i]!);
+        if (prev) problems.push(`views \`${prev}\` and \`${views[i]}\` render identically`);
+        else if (svgs[i]) seen.set(svgs[i]!, views[i]);
+      }
+    }
+  }
 
   // structural expectations
   const e = p.expect;
@@ -135,6 +207,7 @@ for (const p of prompts) {
     if (!anyOf.some((id) => iconIdsUsed.has(id)))
       problems.push(`missing icon: ${anyOf.join(" | ")}`);
 
+  results.push({ id: p.id, pass: problems.length === 0, problems });
   if (problems.length) {
     lines.push(`FAIL  ${p.id}  ${problems.join("; ")}`);
   } else {
@@ -147,6 +220,17 @@ for (const p of prompts) {
   }
 }
 
-console.log(lines.join("\n"));
-console.log(`\nGauntlet: ${passed}/${prompts.length} (Phase-3 bar: ${BAR})`);
-process.exit(passed === prompts.length ? 0 : passed >= BAR ? 0 : 1);
+if (JSON_OUT) {
+  console.log(JSON.stringify(results, null, 2));
+} else {
+  console.log(lines.join("\n"));
+  console.log(
+    `\nGauntlet: ${passed}/${prompts.length}` +
+      (passed >= BAR ? ` (clears the Phase-3 bar of ${BAR})` : ` (below the Phase-3 bar of ${BAR})`) +
+      (DEEP ? " — deep" : ""),
+  );
+}
+// Every prompt, not the bar: the committed corpus is the reviewed current
+// state, so one silent failure in it is a regression rather than an
+// acceptable 19/20. BAR judges a *run*; this judges the corpus.
+process.exit(passed === prompts.length ? 0 : 1);
