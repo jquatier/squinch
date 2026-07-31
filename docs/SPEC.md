@@ -247,9 +247,19 @@ too. Themes style them as callouts; the sketch theme renders them handwritten.
 - Every `system`/`container` gets an auto-generated default view (`view <path>`), so
   double-click-to-zoom always works even with zero `view` blocks written. Declaring
   `view <path>` explicitly *is* the customization of that auto view.
-- `include`/`exclude` accept ids, paths, and tags (`include #pci`) — tag targets
-  match every element whose *effective* (inherited) tags qualify; explicit
-  includes never have to earn their spot the way auto context does.
+- `only`/`include`/`exclude` accept ids, paths, and tags (`only #pci`) — tag
+  targets match every element whose *effective* (inherited) tags qualify;
+  explicit includes never have to earn their spot the way auto context does.
+- A view has two independent selection axes. `scope` is **where** — the root and
+  the altitude. `only` is **which** — a filter over what that altitude contains.
+  They are separate because a tag is a cross-cutting concern and can therefore
+  never be a place: no `scope` can name "the PCI parts". `include` adds,
+  `exclude` removes, and neither can narrow — `include` on a set that already
+  contains its target is a no-op, which is why it warns.
+- `detail <path>` draws an outside element at its own depth instead of as the
+  top-level card standing in for its branch. This was once a second, silent
+  meaning of `include`; separating it is what made `only` expressible, because a
+  verb that also controls altitude cannot be redefined to control membership.
 
 ### Visibility resolution (what's shown at each level)
 
@@ -257,15 +267,25 @@ A deterministic rule stack, evaluated in fixed order:
 
 1. **Scope children**: the scope's *direct* children — containers as cards, leaves as
    icons. Exactly one level deep; depth is opened deliberately via `expand`.
-2. **Context neighbors**: elements outside the scope with ≥1 edge (after lifting)
+2. **`only` filters the interior** — the view's *which* axis, applied after
+   `expand` so an expanded container's children are filtered too. A container
+   survives if it or anything beneath it matches, because at a high altitude the
+   tagged elements are usually leaves inside the cards.
+3. **Context neighbors**: elements outside the scope with ≥1 edge (after lifting)
    into the visible interior are auto-included, rendered at **top-level altitude**
    (the foreign *system* as one muted/hatched card — `web`, not `web.app`) at the
-   periphery. `context off` disables; explicitly `include web.app` overrides the
-   top-level lift and anchors edges to the deeper node instead.
-3. **Explicit `include`** adds elements, or every element carrying a tag.
-4. **`exclude` wins last** — removes an element and its entire subtree, beating
-   scope, context, expand, and include.
-5. **Derived content follows visibility, never drives it**: edges render iff both
+   periphery. `context off` disables. Earned against the *filtered* interior, so
+   narrowing a view narrows its periphery with it — no special case, just the
+   existing rule that neighbours must earn their place. A sibling dropped by
+   `only` never returns here: it lifts to the container being scoped, and a view
+   must not draw a muted card of itself.
+4. **`detail <path>`** redraws a named outside element at its own depth,
+   replacing the top-level card that would otherwise stand in for its branch.
+5. **Explicit `include`** adds elements, or every element carrying a tag. It is
+   purely additive and cannot narrow; an include that changes nothing warns.
+6. **`exclude` wins last** — removes an element and its entire subtree, beating
+   scope, only, context, expand, detail, and include.
+7. **Derived content follows visibility, never drives it**: edges render iff both
    lifted endpoints are visible and distinct; zone frames wrap only visible members
    (none visible → no frame); a note anchored to an invisible element is suppressed
    with a lint warning; context neighbors must *earn* inclusion via a surviving edge.
@@ -412,7 +432,9 @@ expose      = "expose" pathlist ;                       (* v2, not built *)
 
 view        = "view" path "{" { viewstmt } "}" ;
 viewstmt    = "title" string | "theme" ident | "scope" path
-            | "include" targets | "exclude" targets | "expand" path
+            | "only" targets
+            | "include" targets | "exclude" targets
+            | "detail" path | "expand" path
             | "context" ( "auto" | "off" )
             | "highlight" tag { tag }
             | "show" ( "descriptions" | "flow" ident )

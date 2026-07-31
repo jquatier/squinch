@@ -72,10 +72,16 @@ export interface SView {
   title?: string;
   theme?: string;
   scope?: string; // container path
+  /** Filter: keep only interior elements matching these ids/tags. Empty = no
+   *  filter. This is the view's *which* axis; `scope` is its *where*. */
+  only: (string | { tag: string })[];
   include: (string | { tag: string })[]; // "*" arrives as {star:true}? — "*" as literal path
   includeStar: boolean;
   exclude: (string | { tag: string })[];
   expand: string[];
+  /** Outside elements to draw at their own depth instead of as their top-level
+   *  card. Split out of `include`, which used to carry this second meaning. */
+  detail: string[];
   context: "auto" | "off";
   highlight: string[]; // tag names, no '#'
   showDescriptions: boolean;

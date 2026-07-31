@@ -1,6 +1,8 @@
 // SPEC §5 visibility resolution + edge lifting. Pure: (model, view) → ViewGraph.
-// Rule order: scope children → expand → context neighbors → include → exclude
-// (exclude wins last) → edges/notes derive from what survived.
+// Rule order: scope children → expand → only → context neighbors → detail →
+// include → exclude (exclude wins last) → edges/notes derive from what survived.
+// `scope` is the view's *where*; `only` is its *which*. They are separate axes
+// because a tag is a cross-cutting concern and can never be a place.
 import type { Diagnostic, SModel, SView } from "../model/types.js";
 
 export interface VNode {
@@ -60,6 +62,14 @@ export function resolveView(model: SModel, view: SView): ViewGraph {
     return [...new Set(tags)];
   };
 
+  // a tag target expands to every element whose EFFECTIVE tags match —
+  // inherited tags count (SPEC: tags inherit to everything inside).
+  // Deterministic order: containers in declaration order, then nodes.
+  const tagMatches = (tag: string): string[] => [
+    ...[...model.containers.keys()].filter((p) => p && effectiveTags(p).includes(tag)),
+    ...[...model.nodes.keys()].filter((p) => effectiveTags(p).includes(tag)),
+  ];
+
   // ── 1. scope children ────────────────────────────────────────────────────
   let visible: string[] = scope
     ? [...(model.containers.get(scope)?.children ?? [])]
@@ -83,6 +93,58 @@ export function resolveView(model: SModel, view: SView): ViewGraph {
 
   const visSet = () => new Set(visible);
 
+  // ── 3. only: the view's filter ───────────────────────────────────────────
+  // `scope` answers *where I stand*; `only` answers *which of that I keep*.
+  // The language had no second axis, so a cross-cutting concern — the entire
+  // reason tags exist — could not be selected at all: `include #pci` adds to a
+  // set that already contains it, `highlight` decorates without removing, and
+  // an auditor was left enumerating the complement by id.
+  //
+  // It runs after `expand` so it filters an expanded interior too, and before
+  // context so neighbours are earned against the *reduced* interior. That
+  // second ordering is not a special case — it is the existing rule that
+  // derived content follows visibility. Shrink the interior and fewer edges
+  // cross, so fewer neighbours qualify, automatically.
+  //
+  // A container survives if it or anything beneath it matches: at a high
+  // altitude the tagged things are usually leaves inside the cards, and a
+  // filter that dropped every card because the card itself is untagged would
+  // render an empty diagram for the most natural way to ask the question.
+  if (view.only?.length) {
+    const keep = new Set<string>();
+    for (const on of view.only) {
+      const targets = typeof on === "string" ? [on] : tagMatches(on.tag);
+      if (targets.length === 0)
+        diagnostics.push({
+          severity: "warning",
+          message: typeof on === "string"
+            ? `only \`${on}\`: no such element`
+            : `only #${on.tag}: nothing is tagged #${on.tag}`,
+          loc: view.loc,
+        });
+      // a match keeps itself and every visible ancestor holding it
+      for (const t of targets)
+        for (const p of visible)
+          if (p === t || t.startsWith(`${p}.`)) keep.add(p);
+    }
+    const dropped = visible.filter((p) => !keep.has(p));
+    visible = visible.filter((p) => keep.has(p));
+    if (!visible.length)
+      diagnostics.push({
+        severity: "warning",
+        message: "`only` filtered out everything — this view renders empty",
+        fix: "check the ids and tags; `only` keeps matches, it does not add them",
+        loc: view.loc,
+      });
+    else if (!dropped.length)
+      diagnostics.push({
+        severity: "warning",
+        message: "`only` changed nothing — everything here already matches",
+        fix: "drop the line, or narrow it further",
+        loc: view.loc,
+      });
+  }
+
   /** Nearest visible ancestor-or-self, given the current visible set. */
   const liftIn = (path: string, v: Set<string>): string | undefined => {
     let p = path;
@@ -93,7 +155,7 @@ export function resolveView(model: SModel, view: SView): ViewGraph {
     return undefined;
   };
 
-  // ── 2. context neighbors (top-level lift, edge-earning) ──────────────────
+  // ── 4. context neighbors (top-level lift, earned against the filtered interior) ──────────────────
   const contextSet = new Set<string>();
   if (view.context === "auto") {
     const v = visSet();
@@ -103,24 +165,43 @@ export function resolveView(model: SModel, view: SView): ViewGraph {
       if (!!fIn === !!tIn) continue; // both in or both out
       const outside = fIn ? e.to : e.from;
       const candidate = liftIn(outside, v) ?? topOf(outside);
+      // Context shows how the scope connects *outward*, so the scope itself can
+      // never be its own neighbour. Before `only` this was unreachable: the one
+      // way to lose a sibling was `exclude`, which runs after this. Filtering
+      // the interior makes it reachable — an edge to a filtered-out sibling
+      // lifts to the container we are standing in, and the view would draw a
+      // muted card of itself. A sibling removed on purpose is simply gone.
+      if (scope && (candidate === scope || scope.startsWith(`${candidate}.`))) continue;
       if (!v.has(candidate)) contextSet.add(candidate);
     }
   }
   visible.push(...contextSet);
 
-  // a tag target expands to every element whose EFFECTIVE tags match —
-  // inherited tags count (SPEC: tags inherit to everything inside).
-  // Deterministic order: containers in declaration order, then nodes.
-  const tagMatches = (tag: string): string[] => [
-    ...[...model.containers.keys()].filter((p) => p && effectiveTags(p).includes(tag)),
-    ...[...model.nodes.keys()].filter((p) => effectiveTags(p).includes(tag)),
-  ];
-
-  // ── 3. include (explicit adds override the top-level context lift) ───────
-  // Explicitly included elements are exempt from the context rules below:
-  // they never have to EARN their spot, and edges among them render even
-  // though both endpoints are context-styled — the user asked for them.
+  // Explicitly named elements are exempt from the context rules below: they
+  // never have to EARN their spot, and edges among them render even though both
+  // endpoints are context-styled — the user asked for them.
   const explicitSet = new Set<string>();
+
+  // ── 5. detail: draw an outside element at its own depth ──────────────────
+  // This was `include`'s second, unadvertised job. One verb meaning both "add
+  // this element" and "…and redraw its whole branch at a different altitude" is
+  // why `include` could never be redefined to narrow: flipping it would have
+  // turned every altitude override into "delete the rest of the diagram". Split
+  // out, each verb has exactly one job and `only` above became possible.
+  for (const d of view.detail ?? []) {
+    if (!visible.includes(d)) {
+      visible.push(d);
+      if (!scope || !d.startsWith(`${scope}.`)) contextSet.add(d);
+    }
+    explicitSet.add(d);
+    const top = topOf(d);
+    if (contextSet.has(top) && top !== d) {
+      contextSet.delete(top);
+      visible = visible.filter((p) => p !== top);
+    }
+  }
+
+  // ── 6. include: purely additive ──────────────────────────────────────────
   for (const inc of view.include) {
     const targets = typeof inc === "string" ? [inc] : tagMatches(inc.tag);
     if (typeof inc !== "string" && targets.length === 0)
@@ -135,13 +216,17 @@ export function resolveView(model: SModel, view: SView): ViewGraph {
       if (visible.includes(target)) continue;
       added++;
       visible.push(target);
-      // a deeper explicit include supersedes its lifted top-level context card
-      const top = topOf(target);
-      if (contextSet.has(top) && top !== target) {
-        contextSet.delete(top);
-        visible = visible.filter((p) => p !== top);
-      }
       if (!scope || !target.startsWith(`${scope}.`)) contextSet.add(target);
+      // The element is now drawn *and* so is the top-level card standing in for
+      // its branch — two cards for one thing. That is what `detail` is for.
+      const top = topOf(target);
+      if (contextSet.has(top) && top !== target)
+        diagnostics.push({
+          severity: "warning",
+          message: `\`${target}\` is included, but \`${top}\` is already here as a context card`,
+          fix: `use \`detail ${target}\` to draw it at that depth instead of \`${top}\``,
+          loc: view.loc,
+        });
     }
     // `include` ADDS to a view (SPEC §5 rule stack); it cannot narrow one.
     // Reading it as a filter is the natural mistake — a cold-run agent wrote
@@ -155,14 +240,14 @@ export function resolveView(model: SModel, view: SView): ViewGraph {
           : `include #${inc.tag} changed nothing — every match is already visible here`,
         fix: typeof inc === "string"
           ? "`include` adds elements to a view; drop the line, or did you mean `exclude`?"
-          : `\`include\` adds elements, it cannot narrow a view. To focus on one concern ` +
-            `use \`highlight #${inc.tag}\` (dims the rest), or remove what you do not want ` +
-            `with \`exclude\``,
+          : `\`include\` adds elements, it cannot narrow a view. For only the ` +
+            `#${inc.tag} parts use \`only #${inc.tag}\`; to keep the whole picture with ` +
+            `those emphasised use \`highlight #${inc.tag}\``,
         loc: view.loc,
       });
   }
 
-  // ── 4. exclude wins last (removes whole subtrees) ─────────────────────────
+  // ── 7. exclude wins last (removes whole subtrees) ─────────────────────────
   for (const exc of view.exclude) {
     const targets = typeof exc === "string" ? [exc] : tagMatches(exc.tag);
     if (typeof exc !== "string" && targets.length === 0)

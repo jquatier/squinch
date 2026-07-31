@@ -464,7 +464,7 @@ export function buildProject(files: ProjectFile[]): BuildResult {
     const body = bodyNode;
     const view: SView = {
       name,
-      include: [], includeStar: false, exclude: [], expand: [],
+      only: [], include: [], includeStar: false, exclude: [], expand: [], detail: [],
       context: "auto", highlight: [], showDescriptions: false, legend: false, notes: [],
       layout: { place: [], routes: [], align: [], channels: [] },
       loc: ctx.loc(v), file: ctx.name,
@@ -493,13 +493,26 @@ export function buildProject(files: ProjectFile[]): BuildResult {
     else if (themeIdent) view.theme = ctx.text(themeIdent);
     const inScope = view.scope ?? "";
 
+    // `only` is the view's filter — the *which* axis, where `scope` is *where*.
+    for (const on of body.getChildren("OnlyStmt")) {
+      for (const t of on.getChild("TargetList")?.getChildren("Target") ?? []) {
+        const tag = t.getChild("Tag");
+        if (tag) view.only.push({ tag: ctx.text(tag).slice(1) });
+        else {
+          const path = t.getChild("Path");
+          const r = path && resolve(ctx.text(path), inScope, t, ctx);
+          if (r) view.only.push(r);
+        }
+      }
+    }
     for (const inc of body.getChildren("IncludeStmt")) {
       if (inc.getChild("Star")) view.includeStar = true;
       for (const t of inc.getChild("TargetList")?.getChildren("Target") ?? []) {
         const tag = t.getChild("Tag");
         if (tag) view.include.push({ tag: ctx.text(tag).slice(1) });
         else {
-          const r = resolve(ctx.text(t.getChild("Path")!), inScope, t, ctx);
+          const path = t.getChild("Path");
+          const r = path && resolve(ctx.text(path), inScope, t, ctx);
           if (r) view.include.push(r);
         }
       }
@@ -509,13 +522,26 @@ export function buildProject(files: ProjectFile[]): BuildResult {
         const tag = t.getChild("Tag");
         if (tag) view.exclude.push({ tag: ctx.text(tag).slice(1) });
         else {
-          const r = resolve(ctx.text(t.getChild("Path")!), inScope, t, ctx);
+          const path = t.getChild("Path");
+          const r = path && resolve(ctx.text(path), inScope, t, ctx);
           if (r) view.exclude.push(r);
         }
       }
     }
+    // `detail` carries what `include` used to smuggle: draw an outside element
+    // at its own depth rather than as its top-level context card.
+    for (const d of body.getChildren("DetailStmt")) {
+      const path = d.getChild("Path");
+      if (!path) {
+        error(ctx, d, "`detail` needs a path", "detail web.app");
+        continue;
+      }
+      const r = resolve(ctx.text(path), inScope, d, ctx);
+      if (r) view.detail.push(r);
+    }
     for (const ex of body.getChildren("ExpandStmt")) {
-      const r = resolve(ctx.text(ex.getChild("Path")!), inScope, ex, ctx);
+      const path = ex.getChild("Path");
+      const r = path && resolve(ctx.text(path), inScope, ex, ctx);
       if (r) view.expand.push(r);
     }
     const ctxStmt = body.getChildren("ContextStmt")[0];
@@ -717,7 +743,7 @@ export function buildProject(files: ProjectFile[]): BuildResult {
       name: path,
       scope: path,
       auto: true,
-      include: [], includeStar: false, exclude: [], expand: [],
+      only: [], include: [], includeStar: false, exclude: [], expand: [], detail: [],
       context: "auto", highlight: [], showDescriptions: false, legend: false, notes: [],
       layout: { place: [], routes: [], align: [], channels: [] },
       loc: model.containers.get(path)!.loc,

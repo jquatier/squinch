@@ -177,7 +177,7 @@ export async function renderProject(
     const first = [...built.model.containers.keys()][0];
     view = {
       name: first ?? "default", scope: first,
-      include: [], includeStar: false, exclude: [], expand: [],
+      only: [], include: [], includeStar: false, exclude: [], expand: [], detail: [],
       context: "auto", highlight: [], showDescriptions: false, legend: false, notes: [],
       layout: { place: [], routes: [], align: [], channels: [] },
       loc: { from: 0, to: 0, line: 1, col: 1 },

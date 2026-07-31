@@ -110,11 +110,22 @@ clean diagrams from prose using only the skill + CLI — is certified at **20/20
 by independent cold agents** (`gauntlet/README.md` records what each run found;
 round 3's seven defects are why the number alone is not the point).
 
-v1.1's DSL is done: zones, flows, tags, channels, cols, align, legend/titleblock.
-Deliberately *not* built, with reasons recorded: `route … around`/`via`
+v1.1's DSL is done: zones, flows, tags, channels, cols, align, legend/titleblock,
+plus `only`/`detail` (below). Deliberately *not* built, with reasons recorded: `route … around`/`via`
 (`docs/notes/routing-hints.md` — ELK already avoids nodes) and `grid` (rows and
-cols compose to the same thing). Work since then is in the playground, not the
-language: altitude changes animate as an anchored dive through the card you
+cols compose to the same thing).
+A view has **two** selection axes, and conflating them was a real bug: `scope` is
+*where* you stand, `only` is *which* of that you keep. Tags are cross-cutting, so
+no scope can ever name "the PCI parts" — before `only`, `include #pci` silently
+no-opped and auditors enumerated the complement by id. `only` runs after `expand`
+and *before* context, so a narrowed view narrows its periphery with it; a sibling
+it drops never returns as a context card, because context shows connections
+outward and a view must not draw a muted card of itself. `detail <path>` carries
+what `include` used to smuggle — draw an outside node at its own depth rather
+than as its system card — and splitting that out is what made `only` possible at
+all: a verb that also controls altitude cannot be redefined to control
+membership. Rule stack: SPEC §5.
+Other work since then is in the playground, not the language: altitude changes animate as an anchored dive through the card you
 clicked (`docs/notes/zoom-transitions.md`, DESIGN §11), presentation mode turns
 the declared views into a full-bleed deck, and a `show flow` view can be walked
 one hop at a time (`flowStep` render option — counted over hops *visible in that

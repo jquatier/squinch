@@ -35,7 +35,7 @@
       }
     },
     "keyword": {
-      "match": "\\b(pack|from|theme|box|external|datastore|person|scope|include|exclude|expand|context|auto|off|highlight|show|descriptions|flow|legend|titleblock|note|title|layout|direction|down|right|lines|density|rows|cols|place|align|route|contains|on|top-left|top-right|bottom-left|bottom-right|right-of|left-of|above|below|north|south|east|west)\\b",
+      "match": "\\b(pack|from|theme|box|external|datastore|person|scope|only|include|exclude|detail|expand|context|auto|off|highlight|show|descriptions|flow|legend|titleblock|note|title|layout|direction|down|right|lines|density|rows|cols|place|align|route|contains|on|top-left|top-right|bottom-left|bottom-right|right-of|left-of|above|below|north|south|east|west)\\b",
       "name": "keyword.control.squinch"
     },
     "iconref": {

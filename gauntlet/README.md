@@ -101,11 +101,24 @@ It found five defects, three of them in the engine.
    again, because the *reference block* an agent copies from listed `highlight`
    and no tag-based `exclude`. With both fixed it narrowed correctly.
 
-Still open, and the reason finding 5 took two attempts: **there is no way to say
-"only #tag"**. `include #tag` cannot narrow (round 2, finding 2), so an auditor
-view has to enumerate the complement by id — backwards for the one feature whose
-entire purpose is selecting a cross-cutting slice. Round 2 papered over this by
-pointing at `highlight`; two rounds later it is still the sharp edge.
+That gap — **no way to say "only #tag"** — was the round's real finding, and it
+is now closed in the language rather than in the docs. `include #tag` could never
+narrow (round 2, finding 2) because `include` had a second, silent job: it also
+overrode the altitude an outside element is drawn at, so redefining it would have
+turned every override into "delete the rest of the diagram". Splitting that job
+into `detail` freed `include` to be purely additive and made a real filter
+expressible: `only`. A view now has two axes — `scope` for *where*, `only` for
+*which* — and a cold agent re-run on prompt 14 reached for `only #pci` unprompted
+and passed on its first `check`.
+
+Two smaller faults surfaced while confirming that, both of which had cost agents
+an iteration in two separate rounds: SKILL.md never showed a node carrying **both**
+a kind and an attr block, so agents guessed `"Label" { … } datastore` instead of
+`"Label" datastore { … }`; and the loop described warnings as deserving "a look",
+which an agent that stops at exit 0 reads as optional. A warning means the file is
+valid but probably not the diagram that was asked for — `only changed nothing`
+literally means "your tag covers everything, so this lens shows the whole
+picture", which is precisely what one agent shipped.
 
 **Round 3 — 20/20** (2026-07-26). Four prompts were added for everything built
 after round 2: the Azure pack, boundaries three deep, a flow to walk through,

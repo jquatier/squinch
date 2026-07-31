@@ -27,7 +27,11 @@ squinch diff --format json                    # what changed in the architecture
 2. Only if the picture needs it, add hints (`rows`, `place`, `route`) one at a time.
 3. `check` after every edit. Diagnostics tell you the location, the problem, and
    usually the fix (`did you mean ...?`). Trust them.
-4. Exit code 0 and no diagnostics = clean. Warnings deserve a look; errors block render.
+4. Exit code 0 and **no diagnostics at all** = clean. Errors block the render;
+   warnings do not, which is exactly why they matter — a warning means the file
+   is valid but probably not the diagram you were asked for. `only changed
+   nothing` means your tag covers everything, so the lens shows the whole
+   picture. Fix warnings before you stop.
 
 ## Language
 
@@ -56,7 +60,10 @@ system shop "Order Service" {         // systems/containers nest arbitrarily
     description: "Validates and persists"
     tags: #pci
   }
-  db     = aws/dynamodb    "Orders Table"
+  db     = aws/dynamodb    "Orders Table" datastore {
+    tags: #pci                        // the kind goes BEFORE the attr block:
+  }                                   // `"Label" datastore { … }`, never
+                                      // `"Label" { … } datastore`
   legacy = box             "Old Billing" external   // `box` = no icon
   // kinds: `external` (not ours — someone else's system), `datastore` (holds
   // state), `person` (a human actor). They are semantic, and themes style them.
@@ -120,14 +127,15 @@ view landscape {            // views take no positional label, unlike
 
 view shop {                 // name matching a system = that system's view
   scope shop                // implied by the name here; explicit for clarity
+  only #pci                 // KEEP only these — the view's filter. `scope` says
+                            // where you stand, `only` says which of it you keep.
+                            // Takes ids too: `only api, vault`
   exclude legacy            // trim noise (removes the subtree)
-  exclude #internal         // …by tag too: what is left is the lens
   expand workers            // inline one child container in a frame
-  highlight #pci            // spotlight matches, dim everything else — note
-                            // this still shows everything. A view asked to
-                            // show *only* the tagged things needs `exclude`;
-                            // `highlight` on its own renders the full picture
-                            // with the rest greyed, which is a different claim
+  detail ledger.post        // draw an outside node itself, not its system card
+  highlight #pci            // spotlight matches, dim the rest — this still
+                            // shows EVERYTHING. "only the PCI parts" is `only`;
+                            // `highlight` is "the whole picture, PCI emphasised"
   show descriptions         // inline description lines under labels — these are
                             // clipped to the card width with an ellipsis and
                             // nothing warns you, so keep them to ~4 words
@@ -231,9 +239,10 @@ view shop {
 | A wire jogs slightly instead of running straight | `align a b` — b takes a's axis exactly (a is the anchor) |
 | Diagram too cramped / too airy | `density spacious` / `density compact` |
 | Too many boxes at once | Split into views: a landscape with `include *`, plus per-system views |
-| Show **only** one concern (an auditor's view: "only the PCI parts") | `exclude #<other-tag>` / `exclude <id>` — the matches are the only things left. `highlight` will *not* do this: it dims, it does not remove |
+| Show **only** one concern (an auditor's view: "only the PCI parts") | `only #pci`. Anything outside the scope that the survivors still talk to stays as a muted context card — that boundary crossing is usually the point of the view; `context off` drops those too |
 | Emphasise one concern while keeping its context | `highlight #pci` — spotlights matches, dims the rest, shows everything |
-| Narrow a view with `include #tag` | It does not narrow. `include` **adds** to a view; an include that changes nothing warns and names the alternatives |
+| Narrow a view with `include #tag` | It does not narrow. `include` **adds**; an include that changes nothing warns and points at `only` |
+| Show one specific node from another system, not its whole card | `detail ledger.post` |
 | A neighbour system clutters a zoomed view | `exclude thatSystem` or `context off` |
 | "hint conflict … runs upward" error | Your `rows` contradict an edge's direction — move the target to a lower row |
 | "N edges match route …" error | Add the edge's label to the `route` statement |

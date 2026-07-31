@@ -205,13 +205,28 @@ cpSync(join(root, "packages/core/fonts"), join(fontPkg, "fonts"), { recursive: t
   const probe = selected.find((p) => existsSync(join(here, "solutions", `${p.id}.squinch`)));
   if (!probe) die("no committed solution to smoke-test the bundle against");
   const file = join(here, "solutions", `${probe.id}.squinch`);
-  const out = execFileSync(process.execPath, [bundle, "check", file, "--format", "json"], {
-    encoding: "utf8",
-  });
-  const parsed = JSON.parse(out);
-  if (!parsed.ok || parsed.warnings) // `warnings` is a count, not an array
-    die(`bundled CLI disagrees with the repo CLI on ${probe.id} — bundle is not faithful:\n${out}`);
-  console.log(`bundle ok (checked ${probe.id} clean)\n`);
+  // Compare the two CLIs against each other, which is what "faithful" means.
+  // Asserting the probe file is *clean* instead was wrong twice over: it tests
+  // the corpus rather than the bundle, and the moment a round commits a
+  // solution carrying a warning — which is allowed, and is exactly what a
+  // round is for — the guard misfires and no round can start again.
+  const check = (bin: string[]) => {
+    try {
+      return execFileSync(process.execPath, [...bin, "check", file, "--format", "json"], {
+        encoding: "utf8",
+      });
+    } catch (err) {
+      return String((err as { stdout?: string }).stdout ?? ""); // check exits 1 on errors
+    }
+  };
+  const bundled = check([bundle]);
+  const repo = check([join(root, "packages/cli/bin/squinch.js")]);
+  if (bundled !== repo)
+    die(
+      `bundled CLI disagrees with the repo CLI on ${probe.id} — bundle is not faithful\n` +
+        `  bundled: ${bundled.slice(0, 400)}\n  repo:    ${repo.slice(0, 400)}`,
+    );
+  console.log(`bundle ok (agrees with the repo CLI on ${probe.id})\n`);
 }
 
 // ── one sandbox per prompt ─────────────────────────────────────────────────

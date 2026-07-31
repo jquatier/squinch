@@ -49,13 +49,92 @@ describe("visibility resolution + edge lifting", () => {
     expect(db.tags).toContain("core"); // inherited from orders
   });
 
+  describe("`only` — the view's filter", () => {
+    // `scope` is where you stand, `only` is which of that you keep. Before this
+    // existed a cross-cutting concern could not be selected at all: `include
+    // #pci` adds to a set that already holds it, `highlight` decorates without
+    // removing, and an auditor enumerated the complement by id.
+    const SRC = `pack aws
+system pay "Pay" {
+  api   = aws/lambda "API" { tags: #pci }
+  vault = aws/dynamodb "Vault" datastore { tags: #pci }
+  stats = aws/lambda "Stats"
+  api -> vault
+  api -> stats
+}
+system ledger "Ledger" { post = aws/lambda "Post" }
+pay.api -> ledger.post "settle"
+`;
+    const paths = (viewSrc: string) => {
+      const { model: m } = buildModel(SRC + viewSrc);
+      const v = m.views.find((x) => x.name === "v")!;
+      return resolveView(m, v).nodes.map((n) => n.path).sort();
+    };
+
+    it("keeps the matches and drops the rest of the interior", () => {
+      expect(paths(`view v { scope pay\n only #pci\n}`)).toEqual(
+        expect.arrayContaining(["pay.api", "pay.vault"]),
+      );
+      expect(paths(`view v { scope pay\n only #pci\n}`)).not.toContain("pay.stats");
+    });
+
+    it("a filtered-out sibling does not come back as a context card", () => {
+      // It lifts to the container we are standing in, so the view would draw a
+      // muted card of *itself*. Context is for connections outward only.
+      expect(paths(`view v { scope pay\n only #pci\n}`)).not.toContain("pay");
+    });
+
+    it("a genuinely outside neighbour still earns its card — the crossing an audit wants", () => {
+      expect(paths(`view v { scope pay\n only #pci\n}`)).toContain("ledger");
+    });
+
+    it("takes ids as well as tags, so narrowing never means listing the complement", () => {
+      expect(paths(`view v { scope pay\n only api, vault\n}`)).not.toContain("pay.stats");
+    });
+
+    it("warns rather than silently emptying the diagram", () => {
+      const { model: m } = buildModel(`${SRC}view v { scope pay\n only #nope\n}`);
+      const ds = resolveView(m, m.views.find((x) => x.name === "v")!).diagnostics;
+      expect(ds.some((d) => d.message.includes("#nope"))).toBe(true);
+      expect(ds.some((d) => d.message.includes("renders empty"))).toBe(true);
+    });
+  });
+
+  describe("`detail` — altitude, split out of `include`", () => {
+    const SRC = `pack aws
+system pay "Pay" { api = aws/lambda "API" }
+system ledger "Ledger" { post = aws/lambda "Post" }
+pay.api -> ledger.post
+`;
+    const nodes = (viewSrc: string) => {
+      const { model: m } = buildModel(SRC + viewSrc);
+      return resolveView(m, m.views.find((x) => x.name === "v")!).nodes;
+    };
+
+    it("draws the deep node instead of its top-level card", () => {
+      const n = nodes(`view v { scope pay\n detail ledger.post\n}`);
+      expect(n.map((x) => x.path)).toContain("ledger.post");
+      expect(n.map((x) => x.path)).not.toContain("ledger");
+    });
+
+    it("plain `include` no longer does it silently — it says so and names `detail`", () => {
+      // include used to mean both "add this" and "…and redraw its whole branch
+      // at another altitude". That second meaning is why it could never be
+      // redefined to narrow.
+      const { model: m } = buildModel(`${SRC}view v { scope pay\n include ledger.post\n}`);
+      const d = resolveView(m, m.views.find((x) => x.name === "v")!).diagnostics
+        .find((x) => x.message.includes("context card"));
+      expect(d?.fix).toContain("detail ledger.post");
+    });
+  });
+
   it("native parallel edges stay separate at their own altitude", () => {
     const { model: m } = buildModel(
       `system s "S" {\n a = aws/lambda "A"\n b = aws/dynamodb "B"\n a -> b "read"\n a -> b "write"\n}`,
     );
     const g = resolveView(m, {
       name: "s", scope: "s",
-      include: [], includeStar: false, exclude: [], expand: [],
+      only: [], include: [], includeStar: false, exclude: [], expand: [], detail: [],
       context: "auto", highlight: [], showDescriptions: false, notes: [],
       layout: { place: [], routes: [] },
       loc: { from: 0, to: 0, line: 1, col: 1 },

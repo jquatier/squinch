@@ -60,14 +60,16 @@ Value { String | Number | Tag+ | IconRef | Path }
 View { kw<"view"> Path ViewBody }
 ViewBody { "{" list<viewStmt> "}" }
 viewStmt {
-  TitleStmt | ThemeStmt | ScopeStmt | IncludeStmt | ExcludeStmt |
-  ExpandStmt | ContextStmt | HighlightStmt | ShowStmt | NoteStmt |
+  TitleStmt | ThemeStmt | ScopeStmt | OnlyStmt | IncludeStmt | ExcludeStmt |
+  DetailStmt | ExpandStmt | ContextStmt | HighlightStmt | ShowStmt | NoteStmt |
   LegendStmt | TitleBlockStmt | LayoutBlock
 }
 TitleStmt { kw<"title"> String }
 ThemeStmt { kw<"theme"> Ident }
 ScopeStmt { kw<"scope"> Path }
+OnlyStmt { kw<"only"> TargetList }
 IncludeStmt { kw<"include"> (Star | TargetList) }
+DetailStmt { kw<"detail"> Path }
 ExcludeStmt { kw<"exclude"> TargetList }
 ExpandStmt { kw<"expand"> Path }
 ContextStmt { kw<"context"> (kw<"auto"> | kw<"off">) }

@@ -132,7 +132,7 @@ export function blockStack(src: string, offset: number): BlockKind[] {
 
 const TOP_KEYWORDS = ["pack", "person", "system", "container", "zone", "flow", "view", "theme"];
 const VIEW_KEYWORDS = [
-  "title", "theme", "scope", "include", "exclude", "expand", "context",
+  "title", "theme", "scope", "only", "include", "exclude", "detail", "expand", "context",
   "highlight", "show", "legend", "titleblock", "note", "layout",
 ];
 const LAYOUT_KEYWORDS = ["direction", "density", "lines", "rows", "cols", "place", "align", "route"];
