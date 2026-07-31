@@ -469,13 +469,28 @@ export function buildProject(files: ProjectFile[]): BuildResult {
       layout: { place: [], routes: [], align: [], channels: [] },
       loc: ctx.loc(v), file: ctx.name,
     };
+    // These three took their operand with a `!`, and every one of them threw a
+    // raw `Cannot read properties of null` — exit 2, no location, no fix — the
+    // moment the operand was missing or the wrong shape. That is any keystroke
+    // between typing `title` and typing its string, so it crashed the language
+    // server too, and it is what a cold agent hit by writing `scope *` (which
+    // parses as a ScopeStmt with no Path). Same class as the `layout`-inside-a-
+    // system crash from round 2: a `!` on a node that invalid input makes null.
     const scopeStmt = body.getChildren("ScopeStmt")[0];
-    if (scopeStmt) view.scope = resolve(ctx.text(scopeStmt.getChild("Path")!), "", scopeStmt, ctx);
+    const scopePath = scopeStmt?.getChild("Path");
+    if (scopeStmt && !scopePath)
+      error(ctx, scopeStmt, "`scope` needs a single container path",
+        "scope narrows a view to one container; to widen a view to everything use `include *`");
+    else if (scopePath) view.scope = resolve(ctx.text(scopePath), "", scopeStmt!, ctx);
     else if (model.containers.has(name)) view.scope = name; // auto: view <container>
     const title = body.getChildren("TitleStmt")[0];
-    if (title) view.title = ctx.str(title.getChild("String")!);
+    const titleStr = title?.getChild("String");
+    if (title && !titleStr) error(ctx, title, "`title` needs a quoted string", 'title "My Diagram"');
+    else if (titleStr) view.title = ctx.str(titleStr);
     const theme = body.getChildren("ThemeStmt")[0];
-    if (theme) view.theme = ctx.text(theme.getChild("Ident")!);
+    const themeIdent = theme?.getChild("Ident");
+    if (theme && !themeIdent) error(ctx, theme, "`theme` needs a theme name", "theme dark");
+    else if (themeIdent) view.theme = ctx.text(themeIdent);
     const inScope = view.scope ?? "";
 
     for (const inc of body.getChildren("IncludeStmt")) {

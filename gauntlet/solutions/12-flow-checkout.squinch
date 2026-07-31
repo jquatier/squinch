@@ -1,34 +1,33 @@
+// Checkout flow diagram
 pack aws
 
-system checkout "Checkout" {
-  description: "Checkout and fulfilment kickoff"
+system checkout "Checkout System" {
+  description: "E-commerce checkout and fulfilment"
 
-  api     = aws/api-gateway "API Gateway"
-  cart    = aws/lambda      "Cart Lambda"
-  payment = aws/lambda      "Payment Lambda"
-  db      = aws/dynamodb    "Orders Table"
-  queue   = aws/sqs         "Order Events Queue"
-  worker  = aws/lambda      "Fulfilment Worker"
+  api      = aws/api-gateway "API Gateway"
+  cart     = aws/lambda       "Cart Handler"
+  payment  = aws/lambda       "Payment Handler"
+  db       = aws/dynamodb     "Orders Table" datastore
+  queue    = aws/sqs          "Fulfilment Queue"
+  worker   = aws/lambda       "Fulfilment Worker"
 
   api -> cart
   cart -> payment
-  payment -> db "write order"
-  payment ~> queue "order placed"
-  queue ~> worker
+  payment -> db
+  payment ~> queue
+  queue -> worker
 }
 
-flow checkout_flow "Checkout journey" {
-  api -> cart -> payment -> db
-  payment ~> queue ~> worker
+flow checkout_journey "Checkout Journey" {
+  checkout.api -> checkout.cart -> checkout.payment -> checkout.db
+  checkout.payment ~> checkout.queue -> checkout.worker
 }
 
 view checkout {
-  show flow checkout_flow
+  scope checkout
+  show flow checkout_journey
   legend auto
-
   layout {
-    rows [api] [cart] [payment] [db] [worker]
-    place queue right-of db
-    route payment ~> queue from east to west
+    rows [api] [cart payment] [db queue worker]
   }
 }

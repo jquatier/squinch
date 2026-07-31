@@ -1,44 +1,35 @@
 pack aws
 
-person customer "Cardholder"
-
 system payments "Payments Service" {
-  description: "Card capture, tokenization, vaulting, and async settlement"
+  description: "Payment processing and settlement"
+  glyph: sys/lock
 
-  api        = aws/lambda   "API Lambda" {
-    description: "Receives checkout requests with raw card data"
+  api = aws/lambda "API Handler"
+  tokenizer = aws/lambda "Tokenizer" {
+    description: "Tokenizes card data"
     tags: #pci
   }
-  tokenizer  = aws/lambda   "Tokenizer Lambda" {
-    description: "Exchanges raw PAN for an opaque token"
+  vault = aws/dynamodb "Card Vault" datastore {
+    description: "Stores tokenized cards"
     tags: #pci
   }
-  vault      = aws/dynamodb "Card Vault" {
-    description: "Stores tokens mapped to vaulted card data"
-    tags: #pci
-  }
-  queue      = aws/sqs      "Settlement Queue"
-  settlement = aws/lambda   "Settlement Worker" {
-    description: "Drains the settlement queue and posts to the acquirer"
-  }
+  queue = aws/sqs "Settlement Queue"
+  worker = aws/lambda "Settlement Worker"
 
-  api -> tokenizer "tokenize card"
-  tokenizer -> vault "store token"
-  api ~> queue "enqueue settlement"
-  queue ~> settlement "drain"
+  api -> tokenizer
+  tokenizer -> vault
+  tokenizer ~> queue "enqueue settlement"
+  queue ~> worker
 }
-
-customer -> payments.api "checkout"
 
 view payments {
-  layout {
-    rows [api] [tokenizer queue] [vault settlement]
-  }
-}
-
-view pci-surface {
-  scope payments
-  title "PCI Surface"
+  title "Payments Service - PCI Scope"
   highlight #pci
-  note right-of vault "Tokens (not raw card numbers) are stored here; the Tokenizer Lambda is the only place raw PANs are handled, and it never persists them."
+  note top-right "Tokens are stored in the Card Vault; raw card data never persists" { style: warning }
+  show descriptions
+  legend auto
+  titleblock {
+    version: "2026-07"
+    owner: team-payments
+  }
 }

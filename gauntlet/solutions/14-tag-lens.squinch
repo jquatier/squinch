@@ -1,36 +1,39 @@
+// Payments Platform Architecture
 pack aws
 
 system payments "Payments Platform" {
-  description: "Card payment processing"
+  description: "Card payment processing and analytics"
+  glyph: sys/lock
 
-  api       = aws/lambda   "API Lambda" {
-    description: "Public entrypoint for payment requests"
+  api       = aws/lambda    "API Handler" {
     tags: #pci
+    description: "Payment API entry point"
   }
-  tokenizer = aws/lambda   "Tokenizer Lambda" {
-    description: "Tokenizes raw card numbers"
+  tokenizer = aws/lambda    "Tokenizer" {
     tags: #pci
+    description: "Card tokenization service"
   }
-  vault     = aws/dynamodb "Card Vault" {
-    description: "Stores tokenized card data"
+  vault     = aws/dynamodb  "Card Vault" datastore {
     tags: #pci
+    description: "Encrypted card data"
   }
-  analytics = aws/lambda   "Analytics Lambda" {
-    description: "Aggregates anonymized transaction metrics"
+  analytics = aws/lambda    "Analytics" {
+    description: "Payment analytics processor"
   }
-  warehouse = aws/redshift "Data Warehouse" {
-    description: "Business analytics warehouse"
+  warehouse = aws/redshift  "Data Warehouse" datastore {
+    description: "Analytics storage"
   }
 
   api -> tokenizer "tokenize card"
   tokenizer -> vault "store token"
-  api -> analytics "emit anonymized event"
-  analytics -> warehouse "load metrics"
+  api -> analytics "send metadata"
+  analytics -> warehouse "store analytics"
 }
 
 view full {
+  title "Payments Platform - Full Architecture"
   scope payments
-  title "Payments Platform — Full Picture"
+  show descriptions
 
   layout {
     rows [api] [tokenizer analytics] [vault warehouse]
@@ -38,9 +41,11 @@ view full {
 }
 
 view auditor {
+  title "Payments Platform - PCI Scope"
   scope payments
-  title "Auditor View — PCI Scope"
-  exclude analytics, warehouse
+  exclude analytics
+  exclude warehouse
+  show descriptions
 
   layout {
     rows [api] [tokenizer] [vault]

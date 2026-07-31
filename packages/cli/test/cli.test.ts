@@ -283,6 +283,31 @@ describe("round-3 gauntlet findings", () => {
     expect(err.join("\n")).toContain("views:");
   });
 
+  it("a project with no views at all checks clean — no phantom `default`", async () => {
+    // The round-3 fix above turned an unknown `--view` into a hard error, which
+    // armed a sentinel the CLI had been handing itself: with nothing declared,
+    // the view list ended in a literal "default" that every caller then asked
+    // the renderer for. A valid top-level diagram failed with "unknown view
+    // `default`, this project declares no views" — the tool contradicting
+    // itself in one sentence. Five of twenty round-4 agents hit it.
+    const f = join(dir, "flat.squinch");
+    writeFileSync(f, `person u "U"\nweb = aws/ec2 "Web"\nu -> web\n`);
+    expect(await main(["check", f, "--format", "json"])).toBe(0);
+    const payload = JSON.parse(out.join("\n"));
+    expect(payload.ok).toBe(true);
+    expect(payload.diagnostics).toEqual([]);
+  });
+
+  it("…and still syncs under the `default` label", async () => {
+    // `default` remains the filename for that case — it is a label, not a view.
+    const f = join(dir, "flat2.squinch");
+    writeFileSync(f, `person u "U"\nweb = aws/ec2 "Web"\nu -> web\n`);
+    expect(await main(["render", f, "--sync"])).toBe(0);
+    expect(existsSync(join(dir, "flat2.default.light.svg"))).toBe(true);
+    expect(existsSync(join(dir, "flat2.default.dark.svg"))).toBe(true);
+    expect(await main(["render", f, "--check"])).toBe(0);
+  });
+
   it("icon search names the short forms it found the icon under", async () => {
     expect(await main(["icons", "search", "--pack", "azure", "key vault"])).toBe(0);
     const line = out.join("\n");

@@ -1,29 +1,30 @@
 pack aws
 
-system orders_api "Orders API" {
-  description: "CRUD + search over the orders table"
+system api "API Service" {
+  gw = aws/api-gateway "API Gateway"
+  create = aws/lambda "Create Handler"
+  read = aws/lambda "Read Handler"
+  update = aws/lambda "Update Handler"
+  delete = aws/lambda "Delete Handler"
+  search = aws/lambda "Search Handler"
+  db = aws/dynamodb "Data Table" datastore
 
-  api    = aws/api-gateway "API Gateway"
-  create = aws/lambda      "Create Handler"
-  read   = aws/lambda      "Read Handler"
-  update = aws/lambda      "Update Handler"
-  delete = aws/lambda      "Delete Handler"
-  search = aws/lambda      "Search Handler"
-  db     = aws/dynamodb    "Orders Table"
-
-  api -> create, read, update, delete, search
+  gw -> create
+  gw -> read
+  gw -> update
+  gw -> delete
+  gw -> search
 
   create -> db
-  read   -> db
+  read -> db
   update -> db
   delete -> db
   search -> db
 }
 
-view orders_api {
-  title "Orders API"
+view api {
   layout {
-    rows [api] [create read update delete search] [db]
+    rows [gw] [create read update delete search] [db]
     channel create, read, update, delete, search -> db
   }
 }

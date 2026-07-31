@@ -121,8 +121,13 @@ view landscape {            // views take no positional label, unlike
 view shop {                 // name matching a system = that system's view
   scope shop                // implied by the name here; explicit for clarity
   exclude legacy            // trim noise (removes the subtree)
+  exclude #internal         // …by tag too: what is left is the lens
   expand workers            // inline one child container in a frame
-  highlight #pci            // spotlight matches, dim everything else
+  highlight #pci            // spotlight matches, dim everything else — note
+                            // this still shows everything. A view asked to
+                            // show *only* the tagged things needs `exclude`;
+                            // `highlight` on its own renders the full picture
+                            // with the rest greyed, which is a different claim
   show descriptions         // inline description lines under labels — these are
                             // clipped to the card width with an ellipsis and
                             // nothing warns you, so keep them to ~4 words
@@ -226,7 +231,9 @@ view shop {
 | A wire jogs slightly instead of running straight | `align a b` — b takes a's axis exactly (a is the anchor) |
 | Diagram too cramped / too airy | `density spacious` / `density compact` |
 | Too many boxes at once | Split into views: a landscape with `include *`, plus per-system views |
-| Show only one concern (PCI, GDPR, a team) | `highlight #pci` — spotlights matches, dims the rest. `include` **adds** to a view and cannot narrow one; to actually remove things use `exclude #tag` or `exclude <id>` |
+| Show **only** one concern (an auditor's view: "only the PCI parts") | `exclude #<other-tag>` / `exclude <id>` — the matches are the only things left. `highlight` will *not* do this: it dims, it does not remove |
+| Emphasise one concern while keeping its context | `highlight #pci` — spotlights matches, dims the rest, shows everything |
+| Narrow a view with `include #tag` | It does not narrow. `include` **adds** to a view; an include that changes nothing warns and names the alternatives |
 | A neighbour system clutters a zoomed view | `exclude thatSystem` or `context off` |
 | "hint conflict … runs upward" error | Your `rows` contradict an edge's direction — move the target to a lower row |
 | "N edges match route …" error | Add the edge's label to the `route` statement |

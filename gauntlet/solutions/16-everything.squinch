@@ -1,59 +1,100 @@
+// Order platform architecture
 pack aws
 
 person customer "Customer"
-
-storefront = aws/cloudfront "Storefront" {
-  description: "CloudFront-fronted storefront"
-}
-
-gateway = aws/api-gateway "API Gateway"
+cdn = aws/cloudfront "CloudFront"
+storefront = sys/app-window "Storefront"
+apigw = aws/api-gateway "API Gateway"
 
 system catalog "Catalog Service" {
-  fn = aws/lambda   "Catalog Handler"
-  db = aws/dynamodb "Catalog Table"
-  fn -> db
+  glyph: sys/database
+  description: "Product catalog"
+
+  lambda = aws/lambda "Catalog Handler"
+  db = aws/dynamodb "Products Table" datastore
+
+  lambda -> db
 }
 
 system orders "Orders Service" {
-  fn = aws/lambda   "Orders Handler"
-  db = aws/dynamodb "Orders Table"
-  fn -> db
+  glyph: sys/workflow
+  description: "Order processing"
+  tags: #core
+
+  lambda = aws/lambda "Orders Handler"
+  db = aws/dynamodb "Orders Table" datastore
+  events = aws/eventbridge "Event Bus"
+
+  lambda -> db
+  lambda ~> events "order.created"
 }
 
 system payments "Payments Service" {
+  glyph: sys/lock
+  description: "Payment processing"
   tags: #sensitive
 
-  fn = aws/lambda   "Payments Handler"
-  db = aws/dynamodb "Payments Table"
-  fn -> db
+  lambda = aws/lambda "Payments Handler" {
+    tags: #sensitive
+  }
+  db = aws/dynamodb "Payments Table" datastore {
+    tags: #sensitive
+  }
+
+  lambda -> db {
+    tags: #sensitive
+  }
 }
 
-bus = aws/eventbridge "Event Bus"
+system fulfilment "Fulfilment Service" {
+  glyph: sys/package
+  description: "Order fulfilment"
 
-system fulfilment "Fulfilment Worker" {
-  worker = aws/lambda "Worker"
+  worker = aws/lambda "Fulfilment Worker"
+  db = aws/dynamodb "Fulfilment Table" datastore
+
+  worker -> db
 }
 
-customer -> storefront "browses"
-storefront -> gateway "checkout"
+// Connections
+customer -> cdn "browse"
+cdn -> storefront
+storefront -> apigw "API requests"
+apigw -> catalog.lambda "GET /products"
+apigw -> orders.lambda "POST /orders"
+apigw -> payments.lambda "POST /payments" {
+  tags: #sensitive
+}
+orders.events ~> fulfilment.worker "order events"
 
-gateway -> catalog.fn  "route"
-gateway -> orders.fn   "route"
-gateway -> payments.fn "route" { tags: #sensitive }
-
-orders.fn ~> bus "order placed"
-bus ~> fulfilment.worker "consume"
-
+// VPC boundary
 zone prod_vpc "Production VPC" vpc {
-  contains gateway, catalog, orders, payments, bus, fulfilment
+  contains apigw, catalog, orders, payments, fulfilment
 }
 
+// Views
 view landscape {
-  title "Order Platform — Landscape"
+  title "Order Platform Landscape"
   include *
+  highlight #sensitive
+
+  titleblock {
+    version: "2026-07"
+    owner: platform-team
+  }
+
+  legend auto
 }
 
 view orders {
+  title "Orders Service Detail"
   scope orders
-  title "Orders Service"
+  show descriptions
+
+  note right-of events "Publishes domain events"
+
+  titleblock {
+    version: "2026-07"
+    owner: orders-team
+  }
 }

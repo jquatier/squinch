@@ -1,29 +1,27 @@
 pack aws
 
+// actors
 person analysts "Analysts"
 
-kinesis = aws/kinesis "Clickstream Stream"
-lambda  = aws/lambda  "Transformer" {
-  description: "Parses and enriches raw clickstream events"
-}
-lake    = aws/s3      "Data Lake"
-catalog = aws/glue     "Data Catalog"
-athena  = aws/athena   "Query Engine"
+// data pipeline components
+stream = aws/kinesis "Clickstream"
+transform = aws/lambda "Transformer"
+lake = aws/s3 "Data Lake" datastore
+catalog = aws/glue "Glue Catalog"
+query = aws/athena "Athena"
 
-kinesis ~> lambda "streams events"
-lambda -> lake "writes records"
-lake ~> catalog "triggers crawl"
-lake -> athena "reads data files"
-catalog -> athena "provides schema"
-analysts -> athena "runs SQL queries"
+// data flow
+stream ~> transform
+transform ~> lake
+lake -> catalog
+catalog -> query
+analysts -> query "run queries"
 
+// view
 view pipeline {
-  title "Clickstream Data Pipeline"
+  title "Data Pipeline"
   include *
-
   layout {
-    rows [kinesis] [lambda] [lake] [catalog athena]
-    place analysts right-of athena
-    route analysts -> athena from west to east
+    rows [stream] [transform] [lake catalog] [query analysts]
   }
 }

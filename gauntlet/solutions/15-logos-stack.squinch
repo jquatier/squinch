@@ -1,39 +1,59 @@
+// Technology stack architecture
 pack logos
 
-person developer "Developer"
-
-repo = logos/github "GitHub"
-
-system platform "Kubernetes Cluster" {
-  glyph: logos/kubernetes
-
-  frontend = logos/nextdotjs "Frontend"
-  api      = logos/nestjs    "API"
-
-  frontend -> api "requests"
+// Development & Deployment
+person devs "Developers"
+gh = logos/github "GitHub"
+k8s = logos/kubernetes "Kubernetes Cluster" {
+  description: "Container orchestration"
 }
 
-db      = logos/postgresql  "PostgreSQL" datastore
-cache   = logos/redis       "Redis"      datastore
-events  = logos/apachekafka "Kafka"
-grafana = logos/grafana     "Grafana"
+// Application Layer
+frontend = logos/nextjs "Next.js Frontend" {
+  description: "React SSR application"
+}
+backend = logos/nestjs "NestJS API" {
+  description: "Node.js backend service"
+}
 
-developer -> repo "push"
-repo -> platform.frontend, platform.api "deploys"
+// Data Layer
+db = logos/postgresql "PostgreSQL" datastore {
+  description: "Primary database"
+}
+cache = logos/redis "Redis" datastore {
+  description: "Caching layer"
+}
 
-platform.api -> db "reads/writes"
-platform.api -> cache "caches"
-platform.api ~> events "publishes events"
+// Messaging & Observability
+events = logos/kafka "Kafka" {
+  description: "Event streaming"
+}
+monitoring = logos/grafana "Grafana" {
+  description: "Observability platform"
+}
 
-grafana -> platform.frontend, platform.api, db, cache, events "monitors"
+// Connections
+devs -> gh "push code"
+gh -> k8s "deploy"
+k8s -> frontend
+k8s -> backend
+
+frontend -> backend "API calls"
+backend -> db "queries"
+backend -> cache "read/write"
+backend ~> events "publish events"
+
+frontend -> monitoring "metrics"
+backend -> monitoring "metrics"
+db -> monitoring "metrics"
+cache -> monitoring "metrics"
+events -> monitoring "metrics"
 
 view stack {
-  title "Our Stack"
+  title "Technology Stack"
   include *
-  expand platform
-  legend auto
-
   layout {
-    rows [developer] [repo grafana] [platform.frontend platform.api] [db cache events]
+    direction down
+    rows [devs] [gh] [k8s] [frontend] [backend] [db cache events] [monitoring]
   }
 }

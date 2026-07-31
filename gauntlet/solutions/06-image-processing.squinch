@@ -1,24 +1,22 @@
 pack aws
 
-system pipeline "Serverless Image Pipeline" {
-  description: "Labels uploaded images and notifies subscribers"
+system image_pipeline "Image Processing Pipeline" {
+  description: "Serverless image analysis and metadata extraction"
 
-  bucket       = aws/s3          "Uploads Bucket"
-  handler      = aws/lambda      "Image Processor"
-  rekognition  = aws/rekognition "Rekognition"
-  table        = aws/dynamodb    "Image Metadata"
-  topic        = aws/sns         "Notifications"
-  subscribers  = box             "Subscribers" external
+  uploads = aws/s3 "Upload Bucket" datastore
+  processor = aws/lambda "Image Processor"
+  rekognition = aws/rekognition "Rekognition"
+  metadata = aws/dynamodb "Image Metadata" datastore
+  notifications = aws/sns "Notifications"
 
-  bucket ~> handler "object created"
-  handler -> rekognition "detect labels"
-  handler -> table "write metadata"
-  handler -> topic "publish"
-  topic ~> subscribers "notify"
+  uploads ~> processor "S3 event"
+  processor -> rekognition "analyze image"
+  processor -> metadata "write metadata"
+  processor ~> notifications "notify"
 }
 
-view pipeline {
+view image_pipeline {
   layout {
-    rows [bucket] [handler] [rekognition table topic] [subscribers]
+    rows [uploads] [processor rekognition] [metadata notifications]
   }
 }

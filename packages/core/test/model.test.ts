@@ -137,8 +137,22 @@ describe("grammar + model builder", () => {
       `flow f "F" {\n a ->\n}`,
       `system `,
       `person `,
+      // view statements mid-keystroke: each of these took its operand with a
+      // `!` and threw a raw null deref — exit 2, no location. `scope *` is the
+      // shape a cold agent wrote reaching for "show everything".
+      `view v {\n scope\n}`,
+      `view v {\n scope *\n}`,
+      `view v {\n title\n}`,
+      `view v {\n theme\n}`,
     ])
       expect(() => buildModel(partial), partial).not.toThrow();
+  });
+
+  it("`scope *` is refused by name, and points at the thing that does widen", () => {
+    const r = buildModel(`system s "S" {\n a = aws/lambda "A"\n}\nview v {\n scope *\n}`);
+    expect(r.ok).toBe(false);
+    const d = r.diagnostics.find((x) => x.message.includes("`scope` needs"));
+    expect(d?.fix).toContain("include *");
   });
 
   it("layout block inside a system: diagnostics, not a crash", () => {

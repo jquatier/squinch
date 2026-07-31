@@ -50,6 +50,63 @@ worth keeping, and the originals remain in git history.
 
 ## Results
 
+**Round 4 — 20/20** (2026-07-31), the first round run by `run.ts` rather than by
+hand: twenty sandboxed Sonnet sessions, 4 at a time, ~18 minutes, zero
+outside-sandbox reads. **7 of 20 were clean on the first `check`**, which is the
+number that matters and the one earlier rounds could not measure at all — nobody
+was counting invocations before the shim existed.
+
+It found five defects, three of them in the engine.
+
+**Engine**
+
+1. **`check` crashed with a raw null deref** — `Cannot read properties of null
+   (reading 'from')`, exit 2, no location, no fix, in direct violation of the
+   "errors serve the agent loop" non-negotiable. `scope`, `title` and `theme`
+   each took their operand with a `!`, so *any* keystroke between typing the
+   keyword and typing its argument threw — which means it crashed the language
+   server too, on every edit. An agent reaching for "show everything" wrote
+   `scope *`, which parses as a `ScopeStmt` with no `Path`, and hit it twice.
+   All three now diagnose; `scope *` points at `include *`, the thing that
+   actually widens a view.
+2. **A valid diagram failed `check` with a view the author never wrote.** With
+   no `view` block and no container to auto-generate one, the CLI's view list
+   fell back to a literal `["default"]` that every caller then handed the
+   renderer. Round 3's fix — an unknown `--view` is now a hard error — armed
+   that sentinel, so `check` reported ``unknown view `default` `` with the fix
+   text "this project declares no views": the tool contradicting itself in one
+   sentence. **Five of twenty agents hit it**, the single most common failure of
+   the round, and `--sync` was broken the same way. `default` is now a filename
+   label and never a view request.
+3. **`place` + `rows` was only half-guarded** (found in the single-prompt run
+   that preceded this round, and hit again here by three more agents). The
+   check listed only `right-of`/`left-of`, so `above`/`below` — the directions
+   that collide with `rows` on the axis `rows` actually pins — passed at exit 0
+   with one hint silently dropped. `cols` had no guard at all.
+
+**Documentation**
+
+4. **The cookbook row for the rows+place error was keyed to the wrong string.**
+   "a node can hold only one rank position" is the fix text of a *different*
+   diagnostic (a node listed in `rows` twice), so an agent hitting the real
+   error found nothing and an agent listing a node twice was pointed at a
+   `place` problem it did not have. Both errors now have their own row.
+5. **"Show only one concern" was answered with `highlight`, which shows
+   everything.** Prompt 14 asks for "an auditor's view that shows only the
+   PCI-tagged parts"; the agent wrote `highlight #pci`, producing a view titled
+   "PCI Scope" that renders the whole platform with the rest greyed — a
+   different claim, at exit 0, and the only prompt the scorer failed. The row
+   did mention `exclude`, but at the end of a long cell under a headline that
+   said "show only". Fixing the row was not enough: a re-run picked `highlight`
+   again, because the *reference block* an agent copies from listed `highlight`
+   and no tag-based `exclude`. With both fixed it narrowed correctly.
+
+Still open, and the reason finding 5 took two attempts: **there is no way to say
+"only #tag"**. `include #tag` cannot narrow (round 2, finding 2), so an auditor
+view has to enumerate the complement by id — backwards for the one feature whose
+entire purpose is selecting a cross-cutting slice. Round 2 papered over this by
+pointing at `highlight`; two rounds later it is still the sharp edge.
+
 **Round 3 — 20/20** (2026-07-26). Four prompts were added for everything built
 after round 2: the Azure pack, boundaries three deep, a flow to walk through,
 and a hybrid estate mixing Azure with `logos`. Four fresh cold sessions, one

@@ -1,50 +1,34 @@
-// Mid-migration picture: what still runs in our own data centre, and what
-// already runs in Azure.
+// Multicloud migration: on-premises to Azure
 pack azure
 pack logos
 
-postgres = logos/postgresql "PostgreSQL" datastore {
-  description: "Legacy store"
-}
-rabbit = logos/rabbitmq "RabbitMQ" {
-  description: "Event broker"
+// On-premises infrastructure
+onprem_db = logos/postgres "PostgreSQL" datastore
+onprem_mq = logos/rabbitmq "RabbitMQ"
+
+// Azure infrastructure
+azure_cluster = azure/aks "AKS Cluster"
+azure_db = azure/sql "Azure SQL" datastore
+sync_job = azure/functions "Sync Job"
+
+// Data migration flow
+onprem_db ~> sync_job "reads nightly"
+sync_job ~> azure_db "writes"
+
+// Deployment boundaries
+zone onprem "On-Premises" onprem {
+  contains onprem_db, onprem_mq
 }
 
-aks = azure/aks "AKS Cluster" {
-  description: "New services"
-}
-azsql = azure/azure-sql "Azure SQL" datastore {
-  description: "Migration target"
-}
-sync = azure/data-factories "Sync Job" {
-  description: "Nightly copy"
+zone cloud "Azure" cloud {
+  contains azure_cluster, azure_db, sync_job
 }
 
-postgres ~> sync "nightly extract"
-sync ~> azsql "load"
-rabbit ~> aks "events"
-aks -> azsql "reads and writes"
-
-zone dc "On-Premises" onprem {
-  contains postgres, rabbit
-}
-
-zone az "Azure" cloud {
-  contains aks, azsql, sync
-}
-
-view landscape {
-  title "Mid-Migration Landscape"
+view migration {
+  title "Multi-Cloud Migration"
   include *
-  show descriptions
-  legend auto
-  titleblock {
-    version: "mid-migration"
-    owner: platform
-  }
+
   layout {
     direction right
-    route rabbit ~> aks from east to west
-    route postgres ~> sync from east to west
   }
 }

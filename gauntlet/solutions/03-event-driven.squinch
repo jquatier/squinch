@@ -1,37 +1,36 @@
+// Event-driven architecture with EventBridge routing to multiple consumers
 pack aws
 
-orders = box "Order Service" external
+// Event source and routing
+orders = sys/code "Order Service"
+bus = aws/eventbridge "EventBridge"
 
-bus = aws/eventbridge "Event Bus"
+// Email notification path
+email_handler = aws/lambda "Email Notifier"
+sns = aws/sns "SNS"
 
-system emailNotifier "Email Notifier" {
-  notifier = aws/lambda "Notify Handler"
-  topic    = aws/sns    "Order Notifications"
+// Analytics path
+analytics_handler = aws/lambda "Analytics Writer"
+lake = aws/s3 "Data Lake"
 
-  notifier -> topic "publish"
-}
-
-system analytics "Analytics Writer" {
-  writer = aws/lambda "Analytics Handler"
-  lake   = aws/s3     "Data Lake"
-
-  writer -> lake "write records"
-}
-
+// Error handling
 dlq = aws/sqs "Dead Letter Queue"
 
+// Event flow - all async
 orders ~> bus "order events"
-bus ~> emailNotifier.notifier "order.created"
-bus ~> analytics.writer "order.created"
-bus ~> dlq "failed events"
+bus ~> email_handler "email events"
+bus ~> analytics_handler "analytics events"
+email_handler ~> sns "notifications"
+analytics_handler ~> lake "store events"
+email_handler ~> dlq "failed"
+analytics_handler ~> dlq "failed"
 
-view landscape {
-  title "Order Events — Event-Driven Flow"
-  include *
-
+view main {
+  title "Event-Driven Order Processing"
   layout {
-    rows [orders] [bus] [emailNotifier analytics]
-    place dlq right-of bus
-    route bus ~> dlq from east to west
+    rows [orders] [bus] [email_handler analytics_handler] [sns lake]
+    place dlq right-of lake
+    route email_handler ~> dlq from south to west
+    route analytics_handler ~> dlq from south to east
   }
 }

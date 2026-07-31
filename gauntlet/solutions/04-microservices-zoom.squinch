@@ -1,52 +1,54 @@
 pack aws
 
-gateway = aws/api-gateway "API Gateway" {
-  description: "Single entry point for all client traffic"
-}
+// API Gateway
+gateway = aws/api-gateway "API Gateway"
 
+// Catalog Service
 system catalog "Catalog Service" {
-  description: "Product catalog, search and pricing"
+  description: "Product search and browsing"
+  glyph: sys/database
 
-  handler = aws/lambda   "Catalog API"
-  db      = aws/dynamodb "Catalog Table"
+  api = aws/lambda "Catalog API"
+  db = aws/dynamodb "Catalog DB" datastore
 
-  handler -> db "reads/writes"
+  api -> db
 }
 
+// Checkout Service
 system checkout "Checkout Service" {
-  description: "Cart, order placement and payment capture"
+  description: "Order processing and payment"
+  glyph: sys/code
 
-  handler = aws/lambda   "Checkout API"
-  db      = aws/dynamodb "Orders Table"
+  api = aws/lambda "Checkout API"
+  db = aws/dynamodb "Orders DB" datastore
 
-  handler -> db "reads/writes"
+  api -> db
 }
 
+// Identity Service
 system identity "Identity Service" {
-  description: "Authentication, sessions and user profiles"
+  description: "Authentication and authorization"
+  glyph: sys/shield
 
-  handler = aws/lambda   "Identity API"
-  db      = aws/dynamodb "Users Table"
+  api = aws/lambda "Identity API"
+  db = aws/dynamodb "Users DB" datastore
 
-  handler -> db "reads/writes"
+  api -> db
 }
 
-gateway -> catalog.handler, checkout.handler, identity.handler "routes requests"
+// Gateway connections to services
+gateway -> catalog.api
+gateway -> checkout.api
+gateway -> identity.api
 
+// Landscape view showing all systems
 view landscape {
   title "System Landscape"
   include *
-
-  layout {
-    rows [gateway] [catalog checkout identity]
-  }
 }
 
+// Zoomed view of checkout service
 view checkout {
   scope checkout
   show descriptions
-
-  layout {
-    rows [handler] [db]
-  }
 }

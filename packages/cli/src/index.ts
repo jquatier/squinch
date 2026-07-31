@@ -133,20 +133,42 @@ function viewNames(input: Input): string[] {
   const built = buildProject(input.files);
   const explicit = built.model.views.filter((v) => !v.auto).map((v) => v.name);
   if (explicit.length) return explicit;
-  const auto = built.model.views.map((v) => v.name);
-  return auto.length ? auto : ["default"];
+  return built.model.views.map((v) => v.name); // may be empty — see SOLE
+}
+
+/**
+ * Filename label for a project that declares no views at all — a diagram of
+ * top-level components with no `view` block and no container to auto-generate
+ * one. It is a *label*, never a view name: this list used to end in a literal
+ * `["default"]`, which every caller then passed to the renderer as if the
+ * author had written `view default`. That was harmless while an unknown view
+ * silently fell back to the implicit one; once round 3 made an unknown `--view`
+ * a hard error (rightly — a typo used to hand you a different diagram at exit
+ * 0), the sentinel turned into a landmine. `check` failed on a perfectly valid
+ * file with "unknown view `default`, this project declares no views", which is
+ * the tool contradicting itself in a single sentence. Five of twenty cold
+ * agents hit it.
+ */
+const SOLE = "default";
+
+/** What to render, as (filename label, view to ask the renderer for). */
+function targets(input: Input): { label: string; view: string | undefined }[] {
+  const names = viewNames(input);
+  return names.length
+    ? names.map((label) => ({ label, view: label }))
+    : [{ label: SOLE, view: undefined }];
 }
 
 async function renderOne(
   input: Input,
-  view: string,
+  view: string | undefined,
   theme: string,
   adaptive = false,
 ): Promise<string> {
-  const r = await renderProject(input.files, { view, theme, adaptive });
+  const r = await renderProject(input.files, { ...(view ? { view } : {}), theme, adaptive });
   if (!r.ok) {
     reportDiagnostics(r.diagnostics, false);
-    throw new Error(`render failed for view \`${view}\``);
+    throw new Error(`render failed for view \`${view ?? SOLE}\``);
   }
   const valid = validateSVG(r.svg!);
   if (!valid.ok) throw new Error(`internal: produced invalid SVG (${valid.error})`);
@@ -163,9 +185,9 @@ async function cmdCheck(path: string, json: boolean): Promise<number> {
   // layout-stage diagnostics too: render every view
   const all: Diagnostic[] = [...built.diagnostics];
   if (built.ok)
-    for (const view of viewNames(input))
+    for (const { view } of targets(input))
       for (const theme of ["light"]) {
-        const r = await renderProject(input.files, { view, theme });
+        const r = await renderProject(input.files, { ...(view ? { view } : {}), theme });
         for (const d of r.diagnostics)
           if (!all.some((x) => x.message === d.message && x.loc.from === d.loc.from)) all.push(d);
       }
@@ -195,15 +217,15 @@ async function cmdRender(path: string, flags: Record<string, string | boolean>):
   const view = str(flags.view);
 
   if (flags.sync || flags.check) {
-    const views = viewNames(input);
+    const views = targets(input);
     const stale: string[] = [];
     const written: string[] = [];
     const lock: Record<string, string> = {};
-    for (const v of views)
+    for (const { label, view } of views)
       for (const t of THEMES) {
-        const svg = await renderOne(input, v, t);
-        const file = join(input.dir, outName(input.base, v, t));
-        lock[outName(input.base, v, t)] = hash(svg);
+        const svg = await renderOne(input, view, t);
+        const file = join(input.dir, outName(input.base, label, t));
+        lock[outName(input.base, label, t)] = hash(svg);
         if (flags.check) {
           if (!existsSync(file) || readFileSync(file, "utf8") !== svg)
             stale.push(display(file));
@@ -232,11 +254,11 @@ async function cmdRender(path: string, flags: Record<string, string | boolean>):
     );
     console.error(written.map((f) => `wrote ${f}`).join("\n"));
     console.log(`\n<!-- README snippet -->`);
-    for (const v of views)
+    for (const { label } of views)
       console.log(
         `<picture>\n` +
-          `  <source media="(prefers-color-scheme: dark)" srcset="${outName(input.base, v, "dark")}">\n` +
-          `  <img alt="${v}" src="${outName(input.base, v, "light")}">\n` +
+          `  <source media="(prefers-color-scheme: dark)" srcset="${outName(input.base, label, "dark")}">\n` +
+          `  <img alt="${label}" src="${outName(input.base, label, "light")}">\n` +
           `</picture>`,
       );
     return 0;

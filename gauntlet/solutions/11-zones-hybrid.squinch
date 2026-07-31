@@ -1,39 +1,35 @@
 pack aws
 
-person operator "Operators"
-
-system datacenter "On-Prem Data Center" {
-  description: "Legacy on-premises infrastructure"
-  glyph: aws/corporate-data-center
-
-  erp = box "Oracle ERP" datastore
-
-  operator -> erp "uses"
+// On-premises components
+person ops "Operators"
+erp = box "Legacy ERP" datastore {
+  description: "Oracle-style system"
 }
 
-system aws_estate "AWS" {
-  ingest = aws/lambda "Ingestion Lambda"
-  aurora = aws/aurora  "Aurora"
+// AWS cloud components
+ingest = aws/lambda "Ingestion Lambda"
+db = aws/aurora "Aurora DB" datastore
 
-  ingest -> aurora "writes"
+// Connections
+ops -> erp
+erp -> ingest "feeds data"
+ingest -> db "writes"
+
+// Deployment boundaries
+zone onprem "On-Premises Data Centre" onprem {
+  contains ops, erp
 }
 
-datacenter.erp ~> aws_estate.ingest "feeds"
-
-zone onprem_zone "On-Premises" onprem {
-  contains datacenter, operator
-}
-
-zone aws_zone "AWS" cloud {
-  contains aws_estate
+zone aws_cloud "AWS Cloud" cloud {
+  contains ingest, db
 }
 
 zone db_vpc "Database VPC" vpc {
-  contains aws_estate.aurora
+  contains db
 }
 
+// Default view showing the hybrid architecture
 view landscape {
-  title "Hybrid Estate"
+  title "Hybrid Architecture"
   include *
-  expand datacenter
 }

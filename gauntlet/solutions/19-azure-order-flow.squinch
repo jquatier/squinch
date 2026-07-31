@@ -1,48 +1,39 @@
-// Order journey through the Azure stack
+// Azure order flow diagram
 pack azure
 
 person shopper "Shopper"
 
-system orders "Order Processing" {
-  description: "Takes an order and drives it to fulfilment"
-  glyph: sys/hexagon
-
-  apim   = azure/api-management "API Management" {
-    description: "Public edge"
+system order_system "Order System" {
+  apim = azure/api-management "API Management"
+  order_fn = azure/functions "Order Function" {
+    description: "Validates and persists orders"
   }
-  create = azure/functions "Order Function" {
-    description: "Validates and persists"
-  }
-  db     = azure/cosmos "Cosmos DB" datastore
-  bus    = azure/service-bus "Service Bus"
-  fulfil = azure/functions "Fulfilment Function" {
-    description: "Ships the order"
+  cosmos = azure/cosmos "Orders DB" datastore
+  bus = azure/service-bus "Order Queue"
+  fulfil_fn = azure/functions "Fulfilment Function" {
+    description: "Processes order fulfilment"
   }
 
-  apim -> create "submit order"
-  create -> db "write order"
-  create ~> bus "OrderPlaced"
-  bus ~> fulfil "picks up"
+  apim -> order_fn
+  order_fn -> cosmos
+  order_fn ~> bus
+  bus ~> fulfil_fn
 }
 
-shopper -> orders.apim "places order"
+shopper -> order_system.apim "places order"
 
-flow order_journey "Order journey" {
-  shopper -> orders.apim
-  orders.apim -> orders.create
-  orders.create -> orders.db
-  orders.create ~> orders.bus
-  orders.bus ~> orders.fulfil
+flow order_journey "Order Journey" {
+  shopper -> order_system.apim -> order_system.order_fn -> order_system.cosmos
+  order_system.order_fn ~> order_system.bus ~> order_system.fulfil_fn
 }
 
-view orders {
-  title "Order journey — Azure"
-  scope orders
+view order_system {
   show flow order_journey
   show descriptions
-  legend auto
   layout {
-    direction down
-    rows [apim] [create] [db bus] [fulfil]
+    rows [apim] [order_fn] [cosmos] [fulfil_fn]
+    place bus right-of cosmos
+    route order_fn ~> bus from south to east
+    route bus ~> fulfil_fn from south
   }
 }

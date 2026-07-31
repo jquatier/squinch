@@ -1,28 +1,18 @@
 pack aws
 
-partner = box "Partner Company" external {
-  description: "Their system calls our public API"
-}
+partner = box "Partner System" external
+gw = aws/api-gateway "API Gateway"
+workflow = aws/step-functions "B2B Workflow"
+validate = aws/lambda "Validation"
+billing = aws/lambda "Billing"
+db = aws/aurora "Aurora DB" datastore
 
-system platform "Our Platform" {
-  description: "Public ingress and order processing"
+partner -> gw "API request"
+gw -> workflow
+workflow -> validate "step 1"
+workflow -> billing "step 2"
+billing -> db "write"
 
-  gateway  = aws/api-gateway    "API Gateway"
-  workflow = aws/step-functions "Request Workflow"
-  validate = aws/lambda         "Validation Lambda"
-  billing  = aws/lambda         "Billing Lambda"
-  db       = aws/aurora         "Aurora"
-
-  gateway ~> workflow "start execution"
-  workflow -> validate "validate request"
-  workflow -> billing "charge order"
-  billing -> db "write invoice"
-}
-
-partner -> platform.gateway "submits request"
-
-view platform {
-  layout {
-    rows [gateway] [workflow] [validate billing] [db]
-  }
+view default {
+  include *
 }

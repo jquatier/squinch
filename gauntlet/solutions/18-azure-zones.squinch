@@ -1,32 +1,37 @@
-// Azure estate with network boundaries drawn as nested zones.
 pack azure
 
-agw = azure/app-gateway     "Application Gateway"
-aks = azure/aks             "AKS Cluster"
-acr = azure/acr             "Container Registry"
-sql = azure/azure-sql       "Azure SQL" datastore
+// Application Gateway sits in front
+appgw = azure/app-gateway "Application Gateway"
 
-agw -> aks "routes traffic"
+// AKS cluster in the private subnet
+aks = azure/aks "AKS Cluster"
+
+// Container Registry pulls images to AKS
+acr = azure/acr "Container Registry"
+
+// Azure SQL in the vnet but outside subnet
+sql = azure/sql "Azure SQL"
+
+// Connections
+appgw -> aks
 aks -> acr "pulls images"
-aks -> sql "queries"
+aks -> sql
 
-zone subscription "Azure Subscription" account {
-  contains agw, aks, acr, sql
-  icon: azure/subscriptions
+// Private subnet contains AKS and ACR
+zone private_subnet "Private Subnet" subnet {
+  contains aks, acr
 }
 
+// Virtual network contains the subnet components and SQL
 zone vnet "Virtual Network" network {
   contains aks, acr, sql
-  icon: azure/vnet
 }
 
-zone subnet "Private Subnet" subnet {
-  contains aks, acr
-  icon: azure/subnet
-  color: accent
+// Subscription contains everything
+zone subscription "Azure Subscription" account {
+  contains aks, acr, sql, appgw
 }
 
-view estate {
-  title "Azure Estate — Network Boundaries"
+view default {
   include *
 }
