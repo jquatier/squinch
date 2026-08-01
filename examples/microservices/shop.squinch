@@ -102,7 +102,6 @@ view catalog {
   layout {
     rows [api] [db idx]
     place sync right-of idx
-    route db ~> sync "product stream" from east to west
   }
 }
 

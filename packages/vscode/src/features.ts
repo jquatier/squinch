@@ -278,3 +278,15 @@ export function symbolsOf(src: string): Sym[] {
     })),
   ];
 }
+
+/**
+ * HTML-escape a value interpolated into the preview webview. The panel runs with
+ * `enableScripts: true` and inlines both the rendered SVG and user-authored view
+ * names, so nothing user-derived goes in raw. Lives here rather than beside the
+ * webview because everything in this file is pure and therefore testable —
+ * `extension.ts` cannot be imported outside an extension host.
+ */
+export function esc(s: string): string {
+  return s.replace(/[<>&"']/g, (c) =>
+    ({ "<": "&lt;", ">": "&gt;", "&": "&amp;", '"': "&quot;", "'": "&#39;" })[c]!);
+}

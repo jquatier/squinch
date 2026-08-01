@@ -2,8 +2,9 @@
 import { describe, it, expect } from "vitest";
 import {
   diagnosticsFor, allDiagnosticsFor, completionsAt, hoverAt, symbolsOf,
-  blockStack, replacementIn, offsetAt,
+  blockStack, replacementIn, offsetAt, esc,
 } from "../src/features.js";
+import { render, viewIndex } from "@squinch/core";
 
 const SRC = `pack aws
 
@@ -156,5 +157,38 @@ describe("positions", () => {
   it("round-trips offsets", () => {
     const off = SRC.indexOf("zone vpc1");
     expect(offsetAt(SRC, { line: SRC.slice(0, off).split("\n").length - 1, character: 0 })).toBe(off);
+  });
+});
+
+describe("preview webview safety", () => {
+  // The panel runs with `enableScripts: true` and inlines both the rendered SVG
+  // and user-authored view names. `errorHtml` escaped from the start and
+  // `html` did not; the asymmetry is the kind that becomes live the day the
+  // grammar loosens. These pin the properties the panel actually relies on.
+  it("escapes every character that could break out of an attribute or a tag", () => {
+    expect(esc(`<img src=x onerror="alert(1)">`))
+      .toBe("&lt;img src=x onerror=&quot;alert(1)&quot;&gt;");
+    expect(esc("a & b")).toBe("a &amp; b");
+    expect(esc("it's")).toBe("it&#39;s");
+  });
+
+  it("leaves ordinary view names untouched, so escaping costs nothing", () => {
+    for (const name of ["landscape", "orders-pci", "web_app", "a.b"]) expect(esc(name)).toBe(name);
+  });
+
+  it("view names cannot contain markup in the first place", () => {
+    // The grammar's Ident is the reason this is belt-and-braces rather than a
+    // live hole. If this ever fails, the escaping above became load-bearing.
+    const names = viewIndex(`system s "S" { a = aws/lambda "A" }\nview v { scope s }\n`)
+      .map((v) => v.name);
+    expect(names.length).toBeGreaterThan(0);
+    for (const n of names) expect(n).toMatch(/^[A-Za-z_][\w-]*(\.[A-Za-z_][\w-]*)*$/);
+  });
+
+  it("the SVG inlined into the panel never carries a script", async () => {
+    const r = await render(`system s "S" { a = aws/lambda "A" }\n`, { theme: "light" });
+    expect(r.ok).toBe(true);
+    expect(r.svg).not.toContain("<script");
+    expect(r.svg).not.toMatch(/\son\w+=/); // no inline event handlers either
   });
 });

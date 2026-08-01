@@ -85,7 +85,18 @@ for (const p of prompts) {
     results.push({ id: p.id, pass: false, problems: errors.map((d) => d.message) });
     continue;
   }
+  // A warning is a failure here, and this is the only place that can enforce it:
+  // `squinch check` exits 0 on warnings by design, so nothing downstream of the
+  // agent notices. Every warning the engine emits means "this file is valid but
+  // probably not the diagram that was asked for" — an inert hint, a lens that
+  // filtered nothing, a zone that vanished. A corpus entry carrying one is a
+  // diagram nobody would want, sitting in the set we point at as the standard.
+  //
+  // This was computed and then only ever printed, while a comment below claimed
+  // warnings were already a failure and used that to justify deleting the
+  // hint-effectiveness probe. They were not.
   const warnings = built.diagnostics.filter((d) => d.severity === "warning");
+  for (const w of warnings) problems.push(`warning: ${w.message}`);
 
   // render every explicitly declared view (or the sole auto view). Shallow does
   // light+dark, which is the CI gate; --deep sweeps every theme the engine
@@ -97,6 +108,11 @@ for (const p of prompts) {
   const render = (view: string, opts: Record<string, unknown> = {}) =>
     renderProject([{ name: `${p.id}.squinch`, src }], { view, theme: "light", ...opts });
 
+  // Layout-stage warnings only exist once a view is laid out, so `buildProject`
+  // above cannot see them — and they are exactly the "silent construct" class:
+  // an inert hint, a zone that vanished, sides ignored on a same-rank edge.
+  // Deduped, because the same warning repeats for every theme.
+  const seenWarnings = new Set<string>();
   for (const view of views)
     for (const theme of sweep) {
       const r = await render(view, { theme });
@@ -105,6 +121,11 @@ for (const p of prompts) {
         const valid = validateSVG(r.svg!);
         if (!valid.ok) problems.push(`invalid SVG (${view}/${theme}): ${valid.error}`);
       }
+      for (const d of r.diagnostics)
+        if (d.severity === "warning" && !seenWarnings.has(d.message)) {
+          seenWarnings.add(d.message);
+          problems.push(`warning (${view}): ${d.message}`);
+        }
     }
 
   if (DEEP) {
@@ -135,9 +156,12 @@ for (const p of prompts) {
     // render-diff cannot tell a *discarded* hint from a merely *redundant* one,
     // and redundant is the common case — `rows [fd] [app] [sql cache kv ai]`
     // over a fan-out describes what ELK already does, so the SVGs match and the
-    // hint is still honoured. It fired on 6 of 20 good solutions. The real
-    // defect now has a real detector: the engine warns on hints it drops, and
-    // warnings below are already a failure.
+    // hint is still honoured. It fired on 6 of 20 good solutions.
+    //
+    // The real defect has a real detector instead: the engine warns on hints it
+    // drops, and warnings are a failure — which is true as of the loop above,
+    // and was not true when this comment first claimed it. The probe was
+    // deleted in favour of a gate that did not yet exist.
 
     // Probe — view distinctness. Two declared views drawing the same picture
     // means one of them is inert; generalises `requireNarrowerView`.

@@ -31,6 +31,9 @@ export interface VEdge {
   async: boolean;
   animate: boolean; // async edges animate unless `animate: false` (SPEC §edges)
   count: number; // >1 = aggregate
+  /** Effective tags. An aggregate carries the union of what it merged, so a
+   *  lens over a tag still finds the trunk that hides a tagged edge inside it. */
+  tags: string[];
 }
 
 export interface ViewGraph {
@@ -280,6 +283,7 @@ export function resolveView(model: SModel, view: SView): ViewGraph {
       edges.push({
         id: e.id, from: f, to: t, label: e.label, async: e.arrow === "~>",
         animate: e.arrow === "~>" && e.attrs.animate !== "false", count: 1,
+        tags: e.tags,
       });
       continue;
     }
@@ -297,6 +301,7 @@ export function resolveView(model: SModel, view: SView): ViewGraph {
       edges[slot] = {
         id: e.id, from: g.from, to: g.to, label: e.label, async: e.arrow === "~>",
         animate: e.arrow === "~>" && e.attrs.animate !== "false", count: 1,
+        tags: e.tags,
       };
     } else {
       edges[slot] = {
@@ -306,6 +311,7 @@ export function resolveView(model: SModel, view: SView): ViewGraph {
         async: g.edges.every((e) => e.arrow === "~>"),
         animate: g.edges.every((e) => e.arrow === "~>" && e.attrs.animate !== "false"),
         count: g.edges.length,
+        tags: [...new Set(g.edges.flatMap((e) => e.tags))],
       };
     }
   }

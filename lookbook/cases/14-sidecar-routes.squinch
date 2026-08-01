@@ -1,4 +1,7 @@
-// The side-car idiom, three times over: place + route from east to west.
+// The side-car idiom, three times over. `place` is the whole of it: it puts the
+// pair on one row, and same-rank edges route themselves side to side. A
+// `route … from east to west` here would be silently ignored — see 26-route-label
+// for the case where sides actually apply.
 pack aws
 
 system app "Order Service" {
@@ -22,7 +25,5 @@ view app {
     place cache right-of fn
     place sync right-of db
     place idx right-of sync
-    route fn -> cache from east to west
-    route db ~> sync from east to west
   }
 }

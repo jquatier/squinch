@@ -27,6 +27,5 @@ view orders {
   layout {
     rows [api] [create get search] [db files idx]
     place sync right-of db
-    route db ~> sync from east to west
   }
 }

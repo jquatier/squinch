@@ -6,6 +6,7 @@ import {
   type LanguageClientOptions, type ServerOptions,
 } from "vscode-languageclient/node.js";
 import { renderProject, viewIndex } from "@squinch/core";
+import { esc } from "./features.js";
 
 let client: LanguageClient | undefined;
 
@@ -95,10 +96,20 @@ class Preview {
   }
 
   private html(svg: string, views: string[], active: string | undefined): string {
+    // View names come from user source and land in an `enableScripts` webview,
+    // so they get escaped like everything else — `errorHtml` below already did,
+    // and the asymmetry was the bug waiting to happen. Today the grammar's
+    // `Ident` cannot produce `<` or `"`, so this is belt to that braces; the
+    // escaping is what stays true if the grammar ever loosens.
     const options = views
-      .map((v) => `<option value="${v}"${v === active ? " selected" : ""}>${v}</option>`)
+      .map((v) => `<option value="${esc(v)}"${v === active ? " selected" : ""}>${esc(v)}</option>`)
       .join("");
+    // The rendered SVG is inlined wholesale, so pin what may execute: our own
+    // inline script and styles, nothing fetched, no objects, no base override.
+    const csp =
+      "default-src 'none'; img-src data:; style-src 'unsafe-inline'; script-src 'unsafe-inline'";
     return /* html */ `<!DOCTYPE html><html><head><meta charset="utf-8"/>
+<meta http-equiv="Content-Security-Policy" content="${csp}"/>
 <style>
   body { margin: 0; padding: 12px; background: var(--vscode-editor-background); }
   .bar { display: flex; gap: 8px; align-items: center; margin-bottom: 10px;
@@ -118,12 +129,14 @@ class Preview {
   }
 
   private errorHtml(lines: string[]): string {
+    const csp = "default-src 'none'; style-src 'unsafe-inline'";
     return /* html */ `<!DOCTYPE html><html><head><meta charset="utf-8"/>
+<meta http-equiv="Content-Security-Policy" content="${csp}"/>
 <style>
   body { margin: 0; padding: 16px; font: 12px var(--vscode-editor-font-family);
          color: var(--vscode-errorForeground); background: var(--vscode-editor-background); }
   pre { white-space: pre-wrap; }
-</style></head><body><pre>${lines.map((l) => l.replace(/[<&]/g, (c) => (c === "<" ? "&lt;" : "&amp;"))).join("\n")}</pre></body></html>`;
+</style></head><body><pre>${lines.map(esc).join("\n")}</pre></body></html>`;
   }
 
   private dispose() {

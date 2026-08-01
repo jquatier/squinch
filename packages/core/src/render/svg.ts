@@ -755,8 +755,16 @@ export function renderSVG(p: Positioned, t: Theme, opts: RenderOpts = {}): strin
   const nodeMatches = (n: PNode) =>
     (hl.length === 0 || n.tags.some((tag) => hl.includes(tag))) &&
     (!walking || reachedNodes.has(n.path));
+  // An edge lights up when it carries the tag itself, or when both its endpoints
+  // do. Edge-level `tags:` parse, are stored on the model, and are documented in
+  // SKILL.md (`api -> create { tags: #hot-path }`) — but they never reached the
+  // view graph, so `highlight #hot-path` dimmed the very edge it named. A
+  // hot-path or a PCI wire is exactly the thing whose endpoints are often
+  // ordinary, which is what makes tagging the edge worth doing at all.
   const edgeMatches = (e: PEdge) =>
-    (hl.length === 0 || (nodeMatches(byPath.get(e.from)!) && nodeMatches(byPath.get(e.to)!))) &&
+    (hl.length === 0 ||
+      e.tags.some((tag) => hl.includes(tag)) ||
+      (nodeMatches(byPath.get(e.from)!) && nodeMatches(byPath.get(e.to)!))) &&
     edgeReached(e);
 
   const body: string[] = [];

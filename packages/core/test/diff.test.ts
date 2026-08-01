@@ -130,6 +130,53 @@ describe("diff — trustworthiness", () => {
   });
 });
 
+describe("diff — every view axis is fingerprinted", () => {
+  // `only` and `detail` shipped and the diff never learned about them, so
+  // narrowing a view to `#pci` — the most visibility-changing edit the language
+  // has — reported "no change". A fingerprint over half the axes answers the
+  // wrong question, silently. One case per field so the next verb cannot be
+  // added without this list failing.
+  const V = `pack aws
+system s "S" {
+  a = aws/lambda "A" { tags: #pci }
+  b = aws/lambda "B"
+  c = aws/dynamodb "C" datastore
+  a -> c
+  b -> c
+}
+system other "Other" { x = aws/lambda "X" }
+s.a -> other.x
+view v {
+  scope s
+LAYOUT}
+`;
+  const withStmt = (stmt: string) => V.replace("LAYOUT", stmt ? `  ${stmt}\n` : "");
+
+  for (const [field, stmt] of [
+    ["only", "only #pci"],
+    ["detail", "detail other.x"],
+    ["include", "include other.x"],
+    ["exclude", "exclude b"],
+    ["expand", "expand other"],
+  ] as const)
+    it(`sees a change in \`${field}\``, () => {
+      const d = diff(withStmt(""), withStmt(stmt));
+      expect(d.same, `adding \`${stmt}\` reported no change`).toBe(false);
+      // and classified as structural, not cosmetic — it changes what a reader sees
+      expect(d.changes.some((c) => c.detail.includes("changes what is visible"))).toBe(true);
+    });
+
+  for (const [field, stmt] of [
+    ["cols", "layout { cols [a] [b] }"],
+    ["channels", "layout { channel a, b -> c }"],
+    ["rows", "layout { rows [a] [b] }"],
+  ] as const)
+    it(`sees a change in \`${field}\``, () => {
+      const d = diff(withStmt(""), withStmt(stmt));
+      expect(d.same, `adding \`${stmt}\` reported no change`).toBe(false);
+    });
+});
+
 describe("diff — formatting", () => {
   it("renders text and markdown reports", () => {
     const d = diff(BASE, BASE.replace(`orders.api -> ship.api`, `orders.api ~> ship.api`));

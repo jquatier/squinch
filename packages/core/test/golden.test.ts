@@ -43,10 +43,18 @@ describe("golden renders", () => {
         expect(again.svg).toBe(r.svg);
 
         const goldenPath = join(pkg, `test/golden/${base}.${theme}.svg`);
-        if (process.env.UPDATE_GOLDEN || !existsSync(goldenPath)) {
+        if (process.env.UPDATE_GOLDEN) {
           mkdirSync(join(pkg, "test/golden"), { recursive: true });
           writeFileSync(goldenPath, r.svg!);
         }
+        // A *missing* golden used to be recreated here and then asserted against
+        // the file it had just written — so deleting one silently traded a real
+        // comparison for a tautology, and the suite stayed green while covering
+        // less. Reblessing has to be deliberate.
+        expect(
+          existsSync(goldenPath),
+          `no golden for ${base}.${theme} — if this is intentional, run \`UPDATE_GOLDEN=1 pnpm test\``,
+        ).toBe(true);
         expect(r.svg).toBe(readFileSync(goldenPath, "utf8"));
       });
     }

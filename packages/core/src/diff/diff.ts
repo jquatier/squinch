@@ -258,12 +258,20 @@ export function diffModels(before: SModel, after: SModel): DiffResult {
   const explicit = (m: SModel) => m.views.filter((v) => !v.auto);
   const bv = mapBy(explicit(before), (v: SView) => v.name);
   const av = mapBy(explicit(after), (v: SView) => v.name);
+  // Every axis that decides what a reader can see belongs here. `only` and
+  // `detail` were missed when they landed, so narrowing a view to `#pci` — the
+  // single most visibility-changing edit the language offers — reported "no
+  // change". A view's selection is `scope` (where) × `only` (which), plus the
+  // adjustments; a fingerprint over half of that answers the wrong question.
+  const targets = (ts: (string | { tag: string })[]) =>
+    ts.map((i) => (typeof i === "string" ? i : `#${i.tag}`)).sort();
   const visibility = (v: SView) =>
     JSON.stringify({
       scope: v.scope, includeStar: v.includeStar,
-      include: v.include.map((i) => (typeof i === "string" ? i : `#${i.tag}`)).sort(),
-      exclude: v.exclude.map((i) => (typeof i === "string" ? i : `#${i.tag}`)).sort(),
-      expand: [...v.expand].sort(), context: v.context,
+      only: targets(v.only),
+      include: targets(v.include),
+      exclude: targets(v.exclude),
+      expand: [...v.expand].sort(), detail: [...v.detail].sort(), context: v.context,
     });
   // Deliberately loc-free: hints and notes carry source offsets, and every
   // edit above them shifts those. Comparing raw objects would report a
@@ -280,8 +288,10 @@ export function diffModels(before: SModel, after: SModel): DiffResult {
         density: v.layout.density,
         lines: v.layout.lines,
         rows: v.layout.rows,
+        cols: v.layout.cols,
         place: v.layout.place.map((p) => ({ node: p.node, relpos: p.relpos, target: p.target })),
         align: v.layout.align.map((a) => a.nodes),
+        channels: v.layout.channels.map((c) => ({ sources: [...c.sources].sort(), target: c.target })),
         routes: v.layout.routes.map((r) => ({
           from: r.from, to: r.to, label: r.label, fromSide: r.fromSide, toSide: r.toSide,
         })),

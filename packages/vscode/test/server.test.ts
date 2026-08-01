@@ -10,6 +10,15 @@ import { join, dirname } from "node:path";
 const pkg = join(dirname(fileURLToPath(import.meta.url)), "..");
 const bundle = join(pkg, "dist", "server.cjs");
 // `pnpm -r build` runs before tests in CI; skip locally when it hasn't.
+//
+// But a *silent* skip means the only test proving packs resolve inside an
+// esbuild bundle can disappear the day the build path moves, and it disappears
+// as a pass. In CI the build has definitely run, so absence there is a fault.
+if (process.env.CI && !existsSync(bundle))
+  throw new Error(
+    `dist/server.cjs is missing — the bundled-server suite would silently skip. ` +
+      `CI runs \`pnpm -r build\` before tests; if that changed, fix it rather than losing this suite.`,
+  );
 const suite = existsSync(bundle) ? describe : describe.skip;
 
 suite("language server (bundled)", () => {

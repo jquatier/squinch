@@ -205,8 +205,10 @@ view shop {
     channel create, get, search -> db // one trunk into a shared target, not N lines
                                       // (the edges stay declared in the model;
                                       //  this only merges how they are drawn)
-    route db ~> sync from east to west              // which side an edge exits/enters
-    route api -> db "write" from south              // label disambiguates parallels
+    route api -> db from south to north   // which side an edge exits/enters —
+                                          // only for edges that SPAN rows; a
+                                          // same-rank edge is routed for you
+    route api -> db "write" from south    // label disambiguates parallels
   }
 }
 ```
@@ -222,16 +224,19 @@ view shop {
   a placed node is positioned relative to its target, so listing it in a band as
   well is a check-time error. Naming every node in `rows` is the natural move
   when a request asks for tiers, and it is the one that collides with this.
-- Edges between two nodes in the same row route automatically (straight when
-  adjacent, under the band otherwise). `place x right-of y` + `route y ~> x from
-  east to west` is the idiom for a side-car (stream processors, caches, DLQs).
+- `place x right-of y` is the whole side-car idiom (stream processors, caches,
+  DLQs). Do **not** add `route y ~> x from east to west` to it: `place` puts the
+  two on the same row, and same-rank edges bypass the main router entirely —
+  they route side to side automatically, straight when adjacent and under the
+  band otherwise. A `from`/`to` on one is ignored, and now says so.
 
 ## Layout cookbook (symptom → fix)
 
 | Symptom | Fix |
 |---|---|
 | Layers feel arbitrary / related things scattered | Add `rows`, one group per conceptual tier (entry, handlers, storage) |
-| One node belongs beside another (stream sync, DLQ, cache) | `place X right-of Y` and route the connecting edge `from east to west` |
+| One node belongs beside another (stream sync, DLQ, cache) | `place X right-of Y` — that is all. The connecting edge routes itself; adding `route … from east to west` does nothing, because `place` makes them same-rank |
+| "`route x -> y` sides are ignored — it is a same-rank edge" warning | Drop the `from`/`to`. Sides only apply to edges that span rows |
 | "`x` is placed via `place` but also listed in `rows`" error | Drop `x` from the `rows` band and keep the `place` — a placed node is positioned relative to its target, so it must not be listed in a band as well |
 | "`x` appears in `rows` twice" error | A node can hold only one rank position; remove one of the two occurrences |
 | Several things all write to one store, crossing each other | `channel a, b, c -> db` — they merge into one trunk |
