@@ -822,6 +822,20 @@ function computePills(p: Positioned, rc: RC, edgeMatches: (e: PEdge) => boolean)
         if (!hit) break;
         pill.y += 22;
       }
+      // Detached labels share a baseline. The two fallbacks start from
+      // different places on purpose — a `relocated` pill drops straight below
+      // its nodes, an ordinary one starts on its wire and steps down, so it can
+      // stop early and stay near the wire it belongs to. But once a pill has
+      // stepped past the nodes anyway it has lost that, and the two rules then
+      // leave labels on the same row 17px apart, which reads as sloppy rather
+      // than deliberate. Pull it back up to the shared line when that is free.
+      const baseline = Math.max(nodeBottom(e.from), nodeBottom(e.to)) + 8;
+      if (pill.y > baseline) {
+        const snapped = { ...pill, y: baseline };
+        const blocked = pills.some((q2) => hits(q2, snapped)) ||
+          p.nodes.some((n2) => hits(n2, snapped));
+        if (!blocked) pill = snapped;
+      }
     }
     pills.push(pill);
   }

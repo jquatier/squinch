@@ -49,6 +49,25 @@ ways` (38) came back onto their wires at 56, so `products-api` and
 `24-arrow-kinds` both changed for the better; `DynamoDB stream` (61) still
 detaches.
 
+## Detached labels share a baseline
+
+The two fallbacks start from different places on purpose: a `relocated` pill
+drops straight below its nodes, an ordinary one starts on its wire and steps
+down 22 at a time, so it can stop early and stay near the wire it belongs to.
+
+Once a pill has stepped past the nodes anyway, that distinction has bought
+nothing and the two rules leave labels on the same row at different heights. In
+`products-api` `DynamoDB stream` (relocated, starts at the node baseline) landed
+at y=522 and `index updates` (not relocated, started on its wire at 473 and
+stepped down three times) at 539 — 17px apart, which reads as sloppy rather than
+deliberate. So after the search, a pill that ended up below the baseline is
+pulled back up to it when that row is free.
+
+This is what actually restored `products-api` when the allowance moved to 56,
+and it improves diagrams the allowance never touched: the `×3` aggregate in
+`21-logos` was stranded in open space below the diagram and now sits directly
+under the node its edge leaves, 30px of canvas shorter.
+
 ## Rejected approaches (do not relitigate without a fresh reason)
 
 | Approach | Why it lost |
