@@ -7,7 +7,7 @@ import ELKModule from "elkjs/lib/elk.bundled.js";
 
 // elkjs ships a CJS class with no construct signature in its types
 const ELK = ELKModule as unknown as { new (): { layout(graph: unknown): Promise<any> } };
-import { measure, type FontFamily } from "../metrics.js";
+import { fit, measure, type FontFamily } from "../metrics.js";
 import { resolveView } from "../view/resolve.js";
 import type { VNode, VEdge } from "../view/resolve.js";
 import type { SModel, SView, Side, Diagnostic, RelPos, ZoneColor, ZoneKind, ZoneLabelPos } from "../model/types.js";
@@ -19,6 +19,18 @@ const LEAF_H = 64;
 const CARD_H = 88;
 const PLATE = 40;
 const PAD = 12;
+/** The pill a label will render as, measured with the layout's font — the
+ *  single source of truth shared by the ELK reservation (here) and the
+ *  renderer's pill text (svg.ts). If these two ever diverge, the reservation
+ *  is for a different pill than the one drawn. Cap 240 mirrors computePills'
+ *  maxW; the canvas-width term is unknowable before layout and only ever
+ *  shrinks tiny diagrams, where a slightly generous reservation is harmless. */
+export function pillDims(text: string, font: Pick<ThemeFont, "metrics" | "scale">): { label: string; w: number; h: number } {
+  const fx11 = Math.round(11 * font.scale);
+  const label = fit(text, 240 - 12, fx11, "400", font.metrics);
+  return { label, w: Math.round(measure(label, fx11, "400", font.metrics)) + 12, h: 18 };
+}
+
 const SIDE_UP: Record<string, string> = { north: "NORTH", south: "SOUTH", east: "EAST", west: "WEST" };
 const SIDE_DOWN: Record<string, Side> = { NORTH: "north", SOUTH: "south", EAST: "east", WEST: "west" };
 
@@ -42,6 +54,12 @@ export interface PEdge {
   tags: string[];
   heads: "one" | "both" | "none";
   points: { x: number; y: number }[];
+  /** Label space reserved by ELK at layout time (cross-rank edges). The pill
+   *  is drawn exactly here — no search, no fallback, no way to collide: the
+   *  room exists because the layout made it. Coplanar edges get theirs from
+   *  the router (phase 2); until then they are undefined and the renderer's
+   *  search still covers them. */
+  labelRect?: { x: number; y: number; w: number; h: number };
 }
 export interface Positioned {
   name: string;
@@ -485,6 +503,13 @@ export async function layoutView(
   // the gap was 12, and the only one off the grid.
   const SP = { compact: [32, 40], comfortable: [48, 56], spacious: [72, 80] }[density];
 
+  // Only views that carry a cross-rank label pay the spacer scheme at all: a
+  // label-free view keeps the classic spacing with zero dummies, and stays
+  // byte-identical to what it rendered before any of this existed. (Gate 1b
+  // taught this the hard way — spacers on a label-free canonical example split
+  // its routing channels around dummy layers and inflated it 26%.)
+  const hasElkLabels = elkEdges.some((e) => !!e.label);
+
   const entityElk = (p: string): any =>
     frameLabels.has(p)
       ? {
@@ -496,7 +521,7 @@ export async function layoutView(
             // first row just reads as slack.
             "elk.padding": "[top=44,left=16,bottom=16,right=16]",
             "elk.spacing.nodeNode": "32",
-            "elk.layered.spacing.nodeNodeBetweenLayers": "40",
+            "elk.layered.spacing.nodeNodeBetweenLayers": hasElkLabels ? "8" : "40",
             // Edge spacing has to be repeated on every compound. ELK does not
             // inherit it from the root, and its own default is 10 — below the
             // 16 DESIGN §4 requires, and below the 2×R_EDGE at which a corner
@@ -506,6 +531,10 @@ export async function layoutView(
             // expanded frame, falling through to that default.
             "elk.layered.spacing.edgeNodeBetweenLayers": "24",
             "elk.spacing.edgeNode": "24",
+      // labels are layout citizens (see the elkEdges map) — repeated in every
+      // bag for the same reason the edge spacing is: ELK does not inherit
+      "elk.edgeLabels.inline": "true",
+      "elk.spacing.edgeLabel": "8",
           },
           children: framedChildren(p),
         }
@@ -525,10 +554,14 @@ export async function layoutView(
       // scale, not arithmetic for its own sake, and this pair is the scale.
       "elk.padding": "[top=28,left=20,bottom=20,right=20]",
       "elk.spacing.nodeNode": String(SP[0]),
-      "elk.layered.spacing.nodeNodeBetweenLayers": String(SP[1]),
+      "elk.layered.spacing.nodeNodeBetweenLayers": hasElkLabels ? "8" : String(SP[1]),
       // see entityElk: ELK does not inherit edge spacing into a compound
       "elk.layered.spacing.edgeNodeBetweenLayers": "24",
       "elk.spacing.edgeNode": "24",
+      // labels are layout citizens (see the elkEdges map) — repeated in every
+      // bag for the same reason the edge spacing is: ELK does not inherit
+      "elk.edgeLabels.inline": "true",
+      "elk.spacing.edgeLabel": "8",
     },
     children: [
       ...zones.filter((c) => zoneParent.get(c.id) === z).map(zoneElk),
@@ -536,6 +569,19 @@ export async function layoutView(
     ],
   });
   const zoneById = new Map(zones.map((z) => [z.id, z]));
+
+  // Gap arithmetic: gap = 8 + labelHeight + 8 — two grid notches tighter than
+  // the classic density gap, chosen at gate review. An unlabelled gap needs a
+  // spacer of SP[1]-32 to come out at the density spacing, and a frame's
+  // tighter interior (historically 40) needs 8. A real pill is 18 tall and is
+  // drawn centred inside whatever was reserved, so labelled gaps only exceed
+  // the standard where 18 + 32 > SP[1] — compact only, by 10px.
+  const spacerH = (inFrame: boolean) => Math.max(2, (inFrame ? 40 : SP[1]) - 32);
+  const labelFor = (e: VEdge) => {
+    const inFrame = !!byPath.get(e.from)?.frame && byPath.get(e.from)?.frame === byPath.get(e.to)?.frame;
+    if (!e.label) return { text: " ", width: 2, height: spacerH(inFrame) };
+    return { text: e.label, width: pillDims(e.label, font).w, height: Math.max(18, spacerH(inFrame)) };
+  };
 
   const children = order.map((p) => (zoneById.has(p) ? zoneElk(zoneById.get(p)!) : entityElk(p)));
   const elkGraph = {
@@ -548,12 +594,19 @@ export async function layoutView(
       "elk.edgeRouting": "ORTHOGONAL",
       "elk.layered.nodePlacement.strategy": "NETWORK_SIMPLEX",
       "elk.spacing.nodeNode": String(SP[0]),
-      "elk.layered.spacing.nodeNodeBetweenLayers": String(SP[1]),
+      "elk.layered.spacing.nodeNodeBetweenLayers": hasElkLabels ? "8" : String(SP[1]),
       "elk.layered.spacing.edgeNodeBetweenLayers": "24",
       "elk.spacing.edgeNode": "24",
+      // labels are layout citizens (see the elkEdges map) — repeated in every
+      // bag for the same reason the edge spacing is: ELK does not inherit
+      "elk.edgeLabels.inline": "true",
+      "elk.spacing.edgeLabel": "8",
       "elk.spacing.edgeEdge": "16",
       "elk.padding": "[top=32,left=32,bottom=32,right=32]",
       "elk.hierarchyHandling": "INCLUDE_CHILDREN",
+      // spiked: MEDIAN_LAYER puts the label mid-dogleg, closest to the old
+      // nine-fraction midpoint aesthetic (TAIL hugs the source, HEAD the sink)
+      "elk.layered.edgeLabels.centerLabelPlacementStrategy": "MEDIAN_LAYER",
     },
     children,
     edges: [
@@ -565,8 +618,18 @@ export async function layoutView(
         id: e.id,
         sources: [frameLabels.has(e.from) || zoneById.has(e.from) ? e.from : `${e.id}.src`],
         targets: [frameLabels.has(e.to) || zoneById.has(e.to) ? e.to : `${e.id}.dst`],
+        // Label space is reserved by the layout, not scavenged after it — but
+        // an inline label dummy costs a whole extra layer at full spacing
+        // (spiked: 56 → 130 for one 18px label), which read as giant gaps at
+        // review. So the spacing is inverted: between-layers drops to 16 and
+        // EVERY edge carries a label — real ones sized for their pill,
+        // unlabelled ones an invisible spacer — so labelled and unlabelled
+        // gaps come out at exactly the density spacing, and the pill lands
+        // centred on its own wire, which is where pills always sat. The label
+        // no longer costs anything; it just cannot be collided with.
+        ...(hasElkLabels ? { labels: [labelFor(e)] } : {}),
       })),
-      ...scaffold.map((s) => ({ id: s.id, sources: [s.from], targets: [s.to] })),
+      ...scaffold.map((s) => ({ id: s.id, sources: [s.from], targets: [s.to], ...(hasElkLabels ? { labels: [{ text: " ", width: 2, height: spacerH(false) }] } : {}) })),
     ],
   };
 
@@ -631,7 +694,11 @@ export async function layoutView(
           (p: any) => ({ x: q(p.x + off.x), y: q(p.y + off.y) }),
         );
         const m = edges.find((me) => me.id === e.id)!;
-        return [e.id, { id: e.id, from: m.from, to: m.to, label: m.label, async: m.async, animate: m.animate, count: m.count, tags: m.tags, heads: m.heads, points: pts }];
+        const lab = e.labels?.[0];
+        const labelRect = lab
+          ? { x: q(lab.x + off.x), y: q(lab.y + off.y), w: q(lab.width), h: q(lab.height) }
+          : undefined;
+        return [e.id, { id: e.id, from: m.from, to: m.to, label: m.label, async: m.async, animate: m.animate, count: m.count, tags: m.tags, heads: m.heads, points: pts, labelRect }];
       }),
   );
 

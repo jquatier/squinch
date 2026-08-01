@@ -9,6 +9,7 @@ import { iconMeta, packMonochrome } from "../model/packs.js";
 import { iconAsset, symbolId } from "../packs/registry.js";
 import { makeSketcher, type Sketcher } from "./sketch.js";
 import type { Theme } from "../themes/index.js";
+import { pillDims } from "../layout/layout.js";
 import type { Positioned, PEdge, PNode, PZone } from "../layout/layout.js";
 import type { SNote, ZoneColor, ZoneKind } from "../model/types.js";
 
@@ -755,6 +756,23 @@ function computePills(p: Positioned, rc: RC, edgeMatches: (e: PEdge) => boolean)
   const pills: Pill[] = [];
   for (const e of p.edges) {
     if (!e.label) continue;
+    // Reserved at layout: ELK opened the gap for exactly this pill and told us
+    // where it sits. No search, no obstacles, no fallback — the room is
+    // guaranteed by construction. (Coplanar edges have no labelRect yet and
+    // fall through to the search below.) Text via the same pillDims that sized
+    // the reservation, so the drawn pill can never outgrow the reserved one.
+    if (e.labelRect) {
+      const dims = pillDims(e.label, { metrics: rc.fam, scale: rc.t.font.scale });
+      const r = e.labelRect;
+      // the reservation may be taller than a pill (it doubles as the gap
+      // spacer); the drawn pill is always 18, centred inside it — on the wire
+      const py = r.y + Math.round((r.h - 18) / 2);
+      pills.push({
+        x: r.x, y: py, w: r.w, h: 18, mx: r.x + Math.round(r.w / 2),
+        label: dims.label, dimmed: !edgeMatches(e), edgeId: e.id,
+      });
+      continue;
+    }
     // Every segment is a candidate host, longest first. Trying only the
     // longest was tunnel vision: a dogleg whose best run threads a crowded
     // gutter would detach even with three clear runs of its own
