@@ -1,39 +1,46 @@
-// Azure Order Flow - step-by-step order processing
 pack azure
 
 person shopper "Shopper"
 
-system orders "Order System" {
-  description: "Processes and fulfils customer orders"
+system order "Order Processing" {
   tags: #core
 
   apim = azure/api-management "API Management"
-  orderFn = azure/functions "Order Handler" {
+  process = azure/functions "Order Function" {
     description: "Validates and persists orders"
   }
-  db = azure/cosmos "Orders DB" datastore
-  bus = azure/service-bus "Order Queue"
-  fulfilFn = azure/functions "Fulfilment Handler" {
-    description: "Processes order fulfilment"
+  db = azure/cosmos "Cosmos DB" datastore {
+    description: "Order storage"
+  }
+  bus = azure/service-bus "Service Bus" {
+    description: "Order events"
+  }
+  fulfil = azure/functions "Fulfillment Function" {
+    description: "Handles order fulfillment"
   }
 
-  apim -> orderFn
-  orderFn -> db
-  orderFn ~> bus
-  bus ~> fulfilFn
+  apim -> process
+  process -> db
+  process ~> bus
+  bus ~> fulfil
 }
 
-shopper -> orders.apim "places order"
+shopper -> order.apim "places order"
 
-flow order_journey "Order Journey" {
-  shopper -> orders.apim -> orders.orderFn -> orders.db
-  orders.orderFn ~> orders.bus ~> orders.fulfilFn
+flow checkout "Order Flow" {
+  shopper -> order.apim -> order.process -> order.db
+  order.process ~> order.bus ~> order.fulfil
 }
 
-view orders {
-  show flow order_journey
+view landscape {
+  title "Order System Landscape"
+  include *
+}
+
+view order {
+  show flow checkout
   layout {
-    rows [apim] [orderFn] [db] [fulfilFn]
+    rows [apim] [process] [db bus] [fulfil]
     place bus right-of db
   }
 }

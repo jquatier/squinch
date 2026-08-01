@@ -1,17 +1,17 @@
 pack azure
 
-// Azure components
-gw  = azure/app-gateway "Application Gateway"
-aks = azure/aks "AKS Cluster"
-acr = azure/acr "Container Registry"
-sql = azure/sql "Azure SQL"
+// Components
+gw  = azure/app-gateway      "Application Gateway"
+aks = azure/aks              "AKS Cluster"
+acr = azure/acr              "Container Registry"
+sql = azure/sql              "Azure SQL"
 
 // Connections
 gw -> aks
 aks -> acr "pulls images"
 aks -> sql
 
-// Deployment boundaries
+// Zones - nested by sharing members
 zone subscription "Azure Subscription" account {
   contains gw, aks, acr, sql
 }
@@ -22,5 +22,4 @@ zone vnet "Virtual Network" network {
 
 zone subnet "Private Subnet" subnet {
   contains aks, acr
-  color: cloud
 }

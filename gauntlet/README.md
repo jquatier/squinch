@@ -89,6 +89,12 @@ turned out to be the finding rather than a failure of the documentation.
    exact members to copy, reading them off the parse tree so it works when the
    inner zone is declared later, which is the normal order.
 
+**Verified cold.** The six affected prompts were re-run against the fixed
+engine: **five of six clean on the first `check`**, from zero. The sixth is the
+guard working as intended — `rows [db files sync index]` with `place sync
+right-of db` really does disagree, since `files` sits between them, and the
+agent read the new message and dropped `sync` from the band.
+
 **Documentation**
 
 4. The reverse-coverage test added in Phase 2 was checking three quarters of
