@@ -36,8 +36,12 @@ if (!label) {
  *  keeps the review small and makes an unexpected mover obvious by its absence
  *  from the pictures rather than by hiding in a hundred of them. */
 const TARGETS: { file: string; views?: string[] }[] = [
+  // pill overhang allowance 24 → 56: every diagram it moves
+  { file: "lookbook/cases/24-arrow-kinds.squinch" },     // the dense mesh edge-labels.md is about
+  { file: "lookbook/cases/14-sidecar-routes.squinch" },
+  { file: "lookbook/cases/18-flows.squinch" },
+  { file: "examples/products-api/products-api.squinch" },
   { file: "examples/microservices/shop.squinch", views: ["orders-pci"] },
-  { file: "lookbook/cases/10-highlight-notes.squinch" },
 ];
 
 const out = join(root, ".compare-tmp", label);

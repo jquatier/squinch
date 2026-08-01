@@ -770,7 +770,21 @@ function computePills(p: Positioned, rc: RC, edgeMatches: (e: PEdge) => boolean)
     const w = Math.round(measure(label, rc.fx(11), "400", rc.fam)) + 12;
     // a modest overhang past the segment's bends is fine (opaque pill bg);
     // flee below only when the label truly dwarfs its longest segment
-    const relocated = w > best + 24;
+    // How far a pill may overhang the bends of its own segment before it gives
+    // up and drops below the nodes. This is only a gate on *trying* the
+    // segments — the collision check below is the real arbiter, so a larger
+    // allowance never places a pill on top of something, it only lets a label
+    // that is wider than its run stay on the wire it belongs to.
+    //
+    // 24 was set when the failure being fixed was a 6px overhang. It is far too
+    // tight for a short dogleg: `mark shipped` (83px) on a 52px run and
+    // `decrement stock` (100px) on a 50px run both detached and fell below
+    // their nodes, where nothing said which wire they came from. Drawing a
+    // leader back to the edge was tried — `edge-labels.md` records it as the
+    // known-good idea nobody had built — and it is wrong here: a pill that
+    // relocates below *both* of its nodes cannot reach its own midpoint
+    // without crossing one of them.
+    const relocated = w > best + 56;
 
     const rectOn = (seg: { a: { x: number; y: number }; b: { x: number; y: number } }, fr: number): Pill => {
       let mx = Math.round(seg.a.x + (seg.b.x - seg.a.x) * fr);
