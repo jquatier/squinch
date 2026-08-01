@@ -1,0 +1,228 @@
+// Every arm of every enum the grammar accepts, asserted to be *distinguishable*
+// rather than to look a particular way.
+//
+// A sweep of squinch.grammar against all 48 corpus files and 23 test files found
+// the gap is overwhelmingly in the non-default arms: `right-of` was used and
+// worked, the other three note positions had never been executed; `orthogonal`
+// was used, `curved` and `straight` were not; two of four arrow kinds appeared
+// nowhere at all. That is the `place`-direction bug — where all four directions
+// silently meant `right-of` — waiting to happen in three more places, and
+// writing these found it in one of them.
+//
+// Distinguishability is the right assertion because it is the property that
+// actually broke: a construct parsed, validated, documented, and then rendered
+// identically to its neighbour.
+import { describe, it, expect } from "vitest";
+import { buildModel, render } from "../src/index.js";
+import { validateSVG } from "../src/render/validate.js";
+
+const svgOf = async (src: string, view?: string) => {
+  const r = await render(src, { theme: "light", ...(view ? { view } : {}) });
+  expect(r.diagnostics.filter((d) => d.severity === "error")).toEqual([]);
+  expect(r.ok, `render failed: ${src}`).toBe(true);
+  expect(validateSVG(r.svg!).ok).toBe(true);
+  return r.svg!;
+};
+
+/** Render each variant and require every one to differ from every other. */
+async function allDistinct(label: string, variants: Record<string, string>, view?: string) {
+  const names = Object.keys(variants);
+  const svgs = await Promise.all(names.map((n) => svgOf(variants[n], view)));
+  const dupes: string[] = [];
+  for (let i = 0; i < names.length; i++)
+    for (let j = i + 1; j < names.length; j++)
+      if (svgs[i] === svgs[j]) dupes.push(`${names[i]} === ${names[j]}`);
+  expect(dupes, `${label}: identical renders — ${dupes.join(", ")}`).toEqual([]);
+  return svgs;
+}
+
+describe("arrow kinds", () => {
+  const src = (a: string) =>
+    `system s "S" {\n x = aws/lambda "X"\n y = aws/lambda "Y"\n x ${a} y\n}`;
+
+  it("all four are distinguishable", async () => {
+    // `<->` and `--` used to render as a plain one-way arrow: the view graph
+    // reduced every arrow to `async: boolean`, so the other two kinds fell
+    // through the gap while SKILL.md documented both.
+    await allDistinct("arrows", {
+      "->": src("->"), "~>": src("~>"), "<->": src("<->"), "--": src("--"),
+    });
+  });
+
+  const filled = (svg: string) =>
+    (svg.match(/<path d="M [\d.]+ [\d.]+ L [\d.]+ [\d.]+ L [\d.]+ [\d.]+ Z"/g) ?? []).length;
+
+  it("points the way each one claims", async () => {
+    expect(filled(await svgOf(src("->")))).toBe(1); // one way
+    expect(filled(await svgOf(src("<->")))).toBe(2); // both ways
+    expect(filled(await svgOf(src("--")))).toBe(0); // neither
+  });
+
+  it("async draws an open chevron, not a filled one", async () => {
+    const svg = await svgOf(src("~>"));
+    expect(filled(svg)).toBe(0);
+    expect(svg).toContain("stroke-linejoin=\"round\"");
+  });
+});
+
+describe("note anchors", () => {
+  const src = (anchor: string) =>
+    `system s "S" {\n a = aws/lambda "A"\n b = aws/lambda "B"\n a -> b\n}\n` +
+    `view v { scope s\n note ${anchor} "a note" }`;
+
+  it("all eight positions are distinguishable", async () => {
+    // Only `right-of` and `top-right` had ever been rendered anywhere in the
+    // repo; the other six were untouched by any test, example or lookbook case.
+    await allDistinct("note anchors", Object.fromEntries(
+      ["right-of b", "left-of b", "above b", "below b",
+       "top-left", "top-right", "bottom-left", "bottom-right"].map((a) => [a, src(a)]),
+    ), "v");
+  });
+
+  it("an edge-anchored note renders and differs from a node-anchored one", async () => {
+    const onEdge = await svgOf(
+      `system s "S" {\n a = aws/lambda "A"\n b = aws/lambda "B"\n a -> b\n}\n` +
+      `view v { scope s\n note on a -> b "why" }`, "v");
+    expect(onEdge).toContain("why");
+    expect(onEdge).not.toBe(await svgOf(src("right-of b"), "v"));
+  });
+
+  it("the warn style differs from the default", async () => {
+    const plain = await svgOf(src("top-right"), "v");
+    const warn = await svgOf(
+      `system s "S" {\n a = aws/lambda "A"\n b = aws/lambda "B"\n a -> b\n}\n` +
+      `view v { scope s\n note top-right "a note" { style: warning } }`, "v");
+    expect(warn).not.toBe(plain);
+  });
+});
+
+describe("line styles", () => {
+  const src = (l: string) =>
+    `system s "S" {\n a = aws/lambda "A"\n b = aws/lambda "B"\n c = aws/lambda "C"\n` +
+    ` a -> b\n a -> c\n}\nview v { scope s\n layout { lines ${l}\n rows [a] [b c] } }`;
+
+  it("all three are distinguishable", async () => {
+    // `curved` and `straight` parse at build.ts and branch in svg.ts and had
+    // never been executed by anything in the repo — two of three arms of a
+    // documented option, dead as far as the tests could prove.
+    await allDistinct("lines", {
+      orthogonal: src("orthogonal"), curved: src("curved"), straight: src("straight"),
+    }, "v");
+  });
+
+  it("straight really is straight — no orthogonal jogs", async () => {
+    const svg = await svgOf(src("straight"), "v");
+    // an orthogonal route turns; a straight one is a single segment per edge
+    expect(svg).not.toMatch(/<path d="M [\d.]+ [\d.]+ L [\d.]+ [\d.]+ L [\d.]+ [\d.]+ L /);
+  });
+
+  it("an unknown style is refused with the list", () => {
+    const r = buildModel(`system s "S" { a = aws/lambda "A" }\nview v { layout { lines wobbly } }`);
+    expect(r.ok).toBe(false);
+    expect(r.diagnostics.find((d) => d.message.includes("lines"))?.fix).toContain("orthogonal");
+  });
+});
+
+describe("density", () => {
+  const src = (d: string) =>
+    `system s "S" {\n a = aws/lambda "A"\n b = aws/lambda "B"\n a -> b\n}\n` +
+    `view v { scope s\n layout { density ${d} } }`;
+
+  it("all three are distinguishable", async () => {
+    await allDistinct("density", {
+      compact: src("compact"), comfortable: src("comfortable"), spacious: src("spacious"),
+    }, "v");
+  });
+
+  it("orders the way the words promise", async () => {
+    // snapshot-pinned by a lookbook case, but nothing asserted the ordering —
+    // `spacious` could have been tighter than `compact` and only a human would
+    // have noticed.
+    const height = (svg: string) => +(/<svg[^>]*height="(\d+)"/.exec(svg)?.[1] ?? 0);
+    const [c, m, s] = await Promise.all(
+      ["compact", "comfortable", "spacious"].map(async (d) => height(await svgOf(src(d), "v"))),
+    );
+    expect(c).toBeLessThan(m);
+    expect(m).toBeLessThan(s);
+  });
+});
+
+describe("route sides", () => {
+  // Sides only apply to edges that span rows; a same-rank edge is routed by our
+  // own coplanar router and warns if you try (see layout.ts).
+  const src = (hint: string) =>
+    `system s "S" {\n a = aws/lambda "A"\n b = aws/dynamodb "B" datastore\n a -> b\n}\n` +
+    `view v { scope s\n layout { rows [a] [b]\n ${hint} } }`;
+
+  it("changes which side the edge leaves and enters", async () => {
+    await allDistinct("route sides", {
+      none: src(""),
+      "from east": src("route a -> b from east"),
+      "from west to east": src("route a -> b from west to east"),
+    }, "v");
+  });
+
+  it("a label picks one of a parallel pair", async () => {
+    const two = `system s "S" {\n a = aws/lambda "A"\n b = aws/dynamodb "B" datastore\n` +
+      ` a -> b "read"\n a -> b "write"\n}\nview v { scope s\n layout { rows [a] [b]\n`;
+    const plain = await svgOf(`${two} } }`, "v");
+    const routed = await svgOf(`${two} route a -> b "write" from east to west } }`, "v");
+    expect(routed).not.toBe(plain);
+  });
+});
+
+describe("declaration forms that nothing else exercises", () => {
+  it("`pack <name> from \"...\"` parses", () => {
+    // `model.packs` is recorded and never read — `pack` is a declaration of
+    // intent (CLAUDE.md) — but the from-clause must still parse, since the
+    // grammar offers it.
+    const r = buildModel(
+      `pack aws from "https://example.com/pack.json"\nsystem s "S" { a = aws/lambda "A" }\n`,
+    );
+    expect(r.diagnostics.filter((d) => d.severity === "error")).toEqual([]);
+    expect(r.ok).toBe(true);
+  });
+
+  it("a file-level `theme` changes the render, and an explicit one still wins", async () => {
+    // No theme option here on purpose: passing one is what a caller does to
+    // *override* the file's choice, and that precedence is the contract
+    // `--theme dark` depends on.
+    const bare = async (src: string) => {
+      const r = await render(src, {});
+      expect(r.ok).toBe(true);
+      return r.svg!;
+    };
+    const plain = await bare(`system s "S" { a = aws/lambda "A" }\n`);
+    const declared = await bare(`theme dark\nsystem s "S" { a = aws/lambda "A" }\n`);
+    expect(declared).not.toBe(plain);
+    // …and asking for light explicitly gets light back, whatever the file says
+    expect(await svgOf(`theme dark\nsystem s "S" { a = aws/lambda "A" }\n`)).toBe(plain);
+  });
+
+  it("a bad theme name is caught by `check`, not left for `render`", () => {
+    // It used to pass the model pass and fail only inside render — and `check`
+    // renders every view with an explicit `light`, so a typo'd theme produced
+    // "1 file(s) OK" and then a failed render. For a loop that is check-then-
+    // render, check has to be the authority.
+    for (const src of [
+      `theme drak\nsystem s "S" { a = aws/lambda "A" }\n`,
+      `system s "S" { a = aws/lambda "A" }\nview v { scope s\n theme drak }\n`,
+    ]) {
+      const r = buildModel(src);
+      expect(r.ok, src).toBe(false);
+      const d = r.diagnostics.find((x) => x.message.includes("unknown theme"));
+      expect(d?.fix).toContain("dark");
+    }
+  });
+
+  it("a node can carry a kind and an attr block together", () => {
+    // Never shown in SKILL.md until round 4, and two cold agents guessed the
+    // order wrong in two separate rounds.
+    const r = buildModel(
+      `system s "S" {\n db = aws/dynamodb "Vault" datastore {\n  tags: #pci\n }\n}\n`,
+    );
+    expect(r.ok).toBe(true);
+    expect(r.model.nodes.get("s.db")?.kinds).toContain("datastore");
+    expect(r.model.nodes.get("s.db")?.tags).toContain("pci");
+  });
+});

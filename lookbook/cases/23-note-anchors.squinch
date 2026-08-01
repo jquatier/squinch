@@ -1,0 +1,34 @@
+// Every note anchor the grammar accepts, in one picture. Six of the eight had
+// never been rendered anywhere in the repo — `right-of` and `top-right` were
+// used, the rest were dead. A note is a sticky chip with a leader line to its
+// anchor (DESIGN §5); the corners pin to the frame instead and have no leader.
+pack aws
+
+system svc "Payments" {
+  api   = aws/api-gateway "API"
+  fn    = aws/lambda      "Handler"
+  db    = aws/dynamodb    "Ledger" datastore
+  queue = aws/sqs         "Retries"
+
+  api -> fn
+  fn -> db "writes"
+  fn ~> queue "on failure"
+}
+
+view svc {
+  title "Note anchors"
+  scope svc
+  // relative to a node — the leader line has to find its way out of the layout
+  note above api    "above"
+  note below db     "below"
+  note left-of fn   "left-of"
+  note right-of queue "right-of"
+  // anchored to an edge rather than a node — pinned halfway along the run
+  note on api -> fn "on an edge"
+  // pinned to the frame's corners: no leader, and they must not collide with
+  // the diagram or with each other
+  note top-left     "top-left"
+  note top-right    "top-right" { style: warning }
+  note bottom-left  "bottom-left"
+  note bottom-right "bottom-right"
+}

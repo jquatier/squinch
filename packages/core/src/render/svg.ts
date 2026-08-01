@@ -191,17 +191,37 @@ function splitAtHops(
   return out.filter((seg) => seg.length >= 2);
 }
 
-function arrow(e: PEdge, t: Theme, accent = false): string {
-  const n = e.points.length;
-  const tip = e.points[n - 1], prev = e.points[n - 2];
+/** One head, pointing from `prev` toward `tip` (DESIGN §4: filled chevron 8×6,
+ *  open chevron for async — never SVG default markers). */
+function head(
+  tip: { x: number; y: number },
+  prev: { x: number; y: number },
+  col: string,
+  async: boolean,
+): string {
   const dx = Math.sign(tip.x - prev.x), dy = Math.sign(tip.y - prev.y);
   const bx = tip.x - dx * 8, by = tip.y - dy * 8;
   const p1 = `${bx + dy * 6} ${by + dx * 6}`, p2 = `${bx - dy * 6} ${by - dx * 6}`;
-  // the head has to travel with the line, or a highlighted hop ends in a grey point
-  const col = accent ? t.accent : e.async ? t.asyncEdge : t.edge;
-  return e.async
+  return async
     ? `<path d="M ${p1} L ${tip.x} ${tip.y} L ${p2}" fill="none" stroke="${col}" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>`
     : `<path d="M ${tip.x} ${tip.y} L ${p1} L ${p2} Z" fill="${col}"/>`;
+}
+
+/**
+ * The heads for an edge. `->`/`~>` point one way, `<->` points both, and `--`
+ * points neither — the whole reason those two spellings exist. They used to
+ * draw as a plain one-way arrow, because the view graph reduced every arrow to
+ * `async: boolean` and the other two kinds fell through the gap. Both are
+ * documented in SKILL.md, so a diagram could state something the picture then
+ * contradicted.
+ */
+function arrow(e: PEdge, t: Theme, accent = false): string {
+  if (e.heads === "none") return "";
+  const n = e.points.length;
+  // the head has to travel with the line, or a highlighted hop ends in a grey point
+  const col = accent ? t.accent : e.async ? t.asyncEdge : t.edge;
+  const forward = head(e.points[n - 1], e.points[n - 2], col, e.async);
+  return e.heads === "both" ? forward + head(e.points[0], e.points[1], col, e.async) : forward;
 }
 
 const esc = (s: string) =>
@@ -298,8 +318,18 @@ function card(n: PNode, rc: RC, dimmed: boolean, L: string[]) {
   L.push(`</g>`);
 }
 
-function notes(p: Positioned, rc: RC, list: SNote[], L: string[]) {
+/**
+ * Sticky chips with a leader to their anchor (DESIGN §5). Returns the extent of
+ * everything drawn, because a note placed relative to a node at the edge of the
+ * diagram lands outside the canvas and is simply clipped away — `above` on the
+ * top row and `below` on the bottom row always do. Three committed diagrams
+ * shipped with an invisible note before anything measured this.
+ */
+function notes(
+  p: Positioned, rc: RC, list: SNote[], L: string[],
+): { minX: number; minY: number; maxX: number; maxY: number } {
   const { t } = rc;
+  const ext = { minX: 0, minY: 0, maxX: p.width, maxY: p.height };
   const byPath = new Map(p.nodes.map((n) => [n.path, n]));
   for (const note of list) {
     const inner = 176;
@@ -322,9 +352,24 @@ function notes(p: Positioned, rc: RC, list: SNote[], L: string[]) {
         (e) => e.from === (note.anchor as any).from && e.to === (note.anchor as any).to,
       );
       if (!e) continue;
-      const mid = e.points[Math.floor(e.points.length / 2) - 1] ?? e.points[0];
+      // Halfway along the run, by arc length. This used to index
+      // `points[floor(n/2) - 1]`, which for the common two-point edge is
+      // `points[0]` — the *start* — so the note was pinned to its source node
+      // and drawn over it every time.
+      const pts = e.points;
+      const segs = pts.slice(1).map((q, i) => Math.hypot(q.x - pts[i].x, q.y - pts[i].y));
+      const half = segs.reduce((a, b) => a + b, 0) / 2;
+      let run = 0, mid = pts[0];
+      for (let i = 0; i < segs.length; i++) {
+        if (run + segs[i] >= half) {
+          const f = segs[i] === 0 ? 0 : (half - run) / segs[i];
+          mid = { x: pts[i].x + (pts[i + 1].x - pts[i].x) * f, y: pts[i].y + (pts[i + 1].y - pts[i].y) * f };
+          break;
+        }
+        run += segs[i];
+      }
       x = mid.x + 16;
-      y = mid.y - h - 8;
+      y = mid.y - Math.round(h / 2);
       leader = { x1: x, y1: y + h, x2: mid.x, y2: mid.y };
     } else {
       const c = note.anchor.corner;
@@ -332,6 +377,8 @@ function notes(p: Positioned, rc: RC, list: SNote[], L: string[]) {
       y = c.includes("top") ? 16 : p.height - h - 16;
     }
     x = Math.round(x); y = Math.round(y);
+    ext.minX = Math.min(ext.minX, x); ext.minY = Math.min(ext.minY, y);
+    ext.maxX = Math.max(ext.maxX, x + w); ext.maxY = Math.max(ext.maxY, y + h);
     const bg = note.style === "warning" ? t.warnTint : t.surface;
     if (leader)
       L.push(
@@ -344,6 +391,7 @@ function notes(p: Positioned, rc: RC, list: SNote[], L: string[]) {
       ),
     );
   }
+  return ext;
 }
 
 // zone-kind → tint token (DESIGN §5: kind-tinted, low opacity)
@@ -909,7 +957,20 @@ export function renderSVG(p: Positioned, t: Theme, opts: RenderOpts = {}): strin
   }
   let height = Math.max(p.height, ...pills.map((pl) => pl.y + pl.h + 16));
 
-  if (opts.notes?.length) notes({ ...p, height }, rc, opts.notes, body);
+  // A note anchored to a node on the edge of the diagram lands outside the
+  // canvas: `above` on the top row and `below` on the bottom row always do, and
+  // `left-of`/`right-of` do on the outer columns. It rendered, and was then
+  // clipped away — three committed diagrams shipped with an invisible note.
+  // Grow the canvas to fit, and shift everything right/down when a note went
+  // negative, since an SVG cannot draw left of its own origin.
+  let padX = 0, padY = 0, width = p.width;
+  if (opts.notes?.length) {
+    const ext = notes({ ...p, height }, rc, opts.notes, body);
+    padX = Math.max(0, Math.ceil(-ext.minX) + (ext.minX < 0 ? 8 : 0));
+    padY = Math.max(0, Math.ceil(-ext.minY) + (ext.minY < 0 ? 8 : 0));
+    width = Math.max(width, Math.ceil(ext.maxX) + (ext.maxX > p.width ? 8 : 0)) + padX;
+    height = Math.max(height, Math.ceil(ext.maxY) + (ext.maxY > height ? 8 : 0)) + padY;
+  }
 
   // footer band: legend bottom-left, titleblock bottom-right; the titleblock
   // drops below the legend when the canvas is too narrow for both
@@ -918,8 +979,8 @@ export function renderSVG(p: Positioned, t: Theme, opts: RenderOpts = {}): strin
     const lg = opts.legend ? legend(p, rc, bandY, body) : { h: 0, w: 0 };
     let bottom = bandY + lg.h;
     if (opts.titleblock && Object.keys(opts.titleblock).length) {
-      const tb = titleblockDims(rc, opts.title, opts.titleblock, p.width);
-      const beside = lg.w === 0 || 16 + lg.w + 24 + tb.w + 16 <= p.width;
+      const tb = titleblockDims(rc, opts.title, opts.titleblock, width);
+      const beside = lg.w === 0 || 16 + lg.w + 24 + tb.w + 16 <= width;
       const ty = beside ? bandY : bottom + 8;
       titleblock(p, rc, ty, tb, opts.title, body);
       bottom = Math.max(bottom, ty + tb.h);
@@ -929,7 +990,7 @@ export function renderSVG(p: Positioned, t: Theme, opts: RenderOpts = {}): strin
 
   const L: string[] = [];
   L.push(
-    `<svg xmlns="http://www.w3.org/2000/svg" width="${p.width}" height="${height}" viewBox="0 0 ${p.width} ${height}" font-family="${t.font.css}">`,
+    `<svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${height}" viewBox="0 0 ${width} ${height}" font-family="${t.font.css}">`,
   );
   if (opts.embedFonts !== false) L.push(fontDefs(t));
   if (p.edges.some((e) => e.async && e.animate))
@@ -939,13 +1000,15 @@ export function renderSVG(p: Positioned, t: Theme, opts: RenderOpts = {}): strin
         `.sq-flow{animation:sq-flow 0.9s linear infinite}` +
         `@keyframes sq-flow{to{stroke-dashoffset:-10}}}</style>`,
     );
-  L.push(`<rect width="${p.width}" height="${height}" fill="${t.canvas}"/>`);
+  L.push(`<rect width="${width}" height="${height}" fill="${t.canvas}"/>`);
   // only when something references it — a diagram of plain nodes should not
   // carry a gradient it never draws
   if (p.nodes.some((n) => n.kind === "card")) L.push(accentDefs());
   const defs = iconDefs(p);
   if (defs) L.push(defs);
+  if (padX || padY) L.push(`<g transform="translate(${padX}, ${padY})">`);
   L.push(...body);
+  if (padX || padY) L.push(`</g>`);
   L.push(`</svg>`);
   return L.join("\n") + "\n";
 }

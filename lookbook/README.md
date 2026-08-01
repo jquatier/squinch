@@ -159,3 +159,45 @@ committing a visual change. What looks bad here becomes the next fix.
 | light | dark |
 |---|---|
 | ![](out/22-channel.bussed.light.svg) | ![](out/22-channel.bussed.dark.svg) |
+
+## 23-note-anchors — `svc`
+
+| light | dark |
+|---|---|
+| ![](out/23-note-anchors.svc.light.svg) | ![](out/23-note-anchors.svc.dark.svg) |
+
+## 24-arrow-kinds — `mesh`
+
+| light | dark |
+|---|---|
+| ![](out/24-arrow-kinds.mesh.light.svg) | ![](out/24-arrow-kinds.mesh.dark.svg) |
+
+## 25-line-styles — `orthogonal`
+
+| light | dark |
+|---|---|
+| ![](out/25-line-styles.orthogonal.light.svg) | ![](out/25-line-styles.orthogonal.dark.svg) |
+
+## 25-line-styles — `curved`
+
+| light | dark |
+|---|---|
+| ![](out/25-line-styles.curved.light.svg) | ![](out/25-line-styles.curved.dark.svg) |
+
+## 25-line-styles — `straight`
+
+| light | dark |
+|---|---|
+| ![](out/25-line-styles.straight.light.svg) | ![](out/25-line-styles.straight.dark.svg) |
+
+## 26-route-label — `api`
+
+| light | dark |
+|---|---|
+| ![](out/26-route-label.api.light.svg) | ![](out/26-route-label.api.dark.svg) |
+
+## 27-declaration-forms — `platform`
+
+| light | dark |
+|---|---|
+| ![](out/27-declaration-forms.platform.light.svg) | ![](out/27-declaration-forms.platform.dark.svg) |

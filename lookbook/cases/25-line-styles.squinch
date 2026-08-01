@@ -1,0 +1,40 @@
+// One model, three routings. `curved` and `straight` parse in the model builder
+// and branch in the renderer, and until now had never been executed by any
+// test, example or lookbook case — two of the three arms of a documented option,
+// dead as far as the repo could prove. Same graph three times so the difference
+// is the only thing on screen.
+pack aws
+
+system fanout "Ingest" {
+  gw  = aws/api-gateway "Gateway"
+  a   = aws/lambda      "Validate"
+  b   = aws/lambda      "Enrich"
+  c   = aws/lambda      "Persist"
+  db  = aws/dynamodb    "Store" datastore
+
+  gw -> a, b, c
+  a -> db
+  b -> db
+  c -> db
+}
+
+view orthogonal {
+  title "lines orthogonal (default)"
+  scope fanout
+  layout { lines orthogonal
+           rows [gw] [a b c] [db] }
+}
+
+view curved {
+  title "lines curved"
+  scope fanout
+  layout { lines curved
+           rows [gw] [a b c] [db] }
+}
+
+view straight {
+  title "lines straight"
+  scope fanout
+  layout { lines straight
+           rows [gw] [a b c] [db] }
+}

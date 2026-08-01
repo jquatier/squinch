@@ -7,6 +7,7 @@ import type { SyntaxNode } from "@lezer/common";
 import { parser } from "../grammar/parser.js";
 import { iconExists, packExists, iconIds, allPackNames } from "./packs.js";
 import { suggest } from "./suggest.js";
+import { themes } from "../themes/index.js";
 import type {
   ArrowKind, BuildResult, Diagnostic, Loc, RelPos, SContainer, SEdge, SModel, SNode, SNote, SView, Side, SFlow, SZone, ZoneColor, ZoneKind, ZoneLabelPos,
 } from "./types.js";
@@ -66,6 +67,20 @@ export function buildProject(files: ProjectFile[]): BuildResult {
       severity: "warning", message, fix, file: ctx.name,
       loc: "from" in at && "line" in at ? (at as Loc) : ctx.loc(at as SyntaxNode),
     });
+
+  /**
+   * A declared theme name is static — it can be checked the moment the model is
+   * built. It used to be validated only inside `render`, and `check` renders
+   * every view with an explicit `light`, so a typo'd `theme` passed `check`
+   * with "1 file(s) OK" and then failed the very next `render`. For a tool
+   * whose loop is check-then-render, check has to be the authority.
+   */
+  const checkTheme = (ctx: Ctx, at: SyntaxNode, name: string) => {
+    if (name in themes) return;
+    const s = suggest(name, Object.keys(themes));
+    error(ctx, at, `unknown theme \`${name}\``,
+      s ? `did you mean \`${s}\`?` : `themes: ${Object.keys(themes).join(" | ")}`);
+  };
 
   const attrsOf = (ctx: Ctx, block: SyntaxNode | null) => {
     const attrs: Record<string, string> = {};
@@ -229,7 +244,12 @@ export function buildProject(files: ProjectFile[]): BuildResult {
       } else if (!model.packs.includes(name)) model.packs.push(name);
     }
     const ft = top.getChildren("FileTheme")[0];
-    if (ft) model.fileTheme = ctx.text(ft.getChild("Ident")!);
+    const ftIdent = ft?.getChild("Ident");
+    if (ft && !ftIdent) error(ctx, ft, "`theme` needs a theme name", "theme dark");
+    else if (ftIdent) {
+      model.fileTheme = ctx.text(ftIdent);
+      checkTheme(ctx, ftIdent, model.fileTheme);
+    }
     for (const p of top.getChildren("PersonDecl")) {
       const identNode = p.getChild("Ident");
       if (!identNode) continue; // partial node from error recovery
@@ -490,7 +510,10 @@ export function buildProject(files: ProjectFile[]): BuildResult {
     const theme = body.getChildren("ThemeStmt")[0];
     const themeIdent = theme?.getChild("Ident");
     if (theme && !themeIdent) error(ctx, theme, "`theme` needs a theme name", "theme dark");
-    else if (themeIdent) view.theme = ctx.text(themeIdent);
+    else if (themeIdent) {
+      view.theme = ctx.text(themeIdent);
+      checkTheme(ctx, themeIdent, view.theme);
+    }
     const inScope = view.scope ?? "";
 
     // `only` is the view's filter — the *which* axis, where `scope` is *where*.

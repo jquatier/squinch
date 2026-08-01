@@ -40,6 +40,7 @@ export interface PEdge {
   id: string; from: string; to: string;
   label?: string; async: boolean; animate: boolean; count: number;
   tags: string[];
+  heads: "one" | "both" | "none";
   points: { x: number; y: number }[];
 }
 export interface Positioned {
@@ -589,7 +590,7 @@ export async function layoutView(
           (p: any) => ({ x: q(p.x + off.x), y: q(p.y + off.y) }),
         );
         const m = edges.find((me) => me.id === e.id)!;
-        return [e.id, { id: e.id, from: m.from, to: m.to, label: m.label, async: m.async, animate: m.animate, count: m.count, tags: m.tags, points: pts }];
+        return [e.id, { id: e.id, from: m.from, to: m.to, label: m.label, async: m.async, animate: m.animate, count: m.count, tags: m.tags, heads: m.heads, points: pts }];
       }),
   );
 
@@ -633,7 +634,7 @@ export async function layoutView(
         { edge: e.id, node: a.path, side: a.x <= b.x ? "east" : "west", x: pts[0].x, y },
         { edge: e.id, node: b.path, side: a.x <= b.x ? "west" : "east", x: pts[1].x, y },
       );
-      return { id: e.id, from: e.from, to: e.to, label: e.label, async: e.async, animate: e.animate, count: e.count, tags: e.tags, points: pts };
+      return { id: e.id, from: e.from, to: e.to, label: e.label, async: e.async, animate: e.animate, count: e.count, tags: e.tags, heads: e.heads, points: pts };
     }
     const bandBottom = Math.max(...nodes.filter((n) => n.rank === a.rank).map((n) => n.y + n.h));
     const lane = bandBottom + 24 + (laneOf.get(e.id) ?? 0) * 16;
@@ -647,7 +648,7 @@ export async function layoutView(
       { edge: e.id, node: a.path, side: "south", x: ax, y: a.y + a.h },
       { edge: e.id, node: b.path, side: "south", x: bx, y: b.y + b.h },
     );
-    return { id: e.id, from: e.from, to: e.to, label: e.label, async: e.async, animate: e.animate, count: e.count, tags: e.tags, points: pts };
+    return { id: e.id, from: e.from, to: e.to, label: e.label, async: e.async, animate: e.animate, count: e.count, tags: e.tags, heads: e.heads, points: pts };
   });
 
   const coplanarById = new Map(coplanarEdges.map((e) => [e.id, e]));

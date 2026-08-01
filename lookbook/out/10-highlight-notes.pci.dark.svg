@@ -69,9 +69,9 @@
 <line x1="216" y1="304" x2="192" y2="304" stroke="#9C9B94" stroke-width="1" stroke-dasharray="2 3"/>
 <rect x="216" y="290" width="191.73388499999996" height="27" rx="3" fill="#212124" stroke="#3B3B40" stroke-width="1"/>
 <text x="228" y="307" font-size="11" fill="#EDEDEA">Tokens only; PANs never stored</text>
-<line x1="302" y1="112" x2="286" y2="120" stroke="#9C9B94" stroke-width="1" stroke-dasharray="2 3"/>
-<rect x="302" y="85" width="69.71875" height="27" rx="3" fill="#212124" stroke="#3B3B40" stroke-width="1"/>
-<text x="314" y="102" font-size="11" fill="#EDEDEA">p99 8ms</text>
+<line x1="211" y1="133" x2="195" y2="120" stroke="#9C9B94" stroke-width="1" stroke-dasharray="2 3"/>
+<rect x="211" y="106" width="69.71875" height="27" rx="3" fill="#212124" stroke="#3B3B40" stroke-width="1"/>
+<text x="223" y="123" font-size="11" fill="#EDEDEA">p99 8ms</text>
 <rect x="259" y="16" width="196.83109799999994" height="27" rx="3" fill="#3A3423" stroke="#3B3B40" stroke-width="1"/>
 <text x="271" y="33" font-size="11" fill="#EDEDEA">PCI DSS scope, audited quarterly</text>
 </svg>

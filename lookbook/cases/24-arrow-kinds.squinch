@@ -1,0 +1,31 @@
+// The four arrow kinds side by side. Two of them — `<->` and `--` — used to
+// render as a plain one-way arrow: the view graph reduced every arrow to
+// `async: boolean`, so bidirectional and undirected fell through the gap while
+// SKILL.md documented both. A diagram could state something the picture then
+// contradicted, which is the worst kind of wrong for a drawing.
+pack aws
+
+system mesh "Service Mesh" {
+  a = aws/lambda "Caller"
+  b = aws/lambda "Callee"
+  c = aws/lambda "Peer A"
+  d = aws/lambda "Peer B"
+  e = aws/lambda "Publisher"
+  f = aws/sqs    "Queue"
+  g = aws/ec2    "Node 1"
+  h = aws/ec2    "Node 2"
+
+  a -> b  "request"          // one way: filled chevron at the target
+  c <-> d "sync both ways"   // both ways: a head at each end
+  e ~> f  "publishes"        // async: open chevron, animated dashes
+  g -- h  "peers"            // undirected: no head at either end
+}
+
+view mesh {
+  title "Arrow kinds"
+  scope mesh
+  legend auto
+  layout {
+    rows [a c e g] [b d f h]
+  }
+}

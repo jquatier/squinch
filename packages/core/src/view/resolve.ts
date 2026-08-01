@@ -34,6 +34,10 @@ export interface VEdge {
   /** Effective tags. An aggregate carries the union of what it merged, so a
    *  lens over a tag still finds the trunk that hides a tagged edge inside it. */
   tags: string[];
+  /** Which ends get an arrowhead: `->`/`~>` one, `<->` both, `--` none. The
+   *  view graph used to reduce every arrow to `async: boolean`, so two of the
+   *  four kinds the grammar accepts drew as a plain one-way arrow. */
+  heads: "one" | "both" | "none";
 }
 
 export interface ViewGraph {
@@ -46,6 +50,10 @@ export interface ViewGraph {
   flow?: { label: string; byEdge: Record<string, number[]> };
   diagnostics: Diagnostic[];
 }
+
+/** `->`/`~>` point one way, `<->` both, `--` neither. */
+const headsOf = (a: string): "one" | "both" | "none" =>
+  a === "<->" ? "both" : a === "--" ? "none" : "one";
 
 const parentOf = (p: string) => (p.includes(".") ? p.slice(0, p.lastIndexOf(".")) : "");
 const topOf = (p: string) => p.split(".")[0];
@@ -283,7 +291,7 @@ export function resolveView(model: SModel, view: SView): ViewGraph {
       edges.push({
         id: e.id, from: f, to: t, label: e.label, async: e.arrow === "~>",
         animate: e.arrow === "~>" && e.attrs.animate !== "false", count: 1,
-        tags: e.tags,
+        tags: e.tags, heads: headsOf(e.arrow),
       });
       continue;
     }
@@ -301,7 +309,7 @@ export function resolveView(model: SModel, view: SView): ViewGraph {
       edges[slot] = {
         id: e.id, from: g.from, to: g.to, label: e.label, async: e.arrow === "~>",
         animate: e.arrow === "~>" && e.attrs.animate !== "false", count: 1,
-        tags: e.tags,
+        tags: e.tags, heads: headsOf(e.arrow),
       };
     } else {
       edges[slot] = {
@@ -312,6 +320,10 @@ export function resolveView(model: SModel, view: SView): ViewGraph {
         animate: g.edges.every((e) => e.arrow === "~>" && e.attrs.animate !== "false"),
         count: g.edges.length,
         tags: [...new Set(g.edges.flatMap((e) => e.tags))],
+        // A trunk only claims a shape every member agrees on; a mixed bundle
+        // falls back to the plain arrow rather than asserting something false.
+        heads: g.edges.every((e) => e.arrow === "<->") ? "both"
+          : g.edges.every((e) => e.arrow === "--") ? "none" : "one",
       };
     }
   }
