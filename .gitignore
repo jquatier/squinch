@@ -25,3 +25,5 @@ apps/spa/public/*-icons/
 
 # per-prompt sandboxes + transcripts for gauntlet/run.ts
 gauntlet/.run/
+# before/after renders for scripts/compare.mts
+.compare-tmp/

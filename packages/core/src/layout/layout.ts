@@ -475,6 +475,15 @@ export async function layoutView(
             "elk.padding": "[top=44,left=16,bottom=16,right=16]",
             "elk.spacing.nodeNode": "32",
             "elk.layered.spacing.nodeNodeBetweenLayers": "40",
+            // Edge spacing has to be repeated on every compound. ELK does not
+            // inherit it from the root, and its own default is 10 — below the
+            // 16 DESIGN §4 requires, and below the 2×R_EDGE at which a corner
+            // reaches full radius, so a 10px stub renders as ~5px of straight
+            // line and reads as a diagonal escape from the box. Every stub
+            // violation in the corpus was an edge routed inside a zone or an
+            // expanded frame, falling through to that default.
+            "elk.layered.spacing.edgeNodeBetweenLayers": "24",
+            "elk.spacing.edgeNode": "24",
           },
           children: framedChildren(p),
         }
@@ -488,6 +497,9 @@ export async function layoutView(
       "elk.padding": "[top=28,left=20,bottom=20,right=20]",
       "elk.spacing.nodeNode": String(SP[0]),
       "elk.layered.spacing.nodeNodeBetweenLayers": String(SP[1]),
+      // see entityElk: ELK does not inherit edge spacing into a compound
+      "elk.layered.spacing.edgeNodeBetweenLayers": "24",
+      "elk.spacing.edgeNode": "24",
     },
     children: [
       ...zones.filter((c) => zoneParent.get(c.id) === z).map(zoneElk),

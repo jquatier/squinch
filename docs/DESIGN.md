@@ -15,8 +15,15 @@
 3. **Uniformity beats fit.** Nodes have fixed heights and snapped width tiers; text
    adapts to the box (wrap → ellipsis → hover for full), never the reverse. No
    ransom-note diagrams.
-4. **Nothing almost-aligned.** Every position, size, and gap sits on the base grid.
-   Elements share an axis exactly or are clearly apart.
+4. **Nothing almost-aligned.** Elements share an axis *exactly* or are clearly
+   apart — a 3px offset reads as a mistake, 40px reads as a decision. Exactness is
+   enforced where the author asks for it (`align`, `cols`), and positions are
+   whole pixels everywhere (§8). Note this is deliberately **not** "every position
+   sits on the 8px grid": node widths step by 40, so half-widths alternate on and
+   off the grid, and equalising two centres therefore *must* put one of the pair
+   at a multiple of 4. Exact alignment and gridded positions cannot both hold, and
+   exactness is the one that matters — snapping to 8 would turn a straight edge
+   into a 4px dogleg, which is the artefact this rule exists to forbid.
 5. **Quiet structure, loud meaning.** Neutrals carry structure; color is spent only on
    semantics (status, `highlight`, flows, async). Provider icons supply the color;
    our chrome stays out of the way.
@@ -25,8 +32,12 @@
 
 ## 2. Tokens
 
-- **Grid**: base unit `8px`. All node dims, gaps, paddings are multiples; edge stubs
-  and port offsets too.
+- **Grid**: base unit `8px`, and it governs the numbers *we* choose: node
+  dimensions (tiers `120/160/200/240` and `200/240/280/320`, heights `64`/`88`),
+  padding, radii, stroke widths, and the `16` minimum edge stub. Positions are
+  ELK's and are whole pixels rather than multiples of 8 — see §1.4.
+  Known exceptions worth normalising: the `spacious` density ladder (`84`), frame
+  padding (`44`) and zone padding (`28`/`20`).
 - **Radii**: `2 / 4 / 8` (badges / nodes / containers). One scale, no exceptions.
 - **Strokes**: `1 / 1.5 / 2` (hairline dividers / edges & node borders / emphasis).
   Odd widths get half-pixel alignment (§8).

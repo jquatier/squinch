@@ -26,7 +26,7 @@
 <path d="M 340 415 L 346 407 L 334 407 Z" fill="#8D8C84"/>
 </g>
 <g>
-<path d="M 132 124 L 132 165 Q 132 173 140 173 L 201 173 Q 209 173 209 181 L 209 328 Q 209 336 217 336 L 252 336 Q 260 336 260 344 L 260 415" fill="none" stroke="#8D8C84" stroke-width="1.5"/>
+<path d="M 132 124 L 132 165 Q 132 173 140 173 L 187 173 Q 195 173 195 181 L 195 342 Q 195 350 203 350 L 252 350 Q 260 350 260 358 L 260 415" fill="none" stroke="#8D8C84" stroke-width="1.5"/>
 <path d="M 260 415 L 266 407 L 254 407 Z" fill="#8D8C84"/>
 </g>
 <g data-path="ops" data-kind="leaf">
@@ -59,7 +59,7 @@
 </g>
 <g><rect x="300" y="172" width="79" height="18" rx="2" fill="#212124" stroke="#3B3B40" stroke-width="1"/><text x="340" y="185" text-anchor="middle" font-size="11" fill="#9C9B94">nightly batch</text></g>
 <g><rect x="286" y="362" width="108" height="18" rx="2" fill="#212124" stroke="#3B3B40" stroke-width="1"/><text x="340" y="375" text-anchor="middle" font-size="11" fill="#9C9B94">normalized events</text></g>
-<g><rect x="142" y="164" width="58" height="18" rx="2" fill="#212124" stroke="#3B3B40" stroke-width="1"/><text x="171" y="177" text-anchor="middle" font-size="11" fill="#9C9B94">operates</text></g>
+<g><rect x="199" y="341" width="58" height="18" rx="2" fill="#212124" stroke="#3B3B40" stroke-width="1"/><text x="228" y="354" text-anchor="middle" font-size="11" fill="#9C9B94">operates</text></g>
 <g data-kind="zone-chip" data-zone="onprem"><rect x="41" y="19" width="91" height="26" rx="4" fill="#161618"/><rect x="44" y="22" width="85" height="20" rx="3" fill="#161618" stroke="#8F8C82" stroke-width="1"/><text x="52" y="36" font-size="11" font-weight="500" fill="#8F8C82">On-Premises</text></g>
 <g data-kind="zone-chip" data-zone="cloud"><rect x="363" y="530" width="108" height="26" rx="4" fill="#161618"/><rect x="366" y="533" width="102" height="20" rx="3" fill="#161618" stroke="#9C93E8" stroke-width="1"/><clipPath id="clip-sq-aws-cloud-366-533-20"><rect x="366" y="533" width="20" height="20" rx="2"/></clipPath><g clip-path="url(#clip-sq-aws-cloud-366-533-20)"><use href="#sq-aws-cloud" x="366" y="533" width="20" height="20"/></g><text x="398" y="547" font-size="11" font-weight="500" fill="#9C93E8">AWS Cloud</text></g>
 <g data-kind="zone-chip" data-zone="vpc1"><rect x="169" y="374" width="129" height="26" rx="4" fill="#161618"/><rect x="172" y="377" width="123" height="20" rx="3" fill="#161618" stroke="#6E9CD0" stroke-width="1"/><clipPath id="clip-sq-aws-virtual-private-cloud-vpc-172-377-20"><rect x="172" y="377" width="20" height="20" rx="2"/></clipPath><g clip-path="url(#clip-sq-aws-virtual-private-cloud-vpc-172-377-20)"><use href="#sq-aws-virtual-private-cloud-vpc" x="172" y="377" width="20" height="20"/></g><text x="204" y="391" font-size="11" font-weight="500" fill="#6E9CD0">VPC prod-main</text></g>

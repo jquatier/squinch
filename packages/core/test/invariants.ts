@@ -1,0 +1,139 @@
+// DESIGN §9's beauty checklist, mechanised.
+//
+// It was a thing a human eyeballed each release, and the reason it was never
+// automated is that the tests read rendered SVG — where the entire identifying
+// surface is `data-path` and `data-kind`, both on nodes. There is no
+// `data-edge`, no `data-port`, no `data-frame`, so the crossing-hop test has to
+// find edges by matching a theme colour literal. Whole categories of the
+// checklist — port distribution, stub lengths, zone containment — simply cannot
+// be expressed that way, which is why the coplanar router still has no named
+// test and why five stub violations sat in the corpus unnoticed.
+//
+// `layoutView` already returns the geometry, typed. These are pure functions
+// over `Positioned`: they return violations rather than asserting, so the
+// caller decides how to report, and so one sweep can check a whole corpus and
+// list everything at once instead of dying on the first failure.
+import type { Positioned, PNode, PEdge } from "../src/layout/layout.js";
+
+/** What `Positioned` does not carry, and the rules need. */
+export interface Ctx {
+  /** zone id → declared member paths, for the containment rule */
+  zoneMembers?: Map<string, string[]>;
+  /** node paths that are a `channel` target — exempt from the port rule */
+  channelTargets?: Set<string>;
+}
+
+const GRID = 8;
+/** DESIGN §4: an edge runs ≥16 before its first turn. Not arbitrary — `R_EDGE`
+ *  is 8 and `roundedPath` clamps a corner to half the shorter segment, so below
+ *  16 the corner never reaches full radius and the line appears to leave the box
+ *  diagonally, which is the thing §4 forbids. */
+const STUB = 16;
+
+const rect = (r: { x: number; y: number; w: number; h: number }) => ({
+  x1: r.x, y1: r.y, x2: r.x + r.w, y2: r.y + r.h,
+});
+const overlaps = (a: PNode, b: PNode) => {
+  const [p, q] = [rect(a), rect(b)];
+  return p.x1 < q.x2 && p.x2 > q.x1 && p.y1 < q.y2 && p.y2 > q.y1;
+};
+const contains = (
+  outer: { x: number; y: number; w: number; h: number },
+  inner: { x: number; y: number; w: number; h: number },
+) => {
+  const [o, i] = [rect(outer), rect(inner)];
+  return i.x1 >= o.x1 && i.x2 <= o.x2 && i.y1 >= o.y1 && i.y2 <= o.y2;
+};
+const len = (a: { x: number; y: number }, b: { x: number; y: number }) =>
+  Math.hypot(b.x - a.x, b.y - a.y);
+
+/**
+ * Every violation in one pass, each a human-readable line naming the element.
+ * Empty array = the layout is well-formed.
+ */
+export function checkLayout(p: Positioned, ctx: Ctx = {}): string[] {
+  const bad: string[] = [];
+  const nodes = p.nodes;
+
+  // ── integers ────────────────────────────────────────────────────────────
+  // DESIGN §8, and the load-bearing one: it is what lets goldens authored on
+  // macOS byte-match on Linux. Sub-pixel drift would break the determinism
+  // contract silently, on one OS only.
+  const whole = (v: number) => Number.isInteger(v);
+  for (const n of nodes)
+    if (![n.x, n.y, n.w, n.h].every(whole))
+      bad.push(`node ${n.path}: non-integer geometry (${n.x},${n.y} ${n.w}×${n.h})`);
+  for (const pt of p.ports)
+    if (!whole(pt.x) || !whole(pt.y)) bad.push(`port on ${pt.node}: non-integer (${pt.x},${pt.y})`);
+  for (const e of p.edges)
+    for (const q of e.points)
+      if (!whole(q.x) || !whole(q.y)) bad.push(`edge ${e.id}: non-integer point (${q.x},${q.y})`);
+
+  // ── node dimensions on the grid ─────────────────────────────────────────
+  // DESIGN §2. Dimensions are ours — `sizeOf` picks from fixed tiers — unlike
+  // positions, which ELK assigns and which cannot be gridded while `align`
+  // equalises centres across 40px-stepped tiers.
+  for (const n of nodes)
+    if (n.w % GRID || n.h % GRID)
+      bad.push(`node ${n.path}: ${n.w}×${n.h} is off the ${GRID}px grid`);
+
+  // ── orthogonality ───────────────────────────────────────────────────────
+  if (p.lines === "orthogonal")
+    for (const e of p.edges)
+      for (let i = 0; i < e.points.length - 1; i++) {
+        const a = e.points[i], b = e.points[i + 1];
+        if (a.x !== b.x && a.y !== b.y)
+          bad.push(`edge ${e.id}: diagonal segment (${a.x},${a.y})→(${b.x},${b.y})`);
+      }
+
+  // ── edges are drawable ──────────────────────────────────────────────────
+  for (const e of p.edges)
+    if (e.points.length < 2) bad.push(`edge ${e.id}: ${e.points.length} point(s)`);
+
+  // ── stubs (DESIGN §4) ───────────────────────────────────────────────────
+  // Only edges that actually turn: 171 of 352 orthogonal edges are two-point
+  // runs from the coplanar router, where "before its first turn" has no meaning.
+  for (const e of p.edges as PEdge[]) {
+    if (e.points.length < 3) continue;
+    const first = len(e.points[0], e.points[1]);
+    const last = len(e.points[e.points.length - 2], e.points[e.points.length - 1]);
+    if (first < STUB) bad.push(`edge ${e.id}: leaves ${first} before turning (need ${STUB})`);
+    if (last < STUB) bad.push(`edge ${e.id}: enters after ${last} (need ${STUB})`);
+  }
+
+  // ── nothing overlaps ────────────────────────────────────────────────────
+  for (let i = 0; i < nodes.length; i++)
+    for (let j = i + 1; j < nodes.length; j++)
+      if (overlaps(nodes[i], nodes[j]))
+        bad.push(`nodes ${nodes[i].path} and ${nodes[j].path} overlap`);
+
+  // ── containment ─────────────────────────────────────────────────────────
+  for (const f of p.frames)
+    for (const n of nodes.filter((x) => x.frame === f.path))
+      if (!contains(f, n)) bad.push(`node ${n.path} escapes its frame ${f.path}`);
+
+  if (ctx.zoneMembers)
+    for (const z of p.zones) {
+      const members = ctx.zoneMembers.get(z.id) ?? [];
+      for (const n of nodes) {
+        const inZone = members.some((m) => n.path === m || n.path.startsWith(`${m}.`));
+        if (inZone && !contains(z, n)) bad.push(`node ${n.path} escapes its zone ${z.id}`);
+      }
+    }
+
+  // ── port distribution (DESIGN §4) ───────────────────────────────────────
+  // "multiple edges on one side spread at even offsets — never stacked into a
+  // single point". The one legal exception is a `channel`: merging N sources
+  // into one entry port is exactly what the feature does, so a trunk target is
+  // exempt rather than a false positive.
+  const seen = new Map<string, string>();
+  for (const pt of p.ports) {
+    if (ctx.channelTargets?.has(pt.node)) continue;
+    const key = `${pt.node}|${pt.side}|${pt.x},${pt.y}`;
+    const prev = seen.get(key);
+    if (prev) bad.push(`ports for ${prev} and ${pt.edge} stack at ${pt.node} ${pt.side} (${pt.x},${pt.y})`);
+    else seen.set(key, pt.edge);
+  }
+
+  return bad;
+}
