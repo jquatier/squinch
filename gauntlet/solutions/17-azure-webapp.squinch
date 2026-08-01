@@ -3,16 +3,24 @@ pack azure
 
 person customer "Customer"
 
-frontdoor = azure/front-door "Azure Front Door"
-webapp = azure/app-services "App Service"
-sqldb = azure/sql "Azure SQL" datastore
-cache = azure/redis "Redis Cache" datastore
-vault = azure/key-vault "Key Vault"
-insights = azure/application-insights "Application Insights"
+system webapp "Web Application" {
+  description: "Customer-facing web application"
+  tags: #core
 
-customer -> frontdoor "accesses"
-frontdoor -> webapp "routes traffic"
-webapp -> sqldb "reads/writes"
-webapp -> cache "caches"
-webapp -> vault "pulls secrets"
-webapp ~> insights "reports telemetry"
+  cdn = azure/front-door "Azure Front Door"
+  app = azure/app-services "App Service" {
+    description: "Web tier"
+  }
+  db = azure/sql "Azure SQL" datastore
+  cache = azure/redis "Redis Cache" datastore
+  secrets = azure/key-vault "Key Vault" external
+  monitor = azure/application-insights "Application Insights" external
+
+  cdn -> app
+  app -> db "read/write"
+  app -> cache
+  app -> secrets "pull secrets"
+  app ~> monitor "telemetry"
+}
+
+customer -> webapp.cdn "access"

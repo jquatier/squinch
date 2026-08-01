@@ -3,33 +3,31 @@ pack aws
 
 person user "User"
 
-system pipeline "Image Processing Pipeline" {
-  description: "Serverless image analysis and metadata storage"
-  glyph: aws/lambda
+system pipeline "Image Pipeline" {
+  description: "Serverless image processing"
+  glyph: sys/workflow
 
   bucket = aws/s3 "Upload Bucket" datastore
-  processor = aws/lambda "Image Processor" {
-    description: "Analyzes images and stores metadata"
-  }
-  rekognition = aws/rekognition "Rekognition"
+  processor = aws/lambda "Image Processor"
+  vision = aws/rekognition "Rekognition"
   metadata = aws/dynamodb "Metadata Store" datastore
   notifications = aws/sns "Notification Topic"
 
-  bucket ~> processor "S3 trigger"
-  processor -> rekognition "analyze image"
-  processor -> metadata "store labels"
-  processor ~> notifications "publish result"
+  bucket ~> processor "S3 event"
+  processor -> vision "analyze image"
+  processor -> metadata "write labels"
+  processor ~> notifications "publish event"
 }
 
 user -> pipeline.bucket "upload image"
 
 view landscape {
-  title "Image Processing Pipeline"
+  title "Image Processing System"
   include *
 }
 
 view pipeline {
   layout {
-    rows [bucket] [processor rekognition] [metadata notifications]
+    rows [bucket] [processor vision] [metadata notifications]
   }
 }

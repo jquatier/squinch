@@ -1,69 +1,46 @@
-// ML Inference System
 pack aws
 
 person client "Client App"
 
-system ml_inference "ML Inference System" {
-  tags: #realtime
+system inference "ML Inference System" {
+  glyph: aws/sagemaker
+  description: "Realtime ML predictions"
 
   api = aws/api-gateway "API Gateway"
-  infer = aws/lambda "Inference Handler" {
-    description: "Queries model with features"
-  }
-  features = aws/dynamodb "Feature Store" datastore {
-    description: "Real-time feature lookup"
-  }
-  model = aws/sagemaker "ML Endpoint" {
-    description: "Hosted model inference"
-  }
+  fn = aws/lambda "Inference Handler"
+  features = aws/dynamodb "Feature Store" datastore
+  model = aws/sagemaker "Model Endpoint"
 
-  api -> infer
-  infer -> features
-  infer -> model
+  api -> fn "inference request"
+  fn -> features "fetch features"
+  fn -> model "predict"
 }
 
 system training "Model Training" {
-  tags: #batch
+  glyph: aws/batch
+  description: "Nightly model retraining"
 
-  job = aws/batch "Nightly Retrain Job" {
-    description: "Scheduled model training"
-  }
-  data = aws/s3 "Training Data" datastore {
-    description: "Historical training set"
-  }
+  job = aws/batch "Training Job"
+  data = aws/s3 "Training Data" datastore
 
-  job -> data
-  job ~> ml_inference.model "deploys new model"
+  job -> data "read training data"
+  job ~> inference.model "update model"
 }
 
-client -> ml_inference.api "inference request"
+client -> inference.api "request prediction"
 
 view landscape {
-  title "ML System Overview"
+  title "ML Inference Architecture"
   include *
-  show descriptions
-  legend auto
-}
-
-view ml_inference {
-  title "Real-time Inference Path"
-  show descriptions
-  legend auto
-
   layout {
-    rows [api] [infer] [features model]
-    place model right-of features
+    rows [client] [training] [inference]
   }
 }
 
-view training {
-  title "Batch Training Pipeline"
-  scope training
-  detail ml_inference.model
-  show descriptions
-  legend auto
-
+view inference {
+  scope inference
   layout {
-    rows [job] [data]
+    rows [api] [fn] [features model]
+    place model right-of features
   }
 }

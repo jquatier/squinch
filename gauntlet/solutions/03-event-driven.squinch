@@ -1,32 +1,25 @@
 pack aws
 
-// Event-driven order processing system
-bus = aws/eventbridge "EventBridge"
+// Event source
+producer = box "Order Service"
 
-// Email notification path
-email_handler = aws/lambda "Email Notifier"
-notifications = aws/sns "SNS Topic"
+// Event bus
+bus = aws/eventbridge "Event Bus"
 
-// Analytics path
-analytics_handler = aws/lambda "Analytics Writer"
-datalake = aws/s3 "S3 Data Lake" datastore
+// Consumers
+email_fn = aws/lambda "Email Notifier"
+email_sns = aws/sns "Email Topic"
 
-// Error handling
+analytics_fn = aws/lambda "Analytics Writer"
+lake = aws/s3 "Data Lake" datastore
+
+// Dead-letter queue
 dlq = aws/sqs "Dead Letter Queue"
 
-// Async flows
-bus ~> email_handler "order events"
-email_handler ~> notifications
-
-bus ~> analytics_handler "order events"
-analytics_handler ~> datalake
-
+// Event flow
+producer ~> bus "order events"
+bus ~> email_fn
+email_fn ~> email_sns
+bus ~> analytics_fn
+analytics_fn ~> lake
 bus ~> dlq "failed events"
-
-view landscape {
-  title "Event-Driven Order Processing"
-  include *
-  layout {
-    rows [bus] [email_handler analytics_handler] [notifications datalake dlq]
-  }
-}

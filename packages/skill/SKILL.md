@@ -23,8 +23,13 @@ squinch icons search <term>                   # find icon ids, e.g. "queue", "ka
 squinch diff --format json                    # what changed in the architecture
 ```
 
-1. Write the model first, with no `layout` block. Render it.
-2. Only if the picture needs it, add hints (`rows`, `place`, `route`) one at a time.
+1. Write the model first, with **no `layout` block at all**. Render it and look.
+2. Most diagrams need no `layout` block ever. Your edges already say what the
+   tiers are, and the engine ranks from them: a node sits below everything that
+   points at it. Writing `rows` that lists every node just restates that — and
+   the moment one edge disagrees with your band order it is a hard error, not a
+   nudge. Add hints only to fix something you can see is wrong in the render,
+   one at a time, naming only the nodes you actually care about.
 3. `check` after every edit. Diagnostics tell you the location, the problem, and
    usually the fix (`did you mean ...?`). Trust them.
 4. Exit code 0 and **no diagnostics at all** = clean. Errors block the render;
@@ -229,6 +234,8 @@ view shop {
 
 - `rows` is the workhorse: one bracket group per horizontal band, listed top to
   bottom; order inside a bracket is left to right. Unlisted nodes place themselves.
+- **Check each band against your arrows before you write them.** The bands are
+  a claim about direction, and the engine enforces it.
 - **Every edge must point down your bands.** `rows` declares the flow direction,
   so a node pointing back *up* it is a check error, not a nudge. This bites on
   monitoring, observability, feedback and retry paths — `mon -> api` under

@@ -55,26 +55,32 @@ nothing.
 
 ## Latest round
 
-**Round 7 — 20/20, and 18 of 20 clean on the first `check`** (2026-08-01), from
-16 in round 6 and 7 in round 4. Zero outside-sandbox reads. The three round-6
-engine fixes — a zone id in `rows`, kind and attr block in either order, and
-`= person "Name"` — cost nothing and were exercised without comment.
+**Round 8 — 20/20, 17 of 20 clean on the first `check`** (2026-08-01). Round 7
+scored 18; these runs are not deterministic and one prompt either way is noise.
+The mix is the signal, and all three failures were inside a `layout` block:
 
-Two prompts failed a first check.
+- 2× an edge running up the declared bands (`indexer -> index`,
+  `training -> inference`)
+- 1× a `place` contradicting its own row (`rows … [cache db]` with
+  `place cache right-of db`)
 
-1. **A `layout` block at the top of the file** belongs to no view, and the
-   parser derailed on it: three bare `syntax error near` lines, none of which
-   named the problem or a fix. There was already a detector for the same
-   mistake one level in (`layout` inside a `system`), and this is now its
-   sibling — one diagnostic that names the cause, suggests the view to move it
-   into when the file declares one, and drops the syntax-error cascade it
-   explains.
-2. **An observer pointing back up the bands**, `monitor -> app` under
-   `rows … [app] [monitor]`. Not a new defect: the agent read the error, and
-   fixed it with the same-band remedy SKILL.md recommends (`[app monitor]`) in
-   one step. Worth watching rather than acting on — the guidance is right, it
-   just gets applied after the first render rather than before.
+**`runs upward` has now led the remaining failures for four rounds**, and two
+rounds of documentation have not moved it. So this round questioned the rule
+instead. It holds: with the declared bands *and* the opposing edge, the layout
+honours neither — ELK breaks the cycle, the banded node lands in the wrong
+place anyway, and the edge takes a six-point detour. Downgrading the error to a
+warning would silently drop a hint and draw an ugly route, so refusing is
+right.
 
-Round 6's actor-coverage checklist item worked: `15-logos-stack` failed review
-last round for drawing every technology in its prompt and dropping
-"Developers", and this round it has the person.
+The real finding is one level up. Feeding round 8's `09-ml-inference` model
+through the engine **with no `layout` block at all** gives a clean, correct
+layout — sources on top, sinks below, zero diagnostics — while the `rows` the
+agent wrote produced an error *and* a worse arrangement. Every failure this
+round came from a `layout` block that was written reflexively, before anything
+was rendered, enumerating every node in the diagram.
+
+SKILL.md's loop already said "model first, no layout block"; it was too quiet
+to compete with the urge to lay out tiers by hand. It now says why — your edges
+already encode the tiers and the engine ranks from them — and that listing
+every node in `rows` only restates that, at the cost of a hard error the moment
+one edge disagrees.

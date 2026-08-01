@@ -1,36 +1,53 @@
+// Lambda-based API with API Gateway, handlers, and storage tiers
 pack aws
 
-system api "API Service" {
-  description: "Lambda-based API with search"
+system api "Order API" {
+  description: "Lambda-based order processing API"
 
+  // Entry point
   gw = aws/api-gateway "API Gateway"
 
-  create = aws/lambda "Create Handler"
-  get = aws/lambda "Get Handler"
-  search = aws/lambda "Search Handler"
+  // Lambda handlers
+  create = aws/lambda "Create Handler" {
+    description: "Creates new orders"
+  }
+  get    = aws/lambda "Get Handler" {
+    description: "Retrieves orders"
+  }
+  search = aws/lambda "Search Handler" {
+    description: "Searches orders"
+  }
 
-  db = aws/dynamodb "DynamoDB" datastore
-  files = aws/s3 "S3" datastore
+  // Storage layer
+  db     = aws/dynamodb  "Orders Table" datastore
+  files  = aws/s3        "Order Files" datastore
+  index  = aws/opensearch "Search Index" datastore
 
-  sync = aws/lambda "Stream Processor"
-  idx = aws/opensearch "OpenSearch" datastore
+  // Async indexer
+  indexer = aws/lambda "Indexer" {
+    description: "Syncs DynamoDB to OpenSearch"
+  }
 
+  // API Gateway to handlers (sync)
   gw -> create
   gw -> get
   gw -> search
 
+  // Handlers to storage (sync)
   create -> db
   create -> files
   get -> db
-  search -> idx
+  search -> index
 
-  db ~> sync "DynamoDB stream"
-  sync -> idx
+  // DynamoDB stream to indexer (async)
+  db ~> indexer "DynamoDB stream"
+
+  // Indexer to OpenSearch (sync)
+  indexer -> index
 }
 
 view api {
   layout {
-    rows [gw] [create get search] [db files idx]
-    place sync right-of db
+    rows [gw] [create get search] [db files indexer index]
   }
 }

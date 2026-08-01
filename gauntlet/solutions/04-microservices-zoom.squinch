@@ -5,7 +5,7 @@ gw = aws/api-gateway "API Gateway"
 
 // Catalog Service
 system catalog "Catalog Service" {
-  description: "Product listings and search"
+  description: "Product search and browsing"
   glyph: sys/database
 
   api = aws/lambda "Catalog API"
@@ -16,8 +16,8 @@ system catalog "Catalog Service" {
 
 // Checkout Service
 system checkout "Checkout Service" {
-  description: "Cart and order processing"
-  glyph: sys/workflow
+  description: "Shopping cart and order processing"
+  glyph: sys/code
 
   api = aws/lambda "Checkout API"
   db = aws/dynamodb "Orders DB" datastore
@@ -36,7 +36,7 @@ system identity "Identity Service" {
   api -> db
 }
 
-// Gateway connections to services
+// Gateway routes to all services
 gw -> catalog.api
 gw -> checkout.api
 gw -> identity.api
@@ -47,8 +47,8 @@ view landscape {
   include *
 }
 
-// Zoomed view of checkout service
+// Checkout service zoomed view
 view checkout {
   scope checkout
-  show descriptions
+  title "Checkout Service Detail"
 }
