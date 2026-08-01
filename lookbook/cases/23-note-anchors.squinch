@@ -1,7 +1,8 @@
-// Every note anchor the grammar accepts, in one picture. Six of the eight had
-// never been rendered anywhere in the repo — `right-of` and `top-right` were
-// used, the rest were dead. A note is a sticky chip with a leader line to its
-// anchor (DESIGN §5); the corners pin to the frame instead and have no leader.
+// Every note anchor the grammar accepts, in one picture. A note is a sticky
+// chip with a leader line to its anchor (DESIGN §5); the four corner forms pin
+// to the frame instead and have no leader. The relative anchors are the ones to
+// watch — a note beside a node at the edge of the diagram has to grow the canvas
+// to stay visible.
 pack aws
 
 system svc "Payments" {

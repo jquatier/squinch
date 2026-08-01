@@ -2,7 +2,7 @@
 //
 // Sides are fed to ELK, and ELK only routes edges that SPAN rows. A same-rank
 // edge bypasses it for our own coplanar router, which picks its own sides, so a
-// `from`/`to` there is ignored and now warns. Everything below crosses rows, so
+// `from`/`to` there is ignored, and says so. Everything below crosses rows, so
 // every hint bites.
 //
 // Also the parallel-edge disambiguator: two edges between the same pair are

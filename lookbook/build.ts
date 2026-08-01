@@ -23,7 +23,48 @@ const SKETCH_CASES = new Set(["01-minimal", "06-dense-mesh", "08-landscape", "10
 const CONTRAST_CASES = new Set(["06-dense-mesh", "17-zones"]);
 const cases = readdirSync(join(here, "cases")).filter((f) => f.endsWith(".squinch")).sort();
 
-interface Cell { caseName: string; view: string; files: Record<string, string> }
+interface Cell {
+  caseName: string; view: string;
+  files: Record<string, string>;
+  description: string;
+}
+
+/**
+ * The case's own leading comment, as its description. Kept in the `.squinch`
+ * file rather than a table here so the two cannot drift: whoever changes what a
+ * case demonstrates is already editing the line that says so.
+ */
+function describe(src: string): string {
+  const raw: string[] = [];
+  for (const line of src.split("\n")) {
+    if (!line.startsWith("//")) break;
+    raw.push(line.replace(/^\/\/ ?/, "").replace(/\s+$/, ""));
+  }
+  // Rebuild the structure rather than flattening it: a blank comment line is a
+  // paragraph break and a `-` starts a list item that its indented continuation
+  // lines belong to. Joining everything with spaces turned a bullet list into
+  // one unreadable run-on. Within a paragraph the source's 80-column wrapping is
+  // dropped, since Markdown does its own.
+  const out: string[] = [];
+  let para: string[] = [];
+  let inList = false;
+  const flush = () => { if (para.length) out.push(para.join(" ")); para = []; };
+  for (const line of raw) {
+    const t = line.trim().replace(/\s{2,}/g, " ");
+    if (!t) { flush(); inList = false; continue; }
+    if (/^[-*]\s/.test(t)) { flush(); out.push(t); inList = true; continue; }
+    if (inList) { out[out.length - 1] += ` ${t}`; continue; }
+    para.push(t);
+  }
+  flush();
+  // Consecutive list items join tightly; everything else gets a blank line.
+  return out.reduce(
+    (acc, block, i) =>
+      i === 0 ? block
+      : acc + (/^[-*]\s/.test(block) && /^[-*]\s/.test(out[i - 1]) ? "\n" : "\n\n") + block,
+    "",
+  );
+}
 const cells: Cell[] = [];
 let failed = false;
 
@@ -45,7 +86,7 @@ for (const file of cases) {
     ...(CONTRAST_CASES.has(caseName) ? ["contrast"] : []),
   ];
   for (const view of views) {
-    const cell: Cell = { caseName, view, files: {} };
+    const cell: Cell = { caseName, view, files: {}, description: describe(src) };
     for (const theme of caseThemes) {
       const r = await renderProject([{ name: file, src }], { view, theme });
       if (!r.ok) {
@@ -76,11 +117,22 @@ const md: string[] = [
   "committing a visual change. What looks bad here becomes the next fix.",
   "",
 ];
-for (const c of cells) {
-  md.push(`## ${c.caseName} — \`${c.view}\``, "");
-  const themes = Object.keys(c.files);
-  md.push(`| ${themes.join(" | ")} |`, `|${themes.map(() => "---").join("|")}|`);
-  md.push(`| ${themes.map((th) => `![](out/${c.files[th]})`).join(" | ")} |`, "");
+// grouped by case, so a case that declares three views states what it is once
+// rather than three times
+for (let i = 0; i < cells.length; ) {
+  const caseName = cells[i].caseName;
+  const group = cells.filter((c) => c.caseName === caseName);
+  i += group.length;
+
+  md.push(`## ${caseName}`, "");
+  if (group[0].description) md.push(group[0].description, "");
+  md.push(`Source: [\`cases/${caseName}.squinch\`](cases/${caseName}.squinch)`, "");
+  for (const c of group) {
+    if (group.length > 1) md.push(`**\`${c.view}\`**`, "");
+    const themes = Object.keys(c.files);
+    md.push(`| ${themes.join(" | ")} |`, `|${themes.map(() => "---").join("|")}|`);
+    md.push(`| ${themes.map((th) => `![](out/${c.files[th]})`).join(" | ")} |`, "");
+  }
 }
 writeFileSync(join(here, "README.md"), md.join("\n"));
 console.log(`lookbook: ${cells.length} views across ${cases.length} cases → lookbook/out/`);

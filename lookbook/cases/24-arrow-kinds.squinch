@@ -1,8 +1,8 @@
-// The four arrow kinds side by side. Two of them — `<->` and `--` — used to
-// render as a plain one-way arrow: the view graph reduced every arrow to
-// `async: boolean`, so bidirectional and undirected fell through the gap while
-// SKILL.md documented both. A diagram could state something the picture then
-// contradicted, which is the worst kind of wrong for a drawing.
+// The four arrow kinds side by side: one head, two heads, an open chevron for
+// async, and none at all. The arrowhead is the only thing carrying the
+// distinction, so if any two of these ever draw alike the diagram is asserting
+// something about the architecture that is not true — the worst kind of wrong
+// for a drawing.
 pack aws
 
 system mesh "Service Mesh" {

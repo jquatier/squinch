@@ -1,8 +1,7 @@
-// One model, three routings. `curved` and `straight` parse in the model builder
-// and branch in the renderer, and until now had never been executed by any
-// test, example or lookbook case — two of the three arms of a documented option,
-// dead as far as the repo could prove. Same graph three times so the difference
-// is the only thing on screen.
+// One model, three routings. The same graph three times, so the `lines` setting
+// is the only thing changing on screen: `orthogonal` turns square corners,
+// `curved` rounds them wide, `straight` runs point to point and ignores the
+// grid entirely.
 pack aws
 
 system fanout "Ingest" {

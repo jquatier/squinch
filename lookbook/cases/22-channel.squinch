@@ -1,3 +1,6 @@
+// Three handlers writing to one table. Declared as three edges — the model is
+// unchanged — but drawn as a single trunk, so the store is approached once
+// instead of being crowded by a fan of near-parallel lines.
 pack aws
 system s "Orders" {
   api    = aws/api-gateway "API"

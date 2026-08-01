@@ -1,5 +1,7 @@
 // Annotation layer: tag highlight dims the rest; notes anchor to nodes,
-// edges and corners without colliding with anything.
+// edges and corners without colliding with anything. `settle -> ledger` carries
+// its own tag rather than inheriting one, so the wire lights up between two
+// nodes that stay dimmed — the case for tagging an edge at all.
 pack aws
 
 system pay "Payments" {
@@ -14,7 +16,7 @@ system pay "Payments" {
   token -> vault "store"
   api ~> queue "capture events"
   queue ~> settle "drain"
-  settle -> ledger "post"
+  settle -> ledger "post" { tags: #pci }
 }
 
 view pci {
