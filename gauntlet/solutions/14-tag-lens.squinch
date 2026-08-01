@@ -3,29 +3,29 @@ pack aws
 
 system payments "Payments Platform" {
   description: "Payment processing and analytics"
-  glyph: sys/lock
+  tags: #core
 
   api = aws/lambda "API Handler" {
-    description: "Entry point for payments"
+    description: "Payment request handler"
     tags: #pci
   }
 
   tokenizer = aws/lambda "Tokenizer" {
-    description: "Tokenizes card data"
+    description: "Card tokenization"
     tags: #pci
   }
 
   vault = aws/dynamodb "Card Vault" datastore {
-    description: "Encrypted card storage"
+    description: "Secure card storage"
     tags: #pci
   }
 
   analytics = aws/lambda "Analytics" {
-    description: "Transaction analytics"
+    description: "Payment analytics"
   }
 
   warehouse = aws/redshift "Data Warehouse" datastore {
-    description: "Analytics storage"
+    description: "Analytics warehouse"
   }
 
   api -> tokenizer
@@ -35,18 +35,14 @@ system payments "Payments Platform" {
 }
 
 view full {
-  title "Full Platform View"
+  title "Full Payment Platform"
   scope payments
-  layout {
-    rows [api] [tokenizer analytics] [vault warehouse]
-  }
+  show descriptions
 }
 
 view auditor {
   title "PCI Scope - Auditor View"
   scope payments
   only #pci
-  layout {
-    rows [api] [tokenizer] [vault]
-  }
+  show descriptions
 }

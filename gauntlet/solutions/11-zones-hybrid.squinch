@@ -1,35 +1,26 @@
 pack aws
 
-// On-premises components
-person ops "Operators"
-erp = box "Legacy ERP" datastore {
-  description: "Oracle-style system"
+person operators "Operators"
+
+erp = box "Legacy ERP" external {
+  description: "Oracle-style ERP"
 }
 
-// AWS cloud components
-ingest = aws/lambda "Ingestion Lambda"
-db = aws/aurora "Aurora DB" datastore
+ingestion = aws/lambda "Ingestion Lambda"
+db = aws/aurora "Aurora Database" datastore
 
-// Connections
-ops -> erp
-erp -> ingest "feeds data"
-ingest -> db "writes"
+operators -> erp "uses"
+erp -> ingestion "feeds data"
+ingestion -> db "writes"
 
-// Deployment boundaries
-zone onprem "On-Premises Data Centre" onprem {
-  contains ops, erp
+zone onprem "On-Premises Data Center" onprem {
+  contains operators, erp
 }
 
-zone aws_cloud "AWS Cloud" cloud {
-  contains ingest, db
+zone cloud "AWS Cloud" cloud {
+  contains ingestion, db
 }
 
-zone db_vpc "Database VPC" vpc {
+zone vpc "Database VPC" vpc {
   contains db
-}
-
-// Default view showing the hybrid architecture
-view landscape {
-  title "Hybrid Architecture"
-  include *
 }

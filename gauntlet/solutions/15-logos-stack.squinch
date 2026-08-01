@@ -1,59 +1,38 @@
-// Technology stack architecture
+// Modern application stack using product logos
 pack logos
 
-// Development & Deployment
-person devs "Developers"
-gh = logos/github "GitHub"
-k8s = logos/kubernetes "Kubernetes Cluster" {
-  description: "Container orchestration"
-}
+person dev "Developer"
 
-// Application Layer
-frontend = logos/nextjs "Next.js Frontend" {
-  description: "React SSR application"
-}
-backend = logos/nestjs "NestJS API" {
-  description: "Node.js backend service"
-}
+frontend = logos/nextdotjs "Next.js Frontend"
+api = logos/nestjs "NestJS API"
+db = logos/postgresql "PostgreSQL" datastore
+cache = logos/redis "Redis" datastore
+events = logos/kafka "Kafka"
+monitoring = logos/grafana "Grafana"
+vcs = logos/github "GitHub"
+platform = logos/kubernetes "Kubernetes"
 
-// Data Layer
-db = logos/postgresql "PostgreSQL" datastore {
-  description: "Primary database"
-}
-cache = logos/redis "Redis" datastore {
-  description: "Caching layer"
-}
+// Developer workflow
+dev -> vcs "pushes code"
+vcs -> platform "deploys to"
 
-// Messaging & Observability
-events = logos/kafka "Kafka" {
-  description: "Event streaming"
-}
-monitoring = logos/grafana "Grafana" {
-  description: "Observability platform"
-}
+// Application architecture
+frontend -> api "API requests"
+api -> db "queries"
+api -> cache "caches"
+api ~> events "publishes events"
+monitoring -> api "monitors"
+monitoring -> db "monitors"
+monitoring -> cache "monitors"
 
-// Connections
-devs -> gh "push code"
-gh -> k8s "deploy"
-k8s -> frontend
-k8s -> backend
-
-frontend -> backend "API calls"
-backend -> db "queries"
-backend -> cache "read/write"
-backend ~> events "publish events"
-
-frontend -> monitoring "metrics"
-backend -> monitoring "metrics"
-db -> monitoring "metrics"
-cache -> monitoring "metrics"
-events -> monitoring "metrics"
+// Deployment
+platform -> frontend "runs"
+platform -> api "runs"
 
 view stack {
-  title "Technology Stack"
-  include *
+  title "Application Stack"
   layout {
     direction down
-    rows [devs] [gh] [k8s] [frontend] [backend] [db cache events] [monitoring]
+    rows [dev] [vcs] [monitoring] [platform] [frontend] [api] [db cache events]
   }
 }

@@ -1,3 +1,4 @@
+// Azure web application architecture
 pack azure
 
 person customer "Customer"
@@ -6,18 +7,15 @@ frontdoor = azure/front-door "Front Door"
 app = azure/app-services "App Service" {
   description: "Web tier"
 }
-sql = azure/sql "SQL Database" datastore
+sql = azure/sql "Azure SQL" datastore
 cache = azure/redis "Redis Cache" datastore
 vault = azure/key-vault "Key Vault"
 insights = azure/application-insights "Application Insights"
 
-customer -> frontdoor "HTTPS"
+// Connections
+customer -> frontdoor "accesses"
 frontdoor -> app
 app -> sql "read/write"
-app -> cache "cache lookup"
+app -> cache "cache operations"
 app -> vault "fetch secrets"
 app ~> insights "telemetry"
-
-view default {
-  include *
-}

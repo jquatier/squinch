@@ -1,13 +1,13 @@
 pack aws
 
-person admin "Administrator"
+person admin "Administrators"
 
 erp = sys/server "Legacy ERP" external {
   description: "On-premises system"
 }
 
-worker = aws/lambda "Sync Worker" {
-  description: "Processes ERP data"
+sync_worker = aws/lambda "Sync Worker" {
+  description: "Data sync handler"
 }
 
 db = aws/rds "Database" datastore
@@ -16,11 +16,7 @@ dashboard = sys/app-window "Admin Dashboard" {
   description: "Web application"
 }
 
-erp ~> worker
-worker -> db
-admin -> dashboard
-dashboard -> db
-
-view default {
-  include *
-}
+erp ~> sync_worker "data feed"
+sync_worker -> db
+db -> dashboard
+admin -> dashboard "uses"

@@ -1,27 +1,15 @@
 pack aws
 
-// actors
 person analysts "Analysts"
 
-// data pipeline components
-stream = aws/kinesis "Clickstream"
-transform = aws/lambda "Transformer"
-lake = aws/s3 "Data Lake" datastore
-catalog = aws/glue "Glue Catalog"
-query = aws/athena "Athena"
+stream     = aws/kinesis      "Clickstream"
+transform  = aws/lambda       "Transformer"
+lake       = aws/s3           "Data Lake" datastore
+catalog    = aws/glue         "Glue Catalog"
+query      = aws/athena       "Athena"
 
-// data flow
 stream ~> transform
 transform ~> lake
 lake -> catalog
-catalog -> query
 analysts -> query "run queries"
-
-// view
-view pipeline {
-  title "Data Pipeline"
-  include *
-  layout {
-    rows [stream] [transform] [lake catalog] [query analysts]
-  }
-}
+query -> lake "read"

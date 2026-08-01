@@ -128,17 +128,42 @@ describe("SKILL.md — diagnostic coverage", () => {
     for (const f of files) {
       const src = readFileSync(f, "utf8");
       for (const m of src.matchAll(/(?:message:\s*|(?:error|warn)\([^,]+,\s*[^,]+,\s*)`/g)) {
+        // Every literal run in the template, not just the one before the first
+        // `${}`. Taking only the prefix skipped every message that *opens* with
+        // an interpolation — `` `${x} runs upward — row …` `` — which is 23 of
+        // 41 of them, so the check covered three quarters of what it claimed.
+        // `runs upward` was in the blind spot, and is what a round-5 agent hit.
+        const parts: string[] = [];
         let lit = "";
         for (let i = m.index! + m[0].length; i < src.length; i++) {
           const c = src[i];
           if (c === "\\") { lit += src[i + 1] === "`" ? "`" : ""; i++; continue; }
-          if (c === "`" || (c === "$" && src[i + 1] === "{")) break;
+          if (c === "$" && src[i + 1] === "{") {
+            parts.push(lit); lit = "";
+            // skip the expression, counting braces so `${a ? `${b}` : c}` closes
+            let depth = 1;
+            i++;
+            while (depth && ++i < src.length) {
+              if (src[i] === "{") depth++;
+              else if (src[i] === "}") depth--;
+            }
+            continue;
+          }
+          if (c === "`") { parts.push(lit); break; }
           lit += c;
         }
-        // strip the punctuation that runs into the first interpolation, so this
-        // matches the cookbook's `"hint conflict … runs upward"` elision style
-        lit = lit.trim().replace(/[\s:`—-]+$/, "");
-        if (lit.length >= 4) out.add(lit);
+        // strip the punctuation that abuts an interpolation, so this matches the
+        // cookbook's `"hint conflict … runs upward"` elision style
+        const clean = (s: string) => s.trim().replace(/^[\s:`—-]+|[\s:`—-]+$/g, "");
+        // the longest run identifies the message; the prefix stays keyed too,
+        // since that is what the existing cookbook rows are written against
+        const runs = parts.map(clean).filter((s) => s.length >= 4);
+        if (!runs.length) continue;
+        // the prefix, because that is what the existing cookbook rows are
+        // written against, and the longest run, because that is what identifies
+        // a message which opens with an interpolation
+        out.add(runs[0]);
+        out.add(runs.reduce((a, b) => (b.length > a.length ? b : a)));
       }
     }
     return [...out].sort();
@@ -152,6 +177,16 @@ describe("SKILL.md — diagnostic coverage", () => {
     "unknown density", "unknown lines style", "duplicate id", "duplicate flow",
     "duplicate zone", "duplicate edge", "syntax error near", "ambiguous flow step",
     "contradictory place hints", "flow", "theme", "zone", "zones", "exclude #",
+    // Newly visible once the extractor stopped reading only the prefix. Each
+    // carries a fix that names the exact substitution — the members to copy,
+    // the themes that pair, the `detail` to write — so a cookbook row would
+    // only restate it. The ones that needed a technique got one instead.
+    "has no members", "has no steps", "listed twice in zone",
+    "theme roles only, never hex", "is a zone, not a node",
+    "has no dark counterpart to pair with", "has no visible members in view",
+    "is included, but", "is already here as a context card", "edges match `route",
+    "nothing is tagged #", "it sits inside an expanded container",
+    "'s axis would collide with", "'s axis would take it outside zone",
   ]);
 
   it("every diagnostic that needs a technique is in the cookbook", () => {

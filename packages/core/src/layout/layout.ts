@@ -650,6 +650,38 @@ export async function layoutView(
   const lowSide: Side = flowsRight ? "north" : "west";
   const highSide: Side = flowsRight ? "south" : "east";
 
+  // DESIGN §4: edges on one side spread at even offsets, never stacked at a
+  // point. ELK spreads the ports it owns, but it never sees a coplanar edge —
+  // that route is ours and is added after ELK has finished — so a node with one
+  // of each kind gets two ports on the same side at the same coordinate. A cold
+  // agent hit it the first time one appeared: `email_handler ~> sns` crosses a
+  // rank (ELK's) and `email_handler ~> dlq` stays in it (ours), and both left
+  // the south face at the node's centre.
+  //
+  // Keep the natural centre when it is free and step along the side only when
+  // it is not, so every diagram without a collision is byte-identical. Which
+  // axis a side runs along is geometry, not direction: north/south run in x,
+  // east/west in y, whichever way the diagram flows.
+  const SIDE_AXIS = { north: "x", south: "x", east: "y", west: "y" } as const;
+  const AXIS_SIZE = { x: "w", y: "h" } as const;
+  const freePort = (n: PNode, side: Side, want: number): number => {
+    const ax = SIDE_AXIS[side];
+    const taken = ports.filter((p) => p.node === n.path && p.side === side).map((p) => p[ax]);
+    const clear = (c: number) => taken.every((t) => Math.abs(t - c) >= 16);
+    if (clear(want)) return want;
+    // 8 of margin keeps the stub off the node's own rounded corner
+    const [lo, hi] = [n[ax] + 8, n[ax] + n[AXIS_SIZE[ax]] - 8];
+    for (let step = 16; step <= n[AXIS_SIZE[ax]]; step += 16)
+      for (const c of [want + step, want - step])
+        if (c >= lo && c <= hi && clear(c)) return c;
+    return want; // a face with nowhere left to go: draw it rather than not
+  };
+  // Only the go-around branch uses this. The straight branch puts both ends at
+  // the same cross-coordinate *because* the line is straight, so moving one end
+  // would have to move the other and could not always — and two straight
+  // coplanar edges cannot collide anyway: a second target on the same side is
+  // either blocked by the first or overlapping it.
+
   const laneOf = new Map<string, number>();
   const lanesByRank = new Map<number, { lo: number; hi: number }[][]>();
   for (const e of coplanar) {
@@ -697,8 +729,8 @@ export async function layoutView(
     }
     const bandEdge = Math.max(...nodes.filter((n) => n.rank === a.rank).map((n) => n[cross] + n[crossSize]));
     const lane = bandEdge + 24 + (laneOf.get(e.id) ?? 0) * 16;
-    const aA = a[along] + Math.round(a[alongSize] / 2);
-    const bA = b[along] + Math.round(b[alongSize] / 2);
+    const aA = freePort(a, bandSide, a[along] + Math.round(a[alongSize] / 2));
+    const bA = freePort(b, bandSide, b[along] + Math.round(b[alongSize] / 2));
     const pts = [
       pt(aA, a[cross] + a[crossSize]), pt(aA, lane),
       pt(bA, lane), pt(bA, b[cross] + b[crossSize]),

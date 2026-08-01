@@ -1,37 +1,26 @@
 pack azure
 
-// Application Gateway sits in front
-appgw = azure/app-gateway "Application Gateway"
-
-// AKS cluster in the private subnet
+// Azure components
+gw  = azure/app-gateway "Application Gateway"
 aks = azure/aks "AKS Cluster"
-
-// Container Registry pulls images to AKS
 acr = azure/acr "Container Registry"
-
-// Azure SQL in the vnet but outside subnet
 sql = azure/sql "Azure SQL"
 
 // Connections
-appgw -> aks
+gw -> aks
 aks -> acr "pulls images"
 aks -> sql
 
-// Private subnet contains AKS and ACR
-zone private_subnet "Private Subnet" subnet {
-  contains aks, acr
+// Deployment boundaries
+zone subscription "Azure Subscription" account {
+  contains gw, aks, acr, sql
 }
 
-// Virtual network contains the subnet components and SQL
 zone vnet "Virtual Network" network {
   contains aks, acr, sql
 }
 
-// Subscription contains everything
-zone subscription "Azure Subscription" account {
-  contains aks, acr, sql, appgw
-}
-
-view default {
-  include *
+zone subnet "Private Subnet" subnet {
+  contains aks, acr
+  color: cloud
 }

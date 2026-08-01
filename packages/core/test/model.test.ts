@@ -63,35 +63,61 @@ describe("grammar + model builder", () => {
     expect(r.diagnostics[0].message).toContain("twice");
   });
 
-  describe("a node takes its position from one source", () => {
-    // The guard used to list only `right-of`/`left-of`, so `above`/`below` —
-    // the directions that collide with `rows` on the axis `rows` actually pins
-    // — passed with exit 0 and one hint silently dropped. A cold gauntlet agent
-    // wrote exactly this shape ("lay it out in tiers", plus the side-car idiom).
-    const src = (rank: string, relpos: string) =>
+  describe("`place` against a band: a second opinion is only a conflict when it disagrees", () => {
+    // This guard has been wrong twice, in opposite directions, and both were
+    // found by cold agents. It first listed only `right-of`/`left-of`, so
+    // `above`/`below` — the directions that collide with `rows` on the axis
+    // `rows` actually pins — passed with one hint silently dropped. Widening it
+    // to "in a band at all" then rejected `rows [db bus]` + `place bus right-of
+    // db`, which say the same thing: four of twenty round-5 agents wrote that
+    // and were refused, at an unchanged rate across two rounds of doc fixes.
+    const src = (rank: string, place: string) =>
       `system s "S" {\n a = aws/lambda "A"\n b = aws/lambda "B"\n c = aws/lambda "C"\n}\n` +
-      `view s {\n layout {\n  ${rank}\n  place c ${relpos} b\n }\n}`;
+      `view s {\n layout {\n  ${rank}\n  place ${place}\n }\n}`;
+    const err = (r: ReturnType<typeof buildModel>) =>
+      r.diagnostics.find((d) => d.severity === "error");
 
-    for (const relpos of ["right-of", "left-of", "above", "below"])
-      it(`catches \`place … ${relpos}\` on a node already in rows`, () => {
-        const r = buildModel(src("rows [a] [b c]", relpos));
-        expect(r.ok).toBe(false);
-        const d = r.diagnostics.find((x) => x.message.includes("but also listed in"));
-        expect(d?.message).toContain("`rows`");
-        expect(d?.fix).toContain("remove it from rows");
-      });
+    describe("accepts a `place` that restates the band", () => {
+      const ok = (rank: string, place: string) => {
+        const r = buildModel(src(rank, place));
+        expect(err(r)?.message ?? "", `${rank} + place ${place}`).toBe("");
+        expect(r.ok).toBe(true);
+      };
+      // rows: bands top to bottom, members left to right
+      it("`right-of`, where the row already reads left to right", () => ok("rows [a] [b c]", "c right-of b"));
+      it("`left-of`, the same statement from the other end", () => ok("rows [a] [b c]", "b left-of c"));
+      it("`above`, where the node's band is already the one above", () => ok("rows [a] [b c]", "a above b"));
+      it("`below`, likewise", () => ok("rows [a] [b] [c]", "c below b"));
+      // cols is the transpose: bands left to right, members top to bottom
+      it("`below` in `cols`, where the column already reads downward", () => ok("cols [a] [b c]", "c below b"));
+      it("`right-of` in `cols`, meaning the next column along", () => ok("cols [a] [b] [c]", "c right-of b"));
+    });
 
-    it("catches it for `cols` too — same conflict, other axis", () => {
-      const r = buildModel(src("cols [a] [b c]", "right-of"));
-      expect(r.ok).toBe(false);
-      expect(
-        r.diagnostics.find((x) => x.message.includes("but also listed in"))?.message,
-      ).toContain("`cols`");
+    describe("still refuses one that contradicts the band", () => {
+      const rejects = (rank: string, place: string, wants: string) => {
+        const r = buildModel(src(rank, place));
+        expect(r.ok, `${rank} + place ${place}`).toBe(false);
+        expect(err(r)?.message).toContain(wants);
+      };
+      it("reversed within a row", () => rejects("rows [a] [b c]", "b right-of c", "somewhere else"));
+      it("reversed within a column", () => rejects("cols [a] [b c]", "b below c", "somewhere else"));
+      it("naming a band that isn't adjacent", () => rejects("rows [a] [b] [c]", "c above a", "somewhere else"));
+      it("beside a node the row puts two along", () =>
+        rejects("rows [a b c]", "c right-of a", "somewhere else"));
+      it("relative to a target no band mentions", () =>
+        rejects("rows [a] [c]", "c right-of b", "which is not"));
+    });
+
+    it("says which of the two to change, either way", () => {
+      const wrongWay = err(buildModel(src("rows [a] [b c]", "b right-of c")));
+      expect(wrongWay?.fix).toContain("make them agree");
+      const unbanded = err(buildModel(src("rows [a] [c]", "c right-of b")));
+      expect(unbanded?.fix).toContain("add `s.b` to rows");
     });
 
     it("leaves the side-car idiom alone — the placed node is in no band", () => {
-      const r = buildModel(src("rows [a] [b]", "right-of"));
-      expect(r.diagnostics.some((d) => d.message.includes("but also listed in"))).toBe(false);
+      const r = buildModel(src("rows [a] [b]", "c right-of b"));
+      expect(err(r)).toBeUndefined();
     });
   });
 

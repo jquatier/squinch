@@ -1,4 +1,3 @@
-// Classic three-tier web application architecture
 pack aws
 
 person user "User"
@@ -8,22 +7,11 @@ app = aws/fargate "ECS Service" {
   description: "Fargate containers"
 }
 cache = aws/elasticache "ElastiCache" {
-  description: "Session and query cache"
-  tags: #datastore
+  description: "Redis cache"
 }
-db = aws/aurora "Aurora DB" {
-  description: "Primary data store"
-  tags: #datastore
-}
+db = aws/aurora "Aurora DB" datastore
 
-// Request flow
-user -> alb "HTTPS"
-alb -> app "HTTP"
-app -> cache "read/write"
-app -> db "queries"
-
-view default {
-  layout {
-    rows [user] [alb] [app] [cache db]
-  }
-}
+user -> alb
+alb -> app
+app -> cache
+app -> db

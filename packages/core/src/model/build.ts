@@ -272,6 +272,23 @@ export function buildProject(files: ProjectFile[]): BuildResult {
 
   // ── phase B: resolution across all files ─────────────────────────────────
   const allPaths = () => [...model.nodes.keys(), ...model.containers.keys()];
+  // id → the names it lists, read straight off the parse tree rather than from
+  // `model.zones`, which is not built until phase C: the outer boundary is
+  // normally written first, so by the time its `contains` is resolved the inner
+  // zone it names has not been seen yet, and a fix that cannot list the members
+  // to copy is barely a fix.
+  const zoneMemberNames = new Map<string, string[]>();
+  for (const { node, ctx } of rawZones) {
+    const i = node.getChild("Ident");
+    const body = node.getChild("ZoneBody");
+    if (!i) continue;
+    zoneMemberNames.set(
+      ctx.text(i),
+      (body?.getChildren("ContainsStmt") ?? []).flatMap(
+        (c) => c.getChild("PathList")?.getChildren("Path").map((p) => ctx.text(p)) ?? [],
+      ),
+    );
+  }
 
   function resolve(ref: string, scope: string, at: SyntaxNode, ctx: Ctx): string | undefined {
     const scopes: string[] = [];
@@ -284,6 +301,22 @@ export function buildProject(files: ProjectFile[]): BuildResult {
     for (const sc of scopes) {
       const candidate = sc ? `${sc}.${ref}` : ref;
       if (model.nodes.has(candidate) || model.containers.has(candidate)) return candidate;
+    }
+    // Naming a zone where a node belongs is the one wrong guess that reads as
+    // right: zones nest by *sharing members*, so the outer one repeats the
+    // inner one's leaves rather than naming it. Two of twenty round-5 agents
+    // wrote `zone account { contains gw, vnet }` with `vnet` a zone of its own,
+    // and "unknown id `vnet`" — with no suggestion, since no node is remotely
+    // like it — told them nothing about which of the two ideas was wrong.
+    // Every zone id, not just the ones declared above this point: zone order in
+    // the file is free, and the outer boundary is usually written first.
+    if (zoneMemberNames.has(ref)) {
+      const inner = zoneMemberNames.get(ref)!;
+      error(ctx, at, `\`${ref}\` is a zone, not a node`,
+        `zones nest by containing the same members — list ${
+          inner.length ? `\`${inner.join("`, `")}\`` : `\`${ref}\`'s own members`
+        } here too, rather than naming \`${ref}\``);
+      return undefined;
     }
     // suggest full paths: a bare `create` that only exists as `a.b.create`
     // must be shown with its path, or the fix reads as a no-op.
@@ -735,24 +768,57 @@ export function buildProject(files: ProjectFile[]): BuildResult {
           fix: "remove one of the two place statements",
           loc: pl.loc, file: ctx.name,
         });
-      // A node takes its position from one source. This once read
+      // A node in a band already has a position, so a `place` on it is a second
+      // opinion — but a second opinion is only a *conflict* when it disagrees.
+      //
+      // This check has been wrong twice, in opposite directions. It first read
       // `(rows && relpos === "right-of") || relpos === "left-of"`, which bound
-      // the wrong way and, worse, listed only the horizontal directions — so
-      // `place x above y` on a node already in `rows` sailed through with exit
-      // 0 and one of the two hints silently ignored. Vertical is the direction
-      // `rows` actually pins, so those were the two that mattered most.
-      const band = view.layout.rows?.flat().includes(pl.node)
-        ? "rows"
-        : view.layout.cols?.flat().includes(pl.node)
-          ? "cols"
+      // the wrong way and listed only the horizontal directions, so `place x
+      // above y` on a banded node sailed through with one hint silently
+      // ignored. Widening it to "in a band at all" then went too far the other
+      // way: four of twenty cold agents wrote `rows [db bus]` alongside `place
+      // bus right-of db` and were refused, though the two say the same thing.
+      // Restating a band's own order is how people reinforce intent, not how
+      // they contradict it, and no amount of documentation stopped them — the
+      // rate held across two rounds of skill fixes, because they were right.
+      const bands = view.layout.rows
+        ? { kind: "rows" as const, at: view.layout.rows }
+        : view.layout.cols
+          ? { kind: "cols" as const, at: view.layout.cols }
           : undefined;
-      if (band)
-        diagnostics.push({
-          severity: "error",
-          message: `\`${pl.node}\` is placed via \`place\` but also listed in \`${band}\``,
-          fix: `a node takes hints from one source; remove it from ${band} or drop the place`,
-          loc: pl.loc, file: ctx.name,
-        });
+      const where = (n: string) => {
+        const b = bands?.at.findIndex((band) => band.includes(n)) ?? -1;
+        return b < 0 ? undefined : { band: b, pos: bands!.at[b].indexOf(n) };
+      };
+      const node = where(pl.node);
+      if (bands && node) {
+        // In `rows`, bands run top to bottom and members left to right; in
+        // `cols` it is the transpose. So one axis is the band index and the
+        // other the position within it, and which is which flips with `kind`.
+        const target = where(pl.target);
+        const along = bands.kind === "rows" ? ["right-of", "left-of"] : ["below", "above"];
+        const agrees =
+          target &&
+          (along.includes(pl.relpos)
+            ? // same band, and immediately beside — `place` means adjacent
+              node.band === target.band &&
+              node.pos === target.pos + (pl.relpos === "right-of" || pl.relpos === "below" ? 1 : -1)
+            : // the perpendicular axis: the neighbouring band, on the right side
+              node.pos === target.pos &&
+              node.band ===
+                target.band + (pl.relpos === "below" || pl.relpos === "right-of" ? 1 : -1));
+        if (!agrees)
+          diagnostics.push({
+            severity: "error",
+            message: !target
+              ? `\`${pl.node}\` is listed in \`${bands.kind}\` but is placed relative to \`${pl.target}\`, which is not`
+              : `\`${pl.node}\` is placed \`${pl.relpos} ${pl.target}\`, but \`${bands.kind}\` puts it somewhere else`,
+            fix: !target
+              ? `add \`${pl.target}\` to ${bands.kind} too, or drop \`${pl.node}\` from ${bands.kind}`
+              : `${bands.kind} already positions both; make them agree, or drop \`${pl.node}\` from ${bands.kind}`,
+            loc: pl.loc, file: ctx.name,
+          });
+      }
     }
     model.views.push(view);
   }

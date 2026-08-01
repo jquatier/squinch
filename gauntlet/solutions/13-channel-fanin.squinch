@@ -7,7 +7,7 @@ system api "API Service" {
   update = aws/lambda "Update Handler"
   delete = aws/lambda "Delete Handler"
   search = aws/lambda "Search Handler"
-  db = aws/dynamodb "Data Table" datastore
+  db = aws/dynamodb "Orders Table" datastore
 
   gw -> create
   gw -> read

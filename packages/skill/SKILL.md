@@ -102,6 +102,16 @@ Rules that matter:
   (corners: top-left default, top-right, bottom-left, bottom-right), and
   `color: ink` (theme roles only — account, network, cloud, neutral, ink,
   muted, accent; never hex).
+- **Zones nest by sharing members, never by naming each other.** `contains`
+  takes nodes only, so an outer boundary repeats the inner one's members:
+
+  ```
+  zone account "Azure Subscription" account { contains gw, aks, sql }
+  zone vnet    "Virtual Network"    network { contains aks, sql }
+  ```
+
+  `aks` and `sql` are in both, so `vnet` draws inside `account`. Writing
+  `contains gw, vnet` instead is an error — a zone is not a node.
 - **A zone's `kind` already picks its colour**, so two nested zones of related
   kinds (say `network` inside `vpc`) come out nearly the same shade. Set
   `color:` on the inner one to tell them apart.
@@ -221,11 +231,13 @@ view shop {
   Members of a column share an exact axis, so a service and its database line
   up. `rows` and `cols` compose — they pin different axes, so using both gives
   you a full grid, and a cell is empty when nobody is placed in it.
-- A node goes in `rows`/`cols` **or** gets a `place` — never both, in any
-  direction. That is why `sync` is missing from the bands in the example above:
-  a placed node is positioned relative to its target, so listing it in a band as
-  well is a check-time error. Naming every node in `rows` is the natural move
-  when a request asks for tiers, and it is the one that collides with this.
+- A node may be in a band **and** carry a `place`, so long as the two agree.
+  `rows [db bus]` with `place bus right-of db` is fine — the band already reads
+  left to right, and the `place` just says so again. What is refused is a
+  `place` that puts the node somewhere the band does not: the wrong way round,
+  a band away, or beside something no band mentions. `sync` is left out of the
+  bands in the example above because it is simpler that way, not because it
+  would be an error to list it.
 - `place x right-of y` is the whole side-car idiom (stream processors, caches,
   DLQs). Do **not** add `route y ~> x from east to west` to it: `place` puts the
   two on the same row, and same-rank edges bypass the main router entirely —
@@ -239,10 +251,14 @@ view shop {
 | Layers feel arbitrary / related things scattered | Add `rows`, one group per conceptual tier (entry, handlers, storage) |
 | One node belongs beside another (stream sync, DLQ, cache) | `place X right-of Y` — that is all. The connecting edge routes itself; adding `route … from east to west` does nothing, because `place` makes them same-rank |
 | "`route x -> y` sides are ignored — it is a same-rank edge" warning | Drop the `from`/`to`. Sides only apply to edges that span rows |
-| "`x` is placed via `place` but also listed in `rows`" error | Drop `x` from the `rows` band and keep the `place` — a placed node is positioned relative to its target, so it must not be listed in a band as well |
-| "`x` appears in `rows` twice" error | A node can hold only one rank position; remove one of the two occurrences |
+| "`x` is placed `right-of y`, but `rows` puts it somewhere else" error | The two hints disagree. Restating a band is fine — `rows [db bus]` alongside `place bus right-of db` is accepted, since both say the same thing — so fix whichever one is wrong, or drop `x` from the band |
+| "`x` is listed in `rows` but is placed relative to `y`, which is not" error | Put `y` in a band too, or take `x` out of its band. A banded node can only be placed against another banded one |
+| "`x` appears in `rows` twice" error — likewise "appears in `cols` twice" | A node can hold only one rank position; remove one of the two occurrences |
+| "hint conflict: `a` → `b` runs upward — row 6 to row 4" error | Your bands contradict your arrows. `rows` runs top to bottom, so every edge must point down the list. Either move `b` to a band below `a`, or drop one of them from `rows` and let the engine rank it |
+| "zones `a` and `b` partially overlap — visible zones must nest or stay disjoint" error | Boundaries must nest or stay apart, never half-lap. The fix line lists which members are shared and which are exclusive — either give the inner zone only members the outer one also has, or move the odd one out |
+| "same-rank edge `a` → `b` crosses an expanded container or zone — layout quality may degrade" warning | The two ends were put on one row (usually by `place`) but the straight path between them runs through a boundary. Give one end its own band in `rows`, or drop the `expand` in this view |
 | Several things all write to one store, crossing each other | `channel a, b, c -> db` — they merge into one trunk |
-| "channel into `x`" warning | The trunk needs the whole picture: every member edge visible in this view, at least two of them, and the sources sitting *above* the target. Check `rows`, and that nothing is `exclude`d |
+| "channel into `x`" warning — including "has no room for a trunk" | The trunk needs the whole picture: every member edge visible in this view, at least two of them, and the sources sitting *above* the target. Check `rows`, and that nothing is `exclude`d |
 | Edge exits a silly side | `route a -> b from south to north` (sides: north/south/east/west) |
 | A wire jogs slightly instead of running straight | `align a b` — b takes a's axis exactly (a is the anchor) |
 | Diagram too cramped / too airy | `density spacious` / `density compact` |

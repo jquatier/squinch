@@ -50,6 +50,56 @@ worth keeping, and the originals remain in git history.
 
 ## Results
 
+**Round 5 — 20/20** (2026-08-01), **12 of 20 clean on the first `check`**, up
+from round 4's 7. Zero outside-sandbox reads. The jump is the Phase 0/2/4 doc
+work landing; what is left is more interesting than the score.
+
+Seven prompts failed a first `check`, and **four failed on the same thing** —
+`place` alongside `rows`. That was already the target of two rounds of fixes:
+`6d2cec0` widened the engine guard to all four directions, and Phase 0 re-keyed
+the cookbook row to the exact diagnostic text. The rate did not move, which
+turned out to be the finding rather than a failure of the documentation.
+
+**Engine**
+
+1. **The guard was rejecting hints that agree.** Every one of the four wrote a
+   `place` that restated its own band — `rows [db bus]` with `place bus
+   right-of db`, `[vision metadata]` with `place vision left-of metadata`.
+   Order inside a bracket is left to right, so those say the same thing twice.
+   Widening the guard to "in a band at all" (round 4's fix for the opposite
+   bug, where `above`/`below` slipped through and one hint was silently
+   dropped) had over-corrected into a false positive. It now compares the two
+   hints and refuses only a genuine disagreement: the wrong way round, a band
+   away, or beside a node no band mentions. Restating a band is how people
+   reinforce intent, which is why no amount of documentation stopped them.
+2. **Two edges left one box at one point.** `03-event-driven` put
+   `email_handler ~> sns` (crossing a rank, routed by ELK) and `email_handler
+   ~> dlq` (staying in it, routed by our coplanar router) on the same south
+   face at the same coordinate — the port pile-up DESIGN §4 forbids. The
+   coplanar router runs after ELK and never saw its ports. It now keeps the
+   natural centre when free and steps 16 aside when not, so every diagram
+   without a collision stays byte-identical. Found by the Phase 1 corpus
+   invariants, on the first genuinely new file they were run against.
+3. **"unknown id `vnet`" for a zone that plainly existed.** Two agents nested
+   boundaries the obvious way, `zone account { contains gw, vnet }`, with
+   `vnet` a zone of its own. Zones nest by *sharing members*, so the outer one
+   repeats the inner one's leaves — and the old message, with no suggestion
+   because no node was remotely like it, said nothing about which of the two
+   ideas was wrong. It now reads "`vnet` is a zone, not a node" and lists the
+   exact members to copy, reading them off the parse tree so it works when the
+   inner zone is declared later, which is the normal order.
+
+**Documentation**
+
+4. The reverse-coverage test added in Phase 2 was checking three quarters of
+   what it claimed. It keyed each diagnostic by the literal text *before* the
+   first `${}`, so every message that opens with an interpolation — 23 of 41 —
+   was invisible to it. `runs upward — row` was in that blind spot, and is what
+   `15-logos-stack` hit. The extractor now takes every literal run; the 18
+   messages that surfaced are triaged into cookbook rows (rows contradicting
+   arrows, partially-overlapping zones, a same-rank edge crossing a boundary)
+   and an allowlist for the ones whose own `fix:` names the exact substitution.
+
 **Round 4 — 20/20** (2026-07-31), the first round run by `run.ts` rather than by
 hand: twenty sandboxed Sonnet sessions, 4 at a time, ~18 minutes, zero
 outside-sandbox reads. **7 of 20 were clean on the first `check`**, which is the
