@@ -8,9 +8,16 @@ jobs:
         os: [ubuntu-latest, macos-latest]
     runs-on: ${{ matrix.os }}
     steps:
-      - uses: actions/checkout@v4
-      - uses: pnpm/action-setup@v4
-      - uses: actions/setup-node@v4
+      # Runner-side Node, not ours: these majors are the first that ship a
+      # node24 entry point. The floating @v4 tags are still node20, which the
+      # runner now force-upgrades while warning — it works, but on someone
+      # else's schedule rather than ours.
+      - uses: actions/checkout@v7
+      # Before setup-node, which needs pnpm on PATH to locate the store it
+      # caches. Reads the version from `packageManager` in package.json
+      # (pnpm@11.5.2) — and pnpm 11 is what action-setup v6 added support for.
+      - uses: pnpm/action-setup@v6
+      - uses: actions/setup-node@v7
         with:
           node-version: 22
           cache: pnpm

@@ -11,9 +11,15 @@ inputs:
 runs:
   using: composite
   steps:
-    - uses: actions/setup-node@v4
+    - uses: actions/setup-node@v7
       with:
         node-version: 22
+        # This action runs in someone else's repo and only needs `npx`, never a
+        # dependency install. setup-node v5+ turns caching on by itself when the
+        # consumer's package.json names npm in `packageManager`, and caching
+        # fails outright when there is no lockfile to hash — so a repo that has
+        # the field but not the file would break on a step that wants neither.
+        package-manager-cache: false
     # Pin `version` in real use: rendering is deterministic per tool version, so
     # an unpinned upgrade will legitimately change output and fail the check.
     - run: npx --yes squinch@${{ inputs.version }} render ${{ inputs.path }} --check
