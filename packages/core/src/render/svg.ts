@@ -727,135 +727,33 @@ const hits = (a: Rect, b: Rect, m = 4) =>
  * (DESIGN: a label never sits on another label — enforced, not hoped).
  */
 function computePills(p: Positioned, rc: RC, edgeMatches: (e: PEdge) => boolean): Pill[] {
-  const byPath = new Map(p.nodes.map((n) => [n.path, n]));
-  const nodeBottom = (path: string) => {
-    const n = byPath.get(path)!;
-    return n.y + n.h;
-  };
-  // Fixed obstacles a pill must never sit on: nodes, zone borders (thin bands
-  // — the interior tint is fine to cross), frame borders and frame titles.
-  // Sitting ON its own edge line is the point of a pill; other edges are
-  // handled by the pill's opaque background.
-  const band = (x: number, y: number, w: number, h: number) => ({ x, y, w, h });
-  const fixed = [
-    ...p.nodes,
-    ...(p.zones ?? []).flatMap((z) => [
-      band(z.x - 2, z.y - 2, z.w + 4, 4),
-      band(z.x - 2, z.y + z.h - 2, z.w + 4, 4),
-      band(z.x - 2, z.y - 2, 4, z.h + 4),
-      band(z.x + z.w - 2, z.y - 2, 4, z.h + 4),
-    ]),
-    ...p.frames.flatMap((f) => [
-      band(f.x - 1, f.y - 1, f.w + 2, 2),
-      band(f.x - 1, f.y + f.h - 1, f.w + 2, 2),
-      band(f.x - 1, f.y - 1, 2, f.h + 2),
-      band(f.x + f.w - 1, f.y - 1, 2, f.h + 2),
-      band(f.x + 8, f.y + 6, Math.round(measure(f.label, rc.fx(13), "500", rc.fam)) + 12, 24),
-    ]),
-  ];
+  // Until label-space reservation (2026-08) this function was a 116-line
+  // placement search: obstacle lists, a nine-fraction candidate ladder over
+  // segments ranked longest-first, an overhang allowance, a relocate fallback
+  // and a shared baseline for detached labels — all machinery for finding room
+  // in gutters that were never sized to hold a label. The room is now made at
+  // layout time (ELK inline labels cross-rank, gutter/lane reservation
+  // coplanar; docs/notes/edge-labels.md), every labelled edge carries
+  // `labelRect`, and a pill cannot collide with anything because the space it
+  // occupies exists on purpose. The invariant sweep asserts exactly that over
+  // the whole corpus.
   const pills: Pill[] = [];
   for (const e of p.edges) {
     if (!e.label) continue;
-    // Reserved at layout: ELK opened the gap for exactly this pill and told us
-    // where it sits. No search, no obstacles, no fallback — the room is
-    // guaranteed by construction. (Coplanar edges have no labelRect yet and
-    // fall through to the search below.) Text via the same pillDims that sized
-    // the reservation, so the drawn pill can never outgrow the reserved one.
-    if (e.labelRect) {
-      const dims = pillDims(e.label, { metrics: rc.fam, scale: rc.t.font.scale });
-      const r = e.labelRect;
-      // the reservation may be taller than a pill (it doubles as the gap
-      // spacer); the drawn pill is always 18, centred inside it — on the wire
-      const py = r.y + Math.round((r.h - 18) / 2);
-      pills.push({
-        x: r.x, y: py, w: r.w, h: 18, mx: r.x + Math.round(r.w / 2),
-        label: dims.label, dimmed: !edgeMatches(e), edgeId: e.id,
-      });
-      continue;
-    }
-    // Every segment is a candidate host, longest first. Trying only the
-    // longest was tunnel vision: a dogleg whose best run threads a crowded
-    // gutter would detach even with three clear runs of its own
-    // (docs/notes/edge-labels.md).
-    const segs = e.points.slice(0, -1).map((a, i) => {
-      const b = e.points[i + 1];
-      return { a, b, len: Math.hypot(b.x - a.x, b.y - a.y) };
-    }).sort((s1, s2) => s2.len - s1.len);
-    const best = segs[0]?.len ?? 0;
-    // labels truncate like node labels do, and a pill never leaves the canvas
-    const maxW = Math.max(60, Math.min(240, p.width - 16));
-    const label = fit(e.label, maxW - 12, rc.fx(11), "400", rc.fam);
-    const w = Math.round(measure(label, rc.fx(11), "400", rc.fam)) + 12;
-    // a modest overhang past the segment's bends is fine (opaque pill bg);
-    // flee below only when the label truly dwarfs its longest segment
-    // How far a pill may overhang the bends of its own segment before it gives
-    // up and drops below the nodes. This is only a gate on *trying* the
-    // segments — the collision check below is the real arbiter, so a larger
-    // allowance never places a pill on top of something, it only lets a label
-    // that is wider than its run stay on the wire it belongs to.
-    //
-    // 24 was set when the failure being fixed was a 6px overhang. It is far too
-    // tight for a short dogleg: `mark shipped` (83px) on a 52px run and
-    // `decrement stock` (100px) on a 50px run both detached and fell below
-    // their nodes, where nothing said which wire they came from. Drawing a
-    // leader back to the edge was tried — `edge-labels.md` records it as the
-    // known-good idea nobody had built — and it is wrong here: a pill that
-    // relocates below *both* of its nodes cannot reach its own midpoint
-    // without crossing one of them.
-    const relocated = w > best + 56;
-
-    const rectOn = (seg: { a: { x: number; y: number }; b: { x: number; y: number } }, fr: number): Pill => {
-      let mx = Math.round(seg.a.x + (seg.b.x - seg.a.x) * fr);
-      const my = Math.round(seg.a.y + (seg.b.y - seg.a.y) * fr);
-      let x = mx - Math.round(w / 2);
-      if (x < 8) x = 8;
-      if (x + w > p.width - 8) x = p.width - 8 - w;
-      mx = x + Math.round(w / 2);
-      return { x, y: my - 9, w, h: 18, mx, label, dimmed: !edgeMatches(e), edgeId: e.id };
+    const dims = pillDims(e.label, { metrics: rc.fam, scale: rc.t.font.scale });
+    // A labelled edge without a reservation cannot happen for engine-produced
+    // layouts; the midpoint fallback keeps a hand-built `Positioned` (tests,
+    // future tooling) drawing its label rather than silently dropping it.
+    const r = e.labelRect ?? {
+      x: Math.round((e.points[0].x + e.points[e.points.length - 1].x) / 2 - dims.w / 2),
+      y: Math.round((e.points[0].y + e.points[e.points.length - 1].y) / 2) - 9,
+      w: dims.w, h: 18,
     };
-    const rectAt = (fr: number) => rectOn(segs[0], fr);
-    const clear = (r: Pill) =>
-      !fixed.some((o) => hits(o, r)) && !pills.some((q2) => hits(q2, r));
-
-    let pill: Pill | undefined;
-    if (!relocated) {
-      // stay ON the edge: for each segment (longest first) slide from its
-      // midpoint outward; move to the next segment before ever detaching
-      for (const seg of segs) {
-        if (w > seg.len + 24) continue; // too short to host this label
-        for (const fr of [0.5, 0.42, 0.58, 0.34, 0.66, 0.26, 0.74, 0.18, 0.82]) {
-          const cand = rectOn(seg, fr);
-          if (clear(cand)) { pill = cand; break; }
-        }
-        if (pill) break;
-      }
-    }
-    if (!pill) {
-      // fallback: below the edge's nodes, shifting down past everything
-      pill = rectAt(0.5);
-      if (relocated) pill.y = Math.max(nodeBottom(e.from), nodeBottom(e.to)) + 17 - 9;
-      for (let guard = 0; guard < 50; guard++) {
-        const hit = pills.some((q2) => hits(q2, pill!)) ||
-          p.nodes.some((n2) => hits(n2, pill!));
-        if (!hit) break;
-        pill.y += 22;
-      }
-      // Detached labels share a baseline. The two fallbacks start from
-      // different places on purpose — a `relocated` pill drops straight below
-      // its nodes, an ordinary one starts on its wire and steps down, so it can
-      // stop early and stay near the wire it belongs to. But once a pill has
-      // stepped past the nodes anyway it has lost that, and the two rules then
-      // leave labels on the same row 17px apart, which reads as sloppy rather
-      // than deliberate. Pull it back up to the shared line when that is free.
-      const baseline = Math.max(nodeBottom(e.from), nodeBottom(e.to)) + 8;
-      if (pill.y > baseline) {
-        const snapped = { ...pill, y: baseline };
-        const blocked = pills.some((q2) => hits(q2, snapped)) ||
-          p.nodes.some((n2) => hits(n2, snapped));
-        if (!blocked) pill = snapped;
-      }
-    }
-    pills.push(pill);
+    const py = r.y + Math.round((r.h - 18) / 2);
+    pills.push({
+      x: r.x, y: py, w: r.w, h: 18, mx: r.x + Math.round(r.w / 2),
+      label: dims.label, dimmed: !edgeMatches(e), edgeId: e.id,
+    });
   }
   return pills;
 }

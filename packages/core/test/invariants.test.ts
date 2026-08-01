@@ -136,6 +136,21 @@ describe("the invariants themselves", () => {
     expect(checkLayout(base({ ports }), { channelTargets: new Set(["b"]) })).toEqual([]);
   });
 
+  it("catches a label overlapping a node, and two labels overlapping", () => {
+    const withLabel = (rect: any) => ({ ...edge([{ x: 0, y: 100 }, { x: 400, y: 100 }]), label: "x", labelRect: rect });
+    // on a node
+    expect(checkLayout(base({ edges: [withLabel({ x: 10, y: 10, w: 60, h: 18 })] })).join())
+      .toContain("overlaps node");
+    // two labels on each other
+    const p2 = base({ edges: [
+      withLabel({ x: 200, y: 100, w: 60, h: 18 }),
+      { ...withLabel({ x: 210, y: 104, w: 60, h: 18 }), id: "e2" },
+    ] });
+    expect(checkLayout(p2).join()).toContain("labels of");
+    // clear of everything: fine
+    expect(checkLayout(base({ edges: [withLabel({ x: 200, y: 120, w: 60, h: 18 })] }))).toEqual([]);
+  });
+
   it("passes clean geometry", () => {
     const good = base({
       edges: [edge([{ x: 60, y: 64 }, { x: 60, y: 100 }, { x: 260, y: 100 }, { x: 260, y: 64 }])],

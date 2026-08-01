@@ -4,6 +4,16 @@ Engineering notes, not requirements (the *rules* live in DESIGN §4). This file
 exists because label placement has been redesigned several times; if a label
 lands somewhere odd again, start here rather than re-deriving.
 
+
+> **Superseded (2026-08): label space is now reserved at layout time.** Every
+> labelled edge carries a `labelRect` — ELK inline labels for cross-rank edges
+> (spacer scheme, `layout.ts`), `elk.spacing.individual` gutters and sized
+> lanes for coplanar ones — and the renderer draws the pill exactly there. The
+> placement search this note documents is deleted; the corpus invariant sweep
+> asserts no label overlaps a node or another label. Everything below is kept
+> as the history of why reservation won: each section describes machinery that
+> existed because space was scavenged after layout instead of made during it.
+
 ## The policy, as it stands
 
 For each labelled edge, in edge declaration order:

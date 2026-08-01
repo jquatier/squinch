@@ -121,6 +121,25 @@ export function checkLayout(p: Positioned, ctx: Ctx = {}): string[] {
       }
     }
 
+  // ── label pills never collide (DESIGN §4) ───────────────────────────────
+  // Space is reserved at layout time, so this can be a hard geometric rule
+  // rather than a hope about a placement search: a labelRect may not overlap a
+  // node or another labelRect. Its own edge does not count — sitting on your
+  // own wire is the point — and margins are zero, since the reservation
+  // already carries its breathing room.
+  const labelled = p.edges.filter((e) => e.labelRect);
+  for (const e of labelled) {
+    for (const n of nodes)
+      if (overlaps(e.labelRect as any, n))
+        bad.push(`label of ${e.id} overlaps node ${n.path}`);
+  }
+  for (let i = 0; i < labelled.length; i++)
+    for (let j = i + 1; j < labelled.length; j++) {
+      const a = labelled[i].labelRect!, b = labelled[j].labelRect!;
+      if (a.x < b.x + b.w && a.x + a.w > b.x && a.y < b.y + b.h && a.y + a.h > b.y)
+        bad.push(`labels of ${labelled[i].id} and ${labelled[j].id} overlap`);
+    }
+
   // ── port distribution (DESIGN §4) ───────────────────────────────────────
   // "multiple edges on one side spread at even offsets — never stacked into a
   // single point". The one legal exception is a `channel`: merging N sources
