@@ -41,7 +41,16 @@ The whole file — structure first, then a separate `view` that says how to draw
 it. No coordinates anywhere: the boundary says what is inside the VPC, and the
 layout falls out of the graph.
 
-```squinch
+<!--
+  This block is Squinch, not Kotlin — it is fenced as `kotlin` only to get syntax
+  colour on GitHub. Linguist has no `squinch` grammar, so a ```squinch fence renders
+  flat grey; Kotlin's tokeniser happens to fit this DSL almost exactly (it gets every
+  // comment and quoted string right, and picks out `->`), so we borrow it. Nothing
+  here is valid Kotlin. Swap the fence back to `squinch` if Linguist ever ships a
+  grammar — packages/vscode/syntaxes/squinch.tmLanguage.json is the one to submit.
+-->
+
+```kotlin
 // A products API on AWS: edge, a service in a VPC, a self-warming index.
 pack aws
 
