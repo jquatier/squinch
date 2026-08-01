@@ -1,24 +1,30 @@
 pack aws
 
 system api "API Service" {
+  description: "Lambda-based REST API"
+
   gw = aws/api-gateway "API Gateway"
 
   create = aws/lambda "Create Handler"
-  get = aws/lambda "Get Handler"
+  get    = aws/lambda "Get Handler"
   search = aws/lambda "Search Handler"
-  sync = aws/lambda "Sync Handler" {
-    description: "Keeps OpenSearch updated"
-  }
 
-  db = aws/dynamodb "Orders Table" datastore
-  files = aws/s3 "Files" datastore
-  idx = aws/opensearch "Search Index" datastore
+  db     = aws/dynamodb "DynamoDB" datastore
+  files  = aws/s3 "S3 Bucket" datastore
+  idx    = aws/opensearch "OpenSearch" datastore
 
-  gw -> create, get, search
+  sync   = aws/lambda "Stream Processor"
+
+  gw -> create
+  gw -> get
+  gw -> search
+
   create -> db
   create -> files
   get -> db
+  get -> files
   search -> idx
+
   db ~> sync "DynamoDB stream"
   sync -> idx
 }
@@ -26,5 +32,6 @@ system api "API Service" {
 view api {
   layout {
     rows [gw] [create get search] [db files idx sync]
+    place sync right-of idx
   }
 }

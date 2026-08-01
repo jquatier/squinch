@@ -1,17 +1,16 @@
 pack aws
 
-// Payments platform with PCI compliance scope
 system payments "Payments Platform" {
-  description: "Card payment processing and analytics"
+  description: "Payment processing and analytics"
   glyph: sys/lock
 
   api = aws/lambda "API Handler" {
-    description: "Processes payment requests"
+    description: "Payment request entry"
     tags: #pci
   }
 
   tokenizer = aws/lambda "Tokenizer" {
-    description: "Tokenizes card data"
+    description: "Card tokenization service"
     tags: #pci
   }
 
@@ -21,34 +20,26 @@ system payments "Payments Platform" {
   }
 
   analytics = aws/lambda "Analytics" {
-    description: "Processes transaction data"
+    description: "Payment analytics processor"
   }
 
   warehouse = aws/redshift "Data Warehouse" datastore {
-    description: "Transaction analytics"
+    description: "Analytics storage"
   }
 
-  // connections
-  api -> tokenizer "tokenize card"
-  tokenizer -> vault "store token"
-  api -> analytics "send transaction"
-  analytics -> warehouse "load data"
+  api -> tokenizer
+  tokenizer -> vault
+  api ~> analytics
+  analytics -> warehouse
 }
 
 view full {
   title "Payments Platform - Full Architecture"
   scope payments
-  show descriptions
 }
 
 view auditor {
-  title "PCI Compliance Scope"
+  title "Payments Platform - PCI Scope"
   scope payments
   only #pci
-  show descriptions
-  highlight #pci
-  titleblock {
-    version: "2026-07"
-    owner: security-team
-  }
 }

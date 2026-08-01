@@ -2,14 +2,16 @@ pack aws
 
 person user "User"
 
-alb = aws/elb "Application Load Balancer"
-app = aws/fargate "Web Application" {
-  description: "ECS Fargate service"
+alb   = aws/elb     "Application Load Balancer"
+app   = aws/fargate "ECS Service" {
+  description: "Fargate containers"
 }
-cache = aws/elasticache "Cache" datastore
-db = aws/aurora "Database" datastore
+cache = aws/elasticache "ElastiCache" {
+  description: "Redis cache"
+}
+db    = aws/aurora  "Aurora Database" datastore
 
 user -> alb "HTTP requests"
 alb -> app
 app -> cache "cache lookup"
-app -> db "queries"
+app -> db "read/write"

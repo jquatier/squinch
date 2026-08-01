@@ -182,9 +182,13 @@ for (const p of prompts) {
   const nodes = [...m.nodes.values()];
   const systems = [...m.containers.values()].filter((c) => c.kind === "system");
   const asyncEdges = m.edges.filter((ed) => ed.arrow === "~>");
+  // edges carry tags too — `api -> create { tags: #hot-path }` — and leaving
+  // them out reported "missing tag" for a diagram that tags only its edges,
+  // which is a perfectly good way to answer "mark the sensitive paths"
   const allTags = new Set([
     ...nodes.flatMap((n) => n.tags),
     ...[...m.containers.values()].flatMap((c) => c.tags),
+    ...m.edges.flatMap((e) => e.tags),
   ]);
   const iconIdsUsed = new Set(nodes.map((n) => n.icon?.id).filter(Boolean) as string[]);
 

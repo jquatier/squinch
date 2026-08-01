@@ -428,5 +428,38 @@ export function resolveView(model: SModel, view: SView): ViewGraph {
     }
   }
 
+  // `highlight` never came through here. `include`, `exclude` and `only` each
+  // warn when a tag matches nothing — the same typo, caught three times out of
+  // four — but `highlight` is collected by the parser and handed straight to
+  // the renderer, so `highlight #pcii` dimmed the whole diagram and emphasised
+  // nothing, silently. Match against what this view can actually see: a tag
+  // that exists elsewhere in the model is still useless here.
+  // Edges count. `highlight #hot-path` on an edge-only tag is a documented and
+  // working idiom — `api -> create { tags: #hot-path }` — and the first cut of
+  // this warning checked nodes alone, so it fired on a correct diagram the very
+  // next gauntlet round. A guard that is narrower than the thing it guards is
+  // worse than none.
+  for (const tag of view.highlight)
+    if (!nodes.some((n) => n.tags.includes(tag))
+        && !finalEdges.some((e) => e.tags.includes(tag)))
+      diagnostics.push({
+        severity: "warning",
+        message: `highlight #${tag}: nothing visible here is tagged #${tag}`,
+        fix: `everything would dim and nothing would stand out — check the tag, or the view's \`include\`/\`only\``,
+        loc: view.loc,
+      });
+
+  // A view that resolves to nothing renders a blank canvas. The empty-container
+  // case is caught at build time, but that is one cause of many: excluding
+  // everything, scoping to something that isn't there, or a filter that keeps
+  // nothing all land here too.
+  if (!nodes.length)
+    diagnostics.push({
+      severity: "warning",
+      message: `view \`${view.name}\` has nothing to draw`,
+      fix: "every element is filtered out — check `scope`, `include`, `only` and `exclude`",
+      loc: view.loc,
+    });
+
   return { nodes, edges: finalEdges, frames, flow, diagnostics };
 }

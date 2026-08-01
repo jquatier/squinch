@@ -6,19 +6,17 @@ erp = sys/server "Legacy ERP" external {
   description: "On-premises system"
 }
 
-sync = aws/lambda "Sync Worker" {
-  description: "Processes ERP data"
+worker = aws/lambda "Sync Worker" {
+  description: "Processes ERP feed"
 }
 
-db = aws/rds "Database" datastore {
-  description: "Admin data store"
-}
+db = aws/rds "Admin Database" datastore
 
 dashboard = sys/app-window "Admin Dashboard" {
   description: "Web application"
 }
 
-erp ~> sync "async feed"
-sync -> db
-dashboard -> db
+erp ~> worker "data feed"
+worker -> db
+db -> dashboard
 admin -> dashboard "uses"

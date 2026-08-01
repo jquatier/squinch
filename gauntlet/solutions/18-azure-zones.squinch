@@ -1,16 +1,16 @@
-// Azure estate with network boundaries
 pack azure
 
-gw  = azure/app-gateway "Application Gateway"
+appgw = azure/app-gateway "Application Gateway"
 aks = azure/aks "AKS Cluster"
 acr = azure/acr "Container Registry"
 sql = azure/sql "Azure SQL"
 
+appgw -> aks
 aks -> acr "pulls images"
-gw -> aks
+aks -> sql
 
 zone subscription "Azure Subscription" account {
-  contains gw, aks, acr, sql
+  contains appgw, aks, acr, sql
 }
 
 zone vnet "Virtual Network" network {

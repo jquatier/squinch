@@ -296,6 +296,50 @@ describe("shapes that parse but that nothing exercised", () => {
       .toBe(await svgOf(src(`b = aws/dynamodb "B"`), "v"));
   });
 
+  it("warns when a view resolves to nothing, whatever emptied it", async () => {
+    // The empty-container case is caught at build time, but that is one cause
+    // of many. Found by sweeping legal-but-degenerate inputs after the 0x0
+    // render bug — the class, not just the instance.
+    const base = `pack aws\na = aws/lambda "A"\nb = aws/dynamodb "B" datastore\na -> b\n`;
+    const emptied = async (view: string) => {
+      const r = await render(base + view, { theme: "light", view: "v" });
+      expect(r.ok).toBe(true);
+      return (r.diagnostics ?? []).find((d) => d.message.includes("nothing to draw"));
+    };
+    expect(await emptied(`view v { include *\n exclude a, b }`)).toBeDefined();
+    // scoping to a leaf: a node has no insides, so the view is empty
+    expect(await emptied(`view v { scope a }`)).toBeDefined();
+    // and a healthy view says nothing
+    expect(await emptied(`view v { include * }`)).toBeUndefined();
+  });
+
+  it("warns when `highlight` matches nothing visible", async () => {
+    // `include`, `exclude` and `only` each warn on a tag that matches nothing —
+    // the same typo, caught three times out of four. `highlight` went from the
+    // parser straight to the renderer, so `highlight #pcii` dimmed the whole
+    // diagram and emphasised nothing, silently.
+    const src = (h: string) =>
+      `pack aws\na = aws/lambda "A" { tags: #pci }\nb = aws/lambda "B"\na -> b\n` +
+      `view v { include *\n highlight ${h} }`;
+    const warnOf = async (h: string) => {
+      const r = await render(src(h), { theme: "light", view: "v" });
+      expect(r.ok).toBe(true);
+      return (r.diagnostics ?? []).find((d) => d.message.includes("highlight #"));
+    };
+    expect(await warnOf("#pcii")).toBeDefined();      // typo
+    expect(await warnOf("#pci")).toBeUndefined();     // real tag, present here
+
+    // …and an edge counts. `highlight #hot-path` on an edge-only tag is a
+    // documented, working idiom; the first cut of this warning checked nodes
+    // alone and fired on a correct diagram the very next gauntlet round.
+    const edgeOnly = await render(
+      `pack aws\na = aws/lambda "A"\nb = aws/lambda "B"\na -> b { tags: #hot }\n` +
+      `view v { include *\n highlight #hot }`, { theme: "light", view: "v" });
+    expect(edgeOnly.ok).toBe(true);
+    expect((edgeOnly.diagnostics ?? []).find((d) => d.message.includes("highlight #")))
+      .toBeUndefined();
+  });
+
   it("warns on an empty container, and never emits a 0x0 canvas", async () => {
     // `system p "P" { }` is legal, gets an auto view (SPEC §5), and that view
     // has nothing in it — which rendered `<svg width="0" height="0">`, called

@@ -1,45 +1,43 @@
-// Azure Order Flow - shows the numbered path an order takes through the system
+// Azure order processing flow
 pack azure
 
 person shopper "Shopper"
 
-system orders "Order Service" {
-  description: "Handles customer orders"
-
-  apim = azure/api-management "API Management"
-  create_fn = azure/functions "Create Order Function" {
-    description: "Validates and persists orders"
+system order_system "Order Processing System" {
+  api    = azure/api-management "API Management"
+  create = azure/functions       "Create Order Function" {
+    description: "Processes new orders"
   }
-  db = azure/cosmos "Orders DB" datastore
-  bus = azure/service-bus "Order Events" {
+  db     = azure/cosmos          "Orders DB" datastore {
+    description: "Order storage"
+  }
+  bus    = azure/service-bus     "Order Events" {
     description: "Event queue"
   }
-  fulfill_fn = azure/functions "Fulfillment Function" {
-    description: "Processes order fulfillment"
+  fulfill = azure/functions      "Fulfillment Function" {
+    description: "Handles order fulfillment"
   }
 
-  apim -> create_fn
-  create_fn -> db
-  create_fn ~> bus "order.created"
-  bus ~> fulfill_fn
+  api -> create
+  create -> db
+  create ~> bus "order.created"
+  bus ~> fulfill
 }
 
-shopper -> orders.apim "places order"
+shopper -> order_system.api "places order"
 
-flow order_path "Order Flow" {
-  shopper -> orders.apim
-  orders.apim -> orders.create_fn
-  orders.create_fn -> orders.db
-  orders.create_fn ~> orders.bus
-  orders.bus ~> orders.fulfill_fn
+flow order_journey "Order Journey" {
+  shopper -> order_system.api
+  order_system.api -> order_system.create
+  order_system.create -> order_system.db
+  order_system.create ~> order_system.bus
+  order_system.bus ~> order_system.fulfill
 }
 
-view orders {
-  title "Order Processing Flow"
-  show flow order_path
-  show descriptions
+view order_system {
+  show flow order_journey
   layout {
-    rows [apim] [create_fn] [db bus] [fulfill_fn]
+    rows [api] [create] [db bus] [fulfill]
     place bus right-of db
   }
 }

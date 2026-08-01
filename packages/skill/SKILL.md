@@ -284,6 +284,8 @@ view shop {
 | "zones `a` and `b` partially overlap — visible zones must nest or stay disjoint" error | Boundaries must nest or stay apart, never half-lap. The fix line lists which members are shared and which are exclusive — either give the inner zone only members the outer one also has, or move the odd one out |
 | "same-rank edge `a` → `b` crosses an expanded container or zone — layout quality may degrade" warning | The two ends were put on one row (usually by `place`) but the straight path between them runs through a boundary. Give one end its own band in `rows`, or drop the `expand` in this view |
 | Several things all write to one store, crossing each other | `channel a, b, c -> db` — they merge into one trunk |
+| "view `v` has nothing to draw" warning | Everything got filtered out. Check `scope` (a leaf has no insides — scope a system, not a node), then `include`/`only`/`exclude`. An empty `system x { }` does this too: make it a node instead |
+| "highlight #x: nothing visible here is tagged #x" warning | Everything would dim and nothing stand out. The tag is misspelled, or the things carrying it are not in this view — check the tag against your `tags:`, and the view's `include`/`only` |
 | "channel into `x`" warning — including "has no room for a trunk" | The trunk needs the whole picture: every member edge visible in this view, at least two of them, and the sources sitting *above* the target. Check `rows`, and that nothing is `exclude`d |
 | Edge exits a silly side | `route a -> b from south to north` (sides: north/south/east/west) |
 | A wire jogs slightly instead of running straight | `align a b` — b takes a's axis exactly (a is the anchor) |

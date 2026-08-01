@@ -1,32 +1,38 @@
 pack aws
 
-person client "Client Apps"
+person client "Client App"
 
-system inference "ML Inference API" {
-  api = aws/api-gateway "API Gateway"
-  predict = aws/lambda "Predict Handler" {
-    description: "Serves inference requests"
-  }
-  features = aws/dynamodb "Feature Store" datastore {
-    description: "Real-time features"
+system inference "ML Inference Service" {
+  glyph: aws/sagemaker
+  description: "Realtime model serving"
+
+  gw = aws/api-gateway "API Gateway"
+  handler = aws/lambda "Inference Handler" {
+    description: "Queries model endpoint"
   }
   model = aws/sagemaker "SageMaker Endpoint" {
-    description: "Inference endpoint"
+    description: "Deployed ML model"
+  }
+  features = aws/dynamodb "Feature Store" datastore {
+    description: "Feature data"
   }
 
-  api -> predict
-  predict -> features "fetch features"
-  predict -> model "predict"
+  gw -> handler
+  handler -> features "fetch features"
+  handler -> model "predict"
 }
 
 system training "Model Training" {
-  batch = aws/batch "Nightly Job" {
-    description: "Retrains model"
+  glyph: aws/batch
+  description: "Nightly model retraining"
+
+  job = aws/batch "Training Job" {
+    description: "Batch retraining"
   }
   data = aws/s3 "Training Data" datastore
 
-  batch -> data "read training data"
-  batch ~> inference.model "update model"
+  job -> data "read training data"
 }
 
-client -> inference.api "inference request"
+client -> inference.gw "prediction request"
+training.job ~> inference.model "deploy retrained model"

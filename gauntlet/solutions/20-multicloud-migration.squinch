@@ -1,27 +1,26 @@
-// Multi-cloud migration architecture
 pack logos
 pack azure
 
-// On-premises infrastructure
-pg = logos/postgres "PostgreSQL" datastore
-mq = logos/rabbitmq "RabbitMQ"
+// On-premises components
+postgres = logos/postgres "PostgreSQL" datastore
+rabbitmq = logos/rabbitmq "RabbitMQ"
 
-// Azure infrastructure
+// Azure components
 aks = azure/aks "AKS Cluster"
-sql = azure/sql "Azure SQL" datastore
+azuresql = azure/sql "Azure SQL" datastore
 
 // Sync job
-sync = sys/workflow "Sync Job"
+sync = box "Sync Job"
 
-// Data migration flow (nightly async)
-sync ~> pg "reads"
-sync ~> sql "writes"
+// Migration flow: nightly async copy from on-prem to Azure
+postgres ~> sync "nightly copy"
+sync ~> azuresql
 
 // Deployment boundaries
 zone onprem "On-Premises" onprem {
-  contains pg, mq
+  contains postgres, rabbitmq
 }
 
 zone cloud "Azure" cloud {
-  contains aks, sql, sync
+  contains aks, azuresql, sync
 }

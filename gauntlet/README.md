@@ -55,30 +55,29 @@ nothing.
 
 ## Latest round
 
-**Round 10 — 18/20 on the corpus, 17 of 20 clean on the first `check`**
-(2026-08-01). Two solutions were rejected on review, and one of them found a
-bug that had been sitting there since containers existed.
+**Round 11 — 20/20, and 19 of 20 clean on the first `check`** (2026-08-01), the
+best yet, from 17 in round 10 and 7 in round 4. One prompt failed a first
+check, on a stray `,` inside a `rows` bracket.
 
-**A view with nothing in it rendered `<svg width="0" height="0">`.** `render`
-called that ok; resvg then refused it outright ("SVG has an invalid size"), so
-`render -o x.png` failed on a file that had just passed `check`. The easy way
-in is an empty container: `system p "P" { }` is legal, gets an auto view
-(SPEC §5), and that view is empty. An agent wrote `system partner "Partner
-System" external { }` as a stand-in for someone else's estate — which is a
-node, not a system, since you are not modelling its insides and there is no
-altitude to descend to. Nothing in the repo had ever done it, so nothing had
-ever caught it. Now `check` warns and names the one-line fix, and the renderer
-never emits a zero-size canvas.
+The round's value was not the score. Between starting the run and scoring it,
+a sweep of legal-but-degenerate inputs — the class the round-10 zero-size
+canvas belonged to, rather than that one instance — turned up two silent
+holes, and scoring the fresh corpus immediately proved one of the fixes wrong.
 
-Not a regression from drawing `external` — an empty *plain* system did exactly
-the same thing. Making `external` legal on a system is only what made the
-spelling reachable.
+**`highlight` never validated its tag.** `include`, `exclude` and `only` each
+warn when a tag matches nothing; `highlight` went from the parser straight to
+the renderer, so `highlight #pcii` dimmed the whole diagram and emphasised
+nothing. The same typo, caught three times out of four.
 
-Two scorer/skill gaps behind the other rejection:
+**Then the first cut of that warning was itself a false positive.** It checked
+node tags only, and `16-everything` tagged its sensitive paths on *edges* —
+`handler -> db { tags: #sensitive }` — which is documented, works, and is a
+perfectly good way to answer "mark the sensitive paths". A guard narrower than
+the thing it guards is worse than none, and this is the second time in a
+session that shape has appeared (the first was `place` alongside `rows`). It
+now checks edges too, and the gauntlet's own `requireTag` did the same thing
+and got the same fix.
 
-- `requireExternal` counted leaf nodes only, so a diagram whose external thing
-  was the system card scored "no external node".
-- `05-data-pipeline` drew a Kinesis stream with `->`. SKILL.md said "async
-  flows use `~>`" abstractly; it now names the words that trigger it — stream,
-  queue, topic, event, publishes, emits, feeds — and says a pipeline drawn
-  entirely with `->` is almost always wrong.
+**A view that resolves to nothing now warns**, whatever emptied it — excluding
+everything, scoping to a leaf (a node has no insides), or a filter that keeps
+nothing. Round 10 fixed the empty-container cause; this covers the symptom.

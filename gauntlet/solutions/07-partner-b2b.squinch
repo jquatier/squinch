@@ -3,13 +3,13 @@ pack aws
 partner = box "Partner System" external
 
 gw = aws/api-gateway "API Gateway"
-workflow = aws/step-functions "Orchestration Workflow"
-validate = aws/lambda "Validation Lambda"
-billing = aws/lambda "Billing Lambda"
-db = aws/aurora "Aurora Database" datastore
+workflow = aws/step-functions "Order Workflow"
+validate = aws/lambda "Validation Handler"
+billing = aws/lambda "Billing Handler"
+db = aws/aurora "Billing Database" datastore
 
 partner -> gw "API request"
 gw -> workflow
-workflow -> validate
-workflow -> billing
-billing -> db
+workflow -> validate "orchestrates"
+workflow -> billing "orchestrates"
+billing -> db "writes"

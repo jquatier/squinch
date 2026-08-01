@@ -1,7 +1,7 @@
 pack aws
 
-system payments "Payment Service" {
-  description: "Card payment processing"
+system payments "Payments Service" {
+  description: "Payment processing and card tokenization"
   tags: #core
 
   api = aws/lambda "API Handler"
@@ -10,25 +10,24 @@ system payments "Payment Service" {
     tags: #pci
   }
   vault = aws/dynamodb "Card Vault" datastore {
-    description: "Encrypted token storage"
+    description: "Encrypted card tokens"
     tags: #pci
   }
-  queue = aws/sqs "Settlement Queue" {
-    tags: #pci
-  }
-  worker = aws/lambda "Settlement Worker" {
-    description: "Processes settlements"
-    tags: #pci
-  }
+  queue = aws/sqs "Settlement Queue"
+  worker = aws/lambda "Settlement Worker"
 
-  api -> tokenizer
-  tokenizer -> vault
-  tokenizer ~> queue
+  api -> tokenizer {
+    tags: #pci
+  }
+  tokenizer -> vault {
+    tags: #pci
+  }
+  api ~> queue
   queue ~> worker
 }
 
 view payments {
   scope payments
   highlight #pci
-  note top-right "Tokens stored in Card Vault (DynamoDB)" { style: warning }
+  note top-right "Card tokens stored in encrypted DynamoDB vault" { style: warning }
 }

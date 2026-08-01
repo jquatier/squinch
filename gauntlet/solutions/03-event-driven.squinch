@@ -1,32 +1,22 @@
-// Event-driven order processing with EventBridge routing to multiple consumers
 pack aws
 
 // Event source
-eventbridge = aws/eventbridge "EventBridge" {
-  description: "Order events"
-}
+bus = aws/eventbridge "EventBridge"
 
 // Email notification path
-email_lambda = aws/lambda "Email Notifier" {
-  description: "Sends order confirmations"
-}
-sns = aws/sns "Email Topics"
+email_handler = aws/lambda "Email Notifier"
+sns = aws/sns "SNS"
 
 // Analytics path
-analytics_lambda = aws/lambda "Analytics Writer" {
-  description: "Writes to data lake"
-}
+analytics_handler = aws/lambda "Analytics Writer"
 datalake = aws/s3 "Data Lake" datastore
 
 // Dead-letter queue for failed events
-dlq = aws/sqs "DLQ" {
-  description: "Failed events"
-}
+dlq = aws/sqs "DLQ"
 
-// Async flows (dashed arrows)
-eventbridge ~> email_lambda "order.created"
-eventbridge ~> analytics_lambda "order.created"
-email_lambda ~> sns
-analytics_lambda ~> datalake
-email_lambda ~> dlq "on failure"
-analytics_lambda ~> dlq "on failure"
+// Asynchronous event flows
+bus ~> email_handler "order events"
+bus ~> analytics_handler "order events"
+email_handler ~> sns "send notification"
+analytics_handler ~> datalake "write events"
+bus ~> dlq "failed events"
