@@ -69,7 +69,7 @@ or a project directory.
 api    = aws/api-gateway  "API Gateway"          // id = pack/icon "Label"
 db     = aws/dynamodb     "Orders Table"
 queue  = box               "Legacy Queue"        // `box` = built-in iconless node
-stripe = logos/stripe     "Stripe" external      // trailing keywords: external, datastore, person
+stripe = logos/stripe     "Stripe" external      // trailing keywords: external, datastore
 
 create = aws/lambda "Create Handler" {           // optional attribute block
   description: "Validates and persists new orders"
@@ -424,7 +424,8 @@ container   = ("system" | "container") ident [ label ] "{"
 node        = ident "=" iconref [ label ] { kind } [ attrs ]
             | ("person") ident [ label ] ;
 iconref     = ident "/" ident | "box" ;
-kind        = "external" | "datastore" | "person" ;
+kind        = "external" | "datastore" ;   (* `person` comes from the
+                                              declaration forms, not a keyword *)
 edge        = path arrow pathlist [ label ] [ attrs ] ;
 arrow       = "->" | "~>" | "<->" | "--" ;
 path        = ident { "." ident } ;

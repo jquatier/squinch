@@ -57,7 +57,12 @@ ContainerBody { "{" list<NodeDecl | Container | EdgeStmt | Attr> "}" }
 // form only, so inside a system the only way to draw a human was
 // `= box "Name" person`, and what agents reach for is `= person "Name"`.
 NodeDecl { Ident "=" (IconRef | kw<"box"> | kw<"person">) String? (NodeKind | AttrBlock)* }
-NodeKind { kw<"external"> | kw<"datastore"> | kw<"person"> }
+// `person` was here too and nobody ever wrote it: across every example, the
+// lookbook and nine gauntlet rounds, all 20 occurrences of the word were the
+// `person id "Label"` declaration form (or `= person "Name"`), both of which
+// set the kind themselves. It stays a kind on the model — `squinch diff`
+// compares it — it is just no longer a word you can type in kind position.
+NodeKind { kw<"external"> | kw<"datastore"> }
 IconRef { Ident "/" Ident }
 
 EdgeStmt { Path Arrow PathList String? AttrBlock? }

@@ -141,7 +141,7 @@ describe("grammar + model builder", () => {
 
   it("keywords are contextual, not reserved (builtin/person, node named view)", () => {
     const r = buildModel(
-      `system s "S" {\n admin = builtin/person "Admins" person\n view = aws/lambda "View Builder"\n admin -> view\n}`,
+      `system s "S" {\n admin = builtin/person "Admins"\n view = aws/lambda "View Builder"\n admin -> view\n}`,
     );
     expect(r.ok).toBe(true);
     expect(r.model.nodes.get("s.admin")?.icon).toEqual({ pack: "builtin", id: "person" });

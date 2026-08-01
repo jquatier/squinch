@@ -71,13 +71,13 @@ system shop "Order Service" {         // systems/containers nest arbitrarily
     tags: #pci                        // kind and attr block go in either order
   }
   legacy = box             "Old Billing" external   // `box` = no icon
-  // kinds: `external` (not ours — someone else's system), `datastore` (holds
-  // state), `person` (a human actor). `external` draws a hatched surface, and
-  // is the one worth reaching for: nothing else in the diagram says "this is
-  // somebody else's". It also goes on a whole system —
-  // `system stripe "Stripe" external { … }` — where the whole card hatches.
-  // `datastore` and `person` are notes to the reader and to `squinch diff`;
-  // your icon choice is what actually shows them.
+  // kinds: `external` (not ours — someone else's system) and `datastore`
+  // (holds state). `external` draws a hatched surface and is the one worth
+  // reaching for: nothing else in the diagram says "this is somebody else's".
+  // It also goes on a whole system — `system stripe "Stripe" external { … }`
+  // — where the whole card hatches. `datastore` is a note to the reader and
+  // to `squinch diff`; your icon choice is what actually shows it. For a
+  // human, use the `person` forms above rather than a kind.
 
   api -> create                       // sync edge (solid)
   api -> create, get, search          // fan-out

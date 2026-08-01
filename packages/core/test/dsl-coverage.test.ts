@@ -289,10 +289,11 @@ describe("shapes that parse but that nothing exercised", () => {
     // external node stays byte-identical to what it rendered before
     expect(plainLeaf).not.toContain("sq-hatch");
 
-    // still inert, deliberately: the icon already says "database"/"human", and
-    // styling them would re-bless ~40 committed diagrams to repeat it
-    for (const k of ["datastore", "person"])
-      expect(await svgOf(src(`b = aws/lambda "B" ${k}`), "v"), k).toBe(plainLeaf);
+    // `datastore` stays inert, deliberately: the icon already says "database"
+    // in 50 of its 63 uses across the repo and on a bare `box` in none, so
+    // drawing it would re-bless ~40 committed diagrams to repeat the icon.
+    expect(await svgOf(src(`b = aws/dynamodb "B" datastore`), "v"))
+      .toBe(await svgOf(src(`b = aws/dynamodb "B"`), "v"));
   });
 
   it("takes `external` on a system, and only `external`", () => {
@@ -303,14 +304,13 @@ describe("shapes that parse but that nothing exercised", () => {
     expect(ok.diagnostics.filter((d) => d.severity === "error")).toEqual([]);
     expect(ok.model.containers.get("partner")?.kinds).toEqual(["external"]);
 
-    // the other two describe one node and have no card treatment, so they are
-    // refused rather than quietly kept
-    for (const bad of ["datastore", "person"]) {
-      const r = buildModel(`pack aws\nsystem s "S" ${bad} {\n a = aws/lambda "A"\n}\n`);
-      const d = r.diagnostics.find((x) => x.severity === "error");
-      expect(d?.message, bad).toContain("only `external` applies");
-      expect(d?.fix, bad).toContain("put it on a node inside");
-    }
+    // `datastore` describes one node and has no card treatment, so it is
+    // refused rather than quietly kept. (`person` is no longer a kind you can
+    // type at all — see the grammar note on NodeKind.)
+    const r = buildModel(`pack aws\nsystem s "S" datastore {\n a = aws/lambda "A"\n}\n`);
+    const d = r.diagnostics.find((x) => x.severity === "error");
+    expect(d?.message).toContain("only `external` applies");
+    expect(d?.fix).toContain("put it on a node inside");
   });
 
   it("names a top-level `layout` block instead of derailing on it", () => {
