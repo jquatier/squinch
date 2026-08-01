@@ -151,6 +151,17 @@ describe("the invariants themselves", () => {
     expect(checkLayout(base({ edges: [withLabel({ x: 200, y: 120, w: 60, h: 18 })] }))).toEqual([]);
   });
 
+  it("catches a chip or badge sitting on a node", () => {
+    const onNode = { x: 10, y: 10, w: 80, h: 20 };
+    expect(checkLayout(base({ chips: [{ ...onNode, label: "Z", zone: "z" }] } as any)).join())
+      .toContain("chip z overlaps");
+    expect(checkLayout(base({ badges: [{ ...onNode, edgeId: "e1", nums: [1] }] } as any)).join())
+      .toContain("badge on e1 overlaps");
+    // clear of nodes: fine
+    expect(checkLayout(base({ chips: [{ x: 300, y: 200, w: 80, h: 20, label: "Z", zone: "z" }] } as any)))
+      .toEqual([]);
+  });
+
   it("passes clean geometry", () => {
     const good = base({
       edges: [edge([{ x: 60, y: 64 }, { x: 60, y: 100 }, { x: 260, y: 100 }, { x: 260, y: 64 }])],

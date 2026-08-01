@@ -1,22 +1,31 @@
 pack aws
 
-// Event source
-bus = aws/eventbridge "EventBridge"
+eventbridge = aws/eventbridge "EventBridge" {
+  description: "Order events"
+}
 
-// Email notification path
-email_handler = aws/lambda "Email Notifier"
-sns = aws/sns "SNS"
+email_lambda = aws/lambda "Email Notifier" {
+  description: "Sends notifications"
+}
 
-// Analytics path
-analytics_handler = aws/lambda "Analytics Writer"
-datalake = aws/s3 "Data Lake" datastore
+sns = aws/sns "SNS" {
+  description: "Email delivery"
+}
 
-// Dead-letter queue for failed events
-dlq = aws/sqs "DLQ"
+analytics_lambda = aws/lambda "Analytics Writer" {
+  description: "Writes to data lake"
+}
 
-// Asynchronous event flows
-bus ~> email_handler "order events"
-bus ~> analytics_handler "order events"
-email_handler ~> sns "send notification"
-analytics_handler ~> datalake "write events"
-bus ~> dlq "failed events"
+s3 = aws/s3 "S3 Data Lake" datastore {
+  description: "Analytics storage"
+}
+
+dlq = aws/sqs "Dead Letter Queue" {
+  description: "Failed events"
+}
+
+eventbridge ~> email_lambda
+eventbridge ~> analytics_lambda
+eventbridge ~> dlq
+email_lambda ~> sns
+analytics_lambda ~> s3

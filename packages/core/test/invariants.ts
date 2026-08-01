@@ -150,6 +150,17 @@ export function checkLayout(p: Positioned, ctx: Ctx = {}): string[] {
           && r.y < e.labelRect.y + e.labelRect.h && r.y + r.h > e.labelRect.y)
         bad.push(`note ${i} overlaps label of ${e.id}`);
 
+  // ── chips and badges never collide with nodes ───────────────────────────
+  // They are typed geometry now (Positioned consolidation), so the rule is
+  // assertable. A chip legitimately straddles its own zone border; it must not
+  // sit on a node. Badges likewise.
+  for (const c of p.chips ?? [])
+    for (const n of nodes)
+      if (overlaps(c as any, n)) bad.push(`chip ${c.zone} overlaps node ${n.path}`);
+  for (const b of p.badges ?? [])
+    for (const n of nodes)
+      if (overlaps(b as any, n)) bad.push(`badge on ${b.edgeId} overlaps node ${n.path}`);
+
   // ── port distribution (DESIGN §4) ───────────────────────────────────────
   // "multiple edges on one side spread at even offsets — never stacked into a
   // single point". The one legal exception is a `channel`: merging N sources
