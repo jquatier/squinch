@@ -85,8 +85,10 @@ Descriptions render as the card tagline, in hover cards, and inline via a view's
 `show descriptions` toggle. Container tags are inherited by everything inside
 (tag `shop` with `#pci` and all its children match `#pci`).
 
-- Node kinds (`person`, `external`, `datastore`, plain) affect default styling per
-  theme; usually inferred from icon metadata, keyword overrides available.
+- `external` is drawn (hatched surface, DESIGN §3) and may sit on a whole
+  `system`/`container` as well as a node. `person` and `datastore` are
+  semantic only — they are compared by `squinch diff` and read by humans, and
+  do not change the drawing; the icon is what shows a human or a database.
 - `person customer "Customer"` is sugar for `customer = builtin/person "Customer"`.
 
 ### Containers & nesting (C4-style)

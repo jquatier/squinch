@@ -59,6 +59,22 @@ export interface RenderOpts {
  *  height rather than sampling a slice of one diagram-wide gradient — a short
  *  card and a tall one should look like the same object. */
 const ACCENT_GRAD = "sq-accent";
+
+/** DESIGN §3: "hatched surface variant for `external`" — someone else's system.
+ *  A texture rather than a colour, because it has to survive every theme
+ *  including `contrast` and read the same in print; and because colour is
+ *  already spoken for (accent = subject, muted = scenery, zone tints =
+ *  boundary). Drawn over the surface, so the fill still shows through.
+ *  Emitted only when a diagram actually owns an external node, which keeps
+ *  every other render byte-identical. */
+const HATCH = "sq-hatch";
+const hatchDefs = (t: Theme) =>
+  `<defs><pattern id="${HATCH}" width="8" height="8" patternUnits="userSpaceOnUse" ` +
+  `patternTransform="rotate(45)">` +
+  `<line x1="0" y1="0" x2="0" y2="8" stroke="${t.border}" stroke-width="1.5" opacity="0.4"/>` +
+  `</pattern></defs>`;
+const hatched = (x: number, y: number, w: number, h: number, rx: number) =>
+  `<rect x="${x}" y="${y}" width="${w}" height="${h}" rx="${rx}" fill="url(#${HATCH})"/>`;
 const accentDefs = () =>
   `<defs><linearGradient id="${ACCENT_GRAD}" x1="0" y1="0" x2="0" y2="1">` +
   `<stop offset="0" stop-color="#C441FE"/><stop offset="1" stop-color="#15B6FF"/>` +
@@ -284,6 +300,7 @@ function leaf(n: PNode, rc: RC, opts: RenderOpts, dimmed: boolean, L: string[]) 
   const stroke = ctx ? ` stroke-dasharray="4 3"` : "";
   L.push(`<g data-path="${esc(n.path)}" data-kind="${n.kind}"${op}>`);
   L.push(box(rc, n.x, n.y, n.w, n.h, R_NODE, t.surface, t.border, 1.5, stroke));
+  if (n.external) L.push(hatched(n.x, n.y, n.w, n.h, R_NODE));
   const px = n.x + PAD, py = n.y + PAD;
   L.push(iconPlate(n.icon, px, py, PLATE, rc, ctx));
   const maxLabel = n.w - PAD - PLATE - PAD - PAD;
@@ -307,6 +324,7 @@ function card(n: PNode, rc: RC, dimmed: boolean, L: string[]) {
   const stroke = ctx ? ` stroke-dasharray="4 3"` : "";
   L.push(`<g data-path="${esc(n.path)}" data-kind="${n.kind}"${op}>`);
   L.push(box(rc, n.x, n.y, n.w, n.h, 6, t.surface, t.border, 1.5, stroke));
+  if (n.external) L.push(hatched(n.x, n.y, n.w, n.h, 6));
   // accent bar (kind silhouette, DESIGN §3). A live card carries the brand
   // ramp; a context card stays muted, because the bar is what tells the two
   // apart at a glance and colour is the cheapest way to say "this one is the
@@ -1031,6 +1049,7 @@ export function renderSVG(p: Positioned, t: Theme, opts: RenderOpts = {}): strin
   // only when something references it — a diagram of plain nodes should not
   // carry a gradient it never draws
   if (p.nodes.some((n) => n.kind === "card")) L.push(accentDefs());
+  if (p.nodes.some((n) => n.external)) L.push(hatchDefs(rc.t));
   const defs = iconDefs(p);
   if (defs) L.push(defs);
   if (padX || padY) L.push(`<g transform="translate(${padX}, ${padY})">`);

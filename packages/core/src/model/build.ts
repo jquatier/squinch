@@ -142,31 +142,6 @@ export function buildProject(files: ProjectFile[]): BuildResult {
       // file, belonging to no view. It fell through to a bare syntax error
       // pointing at whatever preceded it, which names neither the problem nor
       // the fix. `layout` is only ever legal inside a `view`.
-      // `system partner "Partner System" external { … }` — a kind on a
-      // container. C4 calls that an external system and SKILL.md's own gloss
-      // for the keyword is "not ours — someone else's system", so it is the
-      // obvious thing to write; the grammar takes kinds on nodes only, and it
-      // came out as a syntax error pointing at the brace.
-      for (const m of f.src.matchAll(
-        /\b(system|container)\s+([A-Za-z_][\w-]*)\s+("(?:[^"\\]|\\.)*")?\s*(external|datastore|person)\b/g,
-      )) {
-        const [, decl, id, label, kind] = m;
-        const at = m.index! + m[0].lastIndexOf(kind);
-        error(ctx, ctx.loc({ from: at, to: at + kind.length } as SyntaxNode),
-          `\`${kind}\` on \`${decl} ${id}\` — kinds belong to nodes, not ${decl}s`,
-          `a whole ${decl} cannot carry a kind: draw it as one node, `
-            + `\`${id} = box ${label ?? `"${id}"`} ${kind}\`, or drop \`${kind}\``);
-        // and drop the bare parser error for the same spot — one mistake, one
-        // diagnostic, as with the misplaced `layout` blocks below
-        const line = f.src.slice(0, at).split("\n").length;
-        for (let i = diagnostics.length - 1; i >= 0; i--) {
-          const d = diagnostics[i];
-          if (d.file === ctx.name && d.message.startsWith("syntax error near")
-              && Math.abs(d.loc.line - line) <= 1)
-            diagnostics.splice(i, 1);
-        }
-      }
-
       const containers = tree.topNode.getChildren("Container");
       const views = tree.topNode.getChildren("View");
       for (const m of f.src.matchAll(/^[ \t]*layout[ \t]*\{/gm)) {
@@ -287,8 +262,20 @@ export function buildProject(files: ProjectFile[]): BuildResult {
       }
       const labelNode = decl.getChild("String");
       const kind = decl.getChild("system") ? "system" : "container";
+      // Only `external` means anything on a container: DESIGN §3 gives it the
+      // hatched card surface, and "someone else's system" is a fact about the
+      // whole system. `datastore` and `person` describe a single node and have
+      // no card treatment, so they are refused rather than quietly kept.
+      const kinds: SContainer["kinds"] = [];
+      for (const k of decl.getChildren("NodeKind")) {
+        const word = ctx.text(k);
+        if (word === "external") { if (!kinds.length) kinds.push("external"); }
+        else
+          error(ctx, k, `\`${word}\` on \`${kind} ${name}\` — only \`external\` applies to a ${kind}`,
+            `\`${word}\` describes one node: put it on a node inside \`${name}\`, or drop it`);
+      }
       model.containers.set(path, {
-        path, name, kind: kind as SContainer["kind"],
+        path, name, kind: kind as SContainer["kind"], kinds,
         label: labelNode ? ctx.str(labelNode) : undefined,
         children: [], attrs: {}, tags: [], loc: ctx.loc(decl), file: ctx.name,
       });

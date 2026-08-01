@@ -14,6 +14,9 @@ export interface VNode {
   tagline?: string;
   preview: { pack: string; id: string }[];
   tags: string[]; // effective (container-inherited)
+  /** someone else's system — DESIGN §3's hatched surface. A property of the
+   *  thing itself, so a container carries it for its whole card. */
+  external?: boolean;
   description?: string;
   frame?: string; // parent frame path when inside an expanded container
 }
@@ -384,6 +387,7 @@ export function resolveView(model: SModel, view: SView): ViewGraph {
           `${leaves.length} component${leaves.length === 1 ? "" : "s"}`,
         preview,
         tags: effectiveTags(path),
+        external: container.kinds.includes("external") || undefined,
         frame: frameOf.get(path),
       };
     }
@@ -395,6 +399,7 @@ export function resolveView(model: SModel, view: SView): ViewGraph {
       icon: n.icon,
       preview: [],
       tags: effectiveTags(path),
+      external: n.kinds.includes("external") || undefined,
       description: n.description,
       frame: frameOf.get(path),
     };

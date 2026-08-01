@@ -269,20 +269,48 @@ describe("shapes that parse but that nothing exercised", () => {
     }
   });
 
-  it("names a kind put on a system, instead of derailing on it", () => {
+  it("draws `external` as DESIGN §3's hatched surface, on a node and on a card", async () => {
+    // `external`, `datastore` and `person` all rendered byte-identical to no
+    // kind at all — parsed, validated, promised styling by SPEC §3 and DESIGN
+    // §3, and read by nothing outside `diff.ts`. `external` is the one that
+    // carries information no icon does, so it is the one that got drawn.
+    const src = (decl: string) =>
+      `pack aws\na = aws/lambda "A"\n${decl}\na -> b\nview v { include * }`;
+    const plainLeaf = await svgOf(src(`b = aws/lambda "B"`), "v");
+    const extLeaf = await svgOf(src(`b = aws/lambda "B" external`), "v");
+    expect(plainLeaf).not.toBe(extLeaf);
+    expect(extLeaf).toContain("url(#sq-hatch)");
+
+    // a whole system, which is what DESIGN §3 actually specifies
+    const extCard = await svgOf(src(`system b "B" external { c = aws/lambda "C" }`), "v");
+    expect(extCard).toContain("url(#sq-hatch)");
+
+    // the pattern is only defined where it is used, so every diagram without an
+    // external node stays byte-identical to what it rendered before
+    expect(plainLeaf).not.toContain("sq-hatch");
+
+    // still inert, deliberately: the icon already says "database"/"human", and
+    // styling them would re-bless ~40 committed diagrams to repeat it
+    for (const k of ["datastore", "person"])
+      expect(await svgOf(src(`b = aws/lambda "B" ${k}`), "v"), k).toBe(plainLeaf);
+  });
+
+  it("takes `external` on a system, and only `external`", () => {
     // `system partner "Partner System" external` is C4's external system, and
-    // SKILL.md's own gloss for the keyword is "not ours — someone else's
-    // system", so it is what an agent reaches for. Kinds go on nodes only, and
-    // this came out as a syntax error pointing at the brace.
-    const r = buildModel(`pack aws\nsystem partner "Partner System" external {\n description: "x"\n}\n`);
-    const errs = r.diagnostics.filter((d) => d.severity === "error");
-    expect(errs.length).toBe(1); // one mistake, one diagnostic
-    expect(errs[0].message).toContain("kinds belong to nodes");
-    // the fix has to be copy-pasteable, label and all
-    expect(errs[0].fix).toContain(`partner = box "Partner System" external`);
-    // a kind on a node is still perfectly fine
-    expect(buildModel(`system s "S" {\n a = box "Old" external\n}`)
-      .diagnostics.filter((d) => d.severity === "error")).toEqual([]);
+    // DESIGN §3 hangs the hatched card surface off exactly this. A cold agent
+    // wrote it and got a syntax error pointing at the brace.
+    const ok = buildModel(`pack aws\nsystem partner "Partner System" external {\n description: "x"\n}\n`);
+    expect(ok.diagnostics.filter((d) => d.severity === "error")).toEqual([]);
+    expect(ok.model.containers.get("partner")?.kinds).toEqual(["external"]);
+
+    // the other two describe one node and have no card treatment, so they are
+    // refused rather than quietly kept
+    for (const bad of ["datastore", "person"]) {
+      const r = buildModel(`pack aws\nsystem s "S" ${bad} {\n a = aws/lambda "A"\n}\n`);
+      const d = r.diagnostics.find((x) => x.severity === "error");
+      expect(d?.message, bad).toContain("only `external` applies");
+      expect(d?.fix, bad).toContain("put it on a node inside");
+    }
   });
 
   it("names a top-level `layout` block instead of derailing on it", () => {

@@ -30,6 +30,10 @@ export interface SContainer {
   path: string;
   name: string;
   kind: "system" | "container";
+  /** `external` only — someone else's system, drawn with DESIGN §3's hatched
+   *  card surface. The other two node kinds have no card treatment and are
+   *  refused here. */
+  kinds: ("external")[];
   label?: string;
   children: string[]; // child paths, declaration order
   attrs: Record<string, string>;

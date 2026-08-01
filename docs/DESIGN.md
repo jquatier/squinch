@@ -63,7 +63,12 @@
 - **System card** (collapsed container): height `88`; kind silhouette + accent bar,
   title 15/550, tagline 11 muted, glyph badge top-right `20×20` mono, `preview`
   strip = up to 3 icons at `16×16` bottom-right at 60% opacity, owner/status badges
-  as `11px` pills. Hatched surface variant for `external`.
+  as `11px` pills. `external` — someone else's system — takes a hatched surface
+  variant, on a leaf node the same way: a texture rather than a colour, since
+  colour is already spoken for (accent = subject, muted = scenery, zone tints =
+  boundary) and the hatch has to survive `contrast` and print. The pattern is
+  emitted only where one is used, so a diagram with no external node renders
+  byte-for-byte as it did before the variant existed.
   The accent bar on a *live* card carries the brand ramp off the Squinch mark —
   `#C441FE` to `#15B6FF`, top to bottom over the card's own height. It is brand
   rather than theme: identical in light and dark, as the logo is. A **context**

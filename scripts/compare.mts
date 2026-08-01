@@ -36,21 +36,16 @@ if (!label) {
  *  keeps the review small and makes an unexpected mover obvious by its absence
  *  from the pictures rather than by hiding in a hundred of them. */
 const TARGETS: { file: string; views?: string[] }[] = [
-  // kept — `direction right` now lays out sideways
-  { file: "lookbook/cases/04-deep-chain.squinch" },
-  { file: "gauntlet/solutions/09-ml-inference.squinch", views: ["inference"] },
-  { file: "gauntlet/solutions/20-multicloud-migration.squinch" },
-  // kept — frame padding 44 → 48
-  { file: "lookbook/cases/07-nested-frames.squinch" },
-  { file: "examples/storefront/storefront.squinch", views: ["orders-detail"] },
-  { file: "packages/core/examples/landscape.squinch", views: ["orders-detail"] },
-  // kept — the density ladder is regular at +8
-  { file: "lookbook/cases/15-densities.squinch" },
-  // REVERTED — these must come out identical, which is the point of showing them
+  // `external` gets DESIGN §3's hatched surface — the four committed diagrams
+  // that use it, plus a card case and an untouched control
+  { file: "lookbook/cases/21-logos.squinch" },
   { file: "lookbook/cases/17-zones.squinch", views: ["landscape"] },
-  { file: "examples/products-api/products-api.squinch" },
-  // untouched control
+  { file: "lookbook/cases/19-glyphs.squinch" },
+  { file: "lookbook/cases/08-landscape.squinch" },
+  { file: "gauntlet/solutions/07-partner-b2b.squinch" },
+  // untouched controls — these own no `external` and must come out identical
   { file: "packages/core/examples/orders.squinch" },
+  { file: "examples/storefront/storefront.squinch", views: ["orders-detail"] },
 ];
 
 const out = join(root, ".compare-tmp", label);

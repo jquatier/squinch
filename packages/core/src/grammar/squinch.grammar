@@ -29,8 +29,12 @@ PackStmt { kw<"pack"> Ident (kw<"from"> String)? }
 FileTheme { kw<"theme"> Ident }
 PersonDecl { kw<"person"> Ident String? }
 
+// A kind on the container itself: DESIGN §3 hangs the hatched surface off
+// `external`, and "someone else's system" is a property of the whole system,
+// not of one node inside it. Only `external` means anything here — the model
+// builder rejects the other two, which have no card treatment.
 Container {
-  (kw<"system"> | kw<"container">) Ident String? ContainerBody
+  (kw<"system"> | kw<"container">) Ident String? NodeKind* ContainerBody
 }
 
 // flow id "Label" { a -> b -> c }  — numbered path over existing edges
