@@ -100,7 +100,7 @@
 <g opacity="0.35"><rect x="205" y="634" width="100" height="18" rx="2" fill="#212124" stroke="#3B3B40" stroke-width="1"/><text x="255" y="647" text-anchor="middle" font-size="11" fill="#9C9B94">decrement stock</text></g>
 <g><rect x="312" y="231" width="83" height="18" rx="2" fill="#212124" stroke="#3B3B40" stroke-width="1"/><text x="354" y="244" text-anchor="middle" font-size="11" fill="#9C9B94">verify identity</text></g>
 <g data-note="right-of:orders.db">
-<line x1="176" y1="682" x2="152" y2="570" stroke="#9C9B94" stroke-width="1" stroke-dasharray="2 3"/>
+<line x1="176" y1="661" x2="152" y2="602" stroke="#9C9B94" stroke-width="1" stroke-dasharray="2 3"/>
 <rect x="176" y="661" width="174" height="42" rx="3" fill="#212124" stroke="#3B3B40" stroke-width="1"/>
 <text x="188" y="678" font-size="11" fill="#EDEDEA">Card tokens only; PAN never</text>
 <text x="188" y="693" font-size="11" fill="#EDEDEA">stored</text>

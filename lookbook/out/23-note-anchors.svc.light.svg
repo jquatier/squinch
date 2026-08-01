@@ -64,7 +64,7 @@
 <text x="356" y="307" font-size="11" fill="#1C1C1A">right-of</text>
 </g>
 <g data-note="on:svc.api-&gt;svc.fn">
-<line x1="135" y1="137" x2="119" y2="124" stroke="#6F6E69" stroke-width="1" stroke-dasharray="2 3"/>
+<line x1="135" y1="124" x2="119" y2="124" stroke="#6F6E69" stroke-width="1" stroke-dasharray="2 3"/>
 <rect x="135" y="110" width="82" height="27" rx="3" fill="#FFFFFF" stroke="#D8D7D3" stroke-width="1"/>
 <text x="147" y="127" font-size="11" fill="#1C1C1A">on an edge</text>
 </g>

@@ -68,12 +68,12 @@
 <g opacity="0.35"><rect x="321" y="248" width="38" height="18" rx="2" fill="#26292C"/><path d="M320.37 248.74 C335.31 247.11, 347 247.42, 358.81 247.12 M359.04 247.98 C359.53 254.38, 359.69 259.13, 358.45 266.64 M359.83 265.29 C345.54 265.34, 331.2 266.81, 320.47 265.75 M321.76 265.86 C321.05 259.99, 321.06 253.99, 320.06 247.43" fill="none" stroke="#C9C4B4" stroke-width="1" stroke-linecap="round"/><text x="340" y="261" text-anchor="middle" font-size="14" fill="#A39E8F">drain</text></g>
 <g><rect x="324" y="355" width="32" height="18" rx="2" fill="#26292C"/><path d="M324.97 355.14 C336.09 354.85, 349.54 354.96, 356.73 354.66 M356.28 355.36 C355.39 361.51, 355.68 368.62, 356.55 372.07 M356.33 372.43 C344.86 372.47, 332.87 374.04, 324.52 373.7 M322.94 372.37 C323.69 366.23, 322.99 359.28, 324.21 354.88" fill="none" stroke="#C9C4B4" stroke-width="1" stroke-linecap="round"/><text x="340" y="368" text-anchor="middle" font-size="14" fill="#A39E8F">post</text></g>
 <g data-note="right-of:pay.vault">
-<line x1="216" y1="480" x2="192" y2="304" stroke="#A39E8F" stroke-width="1" stroke-dasharray="2 3"/>
+<line x1="216" y1="466" x2="192" y2="336" stroke="#A39E8F" stroke-width="1" stroke-dasharray="2 3"/>
 <rect x="216" y="466" width="172" height="27" rx="2" fill="#26292C"/><path d="M216.32 465.17 C255.36 466.95, 291.32 466.79, 386.61 466.37 M216.52 466.76 C264.74 466, 313.42 466.84, 387.47 465.66 M387.68 465.21 C389.33 475.71, 389.3 484.35, 386.47 491.62 M387.26 467.06 C387.01 471.3, 387.78 476.25, 387.17 493.34 M387.36 495 C342.92 495.35, 293.17 494.7, 217.51 491.35 M387.92 493.86 C321.61 491.21, 255.84 492.16, 215.99 492.72 M217.99 491.84 C217.84 482.46, 218.09 473.65, 216.36 464.53 M215.52 492.6 C215.68 487.28, 215.33 481.32, 216.99 465.7" fill="none" stroke="#C9C4B4" stroke-width="1" stroke-linecap="round"/>
 <text x="228" y="483" font-size="14" fill="#EFEBDD">Tokens only; PANs never stored</text>
 </g>
 <g data-note="on:pay.api-&gt;pay.token">
-<line x1="229" y1="133" x2="195" y2="120" stroke="#A39E8F" stroke-width="1" stroke-dasharray="2 3"/>
+<line x1="229" y1="120" x2="195" y2="120" stroke="#A39E8F" stroke-width="1" stroke-dasharray="2 3"/>
 <rect x="229" y="106" width="64" height="27" rx="2" fill="#26292C"/><path d="M228.38 104.95 C244.95 104.91, 260.63 107.03, 293.15 106.75 M293.83 104.86 C292.46 116.86, 293.05 126.18, 293.64 133.29 M292.32 132.71 C270.23 133.1, 246.67 132.46, 229.22 133.19 M228.56 133.62 C230.3 126.16, 227.95 121.13, 229.37 106.87" fill="none" stroke="#C9C4B4" stroke-width="1" stroke-linecap="round"/>
 <text x="241" y="123" font-size="14" fill="#EFEBDD">p99 8ms</text>
 </g>

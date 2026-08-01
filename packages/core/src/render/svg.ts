@@ -514,16 +514,29 @@ function notes(
 
     // the leader is drawn from where the note *ended up*, not where it was
     // first tried
+    // Attach at the nearest point on each box, not at a fixed side-midpoint.
+    // The midpoint was right when a note always sat exactly beside its anchor,
+    // but a note now slides to dodge obstacles — so a note that ended up well
+    // below its node still had its leader leaving the node's right edge dead
+    // centre, reading as a diagonal fired out of the right-hand side. Clamping
+    // is also a no-op for the un-slid case (a note level with its node still
+    // attaches at the side midpoint), so nothing that was already correct
+    // moves.
+    const clamp = (pt: { x: number; y: number }, r: Rect) => ({
+      x: Math.max(r.x, Math.min(pt.x, r.x + r.w)),
+      y: Math.max(r.y, Math.min(pt.y, r.y + r.h)),
+    });
+    const noteRect = { x, y, w, h };
+    const noteMid = { x: x + w / 2, y: y + h / 2 };
     let leader: { x1: number; y1: number; x2: number; y2: number } | undefined;
-    if (anchor && note.anchor.kind === "relpos") {
-      const n = anchor;
-      const rp = note.anchor.relpos;
-      if (rp === "right-of") leader = { x1: x, y1: y + h / 2, x2: n.x + n.w, y2: n.y + n.h / 2 };
-      if (rp === "left-of") leader = { x1: x + w, y1: y + h / 2, x2: n.x, y2: n.y + n.h / 2 };
-      if (rp === "above") leader = { x1: x + w / 2, y1: y + h, x2: n.x + n.w / 2, y2: n.y };
-      if (rp === "below") leader = { x1: x + w / 2, y1: y, x2: n.x + n.w / 2, y2: n.y + n.h };
+    if (anchor) {
+      const n = { x: anchor.x, y: anchor.y, w: anchor.w, h: anchor.h };
+      const from = clamp({ x: n.x + n.w / 2, y: n.y + n.h / 2 }, noteRect);
+      const to = clamp(noteMid, n);
+      leader = { x1: from.x, y1: from.y, x2: to.x, y2: to.y };
     } else if (mid) {
-      leader = { x1: x, y1: y + h, x2: mid.x, y2: mid.y };
+      const from = clamp(mid, noteRect);
+      leader = { x1: from.x, y1: from.y, x2: mid.x, y2: mid.y };
     }
 
     ext.minX = Math.min(ext.minX, x); ext.minY = Math.min(ext.minY, y);

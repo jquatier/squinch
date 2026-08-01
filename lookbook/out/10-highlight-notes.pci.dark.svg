@@ -68,12 +68,12 @@
 <g opacity="0.35"><rect x="321" y="248" width="38" height="18" rx="2" fill="#212124" stroke="#3B3B40" stroke-width="1"/><text x="340" y="261" text-anchor="middle" font-size="11" fill="#9C9B94">drain</text></g>
 <g><rect x="322" y="355" width="35" height="18" rx="2" fill="#212124" stroke="#3B3B40" stroke-width="1"/><text x="340" y="368" text-anchor="middle" font-size="11" fill="#9C9B94">post</text></g>
 <g data-note="right-of:pay.vault">
-<line x1="216" y1="480" x2="192" y2="304" stroke="#9C9B94" stroke-width="1" stroke-dasharray="2 3"/>
+<line x1="216" y1="466" x2="192" y2="336" stroke="#9C9B94" stroke-width="1" stroke-dasharray="2 3"/>
 <rect x="216" y="466" width="192" height="27" rx="3" fill="#212124" stroke="#3B3B40" stroke-width="1"/>
 <text x="228" y="483" font-size="11" fill="#EDEDEA">Tokens only; PANs never stored</text>
 </g>
 <g data-note="on:pay.api-&gt;pay.token">
-<line x1="248" y1="133" x2="195" y2="120" stroke="#9C9B94" stroke-width="1" stroke-dasharray="2 3"/>
+<line x1="248" y1="120" x2="195" y2="120" stroke="#9C9B94" stroke-width="1" stroke-dasharray="2 3"/>
 <rect x="248" y="106" width="70" height="27" rx="3" fill="#212124" stroke="#3B3B40" stroke-width="1"/>
 <text x="260" y="123" font-size="11" fill="#EDEDEA">p99 8ms</text>
 </g>

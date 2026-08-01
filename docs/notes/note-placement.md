@@ -45,6 +45,19 @@ earlier note wins a contested spot — deterministic, the same tie-break as pill
 | Perpendicular nudge / relaxing the 4px margin | Already rejected for pills; see `edge-labels.md`. Both apply here unchanged. |
 | An offset or coordinate escape hatch in the DSL | SPEC §5: "the no-coordinates principle applies to notes too." |
 
+## The leader attaches at the nearest point, not a fixed side
+
+Each end of the leader is the point on that rectangle nearest the other box.
+It used to be the midpoint of whichever side the anchor keyword named, which
+was right while a note always sat exactly beside its node — but once notes
+slide up to 240px to dodge obstacles, a note well below its anchor still had
+its leader leaving the node's right edge dead centre, reading as a diagonal
+fired out of the right-hand side.
+
+Clamping is a no-op for a note still level with its anchor, which is why the
+`landscape` golden and the `storefront` example did not move when this landed:
+only notes that had actually slid changed.
+
 ## Known residual
 
 The legend and titleblock are drawn *after* notes but positioned from the final
