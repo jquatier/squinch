@@ -78,6 +78,10 @@ export interface Positioned {
    *  right-aligned inside the reservation, so per-step text changes never move
    *  or collide with anything. */
   badges: { edgeId: string; x: number; y: number; w: number; h: number; nums: number[] }[];
+  /** Fully placed notes, in declaration order: the resolver lives in layout
+   *  now. Text lines are pre-wrapped (font-derived, theme-free); style/colour
+   *  stay the renderer's. */
+  notes?: { i: number; x: number; y: number; w: number; h: number; lines: string[]; leader?: { x1: number; y1: number; x2: number; y2: number } }[];
   /** Layout-reserved note boxes by view-note index — today the edge-anchored
    *  ones (second inline labels on their own elk edge). The resolver draws a
    *  reserved note exactly here and skips its candidate ladder. */
@@ -1003,6 +1007,8 @@ export async function layoutView(
     }
   }
 
+
+
   // ── channels (SPEC §6 Tier 2): one trunk instead of N crossing lines ─────
   // Several edges into the same target drop to a shared horizontal trunk,
   // run along it, and enter the target as one line. Ours to compute: ELK
@@ -1170,17 +1176,249 @@ export async function layoutView(
     q(out.height),
     ...pEdges.flatMap((e) => e.points.map((p) => p.y + 32)),
   );
+  const width = Math.max(q(out.width), ...nodes.map((n) => n.x + n.w + 32));
+
+  // footer band + pill-extended height, exactly as the renderer computed them
+  // when it owned note placement
+  const drawnBottoms = pillRects.map((r) => r.y + r.h + 16);
+  const heightForNotes = Math.max(height, ...drawnBottoms);
+  const footer: { x: number; y: number; w: number; h: number }[] = [];
+  if (view.legend || (view.titleblock && Object.keys(view.titleblock).length)) {
+    const rows = Object.entries(view.titleblock ?? {});
+    const tbH = rows.length || view.title
+      ? 12 + (view.title ? 20 : 0) + rows.length * 15 + 6
+      : 0;
+    const bandH = Math.max(view.legend ? 24 : 0, tbH) + 16;
+    footer.push({ x: 0, y: heightForNotes - bandH, w: width, h: bandH });
+  }
+  type Rect = { x: number; y: number; w: number; h: number };
+  // ── the note resolver, moved here whole (Positioned consolidation) ───────
+  // Same candidate ladders, same authored-side rule, same travel fallback —
+  // docs/notes/note-placement.md is unchanged as the policy record. The
+  // renderer draws these rects and computes its canvas pad from them exactly
+  // as it did when it owned the placement, so the move is byte-identical.
+  const pNotes: NonNullable<Positioned["notes"]> = [];
+  {
+  const out = pNotes;
+  const list = view.notes ?? [];
+  const p = { width, height: heightForNotes, nodes, edges: pEdges, noteBoxes } as any;
+  const obstacles: { x: number; y: number; w: number; h: number }[] = [
+    ...nodes, ...frames, ...pZones, ...pillRects, ...chips, ...badges, ...footer,
+  ];
+  const byPath = new Map(nodes.map((n) => [n.path, n]));
+  // Notes are placed in declaration order and each joins the obstacle set, so
+  // an earlier note wins a contested spot — the same tie-break pills use
+  // (docs/notes/edge-labels.md), and what makes the output deterministic.
+  const placed: Rect[] = [];
+  const clear = (r: Rect) =>
+    !obstacles.some((o) => hitR(o, r)) && !placed.some((q) => hitR(q, r));
+
+  let noteIdx = -1;
+  for (const note of list) {
+    noteIdx++;
+    // A note the layout reserved space for draws exactly there — the same
+    // contract as labelRect. The candidate ladder never runs for it.
+    const reserved = p.noteBoxes?.get(noteIdx);
+    const inner = 176;
+    const lines = wrapText(note.text, inner, fx(11), font.metrics, 3);
+    // integers, like every other rect (DESIGN §8) — `measure` returns a float
+    // and only x/y used to be rounded, so note widths shipped as
+    // `width="174.22411799999998"`
+    const w = Math.round(
+      Math.min(200, Math.max(...lines.map((l) => measure(l, fx(11), "400", font.metrics))) + 24),
+    );
+    const h = lines.length * 15 + 12;
+
+    // Candidates, in preference order. The authored side is never changed: an
+    // author who wrote `right-of` gets right-of, further out or slid along it,
+    // never flipped to the other side of the node.
+    const cands: { x: number; y: number }[] = [];
+    let anchor: PNode | undefined;
+    let mid: { x: number; y: number } | undefined;
+
+    if (note.anchor.kind === "relpos") {
+      const n = byPath.get(note.anchor.target);
+      if (!n) continue;
+      anchor = n;
+      const rp = note.anchor.relpos;
+      const cx = n.x + Math.round(n.w / 2) - Math.round(w / 2);
+      const cy = n.y + Math.round(n.h / 2) - Math.round(h / 2);
+      // Slide far enough to clear a whole card before standing further off.
+      // ±48 was not enough: a system card is 88 tall, so a note beside a node
+      // with a card to its right exhausted every slide, fell through to the
+      // travel fallback, and ended up across the diagram trailing a leader
+      // through the very card it was avoiding. Nearest-first, so the shortest
+      // leader that works wins.
+      const slides = [0];
+      // Reach past a whole neighbouring card, not just a node: at ±128 a note
+      // beside a crowded column exhausted the ladder, fell through to the
+      // travel fallback and set off sideways across the diagram, trailing a
+      // leader over everything between. Sliding stays on the authored side and
+      // keeps the leader short, so it is always the better escape.
+      for (let d = 16; d <= 240; d += 16) slides.push(-d, d);
+      for (const gap of [24, 48, 72, 96])
+        for (const slide of slides) {
+          if (rp === "right-of") cands.push({ x: n.x + n.w + gap, y: cy + slide });
+          if (rp === "left-of") cands.push({ x: n.x - gap - w, y: cy + slide });
+          if (rp === "above") cands.push({ x: cx + slide, y: n.y - gap - h });
+          if (rp === "below") cands.push({ x: cx + slide, y: n.y + n.h + gap });
+        }
+    } else if (note.anchor.kind === "edge") {
+      const e = p.edges.find(
+        (e: PEdge) => e.from === (note.anchor as any).from && e.to === (note.anchor as any).to,
+      );
+      if (!e) continue;
+      // Halfway along the run, by arc length. This used to index
+      // `points[floor(n/2) - 1]`, which for the common two-point edge is
+      // `points[0]` — the *start* — so the note was pinned to its source node
+      // and drawn over it every time.
+      const at = (frac: number) => {
+        const pts = e.points;
+        const segs = pts.slice(1).map((q2: any, i2: number) => Math.hypot(q2.x - pts[i2].x, q2.y - pts[i2].y));
+        const want = segs.reduce((a2: number, b2: number) => a2 + b2, 0) * frac;
+        let run = 0;
+        for (let i = 0; i < segs.length; i++) {
+          if (run + segs[i] >= want) {
+            const f = segs[i] === 0 ? 0 : (want - run) / segs[i];
+            return {
+              x: pts[i].x + (pts[i + 1].x - pts[i].x) * f,
+              y: pts[i].y + (pts[i + 1].y - pts[i].y) * f,
+            };
+          }
+          run += segs[i];
+        }
+        return pts[pts.length - 1];
+      };
+      mid = at(0.5);
+      // slide along the wire before standing further off it — same ladder the
+      // edge-label pills walk, so a note and its pill spread rather than stack
+      for (const off of [16, 40, 64])
+        for (const frac of [0.5, 0.42, 0.58, 0.34, 0.66, 0.26, 0.74]) {
+          const q = at(frac);
+          cands.push({ x: q.x + off, y: q.y - Math.round(h / 2) });
+        }
+    } else {
+      // A corner note is chrome: it means "pinned to the frame", so it hugs an
+      // edge rather than drifting toward the middle. Stepping inward
+      // diagonally was the first attempt and it read as a floating note that
+      // had lost its corner. Slide along the horizontal edge first, then the
+      // vertical one, staying at the 16px inset the whole way.
+      const c = note.anchor.corner;
+      const x0 = c.includes("left") ? 16 : p.width - w - 16;
+      const y0 = c.includes("top") ? 16 : p.height - h - 16;
+      const dx = c.includes("left") ? 24 : -24;
+      // A short slide along the edge for a near-miss…
+      for (let k = 0; k <= 4; k++) cands.push({ x: x0 + k * dx, y: y0 });
+      // …then outward, off the current canvas. Growing the diagram is the
+      // right answer for chrome: the note keeps its corner and the content
+      // makes room, rather than the note wandering along the bottom edge until
+      // `bottom-right` ends up on the left, which is what sliding produced.
+      const out = c.includes("top") ? -24 : 24;
+      for (let k = 1; k <= 12; k++) cands.push({ x: x0, y: y0 + k * out });
+    }
+
+    // Two passes: prefer a spot inside the canvas we already have, and only
+    // spill outside — which widens or lengthens the whole diagram — when there
+    // is genuinely nowhere in. Without this the ladder took the first clear
+    // candidate in order, and since it tries the near side first, a `below`
+    // note dodging a label pill slid left off the canvas and pushed every
+    // other element 200px right to make room for it.
+    const inX = (r: Rect) => r.x >= 0 && r.x + r.w <= p.width;
+    const inY = (r: Rect) => r.y >= 0 && r.y + r.h <= p.height;
+    // Three passes, loosening one axis at a time. Growing the canvas is
+    // sometimes unavoidable — a `below` note on the bottom row has nowhere
+    // else to go — but there is a real difference between extending downward,
+    // which reads as the diagram getting taller, and sliding off the left
+    // edge, which shifts every other element sideways to make room. Taking
+    // the first clear candidate in ladder order did the latter.
+    const fits: ((r: Rect) => boolean)[] = [
+      (r) => inX(r) && inY(r),
+      (r) => inX(r),
+      () => true,
+    ];
+    let x = Math.round(cands[0]?.x ?? 16), y = Math.round(cands[0]?.y ?? 16);
+    let found = false;
+    if (reserved) { x = reserved.x; y = reserved.y; found = true; }
+    for (const fit of fits) {
+      for (const c of cands) {
+        const r = { x: Math.round(c.x), y: Math.round(c.y), w, h };
+        if (!fit(r) || !clear(r)) continue;
+        x = r.x; y = r.y; found = true;
+        break;
+      }
+      if (found) break;
+    }
+    // Nothing on the ladder was free. Keep travelling in the authored
+    // direction until it is: a note may leave the cluster entirely because its
+    // dotted leader keeps it attached — the property edge-labels.md wishes
+    // pills had. Bounded, like the pill fallback, so a pathological diagram
+    // cannot spin.
+    if (!found) {
+      const rp = note.anchor.kind === "relpos" ? note.anchor.relpos : undefined;
+      const step = rp === "above" ? { dx: 0, dy: -24 }
+        : rp === "below" ? { dx: 0, dy: 24 }
+        : rp === "left-of" ? { dx: -24, dy: 0 }
+        : note.anchor.kind === "corner"
+          // keep travelling along the edge it is pinned to, never into the middle
+          ? { dx: 0, dy: note.anchor.corner.includes("top") ? 24 : -24 }
+          : { dx: 24, dy: 0 };
+      const last = cands[cands.length - 1] ?? { x, y };
+      x = Math.round(last.x); y = Math.round(last.y);
+      for (let guard = 0; guard < 50 && !clear({ x, y, w, h }); guard++) {
+        x += step.dx; y += step.dy;
+      }
+    }
+    placed.push({ x, y, w, h });
+
+    // the leader is drawn from where the note *ended up*, not where it was
+    // first tried
+    // Attach at the nearest point on each box, not at a fixed side-midpoint.
+    // The midpoint was right when a note always sat exactly beside its anchor,
+    // but a note now slides to dodge obstacles — so a note that ended up well
+    // below its node still had its leader leaving the node's right edge dead
+    // centre, reading as a diagonal fired out of the right-hand side. Clamping
+    // is also a no-op for the un-slid case (a note level with its node still
+    // attaches at the side midpoint), so nothing that was already correct
+    // moves.
+    const clamp = (pt: { x: number; y: number }, r: Rect) => ({
+      x: Math.max(r.x, Math.min(pt.x, r.x + r.w)),
+      y: Math.max(r.y, Math.min(pt.y, r.y + r.h)),
+    });
+    const noteRect = { x, y, w, h };
+    const noteMid = { x: x + w / 2, y: y + h / 2 };
+    let leader: { x1: number; y1: number; x2: number; y2: number } | undefined;
+    if (anchor) {
+      const n = { x: anchor.x, y: anchor.y, w: anchor.w, h: anchor.h };
+      const from = clamp({ x: n.x + n.w / 2, y: n.y + n.h / 2 }, noteRect);
+      const to = clamp(noteMid, n);
+      leader = { x1: from.x, y1: from.y, x2: to.x, y2: to.y };
+    } else if (mid) {
+      const from = clamp(mid, noteRect);
+      leader = { x1: from.x, y1: from.y, x2: mid.x, y2: mid.y };
+    }
+
+    // canvas pad/shift is the renderer's: it recomputes the extent from these
+    // rects exactly as it did when it owned placement, so the move is inert
+    out.push({
+      i: noteIdx, x, y, w, h, lines,
+      leader: leader
+        ? { x1: Math.round(leader.x1), y1: Math.round(leader.y1), x2: Math.round(leader.x2), y2: Math.round(leader.y2) }
+        : undefined,
+    });
+  }
+  }
 
   return {
     positioned: {
       name: view.name,
-      width: Math.max(q(out.width), ...nodes.map((n) => n.x + n.w + 32)),
+      width,
       height, nodes, edges: pEdges, ports, frames,
       zones: pZones,
       flow: graph.flow,
       lines: view.layout.lines ?? "orthogonal",
       noteBoxes,
       chips, badges,
+      notes: pNotes,
     },
     diagnostics,
   };
