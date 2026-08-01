@@ -566,12 +566,29 @@ export async function layoutView(
     return { w, h: lines.length * 15 + 12 };
   };
   const edgeNotes: { i: number; edgeId: string; w: number; h: number }[] = [];
+  // `above`/`below` on a bare anchor join the layout as layer nodes: a plain
+  // node with a directed invisible edge (note→anchor places it above,
+  // anchor→note below — spiked before adoption). The note gets a real layer,
+  // so it can never collide and the next rank makes room instead of being
+  // dodged around. Framed/zoned anchors keep the resolver: a note node inside
+  // a compound would join the compound's layering, which is not what a
+  // human-facing annotation should do to a container's interior.
+  const layerNotes: { i: number; id: string; anchor: string; above: boolean; w: number; h: number }[] = [];
   (view.notes ?? []).forEach((note, i) => {
-    if (note.anchor.kind !== "edge") return;
-    const e = edges.find((x) => x.from === (note.anchor as any).from && x.to === (note.anchor as any).to);
-    if (e) edgeNotes.push({ i, edgeId: e.id, ...noteDims(note.text) });
+    if (note.anchor.kind === "edge") {
+      const e = edges.find((x) => x.from === (note.anchor as any).from && x.to === (note.anchor as any).to);
+      if (e) edgeNotes.push({ i, edgeId: e.id, ...noteDims(note.text) });
+      return;
+    }
+    if (note.anchor.kind !== "relpos") return;
+    const rp = note.anchor.relpos;
+    if (rp !== "above" && rp !== "below") return;
+    const target = note.anchor.target;
+    const n = byPath.get(target);
+    if (!n || n.frame) return;
+    layerNotes.push({ i, id: `note:${i}`, anchor: target, above: rp === "above", ...noteDims(note.text) });
   });
-  const hasElkLabels = elkEdges.some((e) => !!e.label) || edgeNotes.length > 0;
+  const hasElkLabels = elkEdges.some((e) => !!e.label) || edgeNotes.length > 0 || layerNotes.length > 0;
 
   const entityElk = (p: string): any =>
     frameLabels.has(p)
@@ -647,6 +664,9 @@ export async function layoutView(
   };
 
   const children = order.map((p) => (zoneById.has(p) ? zoneElk(zoneById.get(p)!) : entityElk(p)));
+  for (const n of layerNotes)
+    children.push({ id: n.id, width: n.w, height: n.h, layoutOptions: {} });
+
   const elkGraph = {
     id: "root",
     layoutOptions: {
@@ -696,6 +716,12 @@ export async function layoutView(
           : {}),
       })),
       ...scaffold.map((s) => ({ id: s.id, sources: [s.from], targets: [s.to], ...(hasElkLabels ? { labels: [{ text: " ", width: 2, height: spacerH(false) }] } : {}) })),
+      ...layerNotes.map((n) => ({
+        id: `noteedge.${n.i}`,
+        sources: [n.above ? n.id : n.anchor],
+        targets: [n.above ? n.anchor : n.id],
+        ...(hasElkLabels ? { labels: [{ text: " ", width: 2, height: spacerH(false) }] } : {}),
+      })),
     ],
   };
 
@@ -747,13 +773,19 @@ export async function layoutView(
       });
     }
   };
-  for (const c of out.children) walk(c, 0, 0);
+  const noteBoxes = new Map<number, { x: number; y: number; w: number; h: number }>();
+  for (const c of out.children) {
+    if (c.id?.startsWith("note:")) {
+      noteBoxes.set(+c.id.slice(5), { x: q(c.x), y: q(c.y), w: q(c.width), h: q(c.height) });
+      continue;
+    }
+    walk(c, 0, 0);
+  }
   const nodeById = new Map(nodes.map((n) => [n.path, n]));
 
-  const noteBoxes = new Map<number, { x: number; y: number; w: number; h: number }>();
   const elkPositioned = new Map<string, PEdge>(
     out.edges
-      .filter((e: any) => !e.id.startsWith("scaffold."))
+      .filter((e: any) => !e.id.startsWith("scaffold.") && !e.id.startsWith("noteedge."))
       .map((e: any) => {
         const s = e.sections[0];
         const off = containerOffset.get(e.container ?? "root") ?? { x: 0, y: 0 };

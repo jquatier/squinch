@@ -20,10 +20,13 @@ same midpoint can no longer fight over it.
 The other anchors deliberately stay below. `right-of`/`left-of` cannot be
 ELK-native — spiked twice: comment boxes ignore port sides, and in-layer edges
 re-rank their targets even under partitioning — so honouring the authored side
-requires the resolver. Corners are canvas chrome. `above`/`below` *can* be done
-natively (a plain node with a directed invisible edge places correctly, spiked)
-but each note inserts a whole layer, so annotation would reshape rank
-structure; deferred until that trade is wanted.
+requires the resolver. Corners are canvas chrome. `above`/`below` on a *bare* anchor
+are layer nodes now (2026-08): a plain node with a directed invisible edge —
+direction encodes the side — flowing into the same `noteBoxes` reservation the
+edge notes use. The trade (a note inserts a layer) was reviewed on the three
+affected views and accepted: the next rank makes room instead of being dodged.
+Framed/zoned anchors keep the resolver, so an annotation never joins a
+container's internal layering.
 
 ## The policy (the resolver, for everything not reserved)
 
@@ -84,7 +87,14 @@ only notes that had actually slid changed.
 
 ## Known residuals
 
-**Leader lines are not collision-checked.** The note *box* avoids everything;
+**Leader lines are not collision-checked — and will not be.** Decided
+2026-08, favouring less owned code: routing leaders means segment/rect
+intersection plus a detour policy, net-new geometry machinery for a cosmetic
+residual that the layer-note and edge-note conversions have already shrunk
+(their leaders are short verticals now). If a leader ever reads truly wrong,
+reopen with a picture, not a hunch.
+
+**Historical note:** The note *box* avoids everything;
 the dotted line back to its anchor can still cross a label pill or a card. It is
 1px and dotted so it reads as passing behind rather than colliding, but a leader
 crossing a pill can make the pill's text look struck through. Routing leaders is
