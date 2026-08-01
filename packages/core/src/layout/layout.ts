@@ -188,6 +188,19 @@ export async function layoutView(
           fix: `shared: ${shared.join(", ")} · only ${A.id}: ${aOnly.join(", ")} · only ${B.id}: ${bOnly.join(", ")}`,
           loc: view.loc,
         });
+      // Identical member sets pass the partial-overlap test (nothing is
+      // exclusive to either) and then break the nesting pass, which orders
+      // zones by strict containment: neither can be the other's parent, so one
+      // ends up with no geometry and its members render outside it. Found by a
+      // generated-input spike; no hand-written diagram had ever declared the
+      // same boundary twice.
+      else if (!aOnly.length && !bOnly.length)
+        diagnostics.push({
+          severity: "error",
+          message: `zones \`${A.id}\` and \`${B.id}\` contain exactly the same members`,
+          fix: `one boundary cannot sit inside the other: merge them, or give one a narrower \`contains\``,
+          loc: view.loc,
+        });
     }
   // nesting: parent = smallest strictly-containing zone; entity → smallest zone
   const zoneParent = new Map<string, LZone | undefined>();

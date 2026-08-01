@@ -1,7 +1,8 @@
 // Zones (SPEC §Zones): cross-cutting deployment boundaries — a separate
 // hierarchy from ownership, rendered as dashed kind-tinted frames.
 import { describe, it, expect } from "vitest";
-import { buildModel, render } from "../src/index.js";
+import { buildModel, buildProject, render } from "../src/index.js";
+import { layoutView } from "../src/layout/layout.js";
 import { validateSVG } from "../src/render/validate.js";
 
 const BASE = `pack aws
@@ -358,5 +359,35 @@ view v {
     ].find((m) => m[1] === "pg")!;
     const [nx, ny, nw, nh] = node.slice(2, 6).map(Number);
     expect(nx >= zx && ny >= zy && nx + nw <= zx + zw && ny + nh <= zy + zh).toBe(true);
+  });
+
+  it("refuses two zones with identical members", async () => {
+    // Passes the partial-overlap test (nothing is exclusive to either) and
+    // then breaks the nesting pass, which orders zones by strict containment:
+    // neither can parent the other, so one loses its geometry and its members
+    // render outside it. Found by a generated-input spike — no hand-written
+    // diagram had ever declared the same boundary twice.
+    const src = `a = box "A"\nb = box "B"\n` +
+      `zone z0 "Z0" vpc { contains a, b }\nzone z1 "Z1" vpc { contains b, a }\n` +
+      `view v { include * }`;
+    const built = buildProject([{ name: "t.squinch", src }]);
+    const view = built.model.views.find((v) => v.name === "v")!;
+    const { diagnostics } = await layoutView(built.model, view, { metrics: "inter", scale: 1 });
+    const err = diagnostics.find((d) => d.severity === "error");
+    expect(err?.message).toContain("exactly the same members");
+    expect(err?.fix).toContain("merge them");
+  });
+
+  it("still allows proper nesting and disjoint zones", async () => {
+    const mk = (zones: string) => `a = box "A"\nb = box "B"\n${zones}\nview v { include * }`;
+    for (const zones of [
+      `zone z0 "Z0" vpc { contains a, b }\nzone z1 "Z1" network { contains a }`,  // nested
+      `zone z0 "Z0" vpc { contains a }\nzone z1 "Z1" vpc { contains b }`,          // disjoint
+    ]) {
+      const built = buildProject([{ name: "t.squinch", src: mk(zones) }]);
+      const view = built.model.views.find((v) => v.name === "v")!;
+      const { diagnostics } = await layoutView(built.model, view, { metrics: "inter", scale: 1 });
+      expect(diagnostics.filter((d) => d.severity === "error"), zones).toEqual([]);
+    }
   });
 });
