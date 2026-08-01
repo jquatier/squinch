@@ -560,15 +560,41 @@ export function buildProject(files: ProjectFile[]): BuildResult {
       }
     }
     const members: string[] = [];
+    // `contains <zone-id>` is sugar for the inner zone's own members. Zones
+    // nest by *sharing* leaves, and agents reach for naming the inner zone
+    // instead — the diagnostic below `resolve` teaches the expansion, and this
+    // just performs it, which is what that fix text already tells them to type.
+    // Recursive, because the inner zone may itself be written that way; `seen`
+    // makes a cycle (or a zone naming itself) terminate as an empty expansion,
+    // caught downstream by the has-no-members warning.
+    const expandZone = (ref: string, seen: Set<string>): string[] => {
+      if (seen.has(ref)) return [];
+      seen.add(ref);
+      return (zoneMemberNames.get(ref) ?? []).flatMap((m) =>
+        zoneMemberNames.has(m) ? expandZone(m, seen) : [m],
+      );
+    };
+    const viaSugar = new Set<string>();
     for (const c of bodyNode.getChildren("ContainsStmt")) {
       const list = c.getChild("PathList");
       if (!list) continue;
       for (const p of list.getChildren("Path")) {
-        const resolved = resolve(ctx.text(p), "", p, ctx);
-        if (!resolved) continue;
-        if (members.includes(resolved))
-          warn(ctx, p, `\`${resolved}\` listed twice in zone \`${id}\``);
-        else members.push(resolved);
+        const raw = ctx.text(p);
+        const sugar = zoneMemberNames.has(raw);
+        for (const ref of sugar ? expandZone(raw, new Set([id])) : [raw]) {
+          const resolved = resolve(ref, "", p, ctx);
+          if (!resolved) continue;
+          if (members.includes(resolved)) {
+            // an expansion overlapping something listed by hand is nesting
+            // working as designed, not a mistake — only warn when the author
+            // wrote the same leaf twice themselves
+            if (!sugar && !viaSugar.has(resolved))
+              warn(ctx, p, `\`${resolved}\` listed twice in zone \`${id}\``);
+          } else {
+            members.push(resolved);
+            if (sugar) viaSugar.add(resolved);
+          }
+        }
       }
     }
     if (members.length === 0)

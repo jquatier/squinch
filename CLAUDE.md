@@ -163,6 +163,12 @@ The architecture it certified is still enforced by the corpus invariant sweep.
   and commit the SVGs, or CI fails.
 - `cd packages/core && npm run grammar` — regenerate Lezer parser from
   `src/grammar/squinch.grammar`.
+- `pnpm --filter @squinch/core bench` — PLAN §2 budgets, plus drift against
+  `scripts/bench.baseline.json`: medians recorded **per machine** (timings do not
+  compare across them), >25% over your own recorded number fails, sub-5ms
+  measurements report but never gate. `npx tsx scripts/bench.ts
+  --update-baseline` re-records — do it in the same commit as the change that
+  earned the cost. CI has no baseline, so there it is budgets only.
 - `pnpm --filter @squinch/spa dev` — playground on :5180 (`.claude/launch.json`).
 - VS Code extension: <kbd>F5</kbd> ("Run Squinch extension") bundles core + the
   extension and opens `examples/` in a dev host; or

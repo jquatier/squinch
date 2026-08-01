@@ -8,7 +8,20 @@
 // Medians of BENCH_RUNS runs after warmup, so a GC pause on a CI runner
 // doesn't fail the build. Exit 1 on any budget breach.
 //
-//   npx tsx scripts/bench.ts        (run from packages/core)
+// Budgets catch catastrophes; they do not catch creep. `bench.baseline.json`
+// holds recorded medians per machine, and a run on a machine it knows about
+// flags anything more than DRIFT above its own recorded number — the ELK label
+// dummies grew layout 66ms → 86ms across one session, all of it explained, none
+// of it noticed automatically. Timings are not comparable across machines, so a
+// run on an unrecorded one (CI, someone else's laptop) prints the comparison as
+// informational and gates on the absolute budgets only.
+//
+//   npx tsx scripts/bench.ts                     (run from packages/core)
+//   npx tsx scripts/bench.ts --update-baseline   (record this machine)
+import { readFileSync, writeFileSync, existsSync } from "node:fs";
+import { join, dirname } from "node:path";
+import { fileURLToPath } from "node:url";
+import { cpus, platform, arch } from "node:os";
 import { TreeFragment, type ChangedRange } from "@lezer/common";
 // @ts-ignore generated
 import { parser } from "../src/grammar/parser.js";
@@ -112,5 +125,45 @@ for (const [name, med, budget] of results) {
   const ok = med < budget;
   if (!ok) fail = true;
   console.log(`${ok ? "PASS" : "FAIL"}  ${name}: ${med.toFixed(1)}ms (budget ${budget}ms)`);
+}
+
+// ── drift against this machine's recorded medians ────────────────────────────
+const DRIFT = 1.25;
+// below this, a 25% band is scheduler noise: the parse medians are under a
+// millisecond, where one GC pause is a 50% "regression". Reported, never failed.
+const FLOOR_MS = 5;
+const BASELINE = join(dirname(fileURLToPath(import.meta.url)), "bench.baseline.json");
+type Baseline = { note: string; machines: Record<string, Record<string, number>> };
+const machine = `${platform()}-${arch()}-${(cpus()[0]?.model ?? "unknown").replace(/\s+/g, "_")}`;
+const file: Baseline = existsSync(BASELINE)
+  ? JSON.parse(readFileSync(BASELINE, "utf8"))
+  : { note: "medians in ms, per machine; timings do not compare across machines", machines: {} };
+
+if (process.argv.includes("--update-baseline")) {
+  file.machines[machine] = Object.fromEntries(results.map(([n, m]) => [n, +m.toFixed(1)]));
+  writeFileSync(BASELINE, JSON.stringify(file, null, 2) + "\n");
+  console.log(`\nbaseline recorded for ${machine}`);
+} else {
+  const recorded = file.machines[machine];
+  console.log("");
+  if (!recorded) {
+    console.log(`no baseline for ${machine} — budgets only`);
+    console.log(`(record one with \`npx tsx scripts/bench.ts --update-baseline\`)`);
+  } else {
+    for (const [name, med] of results) {
+      const was = recorded[name];
+      if (was === undefined) continue;
+      const ratio = med / was;
+      const drifted = ratio > DRIFT && was >= FLOOR_MS;
+      if (drifted) fail = true;
+      console.log(
+        `${drifted ? "DRIFT" : "  ok "} ${name}: ${med.toFixed(1)}ms vs baseline ${was}ms ` +
+        `(${ratio >= 1 ? "+" : ""}${((ratio - 1) * 100).toFixed(0)}%)` +
+        (was < FLOOR_MS ? " — under the noise floor, not gated" : ""),
+      );
+    }
+    if (fail) console.log(`\nover ${((DRIFT - 1) * 100).toFixed(0)}% slower than recorded. If the ` +
+      `cost is understood and wanted, re-record with --update-baseline in the same commit.`);
+  }
 }
 process.exit(fail ? 1 : 0);

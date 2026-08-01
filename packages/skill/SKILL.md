@@ -125,8 +125,11 @@ Rules that matter:
   zone vnet    "Virtual Network"    network { contains aks, sql }
   ```
 
-  `aks` and `sql` are in both, so `vnet` draws inside `account`. Writing
-  `contains gw, vnet` instead is an error — a zone is not a node.
+  `aks` and `sql` are in both, so `vnet` draws inside `account`. Naming the
+  inner zone — `contains gw, vnet` — is accepted as shorthand for exactly that:
+  it expands to `vnet`'s own members. Sharing is still what the model records,
+  so the two forms are indistinguishable in the render. Everywhere *else* a zone
+  id is an error: you cannot draw an edge to a boundary.
 - **A zone's `kind` already picks its colour**, so two nested zones of related
   kinds (say `network` inside `vpc`) come out nearly the same shade. Set
   `color:` on the inner one to tell them apart.

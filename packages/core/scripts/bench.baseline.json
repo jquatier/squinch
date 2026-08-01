@@ -1,0 +1,10 @@
+{
+  "note": "medians in ms, per machine; timings do not compare across machines",
+  "machines": {
+    "darwin-arm64-Apple_M3": {
+      "full parse": 0.9,
+      "incremental reparse": 0.3,
+      "layout + render": 80.4
+    }
+  }
+}

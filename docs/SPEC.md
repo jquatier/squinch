@@ -145,6 +145,12 @@ visible zones must form a clean hierarchy (nested or disjoint); partial overlap 
 render error naming the offending members. Zones are model facts (deployment truth),
 but only render in views where their members are visible.
 
+Zones nest by **sharing members**, never by naming each other: the outer boundary
+lists the inner one's leaves too. `contains <zone-id>` is sugar for exactly that
+expansion (recursive, and independent of declaration order), so the model records
+shared members either way — `contains` still yields a set of nodes, and a zone id
+remains a hard error anywhere a node is meant, such as an edge endpoint.
+
 For layout, a zone is one unit — like an expanded container, ranks apply to the
 zone as a whole and the engine lays out freely inside it (`rows` can pin a zone
 by its id). A zone that would cut through an expanded container (containing some

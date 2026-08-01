@@ -67,6 +67,62 @@ describe("zones — model", () => {
     expect(empty.diagnostics.some((d) => d.severity === "warning" && d.message.includes("no members"))).toBe(true);
   });
 
+  it("`contains <zone-id>` expands to the inner zone's members", () => {
+    // Two of twenty round-5 agents wrote the outer boundary by naming the inner
+    // one. The diagnostic told them to copy the members; now the language just
+    // does it, which cannot change any existing render — it only makes a source
+    // that used to error legal.
+    const r = buildModel(BASE + `
+zone vpc1 "VPC" vpc { contains ingest, core }
+zone acct "Account" cloud { contains vpc1 }
+`);
+    expect(r.diagnostics.filter((d) => d.severity === "error")).toEqual([]);
+    const acct = r.model.zones.find((z) => z.id === "acct")!;
+    expect(acct.members).toEqual(["ingest", "core"]);
+  });
+
+  it("expansion is recursive, order-free, and mixes with hand-listed members", () => {
+    // the outer zone is normally written *first*, above the zone it names
+    const r = buildModel(BASE + `
+zone acct "Account" cloud { contains vpc1, erp }
+zone vpc1 "VPC" vpc { contains inner }
+zone inner "Inner" network { contains core }
+`);
+    expect(r.diagnostics.filter((d) => d.severity === "error")).toEqual([]);
+    expect(r.model.zones.find((z) => z.id === "acct")!.members).toEqual(["core", "erp"]);
+    // an expansion overlapping a hand-listed member is nesting working, not a
+    // double-listing — no warning
+    const overlap = buildModel(BASE + `
+zone vpc1 "VPC" vpc { contains core }
+zone acct "Account" cloud { contains vpc1, core }
+`);
+    expect(overlap.diagnostics.filter((d) => d.message.includes("listed twice"))).toEqual([]);
+    expect(overlap.model.zones.find((z) => z.id === "acct")!.members).toEqual(["core"]);
+    // …but writing the same leaf twice yourself still warns
+    const dup = buildModel(BASE + `zone z "Z" vpc { contains core, core }\n`);
+    expect(dup.diagnostics.some((d) => d.message.includes("listed twice"))).toBe(true);
+  });
+
+  it("a zone naming itself, or a cycle, degrades to the empty-zone warning", () => {
+    for (const src of [
+      `zone z "Z" vpc { contains z }`,
+      `zone a "A" vpc { contains b }\nzone b "B" vpc { contains a }`,
+    ]) {
+      const r = buildModel(BASE + src + "\n");
+      expect(r.diagnostics.filter((d) => d.severity === "error")).toEqual([]);
+      expect(r.diagnostics.some((d) => d.message.includes("has no members"))).toBe(true);
+    }
+  });
+
+  it("a zone id is still not a node anywhere else", () => {
+    // sugar in `contains` only — an edge to a boundary stays an error
+    const r = buildModel(BASE + `
+zone vpc1 "VPC" vpc { contains core }
+erp -> vpc1 "nope"
+`);
+    expect(r.diagnostics.some((d) => d.message.includes("is a zone, not a node"))).toBe(true);
+  });
+
   it("duplicate zone ids error", () => {
     const r = buildModel(BASE + `zone z "A" { contains erp }\nzone z "B" { contains core }\n`);
     expect(r.ok).toBe(false);
