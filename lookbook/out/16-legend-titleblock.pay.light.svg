@@ -14,19 +14,19 @@
 <path d="M 138 282 L 132 290 L 126 282" fill="none" stroke="#7C74D9" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
 </g>
 <g>
-<path class="sq-flow" d="M 132 354 L 132 402 Q 132 410 140 410 L 258 410 Q 266 410 266 418 L 266 434" fill="none" stroke="#7C74D9" stroke-width="1.5" stroke-dasharray="6 4"/>
-<path d="M 272 426 L 266 434 L 260 426" fill="none" stroke="#7C74D9" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+<path class="sq-flow" d="M 132 354 L 132 407 Q 132 410 135 410 L 136 410 Q 139 410 139 413 L 139 434" fill="none" stroke="#7C74D9" stroke-width="1.5" stroke-dasharray="6 4"/>
+<path d="M 145 426 L 139 434 L 133 426" fill="none" stroke="#7C74D9" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
 </g>
 <g>
-<path d="M 172 200 L 172 226 Q 172 234 180 234 L 324 234 Q 332 234 332 242 L 332 434" fill="none" stroke="#8A897F" stroke-width="1.5"/>
-<path d="M 332 434 L 338 426 L 326 426 Z" fill="#8A897F"/>
+<path d="M 172 200 L 172 226 Q 172 234 180 234 L 197 234 Q 205 234 205 242 L 205 434" fill="none" stroke="#8A897F" stroke-width="1.5"/>
+<path d="M 205 434 L 211 426 L 199 426 Z" fill="#8A897F"/>
 </g>
 <g>
 <path d="M 172 96 L 172 136" fill="none" stroke="#8A897F" stroke-width="1.5"/>
 <path d="M 172 136 L 178 128 L 166 128 Z" fill="#8A897F"/>
 </g>
 <g>
-<path d="M 299 498 L 299 546 Q 299 554 307 554 L 379 554 Q 387 554 387 562 L 387 578" fill="none" stroke="#8A897F" stroke-width="1.5"/>
+<path d="M 172 498 L 172 546 Q 172 554 180 554 L 379 554 Q 387 554 387 562 L 387 578" fill="none" stroke="#8A897F" stroke-width="1.5"/>
 <path d="M 387 578 L 393 570 L 381 570 Z" fill="#8A897F"/>
 </g>
 <g>
@@ -44,9 +44,9 @@
 <text x="96" y="327" font-size="13" font-weight="500" fill="#1C1C1A">Settlement Queue</text>
 </g>
 <g data-path="pay.w" data-kind="leaf">
-<rect x="199" y="434" width="200" height="64" rx="4" fill="#FFFFFF" stroke="#D8D7D3" stroke-width="1.5"/>
-<clipPath id="clip-sq-aws-lambda-211-446-40"><rect x="211" y="446" width="40" height="40" rx="4"/></clipPath><g clip-path="url(#clip-sq-aws-lambda-211-446-40)"><use href="#sq-aws-lambda" x="211" y="446" width="40" height="40"/></g>
-<text x="263" y="471" font-size="13" font-weight="500" fill="#1C1C1A">Settlement Worker</text>
+<rect x="72" y="434" width="200" height="64" rx="4" fill="#FFFFFF" stroke="#D8D7D3" stroke-width="1.5"/>
+<clipPath id="clip-sq-aws-lambda-84-446-40"><rect x="84" y="446" width="40" height="40" rx="4"/></clipPath><g clip-path="url(#clip-sq-aws-lambda-84-446-40)"><use href="#sq-aws-lambda" x="84" y="446" width="40" height="40"/></g>
+<text x="136" y="471" font-size="13" font-weight="500" fill="#1C1C1A">Settlement Worker</text>
 </g>
 <g data-path="ops" data-kind="context-leaf">
 <rect x="92" y="32" width="160" height="64" rx="4" fill="#FFFFFF" stroke="#D8D7D3" stroke-width="1.5" stroke-dasharray="4 3"/>

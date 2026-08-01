@@ -39,6 +39,9 @@ view overview {
 
 view pay {
   title "Payments internals"
+  // one alignment hint: label dummies join crossing minimization, and without
+  // a spine this small view drifted into a staircase — the DSL's own remedy
+  layout { align api w ledger.db }
   legend auto
   titleblock {
     version: "2026-07"
