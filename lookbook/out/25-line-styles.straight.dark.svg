@@ -8,27 +8,27 @@
 </defs>
 <g>
 <path d="M 260 96 L 112 152" fill="none" stroke="#8D8C84" stroke-width="1.5"/>
-<path d="M 112 152 L 118 144 L 106 144 Z" fill="#8D8C84"/>
+<path d="M 112 152 L 117 143 L 121 155 Z" fill="#8D8C84"/>
 </g>
 <g>
 <path d="M 300 96 L 300 152" fill="none" stroke="#8D8C84" stroke-width="1.5"/>
-<path d="M 300 152 L 306 144 L 294 144 Z" fill="#8D8C84"/>
+<path d="M 300 152 L 294 144 L 306 144 Z" fill="#8D8C84"/>
 </g>
 <g>
 <path d="M 340 96 L 468 152" fill="none" stroke="#8D8C84" stroke-width="1.5"/>
-<path d="M 468 152 L 474 144 L 462 144 Z" fill="#8D8C84"/>
+<path d="M 468 152 L 459 154 L 463 144 Z" fill="#8D8C84"/>
 </g>
 <g>
 <path d="M 112 216 L 270 272" fill="none" stroke="#8D8C84" stroke-width="1.5"/>
-<path d="M 270 272 L 276 264 L 264 264 Z" fill="#8D8C84"/>
+<path d="M 270 272 L 260 275 L 264 263 Z" fill="#8D8C84"/>
 </g>
 <g>
 <path d="M 300 216 L 300 272" fill="none" stroke="#8D8C84" stroke-width="1.5"/>
-<path d="M 300 272 L 306 264 L 294 264 Z" fill="#8D8C84"/>
+<path d="M 300 272 L 294 264 L 306 264 Z" fill="#8D8C84"/>
 </g>
 <g>
 <path d="M 468 216 L 330 272" fill="none" stroke="#8D8C84" stroke-width="1.5"/>
-<path d="M 330 272 L 336 264 L 324 264 Z" fill="#8D8C84"/>
+<path d="M 330 272 L 335 263 L 339 275 Z" fill="#8D8C84"/>
 </g>
 <g data-path="fanout.gw" data-kind="leaf">
 <rect x="220" y="32" width="160" height="64" rx="4" fill="#212124" stroke="#3B3B40" stroke-width="1.5"/>

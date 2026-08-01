@@ -198,10 +198,28 @@ function head(
   prev: { x: number; y: number },
   col: string,
   async: boolean,
+  /** the segment is not axis-aligned, so compute the direction with trig */
+  exact = false,
 ): string {
-  const dx = Math.sign(tip.x - prev.x), dy = Math.sign(tip.y - prev.y);
-  const bx = tip.x - dx * 8, by = tip.y - dy * 8;
-  const p1 = `${bx + dy * 6} ${by + dx * 6}`, p2 = `${bx - dy * 6} ${by - dx * 6}`;
+  let bx: number, by: number, ox: number, oy: number;
+  if (exact) {
+    // A real direction and a real perpendicular. Only `lines: straight` produces
+    // segments that are not axis-aligned, and the axis-aligned maths below
+    // cannot describe them: `Math.sign` collapses any diagonal onto an axis, so
+    // a head on a shallow diagonal came out pointing straight down — 69° off
+    // the line it was supposed to terminate.
+    const len = Math.hypot(tip.x - prev.x, tip.y - prev.y) || 1;
+    const ux = (tip.x - prev.x) / len, uy = (tip.y - prev.y) / len;
+    bx = Math.round(tip.x - ux * 8); by = Math.round(tip.y - uy * 8);
+    ox = Math.round(-uy * 6); oy = Math.round(ux * 6);
+  } else {
+    // Axis-aligned, where `(dy, dx)` happens to be the perpendicular and the
+    // arithmetic stays in whole pixels with no rounding at all.
+    const dx = Math.sign(tip.x - prev.x), dy = Math.sign(tip.y - prev.y);
+    bx = tip.x - dx * 8; by = tip.y - dy * 8;
+    ox = dy * 6; oy = dx * 6;
+  }
+  const p1 = `${bx + ox} ${by + oy}`, p2 = `${bx - ox} ${by - oy}`;
   return async
     ? `<path d="M ${p1} L ${tip.x} ${tip.y} L ${p2}" fill="none" stroke="${col}" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>`
     : `<path d="M ${tip.x} ${tip.y} L ${p1} L ${p2} Z" fill="${col}"/>`;
@@ -215,13 +233,22 @@ function head(
  * documented in SKILL.md, so a diagram could state something the picture then
  * contradicted.
  */
-function arrow(e: PEdge, t: Theme, accent = false): string {
+function arrow(e: PEdge, t: Theme, lines: Positioned["lines"], accent = false): string {
   if (e.heads === "none") return "";
   const n = e.points.length;
   // the head has to travel with the line, or a highlighted hop ends in a grey point
   const col = accent ? t.accent : e.async ? t.asyncEdge : t.edge;
-  const forward = head(e.points[n - 1], e.points[n - 2], col, e.async);
-  return e.heads === "both" ? forward + head(e.points[0], e.points[1], col, e.async) : forward;
+  // `straight` draws first point to last and discards the route in between, so
+  // the head has to take its direction from what is actually drawn. Reading the
+  // route's final segment instead pointed the head along a leg the reader never
+  // sees.
+  const exact = lines === "straight";
+  const before = exact ? e.points[0] : e.points[n - 2];
+  const after = exact ? e.points[n - 1] : e.points[1];
+  const forward = head(e.points[n - 1], before, col, e.async, exact);
+  return e.heads === "both"
+    ? forward + head(e.points[0], after, col, e.async, exact)
+    : forward;
 }
 
 const esc = (s: string) =>
@@ -870,7 +897,7 @@ export function renderSVG(p: Positioned, t: Theme, opts: RenderOpts = {}): strin
         `<path${anim} d="${rc.sk ? rc.sk.path(d) : d}" fill="none" stroke="${col}" stroke-width="${weight}"${dash}${rc.sk ? ` stroke-linecap="round"` : ""}/>`,
       );
     }
-    body.push(arrow(e, t, current));
+    body.push(arrow(e, t, p.lines, current));
     body.push(`</g>`);
   }
 

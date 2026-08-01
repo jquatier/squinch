@@ -110,6 +110,31 @@ describe("line styles", () => {
     }, "v");
   });
 
+  it("the arrowhead points along the line, not along the route underneath", async () => {
+    // `straight` draws first point to last and throws the route away, but the
+    // head took its direction from the route's final segment — and `Math.sign`
+    // then collapsed that onto an axis. A head on a shallow diagonal came out
+    // pointing straight down, 69° off the line it terminated.
+    const svg = await svgOf(src("straight"), "v");
+    const lines = [...svg.matchAll(/<path d="M (\d+) (\d+) L (\d+) (\d+)" fill="none"/g)]
+      .map((m) => m.slice(1).map(Number));
+    const heads = [...svg.matchAll(/<path d="M (\d+) (\d+) L (-?\d+) (-?\d+) L (-?\d+) (-?\d+) Z"/g)]
+      .map((m) => m.slice(1).map(Number));
+    expect(lines.length).toBeGreaterThan(1);
+    expect(heads.length).toBe(lines.length);
+    const deg = (ax: number, ay: number, bx: number, by: number) =>
+      (Math.atan2(by - ay, bx - ax) * 180) / Math.PI;
+    lines.forEach(([x1, y1, x2, y2], i) => {
+      const h = heads[i];
+      const line = deg(x1, y1, x2, y2);
+      const point = deg((h[2] + h[4]) / 2, (h[3] + h[5]) / 2, h[0], h[1]);
+      let off = Math.abs(line - point);
+      if (off > 180) off = 360 - off;
+      // a few degrees of slack for integer rounding; 69° was the bug
+      expect(off, `head ${i} is ${off.toFixed(0)}° off its line`).toBeLessThan(5);
+    });
+  });
+
   it("straight really is straight — no orthogonal jogs", async () => {
     const svg = await svgOf(src("straight"), "v");
     // an orthogonal route turns; a straight one is a single segment per edge
