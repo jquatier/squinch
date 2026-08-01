@@ -36,8 +36,13 @@
   dimensions (tiers `120/160/200/240` and `200/240/280/320`, heights `64`/`88`),
   padding, radii, stroke widths, and the `16` minimum edge stub. Positions are
   ELK's and are whole pixels rather than multiples of 8 — see §1.4.
-  Known exceptions worth normalising: the `spacious` density ladder (`84`), frame
-  padding (`44`) and zone padding (`28`/`20`).
+  Two deliberate exceptions, both container paddings, both holding a label
+  against a border: zone padding is `28` top / `20` sides, and frame padding is
+  `44` top. Each is tuned to seat its label, and rounding them onto the grid only
+  adds slack — 32/16 doubles the zone's top-to-side gap and the boundary reads
+  top-heavy; 48 pushes a frame's contents down without moving its title. Where
+  the grid and a proportion disagree, the proportion wins; the grid exists to
+  serve the drawing, not the reverse.
 - **Radii**: `2 / 4 / 8` (badges / nodes / containers). One scale, no exceptions.
 - **Strokes**: `1 / 1.5 / 2` (hairline dividers / edges & node borders / emphasis).
   Odd widths get half-pixel alignment (§8).

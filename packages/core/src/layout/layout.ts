@@ -473,13 +473,20 @@ export async function layoutView(
     graph.nodes.filter((n) => n.frame === framePath).map((n) => leafChild(n.path));
 
   const density = view.layout.density ?? "comfortable";
-  const SP = { compact: [32, 40], comfortable: [48, 56], spacious: [72, 84] }[density];
+  // On the 8px grid (DESIGN §2), and the ladder is now regular: each step is
+  // +8 between the two spacings. `spacious` was [72,84] — the only rung where
+  // the gap was 12, and the only one off the grid.
+  const SP = { compact: [32, 40], comfortable: [48, 56], spacious: [72, 80] }[density];
 
   const entityElk = (p: string): any =>
     frameLabels.has(p)
       ? {
           id: p,
           layoutOptions: {
+            // Off the grid on purpose, like the zone padding below: 44 is what
+            // seats the frame's title against its top border. 48 pushes the
+            // contents down without moving the title, so the band above the
+            // first row just reads as slack.
             "elk.padding": "[top=44,left=16,bottom=16,right=16]",
             "elk.spacing.nodeNode": "32",
             "elk.layered.spacing.nodeNodeBetweenLayers": "40",
@@ -502,6 +509,13 @@ export async function layoutView(
   const zoneElk = (z: LZone): any => ({
     id: z.id,
     layoutOptions: {
+      // Deliberately off the 8px grid, and staying that way. 28/20 encodes a
+      // proportion — the band above the contents is one notch more than the
+      // sides, enough to seat the label chip without the boundary reading
+      // top-heavy. Rounding them individually onto the grid (32/16) doubles
+      // that gap to 16 and the zone goes lopsided: on-grid, proportionally
+      // wrong. DESIGN §2's rule is about numbers chosen from a deliberate
+      // scale, not arithmetic for its own sake, and this pair is the scale.
       "elk.padding": "[top=28,left=20,bottom=20,right=20]",
       "elk.spacing.nodeNode": String(SP[0]),
       "elk.layered.spacing.nodeNodeBetweenLayers": String(SP[1]),

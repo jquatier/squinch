@@ -36,14 +36,21 @@ if (!label) {
  *  keeps the review small and makes an unexpected mover obvious by its absence
  *  from the pictures rather than by hiding in a hundred of them. */
 const TARGETS: { file: string; views?: string[] }[] = [
-  // `direction right` — the three files that use it
+  // kept — `direction right` now lays out sideways
   { file: "lookbook/cases/04-deep-chain.squinch" },
-  { file: "gauntlet/solutions/09-ml-inference.squinch" },
+  { file: "gauntlet/solutions/09-ml-inference.squinch", views: ["inference"] },
   { file: "gauntlet/solutions/20-multicloud-migration.squinch" },
-  // …and a `direction down` control: the coplanar router is being transposed,
-  // so the down path has to come out byte-identical or the change is wrong
+  // kept — frame padding 44 → 48
+  { file: "lookbook/cases/07-nested-frames.squinch" },
+  { file: "examples/storefront/storefront.squinch", views: ["orders-detail"] },
+  { file: "packages/core/examples/landscape.squinch", views: ["orders-detail"] },
+  // kept — the density ladder is regular at +8
+  { file: "lookbook/cases/15-densities.squinch" },
+  // REVERTED — these must come out identical, which is the point of showing them
+  { file: "lookbook/cases/17-zones.squinch", views: ["landscape"] },
+  { file: "examples/products-api/products-api.squinch" },
+  // untouched control
   { file: "packages/core/examples/orders.squinch" },
-  { file: "lookbook/cases/09-coplanar-row.squinch" },
 ];
 
 const out = join(root, ".compare-tmp", label);
