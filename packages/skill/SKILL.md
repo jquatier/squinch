@@ -72,7 +72,9 @@ system shop "Order Service" {         // systems/containers nest arbitrarily
   }
   legacy = box             "Old Billing" external   // `box` = no icon
   // kinds: `external` (not ours — someone else's system), `datastore` (holds
-  // state), `person` (a human actor). They are semantic, and themes style them.
+  // state), `person` (a human actor). They carry meaning for readers and for
+  // `squinch diff`; they do not change how a node is drawn today. They go on
+  // nodes only — a whole `system` cannot take one.
 
   api -> create                       // sync edge (solid)
   api -> create, get, search          // fan-out

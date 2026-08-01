@@ -1,25 +1,26 @@
 pack aws
 
-// Event source
-producer = box "Order Service"
+// Order event source
+order_service = aws/lambda "Order Service"
 
 // Event bus
-bus = aws/eventbridge "Event Bus"
+event_bus = aws/eventbridge "Order Events"
 
-// Consumers
-email_fn = aws/lambda "Email Notifier"
-email_sns = aws/sns "Email Topic"
+// Email notification path
+email_lambda = aws/lambda "Email Notifier"
+sns = aws/sns "Notification Topic"
 
-analytics_fn = aws/lambda "Analytics Writer"
-lake = aws/s3 "Data Lake" datastore
+// Analytics path
+analytics_lambda = aws/lambda "Analytics Writer"
+data_lake = aws/s3 "Data Lake" datastore
 
 // Dead-letter queue
-dlq = aws/sqs "Dead Letter Queue"
+dlq = aws/sqs "Failed Events DLQ"
 
-// Event flow
-producer ~> bus "order events"
-bus ~> email_fn
-email_fn ~> email_sns
-bus ~> analytics_fn
-analytics_fn ~> lake
-bus ~> dlq "failed events"
+// Asynchronous event flows
+order_service ~> event_bus "order events"
+event_bus ~> email_lambda "order.created"
+email_lambda ~> sns "send email"
+event_bus ~> analytics_lambda "order.created"
+analytics_lambda ~> data_lake "store analytics"
+event_bus ~> dlq "failed events"

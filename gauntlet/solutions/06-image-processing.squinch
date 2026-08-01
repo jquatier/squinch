@@ -1,33 +1,23 @@
-// Serverless image processing pipeline
 pack aws
 
-person user "User"
+person uploader "User"
 
-system pipeline "Image Pipeline" {
-  description: "Serverless image processing"
-  glyph: sys/workflow
+system pipeline "Image Processing Pipeline" {
+  description: "Serverless image analysis"
+  glyph: aws/lambda
 
-  bucket = aws/s3 "Upload Bucket" datastore
-  processor = aws/lambda "Image Processor"
-  vision = aws/rekognition "Rekognition"
-  metadata = aws/dynamodb "Metadata Store" datastore
-  notifications = aws/sns "Notification Topic"
+  bucket = aws/s3 "Image Uploads" datastore
+  processor = aws/lambda "Image Processor" {
+    description: "Analyzes and tags images"
+  }
+  rekognition = aws/rekognition "Rekognition" external
+  metadata = aws/dynamodb "Image Metadata" datastore
+  notifications = aws/sns "Notifications"
 
   bucket ~> processor "S3 event"
-  processor -> vision "analyze image"
-  processor -> metadata "write labels"
+  processor -> rekognition "analyze image"
+  processor -> metadata "store labels"
   processor ~> notifications "publish event"
 }
 
-user -> pipeline.bucket "upload image"
-
-view landscape {
-  title "Image Processing System"
-  include *
-}
-
-view pipeline {
-  layout {
-    rows [bucket] [processor vision] [metadata notifications]
-  }
-}
+uploader -> pipeline.bucket "upload image"

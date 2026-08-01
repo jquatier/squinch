@@ -1,47 +1,25 @@
-// Technology stack diagram using real product logos
+// Stack diagram with product logos
 pack logos
 
 person dev "Developer"
 
-system stack "Application Stack" {
-  frontend = logos/nextdotjs "Next.js Frontend"
-  api = logos/nestjs "NestJS API"
-  db = logos/postgres "PostgreSQL" datastore
-  cache = logos/redis "Redis Cache" datastore
-  events = logos/kafka "Kafka Events"
-  monitor = logos/grafana "Grafana"
+frontend = logos/nextdotjs "Next.js Frontend"
+api = logos/nestjs "NestJS API"
+db = logos/postgres "PostgreSQL" datastore
+cache = logos/redis "Redis Cache" datastore
+events = logos/kafka "Kafka" datastore
+monitor = logos/grafana "Grafana"
+scm = logos/github "GitHub"
+platform = logos/k8s "Kubernetes"
 
-  frontend -> api
-  api -> db
-  api -> cache
-  api ~> events
-  monitor -> api
-  monitor -> db
-}
-
-system devops "DevOps" {
-  github = logos/github "GitHub"
-  k8s = logos/kubernetes "Kubernetes"
-
-  github -> k8s
-}
-
-dev -> devops.github "pushes code"
-devops.k8s -> stack.frontend
-devops.k8s -> stack.api
-
-view landscape {
-  title "Technology Stack"
-  include *
-  layout {
-    rows [dev] [devops] [stack]
-  }
-}
-
-view stack {
-  scope stack
-  layout {
-    rows [frontend] [api monitor] [db events]
-    place cache right-of db
-  }
-}
+dev -> scm "pushes code"
+scm ~> platform "deploys to"
+platform -> frontend
+platform -> api
+frontend -> api
+api -> db
+api -> cache
+api ~> events "publishes events"
+monitor -> api "monitors"
+monitor -> db "monitors"
+monitor -> cache "monitors"

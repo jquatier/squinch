@@ -55,32 +55,30 @@ nothing.
 
 ## Latest round
 
-**Round 8 — 20/20, 17 of 20 clean on the first `check`** (2026-08-01). Round 7
-scored 18; these runs are not deterministic and one prompt either way is noise.
-The mix is the signal, and all three failures were inside a `layout` block:
+**Round 9 — 20/20, 18 of 20 clean on the first `check`** (2026-08-01). The
+structural number is better than the score: **3 of 20 committed solutions still
+carry a `layout` block**, down from most of them. Round 8's rewrite of the loop
+— your edges already encode the tiers, so listing every node in `rows` only
+restates them at the cost of a hard error the moment one disagrees — did what
+two rounds of cookbook rows could not.
 
-- 2× an edge running up the declared bands (`indexer -> index`,
-  `training -> inference`)
-- 1× a `place` contradicting its own row (`rows … [cache db]` with
-  `place cache right-of db`)
+Two prompts failed a first check. One was `runs upward` again. The other opened
+something larger.
 
-**`runs upward` has now led the remaining failures for four rounds**, and two
-rounds of documentation have not moved it. So this round questioned the rule
-instead. It holds: with the declared bands *and* the opposing edge, the layout
-honours neither — ELK breaks the cycle, the banded node lands in the wrong
-place anyway, and the edge takes a six-point detour. Downgrading the error to a
-warning would silently drop a hint and draw an ugly route, so refusing is
-right.
+**A kind on a system.** `system partner "Partner System" external { … }` is C4's
+external system, and SKILL.md's own gloss for the keyword is "not ours —
+someone else's system", so it is exactly what an agent reaches for. The grammar
+takes kinds on nodes only, and it came out as a syntax error pointing at the
+brace. It now names the mistake and offers a copy-pasteable node form.
 
-The real finding is one level up. Feeding round 8's `09-ml-inference` model
-through the engine **with no `layout` block at all** gives a clean, correct
-layout — sources on top, sinks below, zero diagnostics — while the `rows` the
-agent wrote produced an error *and* a worse arrangement. Every failure this
-round came from a `layout` block that was written reflexively, before anything
-was rendered, enumerating every node in the diagram.
+**And the reason it was not simply allowed:** chasing it turned up that
+`external`, `datastore` and `person` are **visually inert**. They parse,
+validate, appear in SPEC §3 ("affect default styling per DESIGN") and DESIGN §3
+("hatched surface variant for `external`") — and render byte-identical to a node
+with no kind at all. Three documented kinds, no implementation. Widening that
+surface onto containers would have meant accepting a second thing that draws
+nothing, so the diagnostic came first. SKILL.md no longer claims themes style
+them.
 
-SKILL.md's loop already said "model first, no layout block"; it was too quiet
-to compete with the urge to lay out tiers by hand. It now says why — your edges
-already encode the tiers and the engine ranks from them — and that listing
-every node in `rows` only restates that, at the cost of a hard error the moment
-one edge disagrees.
+Implementing the kinds is a renderer change touching every committed diagram
+that owns a `datastore`, so it wants its own change and its own before/after.

@@ -1,26 +1,25 @@
-// Azure web application architecture
+// Azure Web Application Architecture
 pack azure
 
 person customer "Customer"
 
 system webapp "Web Application" {
-  description: "Customer-facing web application"
-  tags: #core
+  description: "Azure-hosted web service"
 
-  cdn = azure/front-door "Azure Front Door"
+  frontdoor = azure/front-door "Azure Front Door"
   app = azure/app-services "App Service" {
     description: "Web tier"
   }
-  db = azure/sql "Azure SQL" datastore
+  sql = azure/sql "Azure SQL" datastore
   cache = azure/redis "Redis Cache" datastore
-  secrets = azure/key-vault "Key Vault" external
-  monitor = azure/application-insights "Application Insights" external
+  vault = azure/key-vault "Key Vault"
+  insights = azure/application-insights "Application Insights"
 
-  cdn -> app
-  app -> db "read/write"
+  frontdoor -> app
+  app -> sql
   app -> cache
-  app -> secrets "pull secrets"
-  app ~> monitor "telemetry"
+  app -> vault
+  app ~> insights "telemetry"
 }
 
-customer -> webapp.cdn "access"
+customer -> webapp.frontdoor "accesses application"

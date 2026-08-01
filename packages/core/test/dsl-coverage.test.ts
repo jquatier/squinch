@@ -269,6 +269,22 @@ describe("shapes that parse but that nothing exercised", () => {
     }
   });
 
+  it("names a kind put on a system, instead of derailing on it", () => {
+    // `system partner "Partner System" external` is C4's external system, and
+    // SKILL.md's own gloss for the keyword is "not ours — someone else's
+    // system", so it is what an agent reaches for. Kinds go on nodes only, and
+    // this came out as a syntax error pointing at the brace.
+    const r = buildModel(`pack aws\nsystem partner "Partner System" external {\n description: "x"\n}\n`);
+    const errs = r.diagnostics.filter((d) => d.severity === "error");
+    expect(errs.length).toBe(1); // one mistake, one diagnostic
+    expect(errs[0].message).toContain("kinds belong to nodes");
+    // the fix has to be copy-pasteable, label and all
+    expect(errs[0].fix).toContain(`partner = box "Partner System" external`);
+    // a kind on a node is still perfectly fine
+    expect(buildModel(`system s "S" {\n a = box "Old" external\n}`)
+      .diagnostics.filter((d) => d.severity === "error")).toEqual([]);
+  });
+
   it("names a top-level `layout` block instead of derailing on it", () => {
     // `layout` inside a `system` had a named diagnostic; one level further out
     // did not, so a block at the top of the file produced three bare `syntax
