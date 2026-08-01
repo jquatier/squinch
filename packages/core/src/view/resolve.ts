@@ -288,6 +288,22 @@ export function resolveView(model: SModel, view: SView): ViewGraph {
   for (const e of model.edges) {
     const f = liftIn(e.from, v);
     const t = liftIn(e.to, v);
+    // `f === t` covers two different things. An edge whose ends both lift into
+    // one card is genuinely internal at this altitude and drops on purpose. An
+    // edge a node draws to *itself* is not: it parsed, validated, sits in the
+    // model, and then vanished with nothing said — and a self-edge is the one
+    // shape where "from and to landed in the same place" is what the author
+    // wrote rather than a consequence of altitude.
+    if (f && t && f === t && e.from === e.to) {
+      diagnostics.push({
+        severity: "warning",
+        message: `\`${e.from}\` connects to itself — a self-edge is not drawn`,
+        fix: `say it on the node instead: a \`note right-of ${e.from} "${e.label ?? "…"}"\`, `
+          + `or fold it into the label`,
+        loc: view.loc,
+      });
+      continue;
+    }
     if (!f || !t || f === t) continue;
     const lifted = f !== e.from || t !== e.to;
     if (!lifted) {

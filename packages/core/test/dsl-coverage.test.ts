@@ -296,6 +296,51 @@ describe("shapes that parse but that nothing exercised", () => {
       .toBe(await svgOf(src(`b = aws/dynamodb "B"`), "v"));
   });
 
+  it("warns that a self-edge is not drawn, without touching real lifting", async () => {
+    // `a -> a` parsed, validated, sat in the model and then vanished: the edge
+    // pass drops anything whose ends resolve to one place, which is right for
+    // an edge lifting into a card and wrong for one the author aimed at itself.
+    const selfWarn = async (src: string, view: string) =>
+      ((await render(src, { theme: "light", view })).diagnostics ?? [])
+        .filter((d) => d.message.includes("connects to itself")).length;
+
+    expect(await selfWarn(
+      `pack aws\na = aws/lambda "A"\nb = aws/lambda "B"\na -> b\na -> a "retries"\n` +
+      `view v { include * }`, "v")).toBe(1);
+
+    // …and the legitimate drop stays silent: two nodes inside one system, seen
+    // from the landscape, lift into the same card and that edge is internal.
+    const nested = `pack aws
+system s "S" {
+  a = aws/lambda "A"
+  b = aws/lambda "B"
+  a -> b
+}
+c = aws/lambda "C"
+c -> s.a
+view land { include * }`;
+    expect(await selfWarn(nested, "land")).toBe(0);
+  });
+
+  it("warns on a label long enough to be cut off (DESIGN §3)", () => {
+    // Promised by DESIGN §3 ("lint nudges labels > ~40 chars") and never
+    // implemented. Not a style preference: a label wraps to two lines and is
+    // then ellipsized, so the reader loses text that is still in the source.
+    const of = (label: string) =>
+      buildModel(`pack aws\nsystem s "S" {\n a = aws/lambda "${label}"\n}`)
+        .diagnostics.filter((d) => d.message.includes("cut off"));
+    expect(of("Orders API")).toEqual([]);
+    expect(of("x".repeat(40))).toEqual([]);          // the boundary is inclusive
+    const long = of("Public Partner-Facing Integration Gateway With Rate Limiting");
+    expect(long.length).toBe(1);
+    expect(long[0].severity).toBe("warning");        // a nudge, never a block
+    expect(long[0].message).toContain("60 characters");
+    expect(long[0].fix).toContain("description:");
+    // containers carry labels too
+    expect(buildModel(`system s "${"y".repeat(50)}" {\n a = box "A"\n}`)
+      .diagnostics.filter((d) => d.message.includes("cut off")).length).toBe(1);
+  });
+
   it("warns when a view resolves to nothing, whatever emptied it", async () => {
     // The empty-container case is caught at build time, but that is one cause
     // of many. Found by sweeping legal-but-degenerate inputs after the 0x0

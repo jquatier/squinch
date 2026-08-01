@@ -433,6 +433,23 @@ export function buildProject(files: ProjectFile[]): BuildResult {
     return true;
   });
 
+  // DESIGN §3: "Lint nudges labels > ~40 chars." A label wraps to at most two
+  // lines and is then ellipsized, so past this it is not a styling preference —
+  // the reader loses text that is still in the source, and only a `<title>` or
+  // a hover recovers it. 40 is DESIGN's number and it is well chosen: across
+  // the 456 labels this repo owns, exactly 4 exceed it, all of them in the
+  // lookbook case that exists to stress long labels.
+  const LABEL_MAX = 40;
+  for (const n of [...model.nodes.values(), ...model.containers.values()]) {
+    const label = ("label" in n && n.label) || n.name;
+    if (label.length <= LABEL_MAX) continue;
+    warn(
+      { name: n.file ?? "input" } as Ctx, n.loc,
+      `label is ${label.length} characters — it will be cut off`,
+      "labels wrap to two lines then ellipsize: shorten it and put the detail in `description:`",
+    );
+  }
+
   // An empty container is legal but almost never meant. It still gets an auto
   // view (SPEC §5), and that view has nothing in it — which used to render a
   // 0×0 SVG that `render` called ok and resvg then refused. A cold agent wrote
