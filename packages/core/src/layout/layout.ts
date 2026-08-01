@@ -68,6 +68,16 @@ export interface Positioned {
   zones: PZone[];
   flow?: { label: string; byEdge: Record<string, number[]> };
   lines: "orthogonal" | "curved" | "straight";
+  /** Zone label chips: geometry only — colour is a theme concern and layout
+   *  is theme-free (the adaptive contract shares one layout across palettes).
+   *  Slid along their zone's border to the least-crossed spot, exactly the
+   *  algorithm that lived in svg.ts. */
+  chips: { x: number; y: number; w: number; h: number; label: string; zone: string; icon?: { pack: string; id: string } }[];
+  /** Flow badges, reserved for the FULL flow's step text. Walking a flow
+   *  (`flowStep`) is a viewer concern: the renderer draws the walked subset
+   *  right-aligned inside the reservation, so per-step text changes never move
+   *  or collide with anything. */
+  badges: { edgeId: string; x: number; y: number; w: number; h: number; nums: number[] }[];
   /** Layout-reserved note boxes by view-note index — today the edge-anchored
    *  ones (second inline labels on their own elk edge). The resolver draws a
    *  reserved note exactly here and skips its candidate ladder. */
@@ -896,6 +906,103 @@ export async function layoutView(
   const coplanarById = new Map(coplanarEdges.map((e) => [e.id, e]));
   const pEdges: PEdge[] = edges.map((e) => elkPositioned.get(e.id) ?? coplanarById.get(e.id)!);
 
+  // ── annotation pass: chips and badges are layout citizens ────────────────
+  // Moved verbatim from svg.ts (Positioned consolidation): placement is
+  // geometry, geometry belongs here, and checkLayout can only assert what
+  // Positioned carries. Order is the obstacle registry, as ever: pills
+  // (labelRects) exist, then chips avoid them, then badges avoid both, and the
+  // notes resolver downstream sees all three.
+  const fx = (px: number) => Math.round(px * font.scale);
+  // the DRAWN pill, not the reservation: a reservation can be taller (it
+  // doubles as the gap spacer), and chips/badges historically avoided the
+  // 18-tall pill the renderer draws centred inside it — feeding them the raw
+  // reservation shifted 7 views by 3px at the gate
+  // e.label too, not just labelRect: unlabelled edges carry 2px spacer labels
+  // (the gap-arithmetic trick), and those come back as ghost labelRects. The
+  // renderer always ignored them (`if (!e.label)`); obstacles must too, or a
+  // badge docks to an invisible 2px rect instead of walking its wire.
+  const pillRects = pEdges.filter((e) => e.label && e.labelRect).map((e) => ({
+    x: e.labelRect!.x,
+    y: e.labelRect!.y + Math.round((e.labelRect!.h - 18) / 2),
+    w: e.labelRect!.w, h: 18, edgeId: e.id,
+  }));
+  const hitR = (a: { x: number; y: number; w: number; h: number }, b: { x: number; y: number; w: number; h: number }, m = 4) =>
+    a.x < b.x + b.w + m && a.x + a.w + m > b.x && a.y < b.y + b.h + m && a.y + a.h + m > b.y;
+
+  const chips: Positioned["chips"] = [];
+  {
+    const segs = pEdges.flatMap((e) => {
+      const out: { x: number; y: number; w: number; h: number }[] = [];
+      for (let i = 0; i < e.points.length - 1; i++) {
+        const a = e.points[i], b = e.points[i + 1];
+        out.push({ x: Math.min(a.x, b.x), y: Math.min(a.y, b.y), w: Math.abs(b.x - a.x), h: Math.abs(b.y - a.y) });
+      }
+      return out;
+    });
+    const obstacles = () => [...segs, ...nodes, ...pillRects, ...chips];
+    for (const z of [...pZones].sort((a, b) => a.depth - b.depth)) {
+      const iconW = z.icon ? 26 : 0;
+      const label = fit(z.label, z.w - 48 - iconW, fx(11), "500", font.metrics);
+      const w = Math.round(measure(label, fx(11), "500", font.metrics)) + 16 + iconW;
+      const y = z.labelPos.startsWith("top") ? z.y - 10 : z.y + z.h - 10;
+      const xLo = z.x + 12;
+      const xHi = Math.max(xLo, z.x + z.w - 12 - w);
+      const fromRight = z.labelPos.endsWith("right");
+      let best = { x: fromRight ? xHi : xLo, hits: Infinity };
+      for (let step = 0; ; step++) {
+        const x = fromRight ? xHi - step * 16 : xLo + step * 16;
+        if (x < xLo || x > xHi) break;
+        const rect = { x, y, w, h: 20 };
+        const n = obstacles().filter((o) =>
+          o.x < rect.x + rect.w + 6 && o.x + o.w + 6 > rect.x &&
+          o.y < rect.y + rect.h + 6 && o.y + o.h + 6 > rect.y).length;
+        if (n < best.hits) best = { x, hits: n };
+        if (n === 0) break;
+      }
+      chips.push({ x: best.x, y, w, h: 20, label, zone: z.id, icon: z.icon });
+    }
+  }
+
+  const badges: Positioned["badges"] = [];
+  if (graph.flow) {
+    const pointFromStart = (pts: { x: number; y: number }[], dist: number) => {
+      let remaining = dist;
+      for (let i = 0; i < pts.length - 1; i++) {
+        const a = pts[i], b2 = pts[i + 1];
+        const seg = Math.hypot(b2.x - a.x, b2.y - a.y);
+        if (seg >= remaining)
+          return { x: Math.round(a.x + ((b2.x - a.x) / seg) * remaining), y: Math.round(a.y + ((b2.y - a.y) / seg) * remaining) };
+        remaining -= seg;
+      }
+      return pts[pts.length - 1];
+    };
+    for (const e of pEdges) {
+      const nums = graph.flow.byEdge[e.id] ?? [];
+      if (!nums.length) continue;
+      const total = e.points.reduce(
+        (acc, pt, i) => (i ? acc + Math.hypot(pt.x - e.points[i - 1].x, pt.y - e.points[i - 1].y) : 0), 0);
+      const text = nums.join("·");
+      const rWide = Math.max(9, Math.round(measure(text, fx(10), "500", font.metrics) / 2) + 5);
+      let cx = 0, cy = 0;
+      const docked = pillRects.find((q2) => q2.edgeId === e.id);
+      if (docked) {
+        cx = docked.x - rWide - 4;
+        cy = docked.y + 9;
+      } else {
+        for (const d of [18, 36, 54, 78, 102, 134]) {
+          const pt = pointFromStart(e.points, Math.min(d, total / 2));
+          cx = pt.x; cy = pt.y;
+          const rect = { x: cx - rWide, y: cy - 9, w: rWide * 2, h: 18 };
+          const hit = pillRects.some((q2) => hitR(q2, rect)) ||
+            badges.some((q2) => hitR(q2, rect)) ||
+            nodes.some((n2) => hitR(n2, rect));
+          if (!hit || d >= total / 2) break;
+        }
+      }
+      badges.push({ edgeId: e.id, x: cx - rWide, y: cy - 9, w: rWide * 2, h: 18, nums });
+    }
+  }
+
   // ── channels (SPEC §6 Tier 2): one trunk instead of N crossing lines ─────
   // Several edges into the same target drop to a shared horizontal trunk,
   // run along it, and enter the target as one line. Ours to compute: ELK
@@ -1073,6 +1180,7 @@ export async function layoutView(
       flow: graph.flow,
       lines: view.layout.lines ?? "orthogonal",
       noteBoxes,
+      chips, badges,
     },
     diagnostics,
   };

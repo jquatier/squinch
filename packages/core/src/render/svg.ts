@@ -746,11 +746,6 @@ function computePills(p: Positioned, rc: RC, edgeMatches: (e: PEdge) => boolean)
   return pills;
 }
 
-interface ZoneChip {
-  x: number; y: number; w: number; h: number;
-  label: string; col: string; zone: string;
-  icon?: { pack: string; id: string };
-}
 
 /**
  * Zone label chips straddle their zone's top border. ELK doesn't treat labels
@@ -760,65 +755,26 @@ interface ZoneChip {
  * nodes and pills — falling back to the least-crossed spot. The canvas halo
  * (drawn in chipMarkup) keeps even the fallback legible.
  */
-function placeZoneChips(p: Positioned, rc: RC, t: Theme, pills: Pill[]): ZoneChip[] {
-  const chips: ZoneChip[] = [];
-  // axis-aligned segment bboxes; the corner rounding deviates ≤8px → margin
-  const segs = p.edges.flatMap((e) => {
-    const out: { x: number; y: number; w: number; h: number }[] = [];
-    for (let i = 0; i < e.points.length - 1; i++) {
-      const a = e.points[i], b = e.points[i + 1];
-      out.push({
-        x: Math.min(a.x, b.x), y: Math.min(a.y, b.y),
-        w: Math.abs(b.x - a.x), h: Math.abs(b.y - a.y),
-      });
-    }
-    return out;
-  });
-  const obstacles = () => [...segs, ...p.nodes, ...pills, ...chips];
-  for (const z of [...(p.zones ?? [])].sort((a, b) => a.depth - b.depth)) {
-    const col = zoneColor(z, t);
-    const iconW = z.icon ? 26 : 0; // 20px flush tab + 6px gap (AWS corner-tab look)
-    const label = fit(z.label, z.w - 48 - iconW, rc.fx(11), "500", rc.fam);
-    const w = Math.round(measure(label, rc.fx(11), "500", rc.fam)) + 16 + iconW;
-    // which border the chip straddles, and which way it slides to escape:
-    // left corners slide right, right corners slide left — always along the
-    // border the author chose.
-    const y = z.labelPos.startsWith("top") ? z.y - 10 : z.y + z.h - 10;
-    const xLo = z.x + 12;
-    const xHi = Math.max(xLo, z.x + z.w - 12 - w);
-    const fromRight = z.labelPos.endsWith("right");
-    let best = { x: fromRight ? xHi : xLo, hits: Infinity };
-    for (let step = 0; ; step++) {
-      const x = fromRight ? xHi - step * 16 : xLo + step * 16;
-      if (x < xLo || x > xHi) break;
-      const rect = { x, y, w, h: 20 };
-      const hits = obstacles().filter((o) =>
-        o.x < rect.x + rect.w + 6 && o.x + o.w + 6 > rect.x &&
-        o.y < rect.y + rect.h + 6 && o.y + o.h + 6 > rect.y,
-      ).length;
-      if (hits < best.hits) best = { x, hits };
-      if (hits === 0) break;
-    }
-    chips.push({ x: best.x, y, w, h: 20, label, col, zone: z.id, icon: z.icon });
-  }
-  return chips;
-}
+// placeZoneChips moved to layout.ts (Positioned consolidation): chip geometry
+// is layout's; the colour below is the renderer's.
 
-function chipMarkup(c: ZoneChip, rc: RC, t: Theme): string {
+function chipMarkup(c: Positioned["chips"][number], p: Positioned, rc: RC, t: Theme): string {
+  const zone = (p.zones ?? []).find((z) => z.id === c.zone);
+  const col = zone ? zoneColor(zone, t) : t.muted;
   // halo first: a canvas knockout 3px proud of the chip, so any edge the chip
   // must sit over reads as deliberately interrupted, never collided-with
   const halo = `<rect x="${c.x - 3}" y="${c.y - 3}" width="${c.w + 6}" height="${c.h + 6}" rx="4" fill="${t.canvas}"/>`;
   const chip = rc.sk
     ? `<rect x="${c.x}" y="${c.y}" width="${c.w}" height="${c.h}" rx="2" fill="${t.canvas}"/>` +
-      `<path d="${rc.sk.rect(c.x, c.y, c.w, c.h, { roughness: 0.6, multi: false })}" fill="none" stroke="${c.col}" stroke-width="1"/>`
-    : `<rect x="${c.x}" y="${c.y}" width="${c.w}" height="${c.h}" rx="3" fill="${t.canvas}" stroke="${c.col}" stroke-width="1"/>`;
+      `<path d="${rc.sk.rect(c.x, c.y, c.w, c.h, { roughness: 0.6, multi: false })}" fill="none" stroke="${col}" stroke-width="1"/>`
+    : `<rect x="${c.x}" y="${c.y}" width="${c.w}" height="${c.h}" rx="3" fill="${t.canvas}" stroke="${col}" stroke-width="1"/>`;
   // the icon is a flush, full-height tab on the chip's left edge — the AWS
   // boundary-label convention — never a padded thumbnail floating in the pill
   const icon = c.icon ? iconPlate(c.icon, c.x, c.y, c.h, rc) : "";
   const tx = c.x + 8 + (c.icon ? c.h + 4 : 0);
   return (
     `<g data-kind="zone-chip" data-zone="${esc(c.zone)}">${halo}${chip}${icon}` +
-    `<text x="${tx}" y="${c.y + 14}" font-size="${rc.fx(11)}" font-weight="500" fill="${c.col}">${esc(c.label)}</text></g>`
+    `<text x="${tx}" y="${c.y + 14}" font-size="${rc.fx(11)}" font-weight="500" fill="${col}">${esc(c.label)}</text></g>`
   );
 }
 
@@ -1023,74 +979,36 @@ export function renderSVG(p: Positioned, t: Theme, opts: RenderOpts = {}): strin
   // them. The ordering *is* the obstacle registry — each layer sees what came
   // before it — and notes are the end of the chain, so everything they need is
   // in scope here.
-  const chips = placeZoneChips(p, rc, t, pills);
-  for (const chip of chips) body.push(chipMarkup(chip, rc, t));
+  const chips = p.chips ?? [];
+  for (const chip of chips) body.push(chipMarkup(chip, p, rc, t));
   // flow step badges: numbered circles just after each edge leaves its
   // source, sliding further along the wire past pills, nodes and each other
+  // Badges were reserved by layout for the FULL flow's text; walking a flow
+  // draws the due subset right-aligned inside the reservation, so per-step
+  // text changes never move a badge or collide with anything.
   const placedBadges: { x: number; y: number; w: number; h: number }[] = [];
-  if (p.flow) {
-    const pointFromStart = (pts: { x: number; y: number }[], dist: number) => {
-      let remaining = dist;
-      for (let i = 0; i < pts.length - 1; i++) {
-        const a = pts[i], b2 = pts[i + 1];
-        const seg = Math.hypot(b2.x - a.x, b2.y - a.y);
-        if (seg >= remaining)
-          return {
-            x: Math.round(a.x + ((b2.x - a.x) / seg) * remaining),
-            y: Math.round(a.y + ((b2.y - a.y) / seg) * remaining),
-          };
-        remaining -= seg;
-      }
-      return pts[pts.length - 1];
-    };
-    for (const e of p.edges) {
-      // while walking, a badge only appears once its step is due — an edge
-      // carrying steps 2 and 5 reads "2" until the story reaches 5
-      const nums = (p.flow.byEdge[e.id] ?? []).filter(
-        (s) => !walking || (step !== undefined && s <= step),
-      );
-      if (!nums.length) continue;
-      const total = e.points.reduce(
-        (acc, pt, i) => (i ? acc + Math.hypot(pt.x - e.points[i - 1].x, pt.y - e.points[i - 1].y) : 0),
-        0,
-      );
-      const text = nums.join("·");
-      const rWide = Math.max(9, Math.round(measure(text, rc.fx(10), "500", rc.fam) / 2) + 5);
-      let cx = 0, cy = 0;
-      const docked = pills.find((q2) => q2.edgeId === e.id);
-      if (docked) {
-        // the edge has a label: the badge docks to the pill's left —
-        // "③ record" reads as one unit, and can't collide by construction
-        cx = docked.x - rWide - 4;
-        cy = docked.y + 9;
-      } else {
-        for (const d of [18, 36, 54, 78, 102, 134]) {
-          const pt = pointFromStart(e.points, Math.min(d, total / 2));
-          cx = pt.x; cy = pt.y;
-          const rect = { x: cx - rWide, y: cy - 9, w: rWide * 2, h: 18 };
-          const hit =
-            pills.some((q2) => hits(q2, rect)) ||
-            placedBadges.some((q2) => hits(q2, rect)) ||
-            p.nodes.some((n2) => hits(n2, rect));
-          if (!hit || d >= total / 2) break;
-        }
-      }
-      placedBadges.push({ x: cx - rWide, y: cy - 9, w: rWide * 2, h: 18 });
-      // steps already narrated recede; only the current one stays at full weight
-      const done = walking && step !== undefined && !nums.includes(step);
-      const halo = walking && !done
-        ? `<rect x="${cx - rWide - 3}" y="${cy - 12}" width="${rWide * 2 + 6}" height="24" rx="12" fill="none" stroke="${t.accent}" stroke-width="1.5" opacity="0.45"/>`
-        : "";
-      body.push(
-        `<g data-kind="flow-step"${done ? ` opacity="0.55"` : ""}>` +
-          halo +
-          (rWide > 9
-            ? `<rect x="${cx - rWide}" y="${cy - 9}" width="${rWide * 2}" height="18" rx="9" fill="${t.accent}"/>`
-            : `<circle cx="${cx}" cy="${cy}" r="9" fill="${t.accent}"/>`) +
-          `<text x="${cx}" y="${cy + 4}" text-anchor="middle" font-size="${rc.fx(10)}" font-weight="500" fill="${t.plateText}">${esc(text)}</text></g>`,
-      );
-    }
+  for (const b of p.badges ?? []) {
+    const nums = b.nums.filter((s2) => !walking || (step !== undefined && s2 <= step));
+    if (!nums.length) continue;
+    const text = nums.join("·");
+    const rWide = Math.max(9, Math.round(measure(text, rc.fx(10), "500", rc.fam) / 2) + 5);
+    const cx = b.x + b.w - rWide;
+    const cy = b.y + 9;
+    placedBadges.push({ x: cx - rWide, y: cy - 9, w: rWide * 2, h: 18 });
+    const done = walking && step !== undefined && !nums.includes(step);
+    const halo = walking && !done
+      ? `<rect x="${cx - rWide - 3}" y="${cy - 12}" width="${rWide * 2 + 6}" height="24" rx="12" fill="none" stroke="${t.accent}" stroke-width="1.5" opacity="0.45"/>`
+      : "";
+    body.push(
+      `<g data-kind="flow-step"${done ? ` opacity="0.55"` : ""}>` +
+        halo +
+        (rWide > 9
+          ? `<rect x="${cx - rWide}" y="${cy - 9}" width="${rWide * 2}" height="18" rx="9" fill="${t.accent}"/>`
+          : `<circle cx="${cx}" cy="${cy}" r="9" fill="${t.accent}"/>`) +
+        `<text x="${cx}" y="${cy + 4}" text-anchor="middle" font-size="${rc.fx(10)}" font-weight="500" fill="${t.plateText}">${esc(text)}</text></g>`,
+    );
   }
+
   let height = Math.max(p.height, ...pills.map((pl) => pl.y + pl.h + 16));
 
   // A note anchored to a node on the edge of the diagram lands outside the
