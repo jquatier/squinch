@@ -88,8 +88,18 @@ export function buildProject(files: ProjectFile[]): BuildResult {
     let description: string | undefined;
     if (block)
       for (const a of block.getChildren("Attr")) {
-        const key = ctx.text(a.getChild("Ident")!);
-        const v = a.getChild("Value")!;
+        // Both halves are optional in a *partial* parse, which is the state the
+        // editor is in for most of the time anyone is typing: `tags:` with the
+        // value not written yet leaves an Attr with no Value, and `tags` with
+        // no colon leaves one with no Ident. Asserting either non-null threw
+        // `Cannot read properties of null`, killing the build — and with it the
+        // language server, on a keystroke. Same class as the round-4 crash on
+        // `scope`/`title`/`theme`; this pair was missed because nothing had
+        // ever fed the builder a half-written attribute.
+        const identNode = a.getChild("Ident");
+        const v = a.getChild("Value");
+        if (!identNode || !v) continue;
+        const key = ctx.text(identNode);
         const tagNodes = v.getChildren("Tag");
         if (tagNodes.length) tags.push(...tagNodes.map((t) => ctx.text(t).slice(1)));
         else if (key === "description")
@@ -286,7 +296,9 @@ export function buildProject(files: ProjectFile[]): BuildResult {
 
     const top = tree.topNode;
     for (const p of top.getChildren("PackStmt")) {
-      const name = ctx.text(p.getChild("Ident")!);
+      const identNode = p.getChild("Ident"); // `pack` alone, mid-typing
+      if (!identNode) continue;
+      const name = ctx.text(identNode);
       if (!packExists(name)) {
         const s = suggest(name, allPackNames());
         error(ctx, p, `unknown pack \`${name}\``, s ? `did you mean \`${s}\`?` : undefined);
@@ -717,14 +729,19 @@ export function buildProject(files: ProjectFile[]): BuildResult {
     const tb = body.getChildren("TitleBlockStmt")[0];
     if (tb) view.titleblock = attrsOf(ctx, tb.getChild("AttrBlock")).attrs;
     for (const n of body.getChildren("NoteStmt")) {
-      const anchorNode = n.getChild("NoteAnchor")!;
-      const noteText = ctx.str(n.getChild("String")!);
+      // half-typed `note` — anchor and text both arrive later
+      const anchorNode = n.getChild("NoteAnchor");
+      const textNode = n.getChild("String");
+      if (!anchorNode || !textNode) continue;
+      const noteText = ctx.str(textNode);
       const meta = attrsOf(ctx, n.getChild("AttrBlock"));
       let anchor: SNote["anchor"] | undefined;
       const relpos = anchorNode.getChild("RelPos");
       const corner = anchorNode.getChild("Corner");
       if (relpos) {
-        const r = resolve(ctx.text(anchorNode.getChild("Path")!), inScope, anchorNode, ctx);
+        const pathNode = anchorNode.getChild("Path");
+        if (!pathNode) continue; // `note right-of` with the target unwritten
+        const r = resolve(ctx.text(pathNode), inScope, anchorNode, ctx);
         if (r) anchor = { kind: "relpos", relpos: ctx.text(relpos) as any, target: r };
       } else if (corner) {
         anchor = { kind: "corner", corner: ctx.text(corner) as any };
@@ -742,15 +759,17 @@ export function buildProject(files: ProjectFile[]): BuildResult {
       const dir = lb.getChildren("DirectionStmt")[0];
       if (dir) view.layout.direction = ctx.text(dir.lastChild!) as "down" | "right";
       const den = lb.getChildren("DensityStmt")[0];
-      if (den) {
-        const val = ctx.text(den.getChild("Ident")!);
+      const denIdent = den?.getChild("Ident");
+      if (denIdent) {
+        const val = ctx.text(denIdent);
         if (val === "compact" || val === "comfortable" || val === "spacious")
           view.layout.density = val;
         else error(ctx, den, `unknown density \`${val}\``, "use compact | comfortable | spacious");
       }
       const lin = lb.getChildren("LinesStmt")[0];
-      if (lin) {
-        const val = ctx.text(lin.getChild("Ident")!);
+      const linIdent = lin?.getChild("Ident");
+      if (linIdent) {
+        const val = ctx.text(linIdent);
         if (val === "orthogonal" || val === "curved" || val === "straight")
           view.layout.lines = val;
         else error(ctx, lin, `unknown lines style \`${val}\``, "use orthogonal | curved | straight");
@@ -825,11 +844,12 @@ export function buildProject(files: ProjectFile[]): BuildResult {
       for (const pl of lb.getChildren("PlaceStmt")) {
         const [a, b] = pl.getChildren("Path");
         const node = resolve(ctx.text(a), inScope, a, ctx, { zones: true });
-        const target = resolve(ctx.text(b), inScope, b, ctx, { zones: true });
-        if (node && target)
+        const relposNode = pl.getChild("RelPos");
+        const target = b ? resolve(ctx.text(b), inScope, b, ctx, { zones: true }) : undefined;
+        if (node && target && relposNode)
           view.layout.place.push({
             node, target,
-            relpos: ctx.text(pl.getChild("RelPos")!) as RelPos,
+            relpos: ctx.text(relposNode) as RelPos,
             loc: ctx.loc(pl),
           });
       }
