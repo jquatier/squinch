@@ -478,6 +478,23 @@ export async function layoutView(
     return { from: hint?.fromSide ?? out, to: hint?.toSide ?? into };
   };
 
+  // Coplanar label reservation, straight case (phase 2). A labelled same-rank
+  // pair needs its in-layer gutter to be at least the pill plus breathing room,
+  // and `elk.spacing.individual` honours exactly that (spiked: 48 → 120 on
+  // request) — so even the router's edges get their space from ELK where ELK
+  // owns the dimension. The left node of the pair (model order, which
+  // forceNodeModelOrder makes the in-layer order) carries the override. A pair
+  // that ends up routed around a blocker wastes a little width here; the lane
+  // itself is below the band, where width is free.
+  const coplanarGutter = new Map<string, number>();
+  for (const e of coplanar) {
+    if (!e.label) continue;
+    const need = pillDims(e.label, font).w + 16;
+    const [a, b] = [unitOf(e.from), unitOf(e.to)];
+    const left = order.indexOf(a) <= order.indexOf(b) ? a : b;
+    coplanarGutter.set(left, Math.max(coplanarGutter.get(left) ?? 0, need));
+  }
+
   const leafChild = (p: string) => {
     const n = byPath.get(p)!;
     const { w, h } = sizeOf(n, font);
@@ -490,7 +507,14 @@ export async function layoutView(
         out.push({ id: `${e.id}.dst`, width: 0, height: 0, layoutOptions: { "elk.port.side": SIDE_UP[s.to] } });
       return out;
     });
-    return { id: p, width: w, height: h, ports, layoutOptions: { "elk.portConstraints": "FIXED_SIDE" } };
+    const gutter = coplanarGutter.get(p);
+    return {
+      id: p, width: w, height: h, ports,
+      layoutOptions: {
+        "elk.portConstraints": "FIXED_SIDE",
+        ...(gutter ? { "elk.spacing.individual": `elk.spacing.nodeNode:${gutter}` } : {}),
+      },
+    };
   };
 
   const frameLabels = new Map(graph.frames.map((f) => [f.path, f.label]));
@@ -789,20 +813,38 @@ export async function layoutView(
     );
     const midCross = (n: PNode) => n[cross] + Math.round(n[crossSize] / 2);
     const carry = { label: e.label, async: e.async, animate: e.animate, count: e.count, tags: e.tags, heads: e.heads };
+    // Phase 2: the router owns coplanar geometry, so it reserves and reports
+    // label space the same way ELK does for cross-rank edges — labelRect is
+    // where the pill draws, no search. Straight runs got their gutter widened
+    // at graph build (elk.spacing.individual); lanes are below the band where
+    // width is free.
+    const rectOnRun = (alo: number, ahi: number, c: number) => {
+      if (!e.label) return undefined;
+      const { w } = pillDims(e.label, font);
+      const mid = Math.round((alo + ahi) / 2);
+      const r = pt(mid - Math.round(w / 2), c - 9);
+      return { x: r.x, y: r.y, ...(flowsRight ? { w: 18, h: w } : { w, h: 18 }) };
+    };
     if (!blocked) {
       const c = midCross(a);
       const first = a[along] <= b[along];
       const pts = first
         ? [pt(a[along] + a[alongSize], c), pt(b[along], c)]
         : [pt(a[along], c), pt(b[along] + b[alongSize], c)];
+      const labelRect = first
+        ? rectOnRun(a[along] + a[alongSize], b[along], c)
+        : rectOnRun(b[along] + b[alongSize], a[along], c);
       ports.push(
         { edge: e.id, node: a.path, side: first ? highSide : lowSide, x: pts[0].x, y: pts[0].y },
         { edge: e.id, node: b.path, side: first ? lowSide : highSide, x: pts[1].x, y: pts[1].y },
       );
-      return { id: e.id, from: e.from, to: e.to, ...carry, points: pts };
+      return { id: e.id, from: e.from, to: e.to, ...carry, points: pts, labelRect };
     }
     const bandEdge = Math.max(...nodes.filter((n) => n.rank === a.rank).map((n) => n[cross] + n[crossSize]));
-    const lane = bandEdge + 24 + (laneOf.get(e.id) ?? 0) * 16;
+    // 28 not 16 when lanes carry labels: a pill is 18 tall, and two labelled
+    // lanes at the old pitch would overlap by 2px before margins
+    const lanePitch = coplanar.some((c) => c.label && laneOf.has(c.id)) ? 28 : 16;
+    const lane = bandEdge + 24 + (laneOf.get(e.id) ?? 0) * lanePitch;
     const aA = freePort(a, bandSide, a[along] + Math.round(a[alongSize] / 2));
     const bA = freePort(b, bandSide, b[along] + Math.round(b[alongSize] / 2));
     const pts = [
@@ -813,7 +855,10 @@ export async function layoutView(
       { edge: e.id, node: a.path, side: bandSide, x: pts[0].x, y: pts[0].y },
       { edge: e.id, node: b.path, side: bandSide, x: pts[3].x, y: pts[3].y },
     );
-    return { id: e.id, from: e.from, to: e.to, ...carry, points: pts };
+    return {
+      id: e.id, from: e.from, to: e.to, ...carry, points: pts,
+      labelRect: rectOnRun(Math.min(aA, bA), Math.max(aA, bA), lane),
+    };
   });
 
   const coplanarById = new Map(coplanarEdges.map((e) => [e.id, e]));

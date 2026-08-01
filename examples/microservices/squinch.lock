@@ -1,10 +1,10 @@
 {
   "version": "0.0.0",
   "files": {
-    "microservices.landscape.light.svg": "c5b4ec71c8d73c16",
-    "microservices.landscape.dark.svg": "6692411499a471be",
-    "microservices.catalog.light.svg": "78f17beaa18a72cb",
-    "microservices.catalog.dark.svg": "c323f99d9b22f64f",
+    "microservices.landscape.light.svg": "ebf409890a290816",
+    "microservices.landscape.dark.svg": "e2df139989a8b0d6",
+    "microservices.catalog.light.svg": "58ca15d7220c50d0",
+    "microservices.catalog.dark.svg": "4dcdb0bd2aa5373f",
     "microservices.orders.light.svg": "bfefe003517efcd9",
     "microservices.orders.dark.svg": "305b21702e24a71f",
     "microservices.accounts.light.svg": "3693ef22d5d7d50e",

@@ -143,17 +143,16 @@ same font can pair (`Theme.pairsWith`); type metrics drive layout.
 Key architecture from Phase 0, still binding: same-rank edges bypass ELK and use
 our coplanar router; declared ranks are enforced via invisible scaffold edges; an
 expanded container is one "entity" for ranking, and ELK layers freely inside it.
-The Phase-0 hand-built harness that proved this is retired; only its canonical
-output survives, as a second-implementation oracle
-(`packages/core/test/golden/phase0-canonical.svg`, checked in `golden.test.ts`).
+The Phase-0 hand-built harness that proved this is retired, and its canonical
+oracle followed (2026-08): label-space reservation legitimately moves node
+positions, so second-implementation parity stopped being a meaningful claim.
+The architecture it certified is still enforced by the corpus invariant sweep.
 
 ## Commands
 
 - `pnpm -r test` — every package. Core suite covers model diagnostics, golden SVG
   byte-compare, XML validity, determinism, Phase-0 layout parity. `UPDATE_GOLDEN=1`
-  to rebless goldens after an *intentional* visual change (never touches
-  `phase0-canonical.svg` — that one is a frozen external reference, not ours to
-  rebless).
+  to rebless goldens after an *intentional* visual change.
 - `pnpm -r typecheck` — tsc across packages (CI runs this first).
 - `pnpm --filter @squinch/core build` — required before using the CLI binary.
 - `node packages/cli/bin/squinch.js <cmd>` — the CLI (check/render/icons/init/watch).
