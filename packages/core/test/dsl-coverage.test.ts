@@ -296,6 +296,27 @@ describe("shapes that parse but that nothing exercised", () => {
       .toBe(await svgOf(src(`b = aws/dynamodb "B"`), "v"));
   });
 
+  it("warns on an empty container, and never emits a 0x0 canvas", async () => {
+    // `system p "P" { }` is legal, gets an auto view (SPEC §5), and that view
+    // has nothing in it — which rendered `<svg width="0" height="0">`, called
+    // it ok, and then failed in resvg with "SVG has an invalid size". A cold
+    // agent wrote an empty system as a stand-in for someone else's estate.
+    const r = buildModel(`pack aws\nsystem p "P" external {\n}\ngw = aws/api-gateway "GW"\np -> gw`);
+    expect(r.diagnostics.filter((d) => d.severity === "error")).toEqual([]);
+    const w = r.diagnostics.find((d) => d.severity === "warning");
+    expect(w?.message).toContain("is empty");
+    // the fix is the thing they actually wanted — one opaque box, kind kept
+    expect(w?.fix).toContain(`p = box "P" external`);
+
+    // and the render is a real image either way
+    const out = await render(`system p "P" {\n}`, { theme: "light" });
+    expect(out.ok).toBe(true);
+    const [, ww, hh] = /<svg[^>]*width="(\d+)"[^>]*height="(\d+)"/.exec(out.svg!)!;
+    expect(Number(ww)).toBeGreaterThan(0);
+    expect(Number(hh)).toBeGreaterThan(0);
+    expect(validateSVG(out.svg!).ok).toBe(true);
+  });
+
   it("takes `external` on a system, and only `external`", () => {
     // `system partner "Partner System" external` is C4's external system, and
     // DESIGN §3 hangs the hatched card surface off exactly this. A cold agent

@@ -1,31 +1,34 @@
 pack aws
+pack logos
 
-// On-premises components
-person operator "Operator"
-erp = box "ERP System" {
-  description: "Legacy Oracle-style ERP"
+// On-premises environment
+person ops "Operators"
+erp = sys/database "Legacy ERP" {
+  tags: #onprem
 }
 
-// AWS components
+// AWS cloud environment
 ingest = aws/lambda "Ingestion Lambda" {
-  description: "Processes data from ERP"
+  tags: #cloud
 }
-db = aws/aurora "Aurora Database" datastore
+db = aws/aurora "Aurora Database" datastore {
+  tags: #cloud
+}
 
 // Connections
-operator -> erp "uses"
-erp -> ingest "feeds data"
-ingest -> db "writes to"
+ops -> erp
+erp -> ingest
+ingest -> db
 
-// Deployment zones
-zone onprem "On-Premises Data Center" onprem {
-  contains operator, erp
+// Deployment boundaries
+zone onprem_dc "On-Premises Data Centre" onprem {
+  contains ops, erp
 }
 
 zone aws_cloud "AWS Cloud" cloud {
   contains ingest, db
 }
 
-zone vpc "Production VPC" vpc {
+zone db_vpc "Database VPC" vpc {
   contains db
 }

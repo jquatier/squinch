@@ -202,7 +202,14 @@ for (const p of prompts) {
   }
   if (e.requirePerson && !nodes.some((n) => n.kinds.includes("person") || n.icon?.id === "person"))
     problems.push("no person");
-  if (e.requireExternal && !nodes.some((n) => n.kinds.includes("external")))
+  // a whole `system … external` counts: since containers can carry the kind,
+  // checking leaf nodes alone reported "no external node" for a diagram whose
+  // external thing was the system card
+  if (
+    e.requireExternal
+    && !nodes.some((n) => n.kinds.includes("external"))
+    && ![...m.containers.values()].some((c) => c.kinds.includes("external"))
+  )
     problems.push("no external node");
   if (e.requireHighlight && !m.views.some((v) => v.highlight.length > 0))
     problems.push("no highlight view");

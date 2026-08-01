@@ -55,30 +55,30 @@ nothing.
 
 ## Latest round
 
-**Round 9 — 20/20, 18 of 20 clean on the first `check`** (2026-08-01). The
-structural number is better than the score: **3 of 20 committed solutions still
-carry a `layout` block**, down from most of them. Round 8's rewrite of the loop
-— your edges already encode the tiers, so listing every node in `rows` only
-restates them at the cost of a hard error the moment one disagrees — did what
-two rounds of cookbook rows could not.
+**Round 10 — 18/20 on the corpus, 17 of 20 clean on the first `check`**
+(2026-08-01). Two solutions were rejected on review, and one of them found a
+bug that had been sitting there since containers existed.
 
-Two prompts failed a first check. One was `runs upward` again. The other opened
-something larger.
+**A view with nothing in it rendered `<svg width="0" height="0">`.** `render`
+called that ok; resvg then refused it outright ("SVG has an invalid size"), so
+`render -o x.png` failed on a file that had just passed `check`. The easy way
+in is an empty container: `system p "P" { }` is legal, gets an auto view
+(SPEC §5), and that view is empty. An agent wrote `system partner "Partner
+System" external { }` as a stand-in for someone else's estate — which is a
+node, not a system, since you are not modelling its insides and there is no
+altitude to descend to. Nothing in the repo had ever done it, so nothing had
+ever caught it. Now `check` warns and names the one-line fix, and the renderer
+never emits a zero-size canvas.
 
-**A kind on a system.** `system partner "Partner System" external { … }` is C4's
-external system, and SKILL.md's own gloss for the keyword is "not ours —
-someone else's system", so it is exactly what an agent reaches for. The grammar
-takes kinds on nodes only, and it came out as a syntax error pointing at the
-brace. It now names the mistake and offers a copy-pasteable node form.
+Not a regression from drawing `external` — an empty *plain* system did exactly
+the same thing. Making `external` legal on a system is only what made the
+spelling reachable.
 
-**And the reason it was not simply allowed:** chasing it turned up that
-`external`, `datastore` and `person` are **visually inert**. They parse,
-validate, appear in SPEC §3 ("affect default styling per DESIGN") and DESIGN §3
-("hatched surface variant for `external`") — and render byte-identical to a node
-with no kind at all. Three documented kinds, no implementation. Widening that
-surface onto containers would have meant accepting a second thing that draws
-nothing, so the diagnostic came first. SKILL.md no longer claims themes style
-them.
+Two scorer/skill gaps behind the other rejection:
 
-Implementing the kinds is a renderer change touching every committed diagram
-that owns a `datastore`, so it wants its own change and its own before/after.
+- `requireExternal` counted leaf nodes only, so a diagram whose external thing
+  was the system card scored "no external node".
+- `05-data-pipeline` drew a Kinesis stream with `->`. SKILL.md said "async
+  flows use `~>`" abstractly; it now names the words that trigger it — stream,
+  queue, topic, event, publishes, emits, feeds — and says a pipeline drawn
+  entirely with `->` is almost always wrong.

@@ -1,11 +1,11 @@
 pack aws
 
-person customer "Customer"
-
+// Top-level API Gateway
 gw = aws/api-gateway "API Gateway"
 
+// Catalog Service
 system catalog "Catalog Service" {
-  description: "Product browsing and search"
+  description: "Product inventory and search"
   glyph: sys/database
 
   api = aws/lambda "Catalog API"
@@ -14,8 +14,9 @@ system catalog "Catalog Service" {
   api -> db
 }
 
+// Checkout Service
 system checkout "Checkout Service" {
-  description: "Shopping cart and orders"
+  description: "Order processing and payment"
   glyph: sys/code
 
   api = aws/lambda "Checkout API"
@@ -24,8 +25,9 @@ system checkout "Checkout Service" {
   api -> db
 }
 
+// Identity Service
 system identity "Identity Service" {
-  description: "Authentication and user profiles"
+  description: "Authentication and user management"
   glyph: sys/lock
 
   api = aws/lambda "Identity API"
@@ -34,17 +36,18 @@ system identity "Identity Service" {
   api -> db
 }
 
-customer -> gw "browse and order"
+// Connections from gateway to services
 gw -> catalog.api
 gw -> checkout.api
 gw -> identity.api
 
+// Landscape view - all services collapsed
 view landscape {
-  title "System Landscape"
+  title "Microservices Landscape"
   include *
 }
 
+// Zoomed view of checkout service
 view checkout {
   scope checkout
-  show descriptions
 }

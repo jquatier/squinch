@@ -1033,6 +1033,16 @@ export function renderSVG(p: Positioned, t: Theme, opts: RenderOpts = {}): strin
     if (bottom > bandY) height = bottom + 16;
   }
 
+  // A view that resolves to nothing laid out to 0×0, and `<svg width="0">` is
+  // not a picture — resvg rejects it outright ("SVG has an invalid size"), so
+  // `render` returned ok and `render -o x.png` then failed. An empty system is
+  // the easy way in: `system p "P" { }` is legal, gets an auto view, and that
+  // view has nothing in it. Emit a real (if blank) canvas instead, so the
+  // output is always a valid image and the *diagnostic* is what tells you the
+  // view is empty.
+  width = Math.max(width, 64);
+  height = Math.max(height, 64);
+
   const L: string[] = [];
   L.push(
     `<svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${height}" viewBox="0 0 ${width} ${height}" font-family="${t.font.css}">`,

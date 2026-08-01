@@ -113,6 +113,10 @@ Rules that matter:
   (corners: top-left default, top-right, bottom-left, bottom-right), and
   `color: ink` (theme roles only — account, network, cloud, neutral, ink,
   muted, accent; never hex).
+- **A system you are not breaking down is a node, not an empty system.**
+  `system partner "Partner System" external { }` gives you a card with nothing
+  behind it and a zoom that goes nowhere; write `partner = box "Partner System"
+  external` instead. `check` warns on any empty container.
 - **Zones nest by sharing members, never by naming each other.** `contains`
   takes nodes only, so an outer boundary repeats the inner one's members:
 
@@ -367,7 +371,11 @@ Short aliases exist for words you would type instead: `gear`→`cog`,
 3. Look at the SVG: tiers read top-to-bottom (or left-to-right), no edge takes a
    baffling detour, async flows (`~>`) are dashed, related things sit together.
 4. Labels are short noun phrases; put detail in `description`, not the label.
-5. Model semantics honestly: async/queued flows use `~>`, request/response uses `->`.
+5. Model semantics honestly: request/response is `->`; anything that queues,
+   buffers or fans out is `~>`. If the prose says stream, queue, topic, event,
+   publishes, emits, feeds, notifies or subscribes — Kinesis, Kafka, SQS, SNS,
+   EventBridge, Service Bus — that edge is `~>`, and a pipeline drawn entirely
+   with `->` is almost always wrong.
 6. **Every actor the prose names is in the diagram.** People are easy to drop:
    "customers browse", "developers push", "an analyst queries" each name a
    `person`, and a stack diagram that draws only the technology has left out

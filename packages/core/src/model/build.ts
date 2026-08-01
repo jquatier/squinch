@@ -433,6 +433,23 @@ export function buildProject(files: ProjectFile[]): BuildResult {
     return true;
   });
 
+  // An empty container is legal but almost never meant. It still gets an auto
+  // view (SPEC §5), and that view has nothing in it — which used to render a
+  // 0×0 SVG that `render` called ok and resvg then refused. A cold agent wrote
+  // `system partner "Partner System" external { }` as a stand-in for someone
+  // else's estate, which is a node, not a system: you are not modelling its
+  // insides, so there is no altitude to descend to.
+  for (const c of model.containers.values()) {
+    if (c.children.length) continue;
+    const label = c.label ? `"${c.label}"` : `"${c.name}"`;
+    warn(
+      { name: c.file ?? "input" } as Ctx, c.loc,
+      `\`${c.kind} ${c.name}\` is empty`,
+      `a ${c.kind} you are not breaking down is a node: `
+        + `\`${c.name} = box ${label}${c.kinds.includes("external") ? " external" : ""}\``,
+    );
+  }
+
   // ── phase C: views ────────────────────────────────────────────────────────
   // flows: chains resolve against the finished namespace AND must walk
   // existing edges — a flow annotates structure, it never creates it

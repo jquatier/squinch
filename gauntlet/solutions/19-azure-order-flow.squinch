@@ -1,33 +1,45 @@
+// Azure Order Flow - shows the numbered path an order takes through the system
 pack azure
 
 person shopper "Shopper"
 
-system order_system "Order System" {
-  glyph: sys/code
+system orders "Order Service" {
+  description: "Handles customer orders"
 
   apim = azure/api-management "API Management"
-  order_fn = azure/functions "Order Function" {
-    description: "Creates order"
+  create_fn = azure/functions "Create Order Function" {
+    description: "Validates and persists orders"
   }
-  cosmos = azure/cosmos "Cosmos DB" datastore
-  bus = azure/service-bus "Service Bus"
-  fulfil_fn = azure/functions "Fulfilment Function" {
-    description: "Processes orders"
+  db = azure/cosmos "Orders DB" datastore
+  bus = azure/service-bus "Order Events" {
+    description: "Event queue"
+  }
+  fulfill_fn = azure/functions "Fulfillment Function" {
+    description: "Processes order fulfillment"
   }
 
-  apim -> order_fn
-  order_fn -> cosmos
-  order_fn ~> bus
-  bus ~> fulfil_fn
+  apim -> create_fn
+  create_fn -> db
+  create_fn ~> bus "order.created"
+  bus ~> fulfill_fn
 }
 
-shopper -> order_system.apim "places order"
+shopper -> orders.apim "places order"
 
-flow order_journey "Order Journey" {
-  shopper -> order_system.apim -> order_system.order_fn -> order_system.cosmos
-  order_system.order_fn ~> order_system.bus ~> order_system.fulfil_fn
+flow order_path "Order Flow" {
+  shopper -> orders.apim
+  orders.apim -> orders.create_fn
+  orders.create_fn -> orders.db
+  orders.create_fn ~> orders.bus
+  orders.bus ~> orders.fulfill_fn
 }
 
-view order_system {
-  show flow order_journey
+view orders {
+  title "Order Processing Flow"
+  show flow order_path
+  show descriptions
+  layout {
+    rows [apim] [create_fn] [db bus] [fulfill_fn]
+    place bus right-of db
+  }
 }

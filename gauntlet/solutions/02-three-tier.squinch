@@ -6,10 +6,10 @@ alb = aws/elb "Application Load Balancer"
 app = aws/fargate "Web Application" {
   description: "ECS Fargate service"
 }
-cache = aws/elasticache "Cache"
+cache = aws/elasticache "Cache" datastore
 db = aws/aurora "Database" datastore
 
 user -> alb "HTTP requests"
 alb -> app
 app -> cache "cache lookup"
-app -> db "query data"
+app -> db "queries"

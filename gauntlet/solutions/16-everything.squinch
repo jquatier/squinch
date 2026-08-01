@@ -1,14 +1,9 @@
 // Order platform architecture
 pack aws
 
-// Actors
+// External actors and edge services
 person customer "Customer"
-
-// Edge infrastructure
-cdn = aws/cloudfront "CloudFront CDN"
-storefront = aws/s3 "Storefront" {
-  description: "Static web app"
-}
+storefront = aws/cloudfront "Storefront"
 
 // API Gateway
 gw = aws/api-gateway "API Gateway"
@@ -19,27 +14,23 @@ system catalog "Catalog Service" {
   glyph: sys/database
 
   handler = aws/lambda "Catalog Handler"
-  db = aws/dynamodb "Catalog DB" datastore
+  db = aws/dynamodb "Catalog Table" datastore
 
   handler -> db
 }
 
 // Orders service
 system orders "Orders Service" {
-  description: "Order management"
+  description: "Order processing"
   glyph: sys/code
   tags: #sensitive
 
-  handler = aws/lambda "Orders Handler" {
-    tags: #sensitive
-  }
-  db = aws/dynamodb "Orders DB" datastore {
-    tags: #sensitive
-  }
-  events = aws/eventbridge "Event Bus"
+  handler = aws/lambda "Orders Handler"
+  db = aws/dynamodb "Orders Table" datastore
+  bus = aws/eventbridge "Order Events"
 
   handler -> db
-  handler ~> events "order events"
+  handler ~> bus "publish events"
 }
 
 // Payments service
@@ -48,51 +39,46 @@ system payments "Payments Service" {
   glyph: sys/lock
   tags: #sensitive
 
-  handler = aws/lambda "Payments Handler" {
-    tags: #sensitive
-  }
-  db = aws/dynamodb "Payments DB" datastore {
-    tags: #sensitive
-  }
+  handler = aws/lambda "Payments Handler"
+  db = aws/dynamodb "Payments Table" datastore
 
   handler -> db
 }
 
 // Fulfilment worker
-fulfilment = aws/lambda "Fulfilment Worker" {
-  description: "Order fulfilment"
-}
+fulfil = aws/lambda "Fulfilment Worker"
 
 // Connections
-customer -> cdn "browses"
-cdn -> storefront
-customer -> gw "API requests"
-gw -> catalog.handler "catalog queries"
-gw -> orders.handler "place order"
-gw -> payments.handler "process payment"
-orders.events ~> fulfilment "consume events"
+customer -> storefront "browse"
+storefront -> gw "API calls"
+gw -> catalog.handler "catalog requests"
+gw -> orders.handler "order requests"
+gw -> payments.handler "payment requests" { tags: #sensitive }
+orders.bus ~> fulfil "consume events"
 
-// Production VPC - contains everything except CDN and storefront
-zone prod_vpc "Production VPC" vpc {
-  contains gw, catalog, orders, payments, fulfilment
+// VPC boundary - contains everything except storefront
+zone prod_vpc "VPC prod" vpc {
+  contains gw, catalog, orders, payments, fulfil
 }
 
-// Views
+// Landscape view - all systems collapsed
 view landscape {
-  title "Order Platform - System Landscape"
+  title "System Landscape"
   include *
+  show descriptions
   titleblock {
     version: "2026-07"
     owner: platform-team
   }
 }
 
+// Orders service zoomed view
 view orders {
-  title "Orders Service - Detail View"
   scope orders
+  highlight #sensitive
   show descriptions
   titleblock {
     version: "2026-07"
-    owner: orders-team
+    owner: team-orders
   }
 }

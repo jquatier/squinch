@@ -1,25 +1,51 @@
-// Stack diagram with product logos
+// Technology stack diagram using real product logos
 pack logos
 
 person dev "Developer"
 
-frontend = logos/nextdotjs "Next.js Frontend"
-api = logos/nestjs "NestJS API"
-db = logos/postgres "PostgreSQL" datastore
-cache = logos/redis "Redis Cache" datastore
-events = logos/kafka "Kafka" datastore
-monitor = logos/grafana "Grafana"
-scm = logos/github "GitHub"
-platform = logos/k8s "Kubernetes"
+system stack "Application Stack" {
+  tags: #core
 
-dev -> scm "pushes code"
-scm ~> platform "deploys to"
-platform -> frontend
-platform -> api
-frontend -> api
-api -> db
-api -> cache
-api ~> events "publishes events"
-monitor -> api "monitors"
-monitor -> db "monitors"
-monitor -> cache "monitors"
+  frontend = logos/nextdotjs "Next.js Frontend"
+  api = logos/nestjs "NestJS API"
+  db = logos/postgres "PostgreSQL" datastore
+  cache = logos/redis "Redis Cache" datastore
+  events = logos/kafka "Kafka" datastore
+  monitor = logos/grafana "Grafana"
+
+  frontend -> api "API requests"
+  api -> db "queries"
+  api -> cache "read/write"
+  api ~> events "publish events"
+  monitor -> api "metrics"
+  monitor -> db "metrics"
+}
+
+system cicd "CI/CD Pipeline" {
+  scm = logos/github "GitHub"
+  runtime = logos/k8s "Kubernetes"
+
+  scm -> runtime "deploys"
+}
+
+dev -> cicd.scm "pushes code"
+cicd.runtime -> stack.frontend "hosts"
+cicd.runtime -> stack.api "hosts"
+
+view landscape {
+  title "Technology Stack Overview"
+  include *
+  layout {
+    rows [dev] [cicd] [stack]
+  }
+}
+
+view stack {
+  scope stack
+  show descriptions
+  layout {
+    rows [frontend] [api monitor] [db cache events]
+    place cache right-of db
+    place events right-of cache
+  }
+}
