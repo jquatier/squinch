@@ -16,8 +16,12 @@ const root = join(dirname(fileURLToPath(import.meta.url)), "..", "..", "..");
 describe("README", () => {
   it("quotes examples/products-api verbatim under `From source to diagram`", () => {
     const readme = readFileSync(join(root, "README.md"), "utf8");
-    const block = /## From source to diagram[\s\S]*?```squinch\n([\s\S]*?)```/.exec(readme);
-    expect(block, "the section or its squinch block is missing").not.toBeNull();
+    // The fence says `kotlin`, not `squinch`: Linguist has no Squinch grammar,
+    // and Kotlin's tokeniser happens to colour this DSL correctly on GitHub (see
+    // the comment above the block in README.md). Accept either, so swapping the
+    // fence back when Linguist ships a grammar does not break this test.
+    const block = /## From source to diagram[\s\S]*?```(?:squinch|kotlin)\n([\s\S]*?)```/.exec(readme);
+    expect(block, "the section or its fenced source block is missing").not.toBeNull();
 
     const source = readFileSync(
       join(root, "examples", "products-api", "products-api.squinch"),

@@ -314,4 +314,53 @@ describe("round-3 gauntlet findings", () => {
     expect(line).toContain("azure/key-vaults");
     expect(line).toContain("azure/key-vault"); // the alias SKILL.md teaches
   });
+
+  // ── render flags that had no coverage ────────────────────────────────────
+
+  it("--adaptive emits one file carrying both palettes", async () => {
+    // `prefers-color-scheme` in one SVG, merged positionally off a single
+    // layout (src/render/adaptive.ts) — so it must be one file, not two, and
+    // it must carry the media query that switches them.
+    const f = join(dir, "adapt.squinch");
+    writeFileSync(f, `a = box "A"\nb = box "B"\na -> b\n`);
+    const o = join(dir, "adapt.svg");
+    expect(await main(["render", f, "--adaptive", "-o", o])).toBe(0);
+    const svg = readFileSync(o, "utf8");
+    expect(svg).toContain("prefers-color-scheme");
+    expect(svg.startsWith("<svg")).toBe(true);
+  });
+
+  it("--theme overrides the theme declared in the file", async () => {
+    // the precedence `--theme dark` depends on: a file-level `theme` is the
+    // default, the flag is the override
+    const f = join(dir, "themed.squinch");
+    writeFileSync(f, `theme dark\na = box "A"\nb = box "B"\na -> b\n`);
+    // the declared theme is the default; --theme is the override
+    const asDeclared = join(dir, "declared.svg");
+    const overridden = join(dir, "over.svg");
+    expect(await main(["render", f, "-o", asDeclared])).toBe(0);
+    expect(await main(["render", f, "--theme", "light", "-o", overridden])).toBe(0);
+    expect(readFileSync(asDeclared, "utf8")).not.toBe(readFileSync(overridden, "utf8"));
+  });
+
+  it("--background is accepted and produces a valid PNG", async () => {
+    // Deliberately not asserting the bytes differ: every theme paints its own
+    // canvas rect, so a PNG of a Squinch diagram is already opaque and the
+    // flag has nothing to show through. The help text used to promise
+    // "default: transparent", which was never true; it now says so.
+    const f = join(dir, "bg.squinch");
+    writeFileSync(f, `a = box "A"\nb = box "B"\na -> b\n`);
+    const p1 = join(dir, "clear.png");
+    const p2 = join(dir, "white.png");
+    expect(await main(["render", f, "-o", p1])).toBe(0);
+    expect(await main(["render", f, "-o", p2, "--background", "#ff0000"])).toBe(0);
+    for (const p of [p1, p2]) expect(readFileSync(p).subarray(1, 4).toString()).toBe("PNG");
+  });
+
+  it("rejects an unknown --theme by name, before rendering anything", async () => {
+    const f = join(dir, "badtheme.squinch");
+    writeFileSync(f, `a = box "A"\nb = box "B"\na -> b\n`);
+    expect(await main(["render", f, "--theme", "drak", "-o", join(dir, "x.svg")])).not.toBe(0);
+    expect(existsSync(join(dir, "x.svg"))).toBe(false);
+  });
 });

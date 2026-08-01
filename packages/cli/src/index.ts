@@ -39,7 +39,8 @@ Render options
   --format <fmt>    svg | png (default: inferred from -o)
   --scale <n>       png only: multiply the diagram's natural size
   --width <px>      png only: exact output width (height follows)
-  --background <c>  png only: flatten onto a colour (default: transparent)
+  --background <c>  png only: flatten onto a colour. Every theme paints its own
+                    canvas, so this only shows through where one does not
   --sync            write every view × theme next to the source, refresh
                     squinch.lock, and print a README <picture> snippet
   --check           verify committed SVGs match the source (CI gate)
@@ -162,10 +163,17 @@ function targets(input: Input): { label: string; view: string | undefined }[] {
 async function renderOne(
   input: Input,
   view: string | undefined,
-  theme: string,
+  /** undefined = let the file's own `theme` decide, then core's default.
+   *  Passing "light" here unconditionally is what made a declared `theme dark`
+   *  a no-op through the CLI: core treats an explicit theme as the *override*
+   *  (dsl-coverage.test.ts pins that precedence), so the CLI was overriding on
+   *  every render. `--sync` is unaffected — it asks for each theme by name. */
+  theme: string | undefined,
   adaptive = false,
 ): Promise<string> {
-  const r = await renderProject(input.files, { ...(view ? { view } : {}), theme, adaptive });
+  const r = await renderProject(input.files, {
+    ...(view ? { view } : {}), ...(theme ? { theme } : {}), adaptive,
+  });
   if (!r.ok) {
     reportDiagnostics(r.diagnostics, false);
     throw new Error(`render failed for view \`${view ?? SOLE}\``);
@@ -265,7 +273,7 @@ async function cmdRender(path: string, flags: Record<string, string | boolean>):
   }
 
   const adaptive = !!flags.adaptive;
-  const svg = await renderOne(input, view ?? viewNames(input)[0], theme ?? "light", adaptive);
+  const svg = await renderOne(input, view ?? viewNames(input)[0], theme, adaptive);
   const out = str(flags.o) ?? str(flags.output);
   // png is inferred from the output extension, so `-o d.png` just works; the
   // explicit --format is for piping, and for saying so when both are present.
