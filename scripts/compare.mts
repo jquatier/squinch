@@ -36,17 +36,14 @@ if (!label) {
  *  keeps the review small and makes an unexpected mover obvious by its absence
  *  from the pictures rather than by hiding in a hundred of them. */
 const TARGETS: { file: string; views?: string[] }[] = [
-  { file: "examples/products-api/products-api.squinch" },
-  { file: "examples/storefront/storefront.squinch", views: ["orders-detail"] },
-  { file: "lookbook/cases/07-nested-frames.squinch" },
-  // `ingest` and `core` are auto views — no committed SVG, so a change there
-  // shows up in no diff at all. Named explicitly for exactly that reason.
-  { file: "lookbook/cases/17-zones.squinch", views: ["landscape", "ingest", "core"] },
-  { file: "packages/core/examples/landscape.squinch", views: ["orders-detail"] },
-  { file: "gauntlet/solutions/11-zones-hybrid.squinch" },
-  { file: "gauntlet/solutions/16-everything.squinch" },
-  { file: "gauntlet/solutions/18-azure-zones.squinch" },
+  // `direction right` — the three files that use it
+  { file: "lookbook/cases/04-deep-chain.squinch" },
+  { file: "gauntlet/solutions/09-ml-inference.squinch" },
   { file: "gauntlet/solutions/20-multicloud-migration.squinch" },
+  // …and a `direction down` control: the coplanar router is being transposed,
+  // so the down path has to come out byte-identical or the change is wrong
+  { file: "packages/core/examples/orders.squinch" },
+  { file: "lookbook/cases/09-coplanar-row.squinch" },
 ];
 
 const out = join(root, ".compare-tmp", label);

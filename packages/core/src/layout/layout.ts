@@ -435,14 +435,22 @@ export async function layoutView(
         loc: r.loc,
       });
   }
+  // Which sides an edge leaves and enters by default. This used to answer
+  // south/north unconditionally, so a `direction right` diagram — laid out in
+  // columns — had every edge forced out of the bottom of one box and into the
+  // top of the next, jogging vertically across a gap meant to be crossed
+  // sideways. `20-multicloud-migration` came out 456px tall for a graph that
+  // fits in 288, and its stubs had nowhere to run, which is where two of the
+  // five DESIGN §4 violations came from.
+  const flowsRight = view.layout.direction === "right";
   const sidesOf = (e: VEdge): { from: Side; to: Side } => {
     const hint =
       routeExact.get(`${e.from}|${e.to}|${e.label}`) ?? routePair.get(`${e.from}|${e.to}`);
-    const down = rank.get(unitOf(e.from))! <= rank.get(unitOf(e.to))!;
-    return {
-      from: hint?.fromSide ?? (down ? "south" : "north"),
-      to: hint?.toSide ?? (down ? "north" : "south"),
-    };
+    const forward = rank.get(unitOf(e.from))! <= rank.get(unitOf(e.to))!;
+    const [out, into]: [Side, Side] = flowsRight
+      ? forward ? ["east", "west"] : ["west", "east"]
+      : forward ? ["south", "north"] : ["north", "south"];
+    return { from: hint?.fromSide ?? out, to: hint?.toSide ?? into };
   };
 
   const leafChild = (p: string) => {
@@ -606,23 +614,45 @@ export async function layoutView(
       }),
   );
 
-  // ── coplanar router (ours): adjacent → straight; blocked → below-band ────
-  // Blocked edges of one rank share the band under it, but never a lane when
-  // their horizontal spans overlap: greedy interval packing, declaration order
+  // ── coplanar router (ours): adjacent → straight; blocked → side-band ─────
+  // Blocked edges of one rank share the band beside it, but never a lane when
+  // their spans overlap: greedy interval packing, declaration order
   // (deterministic), 16px between lanes.
+  //
+  // Written along the rank rather than along x. A rank is a *row* under
+  // `direction down` and a *column* under `direction right`, so the whole
+  // router transposes: `along` is the axis nodes are spread on within a rank,
+  // `cross` is the one the ranks advance on, and the band sits past the rank's
+  // far edge on the cross axis. Under `down` this is exactly the old code —
+  // along = x, cross = y, band below — and must stay byte-identical.
+  const along = flowsRight ? "y" : "x";
+  const cross = flowsRight ? "x" : "y";
+  const alongSize = flowsRight ? "h" : "w";
+  const crossSize = flowsRight ? "w" : "h";
+  /** A point from (along, cross) coordinates, in the axis order SVG wants. */
+  const pt = (a: number, c: number) => (flowsRight ? { x: c, y: a } : { x: a, y: c });
+  /** The side an edge leaves on: past the rank's far edge, on the cross axis. */
+  const bandSide: Side = flowsRight ? "east" : "south";
+  const lowSide: Side = flowsRight ? "north" : "west";
+  const highSide: Side = flowsRight ? "south" : "east";
+
   const laneOf = new Map<string, number>();
   const lanesByRank = new Map<number, { lo: number; hi: number }[][]>();
   for (const e of coplanar) {
     const a = nodeById.get(e.from)!;
     const b = nodeById.get(e.to)!;
-    const [l, r] = a.x <= b.x ? [a, b] : [b, a];
+    const [l, r] = a[along] <= b[along] ? [a, b] : [b, a];
     const isBlocked = nodes.some(
-      (n) => n.path !== a.path && n.path !== b.path && n.rank === a.rank && n.x > l.x && n.x < r.x,
+      (n) => n.path !== a.path && n.path !== b.path && n.rank === a.rank
+        && n[along] > l[along] && n[along] < r[along],
     );
     if (!isBlocked) continue;
-    const span = { lo: Math.min(a.x + a.w / 2, b.x + b.w / 2), hi: Math.max(a.x + a.w / 2, b.x + b.w / 2) };
+    const span = {
+      lo: Math.min(a[along] + a[alongSize] / 2, b[along] + b[alongSize] / 2),
+      hi: Math.max(a[along] + a[alongSize] / 2, b[along] + b[alongSize] / 2),
+    };
     const lanes = lanesByRank.get(a.rank) ?? [];
-    let li = lanes.findIndex((spans) => spans.every((s) => span.hi + 16 <= s.lo || span.lo >= s.hi + 16));
+    let li = lanes.findIndex((spans) => spans.every((sp) => span.hi + 16 <= sp.lo || span.lo >= sp.hi + 16));
     if (li === -1) { li = lanes.length; lanes.push([]); }
     lanes[li].push(span);
     lanesByRank.set(a.rank, lanes);
@@ -632,35 +662,38 @@ export async function layoutView(
   const coplanarEdges: PEdge[] = coplanar.map((e) => {
     const a = nodeById.get(e.from)!;
     const b = nodeById.get(e.to)!;
-    const [l, r] = a.x <= b.x ? [a, b] : [b, a];
+    const [l, r] = a[along] <= b[along] ? [a, b] : [b, a];
     const blocked = nodes.some(
-      (n) => n.path !== a.path && n.path !== b.path && n.rank === a.rank && n.x > l.x && n.x < r.x,
+      (n) => n.path !== a.path && n.path !== b.path && n.rank === a.rank
+        && n[along] > l[along] && n[along] < r[along],
     );
-    const midY = (n: PNode) => n.y + Math.round(n.h / 2);
+    const midCross = (n: PNode) => n[cross] + Math.round(n[crossSize] / 2);
+    const carry = { label: e.label, async: e.async, animate: e.animate, count: e.count, tags: e.tags, heads: e.heads };
     if (!blocked) {
-      const y = midY(a);
-      const pts = a.x <= b.x
-        ? [{ x: a.x + a.w, y }, { x: b.x, y }]
-        : [{ x: a.x, y }, { x: b.x + b.w, y }];
+      const c = midCross(a);
+      const first = a[along] <= b[along];
+      const pts = first
+        ? [pt(a[along] + a[alongSize], c), pt(b[along], c)]
+        : [pt(a[along], c), pt(b[along] + b[alongSize], c)];
       ports.push(
-        { edge: e.id, node: a.path, side: a.x <= b.x ? "east" : "west", x: pts[0].x, y },
-        { edge: e.id, node: b.path, side: a.x <= b.x ? "west" : "east", x: pts[1].x, y },
+        { edge: e.id, node: a.path, side: first ? highSide : lowSide, x: pts[0].x, y: pts[0].y },
+        { edge: e.id, node: b.path, side: first ? lowSide : highSide, x: pts[1].x, y: pts[1].y },
       );
-      return { id: e.id, from: e.from, to: e.to, label: e.label, async: e.async, animate: e.animate, count: e.count, tags: e.tags, heads: e.heads, points: pts };
+      return { id: e.id, from: e.from, to: e.to, ...carry, points: pts };
     }
-    const bandBottom = Math.max(...nodes.filter((n) => n.rank === a.rank).map((n) => n.y + n.h));
-    const lane = bandBottom + 24 + (laneOf.get(e.id) ?? 0) * 16;
-    const ax = a.x + Math.round(a.w / 2);
-    const bx = b.x + Math.round(b.w / 2);
+    const bandEdge = Math.max(...nodes.filter((n) => n.rank === a.rank).map((n) => n[cross] + n[crossSize]));
+    const lane = bandEdge + 24 + (laneOf.get(e.id) ?? 0) * 16;
+    const aA = a[along] + Math.round(a[alongSize] / 2);
+    const bA = b[along] + Math.round(b[alongSize] / 2);
     const pts = [
-      { x: ax, y: a.y + a.h }, { x: ax, y: lane },
-      { x: bx, y: lane }, { x: bx, y: b.y + b.h },
+      pt(aA, a[cross] + a[crossSize]), pt(aA, lane),
+      pt(bA, lane), pt(bA, b[cross] + b[crossSize]),
     ];
     ports.push(
-      { edge: e.id, node: a.path, side: "south", x: ax, y: a.y + a.h },
-      { edge: e.id, node: b.path, side: "south", x: bx, y: b.y + b.h },
+      { edge: e.id, node: a.path, side: bandSide, x: pts[0].x, y: pts[0].y },
+      { edge: e.id, node: b.path, side: bandSide, x: pts[3].x, y: pts[3].y },
     );
-    return { id: e.id, from: e.from, to: e.to, label: e.label, async: e.async, animate: e.animate, count: e.count, tags: e.tags, heads: e.heads, points: pts };
+    return { id: e.id, from: e.from, to: e.to, ...carry, points: pts };
   });
 
   const coplanarById = new Map(coplanarEdges.map((e) => [e.id, e]));
