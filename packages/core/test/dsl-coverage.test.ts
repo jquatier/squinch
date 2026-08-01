@@ -269,6 +269,28 @@ describe("shapes that parse but that nothing exercised", () => {
     }
   });
 
+  it("names a top-level `layout` block instead of derailing on it", () => {
+    // `layout` inside a `system` had a named diagnostic; one level further out
+    // did not, so a block at the top of the file produced three bare `syntax
+    // error near` lines and no fix. A cold agent wrote exactly this.
+    const body = `pack aws\na = aws/lambda "A"\nb = aws/lambda "B"\na -> b\n`;
+    const bare = buildModel(`${body}\nlayout {\n  rows [a] [b]\n}\n`);
+    const errs = bare.diagnostics.filter((d) => d.severity === "error");
+    // one mistake, one diagnostic — the cascade it explains is dropped
+    expect(errs.length).toBe(1);
+    expect(errs[0].message).toContain("top level");
+    expect(errs[0].fix).toContain("view main");
+
+    // when the file already has a view, point at that one by name
+    const withView = buildModel(`${body}view shop { include * }\nlayout {\n  rows [a] [b]\n}\n`);
+    expect(withView.diagnostics.find((d) => d.severity === "error")?.fix)
+      .toContain("view shop");
+
+    // and the legal spelling stays legal
+    const ok = buildModel(`${body}view v { include *\n layout { rows [a] [b] } }\n`);
+    expect(ok.diagnostics.filter((d) => d.severity === "error")).toEqual([]);
+  });
+
   it("declares a person with `= person`, the same node the top-level form builds", () => {
     // `person id "Label"` is a top-level form — `ContainerBody` never accepted
     // it — so the only way to draw a human inside a system was `= box "N"

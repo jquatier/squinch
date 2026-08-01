@@ -1,39 +1,32 @@
-// Event-driven architecture with EventBridge routing to multiple consumers
 pack aws
 
-// Event source (could be upstream services)
-source = box "Order Service" external
-
-// Central event bus
-bus = aws/eventbridge "Order Events"
+// Event-driven order processing system
+bus = aws/eventbridge "EventBridge"
 
 // Email notification path
 email_handler = aws/lambda "Email Notifier"
-notif = aws/sns "Notifications"
+notifications = aws/sns "SNS Topic"
 
 // Analytics path
 analytics_handler = aws/lambda "Analytics Writer"
-lake = aws/s3 "Data Lake" datastore
+datalake = aws/s3 "S3 Data Lake" datastore
 
-// Dead-letter queue for failed events
+// Error handling
 dlq = aws/sqs "Dead Letter Queue"
 
-// Event flow - all async
-source ~> bus "order events"
-bus ~> email_handler "order.created"
-email_handler ~> notif "send email"
-bus ~> analytics_handler "order.*"
-analytics_handler ~> lake "store events"
+// Async flows
+bus ~> email_handler "order events"
+email_handler ~> notifications
 
-// Failed events
-email_handler ~> dlq "failures"
-analytics_handler ~> dlq "failures"
+bus ~> analytics_handler "order events"
+analytics_handler ~> datalake
 
-view main {
+bus ~> dlq "failed events"
+
+view landscape {
   title "Event-Driven Order Processing"
-
+  include *
   layout {
-    rows [source] [bus] [email_handler analytics_handler] [notif lake]
-    place dlq right-of analytics_handler
+    rows [bus] [email_handler analytics_handler] [notifications datalake dlq]
   }
 }

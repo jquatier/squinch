@@ -1,12 +1,10 @@
-// Payments platform architecture
 pack aws
 
-system payments "Payments Platform" {
+system payments "Payment Platform" {
   description: "Payment processing and analytics"
-  glyph: sys/lock
 
   api = aws/lambda "API Handler" {
-    description: "Payment API endpoint"
+    description: "Payment API entry point"
     tags: #pci
   }
 
@@ -16,32 +14,32 @@ system payments "Payments Platform" {
   }
 
   vault = aws/dynamodb "Card Vault" datastore {
-    description: "Encrypted card tokens"
+    description: "Encrypted card data"
     tags: #pci
   }
 
   analytics = aws/lambda "Analytics" {
-    description: "Transaction analytics"
+    description: "Payment analytics processor"
   }
 
   warehouse = aws/redshift "Data Warehouse" datastore {
-    description: "Analytics data store"
+    description: "Analytics and reporting"
   }
 
-  api -> tokenizer "tokenize card"
-  tokenizer -> vault "store token"
-  api -> analytics "log transaction"
-  analytics -> warehouse "aggregate data"
+  api -> tokenizer
+  tokenizer -> vault
+  api -> analytics
+  analytics -> warehouse
 }
 
 view full {
-  title "Payments Platform - Full View"
+  title "Payment Platform - Full Architecture"
   scope payments
   show descriptions
 }
 
 view auditor {
-  title "Payments Platform - PCI Scope"
+  title "Payment Platform - PCI Scope"
   scope payments
   only #pci
   show descriptions

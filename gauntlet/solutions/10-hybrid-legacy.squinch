@@ -1,36 +1,22 @@
-// Hybrid legacy system with on-prem ERP feeding cloud infrastructure
 pack aws
 
-// Human actors
 person admin "Administrator"
 
-// On-premises legacy system
 erp = sys/server "Legacy ERP" external {
-  description: "On-premises ERP system"
+  description: "On-premises system"
 }
 
-// Cloud components
-worker = aws/lambda "Sync Worker" {
-  description: "Synchronizes ERP data"
+sync = aws/lambda "Sync Worker" {
+  description: "Processes ERP data"
 }
 
-db = aws/rds "Database" datastore
+db = aws/rds "RDS Database" datastore
 
 dashboard = sys/app-window "Admin Dashboard" {
   description: "Web application"
 }
 
-// Connections
-erp ~> worker "async feed"
-worker -> db "writes"
-dashboard -> db "reads"
+erp ~> sync "async feed"
+sync -> db
+dashboard -> db
 admin -> dashboard "uses"
-
-// Deployment zones
-zone onprem "On-Premises" onprem {
-  contains erp
-}
-
-zone cloud "AWS Cloud" cloud {
-  contains worker, db, dashboard
-}

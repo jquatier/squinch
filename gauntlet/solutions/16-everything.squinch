@@ -1,94 +1,89 @@
 // Order platform architecture
 pack aws
 
-// External entry point
 person customer "Customer"
+
+// Frontend
 storefront = aws/cloudfront "Storefront"
 
 // API Gateway
-apigw = aws/api-gateway "API Gateway"
+gw = aws/api-gateway "API Gateway"
 
-// Catalog service
+// Services
 system catalog "Catalog Service" {
-  description: "Product browsing"
+  description: "Product catalog"
   glyph: sys/database
 
   handler = aws/lambda "Catalog Handler"
-  db = aws/dynamodb "Catalog DB" datastore
+  db = aws/dynamodb "Products Table" datastore
 
   handler -> db
 }
 
-// Orders service
 system orders "Orders Service" {
   description: "Order processing"
   glyph: sys/code
   tags: #core
 
-  handler = aws/lambda "Orders Handler"
-  db = aws/dynamodb "Orders DB" datastore {
-    tags: #core
+  handler = aws/lambda "Orders Handler" {
+    tags: #sensitive
   }
+  db = aws/dynamodb "Orders Table" datastore {
+    tags: #sensitive
+  }
+  events = aws/eventbridge "Order Events"
 
   handler -> db
+  handler ~> events "publish order"
 }
 
-// Payments service
 system payments "Payments Service" {
   description: "Payment processing"
   glyph: sys/lock
   tags: #sensitive
 
-  handler = aws/lambda "Payments Handler" {
+  handler = aws/lambda "Payment Handler" {
     tags: #sensitive
   }
-  db = aws/dynamodb "Payments DB" datastore {
+  db = aws/dynamodb "Payments Table" datastore {
     tags: #sensitive
   }
 
-  handler -> db {
-    tags: #sensitive
-  }
+  handler -> db
 }
 
-// Event bus and fulfilment
-eventbridge = aws/eventbridge "Event Bus"
+// Fulfilment
 fulfilment = aws/lambda "Fulfilment Worker" {
-  description: "Order fulfilment"
+  description: "Process orders"
 }
 
 // Connections
-customer -> storefront "browses"
-storefront -> apigw "API calls"
-apigw -> catalog.handler
-apigw -> orders.handler
-apigw -> payments.handler {
-  tags: #sensitive
-}
+customer -> storefront "browse"
+storefront -> gw
+gw -> catalog.handler
+gw -> orders.handler
+gw -> payments.handler
+orders.events ~> fulfilment "order created"
 
-orders.handler ~> eventbridge "order events"
-eventbridge ~> fulfilment "consumes"
-
-// Production VPC zone
+// VPC boundary
 zone prod_vpc "Production VPC" vpc {
-  contains apigw, catalog, orders, payments, eventbridge, fulfilment
+  contains gw, catalog, orders, payments, fulfilment
 }
 
-// Landscape view - all top-level entities
+// Views
 view landscape {
   title "Order Platform Landscape"
   include *
-  titleblock {
-    version: "1.0"
-  }
 }
 
-// Zoomed view of orders service
 view orders {
   title "Orders Service Detail"
   scope orders
+  highlight #sensitive
   show descriptions
-  titleblock {
-    version: "1.0"
+
+  layout {
+    direction down
+    density comfortable
   }
 }

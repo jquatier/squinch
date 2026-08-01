@@ -138,6 +138,36 @@ export function buildProject(files: ProjectFile[]): BuildResult {
           `\`layout\` block inside \`${sys}\` — layout hints live in views, not systems`,
           `move it below the system: view ${sys} { layout { … } }`);
       }
+      // The same mistake one level out: a `layout` block at the top of the
+      // file, belonging to no view. It fell through to a bare syntax error
+      // pointing at whatever preceded it, which names neither the problem nor
+      // the fix. `layout` is only ever legal inside a `view`.
+      const containers = tree.topNode.getChildren("Container");
+      const views = tree.topNode.getChildren("View");
+      for (const m of f.src.matchAll(/^[ \t]*layout[ \t]*\{/gm)) {
+        const at = m.index! + (m[0].length - m[0].trimStart().length);
+        if ([...containers, ...views].some((n) => at >= n.from && at < n.to)) continue;
+        // if the file already declares a view, put it there; otherwise name one
+        const first = views[0]?.getChild("Path");
+        const into = first ? ctx.text(first) : "main";
+        error(ctx, ctx.loc({ from: at, to: at + "layout".length } as SyntaxNode),
+          "`layout` block at the top level — layout hints live inside a view",
+          first
+            ? `move it inside \`view ${into}\``
+            : `wrap it: view ${into} { include *  layout { … } }`);
+        // One mistake, one diagnostic. The stray block derails the parser for
+        // the rest of the file, so it also produced a bare `syntax error near`
+        // for every line of itself — noise in front of the message that
+        // actually names the cause.
+        const end = f.src.indexOf("\n}", at);
+        const stop = end === -1 ? f.src.length : end + 2;
+        for (let i = diagnostics.length - 1; i >= 0; i--) {
+          const d = diagnostics[i];
+          if (d.file === ctx.name && d.message.startsWith("syntax error near")
+              && d.loc.from >= at && d.loc.from <= stop)
+            diagnostics.splice(i, 1);
+        }
+      }
     }
 
     /** Declare one node; works at any depth, including the file top level. */

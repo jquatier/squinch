@@ -1,56 +1,69 @@
+// ML Inference System
 pack aws
 
 person client "Client App"
 
-system inference "ML Inference Service" {
-  description: "Real-time predictions"
-  tags: #runtime
+system ml_inference "ML Inference System" {
+  tags: #realtime
 
-  gw = aws/api-gateway "API Gateway"
-  fn = aws/lambda "Inference Handler" {
-    description: "Queries model endpoint"
+  api = aws/api-gateway "API Gateway"
+  infer = aws/lambda "Inference Handler" {
+    description: "Queries model with features"
   }
   features = aws/dynamodb "Feature Store" datastore {
-    description: "Real-time features"
+    description: "Real-time feature lookup"
   }
-  model = aws/sagemaker "Model Endpoint" {
-    description: "Deployed ML model"
+  model = aws/sagemaker "ML Endpoint" {
+    description: "Hosted model inference"
   }
 
-  gw -> fn "inference request"
-  fn -> features "fetch features"
-  fn -> model "predict"
+  api -> infer
+  infer -> features
+  infer -> model
 }
 
 system training "Model Training" {
-  description: "Nightly batch retraining"
   tags: #batch
 
-  job = aws/batch "Training Job" {
-    description: "Retrains model nightly"
+  job = aws/batch "Nightly Retrain Job" {
+    description: "Scheduled model training"
   }
   data = aws/s3 "Training Data" datastore {
-    description: "Historical data"
+    description: "Historical training set"
   }
 
-  job -> data "read training data"
+  job -> data
+  job ~> ml_inference.model "deploys new model"
 }
 
-client -> inference.gw "prediction request"
-training.job ~> inference.model "deploy updated model"
+client -> ml_inference.api "inference request"
 
 view landscape {
-  title "ML Inference Architecture"
+  title "ML System Overview"
   include *
+  show descriptions
+  legend auto
+}
+
+view ml_inference {
+  title "Real-time Inference Path"
+  show descriptions
+  legend auto
+
   layout {
-    rows [client] [training] [inference]
+    rows [api] [infer] [features model]
+    place model right-of features
   }
 }
 
-view inference {
-  scope inference
+view training {
+  title "Batch Training Pipeline"
+  scope training
+  detail ml_inference.model
+  show descriptions
+  legend auto
+
   layout {
-    rows [gw] [fn] [features model]
-    place model right-of features
+    rows [job] [data]
   }
 }

@@ -1,23 +1,30 @@
+// Hybrid estate: on-premises legacy system feeding AWS cloud
 pack aws
 
-person operators "Operators"
-erp = box "Legacy ERP" external
+// On-premises components
+person ops "Operators"
+erp = box "Legacy ERP" external {
+  description: "Oracle-style ERP"
+}
 
+// AWS cloud components
 ingest = aws/lambda "Ingestion Lambda"
-db = aws/aurora "Aurora DB" datastore
+db = aws/aurora "Aurora Database" datastore
 
-operators -> erp "uses"
+// Connections
+ops -> erp "uses"
 erp -> ingest "feeds data"
 ingest -> db "writes"
 
-zone datacenter "On-Premises Data Center" onprem {
-  contains operators, erp
+// Deployment boundaries
+zone onprem "On-Premises Data Center" onprem {
+  contains ops, erp
 }
 
-zone cloud_zone "AWS Cloud" cloud {
+zone cloud "AWS Cloud" cloud {
   contains ingest, db
 }
 
-zone vpc "Production VPC" vpc {
+zone vpc "VPC" vpc {
   contains db
 }

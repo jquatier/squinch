@@ -107,8 +107,11 @@ layout → themed SVG), the CLI (check/render/diff/icons/init/watch + lockfile
 model + Actions), the SPA playground, the VS Code extension + language server,
 four icon packs, and five themes all ship. Phase 3's bar — an agent producing
 clean diagrams from prose using only the skill + CLI — is certified at **20/20
-by independent cold agents** (`gauntlet/README.md` records what each run found;
-round 3's seven defects are why the number alone is not the point).
+by independent cold agents**, most recently at **18/20 clean on the first
+`check`**. `gauntlet/README.md` writes up the latest round only: every round's
+findings land as a code or docs change in the same commit, so the fixes are the
+record. The number is never the point — a round that scores 20/20 and surfaces
+a crash beats one that scores 20/20 and surfaces nothing.
 
 v1.1's DSL is done: zones, flows, tags, channels, cols, align, legend/titleblock,
 plus `only`/`detail` (below). Deliberately *not* built, with reasons recorded: `route … around`/`via`

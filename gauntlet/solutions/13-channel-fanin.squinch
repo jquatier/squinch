@@ -1,13 +1,13 @@
 pack aws
 
 system api "CRUD API" {
-  gw     = aws/api-gateway "API Gateway"
-  create = aws/lambda      "Create Handler"
-  read   = aws/lambda      "Read Handler"
-  update = aws/lambda      "Update Handler"
-  delete = aws/lambda      "Delete Handler"
-  search = aws/lambda      "Search Handler"
-  db     = aws/dynamodb    "Table" datastore
+  gw = aws/api-gateway "API Gateway"
+  create = aws/lambda "Create Handler"
+  read = aws/lambda "Read Handler"
+  update = aws/lambda "Update Handler"
+  delete = aws/lambda "Delete Handler"
+  search = aws/lambda "Search Handler"
+  table = aws/dynamodb "Data Table" datastore
 
   gw -> create
   gw -> read
@@ -15,16 +15,16 @@ system api "CRUD API" {
   gw -> delete
   gw -> search
 
-  create -> db
-  read   -> db
-  update -> db
-  delete -> db
-  search -> db
+  create -> table
+  read -> table
+  update -> table
+  delete -> table
+  search -> table
 }
 
 view api {
   layout {
-    rows [gw] [create read update delete search] [db]
-    channel create, read, update, delete, search -> db
+    rows [gw] [create read update delete search] [table]
+    channel create, read, update, delete, search -> table
   }
 }
