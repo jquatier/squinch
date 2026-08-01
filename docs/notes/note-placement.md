@@ -9,7 +9,23 @@ thing it collided with. Three shipped examples were broken when this was written
 including the golden: a `right-of db` note sat on a context card in
 `microservices`, `storefront` and `landscape` alike.
 
-## The policy
+## Edge-anchored notes are layout citizens (2026-08)
+
+`note on a -> b` no longer goes through the resolver at all: it rides its own
+edge into ELK as a second inline label, the gap is sized for the pill *and* the
+note, and the renderer draws it in the reservation (`Positioned.noteBoxes`,
+same contract as `labelRect`). The two things that used to be placed at the
+same midpoint can no longer fight over it.
+
+The other anchors deliberately stay below. `right-of`/`left-of` cannot be
+ELK-native — spiked twice: comment boxes ignore port sides, and in-layer edges
+re-rank their targets even under partitioning — so honouring the authored side
+requires the resolver. Corners are canvas chrome. `above`/`below` *can* be done
+natively (a plain node with a directed invisible edge places correctly, spiked)
+but each note inserts a whole layer, so annotation would reshape rank
+structure; deferred until that trade is wanted.
+
+## The policy (the resolver, for everything not reserved)
 
 Per note, in declaration order:
 

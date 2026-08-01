@@ -140,6 +140,16 @@ export function checkLayout(p: Positioned, ctx: Ctx = {}): string[] {
         bad.push(`labels of ${labelled[i].id} and ${labelled[j].id} overlap`);
     }
 
+  // ── reserved note boxes (edge-anchored notes) never collide ─────────────
+  for (const [i, r] of p.noteBoxes ?? [])
+    for (const n of nodes)
+      if (overlaps(r as any, n)) bad.push(`note ${i} overlaps node ${n.path}`);
+  for (const [i, r] of p.noteBoxes ?? [])
+    for (const e of labelled)
+      if (e.labelRect && r.x < e.labelRect.x + e.labelRect.w && r.x + r.w > e.labelRect.x
+          && r.y < e.labelRect.y + e.labelRect.h && r.y + r.h > e.labelRect.y)
+        bad.push(`note ${i} overlaps label of ${e.id}`);
+
   // ── port distribution (DESIGN §4) ───────────────────────────────────────
   // "multiple edges on one side spread at even offsets — never stacked into a
   // single point". The one legal exception is a `channel`: merging N sources

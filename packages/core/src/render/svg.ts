@@ -3,7 +3,7 @@
 // artifact under byte-identity tests. Sketch themes swap crisp strokes for
 // seeded rough.js paths and hand-lettered type; light/dark output is
 // byte-for-byte what it was before sketch existed.
-import { fit, measure, type FontFamily } from "../metrics.js";
+import { fit, measure, wrapText, type FontFamily } from "../metrics.js";
 import { FONTS } from "../fonts.generated.js";
 import { iconMeta, packMonochrome } from "../model/packs.js";
 import { iconAsset, symbolId } from "../packs/registry.js";
@@ -273,25 +273,7 @@ const esc = (s: string) =>
 
 /** Greedy word-wrap against the metrics table; ≤maxLines, last line ellipsized. */
 function wrap(rc: RC, text: string, maxPx: number, sizePx: number, maxLines: number): string[] {
-  const words = text.split(" ");
-  const lines: string[] = [];
-  let cur = "";
-  for (const w of words) {
-    const attempt = cur ? `${cur} ${w}` : w;
-    if (measure(attempt, sizePx, "400", rc.fam) <= maxPx) cur = attempt;
-    else {
-      if (cur) lines.push(cur);
-      cur = w;
-      if (lines.length === maxLines - 1) break;
-    }
-  }
-  if (lines.length < maxLines) lines.push(cur);
-  const consumed = lines.join(" ").length;
-  if (consumed < text.length) {
-    const last = lines[lines.length - 1];
-    lines[lines.length - 1] = fit(`${last}${text.slice(consumed)}`, maxPx, sizePx, "400", rc.fam);
-  }
-  return lines;
+  return wrapText(text, maxPx, sizePx, rc.fam, maxLines);
 }
 
 function leaf(n: PNode, rc: RC, opts: RenderOpts, dimmed: boolean, L: string[]) {
@@ -384,7 +366,12 @@ function notes(
   const clear = (r: Rect) =>
     !obstacles.some((o) => hits(o, r)) && !placed.some((q) => hits(q, r));
 
+  let noteIdx = -1;
   for (const note of list) {
+    noteIdx++;
+    // A note the layout reserved space for draws exactly there — the same
+    // contract as labelRect. The candidate ladder never runs for it.
+    const reserved = p.noteBoxes?.get(noteIdx);
     const inner = 176;
     const lines = wrap(rc, note.text, inner, rc.fx(11), 3);
     // integers, like every other rect (DESIGN §8) — `measure` returns a float
@@ -504,6 +491,7 @@ function notes(
     ];
     let x = Math.round(cands[0]?.x ?? 16), y = Math.round(cands[0]?.y ?? 16);
     let found = false;
+    if (reserved) { x = reserved.x; y = reserved.y; found = true; }
     for (const fit of fits) {
       for (const c of cands) {
         const r = { x: Math.round(c.x), y: Math.round(c.y), w, h };

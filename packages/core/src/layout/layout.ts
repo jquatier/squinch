@@ -7,7 +7,7 @@ import ELKModule from "elkjs/lib/elk.bundled.js";
 
 // elkjs ships a CJS class with no construct signature in its types
 const ELK = ELKModule as unknown as { new (): { layout(graph: unknown): Promise<any> } };
-import { fit, measure, type FontFamily } from "../metrics.js";
+import { fit, measure, wrapText, type FontFamily } from "../metrics.js";
 import { resolveView } from "../view/resolve.js";
 import type { VNode, VEdge } from "../view/resolve.js";
 import type { SModel, SView, Side, Diagnostic, RelPos, ZoneColor, ZoneKind, ZoneLabelPos } from "../model/types.js";
@@ -68,6 +68,10 @@ export interface Positioned {
   zones: PZone[];
   flow?: { label: string; byEdge: Record<string, number[]> };
   lines: "orthogonal" | "curved" | "straight";
+  /** Layout-reserved note boxes by view-note index — today the edge-anchored
+   *  ones (second inline labels on their own elk edge). The resolver draws a
+   *  reserved note exactly here and skips its candidate ladder. */
+  noteBoxes?: Map<number, { x: number; y: number; w: number; h: number }>;
 }
 
 // Node width depends on the theme's font (sketch measures hand-lettered
@@ -532,7 +536,28 @@ export async function layoutView(
   // byte-identical to what it rendered before any of this existed. (Gate 1b
   // taught this the hard way — spacers on a label-free canonical example split
   // its routing channels around dummy layers and inflated it 26%.)
-  const hasElkLabels = elkEdges.some((e) => !!e.label);
+  // Edge-anchored notes are layout citizens (the first of the note anchors to
+  // become one): `note on a -> b` rides its own edge into ELK as a second
+  // inline label, so the gap is sized for the pill *and* the note and the two
+  // can never fight over the midpoint — which is exactly where both used to be
+  // placed. The other anchors stay on the render-time resolver: `right-of`/
+  // `left-of` provably cannot be side-controlled in ELK (comment boxes ignore
+  // port sides; in-layer edges re-rank), corners are canvas chrome, and
+  // `above`/`below` would insert whole layers — deferred, recorded in
+  // docs/notes/note-placement.md.
+  const noteDims = (text: string) => {
+    const fx11 = Math.round(11 * font.scale);
+    const lines = wrapText(text, 176, fx11, font.metrics, 3);
+    const w = Math.round(Math.min(200, Math.max(...lines.map((l) => measure(l, fx11, "400", font.metrics))) + 24));
+    return { w, h: lines.length * 15 + 12 };
+  };
+  const edgeNotes: { i: number; edgeId: string; w: number; h: number }[] = [];
+  (view.notes ?? []).forEach((note, i) => {
+    if (note.anchor.kind !== "edge") return;
+    const e = edges.find((x) => x.from === (note.anchor as any).from && x.to === (note.anchor as any).to);
+    if (e) edgeNotes.push({ i, edgeId: e.id, ...noteDims(note.text) });
+  });
+  const hasElkLabels = elkEdges.some((e) => !!e.label) || edgeNotes.length > 0;
 
   const entityElk = (p: string): any =>
     frameLabels.has(p)
@@ -651,7 +676,10 @@ export async function layoutView(
         // gaps come out at exactly the density spacing, and the pill lands
         // centred on its own wire, which is where pills always sat. The label
         // no longer costs anything; it just cannot be collided with.
-        ...(hasElkLabels ? { labels: [labelFor(e)] } : {}),
+        ...(hasElkLabels
+          ? { labels: [labelFor(e), ...edgeNotes.filter((n) => n.edgeId === e.id)
+              .map((n) => ({ text: `note:${n.i}`, width: n.w, height: n.h }))] }
+          : {}),
       })),
       ...scaffold.map((s) => ({ id: s.id, sources: [s.from], targets: [s.to], ...(hasElkLabels ? { labels: [{ text: " ", width: 2, height: spacerH(false) }] } : {}) })),
     ],
@@ -708,6 +736,7 @@ export async function layoutView(
   for (const c of out.children) walk(c, 0, 0);
   const nodeById = new Map(nodes.map((n) => [n.path, n]));
 
+  const noteBoxes = new Map<number, { x: number; y: number; w: number; h: number }>();
   const elkPositioned = new Map<string, PEdge>(
     out.edges
       .filter((e: any) => !e.id.startsWith("scaffold."))
@@ -718,7 +747,10 @@ export async function layoutView(
           (p: any) => ({ x: q(p.x + off.x), y: q(p.y + off.y) }),
         );
         const m = edges.find((me) => me.id === e.id)!;
-        const lab = e.labels?.[0];
+        const noteLabels = (e.labels ?? []).filter((l: any) => String(l.text).startsWith("note:"));
+        for (const l of noteLabels)
+          noteBoxes.set(+String(l.text).slice(5), { x: q(l.x + off.x), y: q(l.y + off.y), w: q(l.width), h: q(l.height) });
+        const lab = (e.labels ?? []).find((l: any) => !String(l.text).startsWith("note:"));
         const labelRect = lab
           ? { x: q(lab.x + off.x), y: q(lab.y + off.y), w: q(lab.width), h: q(lab.height) }
           : undefined;
@@ -1040,6 +1072,7 @@ export async function layoutView(
       zones: pZones,
       flow: graph.flow,
       lines: view.layout.lines ?? "orthogonal",
+      noteBoxes,
     },
     diagnostics,
   };
