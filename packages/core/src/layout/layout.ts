@@ -380,13 +380,20 @@ export async function layoutView(
   for (const e of edges) {
     const a = unitOf(e.from), b = unitOf(e.to);
     if (a === b || !declared.has(a) || !declared.has(b)) continue;
-    if (declared.get(a)! > declared.get(b)!)  // equal ranks are legal (coplanar)
+    if (declared.get(a)! > declared.get(b)!) {
+      // equal ranks are legal (coplanar). Name the *unit* in the fix, not the
+      // endpoint: ranking is per unit, so when an endpoint sits in a zone the
+      // thing the author can actually move is the zone, and telling them to put
+      // a zone member in a row is advice the language does not accept.
+      const named = (endpoint: string, unit: string) =>
+        endpoint === unit ? `\`${endpoint}\`` : `\`${unit}\` (which holds \`${endpoint}\`)`;
       diagnostics.push({
         severity: "error",
         message: `hint conflict: \`${e.from}\` → \`${e.to}\` runs upward — row ${declared.get(a)} to row ${declared.get(b)}`,
-        fix: `put \`${e.to}\` in a row below \`${e.from}\`, or drop one of them from \`rows\``,
+        fix: `put ${named(e.to, b)} in a row below ${named(e.from, a)}, or drop one of them from \`rows\``,
         loc: view.loc,
       });
+    }
   }
 
   const scaffold: { id: string; from: string; to: string }[] = [];

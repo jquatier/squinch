@@ -50,6 +50,49 @@ worth keeping, and the originals remain in git history.
 
 ## Results
 
+**Round 6 — 20/20, and 16 of 20 clean on the first `check`** (2026-08-01), from
+12 in round 5 and 7 in round 4. The `place`/`rows` cluster that dominated round
+5 is gone entirely. One solution was rejected on review rather than on score:
+`15-logos-stack` drew every technology in the prompt and silently dropped
+"Developers", the one human in it, so round 5's solution stays in the corpus.
+
+Four prompts failed a first check, and three of the four were the language
+refusing something reasonable.
+
+**Engine**
+
+1. **`rows` could not pin a zone**, though SPEC §5 says it can: "ranks apply to
+   the zone as a whole … `rows` can pin a zone by its id". `unitOf` mapped a
+   zone id to itself all along, so the engine could always rank one — only
+   `resolve` said otherwise, and it knew nothing but nodes. A documented
+   capability was a hard error, and it cost agents a `check` in three separate
+   rounds (`prod_vpc`, `vnet`, `subnet`). `rows`, `cols` and `place` now take a
+   zone id; everywhere else one is still wrong, since you cannot draw an edge
+   to a boundary and `contains` takes nodes.
+2. **Kind and attr block had to be in one order.** `"L" { tags: #x } datastore`
+   died as a cascade of syntax errors pointing at the brace, with no fix text —
+   three cold agents across two rounds wrote it. The model builder reads both
+   with `getChildren`/`getChild` and never cared about the sequence; only the
+   grammar did. Both orders now parse to the same node.
+3. **A person could not be declared inside a system.** `person id "Label"` is a
+   top-level form — `ContainerBody` never accepted it — so the only spelling
+   was `= box "Name" person`, and what an agent reaches for is `analyst =
+   person "Data Analyst"`. That is now the same node the top-level form builds.
+4. The "runs upward" fix named the endpoint, which since (1) may be a zone
+   member — something `rows` cannot hold. It now names the unit you can
+   actually move: "put `vpc` (which holds `a`) in a row below `gw`".
+
+**Documentation**
+
+5. `runs upward` was two of the four remaining first-failures, and both were the
+   same shape: an observer pointing back up the stack (`mon -> api`). The rule
+   is now stated where an agent reads it *before* writing `rows`, with the two
+   remedies that work — put it in the same band (equal ranks are legal and
+   route side to side), or leave it out and let the engine rank it. The
+   cookbook had two rows for this diagnostic; they are one.
+6. A checklist item for actor coverage, which is what `15-logos-stack` missed:
+   every human the prose names is a `person`, not a box and not omitted.
+
 **Round 5 — 20/20** (2026-08-01), **12 of 20 clean on the first `check`**, up
 from round 4's 7. Zero outside-sandbox reads. The jump is the Phase 0/2/4 doc
 work landing; what is left is more interesting than the score.

@@ -1,17 +1,16 @@
-// Payments service architecture with PCI compliance tagging
 pack aws
 
-system payments "Payments Service" {
-  description: "Payment processing and settlement"
+system payments "Payment Service" {
+  description: "Card payment processing"
   glyph: sys/lock
 
   api = aws/lambda "API Handler" {
-    description: "Accepts payment requests"
+    description: "Payment API endpoint"
     tags: #pci
   }
 
   tokenizer = aws/lambda "Tokenizer" {
-    description: "Tokenizes card data"
+    description: "Card tokenization"
     tags: #pci
   }
 
@@ -21,24 +20,22 @@ system payments "Payments Service" {
   }
 
   queue = aws/sqs "Settlement Queue" {
-    description: "Pending settlements"
+    description: "Payment settlement events"
   }
 
   worker = aws/lambda "Settlement Worker" {
-    description: "Processes settlements"
+    description: "Process settlements"
   }
 
-  api -> tokenizer
-  tokenizer -> vault
-  api ~> queue
+  api -> tokenizer "tokenize card"
+  tokenizer -> vault "store token"
+  api ~> queue "settlement event"
   queue ~> worker
 }
 
 view payments {
   scope payments
   highlight #pci
-  note top-right "PCI scope: tokens stored in encrypted DynamoDB vault" {
-    style: warning
-  }
+  note top-right "Tokens are stored encrypted in the Card Vault DynamoDB table" { style: warning }
   show descriptions
 }

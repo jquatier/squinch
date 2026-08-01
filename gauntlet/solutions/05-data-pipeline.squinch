@@ -1,15 +1,34 @@
+// Clickstream data pipeline
 pack aws
 
-person analysts "Analysts"
+// Human actors
+person analyst "Data Analyst"
 
-stream     = aws/kinesis      "Clickstream"
-transform  = aws/lambda       "Transformer"
-lake       = aws/s3           "Data Lake" datastore
-catalog    = aws/glue         "Glue Catalog"
-query      = aws/athena       "Athena"
+// Pipeline components
+stream = aws/kinesis "Clickstream" {
+  description: "Event stream"
+}
 
+transform = aws/lambda "Transformer" {
+  description: "Processes events"
+}
+
+lake = aws/s3 "Data Lake" datastore {
+  description: "Parquet storage"
+}
+
+catalog = aws/glue "Catalog" {
+  description: "Schema registry"
+}
+
+query = aws/athena "Query Engine" {
+  description: "SQL analytics"
+}
+
+// Data flow
 stream ~> transform
 transform ~> lake
 lake -> catalog
-analysts -> query "run queries"
-query -> lake "read"
+analyst -> query
+query -> catalog
+query -> lake

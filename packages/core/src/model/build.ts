@@ -170,6 +170,13 @@ export function buildProject(files: ProjectFile[]): BuildResult {
       }
       const meta = attrsOf(ctx, decl.getChild("AttrBlock"));
       const kinds = decl.getChildren("NodeKind").map((k) => ctx.text(k)) as SNode["kinds"];
+      // `= person "Name"` is the same node the top-level `person id "Label"`
+      // form builds. Only a direct child matches here — a `person` used as a
+      // kind sits inside a `NodeKind`, so the two never collide.
+      if (!iconRef && decl.getChild("person")) {
+        icon = { pack: "builtin", id: "person" };
+        if (!kinds.includes("person")) kinds.push("person");
+      }
       const labelNode = decl.getChild("String");
       model.nodes.set(path, {
         path, name,
@@ -290,7 +297,18 @@ export function buildProject(files: ProjectFile[]): BuildResult {
     );
   }
 
-  function resolve(ref: string, scope: string, at: SyntaxNode, ctx: Ctx): string | undefined {
+  /** `zones: true` for the three ranking hints. A zone is one unit for layout —
+   *  SPEC §5: "ranks apply to the zone as a whole … `rows` can pin a zone by its
+   *  id" — and `unitOf` has always mapped a zone id to itself, so the engine
+   *  could rank one all along. Only this function said otherwise, which made a
+   *  documented capability a hard error and cost agents a `check` in three
+   *  separate rounds. Everywhere else a zone id is still wrong: you cannot draw
+   *  an edge to a boundary, and `contains` takes nodes. */
+  function resolve(
+    ref: string, scope: string, at: SyntaxNode, ctx: Ctx,
+    opts: { zones?: boolean } = {},
+  ): string | undefined {
+    if (opts.zones && zoneMemberNames.has(ref)) return ref;
     const scopes: string[] = [];
     let s = scope;
     while (s) {
@@ -676,7 +694,7 @@ export function buildProject(files: ProjectFile[]): BuildResult {
         for (const rank of rowsStmt.getChildren("Rank")) {
           const row: string[] = [];
           for (const pathNode of rank.getChildren("Path")) {
-            const r = resolve(ctx.text(pathNode), inScope, pathNode, ctx);
+            const r = resolve(ctx.text(pathNode), inScope, pathNode, ctx, { zones: true });
             if (!r) continue;
             if (placed.has(r)) {
               error(ctx, pathNode, `\`${ctx.text(pathNode)}\` appears in \`rows\` twice`,
@@ -697,7 +715,7 @@ export function buildProject(files: ProjectFile[]): BuildResult {
         for (const rank of colsStmt.getChildren("Rank")) {
           const col: string[] = [];
           for (const pathNode of rank.getChildren("Path")) {
-            const r = resolve(ctx.text(pathNode), inScope, pathNode, ctx);
+            const r = resolve(ctx.text(pathNode), inScope, pathNode, ctx, { zones: true });
             if (!r) continue;
             if (placed.has(r)) {
               error(ctx, pathNode, `\`${ctx.text(pathNode)}\` appears in \`cols\` twice`,
@@ -730,8 +748,8 @@ export function buildProject(files: ProjectFile[]): BuildResult {
       }
       for (const pl of lb.getChildren("PlaceStmt")) {
         const [a, b] = pl.getChildren("Path");
-        const node = resolve(ctx.text(a), inScope, a, ctx);
-        const target = resolve(ctx.text(b), inScope, b, ctx);
+        const node = resolve(ctx.text(a), inScope, a, ctx, { zones: true });
+        const target = resolve(ctx.text(b), inScope, b, ctx, { zones: true });
         if (node && target)
           view.layout.place.push({
             node, target,

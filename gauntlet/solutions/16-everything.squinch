@@ -1,13 +1,16 @@
+// Order platform architecture
 pack aws
 
+// External entry point
 person customer "Customer"
-
 storefront = aws/cloudfront "Storefront"
 
-gw = aws/api-gateway "API Gateway"
+// API Gateway
+apigw = aws/api-gateway "API Gateway"
 
+// Catalog service
 system catalog "Catalog Service" {
-  description: "Product listings"
+  description: "Product browsing"
   glyph: sys/database
 
   handler = aws/lambda "Catalog Handler"
@@ -16,19 +19,21 @@ system catalog "Catalog Service" {
   handler -> db
 }
 
+// Orders service
 system orders "Orders Service" {
   description: "Order processing"
-  glyph: sys/workflow
+  glyph: sys/code
   tags: #core
 
   handler = aws/lambda "Orders Handler"
-  db = aws/dynamodb "Orders DB" datastore
-  bus = aws/eventbridge "Order Events"
+  db = aws/dynamodb "Orders DB" datastore {
+    tags: #core
+  }
 
   handler -> db
-  handler ~> bus "publish order events"
 }
 
+// Payments service
 system payments "Payments Service" {
   description: "Payment processing"
   glyph: sys/lock
@@ -41,24 +46,35 @@ system payments "Payments Service" {
     tags: #sensitive
   }
 
-  handler -> db { tags: #sensitive }
+  handler -> db {
+    tags: #sensitive
+  }
 }
 
-fulfillment = aws/lambda "Fulfillment Worker" {
-  description: "Processes orders"
+// Event bus and fulfilment
+eventbridge = aws/eventbridge "Event Bus"
+fulfilment = aws/lambda "Fulfilment Worker" {
+  description: "Order fulfilment"
 }
 
-customer -> storefront "browses and orders"
-storefront -> gw
-gw -> catalog.handler "product requests"
-gw -> orders.handler "order requests"
-gw -> payments.handler "payment requests" { tags: #sensitive }
-orders.bus ~> fulfillment "consume events"
-
-zone vpc "Production VPC" vpc {
-  contains gw, catalog, orders, payments, fulfillment
+// Connections
+customer -> storefront "browses"
+storefront -> apigw "API calls"
+apigw -> catalog.handler
+apigw -> orders.handler
+apigw -> payments.handler {
+  tags: #sensitive
 }
 
+orders.handler ~> eventbridge "order events"
+eventbridge ~> fulfilment "consumes"
+
+// Production VPC zone
+zone prod_vpc "Production VPC" vpc {
+  contains apigw, catalog, orders, payments, eventbridge, fulfilment
+}
+
+// Landscape view - all top-level entities
 view landscape {
   title "Order Platform Landscape"
   include *
@@ -67,9 +83,10 @@ view landscape {
   }
 }
 
+// Zoomed view of orders service
 view orders {
-  scope orders
   title "Orders Service Detail"
+  scope orders
   show descriptions
   titleblock {
     version: "1.0"

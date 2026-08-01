@@ -45,7 +45,14 @@ ZoneBody { "{" list<ContainsStmt | Attr> "}" }
 ContainsStmt { kw<"contains"> PathList }
 ContainerBody { "{" list<NodeDecl | Container | EdgeStmt | Attr> "}" }
 
-NodeDecl { Ident "=" (IconRef | kw<"box">) String? NodeKind* AttrBlock? }
+// Kind and attr block in either order. The model builder reads them with
+// getChildren/getChild and never cared about the sequence; only the grammar
+// did, and `"L" { tags: #x } datastore` — the order people actually reach
+// for — died as a cascade of syntax errors pointing at the brace.
+// `= person "Name"` alongside `= box`: `person id "Label"` is a top-level
+// form only, so inside a system the only way to draw a human was
+// `= box "Name" person`, and what agents reach for is `= person "Name"`.
+NodeDecl { Ident "=" (IconRef | kw<"box"> | kw<"person">) String? (NodeKind | AttrBlock)* }
 NodeKind { kw<"external"> | kw<"datastore"> | kw<"person"> }
 IconRef { Ident "/" Ident }
 

@@ -1,42 +1,39 @@
+// Event-driven architecture with EventBridge routing to multiple consumers
 pack aws
 
-// Event producer
-producer = aws/lambda "Order Service"
+// Event source (could be upstream services)
+source = box "Order Service" external
 
 // Central event bus
-eventbus = aws/eventbridge "Order Events Bus"
+bus = aws/eventbridge "Order Events"
 
 // Email notification path
 email_handler = aws/lambda "Email Notifier"
-sns = aws/sns "Notification Topic"
+notif = aws/sns "Notifications"
 
 // Analytics path
 analytics_handler = aws/lambda "Analytics Writer"
-datalake = aws/s3 "Data Lake" datastore
+lake = aws/s3 "Data Lake" datastore
 
 // Dead-letter queue for failed events
 dlq = aws/sqs "Dead Letter Queue"
 
-// Event flow - async from producer to bus
-producer ~> eventbus "publishes order events"
+// Event flow - all async
+source ~> bus "order events"
+bus ~> email_handler "order.created"
+email_handler ~> notif "send email"
+bus ~> analytics_handler "order.*"
+analytics_handler ~> lake "store events"
 
-// Fan-out from EventBridge to consumers
-eventbus ~> email_handler
-eventbus ~> analytics_handler
+// Failed events
+email_handler ~> dlq "failures"
+analytics_handler ~> dlq "failures"
 
-// Processing paths
-email_handler ~> sns "sends notification"
-analytics_handler ~> datalake "writes events"
-
-// Failed event handling
-email_handler ~> dlq "on failure"
-analytics_handler ~> dlq "on failure"
-
-view landscape {
+view main {
   title "Event-Driven Order Processing"
+
   layout {
-    direction down
-    rows [producer] [eventbus] [email_handler analytics_handler] [sns datalake]
+    rows [source] [bus] [email_handler analytics_handler] [notif lake]
     place dlq right-of analytics_handler
   }
 }

@@ -1,47 +1,47 @@
-// Payments platform with PCI scope tagging
+// Payments platform architecture
 pack aws
 
 system payments "Payments Platform" {
   description: "Payment processing and analytics"
-  tags: #core
+  glyph: sys/lock
 
   api = aws/lambda "API Handler" {
-    description: "Payment request handler"
+    description: "Payment API endpoint"
     tags: #pci
   }
 
   tokenizer = aws/lambda "Tokenizer" {
-    description: "Card tokenization"
+    description: "Card tokenization service"
     tags: #pci
   }
 
   vault = aws/dynamodb "Card Vault" datastore {
-    description: "Secure card storage"
+    description: "Encrypted card tokens"
     tags: #pci
   }
 
   analytics = aws/lambda "Analytics" {
-    description: "Payment analytics"
+    description: "Transaction analytics"
   }
 
   warehouse = aws/redshift "Data Warehouse" datastore {
-    description: "Analytics warehouse"
+    description: "Analytics data store"
   }
 
-  api -> tokenizer
-  tokenizer -> vault
-  api -> analytics
-  analytics -> warehouse
+  api -> tokenizer "tokenize card"
+  tokenizer -> vault "store token"
+  api -> analytics "log transaction"
+  analytics -> warehouse "aggregate data"
 }
 
 view full {
-  title "Full Payment Platform"
+  title "Payments Platform - Full View"
   scope payments
   show descriptions
 }
 
 view auditor {
-  title "PCI Scope - Auditor View"
+  title "Payments Platform - PCI Scope"
   scope payments
   only #pci
   show descriptions

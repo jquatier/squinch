@@ -13,7 +13,8 @@
 // actually broke: a construct parsed, validated, documented, and then rendered
 // identically to its neighbour.
 import { describe, it, expect } from "vitest";
-import { buildModel, render } from "../src/index.js";
+import { buildModel, buildProject, render } from "../src/index.js";
+import { layoutView } from "../src/layout/layout.js";
 import { validateSVG } from "../src/render/validate.js";
 
 const svgOf = async (src: string, view?: string) => {
@@ -249,5 +250,93 @@ describe("declaration forms that nothing else exercises", () => {
     expect(r.ok).toBe(true);
     expect(r.model.nodes.get("s.db")?.kinds).toContain("datastore");
     expect(r.model.nodes.get("s.db")?.tags).toContain("pci");
+  });
+});
+
+describe("shapes that parse but that nothing exercised", () => {
+  it("takes the kind and the attr block in either order", () => {
+    // `"L" { tags: #x } datastore` used to die as a cascade of syntax errors
+    // pointing at the brace, with no fix text — three cold agents across two
+    // rounds wrote it. The model builder reads both with getChildren/getChild
+    // and never cared about the order; only the grammar did.
+    const decl = (d: string) => buildModel(`pack aws\nsystem s "S" {\n ${d}\n}`);
+    const a = decl(`db = aws/dynamodb "Orders" datastore {\n  tags: #pci\n }`);
+    const b = decl(`db = aws/dynamodb "Orders" {\n  tags: #pci\n } datastore`);
+    for (const r of [a, b]) {
+      expect(r.diagnostics.filter((d) => d.severity === "error")).toEqual([]);
+      expect(r.model.nodes.get("s.db")?.kinds).toContain("datastore");
+      expect(r.model.nodes.get("s.db")?.tags).toContain("pci");
+    }
+  });
+
+  it("declares a person with `= person`, the same node the top-level form builds", () => {
+    // `person id "Label"` is a top-level form — `ContainerBody` never accepted
+    // it — so the only way to draw a human inside a system was `= box "N"
+    // person`. A cold agent wrote `analyst = person "Data Analyst"` and got a
+    // bare syntax error with no fix text.
+    // everything but `loc`, which legitimately differs — the two spellings are
+    // different text — and `description`, which only the attr path defines
+    const same = (n: any) => ({ path: n.path, name: n.name, label: n.label, icon: n.icon, kinds: n.kinds, tags: n.tags });
+    const top = buildModel(`person analyst "Data Analyst"`).model.nodes.get("analyst")!;
+    const eq = buildModel(`analyst = person "Data Analyst"`).model.nodes.get("analyst")!;
+    expect(same(eq)).toEqual(same(top));
+    // and it works where the top-level form cannot go
+    const inner = buildModel(`system s "S" {\n who = person "Operator"\n}`);
+    expect(inner.diagnostics.filter((d) => d.severity === "error")).toEqual([]);
+    expect(inner.model.nodes.get("s.who")?.kinds).toContain("person");
+    expect(inner.model.nodes.get("s.who")?.icon).toEqual({ pack: "builtin", id: "person" });
+  });
+
+  it("ranks a zone named by its own id", async () => {
+    // SPEC §5 says "`rows` can pin a zone by its id" and it was a hard error:
+    // `resolve` only knew nodes, so a documented capability cost agents a
+    // `check` in three separate rounds. `unitOf` mapped a zone id to itself all
+    // along, so the engine could always do it.
+    const src = (rows: string) => `pack aws
+a = aws/lambda "A"
+b = aws/dynamodb "B" datastore
+ops = aws/cloudwatch "Ops"
+a -> b
+zone vpc "VPC" vpc { contains a, b }
+view v { include *
+  layout { rows ${rows} } }`;
+    const where = async (rows: string) => {
+      const built = buildProject([{ name: "t.squinch", src: src(rows) }]);
+      expect(built.diagnostics.filter((d) => d.severity === "error"), rows).toEqual([]);
+      const view = built.model.views.find((v) => v.name === "v")!;
+      const { positioned } = await layoutView(built.model, view, {
+        metrics: "inter" as const, scale: 1,
+      });
+      return {
+        ops: positioned.nodes.find((n) => n.path === "ops")!.y,
+        zone: positioned.zones[0].y,
+      };
+    };
+    // the hint has to move it *both* ways, or it is just describing the default
+    const below = await where("[vpc] [ops]");
+    expect(below.zone).toBeLessThan(below.ops);
+    const above = await where("[ops] [vpc]");
+    expect(above.ops).toBeLessThan(above.zone);
+  });
+
+  it("still refuses an edge that runs up the bands, naming the zone to move", async () => {
+    const built = buildProject([{ name: "t.squinch", src: `pack aws
+gw = aws/api-gateway "GW"
+a = aws/lambda "A"
+b = aws/dynamodb "B" datastore
+gw -> a
+a -> b
+zone vpc "VPC" vpc { contains a, b }
+view v { include *
+  layout { rows [vpc] [gw] } }` }]);
+    const view = built.model.views.find((v) => v.name === "v")!;
+    const { diagnostics } = await layoutView(built.model, view, {
+      metrics: "inter" as const, scale: 1,
+    });
+    const d = diagnostics?.find((x) => x.message.includes("runs upward"));
+    expect(d).toBeDefined();
+    // the endpoint is `a`, but `a` is not something `rows` can hold — the fix
+    // has to name the unit the author can actually move
+    expect(d!.fix).toContain("`vpc`");
   });
 });

@@ -1,45 +1,39 @@
 pack aws
 
 system api "Order API" {
-  description: "Lambda-based API with search"
+  description: "Lambda-based order management"
 
-  // Entry tier
   gw = aws/api-gateway "API Gateway"
 
-  // Handler tier
   create = aws/lambda "Create Handler"
-  get = aws/lambda "Get Handler"
+  get    = aws/lambda "Get Handler"
   search = aws/lambda "Search Handler"
 
-  // Storage tier
-  db = aws/dynamodb "Orders Table" datastore
-  files = aws/s3 "Order Files" datastore
-  index = aws/opensearch "Search Index" datastore
+  db    = aws/dynamodb "Orders Table" datastore
+  files = aws/s3 "Attachments" datastore
+  idx   = aws/opensearch "Search Index" datastore
 
-  // Sync processor
   sync = aws/lambda "Index Sync" {
-    description: "Updates OpenSearch from stream"
+    description: "Stream processor"
   }
 
-  // Entry to handlers
   gw -> create
   gw -> get
   gw -> search
 
-  // Handlers to storage
   create -> db
   create -> files
   get -> db
-  search -> index
+  get -> files
+  search -> idx
 
-  // Async stream processing
   db ~> sync "DynamoDB stream"
-  sync -> index
+  sync -> idx
 }
 
 view api {
   layout {
-    rows [gw] [create get search] [db files index]
+    rows [gw] [create get search] [db files idx]
     place sync right-of db
   }
 }

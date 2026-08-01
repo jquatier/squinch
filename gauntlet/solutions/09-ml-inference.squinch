@@ -1,41 +1,56 @@
 pack aws
 
-person client "Client Apps"
+person client "Client App"
 
-system inference "ML Inference" {
-  tags: #realtime
+system inference "ML Inference Service" {
+  description: "Real-time predictions"
+  tags: #runtime
 
   gw = aws/api-gateway "API Gateway"
-  handler = aws/lambda "Inference Handler"
-  model = aws/sagemaker "SageMaker Endpoint"
-  features = aws/dynamodb "Feature Store" datastore
+  fn = aws/lambda "Inference Handler" {
+    description: "Queries model endpoint"
+  }
+  features = aws/dynamodb "Feature Store" datastore {
+    description: "Real-time features"
+  }
+  model = aws/sagemaker "Model Endpoint" {
+    description: "Deployed ML model"
+  }
 
-  gw -> handler "inference request"
-  handler -> features "fetch features"
-  handler -> model "predict"
+  gw -> fn "inference request"
+  fn -> features "fetch features"
+  fn -> model "predict"
 }
 
 system training "Model Training" {
+  description: "Nightly batch retraining"
   tags: #batch
 
-  job = aws/batch "Nightly Job"
-  data = aws/s3 "Training Data" datastore
+  job = aws/batch "Training Job" {
+    description: "Retrains model nightly"
+  }
+  data = aws/s3 "Training Data" datastore {
+    description: "Historical data"
+  }
 
-  job -> data "load training data"
-  job ~> inference.model "retrain model"
+  job -> data "read training data"
 }
 
-client -> inference.gw "call API"
+client -> inference.gw "prediction request"
+training.job ~> inference.model "deploy updated model"
 
 view landscape {
-  title "ML Inference System"
+  title "ML Inference Architecture"
   include *
+  layout {
+    rows [client] [training] [inference]
+  }
 }
 
 view inference {
   scope inference
   layout {
-    rows [gw] [handler] [features model]
+    rows [gw] [fn] [features model]
     place model right-of features
   }
 }

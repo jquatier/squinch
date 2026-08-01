@@ -41,7 +41,9 @@ pack aws                              // enable a vendor icon pack (aws | azure 
 pack azure                            //  logos — declare each one you use).
                                       //  `sys` and `builtin` need no declaration.
 
-person customer "Customer"            // human actor
+person customer "Customer"            // human actor. This form is top-level
+                                      // only — inside a system write it as
+                                      // `who = person "Operator"`.
 gw = aws/api-gateway "Edge Gateway"   // components may sit at the top level too,
                                       // not only inside a `system` — that's how
                                       // you keep things individually visible at
@@ -61,9 +63,8 @@ system shop "Order Service" {         // systems/containers nest arbitrarily
     tags: #pci
   }
   db     = aws/dynamodb    "Orders Table" datastore {
-    tags: #pci                        // the kind goes BEFORE the attr block:
-  }                                   // `"Label" datastore { … }`, never
-                                      // `"Label" { … } datastore`
+    tags: #pci                        // kind and attr block go in either order
+  }
   legacy = box             "Old Billing" external   // `box` = no icon
   // kinds: `external` (not ours — someone else's system), `datastore` (holds
   // state), `person` (a human actor). They are semantic, and themes style them.
@@ -117,9 +118,10 @@ Rules that matter:
   `color:` on the inner one to tell them apart.
 - **Rank hints don't reach inside a zone.** A zone is laid out as one block, so
   `rows`/`cols`/`place` order zones *relative to each other*, and ELK arranges
-  the members within. Listing members of a single zone in `rows` does nothing —
-  `check` warns when it spots this. If the ranking matters more than the
-  boundary, drop the zone.
+  the members within. Name the zone by its own id to rank it —
+  `rows [gw] [prod_vpc]` puts the whole boundary below the gateway. Listing
+  members of a single zone in `rows` does nothing, and `check` warns when it
+  spots that. If the ranking matters more than the boundary, drop the zone.
 
 ## Views (altitudes)
 
@@ -227,6 +229,13 @@ view shop {
 
 - `rows` is the workhorse: one bracket group per horizontal band, listed top to
   bottom; order inside a bracket is left to right. Unlisted nodes place themselves.
+- **Every edge must point down your bands.** `rows` declares the flow direction,
+  so a node pointing back *up* it is a check error, not a nudge. This bites on
+  monitoring, observability, feedback and retry paths — `mon -> api` under
+  `rows [api] [svc] [db] [mon]` is refused. Two fixes, both fine: put the
+  observer in the **same** band as what it watches (`rows [api mon] [svc] [db]`
+  — equal ranks are legal and route side to side), or leave it out of `rows`
+  and let the engine rank it. Only list a node when you care where it lands.
 - `cols` is its transpose: one bracket group per vertical band, left to right.
   Members of a column share an exact axis, so a service and its database line
   up. `rows` and `cols` compose — they pin different axes, so using both gives
@@ -254,7 +263,7 @@ view shop {
 | "`x` is placed `right-of y`, but `rows` puts it somewhere else" error | The two hints disagree. Restating a band is fine — `rows [db bus]` alongside `place bus right-of db` is accepted, since both say the same thing — so fix whichever one is wrong, or drop `x` from the band |
 | "`x` is listed in `rows` but is placed relative to `y`, which is not" error | Put `y` in a band too, or take `x` out of its band. A banded node can only be placed against another banded one |
 | "`x` appears in `rows` twice" error — likewise "appears in `cols` twice" | A node can hold only one rank position; remove one of the two occurrences |
-| "hint conflict: `a` → `b` runs upward — row 6 to row 4" error | Your bands contradict your arrows. `rows` runs top to bottom, so every edge must point down the list. Either move `b` to a band below `a`, or drop one of them from `rows` and let the engine rank it |
+| "hint conflict: `a` → `b` runs upward — row 6 to row 4" error | Your bands contradict your arrows. `rows` runs top to bottom, so every edge must point down the list. Usually a monitor or feedback path: put it in the **same** band as what it points at (equal ranks are legal), or drop it from `rows` and let the engine rank it |
 | "zones `a` and `b` partially overlap — visible zones must nest or stay disjoint" error | Boundaries must nest or stay apart, never half-lap. The fix line lists which members are shared and which are exclusive — either give the inner zone only members the outer one also has, or move the odd one out |
 | "same-rank edge `a` → `b` crosses an expanded container or zone — layout quality may degrade" warning | The two ends were put on one row (usually by `place`) but the straight path between them runs through a boundary. Give one end its own band in `rows`, or drop the `expand` in this view |
 | Several things all write to one store, crossing each other | `channel a, b, c -> db` — they merge into one trunk |
@@ -268,7 +277,6 @@ view shop {
 | Narrow a view with `include #tag` | It does not narrow. `include` **adds**; an include that changes nothing warns and points at `only` |
 | Show one specific node from another system, not its whole card | `detail ledger.post` |
 | A neighbour system clutters a zoomed view | `exclude thatSystem` or `context off` |
-| "hint conflict … runs upward" error | Your `rows` contradict an edge's direction — move the target to a lower row |
 | "N edges match route …" error | Add the edge's label to the `route` statement |
 | "zone … cuts through expanded container" | The zone holds *some* children of a container you `expand`ed — contain the whole container, or drop the `expand` in that view |
 | "zone … has no visible members" | Its members are inside collapsed cards at this altitude — `expand` one, scope the view to them, or contain the container itself |
@@ -347,3 +355,8 @@ Short aliases exist for words you would type instead: `gear`→`cog`,
    baffling detour, async flows (`~>`) are dashed, related things sit together.
 4. Labels are short noun phrases; put detail in `description`, not the label.
 5. Model semantics honestly: async/queued flows use `~>`, request/response uses `->`.
+6. **Every actor the prose names is in the diagram.** People are easy to drop:
+   "customers browse", "developers push", "an analyst queries" each name a
+   `person`, and a stack diagram that draws only the technology has left out
+   who uses it. Re-read the request and check each noun appears — a human is a
+   `person`, not a box and not omitted.
