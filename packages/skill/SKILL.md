@@ -141,6 +141,8 @@ view shop {                 // name matching a system = that system's view
                             // nothing warns you, so keep them to ~4 words
   note right-of db "Single-table design; see ADR-42"
   note top-right "Audit scope: Q3" { style: warning }
+  context off               // drop the muted neighbour cards this view earned
+                            // (default is `context auto`)
   legend auto               // footer key of the styles actually used
   titleblock {              // drafting-style corner block — this is what
                             // actually renders the view's `title`
@@ -240,6 +242,7 @@ view shop {
 | "`x` is placed via `place` but also listed in `rows`" error | Drop `x` from the `rows` band and keep the `place` — a placed node is positioned relative to its target, so it must not be listed in a band as well |
 | "`x` appears in `rows` twice" error | A node can hold only one rank position; remove one of the two occurrences |
 | Several things all write to one store, crossing each other | `channel a, b, c -> db` — they merge into one trunk |
+| "channel into `x`" warning | The trunk needs the whole picture: every member edge visible in this view, at least two of them, and the sources sitting *above* the target. Check `rows`, and that nothing is `exclude`d |
 | Edge exits a silly side | `route a -> b from south to north` (sides: north/south/east/west) |
 | A wire jogs slightly instead of running straight | `align a b` — b takes a's axis exactly (a is the anchor) |
 | Diagram too cramped / too airy | `density spacious` / `density compact` |
