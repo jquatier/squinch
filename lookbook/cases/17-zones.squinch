@@ -1,5 +1,6 @@
-// Deployment boundaries: cloud vs on-prem, with a VPC nested inside the
-// cloud. Zones cross-cut ownership; chips straddle the dashed borders.
+// `zone` draws a deployment boundary — a cloud, a VPC, an on-premises site —
+// around whatever sits inside it. Boundaries cut across the ownership
+// structure, and they nest.
 pack aws
 
 person ops "Operators"

@@ -1,5 +1,6 @@
-// Hostile text: long labels, long descriptions, long edge labels.
-// Truncation must be graceful and pills must never collide.
+// What happens when the names are long. Labels wrap, then trim with the full
+// text kept for hover, and the small pills on connections step aside rather
+// than overlapping each other.
 pack aws
 
 system verbose "Enterprise Integration Middleware Platform" {

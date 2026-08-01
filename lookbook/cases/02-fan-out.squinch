@@ -1,5 +1,6 @@
-// Brutal fan-out: one gateway, twelve handlers. Port spread and stub
-// discipline have to keep this readable.
+// One entry point feeding many handlers. Connections spread evenly along the
+// edge of a node rather than stacking at a single point, so a wide fan stays
+// readable.
 pack aws
 
 system fan "Fan-out" {

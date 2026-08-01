@@ -1,7 +1,5 @@
-// One model, three routings. The same graph three times, so the `lines` setting
-// is the only thing changing on screen: `orthogonal` turns square corners,
-// `curved` rounds them wide, `straight` runs point to point and ignores the
-// grid entirely.
+// The `lines` setting, three ways over the same diagram. `orthogonal` turns
+// square corners, `curved` rounds them off, and `straight` runs point to point.
 pack aws
 
 system fanout "Ingest" {

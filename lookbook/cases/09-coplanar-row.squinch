@@ -1,5 +1,6 @@
-// Same-rank stress: six peers pinned to one row with chained and skipping
-// edges — adjacent pairs route straight, skips drop into the lane below.
+// Connections between things on the same row. Neighbours join straight across;
+// ones that reach past a node drop into a lane underneath so they never run
+// through anything.
 pack aws
 
 system row "One Row" {

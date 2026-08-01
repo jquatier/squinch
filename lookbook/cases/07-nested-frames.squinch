@@ -1,5 +1,6 @@
-// Containers inside a system, both expanded: recessed frames must read as
-// grouping, not decoration, and edges must cross frame borders cleanly.
+// Containers opened up inside a system with `expand`. Each level of nesting
+// sits on a slightly different surface, so depth is visible without heavy
+// borders.
 pack aws
 
 system platform "Platform" {

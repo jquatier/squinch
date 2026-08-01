@@ -1,5 +1,6 @@
-// A big landscape: eight system cards, a person and an external party.
-// Card grid rhythm, glyph badges, lifted-edge labels.
+// The top-level view of an estate: each system is a card, with the people and
+// outside parties that touch it. A card carries a badge for what kind of thing
+// it is and a preview of what is inside.
 pack aws
 
 person customer "Customer"

@@ -1,8 +1,5 @@
-// The four arrow kinds side by side: one head, two heads, an open chevron for
-// async, and none at all. The arrowhead is the only thing carrying the
-// distinction, so if any two of these ever draw alike the diagram is asserting
-// something about the architecture that is not true — the worst kind of wrong
-// for a drawing.
+// The four kinds of connection — one-way, two-way, asynchronous, and
+// undirected — and how each one is drawn.
 pack aws
 
 system mesh "Service Mesh" {
@@ -15,10 +12,10 @@ system mesh "Service Mesh" {
   g = aws/ec2    "Node 1"
   h = aws/ec2    "Node 2"
 
-  a -> b  "request"          // one way: filled chevron at the target
-  c <-> d "sync both ways"   // both ways: a head at each end
-  e ~> f  "publishes"        // async: open chevron, animated dashes
-  g -- h  "peers"            // undirected: no head at either end
+  a -> b  "request"          // one way
+  c <-> d "sync both ways"   // both ways
+  e ~> f  "publishes"        // asynchronous — dashed, and it drifts
+  g -- h  "peers"            // undirected — related, no direction implied
 }
 
 view mesh {

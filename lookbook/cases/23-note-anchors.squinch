@@ -1,8 +1,5 @@
-// Every note anchor the grammar accepts, in one picture. A note is a sticky
-// chip with a leader line to its anchor (DESIGN §5); the four corner forms pin
-// to the frame instead and have no leader. The relative anchors are the ones to
-// watch — a note beside a node at the edge of the diagram has to grow the canvas
-// to stay visible.
+// Every place a note can go: beside, above or below a node, attached to a
+// connection, or pinned to one of the four corners of the diagram.
 pack aws
 
 system svc "Payments" {
@@ -19,15 +16,14 @@ system svc "Payments" {
 view svc {
   title "Note anchors"
   scope svc
-  // relative to a node — the leader line has to find its way out of the layout
+  // beside a node, with a leader line back to it
   note above api    "above"
   note below db     "below"
   note left-of fn   "left-of"
   note right-of queue "right-of"
-  // anchored to an edge rather than a node — pinned halfway along the run
+  // attached to a connection, halfway along it
   note on api -> fn "on an edge"
-  // pinned to the frame's corners: no leader, and they must not collide with
-  // the diagram or with each other
+  // pinned to a corner of the diagram, with no leader line
   note top-left     "top-left"
   note top-right    "top-right" { style: warning }
   note bottom-left  "bottom-left"

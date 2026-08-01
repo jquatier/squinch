@@ -1,5 +1,6 @@
-// Footer furniture: an earned legend (sync/async/aggregate/context) and a
-// drafting-style titleblock — stacked or side-by-side depending on width.
+// Footer furniture. `legend auto` explains the line styles the diagram actually
+// uses and nothing else; `titleblock` adds a drafting-style corner block for
+// version, owner and anything else worth stamping on a drawing.
 pack aws
 
 person ops "Operator"

@@ -1,5 +1,6 @@
-// Event-driven estate: nearly every edge is async. Dashes must stay legible
-// at density, and the bus must not become a hairball.
+// Asynchronous connections, written `~>`. They draw dashed and drift slowly
+// towards their target, so an event-driven estate reads differently at a glance
+// from a request-and-response one.
 pack aws
 
 system events "Event Mesh" {

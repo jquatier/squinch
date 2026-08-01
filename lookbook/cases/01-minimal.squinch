@@ -1,4 +1,5 @@
-// The smallest possible diagram must still look composed, not lost on canvas.
+// The smallest useful diagram: one system, a few components, and the
+// connections between them. Everything else here builds on this shape.
 pack aws
 
 system tiny "Tiny" {

@@ -1,4 +1,4 @@
-// The same model at all three densities — spacing tiers must feel deliberate.
+// The same diagram at all three `density` settings, from compact to spacious.
 pack aws
 
 system svc "Service" {

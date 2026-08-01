@@ -1,4 +1,4 @@
-// show descriptions on every node: two-line leaves must keep vertical rhythm.
+// `show descriptions` adds a line of explanatory text under every label.
 pack aws
 
 system obs "Observability" {

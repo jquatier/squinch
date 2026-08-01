@@ -1,4 +1,4 @@
-// The mirror image: twelve producers draining into one queue.
+// The reverse shape: many producers all feeding one destination.
 pack aws
 
 system fanin "Fan-in" {

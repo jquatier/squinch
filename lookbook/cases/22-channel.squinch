@@ -1,6 +1,6 @@
-// Three handlers writing to one table. Declared as three edges — the model is
-// unchanged — but drawn as a single trunk, so the store is approached once
-// instead of being crowded by a fan of near-parallel lines.
+// `channel` merges several connections into one trunk where they all arrive at
+// the same place, so a shared store is approached once instead of by a fan of
+// near-parallel lines. The connections are still declared individually.
 pack aws
 system s "Orders" {
   api    = aws/api-gateway "API"

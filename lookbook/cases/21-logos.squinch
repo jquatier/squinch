@@ -1,4 +1,5 @@
-// A stack that isn't AWS — the case pack-logos exists for.
+// The `logos` pack: marks for the frameworks, databases and tools that make up
+// the half of a stack your cloud provider did not build.
 pack logos
 
 person dev "Developers"

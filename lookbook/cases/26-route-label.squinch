@@ -1,13 +1,6 @@
-// Where `route` sides actually apply — the case 14-sidecar-routes points at.
-//
-// Sides are fed to ELK, and ELK only routes edges that SPAN rows. A same-rank
-// edge bypasses it for our own coplanar router, which picks its own sides, so a
-// `from`/`to` there is ignored, and says so. Everything below crosses rows, so
-// every hint bites.
-//
-// Also the parallel-edge disambiguator: two edges between the same pair are
-// legal, and a bare `route a -> b` cannot say which one you meant — that is a
-// check error. The label picks one.
+// `route` controls which side of a node a connection leaves and enters by. When
+// two connections join the same pair of nodes, naming one of their labels picks
+// the one you mean.
 pack aws
 
 system api "Order API" {
@@ -17,7 +10,7 @@ system api "Order API" {
   audit = aws/s3          "Audit Log" datastore
 
   gw -> fn "request"
-  fn -> db "read"          // a parallel pair: same endpoints, different labels
+  fn -> db "read"          // two connections between the same pair
   fn -> db "write"
   fn -> audit "append"
 }
@@ -27,9 +20,9 @@ view api {
   scope api
   layout {
     rows [gw] [fn] [db audit]
-    // one of the parallel pair, chosen by label, leaves and enters sideways
+    // pick one of the pair by its label, and send it out sideways
     route fn -> db "write" from east to west
-    // and an unambiguous edge steered the long way round
+    // and steer another one the long way round
     route fn -> audit from west to north
   }
 }

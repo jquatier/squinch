@@ -1,5 +1,5 @@
-// Numbered flows: the "how does a request actually travel" lens.
-// Steps badge the edges in declaration order; branches keep counting.
+// `flow` numbers a path through the diagram, so you can show how one request
+// actually travels. In the playground you can step through it a hop at a time.
 pack aws
 
 system shop "Checkout" {

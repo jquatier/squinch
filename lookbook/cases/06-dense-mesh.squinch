@@ -1,5 +1,5 @@
-// Ten services that all talk to each other far too much. The worst realistic
-// edge-density case: crossings are inevitable, chaos is not.
+// Ten services that all talk to each other. Where wires have to cross, the
+// crossing takes a small break so it can never be mistaken for a junction.
 pack aws
 
 system mesh "Chatty Microservices" {

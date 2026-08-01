@@ -1,6 +1,5 @@
-// Two craft rules at once: `align` snaps entry and store onto one exact
-// axis (ELK alone leaves them ~7px off), and the deliberate crossings
-// below get hop breaks so they can never read as junctions.
+// `align` puts two nodes on exactly the same axis, for when the automatic
+// layout leaves them a few pixels apart and the near-miss looks like a mistake.
 pack aws
 
 system s "Aligned + Hopped" {

@@ -1,10 +1,6 @@
-// The generic-icon sheet: `sys/*` on a card badge AND on a plate, one per role,
-// plus builtin person/box. Lucide (ISC) at its own 2px stroke, painted with
-// currentColor so themes tint it — muted on badges, plate-text on plates.
-//
-// A sample, not the whole pack: 147 ids would make an unreadable sheet. The
-// point is to show every treatment at both sizes, and to catch a stroke weight
-// that reads too heavy on an 18px badge.
+// The `sys` icon set: generic marks for servers, storage, networking and plain
+// shapes, for the parts of a stack no vendor draws. Each one is shown twice, as
+// a small badge on a card and at full size. A sample rather than the whole set.
 person user "Person"
 legacy = box "Box" external
 

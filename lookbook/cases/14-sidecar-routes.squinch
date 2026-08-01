@@ -1,7 +1,6 @@
-// The side-car idiom, three times over. `place` is the whole of it: it puts the
-// pair on one row, and same-rank edges route themselves side to side. A
-// `route … from east to west` here would be silently ignored — see 26-route-label
-// for the case where sides actually apply.
+// `place` puts one node beside another instead of below it — the shape you want
+// for a cache, a stream processor or a dead-letter queue that belongs next to
+// the thing it serves.
 pack aws
 
 system app "Order Service" {

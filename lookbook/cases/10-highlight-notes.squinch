@@ -1,7 +1,7 @@
-// Annotation layer: tag highlight dims the rest; notes anchor to nodes,
-// edges and corners without colliding with anything. `settle -> ledger` carries
-// its own tag rather than inheriting one, so the wire lights up between two
-// nodes that stay dimmed — the case for tagging an edge at all.
+// Annotation. `highlight` picks out everything carrying a tag and dims the
+// rest, and `note` pins explanatory text to a node, a connection, or a corner
+// of the diagram. Tag a connection itself and that wire lights up even when the
+// things it joins stay dim.
 pack aws
 
 system pay "Payments" {

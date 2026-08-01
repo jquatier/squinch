@@ -1,4 +1,5 @@
-// An eight-stage pipeline, laid out left to right.
+// A pipeline read left to right. Set `direction right` on a view and the
+// stages run across the page instead of down it.
 pack aws
 
 system pipe "Pipeline" {

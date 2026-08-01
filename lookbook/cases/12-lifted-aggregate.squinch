@@ -1,5 +1,6 @@
-// Landscape lifting: four internal edges between two systems collapse into
-// one aggregated card-to-card edge with a ×4 badge.
+// Zoomed out, several connections between the same two systems collapse into a
+// single line with a count on it. Zoom in and the individual connections are
+// still there.
 pack aws
 
 system front "Frontend" {

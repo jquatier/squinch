@@ -6,7 +6,7 @@ committing a visual change. What looks bad here becomes the next fix.
 
 ## 01-minimal
 
-The smallest possible diagram must still look composed, not lost on canvas.
+The smallest useful diagram: one system, a few components, and the connections between them. Everything else here builds on this shape.
 
 Source: [`cases/01-minimal.squinch`](cases/01-minimal.squinch)
 
@@ -16,7 +16,7 @@ Source: [`cases/01-minimal.squinch`](cases/01-minimal.squinch)
 
 ## 02-fan-out
 
-Brutal fan-out: one gateway, twelve handlers. Port spread and stub discipline have to keep this readable.
+One entry point feeding many handlers. Connections spread evenly along the edge of a node rather than stacking at a single point, so a wide fan stays readable.
 
 Source: [`cases/02-fan-out.squinch`](cases/02-fan-out.squinch)
 
@@ -26,7 +26,7 @@ Source: [`cases/02-fan-out.squinch`](cases/02-fan-out.squinch)
 
 ## 03-fan-in
 
-The mirror image: twelve producers draining into one queue.
+The reverse shape: many producers all feeding one destination.
 
 Source: [`cases/03-fan-in.squinch`](cases/03-fan-in.squinch)
 
@@ -36,7 +36,7 @@ Source: [`cases/03-fan-in.squinch`](cases/03-fan-in.squinch)
 
 ## 04-deep-chain
 
-An eight-stage pipeline, laid out left to right.
+A pipeline read left to right. Set `direction right` on a view and the stages run across the page instead of down it.
 
 Source: [`cases/04-deep-chain.squinch`](cases/04-deep-chain.squinch)
 
@@ -46,7 +46,7 @@ Source: [`cases/04-deep-chain.squinch`](cases/04-deep-chain.squinch)
 
 ## 05-long-labels
 
-Hostile text: long labels, long descriptions, long edge labels. Truncation must be graceful and pills must never collide.
+What happens when the names are long. Labels wrap, then trim with the full text kept for hover, and the small pills on connections step aside rather than overlapping each other.
 
 Source: [`cases/05-long-labels.squinch`](cases/05-long-labels.squinch)
 
@@ -56,7 +56,7 @@ Source: [`cases/05-long-labels.squinch`](cases/05-long-labels.squinch)
 
 ## 06-dense-mesh
 
-Ten services that all talk to each other far too much. The worst realistic edge-density case: crossings are inevitable, chaos is not.
+Ten services that all talk to each other. Where wires have to cross, the crossing takes a small break so it can never be mistaken for a junction.
 
 Source: [`cases/06-dense-mesh.squinch`](cases/06-dense-mesh.squinch)
 
@@ -66,7 +66,7 @@ Source: [`cases/06-dense-mesh.squinch`](cases/06-dense-mesh.squinch)
 
 ## 07-nested-frames
 
-Containers inside a system, both expanded: recessed frames must read as grouping, not decoration, and edges must cross frame borders cleanly.
+Containers opened up inside a system with `expand`. Each level of nesting sits on a slightly different surface, so depth is visible without heavy borders.
 
 Source: [`cases/07-nested-frames.squinch`](cases/07-nested-frames.squinch)
 
@@ -76,7 +76,7 @@ Source: [`cases/07-nested-frames.squinch`](cases/07-nested-frames.squinch)
 
 ## 08-landscape
 
-A big landscape: eight system cards, a person and an external party. Card grid rhythm, glyph badges, lifted-edge labels.
+The top-level view of an estate: each system is a card, with the people and outside parties that touch it. A card carries a badge for what kind of thing it is and a preview of what is inside.
 
 Source: [`cases/08-landscape.squinch`](cases/08-landscape.squinch)
 
@@ -86,7 +86,7 @@ Source: [`cases/08-landscape.squinch`](cases/08-landscape.squinch)
 
 ## 09-coplanar-row
 
-Same-rank stress: six peers pinned to one row with chained and skipping edges — adjacent pairs route straight, skips drop into the lane below.
+Connections between things on the same row. Neighbours join straight across; ones that reach past a node drop into a lane underneath so they never run through anything.
 
 Source: [`cases/09-coplanar-row.squinch`](cases/09-coplanar-row.squinch)
 
@@ -96,7 +96,7 @@ Source: [`cases/09-coplanar-row.squinch`](cases/09-coplanar-row.squinch)
 
 ## 10-highlight-notes
 
-Annotation layer: tag highlight dims the rest; notes anchor to nodes, edges and corners without colliding with anything. `settle -> ledger` carries its own tag rather than inheriting one, so the wire lights up between two nodes that stay dimmed — the case for tagging an edge at all.
+Annotation. `highlight` picks out everything carrying a tag and dims the rest, and `note` pins explanatory text to a node, a connection, or a corner of the diagram. Tag a connection itself and that wire lights up even when the things it joins stay dim.
 
 Source: [`cases/10-highlight-notes.squinch`](cases/10-highlight-notes.squinch)
 
@@ -106,7 +106,7 @@ Source: [`cases/10-highlight-notes.squinch`](cases/10-highlight-notes.squinch)
 
 ## 11-async-mesh
 
-Event-driven estate: nearly every edge is async. Dashes must stay legible at density, and the bus must not become a hairball.
+Asynchronous connections, written `~>`. They draw dashed and drift slowly towards their target, so an event-driven estate reads differently at a glance from a request-and-response one.
 
 Source: [`cases/11-async-mesh.squinch`](cases/11-async-mesh.squinch)
 
@@ -116,7 +116,7 @@ Source: [`cases/11-async-mesh.squinch`](cases/11-async-mesh.squinch)
 
 ## 12-lifted-aggregate
 
-Landscape lifting: four internal edges between two systems collapse into one aggregated card-to-card edge with a ×4 badge.
+Zoomed out, several connections between the same two systems collapse into a single line with a count on it. Zoom in and the individual connections are still there.
 
 Source: [`cases/12-lifted-aggregate.squinch`](cases/12-lifted-aggregate.squinch)
 
@@ -126,7 +126,7 @@ Source: [`cases/12-lifted-aggregate.squinch`](cases/12-lifted-aggregate.squinch)
 
 ## 13-descriptions
 
-show descriptions on every node: two-line leaves must keep vertical rhythm.
+`show descriptions` adds a line of explanatory text under every label.
 
 Source: [`cases/13-descriptions.squinch`](cases/13-descriptions.squinch)
 
@@ -136,7 +136,7 @@ Source: [`cases/13-descriptions.squinch`](cases/13-descriptions.squinch)
 
 ## 14-sidecar-routes
 
-The side-car idiom, three times over. `place` is the whole of it: it puts the pair on one row, and same-rank edges route themselves side to side. A `route … from east to west` here would be silently ignored — see 26-route-label for the case where sides actually apply.
+`place` puts one node beside another instead of below it — the shape you want for a cache, a stream processor or a dead-letter queue that belongs next to the thing it serves.
 
 Source: [`cases/14-sidecar-routes.squinch`](cases/14-sidecar-routes.squinch)
 
@@ -146,7 +146,7 @@ Source: [`cases/14-sidecar-routes.squinch`](cases/14-sidecar-routes.squinch)
 
 ## 15-densities
 
-The same model at all three densities — spacing tiers must feel deliberate.
+The same diagram at all three `density` settings, from compact to spacious.
 
 Source: [`cases/15-densities.squinch`](cases/15-densities.squinch)
 
@@ -170,7 +170,7 @@ Source: [`cases/15-densities.squinch`](cases/15-densities.squinch)
 
 ## 16-legend-titleblock
 
-Footer furniture: an earned legend (sync/async/aggregate/context) and a drafting-style titleblock — stacked or side-by-side depending on width.
+Footer furniture. `legend auto` explains the line styles the diagram actually uses and nothing else; `titleblock` adds a drafting-style corner block for version, owner and anything else worth stamping on a drawing.
 
 Source: [`cases/16-legend-titleblock.squinch`](cases/16-legend-titleblock.squinch)
 
@@ -188,7 +188,7 @@ Source: [`cases/16-legend-titleblock.squinch`](cases/16-legend-titleblock.squinc
 
 ## 17-zones
 
-Deployment boundaries: cloud vs on-prem, with a VPC nested inside the cloud. Zones cross-cut ownership; chips straddle the dashed borders.
+`zone` draws a deployment boundary — a cloud, a VPC, an on-premises site — around whatever sits inside it. Boundaries cut across the ownership structure, and they nest.
 
 Source: [`cases/17-zones.squinch`](cases/17-zones.squinch)
 
@@ -198,7 +198,7 @@ Source: [`cases/17-zones.squinch`](cases/17-zones.squinch)
 
 ## 18-flows
 
-Numbered flows: the "how does a request actually travel" lens. Steps badge the edges in declaration order; branches keep counting.
+`flow` numbers a path through the diagram, so you can show how one request actually travels. In the playground you can step through it a hop at a time.
 
 Source: [`cases/18-flows.squinch`](cases/18-flows.squinch)
 
@@ -208,9 +208,7 @@ Source: [`cases/18-flows.squinch`](cases/18-flows.squinch)
 
 ## 19-glyphs
 
-The generic-icon sheet: `sys/*` on a card badge AND on a plate, one per role, plus builtin person/box. Lucide (ISC) at its own 2px stroke, painted with currentColor so themes tint it — muted on badges, plate-text on plates.
-
-A sample, not the whole pack: 147 ids would make an unreadable sheet. The point is to show every treatment at both sizes, and to catch a stroke weight that reads too heavy on an 18px badge.
+The `sys` icon set: generic marks for servers, storage, networking and plain shapes, for the parts of a stack no vendor draws. Each one is shown twice, as a small badge on a card and at full size. A sample rather than the whole set.
 
 Source: [`cases/19-glyphs.squinch`](cases/19-glyphs.squinch)
 
@@ -220,7 +218,7 @@ Source: [`cases/19-glyphs.squinch`](cases/19-glyphs.squinch)
 
 ## 20-align-hops
 
-Two craft rules at once: `align` snaps entry and store onto one exact axis (ELK alone leaves them ~7px off), and the deliberate crossings below get hop breaks so they can never read as junctions.
+`align` puts two nodes on exactly the same axis, for when the automatic layout leaves them a few pixels apart and the near-miss looks like a mistake.
 
 Source: [`cases/20-align-hops.squinch`](cases/20-align-hops.squinch)
 
@@ -230,7 +228,7 @@ Source: [`cases/20-align-hops.squinch`](cases/20-align-hops.squinch)
 
 ## 21-logos
 
-A stack that isn't AWS — the case pack-logos exists for.
+The `logos` pack: marks for the frameworks, databases and tools that make up the half of a stack your cloud provider did not build.
 
 Source: [`cases/21-logos.squinch`](cases/21-logos.squinch)
 
@@ -240,7 +238,7 @@ Source: [`cases/21-logos.squinch`](cases/21-logos.squinch)
 
 ## 22-channel
 
-Three handlers writing to one table. Declared as three edges — the model is unchanged — but drawn as a single trunk, so the store is approached once instead of being crowded by a fan of near-parallel lines.
+`channel` merges several connections into one trunk where they all arrive at the same place, so a shared store is approached once instead of by a fan of near-parallel lines. The connections are still declared individually.
 
 Source: [`cases/22-channel.squinch`](cases/22-channel.squinch)
 
@@ -258,7 +256,7 @@ Source: [`cases/22-channel.squinch`](cases/22-channel.squinch)
 
 ## 23-note-anchors
 
-Every note anchor the grammar accepts, in one picture. A note is a sticky chip with a leader line to its anchor (DESIGN §5); the four corner forms pin to the frame instead and have no leader. The relative anchors are the ones to watch — a note beside a node at the edge of the diagram has to grow the canvas to stay visible.
+Every place a note can go: beside, above or below a node, attached to a connection, or pinned to one of the four corners of the diagram.
 
 Source: [`cases/23-note-anchors.squinch`](cases/23-note-anchors.squinch)
 
@@ -268,7 +266,7 @@ Source: [`cases/23-note-anchors.squinch`](cases/23-note-anchors.squinch)
 
 ## 24-arrow-kinds
 
-The four arrow kinds side by side: one head, two heads, an open chevron for async, and none at all. The arrowhead is the only thing carrying the distinction, so if any two of these ever draw alike the diagram is asserting something about the architecture that is not true — the worst kind of wrong for a drawing.
+The four kinds of connection — one-way, two-way, asynchronous, and undirected — and how each one is drawn.
 
 Source: [`cases/24-arrow-kinds.squinch`](cases/24-arrow-kinds.squinch)
 
@@ -278,7 +276,7 @@ Source: [`cases/24-arrow-kinds.squinch`](cases/24-arrow-kinds.squinch)
 
 ## 25-line-styles
 
-One model, three routings. The same graph three times, so the `lines` setting is the only thing changing on screen: `orthogonal` turns square corners, `curved` rounds them wide, `straight` runs point to point and ignores the grid entirely.
+The `lines` setting, three ways over the same diagram. `orthogonal` turns square corners, `curved` rounds them off, and `straight` runs point to point.
 
 Source: [`cases/25-line-styles.squinch`](cases/25-line-styles.squinch)
 
@@ -302,11 +300,7 @@ Source: [`cases/25-line-styles.squinch`](cases/25-line-styles.squinch)
 
 ## 26-route-label
 
-Where `route` sides actually apply — the case 14-sidecar-routes points at.
-
-Sides are fed to ELK, and ELK only routes edges that SPAN rows. A same-rank edge bypasses it for our own coplanar router, which picks its own sides, so a `from`/`to` there is ignored, and says so. Everything below crosses rows, so every hint bites.
-
-Also the parallel-edge disambiguator: two edges between the same pair are legal, and a bare `route a -> b` cannot say which one you meant — that is a check error. The label picks one.
+`route` controls which side of a node a connection leaves and enters by. When two connections join the same pair of nodes, naming one of their labels picks the one you mean.
 
 Source: [`cases/26-route-label.squinch`](cases/26-route-label.squinch)
 
