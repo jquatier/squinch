@@ -36,16 +36,15 @@ if (!label) {
  *  keeps the review small and makes an unexpected mover obvious by its absence
  *  from the pictures rather than by hiding in a hundred of them. */
 const TARGETS: { file: string; views?: string[] }[] = [
-  // `external` gets DESIGN §3's hatched surface — the four committed diagrams
-  // that use it, plus a card case and an untouched control
-  { file: "lookbook/cases/21-logos.squinch" },
-  { file: "lookbook/cases/17-zones.squinch", views: ["landscape"] },
-  { file: "lookbook/cases/19-glyphs.squinch" },
-  { file: "lookbook/cases/08-landscape.squinch" },
-  { file: "gauntlet/solutions/07-partner-b2b.squinch" },
-  // untouched controls — these own no `external` and must come out identical
+  // note collision avoidance — every note-bearing view, plus a control
+  { file: "lookbook/cases/23-note-anchors.squinch" },          // the canary: all 9 anchors
+  { file: "lookbook/cases/10-highlight-notes.squinch" },
+  { file: "packages/core/examples/landscape.squinch", views: ["orders-pci"] },
+  { file: "examples/storefront/storefront.squinch", views: ["orders-pci"] },
+  { file: "examples/microservices/shop.squinch", views: ["orders-pci"] },
+  { file: "gauntlet/solutions/08-pci-highlight.squinch" },
+  // untouched control — owns no note, must come out byte-identical
   { file: "packages/core/examples/orders.squinch" },
-  { file: "examples/storefront/storefront.squinch", views: ["orders-detail"] },
 ];
 
 const out = join(root, ".compare-tmp", label);

@@ -112,6 +112,12 @@
 - **Notes**: sticky-chip styling — `surface` bg, `warn`-tinted variant, 11px, max
   width `200`, connector leader line (dotted, 1px) to their anchor. In sketch theme
   they render genuinely hand-written.
+  Placement: the anchor's own side, sliding along it past every obstacle (nodes,
+  pills, chips, badges, the footer band, notes already placed) before standing
+  further off; a corner note hugs its corner and grows the canvas rather than
+  drifting inward. The authored side never changes, and a note may travel far —
+  its leader keeps it attached. Policy and its history:
+  `docs/notes/note-placement.md`.
 
 ## 6. Themes
 

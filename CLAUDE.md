@@ -11,9 +11,9 @@ deterministic rendering. Pre-alpha; Phase 2 (see docs/PLAN.md §3).
   **requirements**, not decoration.
 - `docs/PLAN.md` — build phases. Phase-0 spike exit criteria are pass/fail gates.
 - `docs/notes/` — engineering notes on decisions that got relitigated once too
-  often (e.g. `edge-labels.md`: the placement policy, every rejected approach
-  and why, and how to diagnose the next odd label). Read before redesigning
-  anything it covers.
+  often (e.g. `edge-labels.md` and `note-placement.md`: the placement policies,
+  every rejected approach and why, and how to diagnose the next odd label).
+  Read before redesigning anything they cover.
 
 ## Non-negotiables
 

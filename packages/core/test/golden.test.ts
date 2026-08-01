@@ -32,6 +32,13 @@ describe("golden renders", () => {
         // and no two label pills may overlap (DESIGN: labels never collide)
         const pillRects = [...r.svg!.matchAll(/<rect x="(-?\d+)" y="(-?\d+)" width="(\d+)" height="18" rx="2"/g)]
           .map((m) => ({ x: +m[1], y: +m[2], w: +m[3], h: 18 }));
+        // This regex infers a pill from its *shape*, so changing the radius or
+        // wrapping the rect in a group would match nothing — and both loops
+        // below would skip, leaving the only committed no-overlap assertion in
+        // the repo silently asserting nothing. Every golden case here has
+        // labelled edges, so finding none means the check has rotted.
+        expect(pillRects.length, "no label pills matched — the check has stopped working")
+          .toBeGreaterThan(0);
         for (let i = 0; i < pillRects.length; i++)
           for (let j = i + 1; j < pillRects.length; j++) {
             const a = pillRects[i], b = pillRects[j];
