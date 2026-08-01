@@ -9,7 +9,8 @@
     "preview": "vite preview",
     "typecheck": "tsc --noEmit",
     "sync-examples": "tsx scripts/sync-examples.ts",
-    "sync-packs": "tsx scripts/sync-packs.ts"
+    "sync-packs": "tsx scripts/sync-packs.ts",
+    "test": "vitest run"
   },
   "devDependencies": {
     "@squinch/pack-aws": "workspace:*",
@@ -23,7 +24,8 @@
     "tailwindcss": "^4.3.3",
     "tsx": "^4.23.1",
     "typescript": "^7.0.2",
-    "vite": "^8.1.5"
+    "vite": "^8.1.5",
+    "vitest": "^4.1.10"
   },
   "dependencies": {
     "@codemirror/commands": "^6.10.4",

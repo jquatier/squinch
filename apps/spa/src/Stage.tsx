@@ -13,7 +13,9 @@
 // mid-animation would restart the transition.
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
 
-export interface Box { x: number; y: number; w: number; h: number }
+export type { Box } from "./lib/dive";
+import { type Box, DIVE, diveTransforms } from "./lib/dive";
+import { isolateIds } from "./lib/isolate";
 
 /** A navigation the stage should animate. `token` re-arms on every trigger, so
  *  clicking the same card twice animates twice. */
@@ -27,35 +29,11 @@ export interface Intent {
   path?: string;
 }
 
-/** How far the eye travels. Anything past ~3× reads as a jump cut, not a move. */
-const CAP = 3.2;
-/** The incoming layer travels a fraction of the outgoing one — a full mirror
- *  overshoots and feels like two separate animations played back to back. */
-const TRAVEL = 0.62;
-
-/** The dive itself, and the anchorless fallback for a hop between two views at
- *  the same altitude, where there is no shared card to travel through. */
-const DIVE = { ms: 460, ease: "cubic-bezier(.32,.72,0,1)" };
-const CUT = { ms: 240, ease: "cubic-bezier(.4,0,.2,1)" };
-
 const boxOf = (el: Element, host: HTMLElement): Box => {
   const a = el.getBoundingClientRect();
   const b = host.getBoundingClientRect();
   return { x: a.left - b.left + host.scrollLeft, y: a.top - b.top + host.scrollTop, w: a.width, h: a.height };
 };
-const centre = (b: Box) => ({ x: b.x + b.w / 2, y: b.y + b.h / 2 });
-const clamp = (v: number, lo: number, hi: number) => Math.min(hi, Math.max(lo, v));
-
-/** Two copies of one diagram are on screen during a transition, and ids are not
- *  scoped to a document subtree: the live layer's `<use href="#i-lambda">` would
- *  resolve against whichever `<symbol>` comes first in document order. Renaming
- *  the ghost's ids keeps each layer referring to its own artwork. */
-function isolateIds(svg: string): string {
-  return svg
-    .replace(/\bid="([^"]+)"/g, 'id="ghost-$1"')
-    .replace(/href="#([^"]+)"/g, 'href="#ghost-$1"')
-    .replace(/url\(#([^)]+)\)/g, "url(#ghost-$1)");
-}
 
 export interface StageProps {
   svg?: string;
@@ -165,31 +143,13 @@ export function Stage({
       if (el) anchor = boxOf(el, host);
     }
 
-    // No shared card means the two views sit at the same altitude — a change of
-    // lens, not a change of depth. Nothing to fly through, so it gets a short
-    // depth cut instead.
-    const { ms, ease } = anchor ? DIVE : CUT;
-    let gOrigin = "50% 50%", lOrigin = "50% 50%", gEnd = "scale(.97)", lStart = "scale(1.03)";
-    if (anchor) {
-      const k = clamp(Math.min(view.w / anchor.w, view.h / anchor.h), 1.15, CAP);
-      const kIn = 1 + (k - 1) * TRAVEL;
-      const A = centre(anchor), V = centre(view);
-      const dx = V.x - A.x, dy = V.y - A.y; // anchor centre → screen centre
-      const into = a.intent.dir === "in";
-      // Zooming in, the old picture flies past (anchor grows to fill the screen)
-      // while the new one emerges from where that card sat. Zooming out is the
-      // exact inverse, so one pair of expressions covers both.
-      const gPoint = into ? A : V;
-      const lPoint = into ? V : A;
-      gOrigin = `${gPoint.x - ghostBox.x}px ${gPoint.y - ghostBox.y}px`;
-      lOrigin = `${lPoint.x - liveBox.x}px ${lPoint.y - liveBox.y}px`;
-      gEnd = into
-        ? `translate(${dx}px, ${dy}px) scale(${k})`
-        : `translate(${-dx}px, ${-dy}px) scale(${1 / k})`;
-      lStart = into
-        ? `translate(${-dx}px, ${-dy}px) scale(${1 / kIn})`
-        : `translate(${dx}px, ${dy}px) scale(${kIn})`;
-    }
+    // All of the geometry lives in lib/dive.ts — no DOM, so it is testable, and
+    // scripts/hero-gif.mts re-derives the README animation from the same
+    // constants rather than its own copy. A missing anchor means the two views
+    // sit at the same altitude: a change of lens, not of depth, so it cuts.
+    const { ms, ease, gOrigin, lOrigin, gEnd, lStart } = diveTransforms({
+      view, ghostBox, liveBox, anchor, dir: a.intent.dir,
+    });
 
     const g = ghostRef.current;
     live.style.willChange = "transform, opacity";

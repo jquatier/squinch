@@ -98,20 +98,5 @@ export async function svgToPng(svg: string, scale = 2): Promise<string | undefin
   }
 }
 
-/** Share links keep the source in the fragment — it never reaches a server. */
-export function encodeShare(source: string): string {
-  return btoa(String.fromCharCode(...new TextEncoder().encode(source)))
-    .replace(/\+/g, "-")
-    .replace(/\//g, "_")
-    .replace(/=+$/, "");
-}
-
-export function decodeShare(fragment: string): string | undefined {
-  try {
-    const b64 = fragment.replace(/-/g, "+").replace(/_/g, "/");
-    const bin = atob(b64);
-    return new TextDecoder().decode(Uint8Array.from(bin, (c) => c.charCodeAt(0)));
-  } catch {
-    return undefined;
-  }
-}
+// Share-link codec lives in lib/ so it can be tested without a browser.
+export { encodeShare, decodeShare } from "./lib/share";

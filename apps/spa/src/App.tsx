@@ -7,6 +7,7 @@ import { IconPalette } from "./IconPalette";
 import markUrl from "./mark.svg";
 import { Presenter } from "./Presenter";
 import { Stage, useReducedMotion, type Box, type Intent } from "./Stage";
+import { stepToward } from "./lib/path";
 import { compile, decodeShare, encodeShare, svgToPng, type Preview } from "./squinch";
 import { themes } from "@squinch/core/browser";
 import { EXAMPLES } from "./examples";
@@ -19,16 +20,6 @@ const THEME_LABEL: Record<Theme, string> = {
 };
 
 const STORAGE_KEY = "squinch:source";
-
-/** The one card that stands for `inner` inside a view scoped to `outer` — the
- *  element both altitudes have in common, and therefore the thing to anchor a
- *  zoom on. Undefined when the two scopes aren't nested (a lateral hop). */
-function stepToward(outer: string | undefined, inner: string | undefined): string | undefined {
-  if (!inner) return undefined;
-  if (!outer) return inner.split(".")[0];
-  if (inner === outer || !inner.startsWith(`${outer}.`)) return undefined;
-  return `${outer}.${inner.slice(outer.length + 1).split(".")[0]}`;
-}
 
 function useDebounced<T>(value: T, ms: number): T {
   const [v, setV] = useState(value);

@@ -22,6 +22,7 @@ import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { renderProject, themes } from "../packages/core/dist/index.js";
 import { svgToPng } from "../packages/cli/src/raster.js";
+import { TRAVEL, scaleFor, type Box } from "../apps/spa/src/lib/dive.js";
 
 const root = join(dirname(fileURLToPath(import.meta.url)), "..");
 const out = (theme: string) => join(root, `docs/assets/zoom-${theme}.gif`);
@@ -52,8 +53,11 @@ const LOGO_W = 132;
 let FOOT = 0;
 let STAGE_H = H;
 const FPS = 20;
-/** Stage.tsx's constants, so the GIF moves exactly like the product. */
-const CAP = 3.2, TRAVEL = 0.62;
+// Imported, not copied. These used to be redeclared here with a comment saying
+// they matched Stage.tsx — two untested copies of one animation model, in two
+// languages, held together by an assertion nobody could check. lib/dive.ts is
+// now the single definition and it has tests.
+
 
 /** cubic-bezier(.32,.72,0,1) — the app's dive easing, front-loaded so most of
  *  the distance is covered early and the landing is soft. */
@@ -262,7 +266,7 @@ const build = async (theme: string) => {
       w: +card[3] * f.s,
       h: +card[4] * f.s,
     };
-    const k = clamp(Math.min(W / A.w, H / A.h), 1.15, CAP);
+    const k = scaleFor({ x: 0, y: 0, w: W, h: H } as Box, A as Box);
     return { name, art, A, k, kIn: 1 + (k - 1) * TRAVEL, d: { x: V.x - A.x, y: V.y - A.y } };
   };
   const targets = [];
