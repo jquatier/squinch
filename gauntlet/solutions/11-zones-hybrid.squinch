@@ -1,20 +1,16 @@
 pack aws
 
-// On-premises side
 person operator "Operator"
-erp = box "Legacy ERP" external
 
-// AWS cloud side
+erp = box "ERP System"
 ingest = aws/lambda "Ingestion Lambda"
-db = aws/aurora "Aurora Database" datastore
+db = aws/aurora "Aurora DB" datastore
 
-// Connections
 operator -> erp
 erp ~> ingest "feeds data"
 ingest -> db
 
-// Deployment boundaries
-zone onprem "On-Premises Data Center" onprem {
+zone onprem "On-Premises Data Centre" onprem {
   contains operator, erp
 }
 
@@ -22,6 +18,6 @@ zone cloud "AWS Cloud" cloud {
   contains ingest, db
 }
 
-zone vpc "Production VPC" vpc {
+zone vpc "VPC" vpc {
   contains db
 }

@@ -1,19 +1,17 @@
 pack aws
 
-system api "API Service" {
-  description: "Lambda-based REST API"
-
+system api "Lambda API" {
   gw = aws/api-gateway "API Gateway"
 
   create = aws/lambda "Create Handler"
-  get    = aws/lambda "Get Handler"
+  get = aws/lambda "Get Handler"
   search = aws/lambda "Search Handler"
 
-  db     = aws/dynamodb "DynamoDB" datastore
-  files  = aws/s3 "S3 Bucket" datastore
-  idx    = aws/opensearch "OpenSearch" datastore
+  db = aws/dynamodb "Orders Table" datastore
+  files = aws/s3 "Files" datastore
+  searchdb = aws/opensearch "Search Index" datastore
 
-  sync   = aws/lambda "Stream Processor"
+  sync = aws/lambda "Index Sync"
 
   gw -> create
   gw -> get
@@ -23,15 +21,14 @@ system api "API Service" {
   create -> files
   get -> db
   get -> files
-  search -> idx
+  search -> searchdb
 
   db ~> sync "DynamoDB stream"
-  sync -> idx
+  sync -> searchdb
 }
 
 view api {
   layout {
-    rows [gw] [create get search] [db files idx sync]
-    place sync right-of idx
+    rows [gw] [create get search] [db files searchdb]
   }
 }

@@ -3,17 +3,15 @@ pack azure
 person customer "Customer"
 
 frontdoor = azure/front-door "Azure Front Door"
-webapp = azure/app-services "App Service" {
-  description: "Web tier"
-}
+app = azure/app-services "App Service"
 sql = azure/sql "Azure SQL" datastore
 redis = azure/redis "Redis Cache" datastore
 vault = azure/key-vault "Key Vault"
 insights = azure/application-insights "Application Insights"
 
-customer -> frontdoor "HTTPS"
-frontdoor -> webapp
-webapp -> sql "read/write"
-webapp -> redis "cache"
-webapp -> vault "fetch secrets"
-webapp ~> insights "telemetry"
+customer -> frontdoor "accesses"
+frontdoor -> app
+app -> sql "reads/writes"
+app -> redis "caches"
+app -> vault "pulls secrets"
+app ~> insights "telemetry"

@@ -1,71 +1,77 @@
-// Order platform architecture
 pack aws
 
-// Customer actor
 person customer "Customer"
 
-// Storefront (outside VPC)
 storefront = aws/cloudfront "Storefront"
+gw = aws/api-gateway "API Gateway"
 
-// API Gateway
-apigw = aws/api-gateway "API Gateway"
-
-// Catalog service
 system catalog "Catalog Service" {
-  tags: #core
+  description: "Product catalog"
+  glyph: sys/database
+
   handler = aws/lambda "Catalog Handler"
   db = aws/dynamodb "Catalog DB" datastore
 
   handler -> db
 }
 
-// Orders service
 system orders "Orders Service" {
+  description: "Order management"
+  glyph: sys/code
   tags: #core
+
   handler = aws/lambda "Orders Handler"
   db = aws/dynamodb "Orders DB" datastore
+  bus = aws/eventbridge "Order Events"
 
-  handler -> db { tags: #sensitive }
-  handler ~> bridge "publish order events" { tags: #sensitive }
+  handler -> db
+  handler ~> bus "publishes order events"
 }
 
-// Payments service
 system payments "Payments Service" {
-  tags: #core
-  handler = aws/lambda "Payments Handler"
-  db = aws/dynamodb "Payments DB" datastore
+  description: "Payment processing"
+  glyph: sys/lock
+  tags: #sensitive
 
-  handler -> db { tags: #sensitive }
+  handler = aws/lambda "Payment Handler" {
+    tags: #sensitive
+  }
+  db = aws/dynamodb "Payments DB" datastore {
+    tags: #sensitive
+  }
+
+  handler -> db {
+    tags: #sensitive
+  }
 }
 
-// EventBridge
-bridge = aws/eventbridge "EventBridge"
+fulfillment = aws/lambda "Fulfillment Worker" {
+  description: "Processes orders"
+}
 
-// Fulfilment worker
-fulfilment = aws/lambda "Fulfilment Worker"
+customer -> storefront "browses"
+storefront -> gw
+gw -> catalog.handler "catalog requests"
+gw -> orders.handler "order requests"
+gw -> payments.handler "payment requests" {
+  tags: #sensitive
+}
+orders.bus ~> fulfillment "order created"
 
-// Connections
-customer -> storefront "browse"
-storefront -> apigw "API requests"
-apigw -> catalog.handler "catalog requests"
-apigw -> orders.handler "order requests" { tags: #sensitive }
-apigw -> payments.handler "payment requests" { tags: #sensitive }
-bridge ~> fulfilment "order events"
-
-// Production VPC zone (everything except storefront)
 zone prod_vpc "Production VPC" vpc {
-  contains apigw, catalog, orders, payments, bridge, fulfilment
+  contains gw, catalog, orders, payments, fulfillment
 }
 
-// Landscape view
 view landscape {
-  title "Order Platform Landscape"
+  title "Order Platform - System Landscape"
   include *
+  legend auto
 }
 
-// Orders service zoomed view
 view orders {
+  title "Orders Service - Detail"
   scope orders
+  highlight #core
   show descriptions
-  highlight #sensitive
+  legend auto
 }

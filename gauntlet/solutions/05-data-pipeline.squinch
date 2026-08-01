@@ -1,24 +1,15 @@
 pack aws
 
-// Clickstream data pipeline
 person analyst "Analyst"
 
-stream = aws/kinesis "Clickstream Events"
-transform = aws/lambda "Event Transformer" {
-  description: "Processes and enriches events"
-}
-lake = aws/s3 "Data Lake" datastore
-catalog = aws/glue "Glue Catalog" {
-  description: "Data catalog and metadata"
-}
-query = aws/athena "Athena" {
-  description: "Query engine"
-}
+stream      = aws/kinesis "Clickstream"
+transformer = aws/lambda "Transformer"
+lake        = aws/s3 "Data Lake" datastore
+catalog     = aws/glue "Glue Catalog"
+query       = aws/athena "Athena"
 
-// Data flow
-stream ~> transform "events"
-transform ~> lake "parquet files"
-lake ~> catalog "schema discovery"
+stream ~> transformer
+transformer ~> lake
+lake -> catalog
+catalog -> query
 analyst -> query "runs queries"
-query -> lake "scans data"
-query -> catalog "reads metadata"
