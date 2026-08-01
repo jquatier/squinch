@@ -482,13 +482,35 @@ function notes(
       for (let k = 1; k <= 12; k++) cands.push({ x: x0, y: y0 + k * out });
     }
 
+    // Two passes: prefer a spot inside the canvas we already have, and only
+    // spill outside — which widens or lengthens the whole diagram — when there
+    // is genuinely nowhere in. Without this the ladder took the first clear
+    // candidate in order, and since it tries the near side first, a `below`
+    // note dodging a label pill slid left off the canvas and pushed every
+    // other element 200px right to make room for it.
+    const inX = (r: Rect) => r.x >= 0 && r.x + r.w <= p.width;
+    const inY = (r: Rect) => r.y >= 0 && r.y + r.h <= p.height;
+    // Three passes, loosening one axis at a time. Growing the canvas is
+    // sometimes unavoidable — a `below` note on the bottom row has nowhere
+    // else to go — but there is a real difference between extending downward,
+    // which reads as the diagram getting taller, and sliding off the left
+    // edge, which shifts every other element sideways to make room. Taking
+    // the first clear candidate in ladder order did the latter.
+    const fits: ((r: Rect) => boolean)[] = [
+      (r) => inX(r) && inY(r),
+      (r) => inX(r),
+      () => true,
+    ];
     let x = Math.round(cands[0]?.x ?? 16), y = Math.round(cands[0]?.y ?? 16);
     let found = false;
-    for (const c of cands) {
-      const r = { x: Math.round(c.x), y: Math.round(c.y), w, h };
-      if (!clear(r)) continue;
-      x = r.x; y = r.y; found = true;
-      break;
+    for (const fit of fits) {
+      for (const c of cands) {
+        const r = { x: Math.round(c.x), y: Math.round(c.y), w, h };
+        if (!fit(r) || !clear(r)) continue;
+        x = r.x; y = r.y; found = true;
+        break;
+      }
+      if (found) break;
     }
     // Nothing on the ladder was free. Keep travelling in the authored
     // direction until it is: a note may leave the cluster entirely because its

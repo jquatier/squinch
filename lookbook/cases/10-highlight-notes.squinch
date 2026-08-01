@@ -22,7 +22,7 @@ system pay "Payments" {
 view pci {
   scope pay
   highlight #pci
-  note right-of vault "Tokens only; PANs never stored"
+  note below vault "Tokens only; PANs never stored"
   note on api -> token "p99 8ms"
   note top-right "PCI DSS scope, audited quarterly" { style: warning }
 }

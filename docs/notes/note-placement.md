@@ -27,7 +27,15 @@ Per note, in declaration order:
      stack.
    - **corner** — a short slide along the edge it is pinned to (≤4 steps), then
      *outward* off the canvas, which grows the diagram.
-3. If nothing on the ladder is clear, keep travelling in the authored direction,
+3. The ladder is walked three times, loosening one axis at a time: candidates
+   fully inside the canvas, then candidates inside it *horizontally*, then
+   anything. Growing the canvas is sometimes unavoidable — a `below` note on the
+   bottom row has nowhere else to go — but extending downward reads as the
+   diagram getting taller, while sliding off the left edge shifts every other
+   element sideways to make room. Taking the first clear candidate in ladder
+   order did the latter, and widened a diagram by 200px to park a note in the
+   margin.
+4. If nothing on the ladder is clear, keep travelling in the authored direction,
    bounded at 50 steps. A note may leave the cluster entirely: the dotted leader
    keeps it attached, which is the property `edge-labels.md` wishes pills had.
 
@@ -58,7 +66,14 @@ Clamping is a no-op for a note still level with its anchor, which is why the
 `landscape` golden and the `storefront` example did not move when this landed:
 only notes that had actually slid changed.
 
-## Known residual
+## Known residuals
+
+**Leader lines are not collision-checked.** The note *box* avoids everything;
+the dotted line back to its anchor can still cross a label pill or a card. It is
+1px and dotted so it reads as passing behind rather than colliding, but a leader
+crossing a pill can make the pill's text look struck through. Routing leaders is
+a real feature, not a tweak — it would need segment/rect intersection and a
+detour policy — so it is deliberately not attempted here.
 
 The legend and titleblock are drawn *after* notes but positioned from the final
 canvas height, which is circular. The reserved band is computed from the

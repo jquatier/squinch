@@ -36,15 +36,8 @@ if (!label) {
  *  keeps the review small and makes an unexpected mover obvious by its absence
  *  from the pictures rather than by hiding in a hundred of them. */
 const TARGETS: { file: string; views?: string[] }[] = [
-  // note collision avoidance — every note-bearing view, plus a control
-  { file: "lookbook/cases/23-note-anchors.squinch" },          // the canary: all 9 anchors
-  { file: "lookbook/cases/10-highlight-notes.squinch" },
-  { file: "packages/core/examples/landscape.squinch", views: ["orders-pci"] },
-  { file: "examples/storefront/storefront.squinch", views: ["orders-pci"] },
   { file: "examples/microservices/shop.squinch", views: ["orders-pci"] },
-  { file: "gauntlet/solutions/08-pci-highlight.squinch" },
-  // untouched control — owns no note, must come out byte-identical
-  { file: "packages/core/examples/orders.squinch" },
+  { file: "lookbook/cases/10-highlight-notes.squinch" },
 ];
 
 const out = join(root, ".compare-tmp", label);
