@@ -143,6 +143,10 @@ same font can pair (`Theme.pairsWith`); type metrics drive layout.
 Key architecture from Phase 0, still binding: same-rank edges bypass ELK and use
 our coplanar router; declared ranks are enforced via invisible scaffold edges; an
 expanded container is one "entity" for ranking, and ELK layers freely inside it.
+`docs/notes/coplanar.md` records why the router cannot be handed to ELK — four
+measured attempts, all closed. In Sugiyama layering a layer *is* a set of nodes
+with no edges between them, so no option puts two edge-connected nodes on one
+rank; the router is what makes `rows` a feature rather than a suggestion.
 The Phase-0 hand-built harness that proved this is retired, and its canonical
 oracle followed (2026-08): label-space reservation legitimately moves node
 positions, so second-implementation parity stopped being a meaningful claim.
