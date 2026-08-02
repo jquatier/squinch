@@ -51,3 +51,33 @@ jobs:
       # The lookbook (DESIGN §9) is snapshot-locked: regenerate and diff clean.
       - run: npx tsx lookbook/build.ts
       - run: git diff --exit-code lookbook/
+
+  # The interactive HTML export, in real engines. Its load-bearing mechanism —
+  # a hoisted <symbol> in one <svg> painting inside another — cannot be checked
+  # headlessly: jsdom and happy-dom neither lay out nor resolve SVG references,
+  # so a broken hoist passes every unit test. WebKit is not optional; Safari has
+  # the longest history of <use>/clipPath cross-reference quirks and this file
+  # is meant to be opened from file:// on someone else's Mac.
+  #
+  # Its own job: ~180 MB of browsers is not worth adding to every push's
+  # critical path when the rest of the suite runs in seconds.
+  e2e:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: pnpm/action-setup@v6
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm -r build
+      - name: cache playwright browsers
+        uses: actions/cache@v4
+        id: pw-cache
+        with:
+          path: ~/.cache/ms-playwright
+          key: playwright-${{ runner.os }}-${{ hashFiles('pnpm-lock.yaml') }}
+      - if: steps.pw-cache.outputs.cache-hit != 'true'
+        run: cd packages/core && npx playwright install --with-deps chromium webkit
+      - run: pnpm --filter @squinch/core test:e2e

@@ -10,6 +10,7 @@
     "test": "npm run grammar && vitest run",
     "demo": "npm run grammar && tsx scripts/demo.ts",
     "gen-metrics": "tsx scripts/gen-metrics.ts && tsx scripts/gen-metrics-module.ts",
+    "test:e2e": "playwright test",
     "gen-html-runtime": "tsx scripts/gen-html-runtime.ts",
     "gen-fonts": "tsx scripts/gen-fonts.ts",
     "bench": "npm run grammar && tsx scripts/bench.ts"
@@ -29,6 +30,7 @@
     "@fontsource/caveat": "^5.3.0",
     "@fontsource/inter": "^5.3.0",
     "@lezer/generator": "^1.8.0",
+    "@playwright/test": "^1.62.1",
     "esbuild": "^0.28.1",
     "fontkit": "^2.0.4",
     "subset-font": "^2.5.0",

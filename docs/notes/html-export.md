@@ -131,18 +131,40 @@ a file opens as a document rather than as a mode of an app:
   climbs an altitude. Merging them would make "back" ambiguous the moment a
   flow view sits inside a system.
 
-## Not automated
+## What only a browser can check — `packages/core/e2e/`
 
-Nothing in the test suite proves the *interaction* works. The mechanism that
-cannot be checked headlessly is `<use href="#…">` resolving across `<svg>`
-element boundaries — neither happy-dom nor jsdom lays out or resolves SVG
-references, so the whole hoisting strategy is only verified by opening the file.
-It was verified that way — dive, breadcrumb, climb, palette toggle, deck
-stepping, flow walking 1→5 and back, `Home`/`End`, and the deep link. Now that
-there is a presenter, this should grow a Playwright smoke test: chromium and
-**webkit**, since Safari has the longest history of `<use>`/`clipPath`
-cross-reference quirks and this artifact will be opened from `file://` on Macs.
+The unit tests assert the file is well-formed, self-contained and
+deterministic. They cannot assert it *works*: `<use href="#…">` resolving
+across `<svg>` element boundaries is the mechanism the whole hoisting strategy
+rests on, and neither jsdom nor happy-dom lays out or resolves SVG references —
+so a completely broken hoist passes every one of them, and every icon in the
+delivered file is an empty hole.
 
-One note for whoever writes it: the browser-automation harness in use here sent
-`Right` rather than `ArrowRight`, so the first attempt looked like broken
-stepping and was not. Dispatch real `KeyboardEvent`s with the DOM key names.
+`npm run test:e2e` in core: Playwright, chromium **and webkit**, six tests over
+`file://` (the origin this artifact is actually opened from, and a stricter one
+than http). Its own CI job, since ~180 MB of browsers does not belong on every
+push's critical path. What it covers, in order of why it exists:
+
+1. **The sprite resolves** — a `<use>` in the live view instantiates, has a
+   box, and the card it sits in screenshots to more than a blank plate's worth
+   of PNG.
+2. Clicking a card dives, the breadcrumb follows, the ghost is cleaned up.
+3. Clicking the canvas climbs.
+4. Presentation mode: `p` presents, the counter opens at hop 1, arrows walk the
+   flow both ways, `↑` climbs *instead of* stepping, `Escape` leaves.
+5. `prefers-reduced-motion` never produces a ghost layer — watched with a
+   `MutationObserver` inside the page, because polling across the wire both
+   races teardown and misses a 40ms ghost.
+6. The entry view renders with **JavaScript disabled**, which is the
+   progressive-enhancement claim itself rather than its structural proxy.
+
+Two things it taught, worth keeping:
+
+- **Click `[data-path]`, not the label text.** WebKit hands the canvas `<rect>`
+  back from a hit-test where Chromium hands back the `<text>` glyph, so a
+  text-based locator times out in one engine and passes in the other. The
+  runtime binds to `closest("[data-path]")` anyway, so the card *is* the
+  affordance and the test now says so.
+- The browser-automation harness used during development sends `Right`, not
+  `ArrowRight`. That looked exactly like broken stepping and was not; dispatch
+  real DOM key names.

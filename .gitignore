@@ -27,3 +27,7 @@ apps/spa/public/*-icons/
 gauntlet/.run/
 # before/after renders for scripts/compare.mts
 .compare-tmp/
+
+# playwright: browsers are cached globally, runs are disposable
+packages/core/test-results/
+packages/core/playwright-report/
