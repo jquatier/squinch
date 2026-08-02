@@ -161,6 +161,35 @@ export function checkLayout(p: Positioned, ctx: Ctx = {}): string[] {
     for (const n of nodes)
       if (overlaps(b as any, n)) bad.push(`badge on ${b.edgeId} overlaps node ${n.path}`);
 
+  // ── a badge is nearest the wire it numbers ──────────────────────────────
+  // The rule the old placement broke without ever colliding with anything. A
+  // badge docked to the left of its pill, or walked out from its edge's start,
+  // could come to rest against a *neighbouring* line and read as that edge's
+  // number — `microservices#checkout` had one sitting on an async wire it had
+  // nothing to do with. Overlap rules cannot see that, because attachment, not
+  // collision, is the property. So assert attachment directly: no other edge
+  // may be closer to the badge than its own. Not "touching" — a reservation
+  // deliberately sits a spacing notch off the wire.
+  const distToRun = (pts: { x: number; y: number }[], x: number, y: number) => {
+    let best = Infinity;
+    for (let i = 0; i < pts.length - 1; i++) {
+      const a = pts[i], b2 = pts[i + 1];
+      const dx = b2.x - a.x, dy = b2.y - a.y, l2 = dx * dx + dy * dy;
+      const t = l2 ? Math.max(0, Math.min(1, ((x - a.x) * dx + (y - a.y) * dy) / l2)) : 0;
+      best = Math.min(best, Math.hypot(a.x + dx * t - x, a.y + dy * t - y));
+    }
+    return best;
+  };
+  for (const b of p.badges ?? []) {
+    const own = p.edges.find((q) => q.id === b.edgeId);
+    if (!own || own.points.length < 2) continue;
+    const [cx, cy] = [b.x + b.w / 2, b.y + b.h / 2];
+    const mine = distToRun(own.points, cx, cy);
+    for (const other of p.edges)
+      if (other.id !== own.id && other.points.length >= 2 && distToRun(other.points, cx, cy) < mine)
+        bad.push(`badge on ${b.edgeId} sits nearer edge ${other.id} than its own`);
+  }
+
   // ── port distribution (DESIGN §4) ───────────────────────────────────────
   // "multiple edges on one side spread at even offsets — never stacked into a
   // single point". The one legal exception is a `channel`: merging N sources

@@ -78,6 +78,48 @@ and it improves diagrams the allowance never touched: the `×3` aggregate in
 `21-logos` was stranded in open space below the diagram and now sits directly
 under the node its edge leaves, 30px of canvas shorter.
 
+## Flow badges (2026-08)
+
+A `show flow` view draws a numbered badge on each step. Those badges were the
+last annotation still *placed* rather than reserved, and they were closed as
+fine one day before someone looked at `microservices#checkout` and found:
+
+- badge **7** docked to the left of `decrement stock` and landing flush against
+  `mark shipped`, so it read as numbering the wrong edge;
+- badge **4** walked 18px out from its edge's start and coming to rest **on a
+  neighbouring async wire** it had nothing to do with;
+- in `18-flows`, a badge docked left of a pill that sat right of its wire —
+  putting the badge back on the line it was labelling.
+
+None of these overlapped anything the invariants assert, which is why they
+survived a corpus sweep and a close-out. **Collision was the wrong test.** The
+property a badge needs is *attachment*: it must read as belonging to one wire.
+
+The policy now:
+
+- **An edge with a pill** reserves one rect for both, pill width + 4 + badge.
+  The annotation pass carves the badge off the end of that rect nearest the
+  wire and hands the remainder back as the pill's `labelRect`, so the renderer
+  and every obstacle set still see one rect meaning "the pill draws here".
+- **An edge without a pill** reserves nothing extra. Its badge is a bead drawn
+  centred *on* the wire, at the point nearest its own label dummy — the
+  invisible 2px spacer every edge already carries, which ELK places at that
+  edge's median layer. Widening that spacer instead was tried and reverted: it
+  pushed the bead off to one side and rearranged whole diagrams
+  (`12-flow-checkout`) that have no pills in them at all.
+- **A flow view with no labels anywhere** does not switch the label machinery on
+  just to anchor badges; each one sits at the midpoint of its own run.
+- The badge is sized from the **full** flow's numbers, so stepping a flow one
+  hop at a time still cannot move it.
+
+Anchoring snaps to the nearest point **along** the polyline, not the nearest
+vertex — the vertex is always a corner, and a badge in the elbow reads as
+decoration on the turn rather than a number on the line.
+
+`checkLayout` now asserts the property directly: no other edge may be closer to
+a badge than its own. Run against the old placement code it reports six
+violations across the corpus; the fix reports none.
+
 ## Rejected approaches (do not relitigate without a fresh reason)
 
 | Approach | Why it lost |
@@ -87,7 +129,7 @@ under the node its edge leaves, 30px of canvas shorter.
 | Rotate the pill 90° onto vertical wires | Implemented and reverted — reads worse than a plain detached label. |
 | Perpendicular nudge off the wire | Measured on the case below: the wire threaded a ~50px gutter and a 42px pill plus margins needs essentially all of it, so nudging one way hit the other neighbour. Dead end *in tight gutters* — which is exactly when you'd want it. |
 | A leader line on detached pills | **Tried and reverted** — and it is the idea this file previously recommended. The problem is where a detached pill lands: `relocate` puts it below *both* of the edge's nodes, so a line back to the edge's own midpoint has to cross one of them. On `microservices#orders-pci` it drew straight through the Orders node and the Catalog card, which reads worse than the ambiguity it was meant to fix. It would need routed leaders, which is a feature, not a tweak. |
-| Converting flow badges to ELK `HEAD` labels for the same reason | **Closed, deliberately.** Badges are already layout citizens — their geometry is reserved and `checkLayout` has a rule for them — so the reservation argument that carried pills does not apply. Only their position search is ours, it has never produced a collision across the corpus, and converting them means re-plumbing the walked-subset behaviour that currently guarantees stepping a flow (`flowStep`) cannot move a badge. Reopen only if a badge collision actually appears. |
+| Converting flow badges to ELK `HEAD`/`TAIL` labels | Still not what we did — `HEAD` hugs the sink and `TAIL` the source, and a badge belongs mid-wire like a pill. But the close-out reason first recorded here ("their placement has never produced a collision") was the wrong test, and this file now has a **Flow badges** section explaining what actually broke and how it was fixed. |
 | Relax the 4px node collision margin | Would fix near-misses (see below, which failed by **1px**) but the label then visually kisses the node border, and it loosens every tight placement everywhere. |
 
 ## Worked example: "views" in the dense-mesh lookbook case

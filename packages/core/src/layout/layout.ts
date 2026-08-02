@@ -517,10 +517,30 @@ export async function layoutView(
   // forceNodeModelOrder makes the in-layer order) carries the override. A pair
   // that ends up routed around a blocker wastes a little width here; the lane
   // itself is below the band, where width is free.
+  // ── flow badges are part of the label reservation ────────────────────────
+  // A badge used to be placed after layout: docked to the left of its pill, or
+  // walked out from the edge's start until it stopped overlapping something.
+  // Both fail the same way — the badge is positioned relative to the *pill*, or
+  // to nothing, and never to its own wire. `microservices#checkout` had one
+  // land flush between two pills (so it read as the wrong edge's number) and
+  // another land on a neighbouring async wire; neither overlapped anything
+  // `checkLayout` asserts, because the failure is attachment, not collision.
+  // So a badge is reserved together with its pill, as one rect on one wire, and
+  // the annotation pass carves it back out. Sized from the FULL flow's numbers,
+  // so walking a flow one hop at a time still cannot change the geometry.
+  const BADGE_GAP = 4;
+  const fx = (px: number) => Math.round(px * font.scale);
+  const badgeW = (edgeId: string) => {
+    const nums = graph.flow?.byEdge[edgeId];
+    if (!nums?.length) return 0;
+    return Math.max(9, Math.round(measure(nums.join("·"), fx(10), "500", font.metrics) / 2) + 5) * 2;
+  };
+
   const coplanarGutter = new Map<string, number>();
   for (const e of coplanar) {
     if (!e.label) continue;
-    const need = pillDims(e.label, font).w + 16;
+    const bw = badgeW(e.id);
+    const need = pillDims(e.label, font).w + (bw ? bw + BADGE_GAP : 0) + 16;
     const [a, b] = [unitOf(e.from), unitOf(e.to)];
     const left = order.indexOf(a) <= order.indexOf(b) ? a : b;
     coplanarGutter.set(left, Math.max(coplanarGutter.get(left) ?? 0, need));
@@ -601,6 +621,10 @@ export async function layoutView(
     if (!n || n.frame) return;
     layerNotes.push({ i, id: `note:${i}`, anchor: target, above: rp === "above", ...noteDims(note.text) });
   });
+  // Badges deliberately do NOT switch this on. A flow view with no labels at
+  // all has nothing for a badge to collide with, and its badge sits at the
+  // midpoint of its own run; turning the scheme on just to anchor one rewrote
+  // the layout of `12-flow-checkout`, which had no pills in it to begin with.
   const hasElkLabels = elkEdges.some((e) => !!e.label) || edgeNotes.length > 0 || layerNotes.length > 0;
 
   const entityElk = (p: string): any =>
@@ -672,8 +696,18 @@ export async function layoutView(
   const spacerH = (inFrame: boolean) => Math.max(2, (inFrame ? 40 : SP[1]) - 32);
   const labelFor = (e: VEdge) => {
     const inFrame = !!byPath.get(e.from)?.frame && byPath.get(e.from)?.frame === byPath.get(e.to)?.frame;
+    const bw = badgeW(e.id);
+    // An unlabelled edge reserves nothing extra: its badge draws centred *on*
+    // the wire, where the 2px spacer already sits, and the wire's own clearance
+    // (edgeNode / edgeEdge) is the room it needs. Widening the spacer instead
+    // pushed the badge off to one side and rearranged whole flow diagrams that
+    // have no pills at all — paying layout for a bead that sat fine on the line.
     if (!e.label) return { text: " ", width: 2, height: spacerH(inFrame) };
-    return { text: e.label, width: pillDims(e.label, font).w, height: Math.max(18, spacerH(inFrame)) };
+    return {
+      text: e.label,
+      width: pillDims(e.label, font).w + (bw ? bw + BADGE_GAP : 0),
+      height: Math.max(18, spacerH(inFrame)),
+    };
   };
 
   const children = order.map((p) => (zoneById.has(p) ? zoneElk(zoneById.get(p)!) : entityElk(p)));
@@ -911,7 +945,9 @@ export async function layoutView(
     // width is free.
     const rectOnRun = (alo: number, ahi: number, c: number) => {
       if (!e.label) return undefined;
-      const { w } = pillDims(e.label, font);
+      const bw = badgeW(e.id);
+      // one rect for pill + badge, exactly as the ELK path reserves it
+      const w = pillDims(e.label, font).w + (bw ? bw + BADGE_GAP : 0);
       const mid = Math.round((alo + ahi) / 2);
       const r = pt(mid - Math.round(w / 2), c - 9);
       return { x: r.x, y: r.y, ...(flowsRight ? { w: 18, h: w } : { w, h: 18 }) };
@@ -961,15 +997,81 @@ export async function layoutView(
   // Positioned carries. Order is the obstacle registry, as ever: pills
   // (labelRects) exist, then chips avoid them, then badges avoid both, and the
   // notes resolver downstream sees all three.
-  const fx = (px: number) => Math.round(px * font.scale);
+  // Carve each badge out of the left (or top) of the rect reserved for it, and
+  // hand the remainder back as the pill's own rect — so everything downstream,
+  // including the renderer, sees a labelRect that means "the pill draws here"
+  // and nothing has to know a badge was ever involved.
+  /** Nearest point ON the wire, projected onto its segments — not the nearest
+   *  vertex, which is always a corner and puts the badge in the elbow. */
+  const nearestPoint = (pts: { x: number; y: number }[], x: number, y: number) => {
+    let best = pts[0], bestD = Infinity;
+    for (let i = 0; i < pts.length - 1; i++) {
+      const a = pts[i], b = pts[i + 1];
+      const dx = b.x - a.x, dy = b.y - a.y;
+      const len2 = dx * dx + dy * dy;
+      const t = len2 ? Math.max(0, Math.min(1, ((x - a.x) * dx + (y - a.y) * dy) / len2)) : 0;
+      const p = { x: Math.round(a.x + dx * t), y: Math.round(a.y + dy * t) };
+      const d = Math.hypot(p.x - x, p.y - y);
+      if (d < bestD) { bestD = d; best = p; }
+    }
+    return best;
+  };
+  /** Halfway along the polyline, not the middle vertex — a two-point coplanar
+   *  run has no middle vertex, and its "middle" would be the arrowhead. */
+  const midOfRun = (pts: { x: number; y: number }[]) => {
+    const segs = pts.slice(1).map((p, i) => Math.hypot(p.x - pts[i].x, p.y - pts[i].y));
+    let left = segs.reduce((a, b) => a + b, 0) / 2;
+    for (let i = 0; i < segs.length; i++) {
+      if (segs[i] >= left) {
+        const t = segs[i] ? left / segs[i] : 0;
+        return { x: Math.round(pts[i].x + (pts[i + 1].x - pts[i].x) * t), y: Math.round(pts[i].y + (pts[i + 1].y - pts[i].y) * t) };
+      }
+      left -= segs[i];
+    }
+    return pts[pts.length - 1];
+  };
+  const badges: Positioned["badges"] = [];
+  if (graph.flow) {
+    for (const e of pEdges) {
+      const nums = graph.flow.byEdge[e.id] ?? [];
+      if (!nums.length) continue;
+      const bw = badgeW(e.id);
+      const r = e.labelRect;
+      // No pill: the badge is a bead on the wire, centred on the point of the
+      // edge nearest its own label dummy — which ELK placed at the median layer
+      // of *this* edge, so the number can no longer end up beside a neighbour's
+      // line. Falls back to the middle vertex for an edge ELK gave no label.
+      if (!r || !e.label) {
+        const at = r ? nearestPoint(e.points, r.x + r.w / 2, r.y + r.h / 2) : midOfRun(e.points);
+        badges.push({ edgeId: e.id, x: Math.round(at.x - bw / 2), y: at.y - 9, w: bw, h: 18, nums });
+        continue;
+      }
+      // With a pill, the reservation covers both and either end of it is free.
+      // Put the badge at the end nearest the wire: the number then reads as
+      // belonging to that line rather than to whatever pill it sits beside.
+      const vertical = r.h > r.w;
+      const near = nearestPoint(e.points, r.x + r.w / 2, r.y + r.h / 2);
+      if (vertical) {
+        const atTop = near.y <= r.y + r.h / 2;
+        badges.push({ edgeId: e.id, x: r.x + Math.round((r.w - 18) / 2), y: atTop ? r.y : r.y + r.h - bw, w: 18, h: bw, nums });
+        if (atTop) r.y += bw + BADGE_GAP;
+        r.h -= bw + BADGE_GAP;
+      } else {
+        const atLeft = near.x <= r.x + r.w / 2;
+        badges.push({ edgeId: e.id, x: atLeft ? r.x : r.x + r.w - bw, y: r.y + Math.round((r.h - 18) / 2), w: bw, h: 18, nums });
+        if (atLeft) r.x += bw + BADGE_GAP;
+        r.w -= bw + BADGE_GAP;
+      }
+    }
+  }
+
   // the DRAWN pill, not the reservation: a reservation can be taller (it
-  // doubles as the gap spacer), and chips/badges historically avoided the
-  // 18-tall pill the renderer draws centred inside it — feeding them the raw
+  // doubles as the gap spacer), and chips historically avoided the 18-tall
+  // pill the renderer draws centred inside it — feeding them the raw
   // reservation shifted 7 views by 3px at the gate
   // e.label too, not just labelRect: unlabelled edges carry 2px spacer labels
   // (the gap-arithmetic trick), and those come back as ghost labelRects. The
-  // renderer always ignored them (`if (!e.label)`); obstacles must too, or a
-  // badge docks to an invisible 2px rect instead of walking its wire.
+  // renderer always ignored them (`if (!e.label)`); obstacles must too.
   const pillRects = pEdges.filter((e) => e.label && e.labelRect).map((e) => ({
     x: e.labelRect!.x,
     y: e.labelRect!.y + Math.round((e.labelRect!.h - 18) / 2),
@@ -988,7 +1090,7 @@ export async function layoutView(
       }
       return out;
     });
-    const obstacles = () => [...segs, ...nodes, ...pillRects, ...chips];
+    const obstacles = () => [...segs, ...nodes, ...pillRects, ...badges, ...chips];
     for (const z of [...pZones].sort((a, b) => a.depth - b.depth)) {
       const iconW = z.icon ? 26 : 0;
       const label = fit(z.label, z.w - 48 - iconW, fx(11), "500", font.metrics);
@@ -1011,47 +1113,6 @@ export async function layoutView(
       chips.push({ x: best.x, y, w, h: 20, label, zone: z.id, icon: z.icon });
     }
   }
-
-  const badges: Positioned["badges"] = [];
-  if (graph.flow) {
-    const pointFromStart = (pts: { x: number; y: number }[], dist: number) => {
-      let remaining = dist;
-      for (let i = 0; i < pts.length - 1; i++) {
-        const a = pts[i], b2 = pts[i + 1];
-        const seg = Math.hypot(b2.x - a.x, b2.y - a.y);
-        if (seg >= remaining)
-          return { x: Math.round(a.x + ((b2.x - a.x) / seg) * remaining), y: Math.round(a.y + ((b2.y - a.y) / seg) * remaining) };
-        remaining -= seg;
-      }
-      return pts[pts.length - 1];
-    };
-    for (const e of pEdges) {
-      const nums = graph.flow.byEdge[e.id] ?? [];
-      if (!nums.length) continue;
-      const total = e.points.reduce(
-        (acc, pt, i) => (i ? acc + Math.hypot(pt.x - e.points[i - 1].x, pt.y - e.points[i - 1].y) : 0), 0);
-      const text = nums.join("·");
-      const rWide = Math.max(9, Math.round(measure(text, fx(10), "500", font.metrics) / 2) + 5);
-      let cx = 0, cy = 0;
-      const docked = pillRects.find((q2) => q2.edgeId === e.id);
-      if (docked) {
-        cx = docked.x - rWide - 4;
-        cy = docked.y + 9;
-      } else {
-        for (const d of [18, 36, 54, 78, 102, 134]) {
-          const pt = pointFromStart(e.points, Math.min(d, total / 2));
-          cx = pt.x; cy = pt.y;
-          const rect = { x: cx - rWide, y: cy - 9, w: rWide * 2, h: 18 };
-          const hit = pillRects.some((q2) => hitR(q2, rect)) ||
-            badges.some((q2) => hitR(q2, rect)) ||
-            nodes.some((n2) => hitR(n2, rect));
-          if (!hit || d >= total / 2) break;
-        }
-      }
-      badges.push({ edgeId: e.id, x: cx - rWide, y: cy - 9, w: rWide * 2, h: 18, nums });
-    }
-  }
-
 
 
   // ── channels (SPEC §6 Tier 2): one trunk instead of N crossing lines ─────

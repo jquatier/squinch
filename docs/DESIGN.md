@@ -110,6 +110,12 @@
   for the *hover/selected* state only.
 - **Zone frames** (v1.1): dashed `1.5` border, radius 8, kind-tinted at low opacity,
   label chip pinned to the top-left corner *outside* the flow of nodes.
+- **Flow badges**: a numbered disc attached to the wire it numbers, and no other.
+  On a labelled edge it is reserved together with the pill and sits at the end of
+  that reservation nearest the wire; on an unlabelled one it is a bead centred on
+  the line. Never docked to a pill's side without regard for where the wire is —
+  that is how a badge ends up reading as the neighbouring edge's number
+  (`docs/notes/edge-labels.md`).
 - **Notes**: sticky-chip styling — `surface` bg, `warn`-tinted variant, 11px, max
   width `200`, connector leader line (dotted, 1px) to their anchor. In sketch theme
   they render genuinely hand-written.
