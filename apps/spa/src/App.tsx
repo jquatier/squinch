@@ -315,25 +315,6 @@ export function App() {
 
         <div className="flex-1" />
 
-        {views.length > 1 && (
-          <div className="flex items-center gap-1 rounded border border-[var(--line)] p-0.5">
-            {views.map((v) => (
-              <button
-                key={v.name}
-                onClick={() => navigate(v.name)}
-                title={v.title}
-                className={`rounded px-2 py-1 text-[12px] transition-colors ${
-                  v.name === activeView
-                    ? "bg-[var(--chip)] text-[var(--fg)]"
-                    : "text-[var(--muted)] hover:text-[var(--fg)]"
-                }`}
-              >
-                {v.name}
-              </button>
-            ))}
-          </div>
-        )}
-
         <button onClick={cycleTheme} className={btn} title="Cycle theme">
           {THEME_LABEL[theme]}
         </button>
@@ -387,6 +368,32 @@ export function App() {
           >
             {editorOpen ? "Hide editor" : "Show editor"}
           </button>
+          {/* The views belong to the diagram, not to the app: they are its
+              altitudes, and switching one is a move within the picture rather
+              than a global mode. Top-centre keeps them clear of the editor
+              toggle and breadcrumb on the left and the zoom control bottom
+              right, and they inherit the same surface the other canvas
+              overlays use so they read over any theme. */}
+          {views.length > 1 && (
+            <nav className="absolute left-1/2 top-3 z-10 flex max-w-[calc(100%-7rem)] -translate-x-1/2 items-center gap-1 overflow-x-auto rounded border border-[var(--line)] bg-[var(--surface)] p-0.5">
+              {views.map((v) => (
+                <button
+                  key={v.name}
+                  onClick={() => navigate(v.name)}
+                  title={v.title}
+                  // nowrap: a hyphenated name (`orders-pci`) breaks across two
+                  // lines otherwise and the whole bar goes ragged
+                  className={`whitespace-nowrap rounded px-2 py-1 text-[12px] transition-colors ${
+                    v.name === activeView
+                      ? "bg-[var(--chip)] text-[var(--fg)]"
+                      : "text-[var(--muted)] hover:text-[var(--fg)]"
+                  }`}
+                >
+                  {v.name}
+                </button>
+              ))}
+            </nav>
+          )}
           {crumbs.length > 1 && (
             <nav className="absolute left-3 top-12 z-10 flex items-center gap-1 text-[11px] text-[var(--muted)]">
               {crumbs.map((c, i) => (
