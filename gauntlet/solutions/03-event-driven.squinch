@@ -1,31 +1,21 @@
 pack aws
 
-eventbridge = aws/eventbridge "EventBridge" {
-  description: "Order events"
+bus = aws/eventbridge "EventBridge" {
+  description: "Order event bus"
 }
 
-email_lambda = aws/lambda "Email Notifier" {
-  description: "Sends notifications"
-}
+email_handler = aws/lambda "Email Notifier"
+sns = aws/sns "Email Topic"
 
-sns = aws/sns "SNS" {
-  description: "Email delivery"
-}
+analytics_handler = aws/lambda "Analytics Writer"
+lake = aws/s3 "Data Lake" datastore
 
-analytics_lambda = aws/lambda "Analytics Writer" {
-  description: "Writes to data lake"
-}
+dlq = aws/sqs "Dead Letter Queue"
 
-s3 = aws/s3 "S3 Data Lake" datastore {
-  description: "Analytics storage"
-}
+bus ~> email_handler
+email_handler ~> sns
 
-dlq = aws/sqs "Dead Letter Queue" {
-  description: "Failed events"
-}
+bus ~> analytics_handler
+analytics_handler ~> lake
 
-eventbridge ~> email_lambda
-eventbridge ~> analytics_lambda
-eventbridge ~> dlq
-email_lambda ~> sns
-analytics_lambda ~> s3
+bus ~> dlq "failed events"

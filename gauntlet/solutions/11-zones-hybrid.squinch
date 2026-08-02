@@ -1,20 +1,24 @@
 pack aws
 
+// On-premises components
 person operator "Operator"
+erp = box "Legacy ERP" external
 
-erp = box "ERP System"
+// AWS cloud components
 ingest = aws/lambda "Ingestion Lambda"
-db = aws/aurora "Aurora DB" datastore
+db = aws/aurora "Aurora Database" datastore
 
-operator -> erp
+// Connections
+operator -> erp "uses"
 erp ~> ingest "feeds data"
-ingest -> db
+ingest -> db "writes"
 
-zone onprem "On-Premises Data Centre" onprem {
+// Zones
+zone onprem "On-Premises Data Center" onprem {
   contains operator, erp
 }
 
-zone cloud "AWS Cloud" cloud {
+zone aws_cloud "AWS Cloud" cloud {
   contains ingest, db
 }
 

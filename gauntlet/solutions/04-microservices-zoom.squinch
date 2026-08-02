@@ -1,11 +1,11 @@
 pack aws
 
-// API Gateway shared by all services
-gateway = aws/api-gateway "API Gateway"
+person customer "Customer"
 
-// Catalog microservice
+gw = aws/api-gateway "API Gateway"
+
 system catalog "Catalog Service" {
-  description: "Product catalog and search"
+  description: "Product browsing and search"
   glyph: sys/database
 
   api = aws/lambda "Catalog API"
@@ -14,40 +14,37 @@ system catalog "Catalog Service" {
   api -> db
 }
 
-// Checkout microservice
 system checkout "Checkout Service" {
-  description: "Shopping cart and orders"
-  glyph: sys/code
+  description: "Shopping cart and order processing"
+  glyph: sys/workflow
 
   api = aws/lambda "Checkout API"
-  db = aws/dynamodb "Checkout DB" datastore
+  db = aws/dynamodb "Orders DB" datastore
 
   api -> db
 }
 
-// Identity microservice
 system identity "Identity Service" {
-  description: "Authentication and authorization"
+  description: "User authentication and sessions"
   glyph: sys/shield
 
   api = aws/lambda "Identity API"
-  db = aws/dynamodb "Identity DB" datastore
+  db = aws/dynamodb "Users DB" datastore
 
   api -> db
 }
 
-// Gateway routes to each service
-gateway -> catalog.api
-gateway -> checkout.api
-gateway -> identity.api
+customer -> gw "browses and orders"
+gw -> catalog.api
+gw -> checkout.api
+gw -> identity.api
 
-// Landscape view showing all services
 view landscape {
-  title "Microservices Architecture"
+  title "System Landscape"
   include *
 }
 
-// Zoomed view of checkout service
 view checkout {
+  title "Checkout Service"
   scope checkout
 }

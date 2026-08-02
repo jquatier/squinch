@@ -34,6 +34,11 @@ jobs:
       - run: node packages/cli/bin/squinch.js render examples/microservices --check
       # the playground must keep building (it embeds core via the browser entry)
       - run: pnpm --filter @squinch/spa build
+      # …and its embedded copy of examples/ + lookbook/cases/ must be current.
+      # The build regenerates src/examples.ts, but nothing compared it, so an
+      # edit to a lookbook case shipped a stale example to the playground for a
+      # whole session. Same gate the lookbook itself has, one line later.
+      - run: git diff --exit-code apps/spa/src/examples.ts
       # Phase-3 gauntlet solutions must stay green (regression over the skill+DSL)
       - run: pnpm --filter @squinch/gauntlet score
       # PLAN §2 performance budgets are acceptance criteria, not aspirations

@@ -1,28 +1,39 @@
+// Non-AWS stack with product logos
 pack logos
 
-person developer "Developer"
+person dev "Developer"
 
-github = logos/github "GitHub" external
-k8s = logos/kubernetes "Kubernetes Cluster"
+frontend = logos/nextdotjs "Next.js Frontend"
+api = logos/nestjs "NestJS API"
+db = logos/postgres "PostgreSQL" datastore
+cache = logos/redis "Redis Cache" datastore
+events = logos/kafka "Kafka Events"
+monitoring = logos/grafana "Grafana"
+github = logos/github "GitHub"
+k8s = logos/k8s "Kubernetes"
 
-system app "Application Stack" {
-  frontend = logos/nextdotjs "Next.js Frontend"
-  api = logos/nestjs "NestJS API"
-  db = logos/postgres "PostgreSQL" datastore
-  cache = logos/redis "Redis Cache" datastore
-  events = logos/kafka "Kafka" datastore
-  monitor = logos/grafana "Grafana"
+// Developer workflow
+dev -> github "pushes code"
+github -> k8s "deploys to"
 
-  frontend -> api
-  api -> db
-  api -> cache
-  api ~> events
-  monitor -> frontend
-  monitor -> api
-  monitor -> db
+// Application flow
+frontend -> api
+api -> db
+api -> cache
+api ~> events "publishes events"
+
+// Deployment
+k8s -> frontend "runs"
+k8s -> api "runs"
+
+// Monitoring
+monitoring -> api "watches"
+monitoring -> db "watches"
+monitoring -> cache "watches"
+
+view landscape {
+  title "Application Stack"
+  layout {
+    rows [dev] [github] [k8s] [frontend] [api monitoring] [db cache events]
+  }
 }
-
-developer -> github "pushes code"
-github ~> k8s "deploys"
-k8s -> app.frontend
-k8s -> app.api

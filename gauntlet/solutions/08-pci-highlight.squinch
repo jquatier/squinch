@@ -1,30 +1,43 @@
+// Payments service with PCI compliance highlighting
 pack aws
 
-system payments "Payment Service" {
-  description: "Payment processing and tokenization"
+system payments "Payments Service" {
+  description: "Card processing and settlement"
   glyph: sys/lock
+  tags: #core
 
-  api = aws/lambda "API Handler"
-  tokenizer = aws/lambda "Card Tokenizer" {
+  api = aws/lambda "API Handler" {
+    description: "Payment requests"
+  }
+
+  tokenizer = aws/lambda "Tokenizer" {
     description: "Tokenizes card data"
     tags: #pci
   }
+
   vault = aws/dynamodb "Card Vault" datastore {
-    description: "Stores tokenized cards"
+    description: "Encrypted tokens"
     tags: #pci
   }
-  queue = aws/sqs "Settlement Queue"
-  settlement = aws/lambda "Settlement Worker" {
+
+  queue = aws/sqs "Settlement Queue" {
+    tags: #pci
+  }
+
+  worker = aws/lambda "Settlement Worker" {
+    description: "Processes settlements"
     tags: #pci
   }
 
   api -> tokenizer
-  tokenizer -> vault
-  api ~> queue
-  queue ~> settlement
+  tokenizer -> vault { tags: #pci }
+  tokenizer ~> queue { tags: #pci }
+  queue ~> worker { tags: #pci }
 }
 
 view payments {
+  scope payments
   highlight #pci
-  note top-right "Card tokens are stored in the Card Vault (DynamoDB)" { style: warning }
+  note right-of vault "Tokens stored encrypted at rest"
+  show descriptions
 }

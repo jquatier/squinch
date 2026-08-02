@@ -2,12 +2,12 @@ pack aws
 
 partner = box "Partner System" external
 
-system b2b "B2B Integration" {
-  gw = aws/api-gateway "API Gateway"
+system api_service "Partner Integration Service" {
+  gw       = aws/api-gateway    "Public API Gateway"
   workflow = aws/step-functions "Orchestration Workflow"
-  validate = aws/lambda "Validation Lambda"
-  billing = aws/lambda "Billing Lambda"
-  db = aws/aurora "Aurora DB" datastore
+  validate = aws/lambda         "Validation Lambda"
+  billing  = aws/lambda         "Billing Lambda"
+  db       = aws/aurora         "Aurora DB" datastore
 
   gw -> workflow
   workflow -> validate
@@ -15,4 +15,4 @@ system b2b "B2B Integration" {
   billing -> db
 }
 
-partner -> b2b.gw "API request"
+partner -> api_service.gw "API request"

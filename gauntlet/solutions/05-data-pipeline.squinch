@@ -2,14 +2,28 @@ pack aws
 
 person analyst "Analyst"
 
-stream      = aws/kinesis "Clickstream"
-transformer = aws/lambda "Transformer"
-lake        = aws/s3 "Data Lake" datastore
-catalog     = aws/glue "Glue Catalog"
-query       = aws/athena "Athena"
+stream = aws/kinesis "Clickstream" {
+  description: "Real-time event stream"
+}
 
-stream ~> transformer
-transformer ~> lake
-lake -> catalog
-catalog -> query
+transformer = aws/lambda "Transformer" {
+  description: "Processes and enriches events"
+}
+
+lake = aws/s3 "Data Lake" datastore {
+  description: "Parquet files by date"
+}
+
+catalog = aws/glue "Glue Catalog" {
+  description: "Schema and partitions"
+}
+
+query = aws/athena "Athena" {
+  description: "SQL query engine"
+}
+
+stream ~> transformer "events"
+transformer ~> lake "parquet"
+catalog -> lake "catalogs"
 analyst -> query "runs queries"
+query -> lake "scans"

@@ -1,6 +1,9 @@
 pack aws
 
-system api "Lambda API" {
+system api "Order API" {
+  description: "Lambda-based API with search"
+  glyph: sys/code
+
   gw = aws/api-gateway "API Gateway"
 
   create = aws/lambda "Create Handler"
@@ -8,27 +11,30 @@ system api "Lambda API" {
   search = aws/lambda "Search Handler"
 
   db = aws/dynamodb "Orders Table" datastore
-  files = aws/s3 "Files" datastore
-  searchdb = aws/opensearch "Search Index" datastore
+  files = aws/s3 "File Storage" datastore
+  idx = aws/opensearch "Search Index" datastore
 
-  sync = aws/lambda "Index Sync"
+  sync = aws/lambda "Stream Processor" {
+    description: "Keeps search index updated"
+  }
 
-  gw -> create
-  gw -> get
-  gw -> search
+  gw -> create, get, search
 
   create -> db
   create -> files
+
   get -> db
   get -> files
-  search -> searchdb
+
+  search -> idx
 
   db ~> sync "DynamoDB stream"
-  sync -> searchdb
+  sync -> idx
 }
 
 view api {
   layout {
-    rows [gw] [create get search] [db files searchdb]
+    rows [gw] [create get search] [db files idx sync]
+    place sync right-of idx
   }
 }

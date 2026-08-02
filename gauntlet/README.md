@@ -55,29 +55,28 @@ nothing.
 
 ## Latest round
 
-**Round 11 — 20/20, and 19 of 20 clean on the first `check`** (2026-08-01), the
-best yet, from 17 in round 10 and 7 in round 4. One prompt failed a first
-check, on a stray `,` inside a `rows` bracket.
+**Round 12 — 20/20, all twenty clean on the first `check`** (2026-08-02). The
+first perfect round: no prompt needed a second call, so no agent needed a fix.
+Up from 19/20 clean in round 11, 17 in round 10, 7 in round 4.
 
-The round's value was not the score. Between starting the run and scoring it,
-a sweep of legal-but-degenerate inputs — the class the round-10 zero-size
-canvas belonged to, rather than that one instance — turned up two silent
-holes, and scoring the fresh corpus immediately proved one of the fixes wrong.
+**And it found nothing.** By this file's own standard that is the weaker
+result — a round that scores 20/20 and surfaces a crash beats one that scores
+20/20 and surfaces nothing. Three rounds running have now sat at or near the
+ceiling, which says the prompt set has stopped discriminating rather than that
+the surface is flawless: these twenty prompts are the ones the skill has been
+tuned against for eleven rounds. **The next round needs harder prompts to be
+worth its money** — deliberately awkward asks, contradictory hints, domains no
+existing prompt covers.
 
-**`highlight` never validated its tag.** `include`, `exclude` and `only` each
-warn when a tag matches nothing; `highlight` went from the parser straight to
-the renderer, so `highlight #pcii` dimmed the whole diagram and emphasised
-nothing. The same typo, caught three times out of four.
+The one thing the round did surface was indirect, and only because it forced a
+rebuild: **`apps/spa/src/examples.ts` came back dirty**. It is generated from
+`examples/` and `lookbook/cases/` by `scripts/sync-examples.ts`, and committed
+— but nothing compared it. The playground's embedded copy of the legend case
+had been stale since an `align` hint went into the lookbook source earlier in
+the session, so the editor was serving an example that no longer matched the
+committed diagram. CI runs the SPA build (which regenerates the file) and never
+diffed the result. It now does, one line after the build, exactly like the
+lookbook gate above it.
 
-**Then the first cut of that warning was itself a false positive.** It checked
-node tags only, and `16-everything` tagged its sensitive paths on *edges* —
-`handler -> db { tags: #sensitive }` — which is documented, works, and is a
-perfectly good way to answer "mark the sensitive paths". A guard narrower than
-the thing it guards is worse than none, and this is the second time in a
-session that shape has appeared (the first was `place` alongside `rows`). It
-now checks edges too, and the gauntlet's own `requireTag` did the same thing
-and got the same fix.
-
-**A view that resolves to nothing now warns**, whatever emptied it — excluding
-everything, scoping to a leaf (a node has no insides), or a filter that keeps
-nothing. Round 10 fixed the empty-container cause; this covers the symptom.
+The corpus in `solutions/` is this round's twenty answers, cold-authored and
+deep-scored.
