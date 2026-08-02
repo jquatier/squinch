@@ -23,6 +23,9 @@ export { diffModels, formatDiff, formatDiffMarkdown };
 // the same motion, so neither owns a copy of it.
 export * from "./view/navigate.js";
 export * from "./view/dive.js";
+// the interactive export: every view of a project in one self-contained file
+export { exportHTML } from "./render/html.js";
+export type { HTMLExportOpts, HTMLExportResult } from "./render/html.js";
 export type { Change, ChangeKind, DiffResult, Weight } from "./diff/diff.js";
 
 /** Diff two projects by source — the common entry point. */
@@ -146,6 +149,11 @@ export async function renderProject(
      *  — for embedding somewhere you do not control the background. Requires a
      *  theme with a `pairsWith` counterpart. */
     adaptive?: boolean;
+    /** Hoist shared definitions out of this SVG — see `RenderOpts.collectDefs`.
+     *  Used by the interactive HTML export, where every view shares a document
+     *  and therefore one set of defs. */
+    collectDefs?: Map<string, string>;
+    defsScope?: string;
   } = {},
 ): Promise<RenderResult> {
   const built: BuildResult = buildProject(files);
@@ -227,6 +235,8 @@ export async function renderProject(
       title: view.title,
       embedFonts: opts.embedFonts,
       flowStep: opts.flowStep,
+      collectDefs: opts.collectDefs,
+      defsScope: opts.defsScope,
       // sketch jitter is a pure function of the source text (never randomness)
       seed: fnv1a(files.map((f) => f.src).join("\u0000")),
     });

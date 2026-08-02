@@ -363,4 +363,32 @@ describe("round-3 gauntlet findings", () => {
     expect(await main(["render", f, "--theme", "drak", "-o", join(dir, "x.svg")])).not.toBe(0);
     expect(existsSync(join(dir, "x.svg"))).toBe(false);
   });
+  it("-o *.html builds the interactive export, format inferred", async () => {
+    const f = join(dir, "zoom.squinch");
+    writeFileSync(f, `system s "S" {\n  a = box "A"\n  b = box "B"\n  a -> b\n}\nview top { include * }\nview inner { scope s }\n`);
+    const out = join(dir, "zoom.html");
+    expect(await main(["render", f, "-o", out])).toBe(0);
+    const html = readFileSync(out, "utf8");
+    expect(html.startsWith("<!doctype html>")).toBe(true);
+    // both views in one file, and the viewer beside them
+    expect(html).toContain('data-key="inner|light"');
+    expect(html).toContain('id="sq-data"');
+    expect(html.match(/<script/g)).toHaveLength(2);
+  });
+
+  it("refuses --adaptive for html, and says why", async () => {
+    // an interactive export carries real palettes and a real switch; folding
+    // two into one SVG makes its sq-t* class names collide across views
+    const f = join(dir, "ad.squinch");
+    writeFileSync(f, `a = box "A"\nb = box "B"\na -> b\nview v { include * }\n`);
+    expect(await main(["render", f, "-o", join(dir, "ad.html"), "--adaptive"])).not.toBe(0);
+    expect(existsSync(join(dir, "ad.html"))).toBe(false);
+    expect(err.join("\n")).toContain("--adaptive has no meaning for html");
+  });
+
+  it("html needs a destination — it is a document, not a stream", async () => {
+    const f = join(dir, "nodest.squinch");
+    writeFileSync(f, `a = box "A"\nb = box "B"\na -> b\nview v { include * }\n`);
+    expect(await main(["render", f, "--format", "html"])).not.toBe(0);
+  });
 });

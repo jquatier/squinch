@@ -21,6 +21,15 @@ deterministic rendering. Pre-alpha; Phase 2 (see docs/PLAN.md §3).
   No `Date.now`/`Math.random` in the render path; sketch-theme roughness is seeded
   from `hash(source)`; emitted SVG always uses LF; exported SVG never contains JS
   (animations are CSS keyframes at constant px/s).
+- **The interactive HTML export is the one artifact that carries a script**, and
+  it is a separate class rather than a loophole (`src/render/html.ts`,
+  `docs/notes/html-export.md`). The rule above is unchanged and covers the SVGs
+  inside it: each is what `render -o x.svg` produces minus the defs the document
+  shares, and the viewer is their *sibling*, never their content. The file
+  fetches nothing, and its entry view is inline so a reader with script disabled
+  still sees a diagram. `test/interactive.test.ts` asserts all three
+  mechanically — two `<script>` elements, and nothing executable once they are
+  removed.
 - **Text metrics never come from the environment** — bundled font + precomputed
   metrics tables only (`src/metrics.generated.ts`). No canvas/DOM measurement.
   Rendered SVGs embed the subsetted Inter faces as `@font-face` data-URIs

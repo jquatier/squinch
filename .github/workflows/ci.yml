@@ -34,6 +34,11 @@ jobs:
       - run: node packages/cli/bin/squinch.js render examples/microservices --check
       # the playground must keep building (it embeds core via the browser entry)
       - run: pnpm --filter @squinch/spa build
+      # The exported viewer is bundled ahead of time and committed, so that
+      # rendering never runs esbuild and its bytes cannot drift with an upgrade.
+      # Same drift gate as the lookbook: regenerate, diff clean.
+      - run: cd packages/core && npx tsx scripts/gen-html-runtime.ts
+      - run: git diff --exit-code packages/core/src/render/html/runtime.generated.ts
       # …and its embedded copy of examples/ + lookbook/cases/ must be current.
       # The build regenerates src/examples.ts, but nothing compared it, so an
       # edit to a lookbook case shipped a stale example to the playground for a

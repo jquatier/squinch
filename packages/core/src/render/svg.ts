@@ -49,6 +49,22 @@ export interface RenderOpts {
    *  the first hop you can actually see. Badges still read their declared
    *  number — that's the flow's real shape. */
   flowStep?: number;
+  /** Hand id-bearing definitions out instead of emitting them inline, keyed by
+   *  id. The interactive HTML export puts every view in one document, where
+   *  fragment references resolve document-wide — so one `<symbol id="sq-aws-
+   *  lambda">` serves all of them and the bodies keep their `<use href="#…">`
+   *  untouched. Measured on `examples/microservices`: 27 KB of shared defs
+   *  against 126 KB if every view carried its own.
+   *
+   *  Setting the same id to *different* markup throws. That turns "symbols,
+   *  gradients and clip paths are theme-free" from a thing we believe into a
+   *  build-time assertion — it fires the day someone themes one. */
+  collectDefs?: Map<string, string>;
+  /** Suffix for the one def whose content does depend on the theme (`sq-hatch`
+   *  bakes `t.border`), so a document carrying two palettes does not have to
+   *  pick one. Applied by the emitter to both definition and reference, so
+   *  nothing downstream rewrites strings. */
+  defsScope?: string;
 }
 
 /** The accent bar down a live system card carries the brand ramp off the
@@ -69,17 +85,19 @@ const ACCENT_GRAD = "sq-accent";
  *  Emitted only when a diagram actually owns an external node, which keeps
  *  every other render byte-identical. */
 const HATCH = "sq-hatch";
-const hatchDefs = (t: Theme) =>
-  `<defs><pattern id="${HATCH}" width="8" height="8" patternUnits="userSpaceOnUse" ` +
+/** The one def whose content depends on the theme, which is why it is the one
+ *  that takes a scope suffix when several palettes share a document. */
+const hatchPattern = (t: Theme, id: string) =>
+  `<pattern id="${id}" width="8" height="8" patternUnits="userSpaceOnUse" ` +
   `patternTransform="rotate(45)">` +
   `<line x1="0" y1="0" x2="0" y2="8" stroke="${t.border}" stroke-width="1.5" opacity="0.4"/>` +
-  `</pattern></defs>`;
-const hatched = (x: number, y: number, w: number, h: number, rx: number) =>
-  `<rect x="${x}" y="${y}" width="${w}" height="${h}" rx="${rx}" fill="url(#${HATCH})"/>`;
-const accentDefs = () =>
-  `<defs><linearGradient id="${ACCENT_GRAD}" x1="0" y1="0" x2="0" y2="1">` +
+  `</pattern>`;
+const hatched = (rc: RC, x: number, y: number, w: number, h: number, rx: number) =>
+  `<rect x="${x}" y="${y}" width="${w}" height="${h}" rx="${rx}" fill="url(#${rc.hatch})"/>`;
+const accentGradient = () =>
+  `<linearGradient id="${ACCENT_GRAD}" x1="0" y1="0" x2="0" y2="1">` +
   `<stop offset="0" stop-color="#C441FE"/><stop offset="1" stop-color="#15B6FF"/>` +
-  `</linearGradient></defs>`;
+  `</linearGradient>`;
 
 /** Everything the emitters need beyond geometry: theme, type, jitter. */
 interface RC {
@@ -87,16 +105,26 @@ interface RC {
   fam: FontFamily;
   fx: (px: number) => number; // theme-scaled font size (sketch type runs larger)
   sk: Sketcher | null;
+  /** `sq-hatch`, plus the document scope when one is set */
+  hatch: string;
+  /** when present, id-bearing defs go here instead of into this SVG */
+  collect?: Map<string, string>;
 }
 
 // Dedicated family names: guarantee the embedded face wins over any
 // page-level font, so text width always matches the precomputed metrics.
-function fontDefs(t: Theme): string {
+/** The @font-face rules alone. Exported because the interactive HTML export
+ *  hoists them into one <style> for the whole document instead of repeating
+ *  33 KB of base64 in every view. One implementation of the rule either way. */
+export function fontFaceCSS(t: Theme): string {
   const cssFamily = t.font.css.split(",")[0];
   const face = (w: "400" | "500") =>
     `@font-face{font-family:${cssFamily};font-style:normal;font-weight:${w};` +
     `src:url(data:font/woff2;base64,${FONTS[t.font.metrics][w]}) format("woff2")}`;
-  return `<style>${face("400")}${face("500")}</style>`;
+  return `${face("400")}${face("500")}`;
+}
+function fontDefs(t: Theme): string {
+  return `<style>${fontFaceCSS(t)}</style>`;
 }
 
 /** Crisp fill + theme-appropriate stroke: one rect in light/dark, a fill rect
@@ -283,7 +311,7 @@ function leaf(n: PNode, rc: RC, opts: RenderOpts, dimmed: boolean, L: string[]) 
   const stroke = ctx ? ` stroke-dasharray="4 3"` : "";
   L.push(`<g data-path="${esc(n.path)}" data-kind="${n.kind}"${op}>`);
   L.push(box(rc, n.x, n.y, n.w, n.h, R_NODE, t.surface, t.border, 1.5, stroke));
-  if (n.external) L.push(hatched(n.x, n.y, n.w, n.h, R_NODE));
+  if (n.external) L.push(hatched(rc, n.x, n.y, n.w, n.h, R_NODE));
   const px = n.x + PAD, py = n.y + PAD;
   L.push(iconPlate(n.icon, px, py, PLATE, rc, ctx));
   const maxLabel = n.w - PAD - PLATE - PAD - PAD;
@@ -307,7 +335,7 @@ function card(n: PNode, rc: RC, dimmed: boolean, L: string[]) {
   const stroke = ctx ? ` stroke-dasharray="4 3"` : "";
   L.push(`<g data-path="${esc(n.path)}" data-kind="${n.kind}"${op}>`);
   L.push(box(rc, n.x, n.y, n.w, n.h, 6, t.surface, t.border, 1.5, stroke));
-  if (n.external) L.push(hatched(n.x, n.y, n.w, n.h, 6));
+  if (n.external) L.push(hatched(rc, n.x, n.y, n.w, n.h, 6));
   // accent bar (kind silhouette, DESIGN §3). A live card carries the brand
   // ramp; a context card stays muted, because the bar is what tells the two
   // apart at a glance and colour is the cheapest way to say "this one is the
@@ -602,8 +630,24 @@ function pillMarkup(pill: Pill, rc: RC): string {
   );
 }
 
+/** Record a def, or emit it inline when nothing is collecting. Re-recording an
+ *  id with different markup is a bug in whatever made it theme-dependent, not
+ *  something to paper over — the export would silently draw one view with
+ *  another's definition. */
+function def(rc: RC, id: string, markup: string): string {
+  if (!rc.collect) return markup;
+  const seen = rc.collect.get(id);
+  if (seen !== undefined && seen !== markup)
+    throw new Error(
+      `def \`${id}\` differs between renders sharing a document — it depends on ` +
+      `something (theme?) that a shared definition cannot carry. Give it a defsScope.`,
+    );
+  rc.collect.set(id, markup);
+  return "";
+}
+
 /** One <symbol> per distinct icon used in this render, in stable order. */
-function iconDefs(p: Positioned): string {
+function iconDefs(p: Positioned, rc: RC): string {
   const used = new Map<string, { pack: string; id: string }>();
   const note = (icon?: { pack: string; id: string }) => {
     if (icon) used.set(`${icon.pack}/${icon.id}`, icon);
@@ -623,6 +667,10 @@ function iconDefs(p: Positioned): string {
     symbols.push(
       `<symbol id="${symbolId(pack, id)}" viewBox="${asset.viewBox}">${asset.body}</symbol>`,
     );
+  }
+  if (rc.collect) {
+    for (const sym of symbols) def(rc, /id="([^"]+)"/.exec(sym)![1], sym);
+    return "";
   }
   return symbols.length ? `<defs>\n${symbols.join("\n")}\n</defs>` : "";
 }
@@ -657,7 +705,7 @@ function iconPlate(
     // wrap instead, so the artwork still gets our rounded plate corners.
     const clip = `clip-${symbolId(icon.pack, icon.id)}-${x}-${y}-${size}`;
     return (
-      `<clipPath id="${clip}"><rect x="${x}" y="${y}" width="${size}" height="${size}" rx="${r}"/></clipPath>` +
+      def(rc, clip, `<clipPath id="${clip}"><rect x="${x}" y="${y}" width="${size}" height="${size}" rx="${r}"/></clipPath>`) +
       `<g clip-path="url(#${clip})"${soften ? ` opacity="0.6"` : ""}>` +
       `<use href="#${symbolId(icon.pack, icon.id)}" x="${x}" y="${y}" width="${size}" height="${size}"/>` +
       `</g>`
@@ -678,6 +726,8 @@ export function renderSVG(p: Positioned, t: Theme, opts: RenderOpts = {}): strin
     fam: t.font.metrics,
     fx: (px) => Math.round(px * t.font.scale),
     sk: t.sketch ? makeSketcher(opts.seed ?? 1, t.sketch.roughness, t.sketch.bowing) : null,
+    hatch: `${HATCH}${opts.defsScope ?? ""}`,
+    collect: opts.collectDefs,
   };
   const hl = opts.highlight ?? [];
   const byPath = new Map(p.nodes.map((n) => [n.path, n]));
@@ -887,9 +937,13 @@ export function renderSVG(p: Positioned, t: Theme, opts: RenderOpts = {}): strin
   L.push(`<rect width="${width}" height="${height}" fill="${t.canvas}"/>`);
   // only when something references it — a diagram of plain nodes should not
   // carry a gradient it never draws
-  if (p.nodes.some((n) => n.kind === "card")) L.push(accentDefs());
-  if (p.nodes.some((n) => n.external)) L.push(hatchDefs(rc.t));
-  const defs = iconDefs(p);
+  // A collected def comes back "" and lands in the caller's map instead; the
+  // wrapping <defs> is only ours to emit when we are keeping them.
+  const inline: string[] = [];
+  if (p.nodes.some((n) => n.kind === "card")) inline.push(def(rc, ACCENT_GRAD, accentGradient()));
+  if (p.nodes.some((n) => n.external)) inline.push(def(rc, rc.hatch, hatchPattern(rc.t, rc.hatch)));
+  for (const d of inline) if (d) L.push(`<defs>${d}</defs>`);
+  const defs = iconDefs(p, rc);
   if (defs) L.push(defs);
   if (padX || padY) L.push(`<g transform="translate(${padX}, ${padY})">`);
   L.push(...body);

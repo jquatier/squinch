@@ -160,6 +160,11 @@ deep nesting, gradient-era chrome.
   identically in sandboxed viewers (GitHub `<img>`) and on machines without the
   font installed — what layout measured is what every viewer draws.
 - Export parity: SVG and PNG (resvg) must be visually identical; PNG at 2x default.
+- **The interactive export carries the altitudes, not just one of them.** A
+  single self-contained HTML file with every view pre-rendered and the same
+  anchored dive between them (§11) — because a diagram you can only zoom in the
+  playground makes the view system unshareable. Shared defs are hoisted once, so
+  the file is the drawings plus one font, not one font per drawing.
 
 ## 9. Quality gates (how "very good" stays true)
 

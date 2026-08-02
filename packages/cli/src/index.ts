@@ -5,7 +5,7 @@ import { join, relative, isAbsolute } from "node:path";
 import { createHash } from "node:crypto";
 import {
   buildProject, renderProject, formatDiagnostics, validateSVG, searchIcons, themes, packInfo,
-  diffProjects, formatDiff, formatDiffMarkdown,
+  diffProjects, formatDiff, formatDiffMarkdown, exportHTML,
   type Diagnostic,
 } from "@squinch/core";
 import { parseArgs, str } from "./args.js";
@@ -35,8 +35,13 @@ Render options
   --theme <name>    ${Object.keys(themes).join(" | ")} (default: view's theme)
   --adaptive        one SVG carrying both palettes, switched by the reader's
                     prefers-color-scheme (light or sketch; svg only)
-  -o <file>         output path (default: stdout; .png rasterizes)
-  --format <fmt>    svg | png (default: inferred from -o)
+  -o <file>         output path (default: stdout; .png rasterizes,
+                    .html builds the interactive export)
+  --format <fmt>    svg | png | html (default: inferred from -o)
+  --views <which>   html only: declared (default) | all — 'all' bundles the
+                    automatic view every container gets, so every card zooms
+  --themes <a,b>    html only: palettes to bundle (default: the theme and its
+                    prefers-color-scheme counterpart)
   --scale <n>       png only: multiply the diagram's natural size
   --width <px>      png only: exact output width (height follows)
   --background <c>  png only: flatten onto a colour. Every theme paints its own
@@ -273,13 +278,56 @@ async function cmdRender(path: string, flags: Record<string, string | boolean>):
   }
 
   const adaptive = !!flags.adaptive;
-  const svg = await renderOne(input, view ?? viewNames(input)[0], theme, adaptive);
   const out = str(flags.o) ?? str(flags.output);
-  // png is inferred from the output extension, so `-o d.png` just works; the
-  // explicit --format is for piping, and for saying so when both are present.
-  const format = str(flags.format) ?? (out?.endsWith(".png") ? "png" : "svg");
-  if (format !== "svg" && format !== "png")
-    throw new Error(`unknown --format \`${format}\` — use svg | png`);
+  // the format follows the output extension, so `-o d.png` and `-o d.html`
+  // both just work; the explicit --format is for piping, and for saying so
+  // when both are present.
+  const format =
+    str(flags.format) ??
+    (out?.endsWith(".png") ? "png" : out?.endsWith(".html") ? "html" : "svg");
+  if (format !== "svg" && format !== "png" && format !== "html")
+    throw new Error(`unknown --format \`${format}\` — use svg | png | html`);
+
+  if (format === "html") {
+    // Every view in one file, with a viewer that dives between them — the
+    // altitude experience, portable. Handled before renderOne because that
+    // renders exactly one view, and this artifact is the whole set.
+    if (!out) throw new Error("html is a document — give it a destination, e.g. -o diagram.html");
+    // `--adaptive` folds two palettes into ONE svg using document-global class
+    // names (sq-t0…). Inline several of those in one document and the second
+    // view's classes repaint the first. The export carries real palettes and a
+    // real switch instead, which is strictly more than adaptive buys here.
+    if (adaptive)
+      throw new Error(
+        "--adaptive has no meaning for html — an interactive export already carries " +
+        "every palette as a real theme switch, and folding two into one SVG makes its " +
+        "class names collide across views. Drop --adaptive, or use --themes",
+      );
+    const themesFlag = str(flags.themes);
+    const viewsFlag = str(flags.views);
+    if (viewsFlag && viewsFlag !== "declared" && viewsFlag !== "all")
+      throw new Error(`unknown --views \`${viewsFlag}\` — use declared | all`);
+    const r = await exportHTML(input.files, {
+      ...(view ? { view } : {}),
+      ...(theme ? { themes: [theme] } : {}),
+      ...(themesFlag ? { themes: themesFlag.split(",").map((t) => t.trim()) } : {}),
+      ...(viewsFlag ? { views: viewsFlag as "declared" | "all" } : {}),
+    });
+    if (!r.ok || !r.html) {
+      reportDiagnostics(r.diagnostics, false);
+      throw new Error("interactive export failed");
+    }
+    writeFileSync(out, r.html);
+    const kb = Math.round(r.manifest.bytes / 1024);
+    // stderr, like every other `wrote`, so stdout stays pipeable
+    console.error(
+      `wrote ${out} — ${r.manifest.views.length} view(s) × ${r.manifest.themes.length} palette(s), ` +
+      `${r.manifest.renders} renders, ${kb} KB`,
+    );
+    return 0;
+  }
+
+  const svg = await renderOne(input, view ?? viewNames(input)[0], theme, adaptive);
 
   if (format === "png") {
     if (!out) throw new Error("png is binary — give it a destination, e.g. -o diagram.png");
