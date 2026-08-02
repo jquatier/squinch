@@ -39,9 +39,15 @@ web.cdn -> api.gw "REST"
 api.fn -> legacy "sync"
 ops.dash -> api.gw "scrapes"
 
+flow trip "A round trip" {
+  shopper -> web.cdn -> api.gw
+  api.gw -> api.fn -> api.db
+}
+
 view landscape { include * }
 view web { scope web }
 view api { scope api }
+view story { include *; show flow trip }
 `;
 
 const files = [{ name: "shop.squinch", src: SRC }];
@@ -52,11 +58,30 @@ describe("interactive HTML export", () => {
   it("bundles every declared view, once per palette", async () => {
     const r = await exportHTML(files);
     expect(r.ok).toBe(true);
-    expect(r.manifest.views).toEqual(["landscape", "web", "api"]);
+    expect(r.manifest.views).toEqual(["landscape", "web", "api", "story"]);
     // the default pair: the project's theme and its `pairsWith` counterpart, so
     // the file follows the reader's OS without a click
     expect(r.manifest.themes).toEqual(["light", "dark"]);
-    expect(r.manifest.renders).toBe(6);
+    // Two hops, not four: `story` includes the systems as cards, so the
+    // shopper→cdn→gw steps lift and aggregate into one. `flow.steps` counts
+    // what renders *at this altitude*, which is the whole point of it.
+    expect(r.manifest.flows).toEqual({ story: 2 });
+    expect(r.manifest.renders).toBe(4 * 2 + 2 * 2);
+  });
+
+  it("bakes one frame per hop, and can be told not to", async () => {
+    // `flow.steps` counts hops that render *at this altitude*, which is exactly
+    // what a presenter can walk to
+    const withSteps = await exportHTML(files);
+    expect(withSteps.html).toContain('data-key="story|light|1"');
+    expect(withSteps.html).toContain('data-key="story|light|2"');
+    expect(withSteps.html).not.toContain('data-key="story|light|3"');
+    expect(withSteps.html).toContain('"flows":{"story":2}');
+
+    const without = await exportHTML(files, { flowSteps: false });
+    expect(without.manifest.flows).toEqual({});
+    expect(without.manifest.renders).toBe(8);
+    expect(without.html!.length).toBeLessThan(withSteps.html!.length);
   });
 
   it("is byte-identical across builds", async () => {
@@ -105,7 +130,7 @@ describe("interactive HTML export", () => {
     // a document is exactly the kind of surgery that can unbalance one
     const { html } = await exportHTML(files);
     const svgs = svgsIn(html!);
-    expect(svgs.length).toBe(7); // 6 bodies + the shared sprite
+    expect(svgs.length).toBe(13); // 12 bodies + the shared sprite
     for (const svg of svgs) expect(validateSVG(svg).ok).toBe(true);
   });
 
@@ -166,7 +191,7 @@ describe("interactive HTML export", () => {
 
   it("takes one palette when asked, and halves the bodies", async () => {
     const one = await exportHTML(files, { themes: ["light"] });
-    expect(one.manifest.renders).toBe(3);
+    expect(one.manifest.renders).toBe(6);
     expect(one.html!.length).toBeLessThan((await exportHTML(files)).html!.length);
   });
 

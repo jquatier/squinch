@@ -40,6 +40,10 @@ export interface HTMLExportOpts {
   views?: "declared" | "all";
   /** Document title. Default: the entry view's title, or the project name. */
   title?: string;
+  /** Pre-render one frame per hop of a `show flow`, so presentation mode can
+   *  walk the story. Default true; only views that declare a flow cost
+   *  anything, and a frame is the same 3–9 KB as any other body. */
+  flowSteps?: boolean;
 }
 
 export interface HTMLExportResult {
@@ -47,10 +51,14 @@ export interface HTMLExportResult {
   diagnostics: Diagnostic[];
   ok: boolean;
   /** What went in — the CLI prints it, the tests assert on it. */
-  manifest: { views: string[]; themes: string[]; renders: number; bytes: number };
+  manifest: {
+    views: string[]; themes: string[]; renders: number; bytes: number;
+    /** view name → hops that render at that altitude, for the ones with a flow */
+    flows: Record<string, number>;
+  };
 }
 
-const EMPTY = { views: [], themes: [], renders: 0, bytes: 0 };
+const EMPTY = { views: [], themes: [], renders: 0, bytes: 0, flows: {} };
 
 /** `</script>` inside a JSON island would end the island. Escaping the `<`
  *  keeps the payload inert wherever it lands. */
@@ -118,21 +126,35 @@ export async function exportHTML(
 
   const defs = new Map<string, string>();
   const bodies = new Map<string, string>();
+  const flows: Record<string, number> = {};
   const diagnostics = [...built.diagnostics];
+  const draw = async (view: string, th: string, flowStep?: number) => {
+    const r = await renderProject(files, {
+      view, theme: th, embedFonts: false, collectDefs: defs,
+      // the one theme-dependent def (`sq-hatch`) needs a distinct id per
+      // palette, or a dark view would draw with the light texture
+      defsScope: `-${th}`,
+      ...(flowStep === undefined ? {} : { flowStep }),
+    });
+    diagnostics.push(...r.diagnostics.filter((d) => d.severity === "error"));
+    return r;
+  };
   for (const th of palette)
     for (const v of list) {
-      const r = await renderProject(files, {
-        view: v.name,
-        theme: th,
-        embedFonts: false,
-        collectDefs: defs,
-        // the one theme-dependent def (`sq-hatch`) needs a distinct id per
-        // palette, or a dark view would draw with the light texture
-        defsScope: `-${th}`,
-      });
-      diagnostics.push(...r.diagnostics.filter((d) => d.severity === "error"));
+      // the whole flow at once is the authoring frame, and the one the file
+      // opens on; the walked frames are extra
+      const r = await draw(v.name, th);
       if (!r.ok || !r.svg) return { diagnostics, ok: false, manifest: EMPTY };
       bodies.set(`${v.name}|${th}`, r.svg.trim());
+      // `flow.steps` counts hops that render *at this altitude*, which is
+      // exactly the number of frames a presenter can reach
+      if (!r.flow || opts.flowSteps === false) continue;
+      flows[v.name] = r.flow.steps;
+      for (let step = 1; step <= r.flow.steps; step++) {
+        const f = await draw(v.name, th, step);
+        if (!f.ok || !f.svg) return { diagnostics, ok: false, manifest: EMPTY };
+        bodies.set(`${v.name}|${th}|${step}`, f.svg.trim());
+      }
     }
 
   const fonts = [...new Set(palette.map((n) => fontFaceCSS(themes[n])))].join("");
@@ -148,6 +170,7 @@ export async function exportHTML(
     entryBody: bodies.get(`${entry}|${palette[0]}`)!,
     bodies,
     views: list,
+    flows,
   });
 
   return {
@@ -159,6 +182,7 @@ export async function exportHTML(
       themes: palette,
       renders: bodies.size,
       bytes: html.length,
+      flows,
     },
   };
 }
@@ -172,6 +196,7 @@ function document(a: {
   entryBody: string;
   bodies: Map<string, string>;
   views: NavView[];
+  flows: Record<string, number>;
 }): string {
   // chrome colours come from the same theme tokens the diagram draws with, so
   // the frame around a dark diagram is dark (DESIGN §10)
@@ -197,18 +222,23 @@ function document(a: {
       `<defs>${a.sprite}</defs></svg>`,
   );
   L.push('<header id="sq-bar"><nav id="sq-crumbs"></nav>' +
+    '<span id="sq-step"></span>' +
     (a.palette.length > 1 ? '<button id="sq-theme" type="button" title="Change palette (t)">◐</button>' : "") +
+    (a.views.length > 1 ? '<button id="sq-present" type="button" title="Present (p)">Present</button>' : "") +
     "</header>");
   L.push('<main id="sq-stage"><div id="sq-ghost" aria-hidden="true"></div><div id="sq-live">');
   L.push(a.entryBody);
   L.push("</div></main>");
+  if (a.views.length > 1) L.push('<footer id="sq-foot"><nav id="sq-dots"></nav></footer>');
   for (const [key, svg] of a.bodies) {
     if (key === `${a.entry}|${a.palette[0].name}`) continue; // already inline
     L.push(`<template data-key="${attr(key)}">${svg}</template>`);
   }
   L.push(
     `<script type="application/json" id="sq-data">` +
-      jsonIsland({ views: a.views, entry: a.entry, themes: a.palette.map((t) => t.name) }) +
+      jsonIsland({
+        views: a.views, entry: a.entry, themes: a.palette.map((t) => t.name), flows: a.flows,
+      }) +
       `</script>`,
   );
   L.push(`<script>${RUNTIME_JS}</script>`);
@@ -233,4 +263,19 @@ const CHROME_CSS =
   "#sq-live svg,#sq-ghost svg{max-width:100%;height:auto;display:block}" +
   // a card that leads somewhere says so; everything else keeps the default
   "#sq-live [data-kind=card],#sq-live [data-kind=frame]{cursor:zoom-in}" +
+  "#sq-step{color:var(--sq-muted);font-variant-numeric:tabular-nums;flex:none}" +
+  "#sq-present{font:inherit;background:var(--sq-surface);color:var(--sq-muted);cursor:pointer;" +
+  "border:1px solid var(--sq-border);border-radius:6px;padding:2px 10px;flex:none}" +
+  "#sq-foot{display:flex;justify-content:center;padding:10px;flex:none}" +
+  "#sq-dots{display:flex;gap:8px}" +
+  "#sq-dots button{width:8px;height:8px;padding:0;border-radius:50%;cursor:pointer;" +
+  "border:1px solid var(--sq-border);background:none}" +
+  "#sq-dots button.on{background:var(--sq-ink);border-color:var(--sq-ink)}" +
+  // presenting: full bleed, chrome floats over the canvas and fades when idle
+  "body.presenting #sq-bar,body.presenting #sq-foot{position:fixed;left:0;right:0;z-index:2;" +
+  "transition:opacity .3s;background:transparent}" +
+  "body.presenting #sq-bar{top:0}body.presenting #sq-foot{bottom:0}" +
+  "body.presenting #sq-stage{padding:0}" +
+  "body.presenting.idle #sq-bar,body.presenting.idle #sq-foot{opacity:0;pointer-events:none}" +
+  "body.presenting.idle{cursor:none}" +
   "@media (prefers-reduced-motion:reduce){#sq-live,#sq-ghost{transition:none!important}}";

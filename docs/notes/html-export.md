@@ -109,10 +109,27 @@ and most of `Stage.tsx` disappears:
 - **Declared views by default**, `--views all` opts into the auto view every
   container gets. Same call `--sync` makes, and here it is a file-size cost.
 - **Not part of `--sync`.** That is the committed-artifact + lockfile model; this
-  is a share artifact, ~150 KB per project, and byte-gating it in CI before the
-  format has settled would freeze it early.
-- **One body per (view × palette).** Flow steps and presentation mode are the
-  obvious next additions and are not in v1.
+  is a share artifact, ~150–230 KB per project, and byte-gating it in CI before
+  the format has settled would freeze it early.
+- **One body per (view × palette × flow hop).** A `show flow` view bakes one
+  frame per hop *visible at that altitude* — `RenderResult.flow.steps` is
+  already that number, and it is exactly what a presenter can walk to.
+  `--no-flow-steps` drops them: `examples/microservices` is 230 KB with the
+  five-hop story and 151 KB without.
+
+## Presentation mode
+
+`p` enters, and the declared views in declaration order are the deck — nothing
+authored twice (DESIGN §11). Two things differ from the playground, both because
+a file opens as a document rather than as a mode of an app:
+
+- **Fullscreen is requested on the gesture that turns presenting on**, not on
+  mount. It is the only moment a browser will grant it, and leaving fullscreen
+  by the browser's own affordance leaves the deck too.
+- **Stepping and climbing stay different moves.** `→`/`←` walk one axis —
+  hops of the current flow first, then the next view — while `↑`/`Backspace`
+  climbs an altitude. Merging them would make "back" ambiguous the moment a
+  flow view sits inside a system.
 
 ## Not automated
 
@@ -120,7 +137,12 @@ Nothing in the test suite proves the *interaction* works. The mechanism that
 cannot be checked headlessly is `<use href="#…">` resolving across `<svg>`
 element boundaries — neither happy-dom nor jsdom lays out or resolves SVG
 references, so the whole hoisting strategy is only verified by opening the file.
-It was verified that way (dive, breadcrumb, climb, palette toggle), and if this
-grows a presenter it should grow a Playwright smoke test with it — chromium and
+It was verified that way — dive, breadcrumb, climb, palette toggle, deck
+stepping, flow walking 1→5 and back, `Home`/`End`, and the deep link. Now that
+there is a presenter, this should grow a Playwright smoke test: chromium and
 **webkit**, since Safari has the longest history of `<use>`/`clipPath`
 cross-reference quirks and this artifact will be opened from `file://` on Macs.
+
+One note for whoever writes it: the browser-automation harness in use here sent
+`Right` rather than `ArrowRight`, so the first attempt looked like broken
+stepping and was not. Dispatch real `KeyboardEvent`s with the DOM key names.

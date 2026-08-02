@@ -7,8 +7,8 @@ import { IconPalette } from "./IconPalette";
 import markUrl from "./mark.svg";
 import { Presenter } from "./Presenter";
 import { Stage, useReducedMotion, type Box, type Intent } from "./Stage";
-import { compile, decodeShare, encodeShare, svgToPng, type Preview } from "./squinch";
-import { themes, crumbs as crumbsFor, hop, upView as upViewFor, viewForPath as viewFor } from "@squinch/core/browser";
+import { compile, decodeShare, encodeShare, ensureRenderable, svgToPng, type Preview } from "./squinch";
+import { themes, exportHTML, crumbs as crumbsFor, hop, upView as upViewFor, viewForPath as viewFor } from "@squinch/core/browser";
 import { EXAMPLES } from "./examples";
 
 type Theme = "light" | "dark" | "sketch" | "sketch-dark" | "contrast";
@@ -197,6 +197,27 @@ export function App() {
     );
   }, [adaptiveBase, source, activeView, save]);
 
+  /** Every view of the project in one file, with the dive between them — the
+   *  altitude experience, portable. Renders view × palette up front, which is a
+   *  second or so of work, hence the busy flag. */
+  const [exporting, setExporting] = useState(false);
+  const downloadHtml = useCallback(async () => {
+    setExporting(true);
+    try {
+      // core renders synchronously, so the packs and every icon must be
+      // resident first — the preview usually warmed them, but "usually" is not
+      // a thing to ship an export on
+      await ensureRenderable(source);
+      const r = await exportHTML([{ name: "diagram.squinch", src: source }], {
+        ...(activeView ? { view: activeView } : {}),
+      });
+      if (!r.ok || !r.html) return flash("Could not build the interactive export");
+      save(URL.createObjectURL(new Blob([r.html], { type: "text/html" })), "html", "interactive");
+    } finally {
+      setExporting(false);
+    }
+  }, [source, activeView, save]);
+
   const onPick = useCallback(
     (path: string, box: Box) => {
       const target = viewForPath(path);
@@ -334,6 +355,8 @@ export function App() {
           onSvg={download}
           onPng={downloadPng}
           onAdaptive={adaptiveBase ? downloadAdaptive : undefined}
+          onHtml={downloadHtml}
+          busy={exporting}
         />
       </header>
 
@@ -436,11 +459,16 @@ function ExportMenu({
   onSvg,
   onPng,
   onAdaptive,
+  onHtml,
+  busy,
 }: {
   onSvg: () => void;
   onPng: () => void;
   /** absent when the current theme has no dark counterpart (contrast) */
   onAdaptive?: () => void;
+  onHtml: () => void;
+  /** the interactive export renders every view × palette, which takes a beat */
+  busy?: boolean;
 }) {
   const [open, setOpen] = useState(false);
   const wrap = useRef<HTMLDivElement>(null);
@@ -513,6 +541,20 @@ function ExportMenu({
             }}
           >
             SVG <span className="text-[var(--muted)] opacity-60">light + dark</span>
+          </button>
+          <button
+            role="menuitem"
+            disabled={busy}
+            title="One self-contained file with every view and the zoom between them — no server, no build"
+            className={`${item} disabled:opacity-40 disabled:hover:bg-transparent`}
+            onClick={() => {
+              setOpen(false);
+              onHtml();
+            }}
+          >
+            {busy ? "Building…" : (
+              <>Interactive <span className="text-[var(--muted)] opacity-60">HTML</span></>
+            )}
           </button>
         </div>
       )}

@@ -98,5 +98,15 @@ export async function svgToPng(svg: string, scale = 2): Promise<string | undefin
   }
 }
 
+/** Packs registered and every icon the source needs resident — what `render`
+ *  requires before it can run, since rendering is synchronous and icons stream
+ *  in on demand. `compile` does this on every keystroke; the interactive export
+ *  calls core directly and so has to ask for it itself rather than relying on a
+ *  preview having happened to warm the same cache first. */
+export async function ensureRenderable(source: string): Promise<void> {
+  await ensurePacks();
+  await preloadIcons(iconsUsedBy(source));
+}
+
 // Share-link codec lives in lib/ so it can be tested without a browser.
 export { encodeShare, decodeShare } from "./lib/share";

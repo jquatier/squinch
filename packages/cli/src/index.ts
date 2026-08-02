@@ -42,6 +42,8 @@ Render options
                     automatic view every container gets, so every card zooms
   --themes <a,b>    html only: palettes to bundle (default: the theme and its
                     prefers-color-scheme counterpart)
+  --no-flow-steps   html only: skip the per-hop frames a 'show flow' view needs
+                    for stepping in presentation mode
   --scale <n>       png only: multiply the diagram's natural size
   --width <px>      png only: exact output width (height follows)
   --background <c>  png only: flatten onto a colour. Every theme paints its own
@@ -312,6 +314,7 @@ async function cmdRender(path: string, flags: Record<string, string | boolean>):
       ...(theme ? { themes: [theme] } : {}),
       ...(themesFlag ? { themes: themesFlag.split(",").map((t) => t.trim()) } : {}),
       ...(viewsFlag ? { views: viewsFlag as "declared" | "all" } : {}),
+      ...(flags["no-flow-steps"] ? { flowSteps: false } : {}),
     });
     if (!r.ok || !r.html) {
       reportDiagnostics(r.diagnostics, false);
@@ -319,10 +322,12 @@ async function cmdRender(path: string, flags: Record<string, string | boolean>):
     }
     writeFileSync(out, r.html);
     const kb = Math.round(r.manifest.bytes / 1024);
+    const walked = Object.entries(r.manifest.flows);
     // stderr, like every other `wrote`, so stdout stays pipeable
     console.error(
       `wrote ${out} — ${r.manifest.views.length} view(s) × ${r.manifest.themes.length} palette(s), ` +
-      `${r.manifest.renders} renders, ${kb} KB`,
+      `${r.manifest.renders} renders, ${kb} KB` +
+      (walked.length ? ` (${walked.map(([v, n]) => `${v}: ${n} hops`).join(", ")})` : ""),
     );
     return 0;
   }
