@@ -19,6 +19,14 @@ const LEAF_H = 64;
 const CARD_H = 88;
 const PLATE = 40;
 const PAD = 12;
+/** The label gap, B. In a view that carries ELK labels the between-layers
+ *  spacing drops to B and every edge gets a label, so a gap measures
+ *  `B + B + labelHeight + B + B` — B once as layer spacing and once as
+ *  `elk.spacing.edgeLabel`, on each side of the label. That 4×B is why
+ *  `spacerH` subtracts it back out to keep unlabelled gaps at the density
+ *  spacing. One knob: change this and both option value and spacer follow.
+ *  Went 16 → 12 → 8 across three gate reviews, then to 10. */
+const LABEL_GAP = 10;
 /** The pill a label will render as, measured with the layout's font — the
  *  single source of truth shared by the ELK reservation (here) and the
  *  renderer's pill text (svg.ts). If these two ever diverge, the reservation
@@ -638,7 +646,7 @@ export async function layoutView(
             // first row just reads as slack.
             "elk.padding": "[top=44,left=16,bottom=16,right=16]",
             "elk.spacing.nodeNode": "32",
-            "elk.layered.spacing.nodeNodeBetweenLayers": hasElkLabels ? "8" : "40",
+            "elk.layered.spacing.nodeNodeBetweenLayers": hasElkLabels ? String(LABEL_GAP) : "40",
             // Edge spacing has to be repeated on every compound. ELK does not
             // inherit it from the root, and its own default is 10 — below the
             // 16 DESIGN §4 requires, and below the 2×R_EDGE at which a corner
@@ -651,7 +659,7 @@ export async function layoutView(
       // labels are layout citizens (see the elkEdges map) — repeated in every
       // bag for the same reason the edge spacing is: ELK does not inherit
       "elk.edgeLabels.inline": "true",
-      "elk.spacing.edgeLabel": "8",
+      "elk.spacing.edgeLabel": String(LABEL_GAP),
           },
           children: framedChildren(p),
         }
@@ -671,14 +679,14 @@ export async function layoutView(
       // scale, not arithmetic for its own sake, and this pair is the scale.
       "elk.padding": "[top=28,left=20,bottom=20,right=20]",
       "elk.spacing.nodeNode": String(SP[0]),
-      "elk.layered.spacing.nodeNodeBetweenLayers": hasElkLabels ? "8" : String(SP[1]),
+      "elk.layered.spacing.nodeNodeBetweenLayers": hasElkLabels ? String(LABEL_GAP) : String(SP[1]),
       // see entityElk: ELK does not inherit edge spacing into a compound
       "elk.layered.spacing.edgeNodeBetweenLayers": "24",
       "elk.spacing.edgeNode": "24",
       // labels are layout citizens (see the elkEdges map) — repeated in every
       // bag for the same reason the edge spacing is: ELK does not inherit
       "elk.edgeLabels.inline": "true",
-      "elk.spacing.edgeLabel": "8",
+      "elk.spacing.edgeLabel": String(LABEL_GAP),
     },
     children: [
       ...zones.filter((c) => zoneParent.get(c.id) === z).map(zoneElk),
@@ -687,13 +695,13 @@ export async function layoutView(
   });
   const zoneById = new Map(zones.map((z) => [z.id, z]));
 
-  // Gap arithmetic: gap = 8 + labelHeight + 8 — two grid notches tighter than
-  // the classic density gap, chosen at gate review. An unlabelled gap needs a
-  // spacer of SP[1]-32 to come out at the density spacing, and a frame's
-  // tighter interior (historically 40) needs 8. A real pill is 18 tall and is
-  // drawn centred inside whatever was reserved, so labelled gaps only exceed
-  // the standard where 18 + 32 > SP[1] — compact only, by 10px.
-  const spacerH = (inFrame: boolean) => Math.max(2, (inFrame ? 40 : SP[1]) - 32);
+  // Gap arithmetic: see LABEL_GAP. A labelled gap costs 4×B around the label,
+  // so an unlabelled one needs a spacer of (density - 4B) to come out at the
+  // same place; a frame's tighter interior (historically 40) is the same sum
+  // against 40. A real pill is 18 tall and is drawn centred inside whatever was
+  // reserved, so labelled gaps only exceed the standard where 18 + 4B beats the
+  // density spacing — compact only.
+  const spacerH = (inFrame: boolean) => Math.max(2, (inFrame ? 40 : SP[1]) - 4 * LABEL_GAP);
   const labelFor = (e: VEdge) => {
     const inFrame = !!byPath.get(e.from)?.frame && byPath.get(e.from)?.frame === byPath.get(e.to)?.frame;
     const bw = badgeW(e.id);
@@ -724,13 +732,13 @@ export async function layoutView(
       "elk.edgeRouting": "ORTHOGONAL",
       "elk.layered.nodePlacement.strategy": "NETWORK_SIMPLEX",
       "elk.spacing.nodeNode": String(SP[0]),
-      "elk.layered.spacing.nodeNodeBetweenLayers": hasElkLabels ? "8" : String(SP[1]),
+      "elk.layered.spacing.nodeNodeBetweenLayers": hasElkLabels ? String(LABEL_GAP) : String(SP[1]),
       "elk.layered.spacing.edgeNodeBetweenLayers": "24",
       "elk.spacing.edgeNode": "24",
       // labels are layout citizens (see the elkEdges map) — repeated in every
       // bag for the same reason the edge spacing is: ELK does not inherit
       "elk.edgeLabels.inline": "true",
-      "elk.spacing.edgeLabel": "8",
+      "elk.spacing.edgeLabel": String(LABEL_GAP),
       "elk.spacing.edgeEdge": "16",
       "elk.padding": "[top=32,left=32,bottom=32,right=32]",
       "elk.hierarchyHandling": "INCLUDE_CHILDREN",
