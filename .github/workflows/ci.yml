@@ -81,3 +81,10 @@ jobs:
       - if: steps.pw-cache.outputs.cache-hit != 'true'
         run: cd packages/core && npx playwright install --with-deps chromium webkit
       - run: pnpm --filter @squinch/core test:e2e
+      # The playground's own smoke suite: does it load and work. Its 1,000
+      # lines of React and DOM are unreachable from `pnpm -r test`, and CI's
+      # only assertion about them used to be that they compile. Playwright
+      # boots the dev server itself (chromium only — this is wiring, not
+      # rendering, so the cross-engine risk that earns webkit upstairs is not
+      # in play).
+      - run: pnpm --filter @squinch/spa test:e2e

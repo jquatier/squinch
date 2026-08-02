@@ -10,9 +10,11 @@
     "typecheck": "tsc --noEmit",
     "sync-examples": "tsx scripts/sync-examples.ts",
     "sync-packs": "tsx scripts/sync-packs.ts",
-    "test": "vitest run"
+    "test": "vitest run",
+    "test:e2e": "playwright test"
   },
   "devDependencies": {
+    "@playwright/test": "^1.62.1",
     "@squinch/pack-aws": "workspace:*",
     "@squinch/pack-azure": "workspace:*",
     "@squinch/pack-logos": "workspace:*",

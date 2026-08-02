@@ -31,3 +31,5 @@ gauntlet/.run/
 # playwright: browsers are cached globally, runs are disposable
 packages/core/test-results/
 packages/core/playwright-report/
+apps/spa/test-results/
+apps/spa/playwright-report/
