@@ -37,8 +37,16 @@ system api "Order Service" {
   fn -> db "write"
 }
 
+// no 'view ops' block: the auto-view shape, which is the Storefront bug's
+system ops "Ops Tooling" {
+  description: "Dashboards and alerts"
+  glyph: sys/activity
+  dash = aws/cloudwatch "Dashboards"
+}
+
 shopper -> web.cdn "browses"
 web.cdn -> api.gw "REST"
+ops.dash -> api.gw "scrapes"
 
 flow checkout "Placing an order" {
   api.gw -> api.fn -> api.db
@@ -107,6 +115,27 @@ test("clicking a card dives, and the breadcrumb follows", async ({ page }) => {
   // the child view's own nodes are on screen now
   await expect(page.locator('#sq-live [data-path="api.gw"]')).toHaveCount(1);
   await expect(page.locator("#sq-ghost")).toBeEmpty();
+});
+
+test("a system with no declared view is still a zoom target", async ({ page }) => {
+  // Reported against a real export: the `Storefront` card did nothing when
+  // clicked. It is the one system in `examples/microservices` with no `view`
+  // block of its own, and the export used to bundle declared views only — so a
+  // card that dives in the playground was a dead click in the file you send
+  // someone. `web` here is that shape: it has an auto view and nothing else.
+  await open(page);
+  await expect(card(page, "ops")).toHaveClass(/sq-zoom/);
+  await card(page, "ops").click();
+  await page.waitForTimeout(600);
+  await expect(page.locator('#sq-live [data-path="ops.dash"]')).toHaveCount(1);
+});
+
+test("a card with nowhere to go does not pretend otherwise", async ({ page }) => {
+  // the other half of the same bug: every card wore a zoom cursor whether or
+  // not it resolved to a view
+  await open(page, { views: "declared" });
+  await expect(card(page, "api")).toHaveClass(/sq-zoom/);
+  await expect(card(page, "ops")).not.toHaveClass(/sq-zoom/);
 });
 
 test("clicking the canvas climbs back out", async ({ page }) => {

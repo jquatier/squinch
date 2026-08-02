@@ -106,8 +106,24 @@ and most of `Stage.tsx` disappears:
 
 ## Settled
 
-- **Declared views by default**, `--views all` opts into the auto view every
-  container gets. Same call `--sync` makes, and here it is a file-size cost.
+- **Every view by default**, including the auto one each container gets;
+  `--views declared` trims to the ones an author wrote.
+
+  This was the other way round for exactly one day. `--sync`'s reasoning — an
+  auto view spawns a *file* nobody asked for — looked like it transferred, and
+  it does not: here the cost is a few KB, and the cost of *omitting* one is a
+  dead card. `examples/microservices` declares views for Catalog, Orders and
+  Accounts but not Storefront, so in the export Storefront was a system card
+  that looked identical to its three siblings and did nothing when clicked —
+  while diving perfectly well in the playground it was authored in. An export
+  whose whole subject is zoom must not be less navigable than its source.
+
+  The second half of that bug is worth naming separately, because it is the
+  part that made it feel broken rather than limited: **every card wore a
+  `zoom-in` cursor**, target or not. The runtime now marks only the ones that
+  resolve to a view (`.sq-zoom`, recomputed on every swap, since whether a path
+  is a target depends on which views the file carries *and* which one you are
+  in). A card that cannot be entered no longer invites the click.
 - **Not part of `--sync`.** That is the committed-artifact + lockfile model; this
   is a share artifact, ~150–230 KB per project, and byte-gating it in CI before
   the format has settled would freeze it early.

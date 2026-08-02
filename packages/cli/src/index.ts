@@ -38,8 +38,10 @@ Render options
   -o <file>         output path (default: stdout; .png rasterizes,
                     .html builds the interactive export)
   --format <fmt>    svg | png | html (default: inferred from -o)
-  --views <which>   html only: declared (default) | all — 'all' bundles the
-                    automatic view every container gets, so every card zooms
+  --views <which>   html only: all (default) | declared — 'all' bundles the
+                    automatic view every container gets, so every card that
+                    zooms in the playground zooms in the export; 'declared'
+                    is smaller but leaves those cards dead
   --themes <a,b>    html only: palettes to bundle (default: the theme and its
                     prefers-color-scheme counterpart)
   --no-flow-steps   html only: skip the per-hop frames a 'show flow' view needs

@@ -34,9 +34,14 @@ export interface HTMLExportOpts {
   /** Palettes to bundle; the first is the entry. Default: the project's theme
    *  and its `pairsWith` counterpart, so the file follows the reader's OS. */
   themes?: string[];
-  /** `all` includes the auto view every container gets, so every card is a zoom
-   *  target. `declared` (default) is the ones an author chose to be navigable —
-   *  same call `--sync` makes, for the same reason. */
+  /** `all` (default) includes the auto view every container gets, so every card
+   *  that zooms in the playground zooms here too. `declared` trims it to the
+   *  views an author wrote, which is smaller but leaves any container without
+   *  one as a dead card — it was the default until a `Storefront` card in
+   *  `examples/microservices` did nothing when clicked, because it is the one
+   *  system there with no declared view of its own. `--sync` makes the opposite
+   *  call for a good reason that does not apply here: an auto view costs it a
+   *  *file* nobody asked for, where it costs this a few KB. */
   views?: "declared" | "all";
   /** Document title. Default: the entry view's title, or the project name. */
   title?: string;
@@ -78,7 +83,7 @@ export async function exportHTML(
   if (!built.ok) return { diagnostics: built.diagnostics, ok: false, manifest: EMPTY };
 
   const all = built.model.views;
-  const list = (opts.views === "all" ? all : all.filter((v) => !v.auto)).map(
+  const list = (opts.views === "declared" ? all.filter((v) => !v.auto) : all).map(
     (v): NavView => ({ name: v.name, scope: v.scope, title: v.title, auto: v.auto }),
   );
   if (!list.length)
@@ -261,8 +266,10 @@ const CHROME_CSS =
   "border:1px solid var(--sq-border);border-radius:6px;padding:2px 8px;flex:none}" +
   "#sq-stage{position:relative;flex:1;min-height:0;overflow:auto;display:grid;place-items:center}" +
   "#sq-live svg,#sq-ghost svg{max-width:100%;height:auto;display:block}" +
-  // a card that leads somewhere says so; everything else keeps the default
-  "#sq-live [data-kind=card],#sq-live [data-kind=frame]{cursor:zoom-in}" +
+  // a card that leads somewhere says so — and only one that does. The class is
+  // applied by the runtime, which is the only thing that knows whether a path
+  // resolves to a view; styling every card invited a click that did nothing.
+  "#sq-live .sq-zoom{cursor:zoom-in}" +
   "#sq-step{color:var(--sq-muted);font-variant-numeric:tabular-nums;flex:none}" +
   "#sq-present{font:inherit;background:var(--sq-surface);color:var(--sq-muted);cursor:pointer;" +
   "border:1px solid var(--sq-border);border-radius:6px;padding:2px 10px;flex:none}" +

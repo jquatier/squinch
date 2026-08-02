@@ -96,6 +96,15 @@ function boot() {
         dots.append(b);
       }
     }
+    // Mark the cards that actually lead somewhere. Only the runtime can know:
+    // it depends on which views this file carries and which one you are in.
+    // Without it every card wore a zoom cursor and the ones with no view were
+    // a dead click — the bug this whole pass came from.
+    for (const el of live.querySelectorAll("[data-path]")) {
+      const p = el.getAttribute("data-path");
+      el.classList.toggle("sq-zoom", !!(p && viewForPath(data.views, view, p)));
+    }
+
     const counter = document.querySelector<HTMLElement>("#sq-step");
     const hops = data.flows[view] ?? 0;
     if (counter) counter.textContent = presenting && hops ? `${step || 1} / ${hops}` : "";

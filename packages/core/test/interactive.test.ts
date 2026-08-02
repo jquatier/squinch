@@ -58,7 +58,9 @@ describe("interactive HTML export", () => {
   it("bundles every declared view, once per palette", async () => {
     const r = await exportHTML(files);
     expect(r.ok).toBe(true);
-    expect(r.manifest.views).toEqual(["landscape", "web", "api", "story"]);
+    // every view, including the auto one `ops` gets — a card that zooms in the
+    // playground has to zoom here, which is the whole point of the artifact
+    expect(r.manifest.views).toEqual(["landscape", "web", "api", "story", "ops"]);
     // the default pair: the project's theme and its `pairsWith` counterpart, so
     // the file follows the reader's OS without a click
     expect(r.manifest.themes).toEqual(["light", "dark"]);
@@ -66,7 +68,7 @@ describe("interactive HTML export", () => {
     // shopper→cdn→gw steps lift and aggregate into one. `flow.steps` counts
     // what renders *at this altitude*, which is the whole point of it.
     expect(r.manifest.flows).toEqual({ story: 2 });
-    expect(r.manifest.renders).toBe(4 * 2 + 2 * 2);
+    expect(r.manifest.renders).toBe(5 * 2 + 2 * 2);
   });
 
   it("bakes one frame per hop, and can be told not to", async () => {
@@ -80,7 +82,7 @@ describe("interactive HTML export", () => {
 
     const without = await exportHTML(files, { flowSteps: false });
     expect(without.manifest.flows).toEqual({});
-    expect(without.manifest.renders).toBe(8);
+    expect(without.manifest.renders).toBe(10);
     expect(without.html!.length).toBeLessThan(withSteps.html!.length);
   });
 
@@ -130,7 +132,7 @@ describe("interactive HTML export", () => {
     // a document is exactly the kind of surgery that can unbalance one
     const { html } = await exportHTML(files);
     const svgs = svgsIn(html!);
-    expect(svgs.length).toBe(13); // 12 bodies + the shared sprite
+    expect(svgs.length).toBe(15); // 14 bodies + the shared sprite
     for (const svg of svgs) expect(validateSVG(svg).ok).toBe(true);
   });
 
@@ -191,16 +193,19 @@ describe("interactive HTML export", () => {
 
   it("takes one palette when asked, and halves the bodies", async () => {
     const one = await exportHTML(files, { themes: ["light"] });
-    expect(one.manifest.renders).toBe(6);
+    expect(one.manifest.renders).toBe(7);
     expect(one.html!.length).toBeLessThan((await exportHTML(files)).html!.length);
   });
 
-  it("includes the auto views only on request", async () => {
-    // every container gets one (`build.ts`), so `all` makes every card a zoom
-    // target at the cost of file size — the same call `--sync` makes
-    const declared = await exportHTML(files);
-    const all = await exportHTML(files, { views: "all" });
-    expect(all.manifest.views.length).toBeGreaterThan(declared.manifest.views.length);
+  it("trims to declared views only on request", async () => {
+    // `declared` is the smaller file and the older default. It was changed
+    // because it makes a card with no declared view a dead click: `ops` here,
+    // `web` in examples/microservices, which is how the bug was found.
+    const all = await exportHTML(files);
+    const declared = await exportHTML(files, { views: "declared" });
+    expect(all.manifest.views).toContain("ops");
+    expect(declared.manifest.views).not.toContain("ops");
+    expect(declared.html!.length).toBeLessThan(all.html!.length);
   });
 
   it("says so when there is nothing to export", async () => {
