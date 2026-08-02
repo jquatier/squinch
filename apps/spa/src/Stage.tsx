@@ -13,8 +13,11 @@
 // mid-animation would restart the transition.
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
 
-export type { Box } from "./lib/dive";
-import { type Box, DIVE, diveTransforms } from "./lib/dive";
+export type { Box } from "@squinch/core/browser";
+import { type Box, DIVE, diveTransforms } from "@squinch/core/browser";
+// stays local: the playground compiles per view and never hoists shared defs,
+// so its two layers still need their ids kept apart. The HTML export hoists,
+// and therefore does not.
 import { isolateIds } from "./lib/isolate";
 
 /** A navigation the stage should animate. `token` re-arms on every trigger, so
@@ -143,7 +146,7 @@ export function Stage({
       if (el) anchor = boxOf(el, host);
     }
 
-    // All of the geometry lives in lib/dive.ts — no DOM, so it is testable, and
+    // All of the geometry lives in core's view/dive.ts — no DOM, so it is
     // scripts/hero-gif.mts re-derives the README animation from the same
     // constants rather than its own copy. A missing anchor means the two views
     // sit at the same altitude: a change of lens, not of depth, so it cuts.

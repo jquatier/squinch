@@ -7,6 +7,10 @@
 // `scripts/hero-gif.mts` can re-derive the README animation from the same
 // constants instead of its own copy of them. Two copies in two languages with a
 // comment asserting they match is not a thing that stays true.
+//
+// It sat in `apps/spa/src/lib/` while the playground was the only thing that
+// zoomed. The interactive HTML export zooms too and is built by core, so this
+// moved here rather than becoming the second copy its own header warns about.
 
 export interface Box { x: number; y: number; w: number; h: number }
 

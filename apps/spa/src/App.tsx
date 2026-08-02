@@ -7,9 +7,8 @@ import { IconPalette } from "./IconPalette";
 import markUrl from "./mark.svg";
 import { Presenter } from "./Presenter";
 import { Stage, useReducedMotion, type Box, type Intent } from "./Stage";
-import { stepToward } from "./lib/path";
 import { compile, decodeShare, encodeShare, svgToPng, type Preview } from "./squinch";
-import { themes } from "@squinch/core/browser";
+import { themes, crumbs as crumbsFor, hop, upView as upViewFor, viewForPath as viewFor } from "@squinch/core/browser";
 import { EXAMPLES } from "./examples";
 
 type Theme = "light" | "dark" | "sketch" | "sketch-dark" | "contrast";
@@ -122,29 +121,20 @@ export function App() {
 
   /** Zoom target for a clicked element: the view scoped to that container. */
   const viewForPath = useCallback(
-    (path: string) => views.find((v) => v.scope === path && v.name !== activeView),
+    (path: string) => viewFor(views, activeView, path),
     [views, activeView],
   );
 
   /** Every view change goes through here, so the canvas can animate the hop.
    *  The direction is derived from how the two scopes relate — not from which
    *  control was clicked — which means the breadcrumb, the view tabs and a
-   *  click on a card all behave consistently. */
+   *  click on a card all behave consistently. A lateral hop (same scope,
+   *  different lens) comes back anchorless and the stage cuts instead. */
   const navigate = useCallback(
     (name: string, rect?: Box, enterAtEnd = false) => {
       if (!name || name === activeView) return;
-      const target = views.find((v) => v.name === name)?.scope;
-      const down = stepToward(activeScope, target);
-      const up = stepToward(target, activeScope);
-      setIntent(
-        down
-          ? { token: ++token.current, dir: "in", rect, path: down }
-          : up
-            ? { token: ++token.current, dir: "out", path: up }
-            : // a lateral hop (same scope, different lens) is not a zoom at all;
-              // with no anchor the stage falls back to a plain depth cut
-              { token: ++token.current, dir: "in" },
-      );
+      const { dir, anchor } = hop(views, activeView, name);
+      setIntent({ token: ++token.current, dir, path: anchor, ...(dir === "in" && anchor ? { rect } : {}) });
       setView(name);
       // A slide opens on its first hop — unless you reversed into it, in which
       // case you arrive where you left, at the end, and can keep unwinding.
@@ -153,28 +143,16 @@ export function App() {
       // frame is already right.
       setFlowStep(enterAtEnd ? Number.MAX_SAFE_INTEGER : 1);
     },
-    [views, activeView, activeScope],
+    [views, activeView],
   );
 
   /** Ancestor trail of the current scope, each hop a view we can jump to. */
-  const crumbs = useMemo(() => {
-    const trail: { label: string; view?: string }[] = [];
-    const root = views.find((v) => !v.scope);
-    if (root) trail.push({ label: "landscape", view: root.name });
-    if (!activeScope) return trail;
-    const parts = activeScope.split(".");
-    for (let i = 0; i < parts.length; i++) {
-      const path = parts.slice(0, i + 1).join(".");
-      const target = views.find((v) => v.scope === path);
-      trail.push({ label: parts[i], view: target?.name });
-    }
-    return trail;
-  }, [views, activeScope]);
+  const crumbs = useMemo(() => crumbsFor(views, activeScope), [views, activeScope]);
 
   /** One altitude back up: the nearest ancestor that has a view of its own. */
   const upView = useMemo(
-    () => [...crumbs].reverse().find((c) => c.view && c.view !== activeView)?.view,
-    [crumbs, activeView],
+    () => upViewFor(views, activeView, activeScope),
+    [views, activeView, activeScope],
   );
 
   /** Hand a blob URL to the browser as a download. The URL is revoked on a

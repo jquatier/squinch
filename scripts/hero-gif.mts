@@ -22,7 +22,7 @@ import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { renderProject, themes } from "../packages/core/dist/index.js";
 import { svgToPng } from "../packages/cli/src/raster.js";
-import { TRAVEL, scaleFor, type Box } from "../apps/spa/src/lib/dive.js";
+import { TRAVEL, scaleFor, type Box } from "../packages/core/dist/index.js";
 
 const root = join(dirname(fileURLToPath(import.meta.url)), "..");
 const out = (theme: string) => join(root, `docs/assets/zoom-${theme}.gif`);
@@ -55,7 +55,7 @@ let STAGE_H = H;
 const FPS = 20;
 // Imported, not copied. These used to be redeclared here with a comment saying
 // they matched Stage.tsx — two untested copies of one animation model, in two
-// languages, held together by an assertion nobody could check. lib/dive.ts is
+// languages, held together by an assertion nobody could check. core's dive.ts is
 // now the single definition and it has tests.
 
 

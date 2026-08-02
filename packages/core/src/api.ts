@@ -18,6 +18,11 @@ export { buildModel, buildProject, formatDiagnostics, layoutView, renderSVG, val
 export { allPackNames, iconIds, iconMeta, iconExists, packExists, iconTitle };
 // semantic diff (SPEC §diff): model comparison, no layout involved
 export { diffModels, formatDiff, formatDiffMarkdown };
+// altitude navigation (DESIGN §11): scope arithmetic and the dive geometry.
+// Pure, and shared — the playground and the interactive export must perform
+// the same motion, so neither owns a copy of it.
+export * from "./view/navigate.js";
+export * from "./view/dive.js";
 export type { Change, ChangeKind, DiffResult, Weight } from "./diff/diff.js";
 
 /** Diff two projects by source — the common entry point. */
