@@ -78,8 +78,18 @@ jobs:
         with:
           path: ~/.cache/ms-playwright
           key: playwright-${{ runner.os }}-${{ hashFiles('pnpm-lock.yaml') }}
+      # Two separate installs, because only one of them is cacheable. The
+      # browsers live in ~/.cache/ms-playwright and restore with the cache; the
+      # shared libraries they link against are apt packages in the runner image
+      # and do not. Running both behind `cache-hit != 'true'` meant the first
+      # push that left pnpm-lock.yaml alone restored the binaries onto a machine
+      # that never got the packages, and webkit died at exec with
+      # `libevent-2.1.so.7: cannot open shared object file` (exit 127). Chromium
+      # hid it — its deps are already in the image, webkit's are not. So: deps
+      # every run, ~180 MB download only on a miss.
+      - run: cd packages/core && npx playwright install-deps chromium webkit
       - if: steps.pw-cache.outputs.cache-hit != 'true'
-        run: cd packages/core && npx playwright install --with-deps chromium webkit
+        run: cd packages/core && npx playwright install chromium webkit
       - run: pnpm --filter @squinch/core test:e2e
       # The playground's own smoke suite: does it load and work. Its 1,000
       # lines of React and DOM are unreachable from `pnpm -r test`, and CI's

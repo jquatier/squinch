@@ -174,7 +174,7 @@ push's critical path. What it covers, in order of why it exists:
 6. The entry view renders with **JavaScript disabled**, which is the
    progressive-enhancement claim itself rather than its structural proxy.
 
-Two things it taught, worth keeping:
+Three things it taught, worth keeping:
 
 - **Click `[data-path]`, not the label text.** WebKit hands the canvas `<rect>`
   back from a hit-test where Chromium hands back the `<text>` glyph, so a
@@ -184,3 +184,15 @@ Two things it taught, worth keeping:
 - The browser-automation harness used during development sends `Right`, not
   `ArrowRight`. That looked exactly like broken stepping and was not; dispatch
   real DOM key names.
+- **The browser cache and the browser's system libraries are two different
+  installs, and only one of them is cacheable.** CI caches
+  `~/.cache/ms-playwright` on the lockfile hash; the shared libraries webkit
+  links against are apt packages in the runner image and restore with nothing.
+  Guarding `playwright install --with-deps` on a cache *miss* therefore worked
+  for exactly as long as every push happened to touch `pnpm-lock.yaml` — the
+  first one that did not restored the binaries onto a machine that had never
+  seen the packages, and all eight webkit tests died at exec with
+  `libevent-2.1.so.7: cannot open shared object file`. Chromium passed
+  throughout, because its dependencies ship in the image and webkit's do not,
+  so the failure reads as "webkit is broken" rather than "the runner is bare".
+  `install-deps` runs every time now; only the download is conditional.
