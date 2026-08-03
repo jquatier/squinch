@@ -184,7 +184,9 @@ The architecture it certified is still enforced by the corpus invariant sweep.
   result is staged — the sub-second slice of CI's drift gates. Bypass with
   `--no-verify` or `SQUINCH_HOOKS=0`; the slow gates (lookbook, `--check`,
   tests) stay CI-only.
-- `pnpm --filter @squinch/core build` — required before using the CLI binary.
+- `pnpm -r build` — everything, in dependency order. `--filter @squinch/core`
+  alone does *not* make the CLI binary runnable: `bin/` runs `packages/cli/dist`,
+  which only the CLI's own build writes.
 - `node packages/cli/bin/squinch.js <cmd>` — the CLI (check/render/icons/init/watch).
   `render -o x.png` rasterizes via resvg (`src/raster.ts`); rebuild the CLI
   (`pnpm --filter squinch build`) before testing the binary — `bin/` runs `dist/`.

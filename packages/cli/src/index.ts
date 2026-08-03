@@ -459,13 +459,19 @@ async function cmdWatch(path: string, flags: Record<string, string | boolean>): 
 
 export async function main(argv: string[]): Promise<number> {
   const { command, positionals, flags } = parseArgs(argv);
+  // Version stands alone, and is answered before the usage branch — behind it,
+  // `--version` fell into "no command" and printed the whole 40-line USAGE
+  // with exit 2. Alongside a command the flag is ignored rather than honoured:
+  // `check -v diagrams/` is somebody reaching for a verbose flag, and printing
+  // a version instead of validating would exit 0 on a broken project — the one
+  // failure a CI gate must never have.
+  if (!command && (flags.version || flags.v)) {
+    console.log(VERSION);
+    return 0;
+  }
   if (!command || flags.help || flags.h) {
     console.log(USAGE);
     return command ? 0 : 2;
-  }
-  if (flags.version || flags.v) {
-    console.log(VERSION);
-    return 0;
   }
   try {
     switch (command) {

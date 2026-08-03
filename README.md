@@ -357,7 +357,7 @@ published to npm yet. Build from source (below) if you want to play.
 ## Try it from source
 
 ```bash
-pnpm install && pnpm --filter @squinch/core build
+pnpm install && pnpm -r build
 node packages/cli/bin/squinch.js init my-diagrams
 node packages/cli/bin/squinch.js render my-diagrams --sync
 ```

@@ -3,8 +3,11 @@ packages:
   - apps/*
   - gauntlet
 allowBuilds:
-  '@vscode/vsce-sign': set this to true or false
+  # esbuild is a real dependency (the VS Code bundler and the HTML-runtime
+  # generator). @vscode/vsce-sign and keytar were listed here unanswered —
+  # pnpm's own "set this to true or false" placeholder, committed as-is. They
+  # are not workspace dependencies at all: they arrive transiently under
+  # `npx --yes @vscode/vsce package`, which this file does not govern.
   esbuild: true
-  keytar: set this to true or false
 minimumReleaseAgeExclude:
   - simple-icons@16.27.1

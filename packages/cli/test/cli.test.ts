@@ -3,6 +3,7 @@ import { mkdtempSync, rmSync, writeFileSync, readFileSync, existsSync, readdirSy
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { main } from "../src/index.js";
+import { BOOLEAN_FLAGS } from "../src/args.js";
 
 let dir: string;
 let out: string[];
@@ -390,5 +391,47 @@ describe("round-3 gauntlet findings", () => {
     const f = join(dir, "nodest.squinch");
     writeFileSync(f, `a = box "A"\nb = box "B"\na -> b\nview v { include * }\n`);
     expect(await main(["render", f, "--format", "html"])).not.toBe(0);
+  });
+});
+
+describe("flags never swallow the work", () => {
+  // A gate that exits 0 without gating is worse than one that crashes. Both
+  // bugs here shipped: every boolean flag consumed the token after it, so
+  // `render --check <path>` lost its path, and `-v` matched the version flag
+  // and returned 0 having validated nothing.
+  const BAD = `a = box "A"\na -> nope\nview v { include * }\n`;
+
+  it("a boolean flag before the path leaves the path alone", async () => {
+    const f = join(dir, "ok.squinch");
+    writeFileSync(f, GOOD);
+    expect(await main(["render", "--sync", f])).toBe(0);
+    expect(readdirSync(dir).some((n) => n.endsWith(".svg"))).toBe(true);
+  });
+
+  it("`check -v <path>` checks, and fails on a broken project", async () => {
+    const f = join(dir, "bad.squinch");
+    writeFileSync(f, BAD);
+    expect(await main(["check", "-v", f])).not.toBe(0);
+    expect(out.join("\n")).not.toBe("0.0.0"); // not the version, silently
+  });
+
+  it("bare --version prints just the version", async () => {
+    expect(await main(["--version"])).toBe(0);
+    expect(out.join("\n").split("\n")).toHaveLength(1);
+    expect(out.join("\n")).not.toContain("Usage");
+  });
+
+  it("BOOLEAN_FLAGS agrees with what USAGE documents", async () => {
+    // USAGE writes a value-taking flag as `--theme <name>` and a boolean as a
+    // bare `--check`. Any documented bare flag missing from the set would eat
+    // the next token again, so the two must not drift.
+    const src = readFileSync(new URL("../src/index.ts", import.meta.url), "utf8");
+    const documented = [...src.matchAll(/^ {2}(--?[a-z][a-z-]*)( <[^>]+>)?/gm)];
+    expect(documented.length, "parsed no flags out of USAGE — the regex is stale").toBeGreaterThan(8);
+    const missing = documented
+      .filter(([, , arg]) => !arg)
+      .map(([, flag]) => flag.replace(/^--?/, ""))
+      .filter((f) => !BOOLEAN_FLAGS.has(f));
+    expect(missing, `documented as taking no argument but absent from BOOLEAN_FLAGS: ${missing.join(", ")}`).toEqual([]);
   });
 });
