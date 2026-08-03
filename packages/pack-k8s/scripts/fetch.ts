@@ -150,6 +150,22 @@ function promoteStyles(svg: string): string {
   });
 }
 
+/** Give the artwork the optical margin every other colour pack ships with.
+ *  Azure's glyphs carry built-in whitespace; these are drawn edge-to-edge in
+ *  their viewBox, so anywhere the renderer places them flush — the zone-chip
+ *  tab especially — the heptagon touches the border and reads as overflow
+ *  rather than as a mark. 8% per side, applied to the viewBox only: the
+ *  geometry inside is untouched. */
+const MARGIN = 0.08;
+function padViewBox(svg: string): string {
+  return svg.replace(/viewBox="([\d.eE+-]+)[ ,]+([\d.eE+-]+)[ ,]+([\d.eE+-]+)[ ,]+([\d.eE+-]+)"/,
+    (_m, x, y, w, h) => {
+      const [X, Y, W, H] = [+x, +y, +w, +h];
+      const round = (n: number) => String(+n.toFixed(4));
+      return `viewBox="${round(X - W * MARGIN)} ${round(Y - H * MARGIN)} ${round(W * (1 + 2 * MARGIN))} ${round(H * (1 + 2 * MARGIN))}"`;
+    });
+}
+
 function stripMetadata(svg: string): string {
   const cleaned = svg
     .replace(/<\?xml[^?]*\?>\s*/g, "")
@@ -159,7 +175,7 @@ function stripMetadata(svg: string): string {
     .replace(/\s+(?:inkscape|sodipodi):[\w-]+="[^"]*"/g, "")
     .replace(/\s+xmlns:(?:dc|cc|rdf|svg|sodipodi|inkscape)="[^"]*"/g, "")
     .replace(/\n{3,}/g, "\n\n");
-  return promoteStyles(cleaned);
+  return padViewBox(promoteStyles(cleaned));
 }
 
 async function fetchSvg(dir: string, id: string): Promise<string> {
