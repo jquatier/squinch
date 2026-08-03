@@ -57,7 +57,7 @@ for (const f of files) {
     if (!m) continue;
     // parent dir in the key: examples/orders and core/examples/orders.squinch
     // share a basename, and a bare key silently overwrote one with the other
-    const dir = f.replace(root + "/", "").split("/").slice(-2, -1)[0];
+    const dir = f.split(/[\\/]/).slice(-2, -1)[0];
     const key = `${dir}--${name.replace(/\.squinch$/, "")}.${v.name}`.replace(/[^\w.-]/g, "_");
     const png = svgToPng(r.svg!, { width: +m[1] * 2, background: "#ffffff" });
     writeFileSync(join(out, `${key}.png`), png);

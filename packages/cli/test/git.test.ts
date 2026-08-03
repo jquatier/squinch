@@ -11,6 +11,7 @@ import { mkdtempSync, mkdirSync, rmSync, writeFileSync, realpathSync } from "nod
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { isGitRepo, repoRoot, loadInputAtRef } from "../src/git.js";
+import { toPosix } from "../src/paths.js";
 
 let repo: string;
 let plain: string;
@@ -61,7 +62,10 @@ describe("isGitRepo", () => {
 
 describe("repoRoot", () => {
   it("resolves the root from a subdirectory", () => {
-    expect(repoRoot(join(repo, "proj"))).toBe(repo);
+    // Both sides through toPosix: `git rev-parse` answers with forward slashes
+    // even on Windows, while `join`/`mkdtempSync` give backslashes — comparing
+    // them raw is comparing two spellings of one directory.
+    expect(repoRoot(join(repo, "proj"))).toBe(toPosix(repo));
   });
 });
 

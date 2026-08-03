@@ -395,6 +395,12 @@ node packages/cli/bin/squinch.js render my-diagrams --sync
 `pnpm install` also wires the repo's pre-commit hook (`.githooks/`), which
 keeps the committed generated files in sync; `git commit --no-verify` skips it.
 
+**macOS, Linux and Windows**, on Node ≥ 22 — CI runs all three, and the goldens
+must byte-match across them, so "byte-identical" means across platforms and not
+just across runs. Nothing special is needed on Windows: the repo ships a
+`.gitattributes` that keeps the working tree LF, which is what makes that claim
+hold there.
+
 A path can be a single file or a directory — a directory is one project, and its
 files share a namespace.
 

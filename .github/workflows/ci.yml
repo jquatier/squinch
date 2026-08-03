@@ -52,6 +52,64 @@ jobs:
       - run: npx tsx lookbook/build.ts
       - run: git diff --exit-code lookbook/
 
+  # Windows, as its own job rather than a third matrix entry: folding it in
+  # would mean `if: runner.os != 'Windows'` on the steps it skips, which is
+  # exactly the job that claims to cover a platform while silently stepping
+  # around the thing that breaks there.
+  #
+  # What this proves that the other job cannot: package scripts running under
+  # cmd.exe (npm does not use bash on Windows — core's build ended in `mkdir -p`
+  # and `cp`, and died there), native modules loading on win32, path separators
+  # end-to-end, git's forward slashes, the absent executable bit, and the
+  # goldens byte-matching a render produced on a third OS.
+  #
+  # Note the checkout runs with the runner's default core.autocrlf=true. That is
+  # deliberate: it *is* the .gitattributes test. Do not "fix" it here.
+  #
+  # TODO(public): once the repo is public, Windows runner minutes stop billing
+  # at 2× — fold this into the build matrix above and record a Windows bench
+  # baseline so the perf budgets run here too.
+  windows:
+    runs-on: windows-latest
+    defaults:
+      run:
+        # git-bash, preinstalled. The default shell is pwsh, where `cd x && y`
+        # and the diff gates' quoting are gratuitous risk. Package scripts still
+        # go through cmd.exe, so the portable build script is genuinely tested.
+        shell: bash
+    steps:
+      - uses: actions/checkout@v7
+      - uses: pnpm/action-setup@v6
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm -r build
+      - run: pnpm -r typecheck
+      - run: pnpm -r test
+      - run: node packages/cli/bin/squinch.js render examples/orders --check
+      - run: node packages/cli/bin/squinch.js render examples/products-api --check
+      - run: node packages/cli/bin/squinch.js render examples/storefront --check
+      - run: node packages/cli/bin/squinch.js render examples/microservices --check
+      - run: cd packages/core && npx tsx scripts/gen-html-runtime.ts
+      - run: git diff --exit-code packages/core/src/render/html/runtime.generated.ts
+      # sync-examples rather than the whole SPA build: the CRLF-sensitive half is
+      # this script inlining file contents through JSON.stringify, and the vite
+      # build costs a minute to prove something platform-generic.
+      - run: pnpm --filter @squinch/spa sync-examples
+      - run: git diff --exit-code apps/spa/src/examples.ts
+      # The ten committed sketch renders are the direct test of the seed fix:
+      # the jitter is hashed from source, so a CRLF checkout would re-roll it.
+      - run: npx tsx lookbook/build.ts
+      - run: git diff --exit-code lookbook/
+      # Deliberately not here: bench (no Windows baseline recorded, and the
+      # 500ms budget on a hosted runner is a coin flip — flaky red teaches
+      # people to ignore CI), the gauntlet score (redundant with goldens for
+      # platform purposes, and the slowest step), the SPA vite build, and e2e
+      # (`playwright install-deps` is apt-only and the browser cache path is
+      # Linux-specific).
+
   # The interactive HTML export, in real engines. Its load-bearing mechanism —
   # a hoisted <symbol> in one <svg> painting inside another — cannot be checked
   # headlessly: jsdom and happy-dom neither lay out nor resolve SVG references,

@@ -5,7 +5,7 @@
   "type": "module",
   "scripts": {
     "grammar": "lezer-generator src/grammar/squinch.grammar -o src/grammar/parser.js",
-    "build": "npm run grammar && tsc -p tsconfig.build.json && mkdir -p dist/grammar && cp src/grammar/parser.js src/grammar/parser.terms.js dist/grammar/",
+    "build": "npm run grammar && tsc -p tsconfig.build.json && node scripts/copy-grammar.mjs",
     "typecheck": "tsc --noEmit",
     "test": "npm run grammar && vitest run",
     "demo": "npm run grammar && tsx scripts/demo.ts",

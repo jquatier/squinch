@@ -4,13 +4,19 @@
 //
 // Source-level assertions, the same shape as skill.test.ts's diagnostic sweep.
 import { describe, it, expect } from "vitest";
-import { readFileSync, readdirSync, statSync } from "node:fs";
+import { readFileSync, readdirSync, statSync, existsSync } from "node:fs";
+import { execFileSync } from "node:child_process";
 import { join, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
 import { buildModel } from "../src/index.js";
 
 const pkg = join(dirname(fileURLToPath(import.meta.url)), "..");
 const root = join(pkg, "..", "..");
+
+/** git, from the repo root, trimmed. These ratchets assert properties of the
+ *  checkout itself, so they legitimately need the tool that made it. */
+const git = (...args: string[]) =>
+  execFileSync("git", args, { cwd: root, encoding: "utf8" }).trim();
 
 const tsFiles = (dir: string): string[] => {
   const out: string[] = [];
@@ -147,8 +153,12 @@ describe("the pre-commit hook stays wired and armed", () => {
   const hookPath = join(root, ".githooks", "pre-commit");
 
   it("hook exists, is executable, and guards both generated files", () => {
-    const mode = statSync(hookPath).mode;
-    expect(mode & 0o111, ".githooks/pre-commit lost its executable bit — git will skip it without a word").toBeTruthy();
+    // The mode git *records* is the one that survives a clone, and unlike
+    // statSync it means something on Windows, where there is no exec bit at
+    // all and Node reports 0o666 for every file.
+    const entry = git("ls-files", "-s", ".githooks/pre-commit");
+    expect(entry, "`.githooks/pre-commit` is not tracked").not.toBe("");
+    expect(entry.startsWith("100755"), `git records mode ${entry.slice(0, 6)} — it must be 100755 or the hook is skipped without a word`).toBe(true);
     const hook = readFileSync(hookPath, "utf8");
     for (const guarded of ["apps/spa/src/examples.ts", "runtime.generated.ts"])
       expect(hook, `hook no longer guards ${guarded}`).toContain(guarded);
@@ -160,5 +170,88 @@ describe("the pre-commit hook stays wired and armed", () => {
     const scripts = JSON.parse(readFileSync(join(root, "package.json"), "utf8")).scripts ?? {};
     expect(scripts.postinstall ?? "", "root postinstall must run `git config core.hooksPath .githooks` — without it a fresh clone has no hooks")
       .toContain("core.hooksPath .githooks");
+  });
+});
+
+describe("workspace scripts run on every platform", () => {
+  // npm and pnpm run scripts through cmd.exe on Windows, where `mkdir -p` and
+  // `cp` do not exist. Core's build ended in exactly those two, and core is
+  // first in dependency order — so `pnpm -r build` died before anything else
+  // was attempted, and no test could have caught it because no test ran.
+  const RUNNERS = new Set([
+    "node", "npm", "npx", "pnpm", "tsc", "tsx", "vitest", "vite", "playwright",
+    "lezer-generator", "esbuild", "git",
+  ]);
+
+  it("every script starts each command with a portable runner", () => {
+    const manifests = [
+      "package.json",
+      ...readdirSync(join(root, "packages")).map((p) => join("packages", p, "package.json")),
+      ...readdirSync(join(root, "apps")).map((p) => join("apps", p, "package.json")),
+      join("gauntlet", "package.json"),
+    ].filter((p) => existsSync(join(root, p)));
+
+    const bad: string[] = [];
+    let checked = 0;
+    for (const rel of manifests) {
+      const scripts: Record<string, string> =
+        JSON.parse(readFileSync(join(root, rel), "utf8")).scripts ?? {};
+      for (const [name, body] of Object.entries(scripts))
+        for (const segment of body.split(/&&|;|\|\|/)) {
+          const cmd = segment.trim().split(/\s+/)[0];
+          if (!cmd) continue;
+          checked++;
+          // `exit 0` is a shell builtin that cmd.exe also understands — the
+          // portable spelling of the `|| true` that npm scripts reach for.
+          if (cmd === "exit" || RUNNERS.has(cmd)) continue;
+          bad.push(`${rel} ${name}: ${cmd}`);
+        }
+    }
+    expect(checked, "parsed no script commands — the walk is broken, not the scripts").toBeGreaterThan(20);
+    expect(bad, "POSIX-only command in a workspace script — it will fail under cmd.exe on Windows").toEqual([]);
+  });
+});
+
+describe(".gitattributes keeps the working tree LF on every platform", () => {
+  // Measured before this file existed: a clone with Git for Windows' default
+  // core.autocrlf=true turned 918 tracked files CRLF, and eight golden tests
+  // failed immediately — an LF render byte-compared against a CRLF file. LF is
+  // an input invariant, not only an output one, and `.gitattributes` is what
+  // holds it. These ratchets fail if it goes missing or stops covering
+  // something.
+  //
+  // `git ls-files --eol` answers index *and* working-tree endings for 1,660
+  // files in one subprocess, without reading 13 MB of SVG.
+  const entries = git("ls-files", "--eol")
+    .split("\n")
+    .map((l) => /^i\/(\S+)\s+w\/(\S+)\s+attr\/(.*?)\s*\t(.*)$/.exec(l))
+    .filter((m): m is RegExpExecArray => !!m)
+    .map((m) => ({ index: m[1], worktree: m[2], attr: m[3], file: m[4] }));
+
+  it("declares the global LF rule", () => {
+    // `eol=lf` is the load-bearing half: bare `text=auto` normalizes on commit
+    // but still smudges to CRLF on checkout, and the working tree is what
+    // readFileSync sees.
+    expect(readFileSync(join(root, ".gitattributes"), "utf8")).toMatch(/^\* text=auto eol=lf$/m);
+  });
+
+  it("no tracked file is CRLF in the index or the working tree", () => {
+    // A parse failure yields zero entries, which would pass an "every" check
+    // vacuously — so assert the corpus is real first.
+    expect(entries.length, "parsed no entries out of `git ls-files --eol` — the regex is stale").toBeGreaterThan(1000);
+    const crlf = entries.filter((e) => e.index === "crlf" || e.worktree === "crlf");
+    // The one exception is a vendor icon that arrives from Microsoft with a
+    // CRLF terminator and ships verbatim; `-text` keeps git from rewriting it.
+    const unexpected = crlf.filter((e) => !e.attr.includes("-text"));
+    expect(unexpected.map((e) => e.file), "CRLF committed — re-clone or `git add --renormalize .`").toEqual([]);
+  });
+
+  it("binaries are declared, not merely detected", () => {
+    // text=auto's NUL heuristic gets all eleven right today, but nobody decided
+    // that. This is what fails when someone adds docs/assets/hero.jpg.
+    const binaries = entries.filter((e) => /\.(ttf|woff2|png|gif|jpg|ico|vsix)$/.test(e.file));
+    expect(binaries.length, "found no binary assets — the glob is stale").toBeGreaterThan(5);
+    const guessed = binaries.filter((e) => !e.attr.includes("-text"));
+    expect(guessed.map((e) => e.file), "binary by heuristic rather than by rule — add the extension to .gitattributes").toEqual([]);
   });
 });

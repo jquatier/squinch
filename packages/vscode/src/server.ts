@@ -9,12 +9,21 @@ import {
 } from "vscode-languageserver/node.js";
 import { TextDocument } from "vscode-languageserver-textdocument";
 import {
-  allDiagnosticsFor, completionsAt, hoverAt, symbolsOf,
+  allDiagnosticsFor, completionsAt, hoverAt, symbolsOf, offsetAt,
   type Completion, type Sym,
 } from "./features.js";
+import { normalizeSource } from "@squinch/core";
 
 const connection = createConnection(ProposedFeatures.all);
 const documents = new TextDocuments(TextDocument);
+
+/** Every read of a document goes through here. Core reports its `Loc` offsets
+ *  in LF space, so a CRLF document (the default on Windows) has to be
+ *  normalized before *anything* is measured against it — and the position the
+ *  client sent must be converted against the same string, which is why this
+ *  pairs with features' `offsetAt` rather than the document's own. Line and
+ *  character are identical either way; only the offset moves. */
+const text = (doc: TextDocument) => normalizeSource(doc.getText());
 
 connection.onInitialize((): InitializeResult => ({
   capabilities: {
@@ -37,7 +46,7 @@ function schedule(uri: string) {
 async function publish(uri: string) {
   const doc = documents.get(uri);
   if (!doc) return;
-  const found = await allDiagnosticsFor(doc.getText());
+  const found = await allDiagnosticsFor(text(doc));
   const diagnostics: Diagnostic[] = found.map((d) => ({
     range: d.range,
     message: d.fix ? `${d.message}\n${d.fix}` : d.message,
@@ -64,8 +73,8 @@ const COMPLETION_KIND: Record<Completion["kind"], CompletionItemKind> = {
 connection.onCompletion((params): CompletionItem[] => {
   const doc = documents.get(params.textDocument.uri);
   if (!doc) return [];
-  const offset = doc.offsetAt(params.position);
-  return completionsAt(doc.getText(), offset).map((c) => ({
+  const src = text(doc);
+  return completionsAt(src, offsetAt(src, params.position)).map((c) => ({
     label: c.label,
     kind: COMPLETION_KIND[c.kind],
     detail: c.detail,
@@ -77,7 +86,8 @@ connection.onCompletion((params): CompletionItem[] => {
 connection.onHover((params) => {
   const doc = documents.get(params.textDocument.uri);
   if (!doc) return null;
-  const hit = hoverAt(doc.getText(), doc.offsetAt(params.position));
+  const src = text(doc);
+  const hit = hoverAt(src, offsetAt(src, params.position));
   if (!hit) return null;
   return { contents: { kind: "markdown" as const, value: hit.markdown }, range: hit.range };
 });
@@ -102,7 +112,7 @@ const toDocumentSymbol = (s: Sym): DocumentSymbol => ({
 
 connection.onDocumentSymbol((params) => {
   const doc = documents.get(params.textDocument.uri);
-  return doc ? symbolsOf(doc.getText()).map(toDocumentSymbol) : [];
+  return doc ? symbolsOf(text(doc)).map(toDocumentSymbol) : [];
 });
 
 // Quick fix: every `did you mean \`x\`?` becomes a one-click replacement.

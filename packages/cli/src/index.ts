@@ -1,6 +1,6 @@
 // squinch CLI — check / render / icons / init / watch.
 // Exit codes: 0 ok, 1 diagnostics-or-stale, 2 usage error.
-import { readFileSync, writeFileSync, mkdirSync, existsSync, watch as fsWatch } from "node:fs";
+import { readFileSync, writeFileSync, mkdirSync, existsSync } from "node:fs";
 import { join, relative, isAbsolute } from "node:path";
 import { createHash } from "node:crypto";
 import {
@@ -11,6 +11,8 @@ import {
 import { parseArgs, str } from "./args.js";
 import { loadInput, type Input } from "./project.js";
 import { isGitRepo, loadInputAtRef } from "./git.js";
+import { toPosix } from "./paths.js";
+import { watchPaths } from "./watch.js";
 
 const VERSION = "0.0.0";
 const THEMES = ["light", "dark"] as const;
@@ -123,10 +125,11 @@ function reportDiagnostics(diags: Diagnostic[], json: boolean, views?: ViewInfo[
   if (diags.length) console.error(formatDiagnostics(diags));
 }
 
-/** Shortest readable form: relative when inside cwd, absolute otherwise. */
+/** Shortest readable form: relative when inside cwd, absolute otherwise —
+ *  always POSIX, because this is what the Action prints into a pull request. */
 function display(file: string): string {
   const rel = relative(process.cwd(), file);
-  return rel.startsWith("..") || isAbsolute(rel) ? file : rel;
+  return toPosix(rel.startsWith("..") || isAbsolute(rel) ? file : rel);
 }
 
 function hash(s: string): string {
@@ -236,6 +239,7 @@ async function cmdRender(path: string, flags: Record<string, string | boolean>):
   if (flags.sync || flags.check) {
     const views = targets(input);
     const stale: string[] = [];
+    const crlfOnDisk: string[] = [];
     const written: string[] = [];
     const lock: Record<string, string> = {};
     for (const { label, view } of views)
@@ -244,8 +248,17 @@ async function cmdRender(path: string, flags: Record<string, string | boolean>):
         const file = join(input.dir, outName(input.base, label, t));
         lock[outName(input.base, label, t)] = hash(svg);
         if (flags.check) {
-          if (!existsSync(file) || readFileSync(file, "utf8") !== svg)
-            stale.push(display(file));
+          // Compare content, not bytes-on-disk. Squinch only ever writes LF
+          // (asserted per-golden and across the corpus in core), so normalizing
+          // here can mask exactly one difference: one the renderer could not
+          // have produced. Comparing raw would make this command unusable on a
+          // Windows checkout without .gitattributes — every diagram reads
+          // stale, `--sync` rewrites them as LF, git cleans that back to the
+          // identical blob, the commit is empty, and the next checkout is CRLF
+          // again. The advisory below keeps the byte claim visible instead.
+          const onDisk = existsSync(file) ? readFileSync(file, "utf8") : undefined;
+          if (onDisk === undefined || onDisk.replace(/\r\n/g, "\n") !== svg) stale.push(display(file));
+          else if (onDisk.includes("\r")) crlfOnDisk.push(display(file));
         } else {
           writeFileSync(file, svg);
           written.push(display(file));
@@ -253,6 +266,14 @@ async function cmdRender(path: string, flags: Record<string, string | boolean>):
       }
 
     if (flags.check) {
+      if (crlfOnDisk.length)
+        console.error(
+          `note: ${crlfOnDisk.length} committed diagram(s) have CRLF line endings on disk:\n` +
+            crlfOnDisk.map((f) => `  ${f}`).join("\n") +
+            `\n\nsquinch always writes LF — your checkout is converting them. Add a\n` +
+            `.gitattributes with \`*.svg text eol=lf\` and re-clone (or run\n` +
+            `\`git add --renormalize .\`) to keep them byte-identical across platforms.\n`,
+        );
       if (stale.length) {
         console.error(
           `${stale.length} committed diagram(s) are stale or missing:\n` +
@@ -449,11 +470,7 @@ async function cmdWatch(path: string, flags: Record<string, string | boolean>): 
   };
   await run();
   console.error(`\nwatching ${path} … (ctrl-c to stop)`);
-  let timer: NodeJS.Timeout | undefined;
-  fsWatch(path, { recursive: true }, () => {
-    clearTimeout(timer);
-    timer = setTimeout(run, 60); // debounce editor write bursts
-  });
+  watchPaths(path, () => void run());
   return new Promise(() => {}); // runs until interrupted
 }
 

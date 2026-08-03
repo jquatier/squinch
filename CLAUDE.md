@@ -17,10 +17,24 @@ deterministic rendering. Pre-alpha; Phase 2 (see docs/PLAN.md §3).
 
 ## Non-negotiables
 
-- **Determinism**: same (source, packs, theme, tool version) → byte-identical SVG.
-  No `Date.now`/`Math.random` in the render path; sketch-theme roughness is seeded
-  from `hash(source)`; emitted SVG always uses LF; exported SVG never contains JS
-  (animations are CSS keyframes at constant px/s).
+- **Determinism**: same (source, packs, theme, tool version) → byte-identical SVG,
+  **across platforms, not just across runs** — CI byte-compares the goldens on
+  macOS, Linux and Windows. No `Date.now`/`Math.random` in the render path;
+  sketch-theme roughness is seeded from `hash(source)`; emitted SVG always uses
+  LF; exported SVG never contains JS (animations are CSS keyframes at constant
+  px/s).
+- **LF is an *input* invariant too.** A `.squinch` file checked out on Windows
+  arrives CRLF, and because the seed above hashes the source text, that rendered
+  the same diagram with different jitter. Line endings are normalized in exactly
+  one place — `normalizeSource` in `src/model/source.ts`, applied at the top of
+  `buildProject` *and* `renderProject` (the second because the seed is computed
+  there, past the first). Do not normalize anywhere else. A host that maps core's
+  `Loc` offsets back into its own buffer must normalize that buffer first —
+  `packages/vscode/src/server.ts` is the one that does, and its `offsetAt` must
+  be measured against the same string. Line and character are unaffected by the
+  transform; only the offset moves. `.gitattributes` holds the same invariant for
+  the checkout, and `render --check` compares content rather than bytes on disk
+  so a user's CRLF repo is not permanently "stale".
 - **The interactive HTML export is the one artifact that carries a script**, and
   it is a separate class rather than a loophole (`src/render/html.ts`,
   `docs/notes/html-export.md`). The rule above is unchanged and covers the SVGs

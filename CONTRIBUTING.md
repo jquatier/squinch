@@ -21,11 +21,39 @@ pre-commit hook only regenerates two committed-but-generated files when their
 sources are staged (see below); `git commit --no-verify` or `SQUINCH_HOOKS=0`
 skips it.
 
+### Windows
+
+Works with the same two commands, and CI runs a Windows job. Two things to know:
+
+- The repo pins LF through [`.gitattributes`](.gitattributes), and **your clone
+  must have it.** A clone made before it landed still has CRLF in the working
+  tree; `git add --renormalize . && git checkout .` fixes that, and
+  `git ls-files --eol | grep w/crlf` should then print nothing (one Azure icon
+  excepted — it ships with a CRLF terminator and is marked `-text`). A guardrail
+  test fails if CRLF is ever committed.
+- Hooks run through git-bash, and the executable bit is meaningless on Windows —
+  the suite asserts the mode git *records* instead, which is what survives a
+  clone.
+
+Maintainer tooling that is macOS/Linux only, deliberately: `gauntlet/run.ts`
+(POSIX PATH shim, spawns `claude`), `packages/pack-*/scripts/fetch.ts` (needs
+`unzip`), and `scripts/hero-gif.mts` (needs ffmpeg). Each says so in its header.
+
 ## The gates
 
 ```bash
 pnpm -r test        # every package
 pnpm -r typecheck   # CI runs this first
+```
+
+To reproduce a Windows checkout without Windows — the one recipe that catches
+the whole line-ending class, and how the `.gitattributes` was validated:
+
+```bash
+git clone . /tmp/win-sim && cd /tmp/win-sim
+git config core.autocrlf true
+git rm --cached -r -q . && git reset --hard
+git ls-files --eol | grep w/crlf     # should print nothing
 ```
 
 CI additionally re-renders the examples and the lookbook and fails on any

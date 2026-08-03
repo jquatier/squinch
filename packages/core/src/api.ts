@@ -1,6 +1,7 @@
 // The pipeline itself: parse → model → layout → render. No host-specific I/O —
 // see index.ts (Node) and browser.ts for how packs get registered.
 import { buildModel, buildProject, formatDiagnostics, type ProjectFile } from "./model/build.js";
+import { normalizeFiles } from "./model/source.js";
 import { layoutView } from "./layout/layout.js";
 import { renderSVG } from "./render/svg.js";
 import { validateSVG } from "./render/validate.js";
@@ -13,6 +14,10 @@ import { suggest } from "./model/suggest.js";
 import type { BuildResult, Diagnostic, SView } from "./model/types.js";
 
 export { buildModel, buildProject, formatDiagnostics, layoutView, renderSVG, validateSVG, themes };
+// CRLF → LF, exported for hosts that map core's Loc offsets back into their own
+// buffer: normalize that buffer first, or the positions are off by one per line
+// on a Windows checkout (packages/vscode/src/features.ts is the one that does).
+export { normalizeSource } from "./model/source.js";
 // pack introspection — the editor tooling needs the same view of packs
 // the compiler has (completion lists, hovers, validation).
 export { allPackNames, iconIds, iconMeta, iconExists, packExists, iconTitle };
@@ -139,7 +144,7 @@ export async function render(
 
 /** Multi-file project pipeline: files merge into one model namespace (SPEC §2). */
 export async function renderProject(
-  files: ProjectFile[],
+  input: ProjectFile[],
   opts: {
     view?: string;
     theme?: string;
@@ -156,6 +161,10 @@ export async function renderProject(
     defsScope?: string;
   } = {},
 ): Promise<RenderResult> {
+  // Normalized here as well as inside buildProject, because the sketch seed
+  // below hashes the source text directly: a CRLF checkout would otherwise
+  // render the same diagram with different jitter (model/source.ts).
+  const files = normalizeFiles(input);
   const built: BuildResult = buildProject(files);
   if (!built.ok) return { diagnostics: built.diagnostics, ok: false };
 

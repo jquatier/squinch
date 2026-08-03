@@ -11,6 +11,12 @@
 //   npx tsx gauntlet/run.ts 03 17           # a subset, by id prefix
 //   npx tsx gauntlet/run.ts --model opus --concurrency 4 --keep
 //
+// macOS/Linux only, deliberately: the sandbox hands each agent a `squinch` on
+// PATH as an extensionless `#!/usr/bin/env node` shim, spawns `claude` and
+// `pnpm` directly (both are .cmd shims on Windows), and reads $HOME. Porting it
+// buys nothing — this is a maintainer command that spends real money, and the
+// half CI runs (score.ts) is pure Node and does work everywhere.
+//
 // Maintainer-only, never CI: it costs real money and agents are not
 // deterministic. The script makes the *conditions* repeatable, not the outcome.
 // CI keeps scoring whatever corpus the last reviewed run committed.

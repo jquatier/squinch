@@ -1,9 +1,10 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
-import { mkdtempSync, rmSync, writeFileSync, readFileSync, existsSync, readdirSync } from "node:fs";
+import { mkdtempSync, rmSync, writeFileSync, readFileSync, existsSync, readdirSync, renameSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { main } from "../src/index.js";
 import { BOOLEAN_FLAGS } from "../src/args.js";
+import { watchPaths } from "../src/watch.js";
 
 let dir: string;
 let out: string[];
@@ -433,5 +434,81 @@ describe("flags never swallow the work", () => {
       .map(([, flag]) => flag.replace(/^--?/, ""))
       .filter((f) => !BOOLEAN_FLAGS.has(f));
     expect(missing, `documented as taking no argument but absent from BOOLEAN_FLAGS: ${missing.join(", ")}`).toEqual([]);
+  });
+});
+
+describe("line endings and paths, cross-platform", () => {
+  // These cover a *user's* CRLF checkout, which our own .gitattributes means
+  // even a Windows CI runner would not reproduce.
+  it("--check accepts a CRLF-on-disk render, and says why", async () => {
+    const f = join(dir, "d.squinch");
+    writeFileSync(f, GOOD);
+    expect(await main(["render", f, "--sync"])).toBe(0);
+    const svg = join(dir, "d.app.light.svg");
+    const lf = readFileSync(svg, "utf8");
+    expect(lf.includes("\r"), "squinch must write LF").toBe(false);
+
+    // what a Windows checkout hands back
+    writeFileSync(svg, lf.replace(/\n/g, "\r\n"));
+    err = [];
+    expect(await main(["render", f, "--check"]), "CRLF on disk is not staleness").toBe(0);
+    expect(err.join("\n")).toContain("CRLF line endings");
+    expect(err.join("\n")).toContain(".gitattributes");
+  });
+
+  it("--check still fails when the content really is stale", async () => {
+    const f = join(dir, "s.squinch");
+    writeFileSync(f, GOOD);
+    expect(await main(["render", f, "--sync"])).toBe(0);
+    const svg = join(dir, "s.app.light.svg");
+    // CRLF *and* a real edit: normalization must not swallow the second one
+    writeFileSync(svg, readFileSync(svg, "utf8").replace(/\n/g, "\r\n").replace("</svg>", "<!--x--></svg>"));
+    expect(await main(["render", f, "--check"])).toBe(1);
+  });
+
+  it("reports paths with forward slashes", async () => {
+    const f = join(dir, "p.squinch");
+    writeFileSync(f, GOOD);
+    out = [];
+    expect(await main(["render", f, "--sync"])).toBe(0);
+    // `written` goes to stdout; on Windows path.relative yields backslashes and
+    // this output lands in someone else's pull request via the Action.
+    expect(out.join("\n")).not.toContain("\\");
+  });
+});
+
+describe("watchPaths survives an atomic save", () => {
+  // VS Code (and vim with backupcopy=no) saves by writing a temp file and
+  // renaming it over the target. A watcher armed on the *file* loses the entry
+  // and goes permanently deaf on Windows, with no error to notice.
+  it("fires when the file is replaced by rename", async () => {
+    const target = join(dir, "atomic.squinch");
+    writeFileSync(target, GOOD);
+    let fired = 0;
+    const w = watchPaths(target, () => void fired++, 10);
+    try {
+      const tmp = join(dir, "atomic.squinch.tmp");
+      writeFileSync(tmp, GOOD + "\n// edited\n");
+      renameSync(tmp, target);
+      await new Promise((r) => setTimeout(r, 300));
+      expect(fired, "watcher went deaf after an atomic save").toBeGreaterThan(0);
+    } finally {
+      w.close();
+    }
+  });
+
+  it("ignores churn that is not part of the project", async () => {
+    let fired = 0;
+    const w = watchPaths(dir, () => void fired++, 10);
+    try {
+      writeFileSync(join(dir, "editor.swp"), "noise");
+      await new Promise((r) => setTimeout(r, 200));
+      expect(fired, "a .swp write should not re-render").toBe(0);
+      writeFileSync(join(dir, "real.squinch"), GOOD);
+      await new Promise((r) => setTimeout(r, 300));
+      expect(fired).toBeGreaterThan(0);
+    } finally {
+      w.close();
+    }
   });
 });

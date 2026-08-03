@@ -4,6 +4,7 @@ import { execFileSync } from "node:child_process";
 import { relative, resolve, basename } from "node:path";
 import { statSync, existsSync } from "node:fs";
 import type { ProjectFile } from "@squinch/core";
+import { toPosix } from "./paths.js";
 
 const git = (args: string[], cwd: string): string =>
   execFileSync("git", args, { cwd, encoding: "utf8", stdio: ["ignore", "pipe", "pipe"] });
@@ -19,11 +20,15 @@ export function isGitRepo(cwd: string): boolean {
 
 /** Repo-relative POSIX path — what git wants, on every platform. */
 function repoPath(abs: string, root: string): string {
-  return relative(root, abs).split(/[\\/]/).join("/");
+  return toPosix(relative(root, abs));
 }
 
+/** POSIX, like everything else this module returns: `git rev-parse` already
+ *  answers with forward slashes on Windows, and a caller comparing it against a
+ *  `path.join`ed string would otherwise be comparing two spellings of one
+ *  directory. */
 export function repoRoot(cwd: string): string {
-  return git(["rev-parse", "--show-toplevel"], cwd).trim();
+  return toPosix(git(["rev-parse", "--show-toplevel"], cwd).trim());
 }
 
 /**

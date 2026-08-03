@@ -3,6 +3,8 @@
 // dive shows a zoom and two show that the altitude belongs to the model rather
 // than to a particular diagram.
 //
+// Maintainer-only, macOS/Linux: needs ffmpeg on PATH.
+//
 // Generated, never screen-recorded — the frames are the real renderer's output,
 // so the GIF cannot drift from what the tool actually draws, and it can be
 // regenerated after any visual change. It has already earned that twice: once

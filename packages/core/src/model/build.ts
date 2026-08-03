@@ -7,6 +7,7 @@ import type { SyntaxNode } from "@lezer/common";
 import { parser } from "../grammar/parser.js";
 import { iconExists, packExists, iconIds, allPackNames } from "./packs.js";
 import { suggest } from "./suggest.js";
+import { normalizeFiles } from "./source.js";
 import { themes } from "../themes/index.js";
 import type {
   ArrowKind, BuildResult, Diagnostic, Loc, RelPos, SContainer, SEdge, SModel, SNode, SNote, SView, Side, SFlow, SZone, ZoneColor, ZoneKind, ZoneLabelPos,
@@ -30,7 +31,10 @@ export function buildModel(src: string): BuildResult {
   return buildProject([{ name: "input", src }]);
 }
 
-export function buildProject(files: ProjectFile[]): BuildResult {
+export function buildProject(input: ProjectFile[]): BuildResult {
+  // LF space from here down: every Loc, label and description a caller gets
+  // back is measured against normalized source (see model/source.ts).
+  const files = normalizeFiles(input);
   const diagnostics: Diagnostic[] = [];
   const model: SModel = {
     packs: [],

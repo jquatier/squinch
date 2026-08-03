@@ -1,0 +1,46 @@
+# Line endings are part of the product claim: same (source, packs, theme, tool
+# version) → byte-identical SVG, LF always. Without this file, Git for Windows'
+# default core.autocrlf=true checks every tracked text file out as CRLF — 918 of
+# them, measured — and then the goldens byte-compare an LF render against a CRLF
+# file, `render --check` calls every committed diagram stale, the ```squinch
+# fence regexes in skill.test.ts / readme.test.ts match nothing, and
+# sync-examples inlines \r\n into examples.ts so CI's `git diff --exit-code`
+# fails. A Windows clone and a macOS clone must have identical bytes on disk.
+
+# `eol=lf` is the load-bearing half. Bare `text=auto` normalizes on commit but
+# still smudges to CRLF on a Windows checkout, and the working tree is what
+# readFileSync sees.
+* text=auto eol=lf
+
+# The source format and the artifact, said out loud — redundant with the rule
+# above, and here so that grepping this file answers "what happens to a
+# .squinch" without knowing how text=auto's content heuristic works.
+*.squinch text eol=lf
+*.svg     text eol=lf
+
+# Scripts git runs through sh. A CR before the newline is a syntax error
+# (`\r: command not found`) that reads as the hook being broken rather than the
+# checkout being wrong.
+.githooks/*        text eol=lf
+packages/cli/bin/* text eol=lf
+
+# Binaries, declared rather than detected. text=auto's heuristic (NUL in the
+# first 8000 bytes) happens to get all eleven of these right today, but nobody
+# decided that — `git ls-files --eol` shows them as -text with an empty attr
+# column. Saying it means a future asset that looks textual to the heuristic
+# cannot be silently mangled.
+*.ttf   binary
+*.woff2 binary
+*.png   binary
+*.gif   binary
+*.jpg   binary
+*.ico   binary
+*.vsix  binary
+
+# Pack icons ship VERBATIM — the AWS set is licensed no-derivatives (NOTICE),
+# and the bytes are a render input, so "identical on every platform" becomes a
+# git attribute rather than a hope. `-text` also stops `git add --renormalize`
+# from rewriting packages/pack-azure/icons/translator-text.svg, the one tracked
+# file that arrives from upstream with a CRLF terminator. Note this does not
+# make the diffs binary (that would be -diff); icon diffs stay readable.
+packages/pack-*/icons/** -text
