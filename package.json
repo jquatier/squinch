@@ -1,6 +1,7 @@
 {
   "name": "squinch-monorepo",
   "private": true,
+  "version": "0.0.0",
   "engines": {
     "node": ">=22"
   },
@@ -8,7 +9,8 @@
   "scripts": {
     "test": "pnpm -r test",
     "build": "pnpm -r build",
-    "prepare": "husky"
+    "prepare": "husky",
+    "set-version": "node scripts/version.mjs"
   },
   "devDependencies": {
     "@types/node": "^26.1.1",

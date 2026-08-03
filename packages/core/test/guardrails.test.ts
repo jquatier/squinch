@@ -199,6 +199,36 @@ describe("the pre-commit hook stays wired and armed", () => {
   });
 });
 
+describe("the workspace ships one version", () => {
+  // The engine, the CLI and the extension are one product cut three ways — the
+  // extension is largely the same code behind a different view — so "which
+  // squinch is this?" must have one answer whether you are looking at a VSIX,
+  // an npm package or the version recorded in a squinch.lock. Independent
+  // numbers would drift on the first bump and stop meaning anything.
+  //
+  // The root package.json is the truth; `node scripts/version.mjs <x.y.z>`
+  // moves them together. This fails on a hand-edited manifest.
+  it("every workspace member matches the root", () => {
+    const version = (rel: string) =>
+      JSON.parse(readFileSync(join(root, rel), "utf8")).version as string | undefined;
+    const expected = version("package.json");
+    expect(expected, "root package.json has no version").toBeTruthy();
+
+    const members = [
+      ...readdirSync(join(root, "packages")).map((p) => join("packages", p)),
+      ...readdirSync(join(root, "apps")).map((p) => join("apps", p)),
+      "gauntlet",
+    ]
+      .map((d) => join(d, "package.json"))
+      .filter((p) => existsSync(join(root, p)));
+
+    expect(members.length, "found no workspace members — the walk is broken").toBeGreaterThan(8);
+    const adrift = members.filter((m) => version(m) !== expected).map((m) => `${m} (${version(m)})`);
+    expect(adrift, `version drift from the root's ${expected} — run \`node scripts/version.mjs ${expected}\``)
+      .toEqual([]);
+  });
+});
+
 describe("workspace scripts run on every platform", () => {
   // npm and pnpm run scripts through cmd.exe on Windows, where `mkdir -p` and
   // `cp` do not exist. Core's build ended in exactly those two, and core is

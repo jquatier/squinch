@@ -84,6 +84,18 @@ commit the result in the same change:
 
 The last two only change when the bundled font does.
 
+### One version, everywhere
+
+Every workspace package carries the same version, and a guardrail test fails if
+one drifts. Never hand-edit a `version` field:
+
+```bash
+node scripts/version.mjs 0.1.0
+```
+
+The CLI reports it (`squinch --version`) and writes it into `squinch.lock`, and
+the extension's VSIX carries it, so all three agree by construction.
+
 ### Golden SVGs
 
 The core suite byte-compares rendered SVG against committed goldens. When a

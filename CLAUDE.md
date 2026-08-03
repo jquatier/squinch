@@ -191,6 +191,12 @@ The architecture it certified is still enforced by the corpus invariant sweep.
   byte-compare, XML validity, determinism, Phase-0 layout parity. `UPDATE_GOLDEN=1`
   to rebless goldens after an *intentional* visual change.
 - `pnpm -r typecheck` — tsc across packages (CI runs this first).
+- `node scripts/version.mjs [x.y.z]` — print, or set, the **one** version the
+  whole workspace shares (root `package.json` is the truth; a guardrail asserts
+  every member matches). The engine, CLI and extension are one product cut
+  three ways, so a VSIX, an npm package and a `squinch.lock` must all answer
+  "which squinch is this?" the same way. Not named `version` in the scripts
+  block on purpose — that collides with npm's own lifecycle hook.
 - Pre-commit hook (husky; `.husky/pre-commit`, wired by the root `prepare`
   script on `pnpm install`): when their sources are staged, regenerates
   `apps/spa/src/examples.ts` and `runtime.generated.ts` and fails until the
