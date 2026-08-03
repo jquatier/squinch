@@ -227,6 +227,19 @@ describe("the workspace ships one version", () => {
     expect(adrift, `version drift from the root's ${expected} — run \`node scripts/version.mjs ${expected}\``)
       .toEqual([]);
   });
+
+  it("the release workflow guards the tag against that version", () => {
+    // release.yml is what turns a tag into a published VSIX, and its first
+    // real step compares the tag to the workspace version. A refactor that
+    // drops the trigger or the guard would fail silently — tags would just
+    // stop releasing, or worse, release with a lying version.
+    const wf = readFileSync(join(root, ".github/workflows/release.yml"), "utf8");
+    expect(wf, "release.yml must trigger on v* tags").toMatch(/tags:\s*\["v\*"\]/);
+    expect(wf, "release.yml must derive the version from scripts/version.mjs and compare it to the tag")
+      .toContain('v="v$(node scripts/version.mjs)"');
+    expect(wf, "release notes must come from the CHANGELOG section, not free text")
+      .toContain("scripts/release-notes.mjs");
+  });
 });
 
 describe("workspace scripts run on every platform", () => {

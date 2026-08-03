@@ -133,6 +133,28 @@ record decisions that were relitigated once too often, including the approaches
 that were tried and rejected and *why*. `docs/SPEC.md` is the DSL contract and
 `docs/DESIGN.md` is a requirements document for the renderer, not decoration.
 
+## Cutting a release
+
+```bash
+pnpm release
+```
+
+One command, from a clean `main`: it prompts for the new version, drafts a
+CHANGELOG section from the commits since the last tag, opens it in `$EDITOR`
+to be trimmed into something a reader deserves (the draft is a starting point,
+not the changelog), bumps every workspace manifest together, commits
+`release: <version>`, tags `v<version>`, and pushes branch + tag in one go.
+`--dry-run` shows everything and writes nothing; `--no-edit` accepts the draft.
+
+From there [release.yml](.github/workflows/release.yml) builds the VSIX from
+the tagged commit, re-runs the whole suite as its own gate, and publishes the
+GitHub Release with that CHANGELOG section as its notes plus a `SHA256SUMS`.
+If CI fails, no release exists — fix and release the next patch number.
+
+Two failures that are the process working: a hand-made tag that doesn't match
+the workspace version, and a missing CHANGELOG section for the tagged version.
+Both stop the workflow before anything publishes.
+
 ## Pull requests
 
 Small and focused beats comprehensive. Explain what a reviewer should look at

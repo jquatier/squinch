@@ -32,10 +32,22 @@ pnpm --filter @squinch/core build && pnpm --filter squinch-vscode build
 
 ## Installing it into your own VS Code
 
-Build a `.vsix` and install it — no marketplace account needed:
+Download `squinch-vscode-<version>.vsix` from the repo's
+[GitHub Releases](https://github.com/jquatier/squinch/releases) — each release
+carries a `SHA256SUMS` beside it — and install:
 
 ```bash
-pnpm --filter @squinch/core build
+code --install-extension squinch-vscode-<version>.vsix
+```
+
+The same file installs in Cursor, Windsurf and VSCodium. A sideloaded VSIX
+never auto-updates: to update, download the next release and install it over
+the old one.
+
+Or build it from a checkout — no marketplace account needed:
+
+```bash
+pnpm install && pnpm -r build
 pnpm --filter squinch-vscode package     # writes packages/vscode/squinch.vsix
 code --install-extension packages/vscode/squinch.vsix
 ```
@@ -57,7 +69,9 @@ real stdio LSP. `src/extension.ts` is the client plus the preview webview.
 
 ## Publishing
 
-Not on the VS Code Marketplace yet. `pnpm --filter squinch-vscode package`
-produces the installable `.vsix` described above, which is how to try it today;
-the Marketplace listing waits on the extension's own icon and a first tagged
-version. See [CHANGELOG.md](CHANGELOG.md).
+GitHub Releases is the current channel: `pnpm release` from the repo root tags
+a version, and CI builds the VSIX from that exact commit and attaches it. The
+VS Code Marketplace is deliberately deferred — it needs the publisher ID
+claimed first — and nothing about the artifact changes when it happens; the
+listing just becomes another place the same VSIX lives. See
+[CHANGELOG.md](CHANGELOG.md).

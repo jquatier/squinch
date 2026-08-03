@@ -10,7 +10,8 @@
     "test": "pnpm -r test",
     "build": "pnpm -r build",
     "prepare": "husky",
-    "set-version": "node scripts/version.mjs"
+    "set-version": "node scripts/version.mjs",
+    "release": "node scripts/release.mjs"
   },
   "devDependencies": {
     "@types/node": "^26.1.1",

@@ -1,0 +1,61 @@
+# Cut by `pnpm release` (scripts/release.mjs), which bumps every manifest,
+# writes the CHANGELOG section, and pushes main + the tag together. This
+# workflow builds the VSIX from the tagged commit, re-runs the suite — its own
+# gate, deliberately, rather than trusting that some other run was green — and
+# publishes the GitHub Release with the CHANGELOG section as its notes.
+#
+# Two ways it fails on purpose: the tag not matching the workspace version
+# (someone tagged by hand), and the CHANGELOG missing this version's section
+# (someone skipped the release command). Both are the process working.
+#
+# Windows and e2e are not re-run here; they gate main, and the tag points at a
+# commit on main. npm publish is deliberately absent — later.
+name: release
+on:
+  push:
+    tags: ["v*"]
+
+permissions:
+  contents: write # create the release; nothing else
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      # The same pinned setup block as ci.yml, same order, same reasons: the
+      # action majors are the first with node24 entry points, and pnpm must be
+      # on PATH before setup-node locates the store it caches.
+      - uses: actions/checkout@v7
+      - uses: pnpm/action-setup@v6
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      # The tag IS the version. Fail before doing any work if they disagree.
+      - run: |
+          v="v$(node scripts/version.mjs)"
+          if [ "$v" != "$GITHUB_REF_NAME" ]; then
+            echo "tag $GITHUB_REF_NAME does not match the workspace version $v"
+            echo "releases are cut with \`pnpm release\`, which keeps them equal"
+            exit 1
+          fi
+      - run: pnpm -r build
+      - run: pnpm -r typecheck
+      - run: pnpm -r test
+      - run: pnpm --filter squinch-vscode package
+      - run: |
+          v="$(node scripts/version.mjs)"
+          mv packages/vscode/squinch.vsix "squinch-vscode-${v}.vsix"
+          sha256sum "squinch-vscode-${v}.vsix" > SHA256SUMS
+      # Notes are the CHANGELOG section for this version, verbatim; a missing
+      # section fails the release rather than shipping an empty page.
+      - run: node scripts/release-notes.mjs "$(node scripts/version.mjs)" > notes.md
+      - run: |
+          gh release create "$GITHUB_REF_NAME" squinch-vscode-*.vsix SHA256SUMS \
+            --title "squinch $GITHUB_REF_NAME" \
+            --notes-file notes.md \
+            --generate-notes \
+            --verify-tag
+        env:
+          GH_TOKEN: ${{ github.token }}

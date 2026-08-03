@@ -1,9 +1,9 @@
 # Changelog
 
-## Unreleased
-
-Pre-alpha, not yet published to the Marketplace. Install the `.vsix` built by
-`pnpm --filter squinch-vscode package` — see the [README](README.md).
+Per-release history lives in the repo-root [CHANGELOG.md](../../CHANGELOG.md) —
+the extension shares one version with the engine and CLI, so it shares their
+log. Install from [GitHub Releases](https://github.com/jquatier/squinch/releases);
+see the [README](README.md).
 
 What works today:
 
