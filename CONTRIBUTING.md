@@ -16,10 +16,17 @@ picks it up). `--filter @squinch/core` alone is *not* enough to run the CLI —
 `packages/cli/bin/` runs `packages/cli/dist`, which only the CLI's own build
 writes.
 
-`pnpm install` also points `core.hooksPath` at [`.githooks/`](.githooks/). The
-pre-commit hook only regenerates two committed-but-generated files when their
-sources are staged (see below); `git commit --no-verify` or `SQUINCH_HOOKS=0`
-skips it.
+`pnpm install` also installs the git hooks, via [husky](https://typicode.github.io/husky/)
+— [`.husky/pre-commit`](.husky/pre-commit) only regenerates two
+committed-but-generated files when their sources are staged (see below), and
+does nothing at all on an unrelated commit. `git commit --no-verify` skips it
+once; `HUSKY=0` disables husky entirely, including the install step, if you
+would rather this repo not touch your git config.
+
+One pnpm wrinkle worth knowing: lifecycle scripts are skipped when an install
+is a no-op ("Already up to date"), so if you already had `node_modules` when
+you pulled the change that added hooks, you get them on your next real
+install.
 
 ### Windows
 
@@ -31,9 +38,9 @@ Works with the same two commands, and CI runs a Windows job. Two things to know:
   `git ls-files --eol | grep w/crlf` should then print nothing (one Azure icon
   excepted — it ships with a CRLF terminator and is marked `-text`). A guardrail
   test fails if CRLF is ever committed.
-- Hooks run through git-bash, and the executable bit is meaningless on Windows —
-  the suite asserts the mode git *records* instead, which is what survives a
-  clone.
+- Hooks run through git-bash. The executable bit is meaningless on Windows, and
+  it does not matter here anyway: husky's shim runs `.husky/pre-commit` with
+  `sh -e`, so the file needs no mode of its own.
 
 Maintainer tooling that is macOS/Linux only, deliberately: `gauntlet/run.ts`
 (POSIX PATH shim, spawns `claude`), `packages/pack-*/scripts/fetch.ts` (needs

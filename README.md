@@ -392,8 +392,9 @@ node packages/cli/bin/squinch.js init my-diagrams
 node packages/cli/bin/squinch.js render my-diagrams --sync
 ```
 
-`pnpm install` also wires the repo's pre-commit hook (`.githooks/`), which
-keeps the committed generated files in sync; `git commit --no-verify` skips it.
+`pnpm install` also wires the repo's pre-commit hook (husky, `.husky/`), which
+keeps the committed generated files in sync; `git commit --no-verify` skips it
+once, `HUSKY=0` disables hooks entirely.
 
 **macOS, Linux and Windows**, on Node ≥ 22 — CI runs all three, and the goldens
 must byte-match across them, so "byte-identical" means across platforms and not

@@ -147,29 +147,38 @@ describe("pack registration stays consistent across its five sites", () => {
 
 describe("the pre-commit hook stays wired and armed", () => {
   // The hook kills the "edited the source, forgot the generator" class of CI
-  // failure at commit time. Deleting it, dropping the exec bit, or unwiring
-  // the prepare script would all fail silently — commits just stop being
-  // checked — so the suite asserts the wiring instead of hoping.
-  const hookPath = join(root, ".githooks", "pre-commit");
+  // failure at commit time. Deleting it, or unwiring husky, would fail silently
+  // — commits just stop being checked — so the suite asserts the wiring.
+  const hookPath = join(root, ".husky", "pre-commit");
 
-  it("hook exists, is executable, and guards both generated files", () => {
-    // The mode git *records* is the one that survives a clone, and unlike
-    // statSync it means something on Windows, where there is no exec bit at
-    // all and Node reports 0o666 for every file.
-    const entry = git("ls-files", "-s", ".githooks/pre-commit");
-    expect(entry, "`.githooks/pre-commit` is not tracked").not.toBe("");
-    expect(entry.startsWith("100755"), `git records mode ${entry.slice(0, 6)} — it must be 100755 or the hook is skipped without a word`).toBe(true);
+  it("the hook is tracked and still guards both generated files", () => {
+    // No mode assertion: husky's own shim in .husky/_ is what git executes, and
+    // it runs this file with `sh -e`, so the executable bit is irrelevant here
+    // (which is just as well — it means nothing on Windows).
+    expect(git("ls-files", ".husky/pre-commit"), "`.husky/pre-commit` is not tracked").not.toBe("");
     const hook = readFileSync(hookPath, "utf8");
     for (const guarded of ["apps/spa/src/examples.ts", "runtime.generated.ts"])
       expect(hook, `hook no longer guards ${guarded}`).toContain(guarded);
   });
 
-  it("root postinstall script wires core.hooksPath on install", () => {
-    // postinstall, not prepare: pnpm 11 does not run the root `prepare`
-    // lifecycle on install (verified against a fresh clone) — postinstall it does.
-    const scripts = JSON.parse(readFileSync(join(root, "package.json"), "utf8")).scripts ?? {};
-    expect(scripts.postinstall ?? "", "root postinstall must run `git config core.hooksPath .githooks` — without it a fresh clone has no hooks")
-      .toContain("core.hooksPath .githooks");
+  it("husky is a dependency and the prepare script runs it", () => {
+    // `prepare` is husky's documented hook and it does fire under pnpm — the
+    // earlier note here claiming otherwise was a misdiagnosis. What actually
+    // happens is that pnpm skips *all* lifecycle scripts when an install is a
+    // no-op ("Already up to date"), which hits postinstall exactly the same
+    // way. Contributors therefore get hooks on their next real install, not
+    // necessarily on the pull that added them.
+    const pkg = JSON.parse(readFileSync(join(root, "package.json"), "utf8"));
+    expect(pkg.scripts?.prepare ?? "", "root `prepare` must run husky — without it a fresh clone has no hooks")
+      .toContain("husky");
+    expect(pkg.devDependencies?.husky, "husky must be a root devDependency").toBeTruthy();
+  });
+
+  it("husky's generated shim directory is never committed", () => {
+    // husky writes .husky/_ on install and drops a `*` .gitignore inside it.
+    // Committing that directory would ship machine-generated shims and let a
+    // stale copy outlive the husky version that wrote it.
+    expect(git("ls-files", ".husky/_"), ".husky/_ is generated — it must not be tracked").toBe("");
   });
 });
 
@@ -178,9 +187,11 @@ describe("workspace scripts run on every platform", () => {
   // `cp` do not exist. Core's build ended in exactly those two, and core is
   // first in dependency order — so `pnpm -r build` died before anything else
   // was attempted, and no test could have caught it because no test ran.
+  // Node bins from node_modules/.bin: npm/pnpm generate a .cmd shim for each on
+  // Windows, so they resolve under cmd.exe like any executable.
   const RUNNERS = new Set([
     "node", "npm", "npx", "pnpm", "tsc", "tsx", "vitest", "vite", "playwright",
-    "lezer-generator", "esbuild", "git",
+    "lezer-generator", "esbuild", "git", "husky",
   ]);
 
   it("every script starts each command with a portable runner", () => {

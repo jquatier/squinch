@@ -3,9 +3,9 @@
 # the source, forgot the generator" dies here instead of at CI's
 # `git diff --exit-code`. Only the sub-second generators belong in this hook —
 # the slow gates (lookbook rebuild, example --check, tests) stay CI's job.
-# Bypass: `git commit --no-verify` or SQUINCH_HOOKS=0.
-set -e
-[ "$SQUINCH_HOOKS" = "0" ] && exit 0
+# Run by husky, which execs this with `sh -e` and puts node_modules/.bin on
+# PATH. Bypass: `git commit --no-verify`, or HUSKY=0 to disable husky entirely
+# (that one also skips wiring the hooks up at install time).
 cd "$(git rev-parse --show-toplevel)"
 
 staged=$(git diff --cached --name-only)
@@ -17,7 +17,7 @@ fail=0
 check() { # <generated-file> <generator-label>
   if ! git diff --quiet -- "$1"; then
     echo "pre-commit: $1 is stale — $2 just regenerated it."
-    echo "fix: git add $1   (or SQUINCH_HOOKS=0 git commit … to bypass)"
+    echo "fix: git add $1   (or HUSKY=0 git commit … to bypass)"
     fail=1
   fi
 }

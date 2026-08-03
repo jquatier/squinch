@@ -8,9 +8,10 @@
   "scripts": {
     "test": "pnpm -r test",
     "build": "pnpm -r build",
-    "postinstall": "git config core.hooksPath .githooks || exit 0"
+    "prepare": "husky"
   },
   "devDependencies": {
-    "@types/node": "^26.1.1"
+    "@types/node": "^26.1.1",
+    "husky": "^9.1.7"
   }
 }

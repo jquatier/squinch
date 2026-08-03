@@ -191,13 +191,16 @@ The architecture it certified is still enforced by the corpus invariant sweep.
   byte-compare, XML validity, determinism, Phase-0 layout parity. `UPDATE_GOLDEN=1`
   to rebless goldens after an *intentional* visual change.
 - `pnpm -r typecheck` — tsc across packages (CI runs this first).
-- Pre-commit hook (`.githooks/`, wired by the root `postinstall` script on
-  `pnpm install` — pnpm 11 skips root `prepare`): when their sources are
-  staged, regenerates
+- Pre-commit hook (husky; `.husky/pre-commit`, wired by the root `prepare`
+  script on `pnpm install`): when their sources are staged, regenerates
   `apps/spa/src/examples.ts` and `runtime.generated.ts` and fails until the
   result is staged — the sub-second slice of CI's drift gates. Bypass with
-  `--no-verify` or `SQUINCH_HOOKS=0`; the slow gates (lookbook, `--check`,
-  tests) stay CI-only.
+  `--no-verify`, or `HUSKY=0` to disable husky including its install step; the
+  slow gates (lookbook, `--check`, tests) stay CI-only. `.husky/_` is generated
+  and self-ignoring; never commit it. Note pnpm skips *all* lifecycle scripts
+  when an install is a no-op ("Already up to date"), so hooks arrive on the
+  next real install rather than on the pull that added them — that is a pnpm
+  behaviour, not a husky one.
 - `pnpm -r build` — everything, in dependency order. `--filter @squinch/core`
   alone does *not* make the CLI binary runnable: `bin/` runs `packages/cli/dist`,
   which only the CLI's own build writes.

@@ -1,0 +1,20 @@
+# Paths whose contents run on other people's machines, or decide what "green"
+# means. A pull request touching one of these needs the maintainer's review —
+# not because contributors are suspect, but because these files are the ones
+# where a change is easy to miss and expensive to get wrong.
+
+# Git hooks execute locally on every contributor who has run `pnpm install`.
+/.husky/**            @jquatier
+
+# Lifecycle scripts (`prepare`, `postinstall`) run on install, and the
+# workspace config decides which dependency build scripts are allowed to.
+/package.json         @jquatier
+/pnpm-workspace.yaml  @jquatier
+
+# CI is the gate; the composite actions are shipped for consumers to run in
+# their own repositories.
+/.github/**           @jquatier
+
+# Line endings are part of the determinism contract (see CLAUDE.md), and this
+# file is what holds it on a Windows checkout.
+/.gitattributes       @jquatier
