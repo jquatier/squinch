@@ -10,15 +10,12 @@ LICENSE-ICONS.txt, and this notice carries the attribution:
 
   Kubernetes community icons — © the Kubernetes Authors.
 
-Three treatments are applied at fetch time, all permitted by the licence:
+Two treatments are applied at fetch time, both permitted by the licence:
 Inkscape / sodipodi / RDF editor metadata is stripped from each file (it was
 more than half the bytes), and CSS `style` attributes are converted to the
 equivalent SVG presentation attributes (the upstream files carry all their
-paint in `style`, which Squinch's load-time sanitizer does not admit), and
-the root `viewBox` is expanded by 8% per side — the artwork is drawn
-edge-to-edge upstream, and the margin gives it the same optical breathing
-room the other colour packs ship with. Paint and geometry values are moved
-verbatim, never altered. Beyond that, icons are
+paint in `style`, which Squinch's load-time sanitizer does not admit). Paint
+and geometry values are moved verbatim, never altered. Beyond that, icons are
 regenerated with `npm run fetch` from a pinned upstream commit and never
 hand-edited.
 

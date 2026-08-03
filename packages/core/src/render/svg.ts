@@ -5,7 +5,7 @@
 // byte-for-byte what it was before sketch existed.
 import { fit, measure, wrapText, type FontFamily } from "../metrics.js";
 import { FONTS } from "../fonts.generated.js";
-import { iconMeta, packMonochrome } from "../model/packs.js";
+import { iconMeta, packMonochrome, packFullBleed } from "../model/packs.js";
 import { iconAsset, symbolId } from "../packs/registry.js";
 import { makeSketcher, type Sketcher } from "./sketch.js";
 import type { Theme } from "../themes/index.js";
@@ -612,8 +612,14 @@ function chipMarkup(c: Positioned["chips"][number], p: Positioned, rc: RC, t: Th
       `<path d="${rc.sk.rect(c.x, c.y, c.w, c.h, { roughness: 0.6, multi: false })}" fill="none" stroke="${col}" stroke-width="1"/>`
     : `<rect x="${c.x}" y="${c.y}" width="${c.w}" height="${c.h}" rx="3" fill="${t.canvas}" stroke="${col}" stroke-width="1"/>`;
   // the icon is a flush, full-height tab on the chip's left edge — the AWS
-  // boundary-label convention — never a padded thumbnail floating in the pill
-  const icon = c.icon ? iconPlate(c.icon, c.x, c.y, c.h, rc) : "";
+  // boundary-label convention — never a padded thumbnail floating in the pill.
+  // Full-bleed artwork (k8s) is the exception: drawn edge-to-edge it collides
+  // with the chip border, so it gets a small inset inside the same tab slot —
+  // the text position never moves.
+  const inset = c.icon && packFullBleed(c.icon.pack) ? 3 : 0;
+  const icon = c.icon
+    ? iconPlate(c.icon, c.x + inset, c.y + inset, c.h - 2 * inset, rc)
+    : "";
   const tx = c.x + 8 + (c.icon ? c.h + 4 : 0);
   return (
     `<g data-kind="zone-chip" data-zone="${esc(c.zone)}">${halo}${chip}${icon}` +

@@ -2,7 +2,7 @@
 // ../packs/registry.ts); builtin/sys are renderer-drawn glyphs.
 import {
   hasIcon, hasPack, iconIds as registryIconIds, iconTitle, glyph, packNames,
-  iconColor, packMonochrome,
+  iconColor, packMonochrome, packFullBleed,
 } from "../packs/registry.js";
 
 export interface IconMeta {
@@ -18,7 +18,7 @@ export function iconMeta(pack: string, id: string): IconMeta | undefined {
   return { code: "", color: iconColor(pack, id) ?? "#6F6E69" };
 }
 
-export { packMonochrome };
+export { packMonochrome, packFullBleed };
 
 export function iconExists(pack: string, id: string): boolean {
   return hasIcon(pack, id);

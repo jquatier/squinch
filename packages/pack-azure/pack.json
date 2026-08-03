@@ -5,6 +5,7 @@
   "source": "https://arch-center.azureedge.net/icons/Azure_Public_Service_Icons_V24.zip",
   "license": "Microsoft icon terms — architecture diagrams, training and docs only",
   "attribution": "Microsoft — https://learn.microsoft.com/en-us/azure/architecture/icons/",
+  "fullBleed": true,
   "icons": {
     "abs-member": {
       "file": "abs-member.svg",

@@ -150,6 +150,10 @@ writeFileSync(
       license: "Microsoft icon terms — architecture diagrams, training and docs only",
       attribution:
         "Microsoft — https://learn.microsoft.com/en-us/azure/architecture/icons/",
+      // viewBoxes are tight to the artwork (the vnet chevrons touch the edge),
+      // so flush placements — the zone-chip tab — inset it slightly. Same
+      // treatment as pack-k8s; nodes are unaffected.
+      fullBleed: true,
       icons: Object.fromEntries(Object.entries(icons).sort(([a], [b]) => a.localeCompare(b))),
       aliases: Object.fromEntries(Object.entries(aliases).sort(([a], [b]) => a.localeCompare(b))),
     },

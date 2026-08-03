@@ -17,6 +17,10 @@ export interface PackManifest {
   /** single-colour marks (e.g. Simple Icons): the renderer plates and tints
    *  them rather than drawing the artwork on a neutral background. */
   monochrome?: boolean;
+  /** artwork drawn edge-to-edge in its viewBox (no built-in optical margin,
+   *  unlike Azure's glyphs): contexts that place icons flush against a border
+   *  — the zone-chip tab — inset it slightly instead. Nodes are unaffected. */
+  fullBleed?: boolean;
 }
 
 /** Returns raw SVG text for a pack-relative file. May be async (browser). */
@@ -131,6 +135,11 @@ export function glyph(packName: string, id: string): { code: string; color: stri
 /** True when a pack's artwork is single-colour and wants the plate treatment. */
 export function packMonochrome(packName: string): boolean {
   return packs.get(packName)?.manifest.monochrome === true;
+}
+
+/** True when a pack's artwork runs edge-to-edge in its viewBox (k8s). */
+export function packFullBleed(packName: string): boolean {
+  return packs.get(packName)?.manifest.fullBleed === true;
 }
 
 /** A pack's declared brand colour for an icon, if it has one. */

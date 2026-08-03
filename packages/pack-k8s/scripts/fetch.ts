@@ -150,22 +150,6 @@ function promoteStyles(svg: string): string {
   });
 }
 
-/** Give the artwork the optical margin every other colour pack ships with.
- *  Azure's glyphs carry built-in whitespace; these are drawn edge-to-edge in
- *  their viewBox, so anywhere the renderer places them flush — the zone-chip
- *  tab especially — the heptagon touches the border and reads as overflow
- *  rather than as a mark. 8% per side, applied to the viewBox only: the
- *  geometry inside is untouched. */
-const MARGIN = 0.08;
-function padViewBox(svg: string): string {
-  return svg.replace(/viewBox="([\d.eE+-]+)[ ,]+([\d.eE+-]+)[ ,]+([\d.eE+-]+)[ ,]+([\d.eE+-]+)"/,
-    (_m, x, y, w, h) => {
-      const [X, Y, W, H] = [+x, +y, +w, +h];
-      const round = (n: number) => String(+n.toFixed(4));
-      return `viewBox="${round(X - W * MARGIN)} ${round(Y - H * MARGIN)} ${round(W * (1 + 2 * MARGIN))} ${round(H * (1 + 2 * MARGIN))}"`;
-    });
-}
-
 function stripMetadata(svg: string): string {
   const cleaned = svg
     .replace(/<\?xml[^?]*\?>\s*/g, "")
@@ -175,7 +159,7 @@ function stripMetadata(svg: string): string {
     .replace(/\s+(?:inkscape|sodipodi):[\w-]+="[^"]*"/g, "")
     .replace(/\s+xmlns:(?:dc|cc|rdf|svg|sodipodi|inkscape)="[^"]*"/g, "")
     .replace(/\n{3,}/g, "\n\n");
-  return padViewBox(promoteStyles(cleaned));
+  return promoteStyles(cleaned);
 }
 
 async function fetchSvg(dir: string, id: string): Promise<string> {
@@ -237,6 +221,11 @@ writeFileSync(
       source: "https://github.com/kubernetes/community/tree/main/icons",
       license: "Apache-2.0 OR CC-BY-4.0",
       attribution: "Kubernetes community icons — © the Kubernetes Authors",
+      // The artwork is drawn edge-to-edge in its viewBox (no built-in margin,
+      // unlike Azure's glyphs). Contexts that place icons flush against a
+      // border — the zone-chip tab — read this and give it clearance; nodes
+      // draw it full-bleed, which is the size that looks right there.
+      fullBleed: true,
       icons: Object.fromEntries(Object.entries(icons).sort(([a], [b]) => a.localeCompare(b))),
       aliases: Object.fromEntries(Object.entries(aliases).sort(([a], [b]) => a.localeCompare(b))),
     },
