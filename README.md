@@ -297,8 +297,8 @@ theme, `contrast`, is WCAG-first — every text pair clears AAA and every
 structural stroke clears 3:1, asserted in tests rather than eyeballed, with
 meaning never resting on hue alone.
 
-The [lookbook](lookbook/) renders 27 deliberately awkward cases — dense meshes,
-long labels, deep nesting, coplanar rows — to 78 committed SVGs across the
+The [lookbook](lookbook/) renders 28 deliberately awkward cases — dense meshes,
+long labels, deep nesting, coplanar rows — to 80 committed SVGs across the
 themes, and CI fails if any of them changes unintentionally.
 
 ## Icons

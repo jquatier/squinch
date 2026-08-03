@@ -1,0 +1,41 @@
+// The azure pack: Microsoft's official Architecture Icons — the gradient
+// artwork is drawn raw like aws/k8s, no plate, no tint. Long marketing names
+// alias to what people actually type (`azure/vnet`, `azure/aks`,
+// `azure/cosmos`), and this file leans on those short forms. A virtual
+// network draws as a zone with `icon: azure/vnet` — the chip inset that keeps
+// full-bleed artwork off the pill border is exercised right here.
+pack azure
+
+person user "Customer"
+
+fd = azure/front-door "Front Door"
+
+system shop "storefront" {
+  aks = azure/aks "shop-aks"
+  fn = azure/functions "checkout-fn"
+  bus = azure/service-bus "orders-bus"
+  db = azure/cosmos "catalog-db"
+  kv = azure/key-vault "shop-secrets"
+  img = azure/blob "product-images"
+
+  aks -> db
+  aks -> img
+  aks ~> bus "order placed"
+  bus ~> fn
+  fn -> kv "reads certs"
+}
+
+zone vnet_shop "shop-vnet" network {
+  contains shop
+  icon: azure/vnet
+}
+
+user -> fd
+fd -> shop.aks
+
+view storefront {
+  title "Storefront on Azure"
+  include *
+  expand shop
+  legend auto
+}

@@ -317,3 +317,13 @@ Source: [`cases/27-k8s.squinch`](cases/27-k8s.squinch)
 | light | dark |
 |---|---|
 | ![](out/27-k8s.cluster.light.svg) | ![](out/27-k8s.cluster.dark.svg) |
+
+## 28-azure
+
+The azure pack: Microsoft's official Architecture Icons — the gradient artwork is drawn raw like aws/k8s, no plate, no tint. Long marketing names alias to what people actually type (`azure/vnet`, `azure/aks`, `azure/cosmos`), and this file leans on those short forms. A virtual network draws as a zone with `icon: azure/vnet` — the chip inset that keeps full-bleed artwork off the pill border is exercised right here.
+
+Source: [`cases/28-azure.squinch`](cases/28-azure.squinch)
+
+| light | dark |
+|---|---|
+| ![](out/28-azure.storefront.light.svg) | ![](out/28-azure.storefront.dark.svg) |
