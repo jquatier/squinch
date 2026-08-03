@@ -50,10 +50,13 @@ export function IconPalette({
   open,
   onClose,
   onPick,
+  onCredits,
 }: {
   open: boolean;
   onClose: () => void;
   onPick: (ref: string) => void;
+  /** the packs' licences and attribution — reachable from where they're browsed */
+  onCredits: () => void;
 }) {
   const [query, setQuery] = useState("");
   const [results, setResults] = useState<string[]>([]);
@@ -136,8 +139,15 @@ export function IconPalette({
             );
           })}
         </div>
-        <div className="border-t border-[var(--line)] px-4 py-2 text-[10px] text-[var(--muted)]">
-          ↑↓ navigate · ⏎ insert at cursor · esc close
+        <div className="flex items-center gap-2 border-t border-[var(--line)] px-4 py-2 text-[10px] text-[var(--muted)]">
+          <span>↑↓ navigate · ⏎ insert at cursor · esc close</span>
+          <span className="flex-1" />
+          <button
+            onClick={onCredits}
+            className="underline decoration-dotted underline-offset-2 hover:text-[var(--fg)]"
+          >
+            credits
+          </button>
         </div>
       </div>
     </div>

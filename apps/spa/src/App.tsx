@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Editor, type EditorApi } from "./Editor";
 import { IconPalette } from "./IconPalette";
+import { CreditsDialog } from "./Credits";
 // The brand mark, cropped from docs/assets/logo.svg by viewBox alone — its
 // gradients are userSpaceOnUse against the original 1536x1024 coordinates, so
 // the window moves, never the paths.
@@ -47,6 +48,7 @@ export function App() {
   const [copied, setCopied] = useState<string>();
   const [editorOpen, setEditorOpen] = useState(true);
   const [paletteOpen, setPaletteOpen] = useState(false);
+  const [creditsOpen, setCreditsOpen] = useState(false);
   const editorApi = useRef<EditorApi | null>(null);
   const [zoom, setZoom] = useState(1);
   const [fit, setFit] = useState(true);
@@ -448,7 +450,9 @@ export function App() {
         open={paletteOpen}
         onClose={() => setPaletteOpen(false)}
         onPick={(ref) => editorApi.current?.insert(ref)}
+        onCredits={() => { setPaletteOpen(false); setCreditsOpen(true); }}
       />
+      <CreditsDialog open={creditsOpen} onClose={() => setCreditsOpen(false)} />
     </div>
   );
 }

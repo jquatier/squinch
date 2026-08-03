@@ -15,7 +15,8 @@ let ready: Promise<void> | undefined;
 
 /** Load every pack manifest once; icons stream in on demand.
  *  Paths match what scripts/sync-packs.ts writes into public/. */
-const PACKS = ["aws", "azure", "logos", "sys", "k8s"].map((name) => ({
+export const PACK_NAMES = ["aws", "azure", "logos", "sys", "k8s"];
+const PACKS = PACK_NAMES.map((name) => ({
   manifest: `pack-${name}.json`,
   icons: `${name}-icons`,
 }));

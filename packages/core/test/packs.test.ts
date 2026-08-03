@@ -62,6 +62,18 @@ describe("every installed pack", () => {
         .map(([alias, target]) => `${alias} → ${target}`);
       expect(dangling, `dangling aliases in ${pack}`).toEqual([]);
     });
+
+    it(`${pack}: declares the licence and attribution its consumers must show`, () => {
+      // Two of the packs are CC-BY: credit has to travel with the artwork
+      // wherever it goes, and the surfaces that show it (the playground's
+      // credits panel, the README licence table) read these fields rather than
+      // restating them. A pack shipping without them would silently publish
+      // uncredited icons — so the manifest is where it fails, not the page.
+      const info = packInfo(pack);
+      if (!info) return; // builtin glyph sets have no manifest
+      expect(info.license?.trim(), `${pack} has no license in pack.json`).toBeTruthy();
+      expect(info.attribution?.trim(), `${pack} has no attribution in pack.json`).toBeTruthy();
+    });
   }
 });
 import { sanitizeIcon } from "../src/packs/sanitize.js";

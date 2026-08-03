@@ -402,4 +402,21 @@ Squinch's model/view approach builds on the ideas of the
 
 ## License
 
-[Apache-2.0](LICENSE)
+Squinch itself is [Apache-2.0](LICENSE). The bundled icon artwork is **not** —
+each pack is redistributed verbatim under its own terms, and that credit
+travels with anything that serves the artwork (the playground carries it under
+"icon credits"):
+
+| Pack | Attribution | Terms |
+| --- | --- | --- |
+| [`pack-aws`](packages/pack-aws) | Amazon Web Services — [AWS Architecture Icons](https://aws.amazon.com/architecture/icons/) | [CC-BY-ND 2.0](packages/pack-aws/NOTICE) — attribution required, no derivatives |
+| [`pack-azure`](packages/pack-azure) | Microsoft — [Azure Architecture Icons](https://learn.microsoft.com/en-us/azure/architecture/icons/) | [Microsoft's icon terms](packages/pack-azure/NOTICE) — architecture diagrams, training and documentation only |
+| [`pack-k8s`](packages/pack-k8s) | © the Kubernetes Authors — [community icons](https://github.com/kubernetes/community/tree/main/icons) | [Apache-2.0 or CC-BY-4.0](packages/pack-k8s/NOTICE) — attribution required |
+| [`pack-logos`](packages/pack-logos) | [Simple Icons](https://simpleicons.org) | [CC0-1.0](packages/pack-logos/NOTICE) — the marks remain their owners' trademarks |
+| [`pack-sys`](packages/pack-sys) | [Lucide](https://lucide.dev), portions from Feather | [ISC](packages/pack-sys/NOTICE) (Feather portions MIT) |
+
+Kubernetes and the Kubernetes logo are trademarks of The Linux Foundation;
+brand marks in `pack-logos` belong to their respective owners. Use throughout
+is nominative — identifying the thing a diagram depicts — and implies no
+endorsement or affiliation. Each pack's NOTICE carries the full text and
+records the fetch-time treatments applied.
