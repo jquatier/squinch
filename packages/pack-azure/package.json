@@ -1,6 +1,6 @@
 {
   "name": "@squinch/pack-azure",
-  "version": "0.0.1",
+  "version": "0.0.0",
   "private": true,
   "type": "module",
   "description": "Azure architecture icons packaged for Squinch. Icon assets are Microsoft's, redistributed verbatim under Microsoft's icon terms — see NOTICE.",

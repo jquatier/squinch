@@ -1,6 +1,6 @@
 {
   "name": "@squinch/pack-aws",
-  "version": "0.0.1",
+  "version": "0.0.0",
   "private": true,
   "type": "module",
   "description": "AWS Architecture Icons packaged for Squinch. Icon assets are Amazon's, redistributed verbatim under CC-BY-ND 2.0 — see NOTICE.",
