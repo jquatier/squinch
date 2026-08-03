@@ -4,8 +4,8 @@
   "description": "Architecture diagrams as code \u2014 live preview, diagnostics, icon completion.",
   "icon": "icon.png",
   "galleryBanner": {
-    "color": "#fcfcfc",
-    "theme": "light"
+    "color": "#0b0b0f",
+    "theme": "dark"
   },
   "keywords": [
     "architecture",
