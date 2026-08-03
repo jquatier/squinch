@@ -138,3 +138,27 @@ describe("pack registration stays consistent across its five sites", () => {
     expect(both, `pack name in both BUILTIN_GLYPHS and the disk registry: ${both.join(", ")}`).toEqual([]);
   });
 });
+
+describe("the pre-commit hook stays wired and armed", () => {
+  // The hook kills the "edited the source, forgot the generator" class of CI
+  // failure at commit time. Deleting it, dropping the exec bit, or unwiring
+  // the prepare script would all fail silently — commits just stop being
+  // checked — so the suite asserts the wiring instead of hoping.
+  const hookPath = join(root, ".githooks", "pre-commit");
+
+  it("hook exists, is executable, and guards both generated files", () => {
+    const mode = statSync(hookPath).mode;
+    expect(mode & 0o111, ".githooks/pre-commit lost its executable bit — git will skip it without a word").toBeTruthy();
+    const hook = readFileSync(hookPath, "utf8");
+    for (const guarded of ["apps/spa/src/examples.ts", "runtime.generated.ts"])
+      expect(hook, `hook no longer guards ${guarded}`).toContain(guarded);
+  });
+
+  it("root postinstall script wires core.hooksPath on install", () => {
+    // postinstall, not prepare: pnpm 11 does not run the root `prepare`
+    // lifecycle on install (verified against a fresh clone) — postinstall it does.
+    const scripts = JSON.parse(readFileSync(join(root, "package.json"), "utf8")).scripts ?? {};
+    expect(scripts.postinstall ?? "", "root postinstall must run `git config core.hooksPath .githooks` — without it a fresh clone has no hooks")
+      .toContain("core.hooksPath .githooks");
+  });
+});

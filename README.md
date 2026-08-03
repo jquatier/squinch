@@ -362,6 +362,9 @@ node packages/cli/bin/squinch.js init my-diagrams
 node packages/cli/bin/squinch.js render my-diagrams --sync
 ```
 
+`pnpm install` also wires the repo's pre-commit hook (`.githooks/`), which
+keeps the committed generated files in sync; `git commit --no-verify` skips it.
+
 A path can be a single file or a directory — a directory is one project, and its
 files share a namespace.
 

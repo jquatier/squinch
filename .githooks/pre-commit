@@ -1,0 +1,35 @@
+#!/bin/sh
+# Regenerate-and-compare gates for committed-but-generated files, so "edited
+# the source, forgot the generator" dies here instead of at CI's
+# `git diff --exit-code`. Only the sub-second generators belong in this hook —
+# the slow gates (lookbook rebuild, example --check, tests) stay CI's job.
+# Bypass: `git commit --no-verify` or SQUINCH_HOOKS=0.
+set -e
+[ "$SQUINCH_HOOKS" = "0" ] && exit 0
+cd "$(git rev-parse --show-toplevel)"
+
+staged=$(git diff --cached --name-only)
+fail=0
+
+# A trigger path is staged and the generator left the generated file differing
+# from the index → the commit would be stale. The generator already wrote the
+# fix; staging it is all that's left.
+check() { # <generated-file> <generator-label>
+  if ! git diff --quiet -- "$1"; then
+    echo "pre-commit: $1 is stale — $2 just regenerated it."
+    echo "fix: git add $1   (or SQUINCH_HOOKS=0 git commit … to bypass)"
+    fail=1
+  fi
+}
+
+if echo "$staged" | grep -q -e "^examples/" -e "^lookbook/cases/" -e "^apps/spa/scripts/sync-examples\.ts$"; then
+  pnpm --silent --filter @squinch/spa sync-examples >/dev/null
+  check apps/spa/src/examples.ts sync-examples
+fi
+
+if echo "$staged" | grep -v "runtime\.generated\.ts" | grep -q -e "^packages/core/src/render/html/" -e "^packages/core/scripts/gen-html-runtime\.ts$"; then
+  (cd packages/core && npx tsx scripts/gen-html-runtime.ts >/dev/null)
+  check packages/core/src/render/html/runtime.generated.ts gen-html-runtime
+fi
+
+exit $fail
