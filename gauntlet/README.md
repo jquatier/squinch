@@ -5,6 +5,15 @@ Twenty natural-language architecture prompts. An agent, armed with only
 must produce a clean diagram for each. **v1 ships at ≥ 16/20 with zero human
 layout fixes** (the original ≥ 8/10 bar, at the current prompt count).
 
+> **Current standing: 20/20, all twenty clean on the first `check`.** The
+> solutions those agents wrote are committed in `solutions/` and re-scored by CI
+> on every push, so the claim is inspectable rather than asserted.
+>
+> The rest of this file is the maintainer's log for running a round, and it
+> argues with itself on purpose — a perfect score that surfaced no bugs is
+> treated here as the weaker result. That is the intended standard, not a
+> disclaimer about the number above.
+
 - `prompts.json` — the prompts plus machine-checkable expectations
   (structure, icons, tags, views).
 - `solutions/` — the current certification set: 20 solutions authored cold by

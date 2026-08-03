@@ -44,8 +44,8 @@ Then reload VS Code. (No `code` command? In VS Code: <kbd>⌘⇧P</kbd> → *She
 Command: Install 'code' command in PATH*. Or install from the UI: Extensions
 view → `…` menu → *Install from VSIX…*.)
 
-The package is self-contained — the bundle inlines the engine and the AWS icon
-pack ships beside it, so an installed copy needs nothing from this repo.
+The package is self-contained — the bundle inlines the engine and all five icon
+packs ship beside it, so an installed copy needs nothing from this repo.
 Uninstall with `code --uninstall-extension squinch.squinch-vscode`.
 
 ## Layout
@@ -55,5 +55,9 @@ over source text, unit-tested in `test/features.test.ts`. `src/server.ts` is a
 thin LSP shell over it; `test/server.test.ts` drives the bundled server over
 real stdio LSP. `src/extension.ts` is the client plus the preview webview.
 
-Not packaged as a `.vsix` yet — the bundler copies the AWS pack beside the
-output so that path already works when we do.
+## Publishing
+
+Not on the VS Code Marketplace yet. `pnpm --filter squinch-vscode package`
+produces the installable `.vsix` described above, which is how to try it today;
+the Marketplace listing waits on the extension's own icon and a first tagged
+version. See [CHANGELOG.md](CHANGELOG.md).

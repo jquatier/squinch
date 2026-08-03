@@ -1,12 +1,18 @@
 # Squinch — Implementation Plan
 
-> Naming: `.squinch` files, CLI published as bare `squinch` on npm, packages
-> `@squinch/*`. See [SPEC.md](SPEC.md) for the DSL, [DESIGN.md](DESIGN.md) for the
-> design language.
+> Naming: `.squinch` files, CLI to be published as bare `squinch` on npm,
+> packages `@squinch/*`. See [SPEC.md](SPEC.md) for the DSL, [DESIGN.md](DESIGN.md)
+> for the design language.
+>
+> **This is the plan as written before the work, kept for its reasoning and its
+> decision gates — not as a description of the repo.** Where the two disagree the
+> repo wins; the notes below mark the places that diverged. For what actually
+> exists today, read [CLAUDE.md](../CLAUDE.md).
 
 ## 1. Repo shape
 
-New monorepo (pnpm workspaces + turborepo), **Apache-2.0** (explicit patent grant for
+New monorepo (pnpm workspaces; turborepo was planned and never needed — `pnpm -r`
+does the ordering), **Apache-2.0** (explicit patent grant for
 enterprise comfort; icon assets carry their own licenses per pack — see each pack's NOTICE):
 
 ```
@@ -17,11 +23,12 @@ packages/
                #   built-in `sys` + `builtin` glyph packs (first-party, theme-tintable)
   pack-aws/    # AWS icon pack: verbatim SVGs, dual-licensed (see NOTICE)
                # (pack-logos/ from Simple Icons follows in v1.1)
-  cli/         # squinch check | render | watch | icons search/vendor | fmt  (uses core headlessly)
+  cli/         # squinch check | render | watch | icons search | init | diff  (uses core headlessly)
+               # (`vendor` and `fmt` were planned and are not built)
   skill/       # the agent skill: grammar guide, examples, layout cookbook, loop instructions
 apps/
   spa/         # playground (Vite + React + shadcn/ui + CodeMirror)
-  vscode/      # [v1.1] preview webview (reuses core renderer) + LSP
+               # (the extension shipped as packages/vscode/, not apps/)
 ```
 
 ## 2. Tech choices & rationale
@@ -120,7 +127,8 @@ dual-theme SVGs + `<picture>` snippet, and `render --check` for CI staleness —
 shipped with a ready-made GitHub Action) and SPA two-pane playground (editor +
 last-good live preview, view navigation/breadcrumb, theme toggle, export SVG/PNG,
 share-by-URL with source compressed in the fragment). DX metric to watch:
-minutes-to-first-rendered-diagram via `npx squinch init`. AWS pack built per the licensing plan (verbatim bundle, dual-licensed). Phase 2 also builds the
+minutes-to-first-rendered-diagram via `npx squinch init` (once published; today
+that is a source build). AWS pack built per the licensing plan (verbatim bundle, dual-licensed). Phase 2 also builds the
 **lookbook** (DESIGN.md §9): ~15 curated reference diagrams rendered in every theme,
 snapshot-locked — the beauty bar alongside the gauntlet's correctness bar, doubling
 as the repo's example gallery.
@@ -134,13 +142,24 @@ only the skill + CLI. **v1 ships when ≥8/10 reach a clean diagram with zero hu
 fixes.** Iterate on error messages and the layout cookbook until that bar is met — this
 gauntlet is the product's actual test suite.
 
-**v1.1:** VSCode extension + LSP, sketch theme (rough.js), animated `~>` edges
-(implemented as CSS `stroke-dashoffset` keyframes so animation survives GitHub README
-`<img>` embeds — no JS in exported SVG, ever),
-`around`/`via` waypoints and the `grid` escape hatch remain; everything else on this list has
-shipped (semantic diff, zones, flows, legend/title block, Cmd-K search, contrast,
-`pack-logos`). **v2:** federation/imports, drag-to-hint writeback, flow stories, more
-packs.
+> **Phase 3 outcome:** the prompt set grew to 20, so the bar restated at the same
+> ratio is **≥16/20**, and it is met — certified at 20/20 by independent cold
+> agents ([gauntlet/README.md](../gauntlet/README.md)). The two MCP recipes
+> are **not built**: the skill drives the CLI directly, and no MCP server ships.
+
+**v1.1 — shipped:** VS Code extension + LSP, sketch theme (rough.js), animated
+`~>` edges (CSS `stroke-dashoffset` keyframes, so the animation survives GitHub
+README `<img>` embeds — no JS in exported SVG, ever), semantic diff, zones, flows,
+legend/title block, Cmd-K search, contrast theme, `pack-logos`. Also shipped since,
+ahead of this plan: the interactive HTML export, presentation mode, flow stories
+(which this plan had filed under v2), and the Azure, Kubernetes and sys packs.
+
+**Deliberately not built, with the reasoning recorded:** `route … around`/`via`
+waypoints ([docs/notes/routing-hints.md](notes/routing-hints.md) — ELK already
+avoids nodes) and the `grid` escape hatch (rows and cols compose to the same
+thing).
+
+**v2 — still open:** federation/imports, drag-to-hint writeback, more packs.
 
 ## 4. Key risks
 
@@ -169,5 +188,7 @@ packs.
   drift (DESIGN.md §9 checklist: no near-misses, label collisions, or port pile-ups).
 - Benchmark suite in CI enforcing the §2 performance budgets (fails on regression
   beyond threshold; includes a generated 200-node and 500-node fixture model).
-- The Phase 3 agent gauntlet as the end-to-end acceptance suite, run in CI weekly with a
-  pinned model.
+- The Phase 3 agent gauntlet as the end-to-end acceptance suite. Planned as a weekly
+  CI run with a pinned model; it is **maintainer-only and never runs in CI**, because a
+  round spends real money on twenty live agents. What CI does run on every push is the
+  free half: the deterministic scorer over the committed solution corpus.

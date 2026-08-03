@@ -7,6 +7,12 @@
 
 # Squinch
 
+<p align="center">
+  <a href="https://github.com/jquatier/squinch/actions/workflows/ci.yml"><img src="https://github.com/jquatier/squinch/actions/workflows/ci.yml/badge.svg" alt="CI"></a>
+  <a href="LICENSE"><img src="https://img.shields.io/badge/license-Apache--2.0-blue" alt="Apache-2.0"></a>
+  <img src="https://img.shields.io/badge/status-pre--alpha-orange" alt="Pre-alpha">
+</p>
+
 > *squinch (n.) — the corner arch that lets a round dome sit on a square room; the
 > piece of architecture that makes mismatched structures fit together.*
 
@@ -220,7 +226,9 @@ Errors are built for the agent loop, not just for humans: every diagnostic
 carries a location, the problem, and a likely fix, with did-you-mean suggestions
 for unknown icons, views and identifiers. `squinch check --format json` emits
 exactly the same information a person sees. [`packages/skill/SKILL.md`](packages/skill/SKILL.md)
-is the whole contract an agent needs.
+is the whole contract an agent needs — copy it to `~/.claude/skills/squinch/`
+(or paste it into whatever your harness calls context) and ask for a diagram in
+plain language; [the package README](packages/skill/) has the details.
 
 The **gauntlet** is the acceptance test: twenty natural-language architecture
 prompts, each solved *cold* by a fresh agent given only SKILL.md and the CLI —
@@ -348,11 +356,33 @@ dive into it, walk a flow one hop at a time, ⌘K to search 1,279 icons, and
 full-screen the declared views as a presentation deck. Run it locally with
 `pnpm --filter @squinch/spa dev`.
 
+And that zooming travels. `render -o diagram.html` writes **one self-contained
+file** carrying every view, both palettes and the viewer itself — click into a
+system, walk a flow, present it full-screen, all from a file you can email or
+drop on a static host:
+
+```bash
+squinch render diagrams/ -o architecture.html
+```
+
+It fetches nothing, and the entry view is inline, so a reader with JavaScript
+disabled still sees a diagram. That export is the *one* artifact allowed to
+carry a script, and it is a separate class rather than a loophole: the SVGs
+inside it are byte-for-byte what `render -o x.svg` produces, the viewer is
+their sibling and never their content, and a test asserts nothing executable
+survives removing the two `<script>` elements
+([docs/notes/html-export.md](docs/notes/html-export.md)). Exported `.svg` never
+contains script, full stop.
+
 ## Status
 
 🚧 **Pre-alpha.** It works end to end — parser, model, layout, renderer, CLI,
-VS Code extension, browser playground, three icon packs — but nothing is
-published to npm yet. Build from source (below) if you want to play.
+VS Code extension, browser playground, five icon packs — but nothing is
+published to npm yet, so the `squinch` command in the examples above means the
+binary you build here. Build from source (below) if you want to play.
+
+The DSL will still break before 1.0. Rendered output is byte-stable *per tool
+version*, and an upgrade that changes it is one atomic regenerate commit.
 
 ## Try it from source
 
@@ -371,7 +401,7 @@ files share a namespace.
 | Command | |
 | --- | --- |
 | `check` | parse + lint; `--format json` for agents |
-| `render` | `--view`, `--theme`, `--adaptive`, `--sync`, `--check`; `-o out.png` rasterizes (`--scale`, `--width`, `--background`) |
+| `render` | `--view`, `--theme`, `--adaptive`, `--sync`, `--check`; `-o out.png` rasterizes (`--scale`, `--width`, `--background`), `-o out.html` exports the interactive viewer |
 | `diff` | semantic model diff — `--base <ref>`, `--format markdown`, `--fail-on structural\|any` for CI |
 | `icons search` | find an icon id across installed packs |
 | `init` | scaffold a starter project |
@@ -392,8 +422,10 @@ structural
 
 - [DSL specification (v0 draft)](docs/SPEC.md)
 - [Design language](docs/DESIGN.md)
-- [Implementation plan](docs/PLAN.md)
-- [Examples](examples/)
+- [Implementation plan](docs/PLAN.md) — phases, budgets, and what is deliberately not built
+- [Engineering notes](docs/notes/) — decisions with their rejected alternatives
+- [Examples](examples/) and the [lookbook](lookbook/)
+- [Contributing](CONTRIBUTING.md) · [Security policy](SECURITY.md) · [Icon notices](NOTICE)
 
 ## Acknowledgments
 

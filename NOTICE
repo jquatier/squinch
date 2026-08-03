@@ -1,0 +1,65 @@
+Squinch
+Copyright 2026 the Squinch authors
+
+This product includes software developed by the Squinch authors, licensed under
+the Apache License, Version 2.0 (see LICENSE).
+
+--------------------------------------------------------------------------------
+Bundled icon artwork
+--------------------------------------------------------------------------------
+
+The icon packs under packages/pack-*/icons/ are NOT covered by Apache-2.0. Each
+is third-party artwork, redistributed verbatim under its own terms, and each
+carries its full notice and the fetch-time treatments applied to it:
+
+  packages/pack-aws/NOTICE      AWS Architecture Icons (316)
+                                Copyright Amazon Web Services, Inc. or its
+                                affiliates. CC-BY-ND 2.0 — attribution required,
+                                NO DERIVATIVES: the files must not be modified,
+                                recoloured, reshaped, or run through an SVG
+                                optimizer. Squinch applies all theme treatment at
+                                render time and never edits the asset.
+
+  packages/pack-azure/NOTICE    Azure Architecture Icons (636)
+                                Copyright Microsoft Corporation. Microsoft's icon
+                                terms permit copying and distribution FOR
+                                ARCHITECTURE DIAGRAMS, TRAINING AND DOCUMENTATION
+                                ONLY — narrower than an open-source licence, and
+                                the grant does not travel to other uses.
+
+  packages/pack-k8s/NOTICE      Kubernetes community icons (39)
+                                Copyright the Kubernetes Authors. Apache-2.0 OR
+                                CC-BY-4.0; redistributed under the Apache-2.0
+                                arm. Attribution required.
+
+  packages/pack-logos/NOTICE    Simple Icons (124)
+                                CC0-1.0. The marks themselves remain the
+                                trademarks of their respective owners.
+
+  packages/pack-sys/NOTICE      Lucide (164)
+                                ISC; portions from Feather (MIT).
+                                Copyright (c) for portions held by Cole Bemis.
+
+If you redistribute Squinch, or anything containing these packs, these notices
+must travel with it (Apache-2.0 §4(d)), and the AWS and Azure constraints above
+bind you as they bind us.
+
+--------------------------------------------------------------------------------
+Trademarks
+--------------------------------------------------------------------------------
+
+Kubernetes and the Kubernetes logo are trademarks of The Linux Foundation. AWS,
+Amazon Web Services, Azure and Microsoft are trademarks of their respective
+owners, as are the brand marks in packages/pack-logos. Their use in Squinch is
+nominative — identifying the thing a diagram depicts — and implies no
+endorsement or affiliation. Trademark law, not the icon licences, governs how
+the marks may be used.
+
+--------------------------------------------------------------------------------
+Bundled font
+--------------------------------------------------------------------------------
+
+Rendered SVGs embed subsetted Inter faces (packages/core/src/fonts.generated.ts,
+packages/core/fonts/*.ttf). Inter is licensed under the SIL Open Font License
+1.1, Copyright the Inter Project Authors (https://github.com/rsms/inter). The
+sketch theme uses Caveat, also OFL-1.1, Copyright the Caveat Project Authors.
