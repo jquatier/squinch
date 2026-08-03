@@ -28,7 +28,7 @@ describe("SKILL.md — icon references", () => {
   // SKILL.md was wrong when it was `icons search` that was broken.
   const refs = [
     ...new Set(
-      [...SKILL.matchAll(/\b(aws|azure|logos|sys|builtin)\/([a-z0-9][a-z0-9-]*)\b/g)].map(
+      [...SKILL.matchAll(/\b(aws|azure|logos|sys|builtin|k8s)\/([a-z0-9][a-z0-9-]*)\b/g)].map(
         (m) => `${m[1]}/${m[2]}`,
       ),
     ),

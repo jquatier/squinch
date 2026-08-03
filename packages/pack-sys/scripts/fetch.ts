@@ -37,11 +37,13 @@ const CURATED: Record<string, string[]> = {
   Security: [
     "lock", "lock-keyhole", "unlock", "key-round", "shield", "shield-check",
     "shield-alert", "fingerprint", "scan-face", "user-check", "eye-off",
+    "vault",
   ],
   Data: [
     "database", "folder", "folder-open", "file", "files", "archive", "table",
     "save", "hard-drive-download", "hard-drive-upload", "binary", "sheet",
-    "search", "filter", "funnel", "tags", "bookmark",
+    "search", "filter", "funnel", "tags", "bookmark", "library-big",
+    "book-open", "database-zap", "database-backup", "file-json", "file-code",
   ],
   Places: [
     "factory", "warehouse", "building", "building-2", "house", "store",
@@ -53,11 +55,18 @@ const CURATED: Record<string, string[]> = {
   ],
   Messaging: [
     "list", "list-ordered", "inbox", "mail", "send", "bell", "radio", "antenna",
-    "megaphone", "message-square", "zap",
+    "megaphone", "message-square", "zap", "mailbox",
   ],
   Observability: [
     "activity", "gauge", "chart-line", "chart-bar", "chart-pie", "eye", "scan",
-    "bug", "siren", "thermometer", "clipboard-list",
+    "bug", "siren", "thermometer", "clipboard-list", "history", "scroll-text",
+  ],
+  // The data/ML vocabulary the cloud packs assume you have: a model, an
+  // experiment, a notebook, a catalog. Concept icons — pair with a `logos/*`
+  // brand mark when the diagram is about a specific product.
+  Intelligence: [
+    "brain-circuit", "bot", "sparkles", "flask-conical", "notebook-text",
+    "graduation-cap",
   ],
   People: [
     "user", "users", "user-cog", "contact", "briefcase", "id-card", "handshake",
@@ -65,6 +74,7 @@ const CURATED: Record<string, string[]> = {
   Process: [
     "clock", "calendar-clock", "timer", "hourglass", "repeat", "refresh-cw",
     "play", "circle-play", "pause", "git-branch", "git-merge", "check-check",
+    "calendar-sync",
   ],
   Shapes: [
     "circle", "square", "triangle", "diamond", "star", "pentagon", "octagon",
@@ -95,12 +105,15 @@ const ALIASES: Record<string, string> = {
   browser: "app-window", topic: "radio-tower", broker: "radio-tower",
   pubsub: "radio-tower", lambda: "zap", fn: "square-function",
   bucket: "folder", blob: "folder",
-  secret: "lock-keyhole", vault: "lock-keyhole", cert: "shield-check",
-  metrics: "chart-line", logs: "clipboard-list", alert: "siren",
+  secret: "lock-keyhole", cert: "shield-check",
+  metrics: "chart-line", logs: "scroll-text", alert: "siren",
   trace: "activity", cron: "clock", retry: "refresh-cw",
   ingress: "log-in", egress: "log-out",
   lb: "share-2", "load-balancer": "share-2",
   cdn: "earth", dns: "globe", job: "cog",
+  model: "brain-circuit", agent: "bot", notebook: "notebook-text",
+  catalog: "library-big", experiment: "flask-conical", stream: "database-zap",
+  audit: "history",
 };
 
 interface IconEntry { file: string; title: string; category: string }

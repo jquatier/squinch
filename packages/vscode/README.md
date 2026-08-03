@@ -5,7 +5,7 @@ Language support and a live preview for `.squinch` architecture diagrams.
 - **Diagnostics** as you type — the same checks `squinch check` runs, including
   hint conflicts that only appear once a view is laid out.
 - **Quick fixes** — every `did you mean …?` is one click.
-- **Completion** — all 1,223 icons (`aws/`, `azure/`, `logos/`, `sys/`, `builtin/`), node paths after
+- **Completion** — all 1,279 icons (`aws/`, `azure/`, `logos/`, `sys/`, `k8s/`, `builtin/`), node paths after
   an arrow, and the keywords legal in the block you're editing.
 - **Hover** — icon titles, node labels, descriptions and tags.
 - **Outline** — systems and their children, plus zones, flows and views.

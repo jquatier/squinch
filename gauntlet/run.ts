@@ -155,7 +155,7 @@ await build({
 // packs: node-fs.ts walks up from the bundle's own dir, so `<cli>/pack-aws`
 // is the candidate that hits (the same trick packages/vscode/scripts/bundle.mjs
 // uses for the extension host).
-for (const name of ["pack-aws", "pack-azure", "pack-logos", "pack-sys"]) {
+for (const name of ["pack-aws", "pack-azure", "pack-logos", "pack-sys", "pack-k8s"]) {
   const pack = join(root, "packages", name);
   cpSync(join(pack, "pack.json"), join(cliDir, name, "pack.json"));
   cpSync(join(pack, "icons"), join(cliDir, name, "icons"), { recursive: true });

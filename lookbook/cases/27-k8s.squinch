@@ -1,0 +1,58 @@
+// The k8s pack: official community icons (the blue heptagons from the
+// kubernetes docs), full-colour artwork like aws/azure — no plate, no tint.
+// Canonical ids are kubectl's short names; the long forms alias to them, and
+// this file deliberately uses both spellings so the case exercises the alias
+// table. A namespace draws as a zone with `icon: k8s/ns`, not as a node.
+pack k8s
+
+person dev "Developer"
+
+ing = k8s/ingress "web-ingress"
+api = k8s/api "API Server"
+
+system orders "orders" {
+  svc = k8s/service "orders-svc"
+  deploy = k8s/deploy "orders"
+  pod = k8s/pod "orders-7f9c4"
+  cm = k8s/configmap "orders-config"
+  secret = k8s/secret "orders-tls"
+  pvc = k8s/pvc "orders-data"
+
+  svc -> deploy
+  deploy -> pod "manages"
+  pod -> cm
+  pod -> secret
+  pod -> pvc
+}
+
+system batch "reporting" {
+  cron = k8s/cronjob "nightly-report"
+  job = k8s/job "report-2026-08-02"
+  sa = k8s/serviceaccount "reporter"
+
+  cron -> job "spawns"
+  job -> sa "runs as"
+}
+
+zone ns_orders "orders" custom {
+  contains orders
+  icon: k8s/ns
+}
+zone ns_batch "batch" custom {
+  contains batch
+  icon: k8s/ns
+  label: top-right
+}
+
+dev -> ing "kubectl apply"
+ing -> orders.svc
+api ~> orders.deploy "reconciles"
+batch.job -> orders.svc "reads"
+
+view cluster {
+  title "Inside the cluster"
+  include *
+  expand orders
+  expand batch
+  legend auto
+}

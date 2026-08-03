@@ -307,3 +307,13 @@ Source: [`cases/26-route-label.squinch`](cases/26-route-label.squinch)
 | light | dark |
 |---|---|
 | ![](out/26-route-label.api.light.svg) | ![](out/26-route-label.api.dark.svg) |
+
+## 27-k8s
+
+The k8s pack: official community icons (the blue heptagons from the kubernetes docs), full-colour artwork like aws/azure — no plate, no tint. Canonical ids are kubectl's short names; the long forms alias to them, and this file deliberately uses both spellings so the case exercises the alias table. A namespace draws as a zone with `icon: k8s/ns`, not as a node.
+
+Source: [`cases/27-k8s.squinch`](cases/27-k8s.squinch)
+
+| light | dark |
+|---|---|
+| ![](out/27-k8s.cluster.light.svg) | ![](out/27-k8s.cluster.dark.svg) |

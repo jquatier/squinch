@@ -54,6 +54,9 @@ importers:
       '@squinch/pack-azure':
         specifier: workspace:*
         version: link:../../packages/pack-azure
+      '@squinch/pack-k8s':
+        specifier: workspace:*
+        version: link:../../packages/pack-k8s
       '@squinch/pack-logos':
         specifier: workspace:*
         version: link:../../packages/pack-logos
@@ -136,6 +139,9 @@ importers:
       '@squinch/pack-azure':
         specifier: workspace:*
         version: link:../pack-azure
+      '@squinch/pack-k8s':
+        specifier: workspace:*
+        version: link:../pack-k8s
       '@squinch/pack-logos':
         specifier: workspace:*
         version: link:../pack-logos
@@ -193,6 +199,15 @@ importers:
         version: 7.0.2
 
   packages/pack-azure:
+    devDependencies:
+      tsx:
+        specifier: ^4.23.1
+        version: 4.23.1
+      typescript:
+        specifier: ^7.0.2
+        version: 7.0.2
+
+  packages/pack-k8s:
     devDependencies:
       tsx:
         specifier: ^4.23.1
@@ -267,6 +282,9 @@ importers:
         specifier: ^1.0.12
         version: 1.0.12
     devDependencies:
+      '@squinch/pack-k8s':
+        specifier: workspace:*
+        version: link:../pack-k8s
       '@types/vscode':
         specifier: ^1.90.0
         version: 1.125.0

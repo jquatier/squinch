@@ -88,6 +88,7 @@
     "vscode-languageserver-textdocument": "^1.0.12"
   },
   "devDependencies": {
+    "@squinch/pack-k8s": "workspace:*",
     "@types/vscode": "^1.90.0",
     "esbuild": "^0.28.1",
     "typescript": "^7.0.2",

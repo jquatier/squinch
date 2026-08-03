@@ -297,13 +297,13 @@ theme, `contrast`, is WCAG-first — every text pair clears AAA and every
 structural stroke clears 3:1, asserted in tests rather than eyeballed, with
 meaning never resting on hue alone.
 
-The [lookbook](lookbook/) renders 22 deliberately awkward cases — dense meshes,
-long labels, deep nesting, coplanar rows — to 64 committed SVGs across the
+The [lookbook](lookbook/) renders 27 deliberately awkward cases — dense meshes,
+long labels, deep nesting, coplanar rows — to 78 committed SVGs across the
 themes, and CI fails if any of them changes unintentionally.
 
 ## Icons
 
-**1,223 marks across four packs**, all chosen because they can be
+**1,279 marks across five packs**, all chosen because they can be
 redistributed:
 
 | Pack | Count | Terms |
@@ -311,7 +311,8 @@ redistributed:
 | [`pack-aws`](packages/pack-aws) | 316 | CC-BY-ND 2.0 — the same basis AWS uses for its own PlantUML icons |
 | [`pack-azure`](packages/pack-azure) | 636 | Microsoft's icon terms: copy and distribute **for architecture diagrams, training and documentation** |
 | [`pack-logos`](packages/pack-logos) | 124 | CC0, from [Simple Icons](https://simpleicons.org) — the non-cloud half of a stack |
-| [`pack-sys`](packages/pack-sys) | 147 | ISC, from [Lucide](https://lucide.dev) — the generic set: servers, hardware, network gear, shapes |
+| [`pack-sys`](packages/pack-sys) | 164 | ISC, from [Lucide](https://lucide.dev) — the generic set: servers, hardware, network gear, shapes, data/ML concepts |
+| [`pack-k8s`](packages/pack-k8s) | 39 | Apache-2.0 / CC-BY-4.0 — the official [Kubernetes community icons](https://github.com/kubernetes/community/tree/main/icons), published to standardize cluster diagrams |
 
 ```console
 $ squinch icons search factory
@@ -343,7 +344,7 @@ which block you're in, live diagnostics with quick fixes, hover, document
 symbols, and a preview pane that re-renders as you type.
 
 The **playground** is the app in the animation at the top: click a system to
-dive into it, walk a flow one hop at a time, ⌘K to search 1,076 icons, and
+dive into it, walk a flow one hop at a time, ⌘K to search 1,279 icons, and
 full-screen the declared views as a presentation deck. Run it locally with
 `pnpm --filter @squinch/spa dev`.
 

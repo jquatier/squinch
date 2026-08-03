@@ -17,6 +17,7 @@
     "@playwright/test": "^1.62.1",
     "@squinch/pack-aws": "workspace:*",
     "@squinch/pack-azure": "workspace:*",
+    "@squinch/pack-k8s": "workspace:*",
     "@squinch/pack-logos": "workspace:*",
     "@squinch/pack-sys": "workspace:*",
     "@tailwindcss/vite": "^4.3.3",

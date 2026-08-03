@@ -57,10 +57,20 @@
       "title": "Blocks",
       "category": "App"
     },
+    "book-open": {
+      "file": "book-open.svg",
+      "title": "Book open",
+      "category": "Data"
+    },
     "bookmark": {
       "file": "bookmark.svg",
       "title": "Bookmark",
       "category": "Data"
+    },
+    "bot": {
+      "file": "bot.svg",
+      "title": "Bot",
+      "category": "Intelligence"
     },
     "box": {
       "file": "box.svg",
@@ -76,6 +86,11 @@
       "file": "braces.svg",
       "title": "Braces",
       "category": "App"
+    },
+    "brain-circuit": {
+      "file": "brain-circuit.svg",
+      "title": "Brain circuit",
+      "category": "Intelligence"
     },
     "briefcase": {
       "file": "briefcase.svg",
@@ -105,6 +120,11 @@
     "calendar-clock": {
       "file": "calendar-clock.svg",
       "title": "Calendar clock",
+      "category": "Process"
+    },
+    "calendar-sync": {
+      "file": "calendar-sync.svg",
+      "title": "Calendar sync",
       "category": "Process"
     },
     "chart-bar": {
@@ -187,6 +207,16 @@
       "title": "Database",
       "category": "Data"
     },
+    "database-backup": {
+      "file": "database-backup.svg",
+      "title": "Database backup",
+      "category": "Data"
+    },
+    "database-zap": {
+      "file": "database-zap.svg",
+      "title": "Database zap",
+      "category": "Data"
+    },
     "diamond": {
       "file": "diamond.svg",
       "title": "Diamond",
@@ -237,6 +267,16 @@
       "title": "File",
       "category": "Data"
     },
+    "file-code": {
+      "file": "file-code.svg",
+      "title": "File code",
+      "category": "Data"
+    },
+    "file-json": {
+      "file": "file-json.svg",
+      "title": "File json",
+      "category": "Data"
+    },
     "files": {
       "file": "files.svg",
       "title": "Files",
@@ -251,6 +291,11 @@
       "file": "fingerprint.svg",
       "title": "Fingerprint",
       "category": "Security"
+    },
+    "flask-conical": {
+      "file": "flask-conical.svg",
+      "title": "Flask conical",
+      "category": "Intelligence"
     },
     "folder": {
       "file": "folder.svg",
@@ -292,6 +337,11 @@
       "title": "Globe",
       "category": "Network"
     },
+    "graduation-cap": {
+      "file": "graduation-cap.svg",
+      "title": "Graduation cap",
+      "category": "Intelligence"
+    },
     "grid-2x2": {
       "file": "grid-2x2.svg",
       "title": "Grid 2x2",
@@ -321,6 +371,11 @@
       "file": "hexagon.svg",
       "title": "Hexagon",
       "category": "Compute"
+    },
+    "history": {
+      "file": "history.svg",
+      "title": "History",
+      "category": "Observability"
     },
     "hourglass": {
       "file": "hourglass.svg",
@@ -367,6 +422,11 @@
       "title": "Layers",
       "category": "Compute"
     },
+    "library-big": {
+      "file": "library-big.svg",
+      "title": "Library big",
+      "category": "Data"
+    },
     "list": {
       "file": "list.svg",
       "title": "List",
@@ -400,6 +460,11 @@
     "mail": {
       "file": "mail.svg",
       "title": "Mail",
+      "category": "Messaging"
+    },
+    "mailbox": {
+      "file": "mailbox.svg",
+      "title": "Mailbox",
       "category": "Messaging"
     },
     "map": {
@@ -446,6 +511,11 @@
       "file": "network.svg",
       "title": "Network",
       "category": "Network"
+    },
+    "notebook-text": {
+      "file": "notebook-text.svg",
+      "title": "Notebook text",
+      "category": "Intelligence"
     },
     "octagon": {
       "file": "octagon.svg",
@@ -547,6 +617,11 @@
       "title": "Scan face",
       "category": "Security"
     },
+    "scroll-text": {
+      "file": "scroll-text.svg",
+      "title": "Scroll text",
+      "category": "Observability"
+    },
     "search": {
       "file": "search.svg",
       "title": "Search",
@@ -611,6 +686,11 @@
       "file": "smartphone.svg",
       "title": "Smartphone",
       "category": "Hardware"
+    },
+    "sparkles": {
+      "file": "sparkles.svg",
+      "title": "Sparkles",
+      "category": "Intelligence"
     },
     "split": {
       "file": "split.svg",
@@ -707,6 +787,11 @@
       "title": "Users",
       "category": "People"
     },
+    "vault": {
+      "file": "vault.svg",
+      "title": "Vault",
+      "category": "Security"
+    },
     "warehouse": {
       "file": "warehouse.svg",
       "title": "Warehouse",
@@ -744,11 +829,14 @@
     }
   },
   "aliases": {
+    "agent": "bot",
     "alert": "siren",
+    "audit": "history",
     "blob": "folder",
     "broker": "radio-tower",
     "browser": "app-window",
     "bucket": "folder",
+    "catalog": "library-big",
     "cdn": "earth",
     "cert": "shield-check",
     "cron": "clock",
@@ -758,6 +846,7 @@
     "disk": "hard-drive",
     "dns": "globe",
     "egress": "log-out",
+    "experiment": "flask-conical",
     "firewall": "shield",
     "fn": "square-function",
     "gear": "cog",
@@ -767,8 +856,10 @@
     "lambda": "zap",
     "lb": "share-2",
     "load-balancer": "share-2",
-    "logs": "clipboard-list",
+    "logs": "scroll-text",
     "metrics": "chart-line",
+    "model": "brain-circuit",
+    "notebook": "notebook-text",
     "office": "building-2",
     "onprem": "factory",
     "pc": "monitor",
@@ -781,10 +872,10 @@
     "screen": "monitor",
     "secret": "lock-keyhole",
     "ssd": "hard-drive",
+    "stream": "database-zap",
     "team": "users",
     "topic": "radio-tower",
     "trace": "activity",
-    "vault": "lock-keyhole",
     "vm": "server"
   }
 }

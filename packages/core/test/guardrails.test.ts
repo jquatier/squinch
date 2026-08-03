@@ -87,16 +87,18 @@ describe("determinism is structural, not hoped for", () => {
   });
 });
 
-describe("pack registration stays consistent across its four sites", () => {
-  // CLAUDE.md: registration is hardcoded in four one-liner places, and missing
-  // the last makes `packExists` false in the bundled extension — a failure that
-  // only shows up in a packaged VS Code install.
+describe("pack registration stays consistent across its five sites", () => {
+  // CLAUDE.md: registration is hardcoded in five one-liner places, and the
+  // failures are all remote from the mistake: miss the vscode bundle and
+  // `packExists` is false only in a packaged install; miss the gauntlet
+  // planter and cold agents silently run without the pack — which is exactly
+  // how the fifth site was discovered missing from this list.
   const namesIn = (rel: string, re: RegExp) => {
     const src = readFileSync(join(root, rel), "utf8");
     return new Set([...src.matchAll(re)].map((m) => m[1]));
   };
 
-  it("all four sites register the same packs", () => {
+  it("all five sites register the same packs", () => {
     const sites: Record<string, Set<string>> = {
       "core/src/packs/node-fs.ts": namesIn(
         "packages/core/src/packs/node-fs.ts", /registerPackFromDisk\("@squinch\/pack-([\w-]+)"\)/g),
@@ -106,6 +108,8 @@ describe("pack registration stays consistent across its four sites", () => {
         "apps/spa/src/squinch.ts", /"([\w-]+)"/g),
       "vscode/scripts/bundle.mjs": namesIn(
         "packages/vscode/scripts/bundle.mjs", /"pack-([\w-]+)"/g),
+      "gauntlet/run.ts": namesIn(
+        "gauntlet/run.ts", /"pack-([\w-]+)"/g),
     };
     // the SPA's runtime list is bare names in one array; intersect against the
     // known pack set rather than every string literal in the file

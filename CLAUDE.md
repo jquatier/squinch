@@ -77,15 +77,25 @@ distinguishes them from the other packs.
 `packages/pack-logos` — 124 curated Simple Icons marks (CC0) for the non-cloud
 half of a stack; `monochrome: true` in its manifest makes the renderer plate and
 tint them.
-`packages/pack-sys` — 147 curated Lucide icons (ISC): the generic set for what no
-vendor draws (servers, hardware, network gear) plus plain shapes as a last
-resort. Also `monochrome: true`. It is the `sys/*` prefix, and like `builtin` it
+`packages/pack-k8s` — 39 Kubernetes community icons (dual Apache-2.0 /
+CC-BY-4.0 — a real redistribution grant, which is the bar; see the GCP
+paragraph below). Canonical ids are kubectl's short names (`pod`, `deploy`,
+`svc`); the long names alias to them. The fetch pins an upstream commit and
+applies two licence-permitted treatments, both recorded in its NOTICE: strip
+Inkscape metadata, and promote `style="fill:…"` CSS into presentation
+attributes — the upstream files carry all their paint in `style`, which the
+sanitizer drops, so without promotion every icon loads unfilled.
+`packages/pack-sys` — 164 curated Lucide icons (ISC): the generic set for what no
+vendor draws (servers, hardware, network gear, data/ML concepts) plus plain
+shapes as a last resort. Also `monochrome: true`. It is the `sys/*` prefix, and like `builtin` it
 resolves with **no `pack` statement** — which is a property of being registered,
 not of the DSL: `model.packs` is recorded and never read, so `pack` is a
-declaration of intent. Registration is hardcoded in four places, all one-liners:
+declaration of intent. Registration is hardcoded in five places, all one-liners:
 `core/src/packs/node-fs.ts`, `apps/spa/scripts/sync-packs.ts` +
-`apps/spa/src/squinch.ts`, and `packages/vscode/scripts/bundle.mjs` (miss the
-last and `packExists` is false in the bundled extension).
+`apps/spa/src/squinch.ts`, `packages/vscode/scripts/bundle.mjs` (miss it and
+`packExists` is false in the bundled extension), and `gauntlet/run.ts` (miss
+it and cold agents silently run without the pack). The guardrails test
+asserts all five agree.
 A pack name must never appear in **both** `BUILTIN_GLYPHS` and the pack registry:
 `iconIds` short-circuits on the former, so the disk icons would vanish from
 search, completions and `squinch icons` while `hasIcon` still accepted them.

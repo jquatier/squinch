@@ -1,0 +1,25 @@
+Squinch Kubernetes pack
+=======================
+
+Icon artwork in `icons/` comes from the Kubernetes community icon set
+(https://github.com/kubernetes/community/tree/main/icons), published by the
+Kubernetes Authors to standardize Kubernetes architecture diagrams, and
+dual-licensed under a choice of Apache-2.0 or CC-BY-4.0. This pack
+redistributes under the Apache-2.0 arm; the licence text travels in
+LICENSE-ICONS.txt, and this notice carries the attribution:
+
+  Kubernetes community icons — © the Kubernetes Authors.
+
+Two treatments are applied at fetch time, both permitted by the licence:
+Inkscape / sodipodi / RDF editor metadata is stripped from each file (it was
+more than half the bytes), and CSS `style` attributes are converted to the
+equivalent SVG presentation attributes (the upstream files carry all their
+paint in `style`, which Squinch's load-time sanitizer does not admit). Paint
+and geometry values are moved verbatim, never altered. Beyond that, icons are
+regenerated with `npm run fetch` from a pinned upstream commit and never
+hand-edited.
+
+Kubernetes and the Kubernetes logo are trademarks of The Linux Foundation.
+Their use here is nominative — identifying Kubernetes resources in an
+architecture diagram — and implies no endorsement or affiliation. Trademark
+law, not the icon licence, governs how the marks may be used.

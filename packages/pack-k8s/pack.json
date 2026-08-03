@@ -1,0 +1,230 @@
+{
+  "name": "k8s",
+  "title": "Kubernetes",
+  "release": "e6d1cbd0ca50",
+  "source": "https://github.com/kubernetes/community/tree/main/icons",
+  "license": "Apache-2.0 OR CC-BY-4.0",
+  "attribution": "Kubernetes community icons — © the Kubernetes Authors",
+  "icons": {
+    "api": {
+      "file": "api.svg",
+      "title": "API Server",
+      "category": "Control plane"
+    },
+    "c-c-m": {
+      "file": "c-c-m.svg",
+      "title": "Cloud Controller Manager",
+      "category": "Control plane"
+    },
+    "c-m": {
+      "file": "c-m.svg",
+      "title": "Controller Manager",
+      "category": "Control plane"
+    },
+    "c-role": {
+      "file": "c-role.svg",
+      "title": "Cluster Role",
+      "category": "Resources"
+    },
+    "cm": {
+      "file": "cm.svg",
+      "title": "Config Map",
+      "category": "Resources"
+    },
+    "control-plane": {
+      "file": "control-plane.svg",
+      "title": "Control Plane",
+      "category": "Infrastructure"
+    },
+    "crb": {
+      "file": "crb.svg",
+      "title": "Cluster Role Binding",
+      "category": "Resources"
+    },
+    "crd": {
+      "file": "crd.svg",
+      "title": "Custom Resource Definition",
+      "category": "Resources"
+    },
+    "cronjob": {
+      "file": "cronjob.svg",
+      "title": "Cron Job",
+      "category": "Resources"
+    },
+    "deploy": {
+      "file": "deploy.svg",
+      "title": "Deployment",
+      "category": "Resources"
+    },
+    "ds": {
+      "file": "ds.svg",
+      "title": "Daemon Set",
+      "category": "Resources"
+    },
+    "ep": {
+      "file": "ep.svg",
+      "title": "Endpoints",
+      "category": "Resources"
+    },
+    "etcd": {
+      "file": "etcd.svg",
+      "title": "etcd",
+      "category": "Infrastructure"
+    },
+    "group": {
+      "file": "group.svg",
+      "title": "Group",
+      "category": "Resources"
+    },
+    "hpa": {
+      "file": "hpa.svg",
+      "title": "Horizontal Pod Autoscaler",
+      "category": "Resources"
+    },
+    "ing": {
+      "file": "ing.svg",
+      "title": "Ingress",
+      "category": "Resources"
+    },
+    "job": {
+      "file": "job.svg",
+      "title": "Job",
+      "category": "Resources"
+    },
+    "k-proxy": {
+      "file": "k-proxy.svg",
+      "title": "kube-proxy",
+      "category": "Control plane"
+    },
+    "kubelet": {
+      "file": "kubelet.svg",
+      "title": "kubelet",
+      "category": "Control plane"
+    },
+    "limits": {
+      "file": "limits.svg",
+      "title": "Limit Range",
+      "category": "Resources"
+    },
+    "netpol": {
+      "file": "netpol.svg",
+      "title": "Network Policy",
+      "category": "Resources"
+    },
+    "node": {
+      "file": "node.svg",
+      "title": "Node",
+      "category": "Infrastructure"
+    },
+    "ns": {
+      "file": "ns.svg",
+      "title": "Namespace",
+      "category": "Resources"
+    },
+    "pod": {
+      "file": "pod.svg",
+      "title": "Pod",
+      "category": "Resources"
+    },
+    "psp": {
+      "file": "psp.svg",
+      "title": "Pod Security Policy",
+      "category": "Resources"
+    },
+    "pv": {
+      "file": "pv.svg",
+      "title": "Persistent Volume",
+      "category": "Resources"
+    },
+    "pvc": {
+      "file": "pvc.svg",
+      "title": "Persistent Volume Claim",
+      "category": "Resources"
+    },
+    "quota": {
+      "file": "quota.svg",
+      "title": "Resource Quota",
+      "category": "Resources"
+    },
+    "rb": {
+      "file": "rb.svg",
+      "title": "Role Binding",
+      "category": "Resources"
+    },
+    "role": {
+      "file": "role.svg",
+      "title": "Role",
+      "category": "Resources"
+    },
+    "rs": {
+      "file": "rs.svg",
+      "title": "Replica Set",
+      "category": "Resources"
+    },
+    "sa": {
+      "file": "sa.svg",
+      "title": "Service Account",
+      "category": "Resources"
+    },
+    "sc": {
+      "file": "sc.svg",
+      "title": "Storage Class",
+      "category": "Resources"
+    },
+    "sched": {
+      "file": "sched.svg",
+      "title": "Scheduler",
+      "category": "Control plane"
+    },
+    "secret": {
+      "file": "secret.svg",
+      "title": "Secret",
+      "category": "Resources"
+    },
+    "sts": {
+      "file": "sts.svg",
+      "title": "Stateful Set",
+      "category": "Resources"
+    },
+    "svc": {
+      "file": "svc.svg",
+      "title": "Service",
+      "category": "Resources"
+    },
+    "user": {
+      "file": "user.svg",
+      "title": "User",
+      "category": "Resources"
+    },
+    "vol": {
+      "file": "vol.svg",
+      "title": "Volume",
+      "category": "Resources"
+    }
+  },
+  "aliases": {
+    "apiserver": "api",
+    "cloudcontrollermanager": "c-c-m",
+    "clusterrole": "c-role",
+    "clusterrolebinding": "crb",
+    "configmap": "cm",
+    "controllermanager": "c-m",
+    "daemonset": "ds",
+    "deployment": "deploy",
+    "endpoints": "ep",
+    "ingress": "ing",
+    "kubeproxy": "k-proxy",
+    "namespace": "ns",
+    "networkpolicy": "netpol",
+    "persistentvolume": "pv",
+    "persistentvolumeclaim": "pvc",
+    "replicaset": "rs",
+    "rolebinding": "rb",
+    "scheduler": "sched",
+    "service": "svc",
+    "serviceaccount": "sa",
+    "statefulset": "sts",
+    "storageclass": "sc",
+    "volume": "vol"
+  }
+}

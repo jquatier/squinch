@@ -18,7 +18,7 @@ const publicDir = join(here, "..", "public");
 mkdirSync(publicDir, { recursive: true });
 
 /** Every pack the playground offers. One line to add another. */
-const PACKS = ["@squinch/pack-aws", "@squinch/pack-azure", "@squinch/pack-logos", "@squinch/pack-sys"];
+const PACKS = ["@squinch/pack-aws", "@squinch/pack-azure", "@squinch/pack-logos", "@squinch/pack-sys", "@squinch/pack-k8s"];
 
 for (const pkg of PACKS) {
   const root = dirname(require.resolve(`${pkg}/pack.json`));

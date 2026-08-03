@@ -43,7 +43,7 @@ squinch diff --format json                    # what changed in the architecture
 ```squinch
 // comments are // only (# belongs to tags)
 pack aws                              // enable a vendor icon pack (aws | azure |
-pack azure                            //  logos — declare each one you use).
+pack azure                            //  logos | k8s — declare each one you use).
                                       //  `sys` and `builtin` need no declaration.
 
 person customer "Customer"            // human actor. This form is top-level
@@ -337,6 +337,22 @@ Pick one cloud's pack and stay with it — don't draw the same concept as
 `aws/…` in one box and `azure/…` in the next. Combining a cloud pack with
 `logos` is a different thing and completely normal: it's how you draw a hybrid
 estate, with `logos/postgres` on the on-prem side and `azure/sql` in the cloud.
+
+**Kubernetes internals** come from the `k8s` pack (39 official community
+icons — the blue heptagons from the k8s docs). Canonical ids are kubectl's
+short names, and the long names alias to them, so both spellings check clean:
+`k8s/pod` · `k8s/deploy` (`deployment`) · `k8s/svc` (`service`) · `k8s/sts`
+(`statefulset`) · `k8s/ds` (`daemonset`) · `k8s/rs` (`replicaset`) · `k8s/cm`
+(`configmap`) · `k8s/secret` · `k8s/ing` (`ingress`) · `k8s/ns` (`namespace`) ·
+`k8s/sa` (`serviceaccount`) · `k8s/pv` · `k8s/pvc` · `k8s/sc` · `k8s/netpol` ·
+`k8s/hpa` · `k8s/job` · `k8s/cronjob` · `k8s/crd` · `k8s/node` · `k8s/etcd` ·
+`k8s/control-plane` · `k8s/api` (`apiserver`) · `k8s/sched` (`scheduler`) ·
+`k8s/kubelet` · `k8s/k-proxy` (`kubeproxy`).
+Use `k8s/*` when the diagram is about what runs *inside* a cluster; use
+`logos/kubernetes` when the cluster is one box in a wider estate. A namespace
+is a boundary, not a workload — prefer `zone team-a "team-a" custom { contains
+…, icon: k8s/ns }` over a `k8s/ns` node. Composing with a cloud pack is normal:
+`azure/aks` or `aws/eks` as the managed control plane, `k8s/*` for what it runs.
 
 **Non-AWS things** come from the `logos` pack (124 product marks, plated in
 their brand colour): `logos/postgres` · `logos/mysql` · `logos/mongodb` ·
