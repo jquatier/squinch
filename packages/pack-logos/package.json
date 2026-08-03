@@ -1,6 +1,6 @@
 {
   "name": "@squinch/pack-logos",
-  "version": "0.0.0",
+  "version": "0.0.1",
   "private": true,
   "type": "module",
   "description": "Product and technology logos for Squinch, from Simple Icons (CC0-1.0) — see NOTICE.",
