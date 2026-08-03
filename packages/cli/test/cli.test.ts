@@ -481,17 +481,36 @@ describe("watchPaths survives an atomic save", () => {
   // VS Code (and vim with backupcopy=no) saves by writing a temp file and
   // renaming it over the target. A watcher armed on the *file* loses the entry
   // and goes permanently deaf on Windows, with no error to notice.
+  //
+  // What this can and cannot prove, precisely: on macOS FSEvents watches by
+  // *path*, so even the old file-watching implementation eventually fires after
+  // a rename — just slowly. Reintroduce the bug here and this test still
+  // passes. It discriminates on **Windows**, where the watcher holds the
+  // replaced directory entry and goes permanently deaf, which is what the CI
+  // job is for. Locally it is a smoke test, not the guard.
+  //
+  // Timing: fs.watch takes a moment to arm and FSEvents coalesces, so these
+  // poll to a deadline rather than sleeping a fixed span. A fixed 300ms wait
+  // failed about one run in five — and a flaky test guarding a platform bug is
+  // worse than none, because the next red gets shrugged off.
+  const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
+  const until = async (cond: () => boolean, ms = 4000) => {
+    const deadline = Date.now() + ms;
+    while (!cond() && Date.now() < deadline) await sleep(25);
+    return cond();
+  };
+
   it("fires when the file is replaced by rename", async () => {
     const target = join(dir, "atomic.squinch");
     writeFileSync(target, GOOD);
     let fired = 0;
     const w = watchPaths(target, () => void fired++, 10);
     try {
+      await sleep(50); // let the watch establish before touching the file
       const tmp = join(dir, "atomic.squinch.tmp");
       writeFileSync(tmp, GOOD + "\n// edited\n");
       renameSync(tmp, target);
-      await new Promise((r) => setTimeout(r, 300));
-      expect(fired, "watcher went deaf after an atomic save").toBeGreaterThan(0);
+      expect(await until(() => fired > 0), "watcher went deaf after an atomic save").toBe(true);
     } finally {
       w.close();
     }
@@ -501,14 +520,45 @@ describe("watchPaths survives an atomic save", () => {
     let fired = 0;
     const w = watchPaths(dir, () => void fired++, 10);
     try {
+      await sleep(50);
       writeFileSync(join(dir, "editor.swp"), "noise");
-      await new Promise((r) => setTimeout(r, 200));
+      // a fixed wait is right for proving a *non*-event: there is nothing to
+      // poll for, and 400ms is well past the 10ms debounce
+      await sleep(400);
       expect(fired, "a .swp write should not re-render").toBe(0);
       writeFileSync(join(dir, "real.squinch"), GOOD);
-      await new Promise((r) => setTimeout(r, 300));
-      expect(fired).toBeGreaterThan(0);
+      expect(await until(() => fired > 0)).toBe(true);
     } finally {
       w.close();
     }
+  });
+});
+
+describe("the reported version is the real one", () => {
+  // `squinch.lock` records the tool version, and the determinism contract pins
+  // output per version — so a literal in the source would keep claiming
+  // whatever it said at the time through every release, and a reader could not
+  // tell which renderer produced their SVGs.
+  const manifest = JSON.parse(
+    readFileSync(new URL("../package.json", import.meta.url), "utf8"),
+  ) as { version: string };
+
+  it("--version prints what package.json says", async () => {
+    await main(["--version"]);
+    expect(out.join("\n").trim()).toBe(manifest.version);
+  });
+
+  it("the lockfile records it too", async () => {
+    const f = join(dir, "v.squinch");
+    writeFileSync(f, GOOD);
+    expect(await main(["render", f, "--sync"])).toBe(0);
+    const lock = JSON.parse(readFileSync(join(dir, "squinch.lock"), "utf8")) as { version: string };
+    expect(lock.version).toBe(manifest.version);
+  });
+
+  it("is read from the manifest, not retyped", () => {
+    // The literal is the bug; this is what stops it coming back.
+    const src = readFileSync(new URL("../src/index.ts", import.meta.url), "utf8");
+    expect(src).not.toMatch(/const VERSION\s*(:\s*string)?\s*=\s*["'`]/);
   });
 });

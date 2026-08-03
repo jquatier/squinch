@@ -44,15 +44,22 @@ function mapBy<T>(items: Iterable<T>, key: (t: T) => string): Map<string, T> {
   return m;
 }
 
-/** Stable ordering: structural first, then by subject, then by id. */
+/** Stable ordering: structural first, then by subject, then by id.
+ *
+ *  Ties break by codepoint, never `localeCompare`. That call consults ICU, so
+ *  the order of two changes could differ between machines with different locale
+ *  data — the Turkish dotless i being the classic case. Diff output is not
+ *  byte-gated the way SVG is, so nothing was failing; it was simply the one
+ *  place in the codebase where the answer depended on the environment, which is
+ *  exactly what the determinism rule exists to exclude. */
 const SUBJECT_ORDER = ["system", "container", "node", "edge", "zone", "flow", "view"] as const;
 function sortChanges(changes: Change[]): Change[] {
   return [...changes].sort((a, b) => {
     if (a.weight !== b.weight) return a.weight === "structural" ? -1 : 1;
     const s = SUBJECT_ORDER.indexOf(a.subject) - SUBJECT_ORDER.indexOf(b.subject);
     if (s !== 0) return s;
-    if (a.kind !== b.kind) return a.kind.localeCompare(b.kind);
-    return a.id.localeCompare(b.id);
+    if (a.kind !== b.kind) return a.kind < b.kind ? -1 : 1;
+    return a.id < b.id ? -1 : a.id > b.id ? 1 : 0;
   });
 }
 

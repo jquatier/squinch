@@ -1,5 +1,8 @@
 // The editor intelligence, tested without an editor.
 import { describe, it, expect } from "vitest";
+import { readFileSync, existsSync } from "node:fs";
+import { join, dirname } from "node:path";
+import { fileURLToPath } from "node:url";
 import {
   diagnosticsFor, allDiagnosticsFor, completionsAt, hoverAt, symbolsOf,
   blockStack, replacementIn, offsetAt, esc,
@@ -190,5 +193,35 @@ describe("preview webview safety", () => {
     expect(r.ok).toBe(true);
     expect(r.svg).not.toContain("<script");
     expect(r.svg).not.toMatch(/\son\w+=/); // no inline event handlers either
+  });
+});
+
+describe("the Marketplace manifest", () => {
+  // The listing is a surface like any other, and its failures are invisible
+  // from here: a declared-but-missing icon ships a broken card, and vsce
+  // packages whatever the manifest names without checking it exists.
+  const root = join(dirname(fileURLToPath(import.meta.url)), "..");
+  const pkg = JSON.parse(readFileSync(join(root, "package.json"), "utf8"));
+
+  it("declares an icon that is actually there, at Marketplace size", () => {
+    expect(pkg.icon, "no icon — the listing gets a grey placeholder").toBeTruthy();
+    const icon = join(root, pkg.icon);
+    expect(existsSync(icon), `${pkg.icon} is declared but missing`).toBe(true);
+    // PNG header: width and height are big-endian u32 at bytes 16 and 20.
+    const buf = readFileSync(icon);
+    expect(buf.subarray(1, 4).toString()).toBe("PNG");
+    expect([buf.readUInt32BE(16), buf.readUInt32BE(20)], "the Marketplace wants 128×128")
+      .toEqual([128, 128]);
+  });
+
+  it("is not excluded from the package", () => {
+    // .vscodeignore drops src/test/scripts; the icon must survive.
+    const ignore = readFileSync(join(root, ".vscodeignore"), "utf8");
+    expect(ignore.split("\n").map((l) => l.trim())).not.toContain(pkg.icon);
+  });
+
+  it("carries the fields a listing is judged on", () => {
+    for (const field of ["displayName", "description", "publisher", "categories", "keywords", "repository", "license"])
+      expect(pkg[field], `manifest is missing ${field}`).toBeTruthy();
   });
 });

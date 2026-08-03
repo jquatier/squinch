@@ -13,8 +13,15 @@ import { loadInput, type Input } from "./project.js";
 import { isGitRepo, loadInputAtRef } from "./git.js";
 import { toPosix } from "./paths.js";
 import { watchPaths } from "./watch.js";
+import { createRequire } from "node:module";
 
-const VERSION = "0.0.0";
+/** Read from our own manifest, never retyped. The determinism contract pins
+ *  output to a *tool version*, and `squinch.lock` records it — a literal here
+ *  would keep claiming 0.0.0 through every release, so a reader could not tell
+ *  which renderer produced their SVGs, which is the one thing the lockfile
+ *  exists to answer. `src/` and `dist/` both sit one level under the package
+ *  root, so this resolves the same whether run through tsx or from the build. */
+const VERSION: string = createRequire(import.meta.url)("../package.json").version;
 const THEMES = ["light", "dark"] as const;
 
 const USAGE = `squinch ${VERSION} — architecture diagrams as code

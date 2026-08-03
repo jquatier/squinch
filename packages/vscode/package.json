@@ -2,6 +2,22 @@
   "name": "squinch-vscode",
   "displayName": "Squinch",
   "description": "Architecture diagrams as code \u2014 live preview, diagnostics, icon completion.",
+  "icon": "icon.png",
+  "galleryBanner": {
+    "color": "#fcfcfc",
+    "theme": "light"
+  },
+  "keywords": [
+    "architecture",
+    "diagram",
+    "c4",
+    "diagrams as code",
+    "documentation"
+  ],
+  "homepage": "https://github.com/jquatier/squinch",
+  "bugs": {
+    "url": "https://github.com/jquatier/squinch/issues"
+  },
   "version": "0.0.0",
   "private": true,
   "type": "module",

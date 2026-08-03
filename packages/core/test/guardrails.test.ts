@@ -76,6 +76,23 @@ describe("half-typed input never crashes the builder", () => {
 });
 
 describe("determinism is structural, not hoped for", () => {
+  it("no localeCompare anywhere in core src", () => {
+    // It consults ICU, so the answer depends on the machine's locale data.
+    // `diff.ts` held the only two calls in the repo; sorting by codepoint is
+    // stable everywhere and was the intent all along.
+    const offenders: string[] = [];
+    for (const f of tsFiles(join(pkg, "src"))) {
+      const lines = readFileSync(f, "utf8").split("\n");
+      lines.forEach((l, i) => {
+        const t = l.trim();
+        if (t.startsWith("*") || t.startsWith("/*") || t.startsWith("//")) return; // prose may name it
+        if (/\blocaleCompare\b/.test(l.replace(/\/\/.*$/, "")))
+          offenders.push(`${f.replace(root + "/", "")}:${i + 1}  ${l.trim()}`);
+      });
+    }
+    expect(offenders, `locale-dependent ordering:\n${offenders.join("\n")}`).toEqual([]);
+  });
+
   it("no Date.now or Math.random anywhere in core src", () => {
     // CLAUDE.md non-negotiable: same (source, packs, theme, version) →
     // byte-identical SVG. Sketch roughness is seeded from hash(source); nothing
