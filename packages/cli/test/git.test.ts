@@ -23,10 +23,15 @@ const run = (args: string[], cwd: string) =>
   });
 
 beforeAll(() => {
-  // realpath: macOS puts tmp behind a symlink, and `rev-parse --show-toplevel`
-  // resolves it — so the raw mkdtemp path would never compare equal
-  repo = realpathSync(mkdtempSync(join(tmpdir(), "squinch-git-")));
-  plain = realpathSync(mkdtempSync(join(tmpdir(), "squinch-plain-")));
+  // realpath, and `.native` specifically. macOS puts tmp behind a symlink and
+  // `rev-parse --show-toplevel` resolves it, so a raw mkdtemp path never
+  // compares equal. Windows needs the native call for a different reason: the
+  // hosted runner's tmpdir() is the 8.3 short form (C:/Users/RUNNER~1/…) while
+  // git answers with the long one (C:/Users/runneradmin/…), and only
+  // realpathSync.native expands it. JS realpathSync does not.
+  const real = (p: string) => realpathSync.native(p);
+  repo = real(mkdtempSync(join(tmpdir(), "squinch-git-")));
+  plain = real(mkdtempSync(join(tmpdir(), "squinch-plain-")));
 
   run(["init", "-q", "-b", "main"], repo);
   mkdirSync(join(repo, "proj"));
