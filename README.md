@@ -64,9 +64,11 @@ drift — see [examples/microservices](examples/microservices) for the source.
 - **Trace a request through the system.** Declare a flow and its steps are
   numbered along the edges in order — and in the interactive export you can
   walk it one hop at a time.
-- **Exports as one interactive HTML file.** Every view, click-to-zoom,
-  presentation mode — no server, no internet, nothing to install for whoever
-  you send it to.
+- **Exports to SVG, PNG, or one interactive HTML file.** SVG drops straight
+  into a README (including a single file that follows the reader's light or
+  dark mode); the HTML carries every view with click-to-zoom and presentation
+  mode, and needs no server, no internet and nothing installed by whoever you
+  send it to.
 - **A real VS Code extension.** Autocomplete, live errors with one-click fixes,
   and a preview that updates as you type.
 - **Reviewable in a pull request.** The source is a handful of readable lines,
