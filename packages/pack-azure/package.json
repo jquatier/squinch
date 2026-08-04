@@ -1,9 +1,21 @@
 {
   "name": "@squinch/pack-azure",
   "version": "0.0.0",
-  "private": true,
+  "license": "Apache-2.0",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/jquatier/squinch.git",
+    "directory": "packages/pack-azure"
+  },
+  "homepage": "https://github.com/jquatier/squinch",
+  "bugs": {
+    "url": "https://github.com/jquatier/squinch/issues"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
   "type": "module",
-  "description": "Azure architecture icons packaged for Squinch. Icon assets are Microsoft's, redistributed verbatim under Microsoft's icon terms — see NOTICE.",
+  "description": "Azure architecture icons packaged for Squinch. Icon assets are Microsoft's, redistributed verbatim under Microsoft's icon terms \u2014 see NOTICE.",
   "files": [
     "pack.json",
     "icons",

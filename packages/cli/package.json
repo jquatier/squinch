@@ -1,11 +1,21 @@
 {
   "name": "squinch",
   "version": "0.0.0",
+  "description": "Architecture diagrams as code \u2014 check, render, diff and watch .squinch projects from the command line.",
+  "license": "Apache-2.0",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/jquatier/squinch.git",
+    "directory": "packages/cli"
+  },
+  "homepage": "https://github.com/jquatier/squinch",
+  "bugs": {
+    "url": "https://github.com/jquatier/squinch/issues"
+  },
   "files": [
     "dist",
     "bin"
   ],
-  "private": true,
   "type": "module",
   "bin": {
     "squinch": "./bin/squinch.js"

@@ -1,10 +1,26 @@
 {
   "name": "@squinch/pack-logos",
   "version": "0.0.0",
-  "private": true,
+  "license": "Apache-2.0",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/jquatier/squinch.git",
+    "directory": "packages/pack-logos"
+  },
+  "homepage": "https://github.com/jquatier/squinch",
+  "bugs": {
+    "url": "https://github.com/jquatier/squinch/issues"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
   "type": "module",
-  "description": "Product and technology logos for Squinch, from Simple Icons (CC0-1.0) — see NOTICE.",
-  "files": ["pack.json", "icons", "NOTICE"],
+  "description": "Product and technology logos for Squinch, from Simple Icons (CC0-1.0) \u2014 see NOTICE.",
+  "files": [
+    "pack.json",
+    "icons",
+    "NOTICE"
+  ],
   "scripts": {
     "fetch": "tsx scripts/fetch.ts",
     "typecheck": "tsc --noEmit"

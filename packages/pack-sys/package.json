@@ -1,10 +1,26 @@
 {
   "name": "@squinch/pack-sys",
   "version": "0.0.0",
-  "private": true,
+  "license": "Apache-2.0",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/jquatier/squinch.git",
+    "directory": "packages/pack-sys"
+  },
+  "homepage": "https://github.com/jquatier/squinch",
+  "bugs": {
+    "url": "https://github.com/jquatier/squinch/issues"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
   "type": "module",
-  "description": "Generic system, infrastructure and shape icons for Squinch, from Lucide (ISC) — see NOTICE.",
-  "files": ["pack.json", "icons", "NOTICE"],
+  "description": "Generic system, infrastructure and shape icons for Squinch, from Lucide (ISC) \u2014 see NOTICE.",
+  "files": [
+    "pack.json",
+    "icons",
+    "NOTICE"
+  ],
   "scripts": {
     "fetch": "tsx scripts/fetch.ts",
     "typecheck": "tsc --noEmit"

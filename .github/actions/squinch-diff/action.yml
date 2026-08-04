@@ -1,5 +1,5 @@
-# NOTE: runs `npx squinch@…`, which requires the npm-published package —
-# not yet released. This action will not work for consumers until it is.
+# NOTE: runs `npx squinch@…`. The package is published by release.yml, so this
+# action works from the first tagged release onward — not before it.
 name: "Squinch diagram diff"
 description: "Comment on a PR with what changed in the architecture, and optionally gate on structural changes."
 inputs:

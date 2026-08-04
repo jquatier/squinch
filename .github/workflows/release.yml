@@ -31,6 +31,8 @@ jobs:
         with:
           node-version: 22
           cache: pnpm
+          # writes an .npmrc wired to NODE_AUTH_TOKEN, which the publish step sets
+          registry-url: https://registry.npmjs.org
       - run: pnpm install --frozen-lockfile
       # The tag IS the version. Fail before doing any work if they disagree.
       - run: |
@@ -59,3 +61,24 @@ jobs:
             --verify-tag
         env:
           GH_TOKEN: ${{ github.token }}
+
+      # npm last, deliberately. The GitHub Release is the artifact people can
+      # always fall back to, so a registry problem — an expired token, a name
+      # taken, npm being down — must not cost them the VSIX. This step failing
+      # reddens the run and leaves the Release standing, which is the right way
+      # round.
+      #
+      # `pnpm -r publish` walks in dependency order (packs → core → cli) and
+      # skips every `private: true` package, which is what keeps the playground,
+      # the gauntlet and the lookbook off the registry. It also rewrites
+      # `workspace:*` to the real version on the way out; plain `npm publish`
+      # does not, and would ship a manifest nobody can install.
+      #
+      # --no-git-checks: a tag build is a detached HEAD, which pnpm otherwise
+      # refuses to publish from.
+      #
+      # Versions already on the registry are skipped, so re-running a release
+      # does not fail on "you cannot publish over a published version".
+      - run: pnpm -r publish --no-git-checks
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}

@@ -228,6 +228,40 @@ describe("the workspace ships one version", () => {
       .toEqual([]);
   });
 
+  it("only the intended packages are publishable, and they are publish-ready", () => {
+    // `pnpm -r publish` publishes everything that is not `private: true`. That
+    // makes `private` the only thing standing between the registry and the
+    // playground, the gauntlet corpus and the lookbook — so the split is
+    // asserted by name rather than left to whoever edits a manifest next.
+    const PUBLIC = [
+      "squinch", "@squinch/core",
+      "@squinch/pack-aws", "@squinch/pack-azure", "@squinch/pack-k8s",
+      "@squinch/pack-logos", "@squinch/pack-sys",
+    ];
+    const members = [
+      ...readdirSync(join(root, "packages")).map((p) => join("packages", p)),
+      ...readdirSync(join(root, "apps")).map((p) => join("apps", p)),
+      "gauntlet",
+    ]
+      .map((d) => join(d, "package.json"))
+      .filter((p) => existsSync(join(root, p)))
+      .map((p) => JSON.parse(readFileSync(join(root, p), "utf8")));
+
+    const publishable = members.filter((m) => m.private !== true).map((m) => m.name).sort();
+    expect(publishable, "the set of packages that would go to npm changed").toEqual([...PUBLIC].sort());
+
+    for (const m of members.filter((m) => m.private !== true)) {
+      // npm renders "license: none" and no repo link without these, and `files`
+      // is what keeps src/ and tests out of the tarball.
+      for (const field of ["description", "license", "repository", "files"])
+        expect(m[field], `${m.name} is publishable but has no ${field}`).toBeTruthy();
+      // Scoped packages default to restricted — publishing one without this
+      // fails outright on a free account.
+      if (m.name.startsWith("@"))
+        expect(m.publishConfig?.access, `${m.name} needs publishConfig.access = public`).toBe("public");
+    }
+  });
+
   it("the release workflow guards the tag against that version", () => {
     // release.yml is what turns a tag into a published VSIX, and its first
     // real step compares the tag to the workspace version. A refactor that
@@ -239,6 +273,10 @@ describe("the workspace ships one version", () => {
       .toContain('v="v$(node scripts/version.mjs)"');
     expect(wf, "release notes must come from the CHANGELOG section, not free text")
       .toContain("scripts/release-notes.mjs");
+    // npm publish must stay *after* the release step: a registry failure should
+    // cost the packages, never the VSIX people can otherwise fall back to.
+    expect(wf.indexOf("pnpm -r publish"), "release.yml no longer publishes to npm").toBeGreaterThan(0);
+    expect(wf.indexOf("pnpm -r publish")).toBeGreaterThan(wf.indexOf("gh release create"));
   });
 });
 

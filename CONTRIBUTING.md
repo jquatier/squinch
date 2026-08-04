@@ -147,8 +147,18 @@ not the changelog), bumps every workspace manifest together, commits
 `--dry-run` shows everything and writes nothing; `--no-edit` accepts the draft.
 
 From there [release.yml](.github/workflows/release.yml) builds the VSIX from
-the tagged commit, re-runs the whole suite as its own gate, and publishes the
-GitHub Release with that CHANGELOG section as its notes plus a `SHA256SUMS`.
+the tagged commit, re-runs the whole suite as its own gate, publishes the
+GitHub Release with that CHANGELOG section as its notes plus a `SHA256SUMS`,
+and then publishes to npm — `squinch`, `@squinch/core` and the five icon
+packs, in dependency order. Everything else (`@squinch/skill`, the playground,
+the gauntlet, the lookbook) stays `private: true` and never reaches the
+registry; a guardrail asserts that split by name.
+
+npm goes **last** on purpose: the GitHub Release is the fallback artifact, so a
+registry problem reddens the run without costing anyone the VSIX. It needs an
+`NPM_TOKEN` repository secret — until that exists, expect the publish step to
+fail and the rest of the release to succeed.
+
 If CI fails, no release exists — fix and release the next patch number.
 
 Two failures that are the process working: a hand-made tag that doesn't match
