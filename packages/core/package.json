@@ -71,6 +71,8 @@
   "files": [
     "dist",
     "fonts",
-    "metrics.json"
+    "metrics.json",
+    "LICENSE",
+    "NOTICE"
   ]
 }

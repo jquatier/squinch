@@ -14,7 +14,8 @@
   },
   "files": [
     "dist",
-    "bin"
+    "bin",
+    "LICENSE"
   ],
   "type": "module",
   "bin": {

@@ -260,6 +260,27 @@ describe("the workspace ships one version", () => {
       if (m.name.startsWith("@"))
         expect(m.publishConfig?.access, `${m.name} needs publishConfig.access = public`).toBe("public");
     }
+
+    // The licence *text* has to be inside the tarball, not just named in a
+    // field. Apache-2.0 §4(a) requires recipients get a copy, and the OFL and
+    // CC-BY licences on the bundled fonts and artwork require their notices to
+    // travel with the files. Every published package here carries third-party
+    // material — fonts in core, vendor icons in the packs — so this is the
+    // check, not a formality.
+    const dirOf = (name: string) =>
+      name === "squinch" ? "packages/cli" : `packages/${name.replace("@squinch/", "")}`;
+    for (const m of members.filter((x) => x.private !== true)) {
+      const shipped: string[] = m.files;
+      const carries = shipped.some((f) => f === "LICENSE" || f === "NOTICE");
+      expect(carries, `${m.name} publishes no LICENSE or NOTICE — the terms would not travel`).toBe(true);
+      for (const f of shipped.filter((x) => x === "LICENSE" || x === "NOTICE"))
+        expect(existsSync(join(root, dirOf(m.name), f)), `${m.name} lists ${f} in files but the file is missing`).toBe(true);
+      // A package whose payload is third-party artwork must not claim the
+      // repo's licence: the packs are CC-BY-ND, Microsoft's terms, CC-BY-4.0.
+      if (m.name.includes("pack-"))
+        expect(m.license, `${m.name} ships vendor artwork — its npm licence must point at the NOTICE`)
+          .toBe("SEE LICENSE IN NOTICE");
+    }
   });
 
   it("the release workflow guards the tag against that version", () => {

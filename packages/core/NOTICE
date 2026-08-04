@@ -1,0 +1,41 @@
+@squinch/core
+Copyright 2026 the Squinch authors
+
+Licensed under the Apache License, Version 2.0 (see LICENSE).
+
+--------------------------------------------------------------------------------
+Bundled fonts
+--------------------------------------------------------------------------------
+
+This package ships font data, and those files are NOT under Apache-2.0:
+
+  fonts/inter-400.ttf, fonts/inter-500.ttf
+  and the same faces embedded as woff2 data-URIs inside dist/
+
+      Inter, Copyright 2016 The Inter Project Authors
+      (https://github.com/rsms/inter), licensed under the SIL Open Font
+      License, Version 1.1.
+
+  fonts/caveat-400.ttf, fonts/caveat-500.ttf
+  and the same faces embedded as woff2 data-URIs inside dist/
+
+      Caveat, Copyright 2014 The Caveat Project Authors
+      (https://github.com/googlefonts/caveat), licensed under the SIL Open
+      Font License, Version 1.1.
+
+Both are subsetted, not modified in outline. The OFL requires this notice to
+travel with the font data, which is why it is in the published package and not
+only in the repository.
+
+Rendered SVGs embed these faces so that a viewer draws the exact font the
+layout was measured against — see the "Text metrics never come from the
+environment" rule in CLAUDE.md.
+
+--------------------------------------------------------------------------------
+Icon artwork
+--------------------------------------------------------------------------------
+
+This package depends on @squinch/pack-aws, -azure, -k8s, -logos and -sys. Their
+artwork is third-party and carries its own terms — AWS's is no-derivatives and
+Microsoft's is limited to architecture diagrams, training and documentation.
+Each pack ships its own NOTICE with the full text; none of it is Apache-2.0.
