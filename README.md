@@ -44,10 +44,9 @@ drift — see [examples/microservices](examples/microservices) for the source.
 ## Features
 
 - **LLMs write it fluently.** Give your coding agent the bundled
-  [skill](packages/skill) — one file it reads like documentation — and ask for a
-  diagram of your system. The language was designed for agents to author rather
-  than retrofitted for them, so what comes back is a correct diagram, not one
-  you have to redraw.
+  [skill](packages/skill) and ask for a diagram of your system. The language was
+  designed for agents to author rather than retrofitted for them, so what comes
+  back is a correct diagram, not one you have to redraw.
 - **1,279 real vendor icons.** AWS, Azure, Kubernetes and product logos, not
   grey boxes with labels on them.
 - **Auto-layout that gets it right, and lets you overrule it.** Good diagrams
