@@ -41,6 +41,43 @@ edges that crossed the boundary re-anchor themselves, aggregating behind a count
 badge when several collapse into one. Nothing is duplicated, so nothing can
 drift — see [examples/microservices](examples/microservices) for the source.
 
+## Features
+
+- **LLMs write it fluently.** The language was designed for agents to author,
+  not retrofitted — ask for a diagram of your system and get one that's
+  correct, not one you have to redraw.
+- **1,279 real vendor icons.** AWS, Azure, Kubernetes and product logos, not
+  grey boxes with labels on them.
+- **Auto-layout that gets it right, and lets you overrule it.** Good diagrams
+  with no hints at all; when you disagree, steer it with `rows`,
+  `place right-of`, `align` and explicit edge routing — relative hints, never
+  pixel coordinates.
+- **Many diagrams from one description.** A landscape view, a per-service view,
+  a filtered view for an audit — all from the same source, so they cannot
+  disagree with each other. Tag things `#pci` and get a view that dims
+  everything else.
+- **Click into any system.** C4-style altitudes from a single model, so there's
+  no second diagram to keep in sync.
+- **Deployment boundaries drawn properly.** VPCs, subnets, cloud and on-prem
+  zones — nested, tinted by kind, with the boundary label straddling the border
+  where you expect it.
+- **Trace a request through the system.** Declare a flow and its steps are
+  numbered along the edges in order — and in the interactive export you can
+  walk it one hop at a time.
+- **Exports as one interactive HTML file.** Every view, click-to-zoom,
+  presentation mode — no server, no internet, nothing to install for whoever
+  you send it to.
+- **A real VS Code extension.** Autocomplete, live errors with one-click fixes,
+  and a preview that updates as you type.
+- **Reviewable in a pull request.** The source is a handful of readable lines,
+  so a reviewer sees the change itself — and `squinch diff` spells it out:
+  "edge added: checkout → fraud", not a thousand lines of changed path data.
+- **Generated in CI, source kept in git.** The `.squinch` file lives next to the
+  code it describes, and a ready-made GitHub Action re-renders on every push —
+  failing the build when a committed diagram has drifted, so the picture in your
+  README is never stale.
+- **Multiple themes.** Light, dark, contrast and sketch.
+
 ## From source to diagram
 
 The whole file — structure first, then a separate `view` that says how to draw
