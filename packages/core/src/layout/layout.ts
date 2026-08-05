@@ -58,7 +58,10 @@ export interface PZone {
 }
 export interface PEdge {
   id: string; from: string; to: string;
-  label?: string; async: boolean; animate: boolean; count: number;
+  label?: string; async: boolean;
+  animate?: import("../model/types.js").EdgeAnimate;
+  style?: "dashed" | "dotted";
+  count: number;
   tags: string[];
   heads: "one" | "both" | "none";
   points: { x: number; y: number }[];
@@ -855,7 +858,7 @@ export async function layoutView(
         const labelRect = lab
           ? { x: q(lab.x + off.x), y: q(lab.y + off.y), w: q(lab.width), h: q(lab.height) }
           : undefined;
-        return [e.id, { id: e.id, from: m.from, to: m.to, label: m.label, async: m.async, animate: m.animate, count: m.count, tags: m.tags, heads: m.heads, points: pts, labelRect }];
+        return [e.id, { id: e.id, from: m.from, to: m.to, label: m.label, async: m.async, animate: m.animate, style: m.style, count: m.count, tags: m.tags, heads: m.heads, points: pts, labelRect }];
       }),
   );
 
@@ -945,7 +948,7 @@ export async function layoutView(
         && n[along] > l[along] && n[along] < r[along],
     );
     const midCross = (n: PNode) => n[cross] + Math.round(n[crossSize] / 2);
-    const carry = { label: e.label, async: e.async, animate: e.animate, count: e.count, tags: e.tags, heads: e.heads };
+    const carry = { label: e.label, async: e.async, animate: e.animate, style: e.style, count: e.count, tags: e.tags, heads: e.heads };
     // Phase 2: the router owns coplanar geometry, so it reserves and reports
     // label space the same way ELK does for cross-rank edges — labelRect is
     // where the pill draws, no search. Straight runs got their gutter widened

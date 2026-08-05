@@ -197,6 +197,16 @@ export function diffModels(before: SModel, after: SModel): DiffResult {
           detail: `${a.from} → ${a.to} label`,
           before: b.label ?? "(none)", after: a.label ?? "(none)",
         });
+      // Styling attrs are cosmetic by definition, but invisible changes make a
+      // reviewer distrust the diff — a PR that switches an edge to `packets`
+      // should say so.
+      for (const key of ["animate", "style"] as const)
+        if ((b.attrs[key] ?? "") !== (a.attrs[key] ?? ""))
+          add({
+            kind: "changed", weight: "cosmetic", subject: "edge", id: edgeId(a),
+            detail: `${a.from} → ${a.to} ${key}`,
+            before: b.attrs[key] ?? "(default)", after: a.attrs[key] ?? "(default)",
+          });
     }
   }
   for (const [pair, befores] of beforeByPair) {

@@ -44,3 +44,23 @@ describe("sketch themes", () => {
     expect(r.svg).not.toContain(`font-size="13"`);
   });
 });
+
+describe("sketch + edge styles", () => {
+  it("keeps the class and dash pattern through the rough.js rewrite", async () => {
+    // The sketch renderer rewrites the path's `d`; the class and dasharray are
+    // attached outside that rewrite, so a styled animated edge must survive.
+    const withAttrs = `pack aws
+system s "S" {
+  a = aws/lambda "A"
+  b = aws/lambda "B"
+  a ~> b "beat" { animate: packets }
+  a -> b "poll" { style: dotted }
+}`;
+    const r = await render(withAttrs, { theme: "sketch" });
+    expect(r.ok, JSON.stringify(r.diagnostics)).toBe(true);
+    expect(r.svg).toContain(`class="sq-pk"`);
+    expect(r.svg).toContain(`stroke-dasharray="3 15"`);
+    expect(r.svg).toContain(`stroke-dasharray="2 3"`);
+    expect(validateSVG(r.svg!).ok).toBe(true);
+  });
+});

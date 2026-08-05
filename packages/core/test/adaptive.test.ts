@@ -31,7 +31,7 @@ function stripAdditions(svg: string): string {
   return svg
     .replace(/<style>@media \(prefers-color-scheme: dark\)\{[^<]*\}<\/style>\n/, "")
     .replace(/ class="((?:sq-t\d+)(?: sq-t\d+)*)"/g, "")
-    .replace(/ class="sq-flow(?: sq-t\d+)+"/g, ' class="sq-flow"');
+    .replace(/ class="(sq-(?:flow(?:-[rsf])?|pk|pulse))(?: sq-t\d+)+"/g, ' class="$1"');
 }
 
 /** Apply the dark rules the way a browser in dark mode would: a class rule
@@ -123,5 +123,23 @@ describe("adaptive SVG", () => {
     expect(a.length).toBeLessThan(l.length + d.length);
     // the whole dark palette should be a rounding error on one render
     expect(a.length - l.length).toBeLessThan(l.length * 0.05);
+  });
+});
+
+describe("adaptive + the animate vocabulary", () => {
+  it("keeps sq-pulse through the merge, and the CSS is theme-identical", async () => {
+    const src = `pack aws
+system s "S" {
+  a = aws/lambda "A"
+  b = aws/lambda "B"
+  a -> b "beat" { animate: pulse }
+}`;
+    const r = await render(src, { theme: "light", adaptive: true });
+    expect(r.ok, JSON.stringify(r.diagnostics)).toBe(true);
+    expect(r.svg).toMatch(/class="sq-pulse(?: sq-t\d+)*"/);
+    expect(r.svg).toContain("@keyframes sq-pulse");
+    // one animation stylesheet, not one per palette — its text carries no
+    // theme colour, so the merge's skeleton compare accepted it unchanged
+    expect(r.svg!.match(/@keyframes sq-pulse/g)!.length).toBe(1);
   });
 });

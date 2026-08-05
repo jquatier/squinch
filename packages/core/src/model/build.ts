@@ -12,7 +12,7 @@ import { themes } from "../themes/index.js";
 import type {
   ArrowKind, BuildResult, Diagnostic, Loc, RelPos, SContainer, SEdge, SModel, SNode, SNote, SView, Side, SFlow, SZone, ZoneColor, ZoneKind, ZoneLabelPos,
 } from "./types.js";
-import { ZONE_KINDS, ZONE_COLORS } from "./types.js";
+import { ZONE_KINDS, ZONE_COLORS, EDGE_STYLES, EDGE_ANIMATE } from "./types.js";
 
 export interface ProjectFile {
   name: string;
@@ -419,6 +419,41 @@ export function buildProject(input: ProjectFile[]): BuildResult {
     // an edge mid-typing (`a -> `) parses without a PathList — the editor
     // asks us to build on every keystroke, so partial trees must not throw
     const targets = node.getChild("PathList")?.getChildren("Path") ?? [];
+    // Attr validation, once per statement. Attrs used to be stored verbatim
+    // with no checking, so `animate: banana` rendered as ordinary flow and
+    // `animte: false` was a silent no-op — exactly the dropped-hint class the
+    // check contract forbids. Values follow the zone-colour pattern; keys get
+    // a warning because SPEC names attrs (`description`, `color`) that parse
+    // ahead of being wired.
+    const EDGE_ATTR_KEYS = ["description", "animate", "style", "color"];
+    for (const key of Object.keys(meta.attrs)) {
+      if (EDGE_ATTR_KEYS.includes(key)) continue;
+      const sug = suggest(key, EDGE_ATTR_KEYS);
+      warn(ctx, node, `unknown edge attribute \`${key}\``,
+        sug ? `did you mean \`${sug}\`?` : `one of: ${EDGE_ATTR_KEYS.join(", ")}`);
+    }
+    const style = meta.attrs.style;
+    if (style !== undefined && !(EDGE_STYLES as readonly string[]).includes(style)) {
+      const sug = suggest(style, [...EDGE_STYLES]);
+      error(ctx, node, `unknown edge style \`${style}\``,
+        sug ? `did you mean \`${sug}\`?` : `one of: ${EDGE_STYLES.join(", ")}`);
+    }
+    const animate = meta.attrs.animate;
+    if (animate !== undefined && !(EDGE_ANIMATE as readonly string[]).includes(animate)) {
+      const sug = suggest(animate, [...EDGE_ANIMATE]);
+      error(ctx, node, `unknown animate value \`${animate}\``,
+        sug ? `did you mean \`${sug}\`?` : `one of: ${EDGE_ANIMATE.join(", ")}`);
+    }
+    if (arrow === "~>" && style === "solid")
+      error(ctx, node, "async edges are dashed by design — `style: solid` would erase the convention",
+        "use `style: dotted` for a different pattern, or a sync arrow `->` if the call is synchronous");
+    const travels = animate === "flow" || animate === "reverse" || animate === "slow" || animate === "fast";
+    if (arrow !== "~>" && travels && style !== "dashed" && style !== "dotted")
+      error(ctx, node, `\`animate: ${animate}\` needs a visible pattern to travel, and this edge is solid`,
+        "add `style: dashed` (or `dotted`), or use `animate: pulse`, which works on solid lines");
+    if (animate === "packets" && style !== undefined)
+      error(ctx, node, "`animate: packets` draws its own sparse pattern — `style:` has nothing to add",
+        "drop the `style:` attribute");
     for (const target of targets) {
       const toPath = resolve(ctx.text(target), scope, target, ctx);
       edgeN++;

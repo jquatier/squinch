@@ -97,9 +97,14 @@
   enforces it geometrically. History of the placement-search era:
   `docs/notes/edge-labels.md`.
 - **Aggregate edges** (from lifting): medium weight, neutral, count badge as pill.
-- **Animation** (`~>`): CSS `stroke-dashoffset`, constant speed in px/s (not
-  per-edge duration — long edges must not "flow faster"), subtle: motion you notice
-  peripherally, not a marquee. `prefers-reduced-motion` always respected.
+- **Animation** (`~>`, and opted-in sync edges): CSS `stroke-dashoffset`,
+  constant speed in px/s (not per-edge duration — long edges must not "flow
+  faster"), subtle: motion you notice peripherally, not a marquee.
+  `prefers-reduced-motion` always respected. The vocabulary stays inside that
+  bar: `reverse` (a response flowing against the arrow), `slow`/`fast`
+  (cadence as meaning), `packets` (sparse dashes — discrete messages, not a
+  stream), `pulse` (the whole edge breathes; a heartbeat or healthcheck).
+  One value per edge; anything marquee-like stays out.
 
 ## 5. Containers, zones, notes
 

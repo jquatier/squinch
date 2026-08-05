@@ -1,5 +1,7 @@
-// The `lines` setting, three ways over the same diagram. `orthogonal` turns
-// square corners, `curved` rounds them off, and `straight` runs point to point.
+// The `lines` setting, three ways over the same diagram: how an edge *travels*.
+// `orthogonal` turns square corners, `curved` rounds them off, and `straight`
+// runs point to point. How an edge is *drawn and moves* is the other axis —
+// `style:` and `animate:`, case 29-edge-styles.
 pack aws
 
 system fanout "Ingest" {

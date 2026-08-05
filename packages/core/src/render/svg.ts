@@ -245,6 +245,8 @@ function head(
   async: boolean,
   /** the segment is not axis-aligned, so compute the direction with trig */
   exact = false,
+  /** ` class="sq-pulse"` when the whole edge breathes — head included */
+  cls = "",
 ): string {
   let bx: number, by: number, ox: number, oy: number;
   if (exact) {
@@ -266,8 +268,8 @@ function head(
   }
   const p1 = `${bx + ox} ${by + oy}`, p2 = `${bx - ox} ${by - oy}`;
   return async
-    ? `<path d="M ${p1} L ${tip.x} ${tip.y} L ${p2}" fill="none" stroke="${col}" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>`
-    : `<path d="M ${tip.x} ${tip.y} L ${p1} L ${p2} Z" fill="${col}"/>`;
+    ? `<path${cls} d="M ${p1} L ${tip.x} ${tip.y} L ${p2}" fill="none" stroke="${col}" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>`
+    : `<path${cls} d="M ${tip.x} ${tip.y} L ${p1} L ${p2} Z" fill="${col}"/>`;
 }
 
 /**
@@ -278,7 +280,7 @@ function head(
  * documented in SKILL.md, so a diagram could state something the picture then
  * contradicted.
  */
-function arrow(e: PEdge, t: Theme, lines: Positioned["lines"], accent = false): string {
+function arrow(e: PEdge, t: Theme, lines: Positioned["lines"], accent = false, cls = ""): string {
   if (e.heads === "none") return "";
   const n = e.points.length;
   // the head has to travel with the line, or a highlighted hop ends in a grey point
@@ -290,11 +292,18 @@ function arrow(e: PEdge, t: Theme, lines: Positioned["lines"], accent = false): 
   const exact = lines === "straight";
   const before = exact ? e.points[0] : e.points[n - 2];
   const after = exact ? e.points[n - 1] : e.points[1];
-  const forward = head(e.points[n - 1], before, col, e.async, exact);
+  const forward = head(e.points[n - 1], before, col, e.async, exact, cls);
   return e.heads === "both"
-    ? forward + head(e.points[0], after, col, e.async, exact)
+    ? forward + head(e.points[0], after, col, e.async, exact, cls)
     : forward;
 }
+
+/** class per animate value — `sq-flow` predates the vocabulary and keeps its
+ *  name so flow-only output stays byte-identical to every committed render */
+const ANIM_CLASS = {
+  flow: "sq-flow", reverse: "sq-flow-r", slow: "sq-flow-s",
+  fast: "sq-flow-f", packets: "sq-pk", pulse: "sq-pulse",
+} as const;
 
 const esc = (s: string) =>
   s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
@@ -458,6 +467,18 @@ function legend(p: Positioned, rc: RC, y: number, L: string[]): { h: number; w: 
     items.push({
       sample: (x, cy) => `<line x1="${x}" y1="${cy}" x2="${x + 24}" y2="${cy}" stroke="${t.asyncEdge}" stroke-width="1.5" stroke-dasharray="6 4"/>`,
       label: "async",
+    });
+  // Declared stroke styles on sync edges, in style-list order, deduped — the
+  // async item above already explains dashes on async wires, so only sync
+  // edges earn these. Same shape as the zone-kind items below.
+  const stylesPresent = (["dashed", "dotted"] as const).filter((st) =>
+    p.edges.some((e) => !e.async && e.style === st),
+  );
+  for (const st of stylesPresent)
+    items.push({
+      sample: (x, cy) =>
+        `<line x1="${x}" y1="${cy}" x2="${x + 24}" y2="${cy}" stroke="${t.edge}" stroke-width="1.5" stroke-dasharray="${st === "dashed" ? "6 4" : "2 3"}"/>`,
+      label: st,
     });
   if (p.edges.some((e) => e.count > 1))
     items.push({
@@ -813,11 +834,19 @@ export function renderSVG(p: Positioned, t: Theme, opts: RenderOpts = {}): strin
     const current = step !== undefined && stepsOf(e).includes(step);
     const col = current ? t.accent : e.async ? t.asyncEdge : t.edge;
     const weight = current ? 2.5 : 1.5;
-    const dash = e.async ? ` stroke-dasharray="6 4"` : "";
-    // async flow animation: dashes drift source→target at constant px/s (one
-    // shared keyframe, so long edges never "flow faster"); CSS only, and
-    // prefers-reduced-motion turns it off entirely
-    const anim = e.async && e.animate ? ` class="sq-flow"` : "";
+    // The pattern is a presentation attribute, never CSS: resvg ignores
+    // stylesheets, so the static dashes are what a PNG export shows. `packets`
+    // draws its own sparse pattern; otherwise the resolved style decides
+    // (async edges resolve to `dashed` by default, so their output here is
+    // byte-identical to when this line only knew about `e.async`).
+    const pattern = e.animate === "packets" ? "3 15"
+      : e.style === "dashed" ? "6 4"
+      : e.style === "dotted" ? "2 3" : undefined;
+    const dash = pattern ? ` stroke-dasharray="${pattern}"` : "";
+    // Animation: dashes drift at constant px/s (shared keyframes with a fixed
+    // dash period, so long edges never "flow faster"); CSS only, and
+    // prefers-reduced-motion turns it all off. One class per animate value.
+    const anim = e.animate ? ` class="${ANIM_CLASS[e.animate]}"` : "";
     const op = dimmed ? ` opacity="${DIM}"` : "";
     const myHops = hops.get(e.id);
     const runs = myHops?.length ? splitAtHops(e.points, myHops) : [e.points];
@@ -828,7 +857,9 @@ export function renderSVG(p: Positioned, t: Theme, opts: RenderOpts = {}): strin
         `<path${anim} d="${rc.sk ? rc.sk.path(d) : d}" fill="none" stroke="${col}" stroke-width="${weight}"${dash}${rc.sk ? ` stroke-linecap="round"` : ""}/>`,
       );
     }
-    body.push(arrow(e, t, p.lines, current));
+    // pulse breathes the whole edge, arrowhead included; travel animations
+    // stay off the head — a drifting chevron reads as the head detaching
+    body.push(arrow(e, t, p.lines, current, e.animate === "pulse" ? anim : ""));
     body.push(`</g>`);
   }
 
@@ -907,6 +938,10 @@ export function renderSVG(p: Positioned, t: Theme, opts: RenderOpts = {}): strin
   if (opts.legend || (opts.titleblock && Object.keys(opts.titleblock).length)) {
     const bandY = height - 8;
     const lg = opts.legend ? legend(p, rc, bandY, body) : { h: 0, w: 0 };
+    // A legend wider than the canvas used to clip silently at the right edge;
+    // grow the canvas instead. No existing view trips this (asserted by the
+    // corpus gallery when it landed), so it is a safety net, not a reflow.
+    width = Math.max(width, 16 + lg.w + 16);
     let bottom = bandY + lg.h;
     if (opts.titleblock && Object.keys(opts.titleblock).length) {
       const tb = titleblockDims(rc, opts.title, opts.titleblock, width);
@@ -933,13 +968,54 @@ export function renderSVG(p: Positioned, t: Theme, opts: RenderOpts = {}): strin
     `<svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${height}" viewBox="0 0 ${width} ${height}" font-family="${t.font.css}">`,
   );
   if (opts.embedFonts !== false) L.push(fontDefs(t));
-  if (p.edges.some((e) => e.async && e.animate))
-    L.push(
-      // dasharray period is 10px (6+4); -10 per 0.9s ≈ 11px/s, everywhere
-      `<style>@media (prefers-reduced-motion: no-preference){` +
-        `.sq-flow{animation:sq-flow 0.9s linear infinite}` +
-        `@keyframes sq-flow{to{stroke-dashoffset:-10}}}</style>`,
-    );
+  {
+    // One rule per animate value in use, one keyframe per distinct motion, all
+    // inside the single reduced-motion gate. Emission is by fixed order so the
+    // string is deterministic — and when only `flow` is used, byte-identical
+    // to what this block emitted before the vocabulary existed, which is what
+    // keeps every already-committed render untouched.
+    //
+    // Dash periods and offsets must agree or the loop jumps: dashed 6+4=10 and
+    // dotted 2+3=5 both divide the shared -10 offset; packets 3+15=18 gets its
+    // own keyframe. Speeds reuse the flow keyframe at other durations —
+    // constant px/s comes from fixed periods, never per-edge maths. `pulse`
+    // animates `opacity` (not stroke-opacity) because a sync arrowhead is a
+    // filled path and has to breathe with its wire.
+    const used = new Set(p.edges.map((e) => e.animate).filter(Boolean));
+    if (used.size) {
+      const rules: string[] = [];
+      const frames = new Map<string, string>();
+      const flowKF = `@keyframes sq-flow{to{stroke-dashoffset:-10}}`;
+      if (used.has("flow")) {
+        rules.push(`.sq-flow{animation:sq-flow 0.9s linear infinite}`);
+        frames.set("sq-flow", flowKF);
+      }
+      if (used.has("reverse")) {
+        rules.push(`.sq-flow-r{animation:sq-flow-r 0.9s linear infinite}`);
+        frames.set("sq-flow-r", `@keyframes sq-flow-r{to{stroke-dashoffset:10}}`);
+      }
+      if (used.has("slow")) {
+        rules.push(`.sq-flow-s{animation:sq-flow 2.6s linear infinite}`);
+        frames.set("sq-flow", flowKF);
+      }
+      if (used.has("fast")) {
+        rules.push(`.sq-flow-f{animation:sq-flow 0.38s linear infinite}`);
+        frames.set("sq-flow", flowKF);
+      }
+      if (used.has("packets")) {
+        rules.push(`.sq-pk{animation:sq-pk 1.1s linear infinite}`);
+        frames.set("sq-pk", `@keyframes sq-pk{to{stroke-dashoffset:-18}}`);
+      }
+      if (used.has("pulse")) {
+        rules.push(`.sq-pulse{animation:sq-pulse 1.8s ease-in-out infinite}`);
+        frames.set("sq-pulse", `@keyframes sq-pulse{0%,100%{opacity:1}50%{opacity:.3}}`);
+      }
+      L.push(
+        `<style>@media (prefers-reduced-motion: no-preference){` +
+          rules.join("") + [...frames.values()].join("") + `}</style>`,
+      );
+    }
+  }
   L.push(`<rect width="${width}" height="${height}" fill="${t.canvas}"/>`);
   // only when something references it — a diagram of plain nodes should not
   // carry a gradient it never draws

@@ -187,6 +187,12 @@ describe("SKILL.md — diagnostic coverage", () => {
     "is included, but", "is already here as a context card", "edges match `route",
     "nothing is tagged #", "it sits inside an expanded container",
     "'s axis would collide with", "'s axis would take it outside zone",
+    // Edge attr validation: every one names its own repair — the value list,
+    // the did-you-mean, or both fixes spelled out ("add style: dashed, or use
+    // animate: pulse"). SKILL.md teaches the vocabulary itself in the rules
+    // block; the diagnostics finish the loop on their own.
+    "unknown edge style", "unknown animate value", "unknown edge attribute",
+    "needs a visible pattern to travel, and this edge is solid",
   ]);
 
   it("every diagnostic that needs a technique is in the cookbook", () => {

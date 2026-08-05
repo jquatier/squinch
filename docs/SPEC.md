@@ -207,6 +207,23 @@ get -> db "query" {                 // edge attribute block
 Rules: an edge may appear anywhere its two endpoints are both in scope; duplicate edges
 (same endpoints, same label) merge with a warning; labels are optional.
 
+**`style:`** — `solid | dashed | dotted`. Sync edges default to solid, async to
+dashed; the pattern is a presentation attribute, so it survives PNG export.
+`style: solid` on a `~>` edge is a check-time error — the dash *is* the async
+convention; `dotted` is the sanctioned alternative.
+
+**`animate:`** — `false | flow | reverse | slow | fast | packets | pulse`, one
+value per edge. Async edges default to `flow` (dashes drift toward the target);
+sync edges are still unless they opt in. The travel values need a visible
+pattern, so on a sync edge they require `style: dashed` or `dotted` — declared
+without one is a check-time error naming both fixes (`pulse`, which breathes
+the whole edge including its arrowhead, works on solid lines). `packets` draws
+its own sparse pattern and rejects a `style:`. All motion is passive CSS
+keyframes at constant px/s inside one `prefers-reduced-motion` gate — it
+survives a GitHub README `<img>` embed and switches off for readers who ask.
+Unknown values and misspelled attribute keys are diagnosed with did-you-mean;
+attributes are never silently dropped.
+
 **Parallel edges & edge identity**: multiple edges between the same pair are legal and
 distinguished by label (`api -> db "read"` / `api -> db "write"`). Any construct that
 *references* an edge (`route`, `note on`, flows) may include the label to disambiguate:
@@ -313,8 +330,11 @@ re-anchors them deterministically:
    edge**: single constituent keeps its label; multiple render a count badge (`×3`).
    In SPA/VSCode, hover/click lists the constituent relations with jump-links to the
    view where each is native.
-4. Aggregates render style-neutral (solid, medium) regardless of constituent styles —
-   async dashes/animation reappear at the altitude where those edges are native.
+4. Aggregates keep styling only on unanimous agreement: when every constituent
+   shares the same arrow kind, `animate` and `style`, the trunk carries them;
+   any disagreement renders style-neutral (solid, medium), and the styling
+   reappears at the altitude where those edges are native. (An all-`~>` bundle
+   has always kept its dashes and drift; this codifies that.)
 5. Lifting is a pure model operation — identical results in SPA, VSCode, CLI, CI.
 
 ### Zoom navigation

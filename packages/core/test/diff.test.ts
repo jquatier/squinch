@@ -1,6 +1,6 @@
 // Semantic diff: what changed in the architecture, not in the file.
 import { describe, it, expect } from "vitest";
-import { buildModel, diffModels, formatDiff, formatDiffMarkdown } from "../src/index.js";
+import { buildModel, diffModels, diffProjects, formatDiff, formatDiffMarkdown } from "../src/index.js";
 
 const diff = (a: string, b: string) => diffModels(buildModel(a).model, buildModel(b).model);
 
@@ -186,5 +186,21 @@ describe("diff — formatting", () => {
     const md = formatDiffMarkdown(d);
     expect(md).toContain("**Squinch**");
     expect(md).toContain("### structural");
+  });
+});
+
+describe("styling attrs are visible to diff", () => {
+  it("an animate change reads as a cosmetic edge change", () => {
+    const before = `a = box "A"\nb = box "B"\na ~> b "ev"\n`;
+    const after = `a = box "A"\nb = box "B"\na ~> b "ev" { animate: packets }\n`;
+    const d = diffProjects(
+      [{ name: "x", src: before }],
+      [{ name: "x", src: after }],
+    );
+    const hit = d.changes.find((c) => c.detail?.includes("animate"));
+    expect(hit, JSON.stringify(d.changes)).toBeTruthy();
+    expect(hit!.weight).toBe("cosmetic");
+    expect(hit!.before).toBe("(default)");
+    expect(hit!.after).toBe("packets");
   });
 });

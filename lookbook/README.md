@@ -274,29 +274,29 @@ Source: [`cases/24-arrow-kinds.squinch`](cases/24-arrow-kinds.squinch)
 |---|---|
 | ![](out/24-arrow-kinds.mesh.light.svg) | ![](out/24-arrow-kinds.mesh.dark.svg) |
 
-## 25-line-styles
+## 25-edge-routing
 
-The `lines` setting, three ways over the same diagram. `orthogonal` turns square corners, `curved` rounds them off, and `straight` runs point to point.
+The `lines` setting, three ways over the same diagram: how an edge *travels*. `orthogonal` turns square corners, `curved` rounds them off, and `straight` runs point to point. How an edge is *drawn and moves* is the other axis — `style:` and `animate:`, case 29-edge-styles.
 
-Source: [`cases/25-line-styles.squinch`](cases/25-line-styles.squinch)
+Source: [`cases/25-edge-routing.squinch`](cases/25-edge-routing.squinch)
 
 **`orthogonal`**
 
 | light | dark |
 |---|---|
-| ![](out/25-line-styles.orthogonal.light.svg) | ![](out/25-line-styles.orthogonal.dark.svg) |
+| ![](out/25-edge-routing.orthogonal.light.svg) | ![](out/25-edge-routing.orthogonal.dark.svg) |
 
 **`curved`**
 
 | light | dark |
 |---|---|
-| ![](out/25-line-styles.curved.light.svg) | ![](out/25-line-styles.curved.dark.svg) |
+| ![](out/25-edge-routing.curved.light.svg) | ![](out/25-edge-routing.curved.dark.svg) |
 
 **`straight`**
 
 | light | dark |
 |---|---|
-| ![](out/25-line-styles.straight.light.svg) | ![](out/25-line-styles.straight.dark.svg) |
+| ![](out/25-edge-routing.straight.light.svg) | ![](out/25-edge-routing.straight.dark.svg) |
 
 ## 26-route-label
 
@@ -327,3 +327,13 @@ Source: [`cases/28-azure.squinch`](cases/28-azure.squinch)
 | light | dark |
 |---|---|
 | ![](out/28-azure.storefront.light.svg) | ![](out/28-azure.storefront.dark.svg) |
+
+## 29-edge-styles
+
+How an edge is drawn and how it moves: `style: solid | dashed | dotted` and `animate: flow | reverse | slow | fast | packets | pulse`, one hub with each spoke showing one thing. Travel needs a pattern, so a sync edge animates by declaring `style: dashed` first; `pulse` breathes and works on solid lines. How an edge *travels* between nodes is the other axis — `lines`, case 25-edge-routing.
+
+Source: [`cases/29-edge-styles.squinch`](cases/29-edge-styles.squinch)
+
+| light | dark |
+|---|---|
+| ![](out/29-edge-styles.styles.light.svg) | ![](out/29-edge-styles.styles.dark.svg) |

@@ -99,7 +99,23 @@ Rules that matter:
 - Statements end at newline (or `;`). Labels are quoted strings.
 - Parallel edges between the same pair are fine — give each a label.
 - `~>` edges animate (dashes drift toward the target; still under
-  `prefers-reduced-motion`). Opt out per edge: `{ animate: false }`.
+  `prefers-reduced-motion`). Opt out per edge: `{ animate: false }`, or pick a
+  variant: `reverse` (acks flowing back), `slow`/`fast` (cadence), `packets`
+  (discrete messages), `pulse` (a heartbeat — works on solid sync edges too).
+  Sync edges take `style: dashed | dotted`, and a dashed sync edge may also
+  animate:
+
+  ```squinch
+  probe  -> legacy "healthcheck" { animate: pulse }
+  sensor ~> ingest "telemetry"   { animate: packets }
+  mirror -> replica "sync" {
+    style:   dashed
+    animate: slow
+  }
+  ```
+
+  One `animate:` value per edge. Don't decorate every edge — motion is for the
+  hops where cadence or direction *means* something.
 - `layout { }` blocks go inside a `view`, **never** inside a `system` —
   structure and layout stay separate. Same for `highlight`, `note`, `expand`.
 - Zones (`zone id "Label" kind { contains a, b.c }`) mark deployment

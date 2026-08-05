@@ -50,6 +50,29 @@ describe("arrow kinds", () => {
     });
   });
 
+  it("every style and animate value renders distinctly", async () => {
+    const attr = (arrow: string, block: string) =>
+      `system s "S" {
+ x = aws/lambda "X"
+ y = aws/lambda "Y"
+ x ${arrow} y ${block}
+}`;
+    await allDistinct("edge styles", {
+      solid: attr("->", ""),
+      dashed: attr("->", "{ style: dashed }"),
+      dotted: attr("->", "{ style: dotted }"),
+    });
+    await allDistinct("animate values", {
+      flow: attr("~>", ""),
+      reverse: attr("~>", "{ animate: reverse }"),
+      slow: attr("~>", "{ animate: slow }"),
+      fast: attr("~>", "{ animate: fast }"),
+      packets: attr("~>", "{ animate: packets }"),
+      pulse: attr("~>", "{ animate: pulse }"),
+      off: attr("~>", "{ animate: false }"),
+    });
+  });
+
   const filled = (svg: string) =>
     (svg.match(/<path d="M [\d.]+ [\d.]+ L [\d.]+ [\d.]+ L [\d.]+ [\d.]+ Z"/g) ?? []).length;
 

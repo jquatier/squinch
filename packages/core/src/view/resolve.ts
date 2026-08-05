@@ -3,7 +3,7 @@
 // include → exclude (exclude wins last) → edges/notes derive from what survived.
 // `scope` is the view's *where*; `only` is its *which*. They are separate axes
 // because a tag is a cross-cutting concern and can never be a place.
-import type { Diagnostic, SModel, SView } from "../model/types.js";
+import type { Diagnostic, EdgeAnimate, SEdge, SModel, SView } from "../model/types.js";
 
 export interface VNode {
   path: string;
@@ -32,7 +32,12 @@ export interface VEdge {
   to: string;
   label?: string;
   async: boolean;
-  animate: boolean; // async edges animate unless `animate: false` (SPEC §edges)
+  /** Which animation, if any (SPEC §edges). Async edges default to `flow`
+   *  unless `animate: false`; sync edges are still unless they opt in. */
+  animate?: EdgeAnimate;
+  /** Dash pattern beyond each arrow's default: async is dashed already, so
+   *  only `dotted` changes it; sync edges can declare either. */
+  style?: "dashed" | "dotted";
   count: number; // >1 = aggregate
   /** Effective tags. An aggregate carries the union of what it merged, so a
    *  lens over a tag still finds the trunk that hides a tagged edge inside it. */
@@ -57,6 +62,24 @@ export interface ViewGraph {
 /** `->`/`~>` point one way, `<->` both, `--` neither. */
 const headsOf = (a: string): "one" | "both" | "none" =>
   a === "<->" ? "both" : a === "--" ? "none" : "one";
+
+/** Effective animation for a declared edge. Values were validated at build
+ *  time, so anything present is trusted here. */
+const animateOf = (e: SEdge): EdgeAnimate | undefined => {
+  const a = e.attrs.animate;
+  if (a === "false") return undefined;
+  if (a) return a as EdgeAnimate;
+  return e.arrow === "~>" ? "flow" : undefined;
+};
+
+/** Effective dash pattern. `packets` supplies its own, so it needs no style;
+ *  `solid` normalizes to undefined (it is the sync default, and build errors
+ *  it on async edges before this runs). */
+const styleOf = (e: SEdge): "dashed" | "dotted" | undefined => {
+  const s = e.attrs.style;
+  if (s === "dashed" || s === "dotted") return s;
+  return e.arrow === "~>" ? "dashed" : undefined;
+};
 
 const parentOf = (p: string) => (p.includes(".") ? p.slice(0, p.lastIndexOf(".")) : "");
 const topOf = (p: string) => p.split(".")[0];
@@ -309,7 +332,7 @@ export function resolveView(model: SModel, view: SView): ViewGraph {
     if (!lifted) {
       edges.push({
         id: e.id, from: f, to: t, label: e.label, async: e.arrow === "~>",
-        animate: e.arrow === "~>" && e.attrs.animate !== "false", count: 1,
+        animate: animateOf(e), style: styleOf(e), count: 1,
         tags: e.tags, heads: headsOf(e.arrow),
       });
       continue;
@@ -327,16 +350,23 @@ export function resolveView(model: SModel, view: SView): ViewGraph {
       const e = g.edges[0];
       edges[slot] = {
         id: e.id, from: g.from, to: g.to, label: e.label, async: e.arrow === "~>",
-        animate: e.arrow === "~>" && e.attrs.animate !== "false", count: 1,
+        animate: animateOf(e), style: styleOf(e), count: 1,
         tags: e.tags, heads: headsOf(e.arrow),
       };
     } else {
+      // A trunk only claims styling every member agrees on (same rule as
+      // `heads` below): all-agree keeps the animation and pattern, any
+      // disagreement falls back to neutral rather than asserting something
+      // only some constituents said. SPEC §lifting rule 4 states this.
+      const agreedAnimate = animateOf(g.edges[0]);
+      const agreedStyle = styleOf(g.edges[0]);
       edges[slot] = {
         id: `agg:${g.from}|${g.to}`,
         from: g.from, to: g.to,
         label: `×${g.edges.length}`,
         async: g.edges.every((e) => e.arrow === "~>"),
-        animate: g.edges.every((e) => e.arrow === "~>" && e.attrs.animate !== "false"),
+        animate: g.edges.every((e) => animateOf(e) === agreedAnimate) ? agreedAnimate : undefined,
+        style: g.edges.every((e) => styleOf(e) === agreedStyle) ? agreedStyle : undefined,
         count: g.edges.length,
         tags: [...new Set(g.edges.flatMap((e) => e.tags))],
         // A trunk only claims a shape every member agrees on; a mixed bundle
