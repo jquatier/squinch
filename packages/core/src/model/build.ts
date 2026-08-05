@@ -213,6 +213,24 @@ export function buildProject(input: ProjectFile[]): BuildResult {
         } else icon = { pack: p, id: i };
       }
       const meta = attrsOf(ctx, decl.getChild("AttrBlock"));
+      // `badge:` is an icon reference like `glyph:` and gets the same two
+      // errors — an unchecked ref would draw a blank plate, exit 0, and leave
+      // the typo to be noticed by eye. The value is in practice a `logos/*`
+      // brand mark composited onto the icon plate (SPEC §nodes): the sanctioned
+      // way to say "this thing is Databricks'" for vendors that publish no
+      // icon grant.
+      if (meta.attrs["badge"]) {
+        const [p, i] = meta.attrs["badge"].split("/");
+        if (!p || !i || !packExists(p)) {
+          const s = p && suggest(p, allPackNames());
+          error(ctx, decl, `unknown pack \`${p ?? meta.attrs["badge"]}\` in badge`,
+            s ? `did you mean \`${s}/${i ?? ""}\`?` : `use \`badge: <pack>/<id>\``);
+        } else if (!iconExists(p, i)) {
+          const s = suggest(i, iconIds(p));
+          error(ctx, decl, `unknown icon \`${p}/${i}\` in badge`,
+            s ? `did you mean \`${p}/${s}\`?` : `run \`squinch icons search ${i}\``);
+        }
+      }
       const kinds = decl.getChildren("NodeKind").map((k) => ctx.text(k)) as SNode["kinds"];
       // `= person "Name"` is the same node the top-level `person id "Label"`
       // form builds. Only a direct child matches here — a `person` used as a

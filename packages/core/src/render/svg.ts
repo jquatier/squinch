@@ -142,6 +142,46 @@ function box(
   );
 }
 
+/** A vendor mark on the icon plate's corner (`badge:`, SPEC §nodes) — a 22px
+ *  rounded-square surface plate overlapping the plate's bottom-right, held 5px
+ *  clear of the card's interior edge, with the mark at 14px inside it.
+ *
+ *  Deliberately NOT iconPlate: the logos pack is monochrome, and iconPlate's
+ *  monochrome branch draws a brand-coloured plate with a white knockout — the
+ *  inverse of this treatment. Here the plate is quiet (surface + border, plain
+ *  even in sketch, same "roughness stops at the plate" rule) and the mark
+ *  carries its own brand colour from the pack manifest. Colour-pack artwork
+ *  falls back to the same clip treatment iconPlate uses.
+ */
+function badgeMarkup(
+  badge: { pack: string; id: string }, plateX: number, plateY: number, rc: RC,
+): string {
+  const { t } = rc;
+  const SIZE = 22, INSET = 4, R = 5;
+  // 40px plate → badge spans its corner: plate origin + 25 keeps the badge
+  // 5px inside the 64px card (PAD 12 + 25 + 22 = 59).
+  const x = plateX + 25, y = plateY + 25;
+  const plate = `<rect x="${x}" y="${y}" width="${SIZE}" height="${SIZE}" rx="${R}" fill="${t.surface}" stroke="${t.border}"/>`;
+  const asset = iconAsset(badge.pack, badge.id);
+  if (!asset) return plate; // validated at check; an unloaded pack degrades to the bare plate
+  const ix = x + INSET, iy = y + INSET, isz = SIZE - INSET * 2;
+  if (badge.pack === "builtin" || packMonochrome(badge.pack)) {
+    const c = iconMeta(badge.pack, badge.id)?.color ?? t.muted;
+    return (
+      plate +
+      `<g color="${c}" fill="${c}">` +
+      `<use href="#${symbolId(badge.pack, badge.id)}" x="${ix}" y="${iy}" width="${isz}" height="${isz}"/>` +
+      `</g>`
+    );
+  }
+  const clip = `clip-${symbolId(badge.pack, badge.id)}-${ix}-${iy}-${isz}`;
+  return (
+    plate +
+    def(rc, clip, `<clipPath id="${clip}"><rect x="${ix}" y="${iy}" width="${isz}" height="${isz}" rx="2"/></clipPath>`) +
+    `<g clip-path="url(#${clip})"><use href="#${symbolId(badge.pack, badge.id)}" x="${ix}" y="${iy}" width="${isz}" height="${isz}"/></g>`
+  );
+}
+
 function edgePath(pts: { x: number; y: number }[], lines: Positioned["lines"]): string {
   if (lines === "straight")
     return `M ${pts[0].x} ${pts[0].y} L ${pts[pts.length - 1].x} ${pts[pts.length - 1].y}`;
@@ -323,6 +363,7 @@ function leaf(n: PNode, rc: RC, opts: RenderOpts, dimmed: boolean, L: string[]) 
   if (n.external) L.push(hatched(rc, n.x, n.y, n.w, n.h, R_NODE));
   const px = n.x + PAD, py = n.y + PAD;
   L.push(iconPlate(n.icon, px, py, PLATE, rc, ctx));
+  if (n.badge) L.push(badgeMarkup(n.badge, px, py, rc));
   const maxLabel = n.w - PAD - PLATE - PAD - PAD;
   const withDesc = opts.showDescriptions && n.description;
   const labelY = withDesc ? n.y + n.h / 2 - 1 : n.y + n.h / 2 + 5;
@@ -682,6 +723,7 @@ function iconDefs(p: Positioned, rc: RC): string {
   for (const n of p.nodes) {
     note(n.icon);
     note(n.glyph);
+    note(n.badge);
     for (const prev of n.preview) note(prev);
   }
   for (const z of p.zones ?? []) note(z.icon);

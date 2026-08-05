@@ -337,3 +337,13 @@ Source: [`cases/29-edge-styles.squinch`](cases/29-edge-styles.squinch)
 | light | dark |
 |---|---|
 | ![](out/29-edge-styles.styles.light.svg) | ![](out/29-edge-styles.styles.dark.svg) |
+
+## 30-badges
+
+`badge:` puts a vendor mark on a node's icon plate. It exists because some platforms publish no icon set anyone may redistribute — Databricks is the standing example — so there is no pack to install and never will be. Rather than ship someone's extracted artwork, compose two things we already have a licence to: a generic `sys/*` concept for *what the thing is*, and a CC0 brand mark for *whose it is*. The badge is what makes a wall of grey plates legible: every Databricks-owned box is marked, and the Kafka and S3 nodes keep their own icons, so the platform boundary reads at a glance.
+
+Source: [`cases/30-badges.squinch`](cases/30-badges.squinch)
+
+| light | dark |
+|---|---|
+| ![](out/30-badges.lakehouse.light.svg) | ![](out/30-badges.lakehouse.dark.svg) |

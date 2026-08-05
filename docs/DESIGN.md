@@ -59,7 +59,15 @@
 - **Leaf node**: fixed height (`64`), width snapped to tiers (`120/160/200/240`).
   Icon plate `40×40` left-aligned; label 13/550 ink; optional tagline 11 ink-muted,
   one line. Padding `12`. Provider icons sit on a neutral plate (radius 4) so
-  full-color AWS art never touches the surface color directly.
+  full-color AWS art never touches the surface color directly. An optional
+  **node badge** (`badge:`) sits on the plate's bottom-right corner: `22×22`
+  plate, radius 5, surface fill + border stroke, holding a `14×14` mark in its
+  own brand colour. It is inset so it clears the card's edge by 5 — the plate,
+  not the card, is what it belongs to. Plain in every theme, including sketch:
+  roughness stops at a plate edge, and a wobbled trademark is worse than none.
+  Three things in this language are called badges and they are distinct: a
+  **card glyph** is the identity of a collapsed system, a **flow badge** is a
+  step number on an edge, a **node badge** is whose platform a leaf belongs to.
 - **System card** (collapsed container): height `88`; kind silhouette + accent bar,
   title 15/550, tagline 11 muted, glyph badge top-right `20×20` mono, `preview`
   strip = up to 3 icons at `16×16` bottom-right at 60% opacity, owner/status badges

@@ -237,3 +237,40 @@ describe("grammar + model builder", () => {
       );
     });
   });
+
+describe("badge: is a real icon reference", () => {
+  // Task #45's glyph treatment, applied to the node badge: an unchecked ref
+  // would draw a bare plate, exit 0, and leave the typo to be noticed by eye.
+  const src = (badge: string) =>
+    `pack aws\nsystem s "S" {\n  a = aws/lambda "A" { badge: ${badge} }\n}\n`;
+  const badgeDiag = (r: ReturnType<typeof buildModel>) =>
+    r.diagnostics.find((x) => x.message.includes("in badge"));
+
+  it("accepts a valid ref", () => {
+    const r = buildModel(src("logos/databricks"));
+    expect(badgeDiag(r)).toBeUndefined();
+    expect(r.ok).toBe(true);
+  });
+
+  it("suggests the icon on a typo", () => {
+    const r = buildModel(src("logos/databrics"));
+    expect(badgeDiag(r)!.message).toContain("unknown icon `logos/databrics`");
+    expect(badgeDiag(r)!.fix).toContain("did you mean `logos/databricks`?");
+  });
+
+  it("points at icon search when nothing is close", () => {
+    const r = buildModel(src("logos/zzzzzz"));
+    expect(badgeDiag(r)!.fix).toContain("squinch icons search zzzzzz");
+  });
+
+  it("suggests the pack on a pack typo", () => {
+    const r = buildModel(src("logoz/databricks"));
+    expect(badgeDiag(r)!.message).toContain("unknown pack `logoz`");
+    expect(badgeDiag(r)!.fix).toContain("did you mean `logos/");
+  });
+
+  it("names the shape on a bare value", () => {
+    const r = buildModel(src("databricks"));
+    expect(badgeDiag(r)!.fix).toContain("badge: <pack>/<id>");
+  });
+});

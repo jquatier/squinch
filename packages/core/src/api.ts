@@ -54,7 +54,11 @@ export function iconsUsedBy(files: ProjectFile[] | string): { pack: string; id: 
   const project = typeof files === "string" ? [{ name: "input", src: files }] : files;
   const { model } = buildProject(project);
   const refs = new Map<string, { pack: string; id: string }>();
-  for (const n of model.nodes.values()) if (n.icon) refs.set(`${n.icon.pack}/${n.icon.id}`, n.icon);
+  for (const n of model.nodes.values()) {
+    if (n.icon) refs.set(`${n.icon.pack}/${n.icon.id}`, n.icon);
+    const b = n.attrs["badge"];
+    if (b?.includes("/")) refs.set(b, { pack: b.split("/")[0], id: b.split("/")[1] });
+  }
   for (const z of model.zones) if (z.icon) refs.set(`${z.icon.pack}/${z.icon.id}`, z.icon);
   for (const c of model.containers.values()) {
     const g = c.attrs["glyph"];

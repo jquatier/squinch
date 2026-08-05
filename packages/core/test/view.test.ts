@@ -4,6 +4,7 @@ import { fileURLToPath } from "node:url";
 import { join, dirname } from "node:path";
 import { buildModel } from "../src/model/build.js";
 import { resolveView } from "../src/view/resolve.js";
+import { render, validateSVG } from "../src/index.js";
 
 const pkg = join(dirname(fileURLToPath(import.meta.url)), "..");
 const src = readFileSync(join(pkg, "examples/landscape.squinch"), "utf8");
@@ -246,5 +247,72 @@ view b { title "Custom B" }`;
     expect(forB).toHaveLength(1);
     expect(forB[0].auto).toBeUndefined();
     expect(forB[0].title).toBe("Custom B");
+  });
+});
+
+describe("badge on a leaf", () => {
+  it("carries the parsed ref into the view graph, and renders it", async () => {
+    const doc = `pack aws
+system s "S" {
+  wh = sys/database "SQL warehouse" { badge: logos/databricks }
+  nb = sys/notebook "notebook"
+  wh -> nb
+}
+view v { scope s }`;
+    const built = buildModel(doc);
+    expect(built.ok, JSON.stringify(built.diagnostics)).toBe(true);
+    const g = resolveView(built.model, built.model.views.find((v) => v.name === "v")!);
+    const wh = g.nodes.find((n) => n.path === "s.wh")!;
+    expect(wh.badge).toEqual({ pack: "logos", id: "databricks" });
+    expect(g.nodes.find((n) => n.path === "s.nb")!.badge).toBeUndefined();
+
+    const r = await render(doc, { theme: "light", view: "v" });
+    expect(r.ok).toBe(true);
+    // the 22px surface plate at plate-origin+25, and the 14px mark inside it
+    expect(r.svg).toMatch(/<rect x="\d+" y="\d+" width="22" height="22" rx="5" fill="#[0-9A-F]+" stroke="#[0-9A-F]+"\/>/);
+    expect(r.svg).toMatch(/<use href="#sq-logos-databricks" x="\d+" y="\d+" width="14" height="14"\/>/);
+    // the <use> is emitted unconditionally, so the symbol is the real assertion:
+    // iconDefs walks a hardcoded field list per node and must include the badge,
+    // or a badge-only icon dangles and draws nothing.
+    expect(r.svg).toContain(`<symbol id="sq-logos-databricks"`);
+    // brand colour from the manifest, not a theme colour
+    expect(r.svg).toContain(`color="#FF3621" fill="#FF3621"`);
+    expect(validateSVG(r.svg!).ok).toBe(true);
+  });
+
+  it("keeps its plate crisp in sketch, and survives the adaptive merge", async () => {
+    const doc = `pack aws
+system s "S" {
+  wh = sys/database "SQL warehouse" { badge: logos/databricks }
+  nb = sys/notebook "notebook"
+  wh -> nb
+}
+view v { scope s }`;
+    // sketch roughens boxes but never plates — the badge plate is a plain rect
+    // like the icon plate it sits on, so the mark is never drawn on a wobble.
+    const sk = await render(doc, { theme: "sketch", view: "v" });
+    expect(sk.ok, JSON.stringify(sk.diagnostics)).toBe(true);
+    expect(sk.svg).toMatch(/<rect x="\d+" y="\d+" width="22" height="22" rx="5"/);
+
+    // adaptive merges two palettes positionally: the plate's fill/stroke are
+    // theme tokens and diverge, the brand colour is identical in both and must
+    // survive as a literal rather than being rewritten.
+    const ad = await render(doc, { theme: "light", adaptive: true, view: "v" });
+    expect(ad.ok, JSON.stringify(ad.diagnostics)).toBe(true);
+    expect(ad.svg).toContain("#FF3621");
+    expect(validateSVG(ad.svg!).ok).toBe(true);
+  });
+
+  it("shares one <symbol> when the badge is also some node's icon", async () => {
+    const doc = `pack logos
+system s "S" {
+  a = logos/databricks "platform"
+  b = sys/table "delta" { badge: logos/databricks }
+  a -> b
+}
+view v { scope s }`;
+    const r = await render(doc, { theme: "light", view: "v" });
+    expect(r.ok, JSON.stringify(r.diagnostics)).toBe(true);
+    expect(r.svg!.match(/<symbol id="sq-logos-databricks"/g)!.length).toBe(1);
   });
 });

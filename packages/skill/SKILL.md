@@ -70,6 +70,10 @@ system shop "Order Service" {         // systems/containers nest arbitrarily
   db     = aws/dynamodb    "Orders Table" datastore {
     tags: #pci                        // kind and attr block go in either order
   }
+  wh     = sys/database    "SQL Warehouse" datastore {
+    badge: logos/databricks           // small vendor mark on the icon plate —
+                                      // see "Platforms with no icon pack" below
+  }
   legacy = box             "Old Billing" external   // `box` = no icon
   // kinds: `external` (not ours — someone else's system) and `datastore`
   // (holds state). `external` draws a hatched surface and is the one worth
@@ -402,6 +406,38 @@ last resort when nothing else fits. Ids are Lucide's own names, so
 Short aliases exist for words you would type instead: `gear`→`cog`,
 `cube`→`box`, `db`→`database`, `rack`/`vm`/`host`→`server`, `disk`→`hard-drive`,
 `firewall`→`shield`, `vault`→`lock-keyhole`, `cron`→`clock`, `lb`→`share-2`.
+
+## Platforms with no icon pack
+
+Some vendors publish no icons anyone may redistribute, so no pack exists and none
+ever will — Databricks, Snowflake, dbt and Confluent are the ones that come up.
+Don't reach for a lookalike from another vendor and don't invent an id. Draw the
+*concept* from `sys/*` and mark it with the vendor's mark from `logos/*`:
+
+```squinch
+wh = sys/database "SQL warehouse" { badge: logos/databricks }
+```
+
+Databricks, worked out — every base below is a real `sys/` id or alias:
+
+| component | write |
+| --- | --- |
+| Delta table | `sys/table … { badge: logos/databricks }` |
+| Unity Catalog | `sys/catalog` |
+| SQL warehouse | `sys/database` |
+| Vector search | `sys/waypoints` |
+| Model serving | `sys/model` |
+| MLflow experiment | `sys/experiment` |
+| Notebook | `sys/notebook` |
+| Workflows job | `sys/workflow` |
+| Structured streaming | `sys/stream` |
+
+The same recipe covers any vendor whose mark is in the logos pack —
+`logos/snowflake` is there, dbt and Confluent are not. Run `squinch icons search
+<vendor>` before writing a badge; if there's no mark, skip the badge and let the
+label carry the vendor rather than substituting a lookalike. Badge only what the
+platform actually owns: a Kafka or S3 node keeps its own icon, and that contrast
+is what makes the platform boundary readable.
 
 ## Quality bar before you call it done
 

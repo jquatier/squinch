@@ -147,7 +147,12 @@ record. The number is never the point — a round that scores 20/20 and surfaces
 a crash beats one that scores 20/20 and surfaces nothing.
 
 v1.1's DSL is done: zones, flows, tags, channels, cols, align, legend/titleblock,
-plus `only`/`detail` (below). Deliberately *not* built, with reasons recorded: `route … around`/`via`
+plus `only`/`detail` (below) and `badge:` — a vendor mark composited onto a leaf's
+icon plate at render time (SPEC §nodes, DESIGN §3). It exists because vendors like
+Databricks publish no redistributable icons, so a pack for them cannot legally
+exist; composing a `sys/*` concept with a CC0 `logos/*` mark ships nothing new and
+gives that whole platform a vocabulary. The mark is drawn from the pack manifest's
+own brand colour on a quiet plate — never recoloured, never baked into an asset. Deliberately *not* built, with reasons recorded: `route … around`/`via`
 (`docs/notes/routing-hints.md` — ELK already avoids nodes) and `grid` (rows and
 cols compose to the same thing).
 A view has **two** selection axes, and conflating them was a real bug: `scope` is

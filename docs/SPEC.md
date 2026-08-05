@@ -112,6 +112,21 @@ system shop "Order Service" {
 Ids resolve lexically: inside `shop`, write `sync` or `workers.sync`; outside, write
 `shop.workers.sync`.
 
+A leaf node takes `badge:` — a second icon reference drawn small on the corner of
+its icon plate:
+
+```squinch
+wh = sys/database "SQL warehouse" { badge: logos/databricks }
+```
+
+It exists for platforms that publish no icon set anyone may redistribute (the
+standing example is Databricks), so a pack for them cannot legally exist. Rather
+than vendor someone's extracted artwork, the badge composes two things already
+licensed: a generic `sys/*` concept for *what the thing is* and a brand mark for
+*whose it is*. Any pack icon is a legal value; in practice it is a `logos/*` mark.
+The ref is checked like `glyph:` — an unknown pack or icon is a check error with a
+did-you-mean, never a silently blank plate.
+
 **Altitude rendering:** a collapsed system/container renders as a **system card** —
 kind-driven silhouette, label, optional `glyph` badge, optional `preview` strip —
 never as a grid of its inner provider icons. Zooming/`expand` swaps the card for the

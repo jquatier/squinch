@@ -1,0 +1,46 @@
+// `badge:` puts a vendor mark on a node's icon plate. It exists because some
+// platforms publish no icon set anyone may redistribute — Databricks is the
+// standing example — so there is no pack to install and never will be. Rather
+// than ship someone's extracted artwork, compose two things we already have a
+// licence to: a generic `sys/*` concept for *what the thing is*, and a CC0
+// brand mark for *whose it is*. The badge is what makes a wall of grey plates
+// legible: every Databricks-owned box is marked, and the Kafka and S3 nodes
+// keep their own icons, so the platform boundary reads at a glance.
+pack aws
+
+system lakehouse "Customer 360" {
+  events = logos/apachekafka "order events"
+  landing = aws/s3 "raw landing" datastore
+
+  ingest = sys/stream "Auto Loader" { badge: logos/databricks }
+  bronze = sys/table "bronze.orders" datastore { badge: logos/databricks }
+  silver = sys/table "silver.customers" datastore { badge: logos/databricks }
+  job = sys/workflow "nightly job" { badge: logos/databricks }
+  uc = sys/catalog "Unity Catalog" { badge: logos/databricks }
+  wh = sys/database "SQL warehouse" { badge: logos/databricks }
+  nb = sys/notebook "analysis" { badge: logos/databricks }
+  vs = sys/waypoints "vector search" { badge: logos/databricks }
+  serving = sys/model "model serving" { badge: logos/databricks }
+
+  bi = logos/looker "dashboards" external
+
+  events ~> ingest "stream"
+  landing -> ingest "backfill" { style: dashed }
+  ingest -> bronze "append"
+  bronze -> silver "merge"
+  job -> silver "orchestrates" { style: dotted }
+  uc -> silver "governs" { style: dotted }
+  silver -> wh "serves"
+  silver -> vs "embeds"
+  vs -> serving "retrieval"
+  wh -> nb "query"
+  wh -> bi "JDBC"
+}
+
+view lakehouse {
+  title "One platform, two licences"
+  scope lakehouse
+  layout {
+    rows [events landing] [ingest] [bronze] [uc silver job] [wh vs nb] [serving bi]
+  }
+}

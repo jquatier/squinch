@@ -11,6 +11,9 @@ export interface VNode {
   label: string;
   icon?: { pack: string; id: string };
   glyph?: { pack: string; id: string };
+  /** Vendor mark composited onto the icon plate's corner (leaf nodes) — the
+   *  licence-clean vocabulary for platforms with no icon pack (SPEC §nodes). */
+  badge?: { pack: string; id: string };
   tagline?: string;
   preview: { pack: string; id: string }[];
   tags: string[]; // effective (container-inherited)
@@ -438,11 +441,18 @@ export function resolveView(model: SModel, view: SView): ViewGraph {
       };
     }
     const n = model.nodes.get(path)!;
+    // Lenient like the container glyph split: validation happened at check
+    // time, and a half-typed value in the editor must not throw here.
+    const badgeRef = n.attrs["badge"];
+    const badge = badgeRef?.includes("/")
+      ? { pack: badgeRef.split("/")[0], id: badgeRef.split("/")[1] }
+      : undefined;
     return {
       path,
       kind: isContext ? "context-leaf" : "leaf",
       label: n.label,
       icon: n.icon,
+      badge,
       preview: [],
       tags: effectiveTags(path),
       external: n.kinds.includes("external") || undefined,
