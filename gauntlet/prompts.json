@@ -215,7 +215,7 @@
   },
   {
     "id": "10-hybrid-legacy",
-    "prompt": "A legacy on-premises ERP system (no cloud icon \u2014 it is not an AWS service) feeds a sync worker Lambda over an asynchronous link; the worker writes to an RDS database used by a new admin dashboard web app, which administrators (people) use.",
+    "prompt": "A legacy on-premises ERP system (no cloud icon — it is not an AWS service) feeds a sync worker Lambda over an asynchronous link; the worker writes to an RDS database used by a new admin dashboard web app, which administrators (people) use.",
     "expect": {
       "minNodes": 4,
       "minAsync": 1,
@@ -270,7 +270,7 @@
   },
   {
     "id": "13-channel-fanin",
-    "prompt": "Five Lambda handlers (create, read, update, delete, search) all write to one DynamoDB table behind an API Gateway. The five lines converging on the table look like spaghetti \u2014 make them share a single trunk into the table instead.",
+    "prompt": "Five Lambda handlers (create, read, update, delete, search) all write to one DynamoDB table behind an API Gateway. The five lines converging on the table look like spaghetti — make them share a single trunk into the table instead.",
     "expect": {
       "minNodes": 6,
       "requireChannel": true,
@@ -289,7 +289,7 @@
   },
   {
     "id": "14-tag-lens",
-    "prompt": "A payments platform: API Lambda, tokenizer Lambda, card vault on DynamoDB, an analytics Lambda and a Redshift warehouse. Tag everything in PCI scope, then give me two views \u2014 the full picture, and an auditor's view that shows only the PCI-tagged parts.",
+    "prompt": "A payments platform: API Lambda, tokenizer Lambda, card vault on DynamoDB, an analytics Lambda and a Redshift warehouse. Tag everything in PCI scope, then give me two views — the full picture, and an auditor's view that shows only the PCI-tagged parts.",
     "expect": {
       "minNodes": 5,
       "minViews": 2,
@@ -424,6 +424,81 @@
           "kubernetes-services"
         ]
       ]
+    }
+  },
+  {
+    "id": "21-market-data",
+    "prompt": "Our market data path: a feed handler ingests a continuous price stream from the exchange, normalises it, and pushes ticks to a pricing engine that the trading UI subscribes to. Separately, an overnight batch reconciles the day's fills against the clearing house, and the risk service polls the pricing engine every few seconds for a health signal. Make it obvious at a glance which links are continuous, which one is the nightly job, and which is a poll.",
+    "expect": {
+      "minNodes": 6,
+      "minAsync": 1,
+      "requireAnimate": 2
+    }
+  },
+  {
+    "id": "22-lakehouse",
+    "prompt": "Draw our Databricks lakehouse. Kafka order events land through Auto Loader into a bronze Delta table; a nightly job merges that into a silver customers table governed by Unity Catalog; analysts query the result from a SQL warehouse, and a vector search index feeds a model serving endpoint. Make it obvious which pieces are Databricks' own and which are not.",
+    "expect": {
+      "minNodes": 7,
+      "requireBadge": "logos/databricks",
+      "requirePack": "sys"
+    }
+  },
+  {
+    "id": "23-k8s-platform",
+    "prompt": "Show our Kubernetes cluster: an nginx ingress fronts three deployments — web, api and worker — each behind its own service. The api reads and writes a Postgres stateful set and caches in Redis. A nightly cronjob prunes old records. Draw it as the cluster it is.",
+    "expect": {
+      "minNodes": 7,
+      "requirePack": "k8s"
+    }
+  },
+  {
+    "id": "24-warehouse-floor",
+    "prompt": "Draw our warehouse automation — none of this is cloud. Barcode scanners on three packing benches feed a local controller, which drives a conveyor sorter and a label printer. The controller syncs to the ERP over the site network once a minute. A shift supervisor watches a status board.",
+    "expect": {
+      "minNodes": 6,
+      "requirePack": "sys",
+      "requirePerson": true
+    }
+  },
+  {
+    "id": "25-review-titleblock",
+    "prompt": "I need our payments architecture for a design review on Thursday: an API gateway, an auth service, a ledger on Postgres, and a settlement worker that batches out to the bank overnight. Stamp the drawing so reviewers know it is version 2.1, owned by the payments team, and current as of this quarter.",
+    "expect": {
+      "minNodes": 5,
+      "requireTitleblock": true
+    }
+  },
+  {
+    "id": "26-wide-ingestion",
+    "prompt": "Our ingestion estate, and I want it wide rather than tall — it is going on one slide. Six collectors all feed a single normaliser, which fans out to a warehouse, a search index and an alerting service. Keep the warehouse and the search index in the same column so the two stores read as a pair, and tighten the spacing.",
+    "expect": {
+      "minNodes": 9
+    }
+  },
+  {
+    "id": "27-rank-conflict",
+    "prompt": "Draw our approval chain: a request service hands off to a policy engine, the policy engine calls an approver service, and the approver writes to an audit log. Lay it out so the policy engine and the audit log sit on the same row as each other, and make sure the policy engine still reads as directly upstream of the audit log.",
+    "expect": {
+      "minNodes": 4
+    }
+  },
+  {
+    "id": "28-how-deep",
+    "prompt": "Show me our order platform — I do not need every box, just enough that a new engineer knows where things live. There are three services: orders, inventory and notifications, each with a handful of internal pieces. I care most about how orders itself is put together.",
+    "expect": {
+      "minSystems": 3,
+      "minViews": 2,
+      "requireNarrowerView": true
+    }
+  },
+  {
+    "id": "29-brain-dump",
+    "prompt": "OK so this is our thing. Customers come in through the mobile app or the website, does not really matter, both hit the same gateway. Behind that there is the account service and the billing service — billing is the one that talks to Stripe (we are moving off Stripe next year but ignore that for now). Account writes to the main Postgres. Oh and there is a nightly export to the data team, I think it is S3 now, it used to be SFTP. Billing reads from Postgres too. Actually no, scratch that, billing has its own database, separate one. Do not bother with the internal admin tool, nobody cares about it.",
+    "expect": {
+      "minNodes": 7,
+      "requireExternal": true,
+      "requirePerson": true
     }
   }
 ]

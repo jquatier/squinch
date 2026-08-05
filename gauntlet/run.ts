@@ -226,8 +226,15 @@ writeFileSync(
 // scariest failure here: it would read as twenty agent failures. Ten lines
 // turn it into a startup error.
 {
-  const probe = selected.find((p) => existsSync(join(here, "solutions", `${p.id}.squinch`)));
-  if (!probe) die("no committed solution to smoke-test the bundle against");
+  // Any committed solution will do — the subject under test is the *bundle*,
+  // not the selection. Searching `selected` instead made a round of nothing but
+  // new prompts impossible to start, which is exactly the round you run when
+  // onboarding prompts: none of them has a solution yet, by definition. Prefer
+  // a selected one so the smoke test stays close to the work when there is a
+  // choice.
+  const hasSolution = (p: Prompt) => existsSync(join(here, "solutions", `${p.id}.squinch`));
+  const probe = selected.find(hasSolution) ?? prompts.find(hasSolution);
+  if (!probe) die("no committed solution anywhere to smoke-test the bundle against");
   const file = join(here, "solutions", `${probe.id}.squinch`);
   // Compare the two CLIs against each other, which is what "faithful" means.
   // Asserting the probe file is *clean* instead was wrong twice over: it tests

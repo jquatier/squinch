@@ -1,0 +1,33 @@
+// Ingestion estate — wide layout for slide presentation
+
+c1 = sys/container "Collector 1"
+c2 = sys/container "Collector 2"
+c3 = sys/container "Collector 3"
+c4 = sys/container "Collector 4"
+c5 = sys/container "Collector 5"
+c6 = sys/container "Collector 6"
+
+norm = sys/workflow "Normaliser"
+
+wh    = sys/database "Warehouse" datastore
+idx   = sys/search   "Search Index" datastore
+alert = sys/siren    "Alerting"
+
+c1 ~> norm
+c2 ~> norm
+c3 ~> norm
+c4 ~> norm
+c5 ~> norm
+c6 ~> norm
+
+norm ~> wh
+norm ~> idx
+norm ~> alert
+
+view default {
+  layout {
+    direction right
+    density compact
+    rows [c1 c2 c3 c4 c5 c6] [norm] [wh idx] [alert]
+  }
+}

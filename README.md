@@ -290,7 +290,7 @@ source, and no previous answers to copy. Every prompt is re-run from scratch as
 the language grows, and the bar rises with it — the corpus has gone 10 → 16 → 20
 prompts as zones, flows, tag lenses, channels and a second cloud pack landed.
 
-The current round scores **20/20** with zero human layout fixes. Every round is
+The current round scores **29/29** with zero human layout fixes. Every round is
 written up in [gauntlet/README.md](gauntlet/README.md) — what was asked, how it
 was run, and what came back.
 

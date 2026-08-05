@@ -1,0 +1,58 @@
+// Order Platform - System Overview
+pack aws
+
+person customer "Customer"
+
+system orders "Orders Service" {
+  description: "Order processing and management"
+  glyph: sys/code
+
+  api = aws/api-gateway "API Gateway"
+  create = aws/lambda "Create Order"
+  process = aws/lambda "Process Order"
+  validate = aws/lambda "Validate Order"
+  db = aws/dynamodb "Orders DB" datastore
+  queue = aws/sqs "Order Queue"
+
+  api -> create
+  api -> process
+  create -> validate
+  validate -> db
+  create ~> queue "submit"
+  queue ~> process
+  process -> db
+}
+
+system inventory "Inventory Service" {
+  description: "Stock management"
+  glyph: sys/database
+
+  api = aws/api-gateway "Inventory API"
+  stock = aws/dynamodb "Stock DB" datastore
+
+  api -> stock
+}
+
+system notifications "Notifications Service" {
+  description: "Customer communications"
+  glyph: sys/workflow
+
+  handler = aws/lambda "Notification Handler"
+  email = aws/sns "Email Topic"
+
+  handler ~> email
+}
+
+customer -> orders.api "places order"
+orders.process -> inventory.api "check stock"
+orders.queue ~> notifications.handler "order events"
+
+view landscape {
+  title "Order Platform"
+  include *
+}
+
+view orders {
+  scope orders
+  show descriptions
+}

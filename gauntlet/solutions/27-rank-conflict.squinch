@@ -1,0 +1,16 @@
+// Approval chain system
+req = sys/webhook "Request Service"
+policy = sys/shield-check "Policy Engine"
+approver = sys/server "Approver Service"
+audit = sys/database "Audit Log" datastore
+
+req -> policy
+policy -> approver
+approver -> audit
+
+view main {
+  layout {
+    rows [req] [policy audit]
+    place audit right-of policy
+  }
+}

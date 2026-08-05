@@ -49,6 +49,14 @@ interface Expect {
   requireChannel?: boolean;
   /** at least one node must use an icon from this pack */
   requirePack?: string;
+  /** how many *distinct* `animate:` values the edges must carry — cadence as
+   *  meaning only reads if the diagram contrasts two of them */
+  requireAnimate?: number;
+  /** some node must badge this `pack/id` — the licence-clean way to draw a
+   *  platform that ships no icons (SPEC §nodes) */
+  requireBadge?: string;
+  /** a view must carry a titleblock */
+  requireTitleblock?: boolean;
   icons?: string[][];
 }
 interface Prompt { id: string; prompt: string; expect: Expect }
@@ -236,6 +244,17 @@ for (const p of prompts) {
     if (counts.length < 2 || Math.min(...counts) >= Math.max(...counts))
       problems.push("no view narrows the picture — every view shows the same elements");
   }
+  if (e.requireAnimate) {
+    // distinct values, not edge count: ten edges all `flow` is one statement
+    // about the system, and the prompt asked for a contrast.
+    const kinds = new Set(m.edges.map((x) => x.attrs["animate"]).filter((v) => v && v !== "false"));
+    if (kinds.size < e.requireAnimate)
+      problems.push(`animate: ${kinds.size} distinct value(s) < ${e.requireAnimate}`);
+  }
+  if (e.requireBadge && !nodes.some((n) => n.attrs["badge"] === e.requireBadge))
+    problems.push(`no node badged \`${e.requireBadge}\``);
+  if (e.requireTitleblock && !m.views.some((v) => v.titleblock))
+    problems.push("no view carries a titleblock");
   if (e.requirePack && !nodes.some((n) => n.icon?.pack === e.requirePack))
     problems.push(`no icon from the \`${e.requirePack}\` pack`);
   for (const anyOf of e.icons ?? [])

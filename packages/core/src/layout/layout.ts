@@ -1187,9 +1187,13 @@ export async function layoutView(
   // snap is ours, same boundary as the coplanar router. The first-listed
   // element is the anchor; the rest move onto its axis.
   // a column is an align group: its members share one exact vertical axis
+  // `cols` is implemented as an align group, but the author wrote `cols` — the
+  // warnings below have to say the word that is actually in their file.
   const alignGroups = [
-    ...view.layout.align,
-    ...(view.layout.cols ?? []).filter((c) => c.length > 1).map((nodes) => ({ nodes, loc: view.loc })),
+    ...view.layout.align.map((g) => ({ ...g, from: "align" as const })),
+    ...(view.layout.cols ?? [])
+      .filter((c) => c.length > 1)
+      .map((nodes) => ({ nodes, loc: view.loc, from: "cols" as const })),
   ];
   if (alignGroups.length) {
     const axis: "x" | "y" = view.layout.direction === "right" ? "y" : "x";
@@ -1231,6 +1235,24 @@ export async function layoutView(
       const anchor = nodeByPath.get(group.nodes[0]);
       if (!anchor) continue;
       const target = centre(anchor);
+      // Round 13 finding. A cold agent asked for six collectors side by side in
+      // the first column of a left-to-right flow and wrote `cols [c1 … c6]` —
+      // reasonable, since on screen that *is* a column. But those six are
+      // siblings on one rank, so no two of them can share an axis, and the
+      // result was six near-identical warnings, none of which named the fix.
+      // One mistake, one diagnostic, and it says which construct to reach for.
+      const members = group.nodes.map((q) => nodeByPath.get(q)).filter(Boolean) as PNode[];
+      if (members.length === group.nodes.length && members.length > 1
+          && members.every((m) => m.rank === members[0].rank)) {
+        const list = group.nodes.join(" ");
+        diagnostics.push({
+          severity: "warning",
+          message: `${group.from} \`[${list}]\` — all ${members.length} sit on the same rank, so they cannot share an axis`,
+          fix: `to put them side by side write \`rows [${list}]\`; \`${group.from}\` stacks nodes *across* ranks`,
+          loc: group.loc,
+        });
+        continue;
+      }
       for (const path of group.nodes.slice(1)) {
         const n = nodeByPath.get(path);
         if (!n) continue;
@@ -1239,7 +1261,7 @@ export async function layoutView(
         if (byPath.get(path)?.frame) {
           diagnostics.push({
             severity: "warning",
-            message: `align skipped \`${path}\` — it sits inside an expanded container`,
+            message: `${group.from} skipped \`${path}\` — it sits inside an expanded container`,
             fix: `align the container itself, or drop the expand in this view`,
             loc: group.loc,
           });
@@ -1258,7 +1280,7 @@ export async function layoutView(
         if (escaped) {
           diagnostics.push({
             severity: "warning",
-            message: `align skipped \`${path}\` — moving it onto \`${group.nodes[0]}\`'s axis would take it outside zone \`${escaped.id}\``,
+            message: `${group.from} skipped \`${path}\` — moving it onto \`${group.nodes[0]}\`'s axis would take it outside zone \`${escaped.id}\``,
             fix: `align \`${path}\` with something inside \`${escaped.id}\`, or drop it from the zone`,
             loc: group.loc,
           });
@@ -1273,7 +1295,7 @@ export async function layoutView(
         if (clash) {
           diagnostics.push({
             severity: "warning",
-            message: `align skipped \`${path}\` — moving it onto \`${group.nodes[0]}\`'s axis would collide with \`${clash.path}\``,
+            message: `${group.from} skipped \`${path}\` — moving it onto \`${group.nodes[0]}\`'s axis would collide with \`${clash.path}\``,
             fix: `reorder that row, or align \`${clash.path}\` too`,
             loc: group.loc,
           });

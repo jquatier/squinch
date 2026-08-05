@@ -1,0 +1,58 @@
+// Warehouse floor automation system
+pack logos
+
+// Actors
+supervisor = person "Shift Supervisor"
+
+// Scanning and packing
+bench1 = sys/smartphone "Bench 1 Scanner"
+bench2 = sys/smartphone "Bench 2 Scanner"
+bench3 = sys/smartphone "Bench 3 Scanner"
+
+// Automation controller
+controller = sys/server "Automation Controller" {
+  description: "Local PLC"
+}
+
+// Physical equipment
+sorter = sys/route "Conveyor Sorter"
+printer = sys/printer "Label Printer"
+
+// Status monitoring
+board = sys/monitor "Status Board"
+
+// Enterprise system
+erp = box "ERP System" external {
+  description: "Corporate ERP"
+}
+
+// Data flows
+bench1 -> controller "scan data"
+bench2 -> controller "scan data"
+bench3 -> controller "scan data"
+
+controller -> sorter "routing commands"
+controller -> printer "label data"
+
+controller ~> erp "sync batch" {
+  description: "Every minute"
+}
+
+controller -> board "status feed"
+supervisor -> board "monitors"
+
+// Physical deployment
+zone floor "Warehouse Floor" custom {
+  contains bench1, bench2, bench3, sorter, printer
+}
+
+zone site "Site Network" network {
+  contains controller, erp, board, floor
+}
+
+view main {
+  title "Warehouse Automation"
+  layout {
+    direction down
+  }
+}

@@ -139,12 +139,13 @@ Phases 0–3 are complete. The engine (grammar → model → visibility/lifting 
 layout → themed SVG), the CLI (check/render/diff/icons/init/watch + lockfile
 model + Actions), the SPA playground, the VS Code extension + language server,
 four icon packs, and five themes all ship. Phase 3's bar — an agent producing
-clean diagrams from prose using only the skill + CLI — is certified at **20/20
-by independent cold agents**, most recently at **18/20 clean on the first
-`check`**. `gauntlet/README.md` writes up the latest round only: every round's
+clean diagrams from prose using only the skill + CLI — is certified at **29/29
+by independent cold agents**, most recently at **25/29 clean on the first
+`check`** — the nine prompts added in round 14 are where the four second calls
+came from, which is what they were added for. `gauntlet/README.md` writes up the latest round only: every round's
 findings land as a code or docs change in the same commit, so the fixes are the
-record. The number is never the point — a round that scores 20/20 and surfaces
-a crash beats one that scores 20/20 and surfaces nothing.
+record. The number is never the point — a round that scores full marks and
+surfaces a crash beats one that scores full marks and surfaces nothing.
 
 v1.1's DSL is done: zones, flows, tags, channels, cols, align, legend/titleblock,
 plus `only`/`detail` (below) and `badge:` — a vendor mark composited onto a leaf's

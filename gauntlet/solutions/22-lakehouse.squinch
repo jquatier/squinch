@@ -1,0 +1,60 @@
+// Databricks lakehouse architecture
+pack logos
+
+person analyst "Analyst"
+
+// External system (not Databricks)
+kafka = logos/kafka "Kafka Topics" external
+
+// Databricks components - using sys/* with databricks badge
+autoloader = sys/workflow "Auto Loader" {
+  badge: logos/databricks
+}
+
+bronze = sys/table "Bronze Delta Table" datastore {
+  description: "Raw order events"
+  badge: logos/databricks
+}
+
+merge_job = sys/workflow "Nightly Merge Job" {
+  description: "Bronze to Silver ETL"
+  badge: logos/databricks
+}
+
+silver = sys/table "Silver Customers Table" datastore {
+  description: "Curated customer data"
+  badge: logos/databricks
+}
+
+catalog = sys/catalog "Unity Catalog" {
+  description: "Data governance"
+  badge: logos/databricks
+}
+
+warehouse = sys/database "SQL Warehouse" {
+  badge: logos/databricks
+}
+
+vector = sys/waypoints "Vector Search Index" {
+  badge: logos/databricks
+}
+
+serving = sys/model "Model Serving Endpoint" {
+  badge: logos/databricks
+}
+
+// Data flow
+kafka ~> autoloader "order events"
+autoloader ~> bronze "lands to"
+bronze ~> merge_job "reads from"
+merge_job ~> silver "writes to"
+catalog -> silver "governs"
+analyst -> warehouse "queries"
+warehouse -> silver "reads from"
+silver ~> vector "indexes"
+vector -> serving "feeds"
+
+// Deployment boundary
+zone databricks "Databricks Lakehouse Platform" cloud {
+  contains autoloader, bronze, merge_job, silver, catalog, warehouse, vector, serving
+}

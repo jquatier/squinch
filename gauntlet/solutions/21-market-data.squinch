@@ -1,0 +1,28 @@
+// Market data processing architecture
+
+pack sys
+
+// External systems
+exchange = sys/globe "Exchange" external
+clearing = sys/building-2 "Clearing House" external
+
+// Core components
+feed    = sys/router "Feed Handler"
+pricing = sys/cpu "Pricing Engine"
+ui      = sys/app-window "Trading UI"
+risk    = sys/shield "Risk Service"
+batch   = sys/clock "Overnight Reconciliation"
+
+// Continuous data flow
+exchange ~> feed "price stream" { animate: packets }
+feed ~> pricing "normalized ticks" { animate: fast }
+pricing ~> ui "price updates"
+
+// Polling for health
+risk -> pricing "health check" { animate: pulse }
+
+// Nightly batch job
+batch -> clearing "fetch fills" {
+  style: dashed
+  animate: slow
+}

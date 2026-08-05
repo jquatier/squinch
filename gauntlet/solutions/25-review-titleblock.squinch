@@ -1,0 +1,23 @@
+pack aws
+pack logos
+
+gw   = aws/api-gateway "API Gateway"
+auth = sys/shield-check "Auth Service"
+ledger = logos/postgres "Ledger" datastore
+worker = sys/workflow "Settlement Worker"
+bank = box "Bank API" external
+
+gw -> auth
+gw -> ledger
+worker -> ledger
+worker ~> bank "batched settlements"
+
+view payments {
+  title "Payments Architecture"
+  titleblock {
+    version: "2.1"
+    owner: payments-team
+    status: "Q3 2026"
+  }
+  legend auto
+}

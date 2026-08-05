@@ -1,0 +1,31 @@
+pack aws
+pack logos
+
+person mobile "Mobile App"
+person web "Web User"
+
+gw = aws/api-gateway "API Gateway"
+
+account = sys/server "Account Service"
+billing = sys/server "Billing Service"
+
+account_db = logos/postgres "Postgres" datastore
+billing_db = logos/postgres "Billing DB" datastore
+
+stripe = box "Stripe" external
+
+export = aws/s3 "Data Export" datastore
+person data_team "Data Team"
+
+mobile -> gw
+web -> gw
+
+gw -> account
+gw -> billing
+
+account -> account_db
+billing -> billing_db
+billing -> stripe
+
+account_db ~> export "nightly export"
+export -> data_team
