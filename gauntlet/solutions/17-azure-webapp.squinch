@@ -1,17 +1,18 @@
 pack azure
+pack logos
 
 person customer "Customer"
 
-fd  = azure/front-door       "Front Door"
-app = azure/app-services     "Web App"
-sql = azure/sql              "SQL Database" datastore
-cache = azure/redis          "Redis Cache" datastore
-kv  = azure/key-vault        "Key Vault"
-ai  = azure/application-insights "Application Insights"
+frontdoor = azure/front-door "Front Door"
+webapp = azure/app-services "Web App"
+sql = azure/sql "SQL Database" datastore
+cache = azure/redis "Redis Cache" datastore
+vault = azure/key-vault "Key Vault"
+insights = azure/application-insights "Application Insights"
 
-customer -> fd "HTTPS"
-fd -> app
-app -> sql "queries"
-app -> cache "get/set"
-app -> kv "fetch secrets"
-app ~> ai "telemetry"
+customer -> frontdoor "browse"
+frontdoor -> webapp
+webapp -> sql
+webapp -> cache
+webapp -> vault "fetch secrets"
+webapp ~> insights "telemetry"

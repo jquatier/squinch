@@ -30,11 +30,12 @@
 // shimmed to `packages/cli/bin/squinch.js`: a shim would hand the agent a repo
 // path, and two `cd ..`s from there sits `gauntlet/solutions/` — the answers.
 //
-// Three things survive bundling only if planted beside it, and each fails in a
+// Four things survive bundling only if planted beside it, and each fails in a
 // way that reads as *agent* failure rather than harness failure:
 //   - the four pack dirs   (`packs/node-fs.ts` walks up from `import.meta.url`)
 //   - `@squinch/core/fonts/*.ttf` (`raster.ts` does a real `require.resolve`)
 //   - `@resvg/resvg-js` + its platform binary (or `-o out.png` dies)
+//   - a `package.json` one level up (`index.ts` reads its own version from it)
 //
 // `bin/squinch` is not a passthrough. It records every invocation — argv, exit
 // code, output — to a log **outside** the box, so iteration count and the first
@@ -81,6 +82,11 @@ const cliRequire = createRequire(join(root, "packages/cli/package.json"));
 
 interface Prompt { id: string; prompt: string }
 const prompts: Prompt[] = JSON.parse(readFileSync(join(here, "prompts.json"), "utf8"));
+// The one version the workspace shares (scripts/version.mjs owns it) — planted
+// beside the bundle below so the boxed CLI can read its own version.
+const WORKSPACE_VERSION: string = JSON.parse(
+  readFileSync(join(root, "package.json"), "utf8"),
+).version;
 
 // ── args ───────────────────────────────────────────────────────────────────
 // Values are consumed by position, never by shape. Prompt ids *are* numbers
@@ -177,6 +183,18 @@ writeFileSync(
   JSON.stringify({ name: "@squinch/core", version: "0.0.0", exports: { "./fonts/*": "./fonts/*" } }, null, 2),
 );
 cpSync(join(root, "packages/core/fonts"), join(fontPkg, "fonts"), { recursive: true });
+
+// version: index.ts answers `--version` and stamps squinch.lock from
+// `../package.json` relative to its own module URL. In the repo that is
+// packages/cli/package.json; in the bundle it is one level above squinch.mjs,
+// so it has to be planted or the CLI dies at startup with MODULE_NOT_FOUND —
+// which is precisely what it did the first time this ran after the version
+// work landed. The value is the workspace version, so a boxed agent that runs
+// `squinch --version` is told the truth.
+writeFileSync(
+  join(cliDir, "..", "package.json"),
+  JSON.stringify({ name: "squinch", version: WORKSPACE_VERSION, private: true }, null, 2),
+);
 
 // resvg: the JS wrapper plus this platform's native binary, both by resolved
 // path so no pnpm store layout is ever hard-coded. The binary is an optional

@@ -2,36 +2,31 @@ pack aws
 
 person customer "Customer"
 
-system checkout "Checkout System" {
-  glyph: sys/code
-
-  gw = aws/api-gateway "API Gateway"
-  cart = aws/lambda "Cart Handler"
-  payment = aws/lambda "Payment Handler"
+system checkout "Checkout Service" {
+  api = aws/api-gateway "API Gateway"
+  cart = aws/lambda "Cart Lambda"
+  payment = aws/lambda "Payment Lambda"
   db = aws/dynamodb "Orders Table" datastore
-  queue = aws/sqs "Fulfilment Queue"
-  worker = aws/lambda "Fulfilment Worker"
+  queue = aws/sqs "Fulfillment Queue"
+  worker = aws/lambda "Fulfillment Worker"
 
-  gw -> cart
+  api -> cart
   cart -> payment
   payment -> db
   payment ~> queue
   queue ~> worker
 }
 
-customer -> checkout.gw "checkout request"
+customer -> checkout.api "place order"
 
 flow checkout_journey "Checkout Journey" {
-  customer -> checkout.gw
-  checkout.gw -> checkout.cart
-  checkout.cart -> checkout.payment
-  checkout.payment -> checkout.db
-  checkout.payment ~> checkout.queue
-  checkout.queue ~> checkout.worker
+  customer -> checkout.api -> checkout.cart -> checkout.payment -> checkout.db
+  checkout.payment ~> checkout.queue ~> checkout.worker
 }
 
-view checkout {
+view main {
+  title "Checkout Flow"
+  scope checkout
   show flow checkout_journey
-  show descriptions
   legend auto
 }

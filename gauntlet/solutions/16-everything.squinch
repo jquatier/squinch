@@ -1,85 +1,72 @@
-// Order platform architecture
 pack aws
 
 person customer "Customer"
 
-// Frontend
 storefront = aws/cloudfront "Storefront"
-
-// API Gateway
 apigw = aws/api-gateway "API Gateway"
 
-// Catalog service
 system catalog "Catalog Service" {
-  description: "Product browsing and search"
+  description: "Product browsing"
   glyph: sys/database
 
   handler = aws/lambda "Catalog Handler"
-  db = aws/dynamodb "Catalog DB" datastore
+  db = aws/dynamodb "Products Table" datastore
 
   handler -> db
 }
 
-// Orders service
 system orders "Orders Service" {
-  description: "Order management"
+  description: "Order processing"
   glyph: sys/code
   tags: #core
 
-  handler = aws/lambda "Orders Handler" {
-    tags: #sensitive
-  }
-  db = aws/dynamodb "Orders DB" datastore {
-    tags: #sensitive
-  }
-  events = aws/eventbridge "Order Events"
+  handler = aws/lambda "Order Handler"
+  db = aws/dynamodb "Orders Table" datastore
+  bus = aws/eventbridge "Event Bus"
 
   handler -> db
-  handler ~> events "publish order events"
+  handler ~> bus "order placed"
 }
 
-// Payments service
 system payments "Payments Service" {
   description: "Payment processing"
   glyph: sys/lock
   tags: #sensitive
 
-  handler = aws/lambda "Payments Handler" {
+  handler = aws/lambda "Payment Handler" {
     tags: #sensitive
   }
-  db = aws/dynamodb "Payments DB" datastore {
+  db = aws/dynamodb "Payments Table" datastore {
     tags: #sensitive
   }
 
-  handler -> db
+  handler -> db { tags: #sensitive }
 }
 
-// Fulfillment worker
-fulfillment = aws/lambda "Fulfillment Worker"
+fulfillment = aws/lambda "Fulfillment Worker" {
+  description: "Order fulfillment"
+}
 
-// Connections
 customer -> storefront "browse"
-storefront -> apigw "API calls"
-apigw -> catalog.handler "catalog requests"
-apigw -> orders.handler "order requests" { tags: #sensitive }
-apigw -> payments.handler "payment requests" { tags: #sensitive }
-orders.events ~> fulfillment "order events"
+storefront -> apigw
+apigw -> catalog.handler "get products"
+apigw -> orders.handler "place order"
+apigw -> payments.handler "process payment" { tags: #sensitive }
+orders.bus ~> fulfillment "consume events"
 
-// VPC zone
 zone prod_vpc "Production VPC" vpc {
   contains apigw, catalog, orders, payments, fulfillment
 }
 
-// Landscape view
 view landscape {
   title "Order Platform Landscape"
   include *
   legend auto
 }
 
-// Orders service detail view
 view orders {
   scope orders
+  title "Orders Service Detail"
   show descriptions
   legend auto
 }

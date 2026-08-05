@@ -1,19 +1,16 @@
 pack azure
 
-// Components
-gw  = azure/app-gateway     "Application Gateway"
-aks = azure/aks             "AKS Cluster"
-acr = azure/acr             "Container Registry"
-sql = azure/sql             "Azure SQL"
+appgw = azure/app-gateway "Application Gateway"
+aks   = azure/aks "AKS Cluster"
+acr   = azure/acr "Container Registry"
+sql   = azure/sql "Azure SQL Database" datastore
 
-// Connections
-gw -> aks
-aks -> acr "pulls images"
-aks -> sql
+appgw -> aks
+aks   -> acr "pulls images"
+aks   -> sql
 
-// Network boundaries
 zone subscription "Azure Subscription" account {
-  contains gw, aks, acr, sql
+  contains appgw, aks, acr, sql
 }
 
 zone vnet "Virtual Network" network {

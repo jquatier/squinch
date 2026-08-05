@@ -335,6 +335,13 @@ view shop {
 
 ## Icons you'll use constantly (aws pack)
 
+When the request names a **specific product**, search for it — don't write the id
+from memory. `check` only tells you an id exists, never that it's the one the
+reader asked for, so a plausible-but-wrong mark passes silently and ships. The
+confusable pairs are the ones to watch: CloudFront (`aws/cloudfront`, a CDN) is
+not Cloudflare (`logos/cloudflare`, a different company); `aws/aurora` is not
+`aws/rds`. One `squinch icons search cloudfront` settles it.
+
 `lambda` · `dynamodb` · `s3` · `sqs` · `sns` · `api-gateway` · `opensearch` ·
 `aurora` · `rds` · `elasticache` · `cloudfront` · `eventbridge` · `kinesis` ·
 `step-functions` · `ecs` · `eks` · `fargate` · `ecr` · `athena` · `glue` ·

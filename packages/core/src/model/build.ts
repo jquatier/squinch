@@ -125,8 +125,13 @@ export function buildProject(input: ProjectFile[]): BuildResult {
 
     let sawSyntaxError = false;
     const errorLines = new Set<number>(); // one syntax error per line, not a cascade
+    // String spans, so text hints below never fire on label text — a label may
+    // legitimately read "Orders [US, EU]", and suppressing a real syntax error
+    // because of one would be strictly worse than staying quiet.
+    const strings: [number, number][] = [];
     tree.iterate({
       enter(n: any) {
+        if (n.name === "String") strings.push([n.from, n.to]);
         if (n.type.isError) {
           sawSyntaxError = true;
           const line = f.src.slice(0, n.from).split("\n").length;
@@ -151,6 +156,27 @@ export function buildProject(input: ProjectFile[]): BuildResult {
         error(ctx, ctx.loc({ from, to: from + "layout".length } as SyntaxNode),
           `\`layout\` block inside \`${sys}\` — layout hints live in views, not systems`,
           `move it below the system: view ${sys} { layout { … } }`);
+      }
+      // Commas inside a layout group. Every other language the agent knows
+      // separates a list with commas, so `rows [a, b] [c]` is the guess it
+      // makes first — and it produced a bare `syntax error near `[a, b]``,
+      // which names the line but not the rule. Round 4 lost two iterations to
+      // exactly this. Groups separate by whitespace; the comma is the whole
+      // mistake, so say so and point at the comma itself.
+      for (const m of f.src.matchAll(/\[[^\]\n]*,[^\]\n]*\]/g)) {
+        if (strings.some(([a, b]) => m.index! >= a && m.index! < b)) continue;
+        const comma = m.index! + m[0].indexOf(",");
+        error(ctx, ctx.loc({ from: comma, to: comma + 1 } as SyntaxNode),
+          "comma inside a layout group — ids separate with spaces",
+          `write \`${m[0].replace(/\s*,\s*/g, " ")}\``);
+        // Same reasoning as the stray-layout case below: the bare syntax error
+        // this produced points at the same line and adds nothing.
+        for (let i = diagnostics.length - 1; i >= 0; i--) {
+          const d = diagnostics[i];
+          if (d.file === ctx.name && d.message.startsWith("syntax error near")
+              && d.loc.from >= m.index! && d.loc.from <= m.index! + m[0].length)
+            diagnostics.splice(i, 1);
+        }
       }
       // The same mistake one level out: a `layout` block at the top of the
       // file, belonging to no view. It fell through to a bare syntax error

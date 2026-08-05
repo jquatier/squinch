@@ -274,3 +274,33 @@ describe("badge: is a real icon reference", () => {
     expect(badgeDiag(r)!.fix).toContain("badge: <pack>/<id>");
   });
 });
+
+describe("commas in a layout group", () => {
+  // Round 4: a cold agent wrote `rows [gw] [create, get, search]` — the guess
+  // every other language invites — and got a bare `syntax error near`, which
+  // named the line but not the rule. Two iterations lost to a one-character
+  // mistake.
+  const src = (group: string) =>
+    `pack aws\nsystem s "S" {\n  gw = aws/api-gateway "GW"\n  a = aws/lambda "A"\n  b = aws/lambda "B"\n  gw -> a\n  gw -> b\n}\nview v {\n  scope s\n  layout {\n    rows [gw] ${group}\n  }\n}\n`;
+
+  it("names the rule and writes out the fix", () => {
+    const r = buildModel(src("[a, b]"));
+    const d = r.diagnostics.find((x) => x.message.includes("comma inside a layout group"))!;
+    expect(d).toBeDefined();
+    expect(d.fix).toContain("[a b]");
+    // and it replaces the bare syntax error rather than adding to it
+    expect(r.diagnostics.some((x) => x.message.startsWith("syntax error near"))).toBe(false);
+  });
+
+  it("stays quiet on the correct form", () => {
+    expect(buildModel(src("[a b]")).ok).toBe(true);
+  });
+
+  it("never fires on a label that happens to contain one", () => {
+    // "Orders [US, EU]" is legal text; suppressing a real syntax error because
+    // of it would be strictly worse than saying nothing.
+    const r = buildModel(`pack aws\nsystem s "S" {\n  a = aws/lambda "Orders [US, EU]"\n  a ->\n}\n`);
+    expect(r.diagnostics.some((x) => x.message.includes("comma inside a layout group"))).toBe(false);
+    expect(r.diagnostics.some((x) => x.message.startsWith("syntax error near"))).toBe(true);
+  });
+});

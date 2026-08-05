@@ -64,28 +64,49 @@ nothing.
 
 ## Latest round
 
-**Round 12 — 20/20, all twenty clean on the first `check`** (2026-08-02). The
-first perfect round: no prompt needed a second call, so no agent needed a fix.
-Up from 19/20 clean in round 11, 17 in round 10, 7 in round 4.
+**Round 13 — 20/20, all twenty clean on the first `check`** (2026-08-05). The
+second perfect round in a row, and unlike round 12 it paid for itself: it
+surfaced two real defects and one wrong claim before a single agent ran.
 
-**And it found nothing.** By this file's own standard that is the weaker
-result — a round that scores 20/20 and surfaces a crash beats one that scores
-20/20 and surfaces nothing. Three rounds running have now sat at or near the
-ceiling, which says the prompt set has stopped discriminating rather than that
-the surface is flawless: these twenty prompts are the ones the skill has been
-tuned against for eleven rounds. **The next round needs harder prompts to be
-worth its money** — deliberately awkward asks, contradictory hints, domains no
-existing prompt covers.
+**The round never started the first time.** The harness bundles the CLI and
+compares it against the repo CLI on a committed solution before spending money;
+the bundled one died at startup with `MODULE_NOT_FOUND` on `../package.json`.
+Cause: the CLI had just been changed to read its own version from its
+`package.json` instead of a hardcoded string, which resolves in the repo and in
+a published tarball but not in a single-file bundle where nothing sits one level
+up. Nothing in CI bundles the CLI, so no test could have caught it — the
+gauntlet is the only thing that does. Fixed by planting a `package.json` beside
+the bundle, and the header comment enumerating "three things that survive
+bundling only if planted" now says four. Users were never affected: npm ships
+`package.json` next to `dist/`.
 
-The one thing the round did surface was indirect, and only because it forced a
-rebuild: **`apps/spa/src/examples.ts` came back dirty**. It is generated from
-`examples/` and `lookbook/cases/` by `scripts/sync-examples.ts`, and committed
-— but nothing compared it. The playground's embedded copy of the legend case
-had been stale since an `align` hint went into the lookbook source earlier in
-the session, so the editor was serving an example that no longer matched the
-committed diagram. CI runs the SPA build (which regenerates the file) and never
-diffed the result. It now does, one line after the build, exactly like the
-lookbook gate above it.
+**A comma cost two iterations.** A cold agent wrote `rows [gw] [create, get,
+search]` — the guess every other language invites — and got back a bare `syntax
+error near`, which names the line but not the rule. Layout groups now say so
+directly ("comma inside a layout group — ids separate with spaces") and write
+out the corrected group. The bare error it replaces is suppressed, but only
+outside string literals: a label may legitimately read `"Orders [US, EU]"`, and
+swallowing a real syntax error because of one would be strictly worse than
+staying quiet. All three cases are tested.
+
+**One prompt used a plausible, valid, wrong icon.** 16-everything asks for a
+"CloudFront-fronted storefront"; the agent wrote `logos/cloudflare` — a
+different company — and `check` correctly passed, because the ref is real. This
+is the failure mode no checker can catch: `check` tells you an id exists, never
+that it is the one the reader asked for. The transcript shows the agent never
+ran `icons search` at all, so SKILL.md now says to search when the request names
+a specific product, and names the confusable pairs. **Honest caveat:** the
+re-run got `aws/cloudfront` right but *also* never searched, so the fix is
+justified on its own merits — it is not demonstrated to have caused the change.
+16 is the only prompt in the committed corpus that took two sessions.
+
+Round 12's standing complaint is unchanged and now more urgent: **these twenty
+prompts have stopped discriminating.** Two ceiling rounds running. Everything
+above was found by the harness, the scorer, and one agent's slip — not by the
+prompt set doing its job. The next round needs harder prompts, and it needs
+prompts that exercise the surface added since: `style:`/`animate:` and `badge:`
+are entirely untested by cold agents, because nothing in the twenty asks for
+traffic that moves or a platform with no icon pack.
 
 The corpus in `solutions/` is this round's twenty answers, cold-authored and
 deep-scored.

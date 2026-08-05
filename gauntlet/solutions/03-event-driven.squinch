@@ -1,21 +1,26 @@
 pack aws
 
-bus = aws/eventbridge "EventBridge" {
-  description: "Order event bus"
-}
+// Event source
+bus = aws/eventbridge "Order Events"
 
+// Email notification path
 email_handler = aws/lambda "Email Notifier"
-sns = aws/sns "Email Topic"
+email_svc = aws/sns "Email Service"
 
+// Analytics path
 analytics_handler = aws/lambda "Analytics Writer"
 lake = aws/s3 "Data Lake" datastore
 
+// Error handling
 dlq = aws/sqs "Dead Letter Queue"
 
-bus ~> email_handler
-email_handler ~> sns
+// Async event flows
+bus ~> email_handler "order.created"
+email_handler ~> email_svc
 
-bus ~> analytics_handler
+bus ~> analytics_handler "order.created"
 analytics_handler ~> lake
 
-bus ~> dlq "failed events"
+// Failed events to DLQ
+email_handler ~> dlq "failures"
+analytics_handler ~> dlq "failures"

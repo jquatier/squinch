@@ -1,40 +1,41 @@
 pack aws
 
-system api "Order API" {
-  description: "Lambda-based API with search"
-  glyph: sys/code
+// API entry point
+gw = aws/api-gateway "API Gateway"
 
-  gw = aws/api-gateway "API Gateway"
+// Lambda handlers
+create = aws/lambda "Create Handler"
+get    = aws/lambda "Get Handler"
+search = aws/lambda "Search Handler"
 
-  create = aws/lambda "Create Handler"
-  get = aws/lambda "Get Handler"
-  search = aws/lambda "Search Handler"
+// Storage layer
+db    = aws/dynamodb  "Orders Table" datastore
+files = aws/s3        "Files Bucket" datastore
+idx   = aws/opensearch "Search Index" datastore
 
-  db = aws/dynamodb "Orders Table" datastore
-  files = aws/s3 "File Storage" datastore
-  idx = aws/opensearch "Search Index" datastore
+// Stream processor
+sync = aws/lambda "Index Sync"
 
-  sync = aws/lambda "Stream Processor" {
-    description: "Keeps search index updated"
-  }
+// Request flow
+gw -> create
+gw -> get
+gw -> search
 
-  gw -> create, get, search
+// Handler to storage connections
+create -> db
+create -> files
+get    -> db
+get    -> files
+search -> idx
 
-  create -> db
-  create -> files
+// Async stream processing
+db ~> sync "DynamoDB stream"
+sync -> idx
 
-  get -> db
-  get -> files
-
-  search -> idx
-
-  db ~> sync "DynamoDB stream"
-  sync -> idx
-}
-
-view api {
+view main {
+  title "Lambda API Architecture"
   layout {
-    rows [gw] [create get search] [db files idx sync]
-    place sync right-of idx
+    rows [gw] [create get search] [db files idx]
+    place sync right-of db
   }
 }
