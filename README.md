@@ -11,6 +11,13 @@
   <a href="https://github.com/jquatier/squinch/actions/workflows/ci.yml"><img src="https://github.com/jquatier/squinch/actions/workflows/ci.yml/badge.svg" alt="CI"></a>
   <a href="LICENSE"><img src="https://img.shields.io/badge/license-Apache--2.0-blue" alt="Apache-2.0"></a>
   <img src="https://img.shields.io/badge/status-pre--alpha-orange" alt="Pre-alpha">
+  <img src="https://img.shields.io/badge/platforms-macOS%20%7C%20Linux%20%7C%20Windows-informational" alt="macOS, Linux and Windows">
+  <img src="https://img.shields.io/badge/node-%E2%89%A522-brightgreen" alt="Node 22 or newer">
+  <!-- Uncomment with the first release. Before the packages exist these render
+       "npm: package not found" in red, which reads as broken rather than new.
+  <a href="https://www.npmjs.com/package/squinch"><img src="https://img.shields.io/npm/v/squinch" alt="npm"></a>
+  <a href="https://www.npmjs.com/package/squinch"><img src="https://img.shields.io/npm/dw/squinch" alt="npm downloads"></a>
+  -->
 </p>
 
 > *squinch (n.) — the corner arch that lets a round dome sit on a square room; the

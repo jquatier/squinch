@@ -161,6 +161,10 @@ fail and the rest of the release to succeed.
 
 If CI fails, no release exists — fix and release the next patch number.
 
+After the **first** release publishes, uncomment the npm badges in
+[README.md](README.md) — they are parked there because an unpublished package
+renders as a red "not found".
+
 Two failures that are the process working: a hand-made tag that doesn't match
 the workspace version, and a missing CHANGELOG section for the tagged version.
 Both stop the workflow before anything publishes.
