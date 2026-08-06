@@ -3,12 +3,9 @@
 > Naming (decided 2026-07-24): file ext `.squinch`, CLI binary `squinch`, npm scope
 > `@squinch/*` (CLI published as bare `squinch`).
 >
-> **What is not built.** Everything here parses and renders today *except* four
-> constructs, which are errors rather than no-ops (§12): `import` and `expose`
-> (federation, **[v2]** — §10.4), and the `around` / `via` route modifiers
-> (§6 Tier 2), which are a deliberate no — see
-> [notes/routing-hints.md](notes/routing-hints.md). Anything without such a
-> marker ships.
+> **What is not built.** Everything here parses and renders today *except*
+> `import` and `expose` (federation, **[v2]** — §10.4), which are errors rather
+> than no-ops (§12). Anything without such a marker ships.
 >
 > Companion docs: [DESIGN.md](DESIGN.md) (design language),
 > [ENGINEERING.md](ENGINEERING.md) (budgets, verification).
@@ -411,26 +408,10 @@ layout {
 }
 ```
 
-Two more were specced here and are **not built** — both are parse errors, not
-no-ops:
-
-```squinch
-route search -> idx around files             // avoid a node's lane
-route api -> legacy via below-db             // a node-relative region, never a coordinate
-```
-
-`around` is a deliberate no rather than a backlog item: ELK already routes
-around nodes, so the hint mostly restated what the layout was doing anyway, and
-the cases it did change were better fixed by reversing a back-edge.
-[notes/routing-hints.md](notes/routing-hints.md) records the whole argument,
-including what it *was* meant to fix, so it does not get built twice. `via`
-waits on the same evidence.
-
-The GUI's drag-to-adjust writes Tier 1/2 statements back into the source — the canvas
-is a hint-authoring device, never a coordinate store. **[v2]** Spiked and shelved
-on `spike/drag-to-hint`: the probe found two real `place` bugs, and concluded
-that `place` is the wrong primitive to hang a drag off — reordering *within* a
-band is the gesture people reach for, and the language has no hint for it.
+`from`/`to` name the sides an edge leaves and enters; sides only apply to edges
+that span rows, since a same-rank edge already runs face to face. Waypoint
+modifiers were considered and rejected — [notes/routing-hints.md](notes/routing-hints.md)
+records why, so the case does not get reopened from memory.
 
 ## 7. Packs, themes, exposure
 
@@ -501,8 +482,7 @@ layoutstmt  = "direction" ("down"|"right") | "lines" ident | "density" ident
             | "channel" pathlist arrow path ;
 rank        = "[" path { path } "]" ;
 relpos      = "right-of" | "left-of" | "above" | "below" ;
-routemod    = "from" side | "to" side
-            | "around" path | "via" region ;   (* not built — §6, routing-hints.md *)
+routemod    = "from" side | "to" side ;
 side        = "north" | "south" | "east" | "west" ;
 
 label       = string ;  attrs = "{" { ident ":" value } "}" ;
@@ -591,7 +571,6 @@ view orders {
   layout {
     rows [api] [create get search] [db files idx]
     place sync right-of db
-    route db ~> sync from east to west
   }
 }
 ```
@@ -655,8 +634,6 @@ view orders {
     place sync right-of db                    // Tier 1
     align api db                              // gateway and table share the center axis
     channel create, get, search -> db          // Tier 2: one trunk, not 3 crossing lines
-    route db ~> sync from east to west
-    route search -> idx around files           // stop cutting through the S3 lane
   }
 }
 ```
@@ -735,7 +712,10 @@ Shipped as a skill for coding agents:
 - Every construct used in §10 examples appears in §3–7 and the §8 grammar.
 - A construct that is not built is a parse error, never a silent no-op, and the
   grammar sketch in §8 says so inline — reading the EBNF alone must not imply
-  something works. The four are listed at the top of this document.
+  something works. They are listed at the top of this document.
+- A construct that was considered and **rejected** is removed from this spec
+  outright rather than carried as a "not built" entry; the reasoning lives in
+  `docs/notes/` so it stays findable without implying the door is open.
 - No `[v1.1]` markers: the v1.1 constructs (zones, flows, tags, channels, cols,
   align, legend, titleblock) all shipped, and a marker claiming otherwise
   understates the language to anyone designing against it.
