@@ -11,10 +11,20 @@ import { makeSketcher, type Sketcher } from "./sketch.js";
 import type { Theme } from "../themes/index.js";
 import { pillDims } from "../layout/layout.js";
 import type { Positioned, PEdge, PNode, PZone } from "../layout/layout.js";
-import type { SNote, ZoneColor, ZoneKind } from "../model/types.js";
+import type { EdgeAnimate, SNote, ZoneColor, ZoneKind } from "../model/types.js";
 
 const PLATE = 40;
 const PAD = 12;
+/** comet travel speed. Fast enough to read as motion on a short hop, slow
+ *  enough that a long cross-diagram edge is not a bullet. */
+const COMET_PX_S = 150;
+/** Duration floor. Below roughly 60px the constant-speed rule would produce a
+ *  twitch rather than a journey, so very short edges run slightly fast — the
+ *  one place in this renderer where px/s is not constant, and a deliberate
+ *  trade. The alternative was drawing nothing below a length threshold, which
+ *  is worse: the author wrote `animate: comet` and silently dropping it is the
+ *  failure mode this project refuses everywhere else. */
+const COMET_MIN_S = 0.4;
 const R_NODE = 4;
 const R_EDGE = 8;
 const DIM = "0.35";
@@ -340,10 +350,13 @@ function arrow(e: PEdge, t: Theme, lines: Positioned["lines"], accent = false, c
 
 /** class per animate value — `sq-flow` predates the vocabulary and keeps its
  *  name so flow-only output stays byte-identical to every committed render */
-const ANIM_CLASS = {
+/** Stroke class per animate value. Partial on purpose: `comet` animates a
+ *  separate travelling element and leaves the stroke alone, so it has no entry
+ *  and the lookup must be allowed to miss. */
+const ANIM_CLASS: Partial<Record<EdgeAnimate, string>> = {
   flow: "sq-flow", reverse: "sq-flow-r", slow: "sq-flow-s",
   fast: "sq-flow-f", packets: "sq-pk", pulse: "sq-pulse",
-} as const;
+};
 
 const esc = (s: string) =>
   s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
@@ -888,7 +901,10 @@ export function renderSVG(p: Positioned, t: Theme, opts: RenderOpts = {}): strin
     // Animation: dashes drift at constant px/s (shared keyframes with a fixed
     // dash period, so long edges never "flow faster"); CSS only, and
     // prefers-reduced-motion turns it all off. One class per animate value.
-    const anim = e.animate ? ` class="${ANIM_CLASS[e.animate]}"` : "";
+    // comet animates a separate element, not the stroke: the wire keeps
+    // whatever `style:` says and the dot rides it.
+    const cls = e.animate ? ANIM_CLASS[e.animate] : undefined;
+    const anim = cls ? ` class="${cls}"` : "";
     const op = dimmed ? ` opacity="${DIM}"` : "";
     const myHops = hops.get(e.id);
     const runs = myHops?.length ? splitAtHops(e.points, myHops) : [e.points];
@@ -897,6 +913,30 @@ export function renderSVG(p: Positioned, t: Theme, opts: RenderOpts = {}): strin
       const d = edgePath(run, p.lines);
       body.push(
         `<path${anim} d="${rc.sk ? rc.sk.path(d) : d}" fill="none" stroke="${col}" stroke-width="${weight}"${dash}${rc.sk ? ` stroke-linecap="round"` : ""}/>`,
+      );
+    }
+    if (e.animate === "comet") {
+      // The dot rides the *unsplit* route. Hop splitting exists to break the
+      // stroke where two edges cross; the traveller has no such problem, and a
+      // dot sailing over the gap is what a reader expects. Same reason the
+      // sketch theme gets the ideal path rather than the roughened one — the
+      // wobble is the drawing, not the road.
+      const road = edgePath(e.points, p.lines);
+      // Constant px/s, like every other animation here — but a comet cannot get
+      // it from a shared keyframe, so the duration carries it: len ÷ speed.
+      // Polyline sum, deliberately ignoring corner rounding (it shortens a
+      // corner by under half its radius). sqrt is exact per IEEE-754, so this
+      // is the same number on every platform; the round keeps it the same
+      // *string* too, which is what the byte-compare actually gates on.
+      let len = 0;
+      for (let i = 1; i < e.points.length; i++)
+        len += Math.hypot(e.points[i].x - e.points[i - 1].x, e.points[i].y - e.points[i - 1].y);
+      const secs = Math.max(COMET_MIN_S, Math.round((len / COMET_PX_S) * 100) / 100);
+      // opacity as a presentation attribute, not CSS: resvg reads those and
+      // ignores CSS, so a PNG export gets no stray dot parked at the origin.
+      body.push(
+        `<circle r="3.5" fill="${col}" opacity="0"` +
+          ` style="offset-path:path('${road}');animation:sq-comet ${secs}s linear infinite"/>`,
       );
     }
     // pulse breathes the whole edge, arrowhead included; travel animations
@@ -1047,6 +1087,13 @@ export function renderSVG(p: Positioned, t: Theme, opts: RenderOpts = {}): strin
       if (used.has("packets")) {
         rules.push(`.sq-pk{animation:sq-pk 1.1s linear infinite}`);
         frames.set("sq-pk", `@keyframes sq-pk{to{stroke-dashoffset:-18}}`);
+      }
+      if (used.has("comet")) {
+        // No rule — the per-edge inline style names this keyframe. Gating the
+        // *definition* is what makes reduced-motion work: with the keyframe
+        // undefined the inline animation resolves to nothing, and the dot stays
+        // at opacity 0.
+        frames.set("sq-comet", `@keyframes sq-comet{0%{offset-distance:0%;opacity:0}6%{opacity:1}94%{opacity:1}100%{offset-distance:100%;opacity:0}}`);
       }
       if (used.has("pulse")) {
         rules.push(`.sq-pulse{animation:sq-pulse 1.8s ease-in-out infinite}`);

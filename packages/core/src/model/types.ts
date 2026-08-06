@@ -54,7 +54,7 @@ export type EdgeStyle = (typeof EDGE_STYLES)[number];
  *  (flow/reverse/slow/fast) need a dash pattern to be visible, so on a sync
  *  edge they require `style: dashed|dotted`; `packets` draws its own pattern;
  *  `pulse` breathes and works on anything. One value per edge — no combos. */
-export const EDGE_ANIMATE = ["false", "flow", "reverse", "slow", "fast", "packets", "pulse"] as const;
+export const EDGE_ANIMATE = ["false", "flow", "reverse", "slow", "fast", "packets", "pulse", "comet"] as const;
 export type EdgeAnimate = Exclude<(typeof EDGE_ANIMATE)[number], "false">;
 
 export interface SEdge {

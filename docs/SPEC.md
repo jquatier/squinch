@@ -227,13 +227,18 @@ dashed; the pattern is a presentation attribute, so it survives PNG export.
 `style: solid` on a `~>` edge is a check-time error — the dash *is* the async
 convention; `dotted` is the sanctioned alternative.
 
-**`animate:`** — `false | flow | reverse | slow | fast | packets | pulse`, one
+**`animate:`** — `false | flow | reverse | slow | fast | packets | pulse | comet`, one
 value per edge. Async edges default to `flow` (dashes drift toward the target);
 sync edges are still unless they opt in. The travel values need a visible
 pattern, so on a sync edge they require `style: dashed` or `dotted` — declared
 without one is a check-time error naming both fixes (`pulse`, which breathes
 the whole edge including its arrowhead, works on solid lines). `packets` draws
-its own sparse pattern and rejects a `style:`. All motion is passive CSS
+its own sparse pattern and rejects a `style:`. `comet` is the one value that
+does not move the stroke at all — it sends a dot along the route as a separate
+element, so it needs no pattern and is the only way to show motion on a plain
+synchronous call. It leaves the wire exactly as `style:` drew it: an edge never
+carries both a drifting stroke and a traveller, because two motions at
+different speeds on one line read as noise. All motion is passive CSS
 keyframes at constant px/s inside one `prefers-reduced-motion` gate — it
 survives a GitHub README `<img>` embed and switches off for readers who ask.
 Unknown values and misspelled attribute keys are diagnosed with did-you-mean;

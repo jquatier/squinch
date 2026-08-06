@@ -491,6 +491,10 @@ export function buildProject(input: ProjectFile[]): BuildResult {
     if (arrow === "~>" && style === "solid")
       error(ctx, node, "async edges are dashed by design — `style: solid` would erase the convention",
         "use `style: dotted` for a different pattern, or a sync arrow `->` if the call is synchronous");
+    // `comet` is deliberately absent: it rides a separate element rather than
+    // the stroke, so it needs no dash pattern to be visible. That makes it the
+    // only way to animate a synchronous edge without inventing a dash the
+    // author never asked for — a feature, not an oversight in this list.
     const travels = animate === "flow" || animate === "reverse" || animate === "slow" || animate === "fast";
     if (arrow !== "~>" && travels && style !== "dashed" && style !== "dotted")
       error(ctx, node, `\`animate: ${animate}\` needs a visible pattern to travel, and this edge is solid`,

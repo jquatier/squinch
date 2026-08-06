@@ -316,3 +316,73 @@ view v { scope s }`;
     expect(r.svg!.match(/<symbol id="sq-logos-databricks"/g)!.length).toBe(1);
   });
 });
+
+describe("comet edges", () => {
+  const doc = (extra = "") => `pack aws
+system s "S" {
+  a = aws/lambda "A"
+  b = aws/lambda "B"
+  c = aws/lambda "C"
+  a -> b "call" { animate: comet${extra} }
+  b -> c "next"
+}
+view v { scope s }`;
+
+  it("rides a separate dot and leaves the stroke alone", async () => {
+    const r = await render(doc(), { theme: "light", view: "v" });
+    expect(r.ok, JSON.stringify(r.diagnostics)).toBe(true);
+    // the traveller: a circle with an offset-path and a per-edge duration
+    expect(r.svg).toMatch(/<circle r="3\.5" fill="[^"]+" opacity="0" style="offset-path:path\('M [^']+'\);animation:sq-comet [\d.]+s linear infinite"\/>/);
+    // ...and the wire itself carries no animation class
+    expect(r.svg).not.toContain(`class="sq-flow"`);
+    expect(validateSVG(r.svg!).ok).toBe(true);
+  });
+
+  it("is legal on a solid edge — the one animation that needs no pattern", async () => {
+    const built = buildModel(doc());
+    expect(built.ok, JSON.stringify(built.diagnostics)).toBe(true);
+    // the guard that stops flow/slow/fast on a solid edge must not catch comet
+    expect(built.diagnostics.some((d) => d.message.includes("needs a visible pattern"))).toBe(false);
+    // and the same edge with `flow` still is caught, so the guard still works
+    const flow = buildModel(doc().replace("animate: comet", "animate: flow"));
+    expect(flow.diagnostics.some((d) => d.message.includes("needs a visible pattern"))).toBe(true);
+  });
+
+  it("defines its keyframe once, inside the reduced-motion gate", async () => {
+    const r = await render(doc(), { theme: "light", view: "v" });
+    const blocks = [...r.svg!.matchAll(/<style>([\s\S]*?)<\/style>/g)].map((m) => m[1]);
+    const owner = blocks.filter((b) => b.includes("@keyframes sq-comet"));
+    expect(owner.length).toBe(1);
+    expect(owner[0].trimStart().startsWith("@media (prefers-reduced-motion: no-preference)")).toBe(true);
+    // opacity is a presentation attribute, never CSS: resvg ignores CSS, so a
+    // PNG export must not get a dot parked at the path origin.
+    expect(r.svg).toContain(`opacity="0" style="offset-path`);
+  });
+
+  it("uses the ideal route in sketch, not the roughened stroke", async () => {
+    const r = await render(doc(), { theme: "sketch", view: "v" });
+    expect(r.ok).toBe(true);
+    const path = /offset-path:path\('([^']+)'\)/.exec(r.svg!)![1];
+    // rough.js emits cubics; the road the dot travels has none of them
+    expect(path).not.toContain("C");
+    expect(path.startsWith("M ")).toBe(true);
+  });
+
+  it("keeps the duration byte-identical across platforms", async () => {
+    // The duration is float maths that ends up as a *string* in the SVG, and CI
+    // byte-compares that string on macOS, Linux and Windows. sqrt is exactly
+    // specified by IEEE-754 so the arithmetic agrees; the 2dp round is what
+    // stops a long mantissa from ever reaching the output. Assert the shape,
+    // not just the value: no exponent, no runaway decimals.
+    const r = await render(doc(), { theme: "light", view: "v" });
+    const secs = [...r.svg!.matchAll(/animation:sq-comet ([^ ]+)s/g)].map((m) => m[1]);
+    expect(secs.length).toBe(1);
+    for (const v of secs) {
+      expect(v).toMatch(/^\d+(\.\d{1,2})?$/);
+      expect(Number(v)).toBeGreaterThanOrEqual(0.4);
+    }
+    // and the same source renders the same string twice
+    const again = await render(doc(), { theme: "light", view: "v" });
+    expect(again.svg).toBe(r.svg);
+  });
+});

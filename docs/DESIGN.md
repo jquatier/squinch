@@ -111,8 +111,16 @@
   `prefers-reduced-motion` always respected. The vocabulary stays inside that
   bar: `reverse` (a response flowing against the arrow), `slow`/`fast`
   (cadence as meaning), `packets` (sparse dashes — discrete messages, not a
-  stream), `pulse` (the whole edge breathes; a heartbeat or healthcheck).
-  One value per edge; anything marquee-like stays out.
+  stream), `pulse` (the whole edge breathes; a heartbeat or healthcheck), and
+  `comet` (a `3.5`px dot in the edge colour rides the route — a single request
+  making its way through, and the only motion available to a plain solid call).
+  The comet travels at the same constant `150`px/s the dash values hold to, but
+  it cannot get that from a shared keyframe: duration is length ÷ speed, per
+  edge. Below roughly `60`px a floor of `0.4`s takes over and a very short edge
+  runs slightly fast — the one place motion here is not constant-speed, taken
+  deliberately because the alternative was silently drawing nothing where the
+  author asked for a comet. One value per edge; anything marquee-like stays
+  out.
 
 ## 5. Containers, zones, notes
 

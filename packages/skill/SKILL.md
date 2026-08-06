@@ -105,13 +105,16 @@ Rules that matter:
 - `~>` edges animate (dashes drift toward the target; still under
   `prefers-reduced-motion`). Opt out per edge: `{ animate: false }`, or pick a
   variant: `reverse` (acks flowing back), `slow`/`fast` (cadence), `packets`
-  (discrete messages), `pulse` (a heartbeat — works on solid sync edges too).
+  (discrete messages), `pulse` (a heartbeat — works on solid sync edges too),
+  `comet` (a dot rides the route — one request travelling, and the only motion
+  that works on a plain solid edge without a dash).
   Sync edges take `style: dashed | dotted`, and a dashed sync edge may also
   animate:
 
   ```squinch
   probe  -> legacy "healthcheck" { animate: pulse }
   sensor ~> ingest "telemetry"   { animate: packets }
+  cart   -> pay "checkout"       { animate: comet }   // no `style:` needed
   mirror -> replica "sync" {
     style:   dashed
     animate: slow

@@ -330,7 +330,7 @@ Source: [`cases/28-azure.squinch`](cases/28-azure.squinch)
 
 ## 29-edge-styles
 
-How an edge is drawn and how it moves: `style: solid | dashed | dotted` and `animate: flow | reverse | slow | fast | packets | pulse`, one hub with each spoke showing one thing. Travel needs a pattern, so a sync edge animates by declaring `style: dashed` first; `pulse` breathes and works on solid lines. How an edge *travels* between nodes is the other axis — `lines`, case 25-edge-routing.
+How an edge is drawn and how it moves: `style: solid | dashed | dotted` and `animate: flow | reverse | slow | fast | packets | pulse | comet`, one hub with each spoke showing one thing. Dash travel needs a pattern, so a sync edge animates by declaring `style: dashed` first; `pulse` breathes and works on solid lines. `comet` is the exception: it rides a dot along the route rather than moving the stroke, so it needs no pattern and is the way to show motion on a plain synchronous call. How an edge *travels* between nodes is the other axis — `lines`, case 25-edge-routing.
 
 Source: [`cases/29-edge-styles.squinch`](cases/29-edge-styles.squinch)
 
