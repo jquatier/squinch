@@ -196,11 +196,11 @@ and byte-compared on every push — so none of them can quietly stop being true.
 </td>
 <td width="50%" valign="top">
 <picture>
-  <source media="(prefers-color-scheme: dark)" srcset="lookbook/out/10-highlight-notes.pci.dark.svg">
-  <img alt="Tag lenses and notes" src="lookbook/out/10-highlight-notes.pci.light.svg" width="100%">
+  <source media="(prefers-color-scheme: dark)" srcset="examples/notifications/notifications.pipeline.dark.svg">
+  <img alt="A notification pipeline: events queue, a worker archives and pushes to the customer" src="examples/notifications/notifications.pipeline.light.svg" width="100%">
 </picture>
-<b>Tag lenses and notes</b><br>
-<code>highlight #pci</code> dims everything off-topic; notes anchor to the node they are about
+<b>Motion that carries meaning</b><br>
+Events arrive as <code>packets</code>, the archive job drifts <code>slow</code>, and a <code>comet</code> rides the final push — CSS keyframes at a constant 150px/s, animating right here in this README
 </td>
 </tr>
 <tr>
@@ -255,6 +255,24 @@ and byte-compared on every push — so none of them can quietly stop being true.
 </picture>
 <b>Craft details</b><br>
 <code>align</code> snaps nodes onto one axis, and crossing edges hop rather than blur into a junction
+</td>
+</tr>
+<tr>
+<td width="50%" valign="top">
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="lookbook/out/10-highlight-notes.pci.dark.svg">
+  <img alt="Tag lenses and notes" src="lookbook/out/10-highlight-notes.pci.light.svg" width="100%">
+</picture>
+<b>Tag lenses and notes</b><br>
+<code>highlight #pci</code> dims everything off-topic; notes anchor to the node they are about
+</td>
+<td width="50%" valign="top">
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="lookbook/out/30-badges.lakehouse.dark.svg">
+  <img alt="Vendor badges on generic marks" src="lookbook/out/30-badges.lakehouse.light.svg" width="100%">
+</picture>
+<b>Vendors with no icon pack</b><br>
+<code>badge: logos/databricks</code> marks a generic <code>sys/*</code> concept as someone's platform — the licence-clean way to draw a vendor that ships no redistributable icons
 </td>
 </tr>
 </table>

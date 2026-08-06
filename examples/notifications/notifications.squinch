@@ -1,0 +1,22 @@
+// A notification pipeline: events queue up, a worker processes and archives
+// them, then pushes to the customer. Motion carries meaning — packets, a slow
+// dashed archive job, and a comet on the final push.
+pack aws
+
+system notify "Notifications" {
+  events = aws/eventbridge "app events"
+  queue  = aws/sqs         "queue"
+  worker = aws/lambda      "notifier"
+  log    = aws/s3          "activity log" datastore
+  user   = person          "customer"
+
+  events ~> queue  "enqueue"  { animate: packets }
+  queue  -> worker "process"
+  worker -> log    "archive"  {
+    style:   dashed
+    animate: slow
+  }
+  worker ~> user   "push"     { animate: comet }
+}
+
+view pipeline { scope notify }
