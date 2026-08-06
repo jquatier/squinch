@@ -1,4 +1,4 @@
-// Performance budgets from docs/PLAN.md §2 — acceptance criteria, enforced in
+// Performance budgets from docs/ENGINEERING.md — acceptance criteria, enforced in
 // CI. Synthesizes a 200-node model (no fixtures to rot) and measures:
 //
 //   full parse            < 50ms

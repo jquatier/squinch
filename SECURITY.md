@@ -37,7 +37,7 @@ webview, a browser playground. The parts worth attacking:
 
 - A diagram that renders badly, overlaps, or looks wrong. That's a normal issue.
 - Denial of service through a deliberately enormous model. Performance budgets
-  are in `docs/PLAN.md` §2; pathological input degrading is expected, though a
+  are in `docs/ENGINEERING.md`; pathological input degrading is expected, though a
   small input causing unbounded work is worth reporting.
 - Anything requiring the attacker to already control the machine running
   Squinch.

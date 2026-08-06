@@ -1,7 +1,8 @@
 # CLAUDE.md
 
 Squinch — architecture diagrams as code. LLM-first authoring, human layout control,
-deterministic rendering. Pre-alpha; Phase 2 (see docs/PLAN.md §3).
+deterministic rendering. Pre-alpha, pre-launch: the engine, CLI, playground and
+extension all ship (see §Current phase).
 
 ## Constitution (read before designing anything)
 
@@ -9,7 +10,8 @@ deterministic rendering. Pre-alpha; Phase 2 (see docs/PLAN.md §3).
   the three layout tiers.
 - `docs/DESIGN.md` — diagram design language + app chrome. These are renderer
   **requirements**, not decoration.
-- `docs/PLAN.md` — build phases. Phase-0 spike exit criteria are pass/fail gates.
+- `docs/ENGINEERING.md` — performance budgets (CI-enforced), the verification
+  strategy, and why ELK/Lezer.
 - `docs/notes/` — engineering notes on decisions that got relitigated once too
   often (e.g. `edge-labels.md` and `note-placement.md`: the placement policies,
   every rejected approach and why, and how to diagnose the next odd label).
@@ -73,7 +75,7 @@ deterministic rendering. Pre-alpha; Phase 2 (see docs/PLAN.md §3).
   `npm run fetch`. Theme treatment is render-time only (placement, clipping,
   plates). Renderer note: `clip-path` on a `<use>` stops it instantiating in some
   renderers — always clip a wrapping `<g>`.
-- Performance budgets in docs/PLAN.md §2 are CI-enforced acceptance criteria.
+- Performance budgets in docs/ENGINEERING.md are CI-enforced acceptance criteria.
 
 ## Layout of the workspace
 
@@ -133,13 +135,14 @@ plus preview webview; `test/server.test.ts` drives the *bundled* server over rea
 stdio LSP. `examples/` — one directory per project, with
 committed SVGs that CI verifies.
 
-## Current phase
+## Where things stand
 
-Phases 0–3 are complete. The engine (grammar → model → visibility/lifting →
-layout → themed SVG), the CLI (check/render/diff/icons/init/watch + lockfile
-model + Actions), the SPA playground, the VS Code extension + language server,
-four icon packs, and five themes all ship. Phase 3's bar — an agent producing
-clean diagrams from prose using only the skill + CLI — is certified at **29/29
+Everything planned for v1 and v1.1 ships: the engine (grammar → model →
+visibility/lifting → layout → themed SVG), the CLI (check/render/diff/icons/
+init/watch + lockfile model + Actions), the SPA playground, the VS Code
+extension + language server, five icon packs, and five themes. The acceptance
+bar — an agent producing clean diagrams from prose using only the skill + CLI —
+is certified at **29/29
 by independent cold agents**, most recently at **25/29 clean on the first
 `check`** — the nine prompts added in round 14 are where the four second calls
 came from, which is what they were added for. `gauntlet/README.md` writes up the latest round only: every round's
@@ -179,14 +182,14 @@ substituting colour literals — pack artwork shares hexes with the theme, so a
 search-and-replace would recolour someone else's trademark. Only themes with the
 same font can pair (`Theme.pairsWith`); type metrics drive layout.
 
-Key architecture from Phase 0, still binding: same-rank edges bypass ELK and use
+Key architecture, still binding: same-rank edges bypass ELK and use
 our coplanar router; declared ranks are enforced via invisible scaffold edges; an
 expanded container is one "entity" for ranking, and ELK layers freely inside it.
 `docs/notes/coplanar.md` records why the router cannot be handed to ELK — four
 measured attempts, all closed. In Sugiyama layering a layer *is* a set of nodes
 with no edges between them, so no option puts two edge-connected nodes on one
 rank; the router is what makes `rows` a feature rather than a suggestion.
-The Phase-0 hand-built harness that proved this is retired, and its canonical
+The hand-built spike harness that proved this is retired, and its canonical
 oracle followed (2026-08): label-space reservation legitimately moves node
 positions, so second-implementation parity stopped being a meaningful claim.
 The architecture it certified is still enforced by the corpus invariant sweep.
@@ -194,7 +197,7 @@ The architecture it certified is still enforced by the corpus invariant sweep.
 ## Commands
 
 - `pnpm -r test` — every package. Core suite covers model diagnostics, golden SVG
-  byte-compare, XML validity, determinism, Phase-0 layout parity. `UPDATE_GOLDEN=1`
+  byte-compare, XML validity, determinism, corpus geometry. `UPDATE_GOLDEN=1`
   to rebless goldens after an *intentional* visual change.
 - `pnpm -r typecheck` — tsc across packages (CI runs this first).
 - `node scripts/version.mjs [x.y.z]` — print, or set, the **one** version the

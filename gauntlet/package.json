@@ -3,7 +3,7 @@
   "version": "0.0.0",
   "private": true,
   "type": "module",
-  "description": "Cold-agent acceptance run + deterministic scorer (docs/PLAN.md §3).",
+  "description": "Cold-agent acceptance run + deterministic scorer.",
   "scripts": {
     "round": "tsx run.ts",
     "score": "tsx score.ts",

@@ -1,4 +1,4 @@
-# The gauntlet (Phase-3 acceptance, docs/PLAN.md §3)
+# The gauntlet (end-to-end acceptance)
 
 Twenty-nine natural-language architecture prompts. An agent, armed with only
 [`packages/skill/SKILL.md`](../packages/skill/SKILL.md) and the `squinch` CLI,

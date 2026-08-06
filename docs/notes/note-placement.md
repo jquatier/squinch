@@ -107,7 +107,7 @@ pre-note height. A note that then grows the canvas pushes the footer down with
 it, so the two do not collide — but the reservation is an approximation rather
 than an exact rect, and if that ever bites, the fix is to move annotation
 placement into layout so the size fixpoint is explicit (see the plan note in
-`docs/PLAN.md` on `Positioned`).
+`docs/ENGINEERING.md` on `Positioned`).
 
 ## Diagnosing the next odd note
 

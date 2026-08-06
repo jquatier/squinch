@@ -1,4 +1,4 @@
-// Phase-3 gauntlet scorer (docs/PLAN.md §3). Deterministic: builds each
+// Gauntlet scorer (docs/ENGINEERING.md §Verification). Deterministic: builds each
 // solution, renders every declared view in both themes, validates the SVG, and
 // checks the prompt's structural expectations. Run from the repo root:
 //
@@ -69,7 +69,7 @@ const JSON_OUT = args.includes("--json");
 const positional = args.find((a) => !a.startsWith("--"));
 const solutionsDir = positional ? resolve(positional) : join(here, "solutions");
 
-/** The bar a cold *run* is judged against (docs/PLAN.md §3). Not the exit
+/** The bar a cold *run* is judged against. Not the exit
  *  condition — see the header. */
 const BAR = 16;
 let passed = 0;

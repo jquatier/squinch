@@ -1,7 +1,8 @@
 # Squinch — Diagram Design Language
 
 > How rendered diagrams look, and the rules that keep them looking that way.
-> Companion to [SPEC.md](SPEC.md) (the DSL) and [PLAN.md](PLAN.md) (build). Numbers below are the starting point, tuned during Phase 2 against the
+> Companion to [SPEC.md](SPEC.md) (the DSL) and [ENGINEERING.md](ENGINEERING.md)
+> (budgets, verification). Numbers below were tuned against the
 > lookbook — but the *rules* are non-negotiable.
 
 ## 1. Principles

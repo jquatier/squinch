@@ -476,7 +476,7 @@ structural
 
 - [DSL specification (v0 draft)](docs/SPEC.md)
 - [Design language](docs/DESIGN.md)
-- [Implementation plan](docs/PLAN.md) — phases, budgets, and what is deliberately not built
+- [Engineering constraints](docs/ENGINEERING.md) — performance budgets, verification, and what is deliberately not built
 - [Engineering notes](docs/notes/) — decisions with their rejected alternatives
 - [Examples](examples/) and the [lookbook](lookbook/)
 - [Contributing](CONTRIBUTING.md) · [Security policy](SECURITY.md) · [Icon notices](NOTICE)

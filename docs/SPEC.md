@@ -10,8 +10,8 @@
 > [notes/routing-hints.md](notes/routing-hints.md). Anything without such a
 > marker ships.
 >
-> Companion docs: [DESIGN.md](DESIGN.md) (design language), [PLAN.md](PLAN.md)
-> (build plan).
+> Companion docs: [DESIGN.md](DESIGN.md) (design language),
+> [ENGINEERING.md](ENGINEERING.md) (budgets, verification).
 
 ## 1. Design principles
 
