@@ -298,6 +298,16 @@ view shop {
   Members of a column share an exact axis, so a service and its database line
   up. `rows` and `cols` compose — they pin different axes, so using both gives
   you a full grid, and a cell is empty when nobody is placed in it.
+- **`cols` and `align` work across bands, never within one.** Six collectors
+  that all feed one normaliser are siblings on a single rank — they are already
+  drawn side by side, and no two of them can share an axis, so `cols [c1 … c6]`
+  is refused. If you want them beside each other, that is `rows [c1 … c6]`. The
+  trap is worst under `direction right`, where a rank *looks* like a column on
+  screen: the words name the model, not the picture.
+- **To rank a zone, name one member of it — not all of them.** A zone lays out
+  as a single block and the engine ranks its insides itself, so
+  `rows [gw] [vpc_a vpc_b vpc_c]` naming every member of a zone does nothing but
+  earn a warning. Name the one node that fixes where the whole boundary sits.
 - A node may be in a band **and** carry a `place`, so long as the two agree.
   `rows [db bus]` with `place bus right-of db` is fine — the band already reads
   left to right, and the `place` just says so again. What is refused is a
