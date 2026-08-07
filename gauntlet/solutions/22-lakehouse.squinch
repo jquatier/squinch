@@ -1,29 +1,58 @@
-// Databricks lakehouse architecture
+// Databricks Lakehouse Architecture
 pack logos
 
+person analyst "Data Analyst"
+
 // External data source
-kafka = logos/kafka "Order Events" external
+kafka = logos/kafka "Kafka Orders Topic" external
 
-// Databricks components - using sys/* icons with databricks badge
-autoloader = sys/code "Auto Loader" { badge: logos/databricks }
-bronze = sys/table "Bronze Delta Table" datastore { badge: logos/databricks }
-job = sys/workflow "Nightly Merge Job" { badge: logos/databricks }
-silver = sys/table "Silver Customers Table" datastore { badge: logos/databricks }
-catalog = sys/catalog "Unity Catalog" { badge: logos/databricks }
-warehouse = sys/database "SQL Warehouse" { badge: logos/databricks }
-vector = sys/waypoints "Vector Search Index" { badge: logos/databricks }
-serving = sys/model "Model Serving Endpoint" { badge: logos/databricks }
+// Databricks ingestion and storage layers
+autoloader = sys/workflow "Auto Loader" {
+  description: "Ingests streaming data"
+  badge: logos/databricks
+}
 
-// Analysts
-person analyst "Analysts"
+bronze = sys/table "Bronze Orders" datastore {
+  description: "Raw order events"
+  badge: logos/databricks
+}
 
-// Connections
+job = sys/workflow "Nightly Merge Job" {
+  description: "Transforms and merges"
+  badge: logos/databricks
+}
+
+silver = sys/table "Silver Customers" datastore {
+  description: "Curated customer data"
+  badge: logos/databricks
+}
+
+catalog = sys/catalog "Unity Catalog" {
+  description: "Data governance"
+  badge: logos/databricks
+}
+
+warehouse = sys/database "SQL Warehouse" {
+  description: "Query engine"
+  badge: logos/databricks
+}
+
+vectorsearch = sys/waypoints "Vector Search Index" {
+  badge: logos/databricks
+}
+
+modelserving = sys/model "Model Serving" {
+  description: "ML inference endpoint"
+  badge: logos/databricks
+}
+
+// Data flows
 kafka ~> autoloader "stream events"
-autoloader ~> bronze "ingest"
-job -> bronze "read"
+autoloader ~> bronze "land raw"
+bronze -> job "read"
 job -> silver "merge"
 catalog -> silver "governs"
-analyst -> warehouse "query"
+analyst -> warehouse "queries"
 warehouse -> silver "read"
-silver -> vector "index"
-vector -> serving "feeds"
+silver -> vectorsearch "index"
+vectorsearch -> modelserving "embeddings"

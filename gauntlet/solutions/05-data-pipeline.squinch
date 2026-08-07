@@ -3,10 +3,10 @@ pack aws
 person analyst "Analyst"
 
 stream      = aws/kinesis "Clickstream"
-transformer = aws/lambda  "Transformer"
-lake        = aws/s3      "Data Lake" datastore
-catalog     = aws/glue    "Glue Catalog"
-query       = aws/athena  "Athena"
+transformer = aws/lambda "Transformer"
+lake        = aws/s3 "Data Lake" datastore
+catalog     = aws/glue "Glue Catalog"
+query       = aws/athena "Athena"
 
 stream ~> transformer "events"
 transformer ~> lake "lands data"

@@ -1,28 +1,35 @@
 pack logos
+pack k8s
 
-person dev "Developer"
-github = box "GitHub" external
+person developer "Developer"
 
 system stack "Application Stack" {
   frontend = logos/nextdotjs "Next.js Frontend"
-  api      = logos/nestjs "NestJS API"
+  api      = logos/nestjs   "NestJS API"
   db       = logos/postgres "PostgreSQL" datastore
-  cache    = logos/redis "Redis Cache" datastore
-  events   = logos/kafka "Kafka Events" datastore
-  monitor  = logos/grafana "Grafana"
+  cache    = logos/redis    "Redis Cache" datastore
+  events   = logos/kafka    "Kafka Events" datastore
+  monitor  = logos/grafana  "Grafana"
 
   frontend -> api
   api -> db
   api -> cache
   api ~> events "publish events"
-  monitor -> api "metrics"
-  monitor -> db "metrics"
-  monitor -> cache "metrics"
-  monitor -> events "metrics"
+  monitor -> api "scrape metrics"
+  monitor -> db "query metrics"
 }
 
-k8s = logos/kubernetes "Kubernetes Cluster"
+github = logos/github "GitHub"
+cluster = logos/kubernetes "Kubernetes Cluster"
 
-dev -> github "push code"
-github ~> k8s "deploy"
-k8s -> stack "runs"
+developer -> github "push code"
+github ~> cluster "deploy"
+cluster -> stack.frontend
+cluster -> stack.api
+
+view landscape {
+  title "Application Stack"
+  layout {
+    rows [developer github] [cluster] [stack.frontend] [stack.api] [stack.db stack.cache stack.events] [stack.monitor]
+  }
+}

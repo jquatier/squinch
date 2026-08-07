@@ -65,49 +65,46 @@ nothing.
 
 ## Latest round
 
-**Round 17 — 29/29 on the deep scorer; 25 of 29 clean on the first `check`, the
-best recorded** (2026-08-07). Run to test two skill rules added the same day,
-and it split them.
+**Round 18 — 29/29 on the deep scorer; 23 of 29 clean on the first `check`**
+(2026-08-07). Run to test one hypothesis, which it refuted.
 
-**Zero syntax errors, in 37 check calls.** Two rounds ago syntax was 12% of all
-diagnostics and the reason the grammar was loosened. The whole round produced
-seven diagnostics total, against forty-eight last round.
+The hypothesis: round 17's 27-rank-conflict hit the same conflict twice in a
+row, so the agent looked to be guessing at arrangements rather than reading the
+fix — and the fixes that get applied in one iteration are the ones that write
+the corrected text out. So the rank conflict now prints the `rows` line to
+paste, guarded so it is only offered when the whole rearrangement comes back
+clean.
 
-**The zone rule looks like it worked.** "To rank a zone, name one member of it —
-not all of them" went from eleven occurrences historically, to one last round,
-to none here. Directionally right, on a sample far too small to be sure.
+**It was offered three times and declined three times.** 27 went from five calls
+to four, and the transcript shows the agent reading
+`write \`rows [request] [policy] [audit approver]\`` and then not using it —
+reaching for `place audit right-of policy` instead, twice.
 
-**The `cols`/`align` rule fired twice more, and the agent handled it.** Both
-instances are the same prompt and the same pair of nodes. 26-wide-ingestion
-asks, in the user's words, to "keep the warehouse and the search index in the
-same column" — and `cols` is the wrong construct for that, because those two are
-siblings on one rank and already side by side. The agent read the word *column*
-in the prompt, reached for the construct spelled `cols`, then tried `align`,
-then removed the hint.
+That is the agent being *right*. 27 asks for the policy engine and the audit log
+on the same row **and** for policy to read as upstream of audit, which cannot
+both hold. The suggested line satisfies the DSL by putting audit beside the
+approver — quietly abandoning the "same row as each other" half of the request.
+The agent declined it and tried `place`, which is the one construct that puts
+two nodes on a rank together: it was still trying to honour the user's
+constraint. Better reasoning than the fix it was offered.
 
-**All three of its checks exited 0.** Its first file was already valid; both
-diagnostics were warnings, and the two extra calls were the agent voluntarily
-clearing a warning that nothing forced it to. That is the behaviour this project
-wants, and the final diagram is right: same-rank nodes are already adjacent, and
-the hint was never earning its place. Recorded here because the first draft of
-this entry called it a rule that "did not work", which the exit codes do not
-support.
+**The prediction was wrong, and so was the choice of test.** 27 is built to be
+unsatisfiable, so some iteration is inherent to it and it cannot measure whether
+a concrete fix reduces iterations. No non-adversarial prompt hit a rank conflict
+this round, so the change is untested rather than disproven: it is strictly more
+informative than the prose it replaced, it is guarded against suggesting
+something that breaks a different edge, and it costs nothing — but nobody has
+yet applied one.
 
-The vocabulary collision is real and is not a documentation problem: `cols`
-names a cross-rank axis, and a reader saying "column" means what they see on
-screen. Living with it costs one warning on one prompt. Renaming a shipped
-construct to fix that is the worse trade.
+There is a refinement the transcript points at. Two merges are always available
+— move the target down into the source's band, or move the source up into the
+target's — and only the first is offered. Where a prompt has pinned one of the
+two nodes, the other direction may be the one that keeps the author's intent.
+Not built; recorded because the evidence for it is one transcript.
 
-**27-rank-conflict took five calls**, its worst yet, hitting the conflict three
-times across two different node pairs before finding an arrangement. It exists
-to provoke exactly that error, so this is the prompt working; but it is also the
-clearest evidence that agents resolve a rank conflict by *guessing another
-arrangement* rather than by reading the fix, which names both ways out.
-
-Hint conflicts held at 3 of 37 calls, matching last round. Two rounds at that
-level, against 39 of 367 historically, and with only nine of twenty-nine
-solutions declaring a layout block at all: the decline is real, and the likeliest
-mechanism is agents writing fewer hints rather than writing better ones.
+Icon errors rose to five (three unknown ids, one in a `glyph:`, one in a
+`badge:`) from one last round, all agents inventing plausible ids. The
+diagnostics name the search command and every one was fixed on the next call.
 
 The corpus in `solutions/` is this round's twenty-nine answers, cold-authored and
 deep-scored.

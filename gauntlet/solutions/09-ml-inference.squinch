@@ -2,27 +2,23 @@ pack aws
 
 person client "Client App"
 
-system inference "ML Inference Service" {
-  description: "Real-time prediction API"
+system ml_inference "ML Inference Service" {
+  description: "Real-time ML predictions with feature store"
+  glyph: aws/sagemaker
 
-  gw = aws/api-gateway "API Gateway"
-  handler = aws/lambda "Inference Handler"
-  model = aws/sagemaker "SageMaker Endpoint"
-  features = aws/dynamodb "Feature Store" datastore
+  gw     = aws/api-gateway "API Gateway"
+  lambda = aws/lambda      "Inference Handler"
+  model  = aws/sagemaker   "Model Endpoint"
+  store  = aws/dynamodb    "Feature Store" datastore
 
-  gw -> handler
-  handler -> features
-  handler -> model
+  gw -> lambda "predict"
+  lambda -> model "inference"
+  lambda -> store "get features"
 }
 
-system training "Model Training" {
-  description: "Nightly batch retraining"
+batch    = aws/batch "Nightly Retrain Job"
+training = aws/s3    "Training Data" datastore
 
-  job = aws/batch "Batch Job"
-  data = aws/s3 "Training Data" datastore
-
-  job -> data
-}
-
-client -> inference.gw "prediction request"
-training.job ~> inference.model "retrain model"
+client -> ml_inference.gw "prediction request"
+batch -> training "read training data"
+batch ~> ml_inference.model "update model"

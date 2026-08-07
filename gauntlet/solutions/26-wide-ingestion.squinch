@@ -1,5 +1,6 @@
-// Ingestion estate - wide layout for single slide presentation
+// Ingestion estate - wide layout for slide presentation
 
+// Six collectors feed a single normaliser
 c1 = sys/container "Collector 1"
 c2 = sys/container "Collector 2"
 c3 = sys/container "Collector 3"
@@ -7,26 +8,34 @@ c4 = sys/container "Collector 4"
 c5 = sys/container "Collector 5"
 c6 = sys/container "Collector 6"
 
-normaliser = sys/workflow "Normaliser"
+// Central normaliser receives from all collectors
+norm = sys/workflow "Normaliser"
 
-warehouse = sys/database "Warehouse" datastore
-search    = sys/search   "Search Index" datastore
-alerting  = sys/siren    "Alerting"
+// Normaliser fans out to three downstream services
+wh    = sys/database "Warehouse" datastore
+idx   = sys/search   "Search Index" datastore
+alert = sys/siren    "Alerting"
 
-c1 ~> normaliser
-c2 ~> normaliser
-c3 ~> normaliser
-c4 ~> normaliser
-c5 ~> normaliser
-c6 ~> normaliser
+// Collectors feed normaliser (async ingestion)
+c1 ~> norm
+c2 ~> norm
+c3 ~> norm
+c4 ~> norm
+c5 ~> norm
+c6 ~> norm
 
-normaliser ~> warehouse
-normaliser ~> search
-normaliser ~> alerting
+// Normaliser fans out to downstream services
+norm ~> wh
+norm ~> idx
+norm ~> alert
 
-view main {
+view landscape {
+  title "Ingestion Estate"
+
   layout {
     direction right
     density compact
+    rows [c1 c2 c3 c4 c5 c6] [norm] [wh idx alert]
+    cols [wh] [idx]
   }
 }

@@ -1,36 +1,42 @@
-// Market data flow architecture
+// Market data processing pipeline
+pack logos
 
+// External systems
 exchange = box "Exchange" external
-
-feed = sys/radio-tower "Feed Handler" {
-  description: "Ingests price stream"
-}
-
-pricing = sys/gauge "Pricing Engine" {
-  description: "Real-time pricing"
-}
-
-ui = sys/monitor "Trading UI" {
-  description: "Trader interface"
-}
-
-batch = sys/clock "Overnight Batch" {
-  description: "Nightly reconciliation"
-}
-
 clearing = box "Clearing House" external
 
+// Core components
+feed = sys/antenna "Feed Handler" {
+  description: "Ingests price stream"
+}
+pricing = sys/gauge "Pricing Engine" {
+  description: "Real-time prices"
+}
+ui = sys/app-window "Trading UI"
+batch = sys/clock "Overnight Reconciliation" {
+  description: "Nightly fills reconciliation"
+}
 risk = sys/shield "Risk Service" {
-  description: "System health monitoring"
+  description: "Health monitoring"
 }
 
-// Continuous streams (async)
+// Continuous data flows
 exchange ~> feed "price stream" { animate: packets }
 feed ~> pricing "ticks" { animate: packets }
-pricing ~> ui "pricing updates" { animate: packets }
+pricing ~> ui "price updates" { animate: packets }
 
 // Nightly batch job
-batch -> clearing "reconcile fills"
+clearing -> batch "fills"
+batch -> pricing "reconciliation"
 
-// Health polling (sync, periodic)
+// Health polling
 risk -> pricing "health check" { animate: pulse }
+
+view landscape {
+  title "Market Data Pipeline"
+  layout {
+    rows [exchange clearing] [feed] [pricing batch risk] [ui]
+    place batch right-of pricing
+    place risk right-of batch
+  }
+}

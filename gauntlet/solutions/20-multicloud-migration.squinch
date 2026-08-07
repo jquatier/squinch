@@ -1,26 +1,27 @@
 pack azure
 pack logos
 
-// On-premises systems
-pg_db = logos/postgres "PostgreSQL" datastore
-rabbit = logos/rabbitmq "RabbitMQ"
+// On-premises infrastructure
+pg    = logos/postgres "PostgreSQL" datastore
+mq    = logos/rabbitmq "RabbitMQ"
 
-// Azure systems
-aks = azure/aks "AKS Cluster"
-sql_db = azure/sql "Azure SQL" datastore
+// Azure infrastructure
+aks   = azure/aks "AKS Cluster"
+sqldb = azure/sql "Azure SQL" datastore
 
 // Sync job
-sync_job = sys/workflow "Nightly Sync"
+sync  = sys/workflow "Nightly Sync"
 
 // Connections
-pg_db ~> sync_job "sync"
-sync_job ~> sql_db
+pg ~> sync "data sync"
+sync ~> sqldb
+mq -> aks
 
 // Deployment boundaries
 zone onprem "On-Premises" onprem {
-  contains pg_db, rabbit
+  contains pg, mq
 }
 
 zone cloud "Azure" cloud {
-  contains aks, sql_db, sync_job
+  contains aks, sqldb, sync
 }

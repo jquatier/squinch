@@ -1,9 +1,9 @@
 pack azure
 
-gw  = azure/app-gateway "Application Gateway"
-aks = azure/aks          "AKS Cluster"
-acr = azure/acr          "Container Registry"
-sql = azure/sql          "Azure SQL"
+gw  = azure/app-gateway       "Application Gateway"
+aks = azure/aks                "AKS Cluster"
+acr = azure/acr                "Container Registry"
+sql = azure/sql                "Azure SQL" datastore
 
 gw -> aks
 aks -> acr

@@ -1,79 +1,81 @@
 // Order platform architecture
 pack aws
+pack logos
 
 // Actors
 person customer "Customer"
 
-// Edge infrastructure
-cdn = aws/cloudfront "CloudFront"
+// Frontend
+storefront = aws/cloudfront "Storefront"
+
+// API layer
 gw = aws/api-gateway "API Gateway"
 
-// Services
+// Catalog service
 system catalog "Catalog Service" {
-  description: "Product browsing"
-  glyph: sys/code
+  description: "Product catalog"
+  glyph: sys/database
 
-  lambda = aws/lambda "Catalog Handler"
-  db = aws/dynamodb "Products Table" datastore
+  handler = aws/lambda "Catalog Handler"
+  db = aws/dynamodb "Product DB" datastore
 
-  lambda -> db
+  handler -> db
 }
 
+// Orders service
 system orders "Orders Service" {
   description: "Order processing"
-  glyph: sys/code
-  tags: #sensitive
+  glyph: sys/box
 
-  lambda = aws/lambda "Orders Handler" {
-    tags: #sensitive
-  }
-  db = aws/dynamodb "Orders Table" datastore {
-    tags: #sensitive
-  }
+  handler = aws/lambda "Orders Handler" #sensitive
+  db = aws/dynamodb "Orders DB" datastore #sensitive
 
-  lambda -> db
-  lambda ~> bus "publish order events"
+  handler -> db
 }
 
+// Payments service
 system payments "Payments Service" {
   description: "Payment processing"
-  glyph: sys/code
+  glyph: sys/lock
   tags: #sensitive
 
-  lambda = aws/lambda "Payments Handler" {
-    tags: #sensitive
-  }
-  db = aws/dynamodb "Payments Table" datastore {
-    tags: #sensitive
-  }
+  handler = aws/lambda "Payment Handler"
+  db = aws/dynamodb "Payments DB" datastore
 
-  lambda -> db
+  handler -> db
 }
 
-// Event infrastructure
-bus = aws/eventbridge "EventBridge"
+// Event system
+bus = aws/eventbridge "Event Bus"
+
+// Fulfilment
 fulfilment = aws/lambda "Fulfilment Worker"
 
 // Connections
-customer -> cdn "browse & order"
-cdn -> gw
-gw -> catalog.lambda "GET /products"
-gw -> orders.lambda "POST /orders"
-gw -> payments.lambda "POST /payments"
-bus ~> fulfilment "order events"
+customer -> storefront "browses"
+storefront -> gw "API calls"
+gw -> catalog.handler
+gw -> orders.handler
+gw -> payments.handler
 
-// Deployment boundary
-zone prod_vpc "VPC prod" vpc {
+orders.handler ~> bus "order events"
+bus ~> fulfilment "order created"
+
+// VPC boundary
+zone prod_vpc "Production VPC" vpc {
   contains gw, catalog, orders, payments, bus, fulfilment
 }
 
 // Views
 view landscape {
-  title "System Landscape"
+  title "Order Platform Landscape"
   include *
+  legend auto
 }
 
 view orders {
   scope orders
   show descriptions
+  highlight #sensitive
+  legend auto
 }

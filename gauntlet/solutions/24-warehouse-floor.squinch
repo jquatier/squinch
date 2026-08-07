@@ -1,49 +1,60 @@
-// Warehouse floor automation system
+// Warehouse automation system - local physical setup
 
-person supervisor "Shift Supervisor"
+supervisor = person "Shift Supervisor"
+board = sys/monitor "Status Board"
 
-system floor "Warehouse Floor" {
-  description: "Physical automation and control"
+system warehouse_floor "Warehouse Floor Automation" {
+  description: "Local packing and sorting control"
   glyph: sys/warehouse
 
-  bench1  = sys/smartphone "Bench 1 Scanner"
-  bench2  = sys/smartphone "Bench 2 Scanner"
-  bench3  = sys/smartphone "Bench 3 Scanner"
+  bench1 = sys/scan "Packing Bench 1"
+  bench2 = sys/scan "Packing Bench 2"
+  bench3 = sys/scan "Packing Bench 3"
 
-  ctrl    = sys/server     "Floor Controller" {
-    description: "Local automation controller"
+  controller = sys/cpu "Local Controller" {
+    description: "Orchestrates packing operations"
   }
 
-  sorter  = sys/workflow   "Conveyor Sorter" {
-    description: "Automated sorting system"
-  }
-  printer = sys/printer    "Label Printer"
-  board   = sys/monitor    "Status Board"
-
-  bench1  -> ctrl "scan"
-  bench2  -> ctrl "scan"
-  bench3  -> ctrl "scan"
-
-  ctrl    -> sorter "route"
-  ctrl    -> printer "print label"
-  ctrl    -> board "status updates"
+  sorter = sys/route "Conveyor Sorter"
+  printer = sys/printer "Label Printer"
 }
 
-erp = box "ERP System" external
-
-floor.ctrl ~> erp "sync" {
-  description: "Once per minute"
+erp = sys/server "ERP System" external {
+  description: "Enterprise resource planning"
 }
 
-supervisor -> floor.board "monitors"
+// Scanning workflow
+warehouse_floor.bench1 -> warehouse_floor.controller "scan event"
+warehouse_floor.bench2 -> warehouse_floor.controller "scan event"
+warehouse_floor.bench3 -> warehouse_floor.controller "scan event"
 
-zone site "Site Network" network {
-  contains floor.ctrl, erp
+// Controller drives automation
+warehouse_floor.controller -> warehouse_floor.sorter "routing commands"
+warehouse_floor.controller -> warehouse_floor.printer "print job"
+
+// Periodic sync to ERP
+warehouse_floor.controller ~> erp "batch sync (1min)" {
+  animate: pulse
+}
+
+// Supervisor monitoring
+supervisor -> board "monitors"
+warehouse_floor.controller -> board "status updates" {
+  animate: pulse
+}
+
+zone site_network "Site Network" network {
+  contains warehouse_floor.controller, erp
 }
 
 view landscape {
-  title "Warehouse Automation"
+  title "Warehouse Automation System"
+  include *
+  show descriptions
+  legend auto
   layout {
-    rows [floor.bench1 floor.bench2 floor.bench3] [floor.ctrl] [floor.sorter floor.printer floor.board] [erp]
+    direction down
+    density comfortable
+    rows [supervisor board] [warehouse_floor.bench1 warehouse_floor.bench2 warehouse_floor.bench3] [warehouse_floor.controller] [warehouse_floor.sorter warehouse_floor.printer erp]
   }
 }

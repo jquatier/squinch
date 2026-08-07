@@ -1,30 +1,29 @@
 pack aws
 
-system api "API Service" {
-  gw     = aws/api-gateway "API Gateway"
-  create = aws/lambda      "Create Handler"
-  read   = aws/lambda      "Read Handler"
-  update = aws/lambda      "Update Handler"
-  delete = aws/lambda      "Delete Handler"
-  search = aws/lambda      "Search Handler"
-  table  = aws/dynamodb    "Data Table" datastore
+gw = aws/api-gateway "API Gateway"
+create = aws/lambda "Create Handler"
+read = aws/lambda "Read Handler"
+update = aws/lambda "Update Handler"
+delete = aws/lambda "Delete Handler"
+search = aws/lambda "Search Handler"
+db = aws/dynamodb "Orders Table" datastore
 
-  gw -> create
-  gw -> read
-  gw -> update
-  gw -> delete
-  gw -> search
+gw -> create
+gw -> read
+gw -> update
+gw -> delete
+gw -> search
 
-  create -> table
-  read   -> table
-  update -> table
-  delete -> table
-  search -> table
-}
+create -> db
+read -> db
+update -> db
+delete -> db
+search -> db
 
-view api {
+view main {
+  title "Lambda Fan-In"
   layout {
-    rows [gw] [create read update delete search] [table]
-    channel create, read, update, delete, search -> table
+    rows [gw] [create read update delete search] [db]
+    channel create, read, update, delete, search -> db
   }
 }

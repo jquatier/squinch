@@ -1,33 +1,41 @@
-pack aws
+// Customer-facing platform with account and billing services
 pack logos
 
 person customer "Customer"
 
-mobile  = sys/smartphone "Mobile App"
-website = sys/monitor     "Website"
-gw      = aws/api-gateway "Gateway"
+gateway = box "API Gateway"
+mobile  = box "Mobile App"
+web     = box "Website"
 
-account = sys/server   "Account Service"
-billing = sys/server   "Billing Service"
+system account "Account Service" {
+  api = box "API"
+  db  = logos/postgres "Account DB" datastore
 
-account_db = logos/postgres "Main Postgres" datastore
-billing_db = logos/postgres "Billing DB" datastore
+  api -> db
+}
 
-stripe = box "Stripe" external
-export = aws/s3 "Data Export" datastore
+system billing "Billing Service" {
+  api    = box "API"
+  db     = logos/postgres "Billing DB" datastore
+  stripe = box "Stripe" external
 
+  api -> db
+  api -> stripe
+}
+
+export = logos/postgres "Export Job"
+s3     = box "S3 Bucket" datastore
+
+// Customer flows
 customer -> mobile
-customer -> website
+customer -> web
+mobile   -> gateway
+web      -> gateway
 
-mobile  -> gw
-website -> gw
+// Gateway to services
+gateway -> account.api
+gateway -> billing.api
 
-gw -> account
-gw -> billing
-
-account -> account_db
-billing -> billing_db
-
-billing -> stripe
-
-account ~> export "nightly export"
+// Nightly export
+account.db ~> export "nightly"
+export ~> s3

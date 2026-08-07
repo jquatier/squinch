@@ -2,8 +2,7 @@ pack aws
 pack logos
 
 person operator "Operator"
-erp = sys/database "Legacy ERP" external
-
+erp = sys/database "Legacy ERP" datastore
 ingest = aws/lambda "Ingestion Lambda"
 db = aws/aurora "Aurora Database" datastore
 

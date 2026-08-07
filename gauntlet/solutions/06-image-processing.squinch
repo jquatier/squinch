@@ -2,14 +2,14 @@ pack aws
 
 person user "User"
 
-storage = aws/s3 "Upload Bucket" datastore
-processor = aws/lambda "Image Processor"
-vision = aws/rekognition "Rekognition"
-metadata = aws/dynamodb "Metadata Store" datastore
-notify = aws/sns "Notifications"
+bucket    = aws/s3         "Image Uploads" datastore
+processor = aws/lambda     "Image Processor"
+rekognize = aws/rekognition "Rekognition"
+metadata  = aws/dynamodb   "Metadata Store" datastore
+notify    = aws/sns        "Notification Topic"
 
-user -> storage "uploads image"
-storage ~> processor "S3 event"
-processor -> vision "analyze image"
-processor -> metadata "write labels"
-processor ~> notify "publish event"
+user -> bucket "uploads image"
+bucket ~> processor "S3 event"
+processor -> rekognize "analyze image"
+processor -> metadata "write metadata"
+processor ~> notify "publish result"

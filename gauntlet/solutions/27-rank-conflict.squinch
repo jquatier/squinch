@@ -1,16 +1,14 @@
-// Approval chain diagram
-req    = sys/server  "Request Service"
-policy = sys/cog     "Policy Engine"
-approve = sys/shield-check "Approver Service"
-audit  = sys/database "Audit Log" datastore
+request = sys/app-window "Request Service"
+policy = sys/workflow "Policy Engine"
+approver = sys/server "Approver Service"
+audit = sys/database "Audit Log" datastore
 
-req -> policy
-policy -> approve
-approve -> audit
+request -> policy
+policy -> approver
+approver -> audit
 
 view main {
   layout {
-    rows [req] [policy audit]
-    place audit right-of policy
+    rows [request] [policy approver audit]
   }
 }
