@@ -307,3 +307,41 @@ view s {
     expect(below.db.y).toBeGreaterThan(below.files.y);
   });
 });
+
+describe("a rank conflict offers the line to paste", () => {
+  // Round 17: 27-rank-conflict hit the *same* conflict on two consecutive
+  // attempts — the edit between them addressed nothing, so the agent was
+  // guessing at arrangements rather than applying the fix. The diagnostics in
+  // this engine that get applied in one iteration write the corrected text out;
+  // the ones offering a choice between two abstract edits get guessed at.
+  const conflict = async (rows: string) => {
+    const built = buildModel(
+      `pack aws\nsystem s "S" {\n  x = aws/lambda "x"\n  y = aws/lambda "y"\n  c = aws/lambda "c"\n  z = aws/lambda "z"\n  x -> y\n  y -> c\n  z -> y\n}\nview v {\n  scope s\n  layout { rows ${rows} }\n}\n`,
+    );
+    const { diagnostics } = await layoutView(
+      built.model, built.model.views.find((v) => v.name === "v")!,
+    );
+    return diagnostics.find((d) => d.message.includes("runs upward"));
+  };
+
+  it("writes the merged bands out when the merge is safe", async () => {
+    // no `y -> c` in the way here: c sits with z, so moving y down is clean
+    const built = buildModel(
+      `pack aws\nsystem s "S" {\n  x = aws/lambda "x"\n  y = aws/lambda "y"\n  z = aws/lambda "z"\n  x -> y\n  z -> y\n}\nview v {\n  scope s\n  layout { rows [x] [y] [z] }\n}\n`,
+    );
+    const { diagnostics } = await layoutView(
+      built.model, built.model.views.find((v) => v.name === "v")!,
+    );
+    const d = diagnostics.find((x) => x.message.includes("runs upward"))!;
+    expect(d).toBeDefined();
+    expect(d.fix).toBe("write `rows [s.x] [s.y s.z]` — equal ranks are legal, and route side to side");
+  });
+
+  it("falls back to prose when the merge would break a different edge", async () => {
+    // moving `y` into `z`'s band puts it below `c`, so `y -> c` would then run
+    // upward — a suggestion that trades one conflict for another
+    const d = (await conflict("[x] [y c] [z]"))!;
+    expect(d).toBeDefined();
+    expect(d.fix).toBe("put `s.y` in a row below `s.z`, or drop one of them from `rows`");
+  });
+});

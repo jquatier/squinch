@@ -77,21 +77,26 @@ seven diagnostics total, against forty-eight last round.
 not all of them" went from eleven occurrences historically, to one last round,
 to none here. Directionally right, on a sample far too small to be sure.
 
-**The `cols`/`align` rule did not.** It went from one to two, and both are the
-same prompt and the same pair of nodes. 26-wide-ingestion asks, in the user's
-words, to "keep the warehouse and the search index in the same column" — and
-`cols` is the wrong construct for that, because those two are siblings on one
-rank and are already side by side. The agent read the word *column* in the
-prompt and reached for the construct spelled `cols`, then tried `align`, then
-gave up and dropped the hint. The diagnostic told it to write `rows` both times.
+**The `cols`/`align` rule fired twice more, and the agent handled it.** Both
+instances are the same prompt and the same pair of nodes. 26-wide-ingestion
+asks, in the user's words, to "keep the warehouse and the search index in the
+same column" — and `cols` is the wrong construct for that, because those two are
+siblings on one rank and already side by side. The agent read the word *column*
+in the prompt, reached for the construct spelled `cols`, then tried `align`,
+then removed the hint.
 
-That is worth being precise about, because it is not a documentation failure and
-another paragraph will not fix it. The prompt's vocabulary collides with the
-DSL's: `cols` names a cross-rank axis, and a reader saying "column" means what
-they see on screen. The rule now in SKILL.md says exactly this, and the agent
-still followed the prompt's word over the skill's. Options are to live with it,
-or to reconsider the name — and renaming a shipped construct to fix one prompt
-is not obviously the better trade.
+**All three of its checks exited 0.** Its first file was already valid; both
+diagnostics were warnings, and the two extra calls were the agent voluntarily
+clearing a warning that nothing forced it to. That is the behaviour this project
+wants, and the final diagram is right: same-rank nodes are already adjacent, and
+the hint was never earning its place. Recorded here because the first draft of
+this entry called it a rule that "did not work", which the exit codes do not
+support.
+
+The vocabulary collision is real and is not a documentation problem: `cols`
+names a cross-rank axis, and a reader saying "column" means what they see on
+screen. Living with it costs one warning on one prompt. Renaming a shipped
+construct to fix that is the worse trade.
 
 **27-rank-conflict took five calls**, its worst yet, hitting the conflict three
 times across two different node pairs before finding an arrangement. It exists

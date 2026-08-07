@@ -561,7 +561,10 @@ view v { include *
     const d = diagnostics?.find((x) => x.message.includes("runs upward"));
     expect(d).toBeDefined();
     // the endpoint is `a`, but `a` is not something `rows` can hold — the fix
-    // has to name the unit the author can actually move
-    expect(d!.fix).toContain("`vpc`");
+    // has to name the unit the author can actually move. Since round 17 the
+    // fix is the corrected `rows` line itself, so the same requirement reads
+    // as: the line is built from units, and the endpoint never appears in it.
+    expect(d!.fix).toContain("vpc");
+    expect(d!.fix).not.toMatch(/\ba\b/);
   });
 });

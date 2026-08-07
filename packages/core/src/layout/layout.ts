@@ -434,6 +434,27 @@ export async function layoutView(
       const ef = unitOf(e.from), et = unitOf(e.to);
       if (ef !== et) natural.set(et, Math.max(natural.get(et)!, natural.get(ef)! + 1));
     }
+  /** The `rows` line the author could paste, with `target` moved into
+   *  `source`'s band — or undefined when that would break a different edge. */
+  const mergedRowsFix = (source: string, target: string): string | undefined => {
+    const moved = new Map(declared);
+    moved.set(target, declared.get(source)!);
+    for (const other of edges) {
+      const oa = unitOf(other.from), ob = unitOf(other.to);
+      if (oa === ob || !moved.has(oa) || !moved.has(ob)) continue;
+      if (moved.get(oa)! > moved.get(ob)!) return undefined;
+    }
+    const bands = new Map<number, string[]>();
+    for (const [unit, row] of moved) {
+      if (!bands.has(row)) bands.set(row, []);
+      bands.get(row)!.push(unit);
+    }
+    const line = [...bands.keys()].sort((x, y) => x - y)
+      .map((row) => `[${bands.get(row)!.join(" ")}]`)
+      .join(" ");
+    return `write \`rows ${line}\` — equal ranks are legal, and route side to side`;
+  };
+
   // A conflict is only a *user* error when two explicitly declared nodes
   // contradict each other — an edge that runs upward between declared rows.
   // Context and other unhinted nodes never trigger it; they float (see above).
@@ -450,7 +471,19 @@ export async function layoutView(
       diagnostics.push({
         severity: "error",
         message: `hint conflict: \`${e.from}\` → \`${e.to}\` runs upward — row ${declared.get(a)} to row ${declared.get(b)}`,
-        fix: `put ${named(e.to, b)} in a row below ${named(e.from, a)}, or drop one of them from \`rows\``,
+        // Round 17: 27-rank-conflict hit the *same* conflict on two consecutive
+        // attempts, so the edit between them addressed nothing — the agent was
+        // guessing at an arrangement rather than applying a fix. Every
+        // diagnostic here that gets applied in one iteration writes the
+        // corrected text out (`write \`[a b c]\``); the ones that describe a
+        // choice between two abstract edits are the ones that get guessed at.
+        // So: offer the concrete line. Merging the target into the source's
+        // band is always legal on its own (equal ranks route side to side) —
+        // but it can collide with a *different* edge, so it is only offered
+        // when the whole arrangement comes back clean. A confidently wrong
+        // suggestion is worse than a vague right one.
+        fix: mergedRowsFix(a, b) ??
+          `put ${named(e.to, b)} in a row below ${named(e.from, a)}, or drop one of them from \`rows\``,
         loc: view.loc,
       });
     }
