@@ -157,24 +157,49 @@ export function buildProject(input: ProjectFile[]): BuildResult {
           `\`layout\` block inside \`${sys}\` — layout hints live in views, not systems`,
           `move it below the system: view ${sys} { layout { … } }`);
       }
-      // Commas inside a layout group. Every other language the agent knows
-      // separates a list with commas, so `rows [a, b] [c]` is the guess it
-      // makes first — and it produced a bare `syntax error near `[a, b]``,
-      // which names the line but not the rule. Round 4 lost two iterations to
-      // exactly this. Groups separate by whitespace; the comma is the whole
-      // mistake, so say so and point at the comma itself.
-      for (const m of f.src.matchAll(/\[[^\]\n]*,[^\]\n]*\]/g)) {
+      // An unquoted attribute value with a space in it. `owner: team-orders`
+      // parses, so `owner: payments team` is the natural next guess — and it
+      // produced a bare syntax error pointing at the brace. Round 15 lost an
+      // iteration to exactly this. Tags are the only legitimately multi-token
+      // value and they start with `#`, so requiring a letter first keeps
+      // `tags: #a #b` out of the match.
+      for (const m of f.src.matchAll(
+        /([\w-]+)[ \t]*:[ \t]*([A-Za-z][\w.-]*(?:[ \t]+[A-Za-z][\w.-]*)+)[ \t]*(?=[\n;,}])/g,
+      )) {
         if (strings.some(([a, b]) => m.index! >= a && m.index! < b)) continue;
-        const comma = m.index! + m[0].indexOf(",");
-        error(ctx, ctx.loc({ from: comma, to: comma + 1 } as SyntaxNode),
-          "comma inside a layout group — ids separate with spaces",
-          `write \`${m[0].replace(/\s*,\s*/g, " ")}\``);
-        // Same reasoning as the stray-layout case below: the bare syntax error
-        // this produced points at the same line and adds nothing.
+        error(ctx, ctx.loc({ from: m.index!, to: m.index! + m[0].length } as SyntaxNode),
+          `\`${m[1]}\` has a space in its value, so it needs quotes`,
+          `write \`${m[1]}: "${m[2]}"\``);
+        const end = f.src.indexOf("\n}", m.index!);
+        const stop = end === -1 ? f.src.length : end + 2;
         for (let i = diagnostics.length - 1; i >= 0; i--) {
           const d = diagnostics[i];
           if (d.file === ctx.name && d.message.startsWith("syntax error near")
-              && d.loc.from >= m.index! && d.loc.from <= m.index! + m[0].length)
+              && d.loc.from >= m.index! && d.loc.from <= stop)
+            diagnostics.splice(i, 1);
+        }
+      }
+      // Commas splitting a tag *value* — `tags: #pci, #core`. Everywhere else
+      // a comma is now an optional separator, but not here: after the comma an
+      // LR(1) parser cannot tell another tag from the next attribute key, so
+      // this one stays illegal and says so instead. (The rank-group version of
+      // this diagnostic is gone — `rows [a, b]` parses now.)
+      for (const m of f.src.matchAll(/[\w-]+[ \t]*:[ \t]*#[\w-]+(?:[ \t]*,[ \t]*#[\w-]+)+/g)) {
+        if (strings.some(([a, b]) => m.index! >= a && m.index! < b)) continue;
+        const comma = m.index! + m[0].indexOf(",");
+        error(ctx, ctx.loc({ from: comma, to: comma + 1 } as SyntaxNode),
+          "comma splits the tag list — tags separate with spaces",
+          `write \`${m[0].replace(/[ \t]*,[ \t]*/g, " ")}\``);
+        // One mistake, one diagnostic. A malformed attr block derails the parse
+        // for the rest of its enclosing block, not just the matched text, so
+        // the window runs to the block's close — same widening the stray-layout
+        // case below needed, for the same reason.
+        const end = f.src.indexOf("\n}", m.index!);
+        const stop = end === -1 ? f.src.length : end + 2;
+        for (let i = diagnostics.length - 1; i >= 0; i--) {
+          const d = diagnostics[i];
+          if (d.file === ctx.name && d.message.startsWith("syntax error near")
+              && d.loc.from >= m.index! && d.loc.from <= stop)
             diagnostics.splice(i, 1);
         }
       }
@@ -266,12 +291,15 @@ export function buildProject(input: ProjectFile[]): BuildResult {
         if (!kinds.includes("person")) kinds.push("person");
       }
       const labelNode = decl.getChild("String");
+      // `#tag` written in kind position (grammar: NodeDecl). Merged with any
+      // block `tags:` and de-duped, so both spellings compose on one node.
+      const headTags = decl.getChildren("Tag").map((t) => ctx.text(t).slice(1));
       model.nodes.set(path, {
         path, name,
         label: labelNode ? ctx.str(labelNode) : name,
         icon, kinds,
         description: meta.description,
-        tags: meta.tags,
+        tags: [...new Set([...headTags, ...meta.tags])],
         attrs: meta.attrs,
         loc: ctx.loc(decl),
         file: ctx.name,
@@ -335,7 +363,11 @@ export function buildProject(input: ProjectFile[]): BuildResult {
       model.containers.set(path, {
         path, name, kind: kind as SContainer["kind"], kinds,
         label: labelNode ? ctx.str(labelNode) : undefined,
-        children: [], attrs: {}, tags: [], loc: ctx.loc(decl), file: ctx.name,
+        // Head tags (`system s "S" #core {`); a body `tags:` pushes on top of
+        // these in walkContainer, and effectiveTags de-dupes downstream.
+        children: [], attrs: {},
+        tags: decl.getChildren("Tag").map((t) => ctx.text(t).slice(1)),
+        loc: ctx.loc(decl), file: ctx.name,
       });
       model.containers.get(parentPath)?.children.push(path);
       const body = decl.getChild("ContainerBody");

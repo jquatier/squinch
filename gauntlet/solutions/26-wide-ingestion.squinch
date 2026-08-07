@@ -1,33 +1,33 @@
-// Ingestion estate — wide layout for slide presentation
+// Ingestion estate — wide layout for slides
 
-c1 = sys/container "Collector 1"
-c2 = sys/container "Collector 2"
-c3 = sys/container "Collector 3"
-c4 = sys/container "Collector 4"
-c5 = sys/container "Collector 5"
-c6 = sys/container "Collector 6"
+collector1 = sys/container "Collector 1"
+collector2 = sys/container "Collector 2"
+collector3 = sys/container "Collector 3"
+collector4 = sys/container "Collector 4"
+collector5 = sys/container "Collector 5"
+collector6 = sys/container "Collector 6"
 
-norm = sys/workflow "Normaliser"
+normaliser = sys/cpu "Normaliser"
 
-wh    = sys/database "Warehouse" datastore
-idx   = sys/search   "Search Index" datastore
-alert = sys/siren    "Alerting"
+warehouse = sys/database "Warehouse" datastore
+search    = sys/search   "Search Index" datastore
+alerting  = sys/siren    "Alerting"
 
-c1 ~> norm
-c2 ~> norm
-c3 ~> norm
-c4 ~> norm
-c5 ~> norm
-c6 ~> norm
+collector1 ~> normaliser
+collector2 ~> normaliser
+collector3 ~> normaliser
+collector4 ~> normaliser
+collector5 ~> normaliser
+collector6 ~> normaliser
 
-norm ~> wh
-norm ~> idx
-norm ~> alert
+normaliser ~> warehouse
+normaliser ~> search
+normaliser ~> alerting
 
 view default {
   layout {
     direction right
     density compact
-    rows [c1 c2 c3 c4 c5 c6] [norm] [wh idx] [alert]
+    rows [collector1 collector2 collector3 collector4 collector5 collector6] [normaliser] [warehouse search] [alerting]
   }
 }

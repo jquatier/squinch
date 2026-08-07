@@ -4,15 +4,15 @@ pack logos
 person customer "Customer"
 
 frontdoor = azure/front-door "Front Door"
-webapp = azure/app-services "Web App"
+appservice = azure/app-services "Web App"
 sql = azure/sql "SQL Database" datastore
-cache = azure/redis "Redis Cache" datastore
-vault = azure/key-vault "Key Vault"
+redis = azure/redis "Redis Cache" datastore
+keyvault = azure/key-vault "Key Vault"
 insights = azure/application-insights "Application Insights"
 
-customer -> frontdoor "browse"
-frontdoor -> webapp
-webapp -> sql
-webapp -> cache
-webapp -> vault "fetch secrets"
-webapp ~> insights "telemetry"
+customer -> frontdoor "requests"
+frontdoor -> appservice
+appservice -> sql "read/write"
+appservice -> redis "cache"
+appservice -> keyvault "secrets"
+appservice ~> insights "telemetry"

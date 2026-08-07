@@ -3,28 +3,49 @@ pack aws
 person client "Client App"
 
 system ml_inference "ML Inference Service" {
-  description: "Realtime model inference with feature lookup"
+  description: "Realtime inference with feature lookup"
   glyph: aws/sagemaker
 
   api = aws/api-gateway "API Gateway"
-  lambda = aws/lambda "Inference Handler"
-  endpoint = aws/sagemaker "SageMaker Endpoint"
+  handler = aws/lambda "Inference Handler"
+  model = aws/sagemaker "Model Endpoint"
   features = aws/dynamodb "Feature Store" datastore
 
-  api -> lambda
-  lambda -> features "get features"
-  lambda -> endpoint "predict"
+  api -> handler
+  handler -> model "predict"
+  handler -> features "fetch features"
 }
 
 system training "Model Training Pipeline" {
-  description: "Nightly batch model retraining"
+  description: "Nightly batch retraining"
   glyph: sys/workflow
 
-  job = aws/batch "Training Job"
+  job = aws/lambda "Training Job"
   data = aws/s3 "Training Data" datastore
 
-  job -> data "read training data"
+  job -> data "read training set"
+  job ~> ml_inference.model "deploy updated model"
 }
 
 client -> ml_inference.api "inference request"
-training.job ~> ml_inference.endpoint "retrain model"
+
+view landscape {
+  title "ML Inference Architecture"
+  include *
+}
+
+view inference {
+  scope ml_inference
+  title "Real-time Inference Flow"
+}
+
+flow request "Inference Request" {
+  client -> ml_inference.api -> ml_inference.handler -> ml_inference.model
+  ml_inference.handler -> ml_inference.features
+}
+
+view inference_flow {
+  scope ml_inference
+  title "Inference Request Flow"
+  show flow request
+}

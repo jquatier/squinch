@@ -143,12 +143,21 @@ init/watch + lockfile model + Actions), the SPA playground, the VS Code
 extension + language server, five icon packs, and five themes. The acceptance
 bar — an agent producing clean diagrams from prose using only the skill + CLI —
 is certified at **29/29
-by independent cold agents**, most recently at **25/29 clean on the first
-`check`** — the nine prompts added in round 14 are where the four second calls
-came from, which is what they were added for. `gauntlet/README.md` writes up the latest round only: every round's
+by independent cold agents**, most recently at **23/29 clean on the first
+`check`** (round 15, on the loosened grammar). `gauntlet/README.md` writes up the latest round only: every round's
 findings land as a code or docs change in the same commit, so the fixes are the
 record. The number is never the point — a round that scores full marks and
 surfaces a crash beats one that scores full marks and surfaces nothing.
+
+Two surface rules, both from measuring what cold agents actually write (367
+gauntlet check calls plus a 5-agent probe): **a tag may sit in kind position**
+(`db = aws/dynamodb "L" datastore #pci` — 5/5 probe agents wrote that and none
+reached for `tags:`), and **a comma is optional wherever whitespace already
+separates** (`rows [a, b]`, `align a, b`, `{ style: dashed, animate: slow }`).
+Commas stay *required* in a path list, and stay wrong inside a tag value —
+`tags: #a #b` — because after a comma there an LR(1) parser cannot tell another
+tag from the next attr key; that one is a check error naming the fix. Both
+spellings build the same model and render byte-identically.
 
 v1.1's DSL is done: zones, flows, tags, channels, cols, align, legend/titleblock,
 plus `only`/`detail` (below) and `badge:` — a vendor mark composited onto a leaf's

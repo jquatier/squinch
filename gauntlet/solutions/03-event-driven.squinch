@@ -1,26 +1,43 @@
 pack aws
 
-// Event source
-bus = aws/eventbridge "Order Events"
+system order_processing "Order Processing" {
+  description: "Event-driven order processing"
 
-// Email notification path
-email_handler = aws/lambda "Email Notifier"
-email_svc = aws/sns "Email Service"
+  events = aws/eventbridge "EventBridge" {
+    description: "Order event bus"
+  }
 
-// Analytics path
-analytics_handler = aws/lambda "Analytics Writer"
-lake = aws/s3 "Data Lake" datastore
+  email_fn = aws/lambda "Email Notifier" {
+    description: "Sends order confirmations"
+  }
 
-// Error handling
-dlq = aws/sqs "Dead Letter Queue"
+  sns = aws/sns "SNS" {
+    description: "Email delivery"
+  }
 
-// Async event flows
-bus ~> email_handler "order.created"
-email_handler ~> email_svc
+  analytics_fn = aws/lambda "Analytics Writer" {
+    description: "Writes to data lake"
+  }
 
-bus ~> analytics_handler "order.created"
-analytics_handler ~> lake
+  lake = aws/s3 "Data Lake" datastore {
+    description: "Analytics storage"
+  }
 
-// Failed events to DLQ
-email_handler ~> dlq "failures"
-analytics_handler ~> dlq "failures"
+  dlq = aws/sqs "Dead Letter Queue" {
+    description: "Failed events"
+  }
+
+  events ~> email_fn "order.created"
+  email_fn -> sns
+
+  events ~> analytics_fn "order.created"
+  analytics_fn -> lake
+
+  events ~> dlq "failed events"
+}
+
+view order_processing {
+  layout {
+    rows [events] [email_fn analytics_fn] [sns lake dlq]
+  }
+}

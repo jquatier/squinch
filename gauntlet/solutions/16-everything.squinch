@@ -3,70 +3,65 @@ pack aws
 person customer "Customer"
 
 storefront = aws/cloudfront "Storefront"
-apigw = aws/api-gateway "API Gateway"
+
+gw = aws/api-gateway "API Gateway"
 
 system catalog "Catalog Service" {
-  description: "Product browsing"
-  glyph: sys/database
+  description: "Product catalog"
+  glyph: sys/code
 
-  handler = aws/lambda "Catalog Handler"
-  db = aws/dynamodb "Products Table" datastore
+  lambda = aws/lambda "Catalog Handler"
+  db = aws/dynamodb "Catalog DB" datastore
 
-  handler -> db
+  lambda -> db
 }
 
 system orders "Orders Service" {
-  description: "Order processing"
+  description: "Order management"
   glyph: sys/code
-  tags: #core
+  tags: #orders
 
-  handler = aws/lambda "Order Handler"
-  db = aws/dynamodb "Orders Table" datastore
-  bus = aws/eventbridge "Event Bus"
+  lambda = aws/lambda "Orders Handler" { tags: #sensitive }
+  db = aws/dynamodb "Orders DB" datastore { tags: #sensitive }
 
-  handler -> db
-  handler ~> bus "order placed"
+  lambda -> db
 }
 
 system payments "Payments Service" {
   description: "Payment processing"
-  glyph: sys/lock
+  glyph: sys/code
   tags: #sensitive
 
-  handler = aws/lambda "Payment Handler" {
-    tags: #sensitive
-  }
-  db = aws/dynamodb "Payments Table" datastore {
-    tags: #sensitive
-  }
+  lambda = aws/lambda "Payments Handler"
+  db = aws/dynamodb "Payments DB" datastore
 
-  handler -> db { tags: #sensitive }
+  lambda -> db
 }
 
-fulfillment = aws/lambda "Fulfillment Worker" {
-  description: "Order fulfillment"
-}
+bus = aws/eventbridge "EventBridge"
+
+fulfillment = aws/lambda "Fulfillment Worker"
 
 customer -> storefront "browse"
-storefront -> apigw
-apigw -> catalog.handler "get products"
-apigw -> orders.handler "place order"
-apigw -> payments.handler "process payment" { tags: #sensitive }
-orders.bus ~> fulfillment "consume events"
+storefront -> gw
+gw -> catalog.lambda
+gw -> orders.lambda
+gw -> payments.lambda { tags: #sensitive }
+orders.lambda ~> bus "order events"
+bus ~> fulfillment
 
 zone prod_vpc "Production VPC" vpc {
-  contains apigw, catalog, orders, payments, fulfillment
+  contains gw, catalog, orders, payments, bus, fulfillment
 }
 
 view landscape {
-  title "Order Platform Landscape"
+  title "System Landscape"
   include *
-  legend auto
 }
 
 view orders {
   scope orders
-  title "Orders Service Detail"
-  show descriptions
-  legend auto
+  titleblock {
+    version: "2026-08"
+  }
 }

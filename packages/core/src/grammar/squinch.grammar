@@ -34,7 +34,7 @@ PersonDecl { kw<"person"> Ident String? }
 // not of one node inside it. Only `external` means anything here — the model
 // builder rejects the other two, which have no card treatment.
 Container {
-  (kw<"system"> | kw<"container">) Ident String? NodeKind* ContainerBody
+  (kw<"system"> | kw<"container">) Ident String? (NodeKind | Tag)* ContainerBody
 }
 
 // flow id "Label" { a -> b -> c }  — numbered path over existing edges
@@ -56,7 +56,11 @@ ContainerBody { "{" list<NodeDecl | Container | EdgeStmt | Attr> "}" }
 // `= person "Name"` alongside `= box`: `person id "Label"` is a top-level
 // form only, so inside a system the only way to draw a human was
 // `= box "Name" person`, and what agents reach for is `= person "Name"`.
-NodeDecl { Ident "=" (IconRef | kw<"box"> | kw<"person">) String? (NodeKind | AttrBlock)* }
+// `#tag` in kind position: five of five cold agents shown one example wrote
+// `db = aws/dynamodb "L" datastore #pci` — a hashtag reads like a kind, and
+// nobody reached for `tags: #pci` unprompted. Same fix as `= person` and
+// either-order attr blocks: the unanimous guess becomes the syntax.
+NodeDecl { Ident "=" (IconRef | kw<"box"> | kw<"person">) String? (NodeKind | AttrBlock | Tag)* }
 // `person` was here too and nobody ever wrote it: across every example, the
 // lookbook and nine gauntlet rounds, all 20 occurrences of the word were the
 // `person id "Label"` declaration form (or `= person "Name"`), both of which
@@ -69,7 +73,13 @@ EdgeStmt { Path Arrow PathList String? AttrBlock? }
 PathList { Path ("," Path)* }
 Path { Ident ("." Ident)* }
 
-AttrBlock { "{" list<Attr> "}" }
+// Attrs separate by newline, `;` — or `,`, which SPEC §1 promised from v0
+// and the parser never delivered: `{ style: dashed, animate: slow }` is the
+// JS-object prior and it cost real iterations (three times in one session).
+// A separate separator set, NOT `s`: a comma as a *statement* separator
+// conflicts with PathList's commas in edge fan-out. Trailing comma legal.
+as { nl | ";" | "," }
+AttrBlock { "{" as* (Attr as+)* Attr? "}" }
 Attr { Ident ":" Value }
 Value { String | Number | Tag+ | IconRef | Path }
 
@@ -89,7 +99,7 @@ DetailStmt { kw<"detail"> Path }
 ExcludeStmt { kw<"exclude"> TargetList }
 ExpandStmt { kw<"expand"> Path }
 ContextStmt { kw<"context"> (kw<"auto"> | kw<"off">) }
-HighlightStmt { kw<"highlight"> Tag+ }
+HighlightStmt { kw<"highlight"> Tag (","? Tag)* }
 ShowStmt { kw<"show"> (kw<"descriptions"> | kw<"flow"> Ident) }
 LegendStmt { kw<"legend"> (kw<"auto"> | kw<"off">) }
 TitleBlockStmt { kw<"titleblock"> AttrBlock }
@@ -112,9 +122,9 @@ LinesStmt { kw<"lines"> Ident }
 DensityStmt { kw<"density"> Ident }
 RowsStmt { kw<"rows"> Rank+ }
 ColsStmt { kw<"cols"> Rank+ }
-Rank { "[" Path+ "]" }
+Rank { "[" Path (","? Path)* "]" }
 PlaceStmt { kw<"place"> Path RelPos Path }
-AlignStmt { kw<"align"> Path Path+ }
+AlignStmt { kw<"align"> Path (","? Path)+ }
 // channel a, b, c -> db  — several edges share one trunk into the target
 ChannelStmt { kw<"channel"> PathList Arrow Path }
 RouteStmt {

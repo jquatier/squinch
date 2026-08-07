@@ -292,6 +292,32 @@ describe("shapes that parse but that nothing exercised", () => {
     }
   });
 
+  it("spells a tag four ways and means the same node every time", async () => {
+    // Round 15: five of five cold agents wrote the tag in kind position and
+    // nobody wrote `tags:` unprompted, so both spellings are legal — and
+    // separator style must not change a byte of the output either.
+    const decl = (d: string) =>
+      `pack aws\nsystem s "S" {\n ${d}\n b = aws/lambda "B"\n db -> b\n}\nview v { scope s\n highlight #pci\n}`;
+    const forms = {
+      "block tags:": `db = aws/dynamodb "Orders" datastore {\n  tags: #pci\n }`,
+      "positional": `db = aws/dynamodb "Orders" datastore #pci`,
+      "positional before kind": `db = aws/dynamodb "Orders" #pci datastore`,
+      "comma'd block": `db = aws/dynamodb "Orders" datastore {\n  tags: #pci,\n }`,
+    };
+    const svgs: string[] = [];
+    for (const [name, d] of Object.entries(forms)) {
+      const r = buildModel(decl(d));
+      expect(r.diagnostics.filter((x) => x.severity === "error"), name).toEqual([]);
+      expect(r.model.nodes.get("s.db")?.tags, name).toContain("pci");
+      expect(r.model.nodes.get("s.db")?.kinds, name).toContain("datastore");
+      const out = await render(decl(d), { theme: "light", view: "v" });
+      expect(out.ok, name).toBe(true);
+      svgs.push(out.svg!);
+    }
+    // one model, one picture: how you spelled it must not reach the render
+    expect(new Set(svgs).size, "spelling changed the output").toBe(1);
+  });
+
   it("draws `external` as DESIGN §3's hatched surface, on a node and on a card", async () => {
     // `external`, `datastore` and `person` all rendered byte-identical to no
     // kind at all — parsed, validated, promised styling by SPEC §3 and DESIGN

@@ -275,32 +275,119 @@ describe("badge: is a real icon reference", () => {
   });
 });
 
-describe("commas in a layout group", () => {
-  // Round 4: a cold agent wrote `rows [gw] [create, get, search]` — the guess
-  // every other language invites — and got a bare `syntax error near`, which
-  // named the line but not the rule. Two iterations lost to a one-character
-  // mistake.
-  const src = (group: string) =>
+describe("commas as optional separators", () => {
+  // Round 4 lost two iterations to `rows [gw] [create, get, search]`, and I
+  // wrote `{ style: dashed, animate: slow }` three times in one session. Both
+  // are now legal: a comma is never required where whitespace works, and never
+  // an error where a list is being written. SPEC §1 promised this from v0.
+  const view = (group: string) =>
     `pack aws\nsystem s "S" {\n  gw = aws/api-gateway "GW"\n  a = aws/lambda "A"\n  b = aws/lambda "B"\n  gw -> a\n  gw -> b\n}\nview v {\n  scope s\n  layout {\n    rows [gw] ${group}\n  }\n}\n`;
 
-  it("names the rule and writes out the fix", () => {
-    const r = buildModel(src("[a, b]"));
-    const d = r.diagnostics.find((x) => x.message.includes("comma inside a layout group"))!;
-    expect(d).toBeDefined();
-    expect(d.fix).toContain("[a b]");
-    // and it replaces the bare syntax error rather than adding to it
-    expect(r.diagnostics.some((x) => x.message.startsWith("syntax error near"))).toBe(false);
+  it("accepts commas in a rank group, and means the same thing", () => {
+    const withCommas = buildModel(view("[a, b]"));
+    const withSpaces = buildModel(view("[a b]"));
+    expect(withCommas.ok, JSON.stringify(withCommas.diagnostics)).toBe(true);
+    expect(withSpaces.ok).toBe(true);
+    const ranks = (r: typeof withCommas) =>
+      JSON.stringify(r.model.views[0].layout.rows);
+    expect(ranks(withCommas)).toBe(ranks(withSpaces));
   });
 
-  it("stays quiet on the correct form", () => {
-    expect(buildModel(src("[a b]")).ok).toBe(true);
+  it("accepts commas between attrs, including a trailing one", () => {
+    const src = (attrs: string) =>
+      `pack aws\nsystem t "T" {\n  x = aws/lambda "X" ${attrs}\n  y = aws/lambda "Y"\n  x -> y\n}\n`;
+    for (const form of [
+      `{ description: "d", owner: team }`,
+      `{ description: "d", owner: team, }`,
+      `{\n    description: "d"\n    owner: team\n  }`,
+    ]) {
+      const r = buildModel(src(form));
+      expect(r.ok, `${form} → ${JSON.stringify(r.diagnostics)}`).toBe(true);
+      expect(r.model.nodes.get("t.x")!.description).toBe("d");
+      expect(r.model.nodes.get("t.x")!.attrs["owner"]).toBe("team");
+    }
+  });
+
+  it("accepts commas in align and highlight", () => {
+    const r = buildModel(
+      `pack aws\nsystem s "S" {\n  a = aws/lambda "A" #pci\n  b = aws/lambda "B" #pci\n  a -> b\n}\nview v {\n  scope s\n  highlight #pci, #core\n  layout { align a, b }\n}\n`,
+    );
+    expect(r.ok, JSON.stringify(r.diagnostics)).toBe(true);
+  });
+
+  it("still names the fix for a comma inside a tag value", () => {
+    // The one place a comma stays illegal: after it, an LR(1) parser cannot
+    // tell another tag from the next attribute key.
+    const r = buildModel(
+      `pack aws\nsystem t "T" {\n  x = aws/lambda "X" { tags: #pci, #core }\n  y = aws/lambda "Y"\n  x -> y\n}\n`,
+    );
+    const d = r.diagnostics.find((x) => x.message.includes("comma splits the tag list"))!;
+    expect(d).toBeDefined();
+    expect(d.fix).toContain("tags: #pci #core");
+    // and it replaces the bare syntax error rather than piling on
+    expect(r.diagnostics.some((x) => x.message.startsWith("syntax error near"))).toBe(false);
   });
 
   it("never fires on a label that happens to contain one", () => {
     // "Orders [US, EU]" is legal text; suppressing a real syntax error because
     // of it would be strictly worse than saying nothing.
     const r = buildModel(`pack aws\nsystem s "S" {\n  a = aws/lambda "Orders [US, EU]"\n  a ->\n}\n`);
-    expect(r.diagnostics.some((x) => x.message.includes("comma inside a layout group"))).toBe(false);
+    expect(r.diagnostics.some((x) => x.message.includes("comma splits"))).toBe(false);
     expect(r.diagnostics.some((x) => x.message.startsWith("syntax error near"))).toBe(true);
+  });
+});
+
+describe("an unquoted attribute value with a space", () => {
+  // Round 15: `owner: team-orders` parses, so a cold agent wrote
+  // `owner: payments team` and got a bare syntax error pointing at the brace.
+  const src = (attr: string) =>
+    `pack aws\nsystem s "S" {\n  a = aws/lambda "A" { ${attr} }\n  b = aws/lambda "B"\n  a -> b\n}\n`;
+
+  it("names the key and writes the quoted form", () => {
+    const r = buildModel(src("owner: payments team"));
+    const d = r.diagnostics.find((x) => x.message.includes("needs quotes"))!;
+    expect(d).toBeDefined();
+    expect(d.message).toContain("`owner`");
+    expect(d.fix).toBe('write `owner: "payments team"`');
+    expect(r.diagnostics.some((x) => x.message.startsWith("syntax error near"))).toBe(false);
+  });
+
+  it("leaves a single-word value alone", () => {
+    expect(buildModel(src("owner: team-orders")).ok).toBe(true);
+  });
+
+  it("never fires on a tag list, the one legal multi-token value", () => {
+    const r = buildModel(src("tags: #pci #core"));
+    expect(r.ok, JSON.stringify(r.diagnostics)).toBe(true);
+    expect(r.model.nodes.get("s.a")!.tags.sort()).toEqual(["core", "pci"]);
+  });
+});
+
+describe("tags written in kind position", () => {
+  // Five of five cold agents shown one example wrote `db = aws/dynamodb "L"
+  // datastore #pci` — nobody reached for `tags: #pci` unprompted.
+  it("lands on the node, and composes with a block tags:", () => {
+    const r = buildModel(
+      `pack aws\nsystem s "S" {\n  a = aws/dynamodb "A" datastore #pci\n  b = aws/lambda "B" #pci { tags: #core }\n  a -> b\n}\n`,
+    );
+    expect(r.ok, JSON.stringify(r.diagnostics)).toBe(true);
+    expect(r.model.nodes.get("s.a")!.tags).toEqual(["pci"]);
+    expect(r.model.nodes.get("s.a")!.kinds).toContain("datastore");
+    expect(r.model.nodes.get("s.b")!.tags.sort()).toEqual(["core", "pci"]);
+  });
+
+  it("de-dupes when both spellings say the same thing", () => {
+    const r = buildModel(
+      `pack aws\nsystem s "S" {\n  a = aws/lambda "A" #pci { tags: #pci }\n  b = aws/lambda "B"\n  a -> b\n}\n`,
+    );
+    expect(r.model.nodes.get("s.a")!.tags).toEqual(["pci"]);
+  });
+
+  it("works on a container head and inherits like a body tag", () => {
+    const r = buildModel(
+      `pack aws\nsystem s "S" #core {\n  a = aws/lambda "A"\n  b = aws/lambda "B"\n  a -> b\n}\n`,
+    );
+    expect(r.ok, JSON.stringify(r.diagnostics)).toBe(true);
+    expect(r.model.containers.get("s")!.tags).toEqual(["core"]);
   });
 });

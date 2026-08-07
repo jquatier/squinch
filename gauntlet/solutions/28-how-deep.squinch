@@ -1,58 +1,65 @@
-// Order Platform - System Overview
+// Order Platform Architecture
+
 pack aws
 
 person customer "Customer"
 
-system orders "Orders Service" {
+system orders "Order Service" {
   description: "Order processing and management"
   glyph: sys/code
 
   api = aws/api-gateway "API Gateway"
-  create = aws/lambda "Create Order"
-  process = aws/lambda "Process Order"
-  validate = aws/lambda "Validate Order"
-  db = aws/dynamodb "Orders DB" datastore
+  create = aws/lambda "Create Handler" {
+    description: "Validates and creates orders"
+  }
+  query = aws/lambda "Query Handler" {
+    description: "Reads order data"
+  }
+  process = aws/lambda "Process Handler" {
+    description: "Fulfillment workflow"
+  }
+  db = aws/dynamodb "Orders Table" datastore
   queue = aws/sqs "Order Queue"
 
   api -> create
-  api -> process
-  create -> validate
-  validate -> db
-  create ~> queue "submit"
+  api -> query
+  create -> db
+  query -> db
+  create ~> queue "new order"
   queue ~> process
   process -> db
 }
 
 system inventory "Inventory Service" {
-  description: "Stock management"
+  description: "Stock tracking"
   glyph: sys/database
 
-  api = aws/api-gateway "Inventory API"
-  stock = aws/dynamodb "Stock DB" datastore
+  svc = aws/lambda "Inventory Service"
+  store = aws/dynamodb "Inventory DB" datastore
 
-  api -> stock
+  svc -> store
 }
 
-system notifications "Notifications Service" {
-  description: "Customer communications"
-  glyph: sys/workflow
+system notifications "Notification Service" {
+  description: "Customer notifications"
+  glyph: sys/webhook
 
-  handler = aws/lambda "Notification Handler"
-  email = aws/sns "Email Topic"
+  notifier = aws/lambda "Notifier"
+  topic = aws/sns "Events Topic"
 
-  handler ~> email
+  topic ~> notifier
 }
 
 customer -> orders.api "places order"
-orders.process -> inventory.api "check stock"
-orders.queue ~> notifications.handler "order events"
+orders.process -> inventory.svc "check stock"
+orders.process ~> notifications.topic "order event"
 
 view landscape {
-  title "Order Platform"
+  title "Order Platform Overview"
   include *
 }
 
 view orders {
+  title "Order Service Detail"
   scope orders
-  show descriptions
 }

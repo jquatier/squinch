@@ -1,25 +1,30 @@
-pack aws
 pack logos
 
-person mobile "Mobile App"
-person web "Web User"
+// Customers
+person customer "Customer"
 
-gw = aws/api-gateway "API Gateway"
+// Entry points
+mobile = sys/smartphone "Mobile App"
+website = sys/app-window "Website"
+gw = sys/network "Gateway"
 
-account = sys/server "Account Service"
-billing = sys/server "Billing Service"
+// Services
+account = sys/code "Account Service" #core
+billing = sys/code "Billing Service" #core
 
-account_db = logos/postgres "Postgres" datastore
-billing_db = logos/postgres "Billing DB" datastore
-
+// External systems
 stripe = box "Stripe" external
 
+// Data stores
+account_db = logos/postgres "Account DB" datastore
+billing_db = logos/postgres "Billing DB" datastore
 export = aws/s3 "Data Export" datastore
-person data_team "Data Team"
 
+// Connections
+customer -> mobile
+customer -> website
 mobile -> gw
-web -> gw
-
+website -> gw
 gw -> account
 gw -> billing
 
@@ -27,5 +32,4 @@ account -> account_db
 billing -> billing_db
 billing -> stripe
 
-account_db ~> export "nightly export"
-export -> data_team
+account ~> export "nightly export"

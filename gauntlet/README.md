@@ -65,56 +65,57 @@ nothing.
 
 ## Latest round
 
-**Round 14 — 29/29 on the deep scorer; 25 of 29 clean on the first `check`**
-(2026-08-05). Round 13's complaint was that twenty prompts tuned over eleven
-rounds had stopped discriminating. Nine new ones were added to test that, and
-they did: **four of the nine needed a second call**, against zero of the
-twenty. The set discriminates again.
+**Round 15 — 29/29 on the deep scorer; 23 of 29 clean on the first `check`**
+(2026-08-07). Run to certify a grammar change, and it did more than certify it.
 
-The nine cover what nothing reached before — `animate:`/`style:`, `badge:`, the
-k8s and sys packs, `titleblock`, layout hints under pressure — plus three
-written to be hard rather than to tick a box: a contradiction, an ambiguous
-altitude, and an unstructured brain-dump. Deliberately *not* added: a multi-file
-prompt.
+The change came from asking why agents form syntax errors at all. Three bodies
+of evidence: every one of the 367 `check` calls in the 27 recorded runs here,
+clustered by message; five cold agents given nothing but the README example and
+a brief that forced the error-prone constructs; and the errors I make myself
+with the whole repo in context. The conclusion was that the DSL is *easy* — all
+five probes reproduced structure, arrows, blocks and space-separated ranks from
+one example — but two spots fought every model's prior, and the diagnostics at
+exactly those spots were the worst in the language.
 
-**A round of only new prompts could not start.** The bundle smoke test picked
-its probe from the *selected* prompts, and by definition a new prompt has no
-committed solution — so onboarding prompts was the one thing the harness could
-not do. It now falls back to any committed solution: the subject under test is
-the bundle, never the selection.
+**Five of five probe agents invented the same illegal form**, sonnet and haiku
+alike: `charge = aws/lambda "Charge Handler" #pci { … }`. A hashtag reads like a
+kind and sits where `datastore` sits. Nobody wrote `tags:` unprompted. And the
+comma rule was internally inconsistent — required in path lists, forbidden in
+rank groups, attr blocks, `align` and `highlight` — which fired in *both*
+directions: agents wrote `[create, get, search]` three times across rounds
+despite the skill showing spaces, and omitted a required `channel` comma once.
 
-**`cols` said `align`, six times, and never named the fix.** 26-wide-ingestion
-asks for six collectors side by side in a left-to-right flow. The agent wrote
-`cols [c1 … c6]` — reasonable, since on screen that *is* a column — and got six
-near-identical warnings that said "align skipped …" for a construct it had not
-written. Three fixes: the warnings now say the word that is in the author's file
-(`cols` groups are implemented as align groups, which is an implementation
-detail the author should never see); a group whose members all share a rank
-collapses to **one** warning; and that warning names the fix, because `rows` is
-what puts things side by side. `direction right` makes this worse — a rank looks
-like a column on screen — so the cookbook entry says the words describe the
-model, not the picture.
+Both are legal now. A tag may sit in kind position; a comma is optional wherever
+whitespace already separates. That is what SPEC §1 has promised since v0 and the
+parser never delivered. The three previous times this project met a recurring
+syntax error — attr/kind order, `= person`, container `external` — it fixed them
+the same way, by making the unanimous guess the syntax.
 
-The re-run converged but took four calls: `cols` → `align` → `cols` → `rows`.
-The agent kept trying to express "these two read as a pair" when the honest
-answer is that same-rank nodes are already adjacent and need no hint at all.
-That is the next thing to improve here, and it is a real limit of this fix
-rather than a success to round up.
+**What the round then surfaced on top of that.** A cold agent wrote
+`owner: payments team`, which is the obvious next guess once `owner: team-orders`
+parses, and got a bare syntax error pointing at a brace. It now names the key and
+writes the quoted form. That one cost an iteration and would have kept costing.
 
-**The adversarial prompt worked exactly as designed.** 27-rank-conflict asks for
-two things that cannot both hold; `check` reported `hint conflict: approver →
-audit runs upward — row 2 to row 1` with a fix naming both ways out, and the
-agent recovered. That is SPEC §Tier-1's promise — contradictions are errors,
-never silent — demonstrated by an agent that had never seen the rule.
+**And the gate that was supposed to catch all of this had two holes.** The skill
+ratchet asserts every engine diagnostic has guidance. It read template literals
+only, so any message written as a plain string was invisible — twelve were. And
+it split call arguments on `[^,]+`, so any diagnostic whose location argument
+held a comma never matched at all. Three of the diagnostics added this week sat
+in that second blind spot; they would have shipped ungoverned. The scanner now
+walks arguments counting depth and reads either delimiter, which brought sixteen
+previously-unchecked messages into the gate. All were genuinely self-explanatory
+and are allowlisted with that reasoning recorded.
 
-Two expectations were mine, not the agents': 21-market-data's first attempt
-wrote `animate: true`, guessing symmetry with the `animate: false` that the
-vocabulary used to be, and the existing diagnostic listed the seven legal values
-— working as designed, no change. And `requireChannel` was dropped from
-26-wide-ingestion: the prompt asks for a wide picture with a shared column, never
-for a single trunk, and 13-channel-fanin already covers trunks. Scoring a
-stylistic preference the prompt did not ask for is grading the agent on my
-taste.
+**Honest limits.** 21-market-data passed its first `check` but failed the deep
+scorer on a stylistic expectation, and its re-run took two calls — on a hint
+conflict, which is the class the new "start with no layout block" doctrine in
+SKILL.md is aimed at. So that doctrine is written but unproven; the next round is
+its first real test. Hint conflicts remain the largest error class in this
+project's history at 39 of 80 diagnostic-bearing calls, and nothing in this
+change touches them. A malformed attr value also still produces a downstream
+`unknown id` cascade, because the node's declaration never entered the model —
+the primary diagnostic names the real fix, but "a parse failure should not
+produce semantic lies" is a broader problem left open.
 
 The corpus in `solutions/` is this round's twenty-nine answers, cold-authored and
 deep-scored.

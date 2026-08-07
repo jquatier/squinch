@@ -73,7 +73,7 @@ create = aws/lambda "Create Handler" {           // optional attribute block
   owner:  team-orders
   link:   https://github.com/org/order-service
   status: planned            // planned | deprecated → rendered as badge/ghost
-  tags:   #pci #critical
+  tags:   #pci #critical            // …or positionally: `create = aws/lambda "X" #pci`
 }
 ```
 
@@ -445,10 +445,10 @@ chain       = path { arrow path } ;
 
 pack        = "pack" ident [ "from" string ] ;
 import      = "import" string "as" ident ;               (* v2, not built *)
-container   = ("system" | "container") ident [ label ] "{"
+container   = ("system" | "container") ident [ label ] { kind | tag } "{"
                 { ident ":" value      (* card attrs: glyph, preview, owner, ... *)
                 | node | container | edge } "}" ;
-node        = ident "=" iconref [ label ] { kind } [ attrs ]
+node        = ident "=" iconref [ label ] { kind | tag | attrs }
             | ("person") ident [ label ] ;
 iconref     = ident "/" ident | "box" ;
 kind        = "external" | "datastore" ;   (* `person` comes from the
@@ -477,19 +477,27 @@ tag         = "#" ident ;
 targets     = ( path | tag ) { "," ( path | tag ) } ;
 layoutstmt  = "direction" ("down"|"right") | "lines" ident | "density" ident
             | "rows" rank { rank } | "cols" rank { rank }
-            | "place" path relpos path | "align" path path { path }
+            | "place" path relpos path | "align" path [","] path { [","] path }
             | "route" path arrow path { routemod }
             | "channel" pathlist arrow path ;
-rank        = "[" path { path } "]" ;
+rank        = "[" path { [","] path } "]" ;
 relpos      = "right-of" | "left-of" | "above" | "below" ;
 routemod    = "from" side | "to" side ;
 side        = "north" | "south" | "east" | "west" ;
 
-label       = string ;  attrs = "{" { ident ":" value } "}" ;
+label       = string ;  attrs = "{" { ident ":" value [sep] } "}" ;
+sep         = nl | ";" | "," ;                (* interchangeable *)
 ```
 
-Whitespace-insensitive; statements end at newline or `;`. Built with Lezer so the same
-grammar drives parsing, CodeMirror highlighting, and LSP autocomplete.
+Whitespace-insensitive; statements end at newline or `;`. **A comma is never required
+where whitespace already separates, and never an error where a list is being written** —
+`rows [a, b]`, `align a, b`, `highlight #a, #b` and `{ style: dashed, animate: slow }`
+all parse, as principle 3 above has promised since v0. The two exceptions are a path
+list, where the comma is what distinguishes `a -> b, c` from a label
+(`contains`, `channel`, `only` follow it), and a tag *value* — `tags: #a #b`, because
+after a comma there the parser cannot tell another tag from the next attribute key.
+That one is a check error naming the fix. Built with Lezer so the same grammar drives
+parsing, CodeMirror highlighting, and LSP autocomplete.
 
 ## 8.5 Semantic diff
 

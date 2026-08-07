@@ -67,7 +67,9 @@ system shop "Order Service" {         // systems/containers nest arbitrarily
     description: "Validates and persists"
     tags: #pci
   }
-  db     = aws/dynamodb    "Orders Table" datastore {
+  db     = aws/dynamodb    "Orders Table" datastore #pci
+  // a tag can sit in kind position like that, or in the block — same thing:
+  idx    = aws/opensearch  "Search Index" datastore {
     tags: #pci                        // kind and attr block go in either order
   }
   wh     = sys/database    "SQL Warehouse" datastore {
@@ -101,6 +103,11 @@ Rules that matter:
 - **Ids are unique within their container**; refer to nested things as `shop.api`
   from outside, bare `api` from inside.
 - Statements end at newline (or `;`). Labels are quoted strings.
+- **Commas are optional wherever whitespace already separates** — `rows [a, b]`,
+  `align a, b`, `highlight #a, #b`, `{ style: dashed, animate: slow }` all parse,
+  as does a trailing comma. They stay *required* in a path list (`a -> b, c`,
+  `contains`, `channel`, `only`), and stay wrong inside a tag value: write
+  `tags: #a #b`, never `tags: #a, #b`.
 - Parallel edges between the same pair are fine — give each a label.
 - `~>` edges animate (dashes drift toward the target; still under
   `prefers-reduced-motion`). Opt out per edge: `{ animate: false }`, or pick a
@@ -245,6 +252,15 @@ Zoomed views automatically show outside neighbours as muted **context** cards �
 don't add them yourself; if one appears that you don't want, `context off`.
 
 ## Layout hints (in a `layout { }` block inside a view)
+
+**Start with no `layout` block at all.** Render, look at the picture, and add a
+hint only to fix something you can actually see wrong. Hint conflicts are the
+single biggest source of failed `check` runs in this project's history — almost
+always a `rows` that pins every node, colliding with one feedback edge (a
+monitor, an ack, a healthcheck) that points back up the list. The engine ranks a
+clean pipeline correctly on its own; every hint you add is a constraint you have
+to keep true.
+
 
 ```squinch
 view shop {

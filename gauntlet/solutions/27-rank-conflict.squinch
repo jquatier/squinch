@@ -1,16 +1,17 @@
-// Approval chain system
-req = sys/webhook "Request Service"
+// Approval chain with policy engine and audit log on same row
+
+request = sys/app-window "Request Service"
 policy = sys/shield-check "Policy Engine"
-approver = sys/server "Approver Service"
+approver = sys/code "Approver Service"
 audit = sys/database "Audit Log" datastore
 
-req -> policy
+request -> policy
 policy -> approver
 approver -> audit
 
 view main {
   layout {
-    rows [req] [policy audit]
+    rows [request] [policy audit]
     place audit right-of policy
   }
 }

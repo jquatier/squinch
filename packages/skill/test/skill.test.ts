@@ -127,7 +127,34 @@ describe("SKILL.md — diagnostic coverage", () => {
     const out = new Set<string>();
     for (const f of files) {
       const src = readFileSync(f, "utf8");
-      for (const m of src.matchAll(/(?:message:\s*|(?:error|warn)\([^,]+,\s*[^,]+,\s*)`/g)) {
+      // Two blind spots, both found by diagnostics slipping through them:
+      //  - it read template literals only, so any message written as a plain
+      //    string was invisible — twelve were.
+      //  - it split arguments on `[^,]+`, so any call whose location argument
+      //    contained a comma (`ctx.loc({ from: a, to: b })`) never matched.
+      // Now: find the call, then walk to the third argument counting depth, so
+      // punctuation inside an argument cannot hide a message from this gate.
+      const starts: { at: number; quote: string }[] = [];
+      for (const m of src.matchAll(/message:\s*([`"])/g))
+        starts.push({ at: m.index! + m[0].length, quote: m[1] });
+      for (const m of src.matchAll(/\b(?:error|warn)\(/g)) {
+        let i = m.index! + m[0].length, depth = 0, args = 0;
+        for (; i < src.length && args < 2; i++) {
+          const c = src[i];
+          if ("([{".includes(c)) depth++;
+          else if (")]}".includes(c)) { if (depth === 0) break; depth--; }
+          else if (c === "," && depth === 0) args++;
+          else if (c === '"' || c === "`" || c === "'") {
+            const q = c;
+            while (++i < src.length && src[i] !== q) if (src[i] === "\\") i++;
+          }
+        }
+        while (i < src.length && /\s/.test(src[i])) i++;
+        if (args === 2 && (src[i] === "`" || src[i] === '"'))
+          starts.push({ at: i + 1, quote: src[i] });
+      }
+      for (const { at, quote } of starts) {
+        const m = { index: at, 0: "" } as unknown as RegExpMatchArray;
         // Every literal run in the template, not just the one before the first
         // `${}`. Taking only the prefix skipped every message that *opens* with
         // an interpolation — `` `${x} runs upward — row …` `` — which is 23 of
@@ -137,8 +164,8 @@ describe("SKILL.md — diagnostic coverage", () => {
         let lit = "";
         for (let i = m.index! + m[0].length; i < src.length; i++) {
           const c = src[i];
-          if (c === "\\") { lit += src[i + 1] === "`" ? "`" : ""; i++; continue; }
-          if (c === "$" && src[i + 1] === "{") {
+          if (c === "\\") { lit += src[i + 1] === quote ? quote : ""; i++; continue; }
+          if (quote === "`" && c === "$" && src[i + 1] === "{") {
             parts.push(lit); lit = "";
             // skip the expression, counting braces so `${a ? `${b}` : c}` closes
             let depth = 1;
@@ -149,7 +176,7 @@ describe("SKILL.md — diagnostic coverage", () => {
             }
             continue;
           }
-          if (c === "`") { parts.push(lit); break; }
+          if (c === quote) { parts.push(lit); break; }
           lit += c;
         }
         // strip the punctuation that abuts an interpolation, so this matches the
@@ -193,6 +220,29 @@ describe("SKILL.md — diagnostic coverage", () => {
     // block; the diagnostics finish the loop on their own.
     "unknown edge style", "unknown animate value", "unknown edge attribute",
     "needs a visible pattern to travel, and this edge is solid",
+    // Newly visible once the extractor stopped reading template literals only:
+    // a diagnostic written as a plain string was invisible to this gate for as
+    // long as it has existed, so twelve of them were never checked. Every one
+    // below carries a fix that *is* the answer — the literal statement to
+    // write (`theme dark`, `title "My Diagram"`, `detail web.app`) or the two
+    // ways out spelled in full. A cookbook row would only restate them.
+    "align` needs at least two elements", "channel` needs at least two sources",
+    "detail` needs a path", "scope` needs a single container path",
+    "theme` needs a theme name", "title` needs a quoted string",
+    "async edges are dashed by design — `style: solid` would erase the convention",
+    "animate: packets` draws its own sparse pattern — `style:` has nothing to add",
+    "nothing to export — this project declares no views",
+    "only` changed nothing — everything here already matches",
+    "only` filtered out everything — this view renders empty",
+    // Visible only once the argument walk became depth-aware: a call whose
+    // location argument held a comma — `ctx.loc({ from: a, to: b })` — used to
+    // slip the gate entirely. Two of these predate this session; three were
+    // added by the syntax work and would have shipped unchecked. Each one
+    // writes the corrected line out in full, which is the bar for this list.
+    "comma splits the tag list — tags separate with spaces",
+    "has a space in its value, so it needs quotes",
+    "layout hints live in views, not systems", "layout` block inside",
+    "layout` block at the top level — layout hints live inside a view",
   ]);
 
   it("every diagnostic that needs a technique is in the cookbook", () => {

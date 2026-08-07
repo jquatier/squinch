@@ -1,11 +1,8 @@
-// Hybrid estate: on-prem datacenter feeding AWS cloud
 pack aws
 
-// On-premises components
+// On-premises actors and systems
 person operator "Operator"
-erp = sys/server "Legacy ERP" {
-  description: "Oracle-style system"
-}
+erp = sys/database "Legacy ERP" external
 
 // AWS cloud components
 ingest = aws/lambda "Ingestion Lambda"
@@ -13,7 +10,7 @@ db = aws/aurora "Aurora Database" datastore
 
 // Connections
 operator -> erp "uses"
-erp ~> ingest "data feed"
+erp ~> ingest "feeds data"
 ingest -> db "writes"
 
 // Deployment boundaries

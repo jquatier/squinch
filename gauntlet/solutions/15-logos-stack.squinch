@@ -1,40 +1,27 @@
-// Technology stack with product logos
 pack logos
-pack k8s
 
-person developer "Developer"
+person dev "Developer"
 
-system stack "Application Stack" {
+system app "Application Stack" {
   frontend = logos/nextdotjs "Next.js Frontend"
   api = logos/nestjs "NestJS API"
   db = logos/postgres "PostgreSQL" datastore
   cache = logos/redis "Redis Cache" datastore
   events = logos/kafka "Kafka Events" datastore
+  monitor = logos/grafana "Grafana"
 
   frontend -> api
   api -> db
   api -> cache
-  api ~> events "publishes"
+  api ~> events "publishes events"
+  monitor -> api "metrics"
+  monitor -> db "metrics"
 }
 
-monitor = logos/grafana "Grafana" {
-  description: "Monitoring & observability"
-}
+scm = logos/github "GitHub"
+cluster = logos/kubernetes "Kubernetes"
 
-system cicd "CI/CD Pipeline" {
-  repo = logos/github "GitHub"
-  cluster = logos/kubernetes "Kubernetes"
-
-  repo -> cluster "deploys"
-}
-
-developer -> cicd.repo "pushes code"
-cicd.cluster -> stack.api "runs"
-monitor -> stack.api "watches"
-monitor -> stack.db "watches"
-
-view landscape {
-  title "Technology Stack Overview"
-  include *
-  show descriptions
-}
+dev -> scm "push"
+scm ~> cluster "deploy"
+cluster -> app.frontend
+cluster -> app.api

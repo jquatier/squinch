@@ -51,6 +51,15 @@ describe("half-typed input never crashes the builder", () => {
     ["scope with no path", `a = box "A"\nview v { scope }`],
     ["title with no string", `a = box "A"\nview v { title }`],
     ["theme with no name", `a = box "A"\nview v { theme }`],
+    // positional tags and comma separators — new head/list positions, so new
+    // places to pause mid-keystroke
+    ["positional tag, hash alone", `system s "S" {\n a = box "A" #\n}`],
+    ["positional tag then open brace", `system s "S" {\n a = box "A" #p {\n}`],
+    ["container head tag, hash alone", `system s "S" # {\n a = box "A"\n}`],
+    ["attr comma, next key not typed", `system s "S" {\n a = box "A" { description: "d",\n }\n}`],
+    ["rank group, comma then nothing", `a = box "A"\nview v { layout { rows [a, } }`],
+    ["align, comma then nothing", `a = box "A"\nb = box "B"\nview v { layout { align a, } }`],
+    ["highlight, comma then nothing", `a = box "A"\nview v { highlight #x, }`],
   ];
 
   for (const [label, src] of HALF_TYPED)
