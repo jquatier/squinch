@@ -1,6 +1,6 @@
 ---
 name: squinch
-description: Author architecture diagrams as code with the Squinch DSL. Use when asked to create, edit, or review an architecture/system diagram. Write a .squinch file, validate it with `squinch check`, render SVG with `squinch render`, and fix what you see using the layout cookbook below.
+description: Author architecture diagrams as code with the Squinch DSL. Use this whenever the user wants an architecture or system diagram — creating one from prose, editing or reviewing a .squinch file, drawing cloud infrastructure (AWS, Azure, Kubernetes, hybrid estates), documenting services for a README or a design review, or anything C4-flavoured — even when they never say "squinch". Write the .squinch model, validate it with `squinch check`, render SVG with `squinch render`, and fix what you see using the layout cookbook below.
 ---
 
 # Squinch — architecture diagrams as code
@@ -23,20 +23,17 @@ squinch icons search <term>                   # find icon ids, e.g. "queue", "ka
 squinch diff --format json                    # what changed in the architecture
 ```
 
-1. Write the model first, with **no `layout` block at all**. Render it and look.
-2. Most diagrams need no `layout` block ever. Your edges already say what the
-   tiers are, and the engine ranks from them: a node sits below everything that
-   points at it. Writing `rows` that lists every node just restates that — and
-   the moment one edge disagrees with your band order it is a hard error, not a
-   nudge. Add hints only to fix something you can see is wrong in the render,
-   one at a time, naming only the nodes you actually care about.
-3. `check` after every edit. Diagnostics tell you the location, the problem, and
+1. Write the model first, with **no `layout` block at all** — most diagrams
+   never need one. Your edges already say what the tiers are, and the engine
+   ranks from them: a node sits below everything that points at it. Render it
+   and look. Add hints only to fix something you can see is wrong, one at a
+   time, naming only the nodes you actually care about.
+2. `check` after every edit. Diagnostics tell you the location, the problem, and
    usually the fix (`did you mean ...?`). Trust them.
-4. Exit code 0 and **no diagnostics at all** = clean. Errors block the render;
+3. Exit code 0 and **no diagnostics at all** = clean. Errors block the render;
    warnings do not, which is exactly why they matter — a warning means the file
-   is valid but probably not the diagram you were asked for. `only changed
-   nothing` means your tag covers everything, so the lens shows the whole
-   picture. Fix warnings before you stop.
+   is valid but probably not the diagram you were asked for. Fix warnings
+   before you stop.
 
 ## Language
 
@@ -49,17 +46,15 @@ pack azure                            //  logos | k8s — declare each one you u
 person customer "Customer"            // human actor. This form is top-level
                                       // only — inside a system write it as
                                       // `who = person "Operator"`.
-gw = aws/api-gateway "Edge Gateway"   // components may sit at the top level too,
-                                      // not only inside a `system` — that's how
-                                      // you keep things individually visible at
-                                      // landscape altitude and group them with
-                                      // a `zone` instead
+gw = aws/api-gateway "Edge Gateway"   // components may sit at the top level too —
+                                      // that's how things stay individually
+                                      // visible at landscape altitude (see
+                                      // "Grouping vs. nesting" under Views)
 
 system shop "Order Service" {         // systems/containers nest arbitrarily
   description: "Checkout and orders"  // optional; shows on the collapsed card
   glyph: sys/code                     // badge for the collapsed card — any pack
-                                      // icon works (aws/…, logos/…), not just sys/…
-                                      // a bad ref is a check error, not a `?` plate
+                                      // icon works; a bad ref is a check error
   tags: #core                         // tags inherit to everything inside
 
   api    = aws/api-gateway "API Gateway"        // id = pack/icon "Label"
@@ -77,13 +72,11 @@ system shop "Order Service" {         // systems/containers nest arbitrarily
                                       // see "Platforms with no icon pack" below
   }
   legacy = box             "Old Billing" external   // `box` = no icon
-  // kinds: `external` (not ours — someone else's system) and `datastore`
-  // (holds state). `external` draws a hatched surface and is the one worth
-  // reaching for: nothing else in the diagram says "this is somebody else's".
-  // It also goes on a whole system — `system stripe "Stripe" external { … }`
-  // — where the whole card hatches. `datastore` is a note to the reader and
-  // to `squinch diff`; your icon choice is what actually shows it. For a
-  // human, use the `person` forms above rather than a kind.
+  // kinds: `external` (not ours — draws a hatched surface, and also goes on a
+  // whole system: `system stripe "Stripe" external { … }`) and `datastore`
+  // (holds state — a note to the reader and to `squinch diff`; your icon
+  // choice is what actually shows it). For a human, use the `person` forms
+  // above rather than a kind.
 
   api -> create                       // sync edge (solid)
   api -> create, get, search          // fan-out
@@ -109,66 +102,57 @@ Rules that matter:
   `contains`, `channel`, `only`), and stay wrong inside a tag value: write
   `tags: #a #b`, never `tags: #a, #b`.
 - Parallel edges between the same pair are fine — give each a label.
-- `~>` edges animate (dashes drift toward the target; still under
-  `prefers-reduced-motion`). Opt out per edge: `{ animate: false }`, or pick a
-  variant: `reverse` (acks flowing back), `slow`/`fast` (cadence), `packets`
-  (discrete messages), `pulse` (a heartbeat — works on solid sync edges too),
-  `comet` (a dot rides the route — one request travelling, and the only motion
-  that works on a plain solid edge without a dash).
-  Sync edges take `style: dashed | dotted`, and a dashed sync edge may also
-  animate:
-
-  ```squinch
-  probe  -> legacy "healthcheck" { animate: pulse }
-  sensor ~> ingest "telemetry"   { animate: packets }
-  cart   -> pay "checkout"       { animate: comet }   // no `style:` needed
-  mirror -> replica "sync" {
-    style:   dashed
-    animate: slow
-  }
-  ```
-
-  One `animate:` value per edge. Don't decorate every edge — motion is for the
-  hops where cadence or direction *means* something.
-- `layout { }` blocks go inside a `view`, **never** inside a `system` —
-  structure and layout stay separate. Same for `highlight`, `note`, `expand`.
-- Zones (`zone id "Label" kind { contains a, b.c }`) mark deployment
-  boundaries: kinds `account | region | vpc | subnet | network | cloud |
-  onprem | custom`. Zones must nest cleanly or stay disjoint in any one view,
-  and may not cut through an expanded container. A zone only appears where
-  its members are visible. Optional attrs: `icon:` — **any** pack icon, e.g.
-  `azure/vnet` or `logos/docker`; AWS also ships purpose-made group marks
-  (`aws/cloud`, `aws/region`, `aws/account`, `aws/vpc`, `aws/private-subnet`,
-  `aws/public-subnet`, `aws/corporate-data-center`) — `label: top-right`
-  (corners: top-left default, top-right, bottom-left, bottom-right), and
-  `color: ink` (theme roles only — account, network, cloud, neutral, ink,
-  muted, accent; never hex).
 - **A system you are not breaking down is a node, not an empty system.**
   `system partner "Partner System" external { }` gives you a card with nothing
-  behind it and a zoom that goes nowhere; write `partner = box "Partner System"
-  external` instead. `check` warns on any empty container.
-- **Zones nest by sharing members, never by naming each other.** `contains`
-  takes nodes only, so an outer boundary repeats the inner one's members:
+  behind it and a zoom that goes nowhere; `check` warns that the system is
+  empty. Write `partner = box "Partner System" external` instead.
+- `layout { }` blocks go inside a `view`, **never** inside a `system` —
+  structure and layout stay separate. Same for `highlight`, `note`, `expand`.
 
-  ```
-  zone account "Azure Subscription" account { contains gw, aks, sql }
-  zone vnet    "Virtual Network"    network { contains aks, sql }
-  ```
+Edge motion — `~>` edges animate on their own (dashes drift toward the target,
+off under `prefers-reduced-motion`). Opt out with `{ animate: false }`, or pick
+a variant: `reverse` (acks flowing back), `slow`/`fast` (cadence), `packets`
+(discrete messages), `pulse` (a heartbeat — works on solid sync edges too),
+`comet` (a dot rides the route — the only motion a plain solid edge can take).
+Sync edges take `style: dashed | dotted`, and a dashed sync edge may also
+animate. One `animate:` value per edge, and don't decorate every edge — motion
+is for the hops where cadence or direction *means* something.
 
-  `aks` and `sql` are in both, so `vnet` draws inside `account`. Naming the
-  inner zone — `contains gw, vnet` — is accepted as shorthand for exactly that:
-  it expands to `vnet`'s own members. Sharing is still what the model records,
-  so the two forms are indistinguishable in the render. Everywhere *else* a zone
-  id is an error: you cannot draw an edge to a boundary.
-- **A zone's `kind` already picks its colour**, so two nested zones of related
-  kinds (say `network` inside `vpc`) come out nearly the same shade. Set
-  `color:` on the inner one to tell them apart.
-- **Rank hints don't reach inside a zone.** A zone is laid out as one block, so
-  `rows`/`cols`/`place` order zones *relative to each other*, and ELK arranges
-  the members within. Name the zone by its own id to rank it —
-  `rows [gw] [prod_vpc]` puts the whole boundary below the gateway. Listing
-  members of a single zone in `rows` does nothing, and `check` warns when it
-  spots that. If the ranking matters more than the boundary, drop the zone.
+```squinch
+probe  -> legacy "healthcheck" { animate: pulse }
+sensor ~> ingest "telemetry"   { animate: packets }
+cart   -> pay "checkout"       { animate: comet }   // no `style:` needed
+mirror -> replica "sync" {
+  style:   dashed
+  animate: slow
+}
+```
+
+Zones mark deployment boundaries: `zone id "Label" kind { contains a, b.c }`,
+kinds `account | region | vpc | subnet | network | cloud | onprem | custom`.
+Optional attrs: `icon:` — **any** pack icon (`azure/vnet`, `logos/docker`; AWS
+ships purpose-made group marks like `aws/vpc`, `aws/region`,
+`aws/private-subnet`, `aws/corporate-data-center`) — `label: top-right`
+(corners: top-left default, top-right, bottom-left, bottom-right), and
+`color: ink` (theme roles only — account, network, cloud, neutral, ink, muted,
+accent; never hex). A zone's `kind` already picks its colour, so two nested
+zones of related kinds come out nearly the same shade — set `color:` on the
+inner one to tell them apart.
+
+**Zones nest by sharing members, never by naming each other.** `contains` takes
+nodes, so an outer boundary repeats the inner one's members:
+
+```
+zone account "Azure Subscription" account { contains gw, aks, sql }
+zone vnet    "Virtual Network"    network { contains aks, sql }
+```
+
+`aks` and `sql` are in both, so `vnet` draws inside `account`. Naming the inner
+zone — `contains gw, vnet` — is accepted as shorthand for exactly that
+expansion. Everywhere *else* a zone id is an error: you cannot draw an edge to
+a boundary. Zones must nest cleanly or stay disjoint in any one view, may not
+cut through an expanded container, and only appear where their members are
+visible.
 
 ## Views (altitudes)
 
@@ -176,10 +160,9 @@ Every system automatically gets a zoomable view. Declare views to customize or t
 add lenses:
 
 ```squinch
-view landscape {            // views take no positional label, unlike
-  title "System Landscape"  // `system id "Label"` — the title is a statement.
-                            // NOTE: `title` is *only drawn* inside a
-                            // `titleblock` (below). On its own it names the
+view landscape {            // views take no positional label — the title is a
+  title "System Landscape"  // statement, and it is *only drawn* inside a
+                            // `titleblock` (below); on its own it names the
                             // view for tooling and nothing appears in the SVG.
   include *                 // all TOP-LEVEL entities, as collapsed cards
 }
@@ -193,28 +176,27 @@ view shop {                 // name matching a system = that system's view
   expand workers            // inline one child container in a frame
   detail ledger.post        // draw an outside node itself, not its system card
   highlight #pci            // spotlight matches, dim the rest — this still
-                            // shows EVERYTHING. "only the PCI parts" is `only`;
-                            // `highlight` is "the whole picture, PCI emphasised"
-  show descriptions         // inline description lines under labels — these are
-                            // clipped to the card width with an ellipsis and
-                            // nothing warns you, so keep them to ~4 words
+                            // shows EVERYTHING; "only the PCI parts" is `only`
+  show descriptions         // inline description lines under labels — clipped
+                            // to card width with an ellipsis and nothing warns
+                            // you, so keep them to ~4 words
   note right-of db "Single-table design; see ADR-42"
   note top-right "Audit scope: Q3" { style: warning }
   context off               // drop the muted neighbour cards this view earned
                             // (default is `context auto`)
   legend auto               // footer key of the styles actually used
   titleblock {              // drafting-style corner block — this is what
-                            // actually renders the view's `title`
-    version: "2026-07"
+    version: "2026-07"      // actually renders the view's `title`
     owner: team-orders
   }
 }
 ```
 
 Numbered flows badge a request's path over **edges that already exist** — a
-flow annotates the model, it never creates connections. Every step must match
-an edge you declared (steps count in declaration order; bare ids bind when
-unambiguous, otherwise use full paths):
+flow annotates the model, it never creates connections. A step with no edge
+behind it is a check error telling you to declare the edge first (steps count
+in declaration order; bare ids bind when unambiguous, otherwise use full
+paths):
 
 ```squinch
 system shop "Shop" {
@@ -231,17 +213,11 @@ flow checkout "Checkout" {
 view shop { show flow checkout }
 ```
 
-A step with no backing edge is a check error telling you to declare it first.
 `flow` blocks live at the **top level**, beside your systems — not inside a
 `system` and not inside a `view` (the view only says `show flow <id>`). From out
 there, write steps as full paths (`shop.api -> shop.create`). A step may cross a
-view's `scope`: an edge from a context card into the scope still gets its
-number.
-
-A flow is also a story: in the playground's **Present** mode the arrow keys walk
-a `show flow` view one hop at a time, lighting the current edge and dimming what
-the request hasn't reached. Nothing extra to author — declare the flow, and any
-view that shows it can be walked.
+view's `scope`. A flow is also a story: in the playground's **Present** mode the
+arrow keys walk a `show flow` view one hop at a time — nothing extra to author.
 
 Grouping vs. nesting: `include *` shows only *top-level* entities, so wrapping
 several services in a parent `system` purely to group them collapses them into
@@ -253,14 +229,10 @@ don't add them yourself; if one appears that you don't want, `context off`.
 
 ## Layout hints (in a `layout { }` block inside a view)
 
-**Start with no `layout` block at all.** Render, look at the picture, and add a
-hint only to fix something you can actually see wrong. Hint conflicts are the
-single biggest source of failed `check` runs in this project's history — almost
-always a `rows` that pins every node, colliding with one feedback edge (a
-monitor, an ack, a healthcheck) that points back up the list. The engine ranks a
-clean pipeline correctly on its own; every hint you add is a constraint you have
-to keep true.
-
+Hint conflicts are the single biggest source of failed `check` runs in this
+project's history — almost always a `rows` that pins every node, colliding with
+one feedback edge. The engine ranks a clean pipeline correctly on its own;
+every hint you add is a constraint you have to keep true.
 
 ```squinch
 view shop {
@@ -284,16 +256,16 @@ view shop {
 ```
 
 - `rows` is the workhorse: one bracket group per horizontal band, listed top to
-  bottom; order inside a bracket is left to right. Unlisted nodes place themselves.
-- **Check each band against your arrows before you write them.** The bands are
-  a claim about direction, and the engine enforces it.
-- **Every edge must point down your bands.** `rows` declares the flow direction,
-  so a node pointing back *up* it is a check error, not a nudge. This bites on
-  monitoring, observability, feedback and retry paths — `mon -> api` under
+  bottom; order inside a bracket is left to right. Unlisted nodes place
+  themselves — only list a node when you care where it lands.
+- **Every edge must point down your bands** — check each band against your
+  arrows before you write it. The bands are a claim about direction, and a node
+  pointing back *up* the list is a check error, not a nudge. This bites on
+  monitoring, feedback and retry paths: `mon -> api` under
   `rows [api] [svc] [db] [mon]` is refused. Two fixes, both fine: put the
   observer in the **same** band as what it watches (`rows [api mon] [svc] [db]`
   — equal ranks are legal and route side to side), or leave it out of `rows`
-  and let the engine rank it. Only list a node when you care where it lands.
+  and let the engine rank it.
 - `cols` is its transpose: one bracket group per vertical band, left to right.
   Members of a column share an exact axis, so a service and its database line
   up. `rows` and `cols` compose — they pin different axes, so using both gives
@@ -304,22 +276,19 @@ view shop {
   is refused. If you want them beside each other, that is `rows [c1 … c6]`. The
   trap is worst under `direction right`, where a rank *looks* like a column on
   screen: the words name the model, not the picture.
-- **To rank a zone, name one member of it — not all of them.** A zone lays out
-  as a single block and the engine ranks its insides itself, so
-  `rows [gw] [vpc_a vpc_b vpc_c]` naming every member of a zone does nothing but
-  earn a warning. Name the one node that fixes where the whole boundary sits.
-- A node may be in a band **and** carry a `place`, so long as the two agree.
-  `rows [db bus]` with `place bus right-of db` is fine — the band already reads
-  left to right, and the `place` just says so again. What is refused is a
-  `place` that puts the node somewhere the band does not: the wrong way round,
-  a band away, or beside something no band mentions. `sync` is left out of the
-  bands in the example above because it is simpler that way, not because it
-  would be an error to list it.
+- **Rank hints don't reach inside a zone.** A zone lays out as a single block —
+  `rows`/`cols`/`place` order zones *relative to each other*, and the engine
+  arranges the members within. To rank a zone, name **one** member of it (or
+  the zone's own id): `rows [gw] [prod_vpc]` puts the whole boundary below the
+  gateway. Listing every member does nothing but earn a warning. If the ranking
+  matters more than the boundary, drop the zone.
+- A node may be in a band **and** carry a `place`, so long as the two agree —
+  `rows [db bus]` with `place bus right-of db` is fine; a `place` that puts the
+  node somewhere the band does not is refused.
 - `place x right-of y` is the whole side-car idiom (stream processors, caches,
-  DLQs). Do **not** add `route y ~> x from east to west` to it: `place` puts the
-  two on the same row, and same-rank edges bypass the main router entirely —
-  they route side to side automatically, straight when adjacent and under the
-  band otherwise. A `from`/`to` on one is ignored, and now says so.
+  DLQs). Do **not** add `route y ~> x from east to west` to it: `place` puts
+  the two on the same row, and same-rank edges route side to side
+  automatically — a `from`/`to` on one is ignored, and says so.
 
 ## Layout cookbook (symptom → fix)
 
@@ -381,7 +350,7 @@ not Cloudflare (`logos/cloudflare`, a different company); `aws/aurora` is not
 `batch` · `efs` · `app-runner`
 
 Short aliases exist for the famous ones (`s3`, `sqs`, `sns`, `eks`, `ecs`, `ecr`,
-`elb`, `glacier`, `opensearch`). When unsure: `squinch icons search <term>`.
+`elb`, `glacier`, `opensearch`).
 
 **Azure** has its own pack (636 icons). Short forms exist for the ones everybody
 abbreviates: `azure/aks` · `azure/vm` · `azure/vnet` · `azure/cosmos` ·
@@ -390,11 +359,12 @@ abbreviates: `azure/aks` · `azure/vm` · `azure/vnet` · `azure/cosmos` ·
 `azure/load-balancer` · `azure/aci` · `azure/acr` · `azure/api-management` ·
 `azure/log-analytics` · `azure/redis`. Canonical ids read like the portal —
 `azure/app-services`, `azure/storage-accounts`, `azure/monitor`,
-`azure/application-insights`. Search the same way: `squinch icons search --pack azure <term>`.
-Pick one cloud's pack and stay with it — don't draw the same concept as
-`aws/…` in one box and `azure/…` in the next. Combining a cloud pack with
-`logos` is a different thing and completely normal: it's how you draw a hybrid
-estate, with `logos/postgres` on the on-prem side and `azure/sql` in the cloud.
+`azure/application-insights`; `squinch icons search --pack azure <term>` scopes
+the search. Pick one cloud's pack and stay with it — don't draw the same
+concept as `aws/…` in one box and `azure/…` in the next. Combining a cloud pack
+with `logos` is a different thing and completely normal: it's how you draw a
+hybrid estate, with `logos/postgres` on the on-prem side and `azure/sql` in the
+cloud.
 
 **Kubernetes internals** come from the `k8s` pack (39 official community
 icons — the blue heptagons from the k8s docs). Canonical ids are kubectl's
@@ -420,14 +390,13 @@ their brand colour): `logos/postgres` · `logos/mysql` · `logos/mongodb` ·
 `logos/prometheus` · `logos/datadog` · `logos/sentry` · `logos/stripe` ·
 `logos/snowflake` · `logos/cloudflare` · `logos/vercel` · `logos/nextdotjs` ·
 `logos/react` · `logos/python` · `logos/nodedotjs` (`node`) · `logos/go` ·
-`logos/rust` · `logos/graphql`. Search the same way: `squinch icons search kafka`.
+`logos/rust` · `logos/graphql`.
 Some brands (Slack, Twilio, Salesforce, Heroku, gRPC…) have no icon upstream —
 they were withdrawn on trademark request. Use `box` for those.
 
-`sys/*` is the generic set — 147 Lucide icons for anything no vendor draws, and
+`sys/*` is the generic set — 164 Lucide icons for anything no vendor draws, and
 it needs no `pack` statement. Use it for on-prem and physical things, and as the
-last resort when nothing else fits. Ids are Lucide's own names, so
-`squinch icons search <word>` is the way to find one rather than guessing:
+last resort when nothing else fits. Ids are Lucide's own names:
 
 - **compute / app** — `server`, `container`, `cpu`, `code`, `app-window`,
   `hexagon`, `terminal`, `cog`, `webhook`, `workflow`, `route`
@@ -471,11 +440,10 @@ Databricks, worked out — every base below is a real `sys/` id or alias:
 | Structured streaming | `sys/stream` |
 
 The same recipe covers any vendor whose mark is in the logos pack —
-`logos/snowflake` is there, dbt and Confluent are not. Run `squinch icons search
-<vendor>` before writing a badge; if there's no mark, skip the badge and let the
-label carry the vendor rather than substituting a lookalike. Badge only what the
-platform actually owns: a Kafka or S3 node keeps its own icon, and that contrast
-is what makes the platform boundary readable.
+`logos/snowflake` is there, dbt and Confluent are not. Search before writing a
+badge; if there's no mark, skip the badge and let the label carry the vendor.
+Badge only what the platform actually owns: a Kafka or S3 node keeps its own
+icon, and that contrast is what makes the platform boundary readable.
 
 ## Quality bar before you call it done
 

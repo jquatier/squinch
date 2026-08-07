@@ -102,7 +102,11 @@ describe("SKILL.md — grammar coverage", () => {
     // that will be spelled wrong.
     // the table only — past it sits the quality bar, whose `--theme light` is a
     // CLI flag rather than a recommendation to write `theme` in a view
-    const table = SKILL.slice(SKILL.indexOf("## Layout cookbook"));
+    // A renamed heading must fail loudly: indexOf's -1 would otherwise slice
+    // the last character of the file and the verb sweep would pass vacuously.
+    const cookbookAt = SKILL.indexOf("## Layout cookbook");
+    expect(cookbookAt, "the `## Layout cookbook` heading is load-bearing").toBeGreaterThanOrEqual(0);
+    const table = SKILL.slice(cookbookAt);
     const cookbook = table.slice(0, table.indexOf("\n## ", 3) + 1 || undefined);
     const shown = blocks.join("\n");
     const named = verbs.filter((k) => new RegExp(`\`[^\`]*\\b${k}\\b`).test(cookbook));
