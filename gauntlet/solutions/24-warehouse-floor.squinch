@@ -1,37 +1,42 @@
-// Warehouse automation system — physical on-prem equipment
+// Warehouse floor automation system - on-premises physical automation
 
 person supervisor "Shift Supervisor"
 
 system warehouse "Warehouse Floor" {
-  scanner1 = sys/scan "Scanner 1"
-  scanner2 = sys/scan "Scanner 2"
-  scanner3 = sys/scan "Scanner 3"
+  description: "Packing and sorting automation"
+  glyph: sys/warehouse
 
-  controller = sys/cpu "Local Controller"
+  scanner1 = sys/workflow "Scanner A" { description: "Packing bench 1" }
+  scanner2 = sys/workflow "Scanner B" { description: "Packing bench 2" }
+  scanner3 = sys/workflow "Scanner C" { description: "Packing bench 3" }
+
+  controller = sys/cpu "Floor Controller" { description: "Local automation logic" }
 
   sorter  = sys/route "Conveyor Sorter"
   printer = sys/printer "Label Printer"
-
-  board = sys/monitor "Status Board"
-
-  scanner1 -> controller
-  scanner2 -> controller
-  scanner3 -> controller
-
-  controller -> sorter
-  controller -> printer
-  controller -> board
+  board   = sys/monitor "Status Board"
 }
 
-erp = sys/database "ERP" external
+erp = box "ERP System" external { description: "Corporate system" }
 
-warehouse.controller ~> erp "sync" { animate: slow }
+warehouse.scanner1 -> warehouse.controller "scan event"
+warehouse.scanner2 -> warehouse.controller "scan event"
+warehouse.scanner3 -> warehouse.controller "scan event"
+
+warehouse.controller -> warehouse.sorter "routing command"
+warehouse.controller -> warehouse.printer "print job"
+warehouse.controller -> warehouse.board "status update"
+warehouse.controller ~> erp "sync batch" { animate: slow }
 
 supervisor -> warehouse.board "monitors"
 
-view warehouse {
-  title "Warehouse Floor Automation"
+view main {
+  title "Warehouse Automation System"
+  scope warehouse
+
   layout {
+    direction down
+    density comfortable
     rows [scanner1 scanner2 scanner3] [controller] [sorter printer board]
   }
 }

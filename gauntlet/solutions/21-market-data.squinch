@@ -1,42 +1,46 @@
-// Market data flow architecture
+// Market data processing system
 
-exchange = sys/radio-tower "Exchange" external
-clearing = sys/building-2 "Clearing House" external
+exchange = box "Exchange" external
+clearinghouse = box "Clearing House" external
 
-feed = sys/code "Feed Handler" {
-  description: "Normalises price stream"
+system market "Market Data System" {
+  feedhandler = sys/router "Feed Handler" {
+    description: "Ingests price stream"
+  }
+
+  pricing = sys/cpu "Pricing Engine" {
+    description: "Price processing"
+  }
+
+  ui = sys/app-window "Trading UI" {
+    description: "Trading interface"
+  }
+
+  batch = sys/clock "Overnight Batch" {
+    description: "Daily reconciliation"
+  }
+
+  risk = sys/shield "Risk Service" {
+    description: "Health monitoring"
+  }
+
+  // Continuous price stream
+  exchange ~> feedhandler "price stream" { animate: packets }
+  feedhandler ~> pricing "normalized ticks" { animate: fast }
+  pricing ~> ui "price updates" { animate: fast }
+
+  // Nightly batch job
+  batch ~> clearinghouse "reconcile fills" { animate: slow }
+
+  // Health polling
+  risk -> pricing "health check" { animate: pulse }
 }
-
-pricing = sys/server "Pricing Engine" {
-  description: "Live price data"
-}
-
-ui = sys/app-window "Trading UI"
-
-risk = sys/shield-check "Risk Service" {
-  description: "Health monitoring"
-}
-
-batch = sys/clock "Overnight Batch" {
-  description: "Reconciliation job"
-}
-
-// Continuous price stream
-exchange ~> feed "price stream" { animate: packets }
-feed ~> pricing "ticks" { animate: packets }
-pricing ~> ui "price feed" { animate: packets }
-
-// Health polling
-risk -> pricing "health check" { animate: pulse }
-
-// Nightly reconciliation
-batch ~> clearing "reconcile fills" { animate: slow }
 
 view landscape {
   title "Market Data Flow"
   layout {
-    rows [exchange] [feed] [pricing risk] [ui batch clearing]
-    place risk right-of pricing
-    place clearing right-of batch
+    rows [exchange] [market.feedhandler market.pricing] [market.ui market.batch market.risk] [clearinghouse]
+    place market.batch right-of market.ui
+    place market.risk right-of market.batch
   }
 }

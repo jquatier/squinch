@@ -239,7 +239,7 @@ describe("SKILL.md — diagnostic coverage", () => {
     // slip the gate entirely. Two of these predate this session; three were
     // added by the syntax work and would have shipped unchecked. Each one
     // writes the corrected line out in full, which is the bar for this list.
-    "comma splits the tag list — tags separate with spaces",
+    "names the person twice", "comma splits the tag list — tags separate with spaces",
     "has a space in its value, so it needs quotes",
     "layout hints live in views, not systems", "layout` block inside",
     "layout` block at the top level — layout hints live inside a view",

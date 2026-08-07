@@ -157,6 +157,23 @@ export function buildProject(input: ProjectFile[]): BuildResult {
           `\`layout\` block inside \`${sys}\` — layout hints live in views, not systems`,
           `move it below the system: view ${sys} { layout { … } }`);
       }
+      // The two person forms, crossed. `person analyst "Analyst"` declares one
+      // at the top level; `analyst = person "Analyst"` declares one inline.
+      // Round 16: an agent wrote `analyst = person analyst "Analyst"` — both
+      // at once — and got a bare syntax error. Either form alone is right.
+      for (const m of f.src.matchAll(/^[ \t]*([\w-]+)[ \t]*=[ \t]*person[ \t]+([\w-]+)[ \t]+(?=")/gm)) {
+        const at = m.index! + m[0].length - m[2].length - 1;
+        if (strings.some(([a, b]) => at >= a && at < b)) continue;
+        error(ctx, ctx.loc({ from: at, to: at + m[2].length } as SyntaxNode),
+          `\`${m[1]} = person ${m[2]}\` names the person twice`,
+          `write \`${m[1]} = person\` and keep the label, or \`person ${m[2]}\` on its own`);
+        for (let i = diagnostics.length - 1; i >= 0; i--) {
+          const d = diagnostics[i];
+          if (d.file === ctx.name && d.message.startsWith("syntax error near")
+              && d.loc.from >= m.index! && d.loc.from <= m.index! + m[0].length + 40)
+            diagnostics.splice(i, 1);
+        }
+      }
       // An unquoted attribute value with a space in it. `owner: team-orders`
       // parses, so `owner: payments team` is the natural next guess — and it
       // produced a bare syntax error pointing at the brace. Round 15 lost an
@@ -542,7 +559,9 @@ export function buildProject(input: ProjectFile[]): BuildResult {
         id: `e${edgeN}`,
         from: fromPath, to: toPath, arrow,
         label: labelNode ? ctx.str(labelNode) : undefined,
-        attrs: meta.attrs, tags: meta.tags,
+        attrs: meta.attrs,
+        // trailing `#tag`s merge with any in the attr block, same as a node's
+        tags: [...new Set([...node.getChildren("Tag").map((t) => ctx.text(t).slice(1)), ...meta.tags])],
         loc: ctx.loc(node), file: ctx.name,
       });
     }
@@ -1099,11 +1118,51 @@ export function buildProject(input: ProjectFile[]): BuildResult {
     });
   }
 
+  // One mistake, one diagnostic — the rule the syntax pass and the align/cols
+  // collapse already follow, applied to the loudest class there is. Round 16:
+  // an agent declared nine nodes inside `system warehouse` and then referenced
+  // them unqualified from a zone and a layout, and `check` answered with
+  // twenty-eight `unknown id`s. Each one named its own fix, so the agent did
+  // recover — but a wall of twenty-eight errors hides that it is a single
+  // misunderstanding about scope, which is the thing worth telling them.
+  collapseUnknownIds(diagnostics);
+
   return {
     model,
     diagnostics,
     ok: !diagnostics.some((d) => d.severity === "error"),
   };
+}
+
+/** Fold N `unknown id` errors that all want the same container prefix into one.
+ *  Conservative on purpose: only when every one of them agrees on the prefix,
+ *  and only from three up — two is not yet a pattern, and naming the ids
+ *  individually is more useful at that size. */
+function collapseUnknownIds(diagnostics: Diagnostic[]): void {
+  const byPrefix = new Map<string, { idx: number; ref: string }[]>();
+  diagnostics.forEach((d, idx) => {
+    if (d.severity !== "error") return;
+    const ref = /^unknown id `([^`]+)`$/.exec(d.message)?.[1];
+    const sug = d.fix && /^did you mean `([^`]+)`\?$/.exec(d.fix)?.[1];
+    if (!ref || !sug || !sug.endsWith(`.${ref}`)) return;
+    const prefix = sug.slice(0, -(ref.length + 1));
+    if (!byPrefix.has(prefix)) byPrefix.set(prefix, []);
+    byPrefix.get(prefix)!.push({ idx, ref });
+  });
+  for (const [prefix, hits] of byPrefix) {
+    if (hits.length < 3) continue;
+    const ids = [...new Set(hits.map((h) => h.ref))];
+    const shown = ids.slice(0, 3).map((r) => `\`${r}\``).join(", ");
+    const more = ids.length > 3 ? `, and ${ids.length - 3} more` : "";
+    diagnostics[hits[0].idx] = {
+      ...diagnostics[hits[0].idx],
+      message: `${ids.length} ids are missing their \`${prefix}\` prefix — ${shown}${more}`,
+      fix: `ids declared inside \`${prefix}\` are written \`${prefix}.<id>\` from outside it`,
+    };
+    for (const h of hits.slice(1)) diagnostics[h.idx] = null as unknown as Diagnostic;
+  }
+  for (let i = diagnostics.length - 1; i >= 0; i--)
+    if (!diagnostics[i]) diagnostics.splice(i, 1);
 }
 
 export function formatDiagnostics(diags: Diagnostic[], file = "input"): string {

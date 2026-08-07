@@ -391,3 +391,72 @@ describe("tags written in kind position", () => {
     expect(r.model.containers.get("s")!.tags).toEqual(["core"]);
   });
 });
+
+describe("unknown ids that all want the same prefix", () => {
+  // Round 16: an agent declared its nodes inside `system warehouse` and then
+  // referenced them unqualified from a zone and a layout. `check` answered
+  // with twenty-eight `unknown id`s — each correct, each naming its own fix,
+  // and together burying the fact that it is one misunderstanding about scope.
+  const src = (n: number) => {
+    const ids = Array.from({ length: n }, (_, i) => `n${i}`);
+    return `pack aws\nsystem w "W" {\n${ids
+      .map((i) => `  ${i} = aws/lambda "${i}"`)
+      .join("\n")}\n  ${ids[0]} -> ${ids[1]}\n}\nzone z "Z" {\n  contains ${ids.join(", ")}\n}\n`;
+  };
+
+  it("folds three or more into one message naming the prefix", () => {
+    const r = buildModel(src(5));
+    const errs = r.diagnostics.filter((d) => d.severity === "error");
+    expect(errs.length).toBe(1);
+    expect(errs[0].message).toBe(
+      "5 ids are missing their `w` prefix — `n0`, `n1`, `n2`, and 2 more",
+    );
+    expect(errs[0].fix).toBe("ids declared inside `w` are written `w.<id>` from outside it");
+  });
+
+  it("leaves two alone — two is not yet a pattern", () => {
+    const errs = buildModel(src(2)).diagnostics.filter((d) => d.severity === "error");
+    expect(errs.length).toBe(2);
+    expect(errs.every((d) => d.message.startsWith("unknown id"))).toBe(true);
+  });
+
+  it("never folds typos, only genuinely missing prefixes", () => {
+    // Three misspelled ids inside one system all get a `s.<something>`
+    // suggestion, so they agree on a prefix by accident — but the suggestion
+    // is a *correction*, not the same id qualified, and folding them would
+    // claim a scope problem that isn't there. The guard is that the
+    // suggestion must end in `.<the id as written>`.
+    // These three suggest the *system* `s`, not `s.<id>`. Without the
+    // endsWith guard their computed prefix is the empty string and all three
+    // fold into "3 ids are missing their `` prefix" — nonsense, and it hides
+    // three real typos.
+    const r = buildModel(
+      `pack aws\nsystem s "S" {\n  ax = aws/lambda "A"\n  bx = aws/lambda "B"\n  cx = aws/lambda "C"\n  ax -> bx\n}\nzone z "Z" {\n  contains aa, bb, cc\n}\n`,
+    );
+    const errs = r.diagnostics.filter((d) => d.severity === "error");
+    expect(errs.some((d) => d.message.includes("missing their"))).toBe(false);
+    expect(errs.filter((d) => d.message.startsWith("unknown id")).length).toBe(3);
+  });
+});
+
+describe("the two person forms, crossed", () => {
+  // Round 16: `analyst = person analyst "Analyst"` — the inline form and the
+  // top-level form written at once — produced a bare syntax error.
+  it("names the doubling and offers both ways out", () => {
+    const r = buildModel(
+      `pack aws\nsystem s "S" {\n  a = aws/lambda "A"\n}\nanalyst = person analyst "Analyst"\nanalyst -> s.a\n`,
+    );
+    const d = r.diagnostics.find((x) => x.message.includes("names the person twice"))!;
+    expect(d).toBeDefined();
+    expect(d.message).toBe("`analyst = person analyst` names the person twice");
+    expect(d.fix).toContain("`analyst = person`");
+    expect(r.diagnostics.some((x) => x.message.startsWith("syntax error near"))).toBe(false);
+  });
+
+  it("leaves each correct form alone", () => {
+    const r = buildModel(
+      `pack aws\nperson a "A"\nb = person "B"\nsystem s "S" { x = aws/lambda "X" }\na -> s.x\nb -> s.x\n`,
+    );
+    expect(r.ok, JSON.stringify(r.diagnostics)).toBe(true);
+  });
+});

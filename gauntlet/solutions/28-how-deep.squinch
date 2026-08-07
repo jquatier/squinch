@@ -1,65 +1,50 @@
-// Order Platform Architecture
-
+// Order platform - onboarding view for new engineers
 pack aws
 
 person customer "Customer"
 
-system orders "Order Service" {
-  description: "Order processing and management"
+system orders "Orders Service" {
+  description: "Checkout and order processing"
   glyph: sys/code
 
   api = aws/api-gateway "API Gateway"
-  create = aws/lambda "Create Handler" {
-    description: "Validates and creates orders"
-  }
-  query = aws/lambda "Query Handler" {
-    description: "Reads order data"
-  }
-  process = aws/lambda "Process Handler" {
-    description: "Fulfillment workflow"
-  }
-  db = aws/dynamodb "Orders Table" datastore
-  queue = aws/sqs "Order Queue"
+  create = aws/lambda "Create Order"
+  validate = aws/lambda "Validate Order"
+  db = aws/dynamodb "Orders DB" datastore
+  stream = aws/kinesis "Order Events"
 
   api -> create
-  api -> query
+  api -> validate
   create -> db
-  query -> db
-  create ~> queue "new order"
-  queue ~> process
-  process -> db
+  db ~> stream "changes"
 }
 
 system inventory "Inventory Service" {
-  description: "Stock tracking"
+  description: "Stock management"
   glyph: sys/database
 
-  svc = aws/lambda "Inventory Service"
-  store = aws/dynamodb "Inventory DB" datastore
-
-  svc -> store
+  handler = aws/lambda "Inventory Handler"
+  stock = aws/dynamodb "Stock DB" datastore
 }
 
-system notifications "Notification Service" {
+system notifications "Notifications Service" {
   description: "Customer notifications"
-  glyph: sys/webhook
+  glyph: sys/workflow
 
-  notifier = aws/lambda "Notifier"
-  topic = aws/sns "Events Topic"
+  processor = aws/lambda "Notification Processor"
+  queue = aws/sqs "Notifications Queue"
 
-  topic ~> notifier
+  queue ~> processor
 }
 
 customer -> orders.api "places order"
-orders.process -> inventory.svc "check stock"
-orders.process ~> notifications.topic "order event"
+orders.stream ~> inventory.handler "stock update"
+orders.stream ~> notifications.queue "order events"
 
 view landscape {
   title "Order Platform Overview"
-  include *
 }
 
 view orders {
-  title "Order Service Detail"
-  scope orders
+  title "Orders Service Detail"
 }

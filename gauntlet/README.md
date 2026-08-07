@@ -65,57 +65,47 @@ nothing.
 
 ## Latest round
 
-**Round 15 — 29/29 on the deep scorer; 23 of 29 clean on the first `check`**
-(2026-08-07). Run to certify a grammar change, and it did more than certify it.
+**Round 16 — 29/29 on the deep scorer; 22 of 29 clean on the first `check`**
+(2026-08-07). The first round on the loosened grammar, and it found three
+things, one of which was hiding in plain sight for the whole project.
 
-The change came from asking why agents form syntax errors at all. Three bodies
-of evidence: every one of the 367 `check` calls in the 27 recorded runs here,
-clustered by message; five cold agents given nothing but the README example and
-a brief that forced the error-prone constructs; and the errors I make myself
-with the whole repo in context. The conclusion was that the DSL is *easy* — all
-five probes reproduced structure, arrows, blocks and space-separated ranks from
-one example — but two spots fought every model's prior, and the diagnostics at
-exactly those spots were the worst in the language.
+**Twenty-eight errors for one mistake.** An agent declared nine nodes inside
+`system warehouse` and then referenced them unqualified from a zone and a
+layout. Every `unknown id` was correct and every one named its own fix —
+`did you mean \`warehouse.scanner1\`?` — so the agent recovered. But a wall of
+twenty-eight errors buries the single thing worth saying, which is that ids
+declared inside a system are written with their prefix from outside it. Three
+or more that agree on the same missing prefix now fold into one message that
+says exactly that. Deliberately conservative: two stay separate, because two is
+not yet a pattern, and a suggestion that is a *correction* rather than a
+qualification is never folded — without that guard three typos collapse into
+"3 ids are missing their `` prefix", which is nonsense wearing a confident
+tone. `unknown id` was 38 of this round's 48 diagnostics and is the largest
+class in the project's history after hint conflicts.
 
-**Five of five probe agents invented the same illegal form**, sonnet and haiku
-alike: `charge = aws/lambda "Charge Handler" #pci { … }`. A hashtag reads like a
-kind and sits where `datastore` sits. Nobody wrote `tags:` unprompted. And the
-comma rule was internally inconsistent — required in path lists, forbidden in
-rank groups, attr blocks, `align` and `highlight` — which fired in *both*
-directions: agents wrote `[create, get, search]` three times across rounds
-despite the skill showing spaces, and omitted a required `channel` comma once.
+**Positional tags on edges.** `handler -> db #sensitive`, twice in one file.
+When positional tags landed on nodes last round the scoping note said edges had
+"no evidence" and left them out; there is evidence now, and the generalisation
+is the obvious one. Refusing it would have made the rule "positional tags,
+except on edges" — the kind of exception that is exactly why the comma rule
+was worth fixing.
 
-Both are legal now. A tag may sit in kind position; a comma is optional wherever
-whitespace already separates. That is what SPEC §1 has promised since v0 and the
-parser never delivered. The three previous times this project met a recurring
-syntax error — attr/kind order, `= person`, container `external` — it fixed them
-the same way, by making the unanimous guess the syntax.
+**The two person forms, crossed.** `analyst = person analyst "Analyst"` —
+the inline form and the top-level form written at once — produced a bare syntax
+error. It now names the doubling and offers both ways out.
 
-**What the round then surfaced on top of that.** A cold agent wrote
-`owner: payments team`, which is the obvious next guess once `owner: team-orders`
-parses, and got a bare syntax error pointing at a brace. It now names the key and
-writes the quoted form. That one cost an iteration and would have kept costing.
+**On the doctrine added last round.** SKILL.md now tells agents to start with
+no layout block and add hints only to fix what they see, aimed at hint
+conflicts — the biggest error class in project history at 39 of 80
+diagnostic-bearing calls. This round they were 3 of 39 calls, and one of those
+three is 27-rank-conflict, which exists to provoke exactly that error. So: a
+possible improvement on a sample far too small to claim one, and two agents
+still pinned rows that fought their own back-edges. Treat it as unproven for at
+least another round.
 
-**And the gate that was supposed to catch all of this had two holes.** The skill
-ratchet asserts every engine diagnostic has guidance. It read template literals
-only, so any message written as a plain string was invisible — twelve were. And
-it split call arguments on `[^,]+`, so any diagnostic whose location argument
-held a comma never matched at all. Three of the diagnostics added this week sat
-in that second blind spot; they would have shipped ungoverned. The scanner now
-walks arguments counting depth and reads either delimiter, which brought sixteen
-previously-unchecked messages into the gate. All were genuinely self-explanatory
-and are allowlisted with that reasoning recorded.
-
-**Honest limits.** 21-market-data passed its first `check` but failed the deep
-scorer on a stylistic expectation, and its re-run took two calls — on a hint
-conflict, which is the class the new "start with no layout block" doctrine in
-SKILL.md is aimed at. So that doctrine is written but unproven; the next round is
-its first real test. Hint conflicts remain the largest error class in this
-project's history at 39 of 80 diagnostic-bearing calls, and nothing in this
-change touches them. A malformed attr value also still produces a downstream
-`unknown id` cascade, because the node's declaration never entered the model —
-the primary diagnostic names the real fix, but "a parse failure should not
-produce semantic lies" is a broader problem left open.
+Clean-first-try slipped from 23 to 22, which is noise at this sample size and
+not worth reading either way. The round's value is the three defects, which is
+this file's standard.
 
 The corpus in `solutions/` is this round's twenty-nine answers, cold-authored and
 deep-scored.

@@ -1,19 +1,17 @@
 pack aws
+pack logos
 
-// On-premises actors and systems
 person operator "Operator"
+
 erp = sys/database "Legacy ERP" external
 
-// AWS cloud components
 ingest = aws/lambda "Ingestion Lambda"
 db = aws/aurora "Aurora Database" datastore
 
-// Connections
-operator -> erp "uses"
-erp ~> ingest "feeds data"
-ingest -> db "writes"
+operator -> erp
+erp -> ingest
+ingest -> db
 
-// Deployment boundaries
 zone onprem "On-Premises Data Centre" onprem {
   contains operator, erp
 }

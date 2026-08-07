@@ -3,11 +3,11 @@ pack aws
 person admin "Administrator"
 
 erp = sys/server "Legacy ERP" external
-worker = aws/lambda "Sync Worker"
-db = aws/rds "Admin DB" datastore
+sync_worker = aws/lambda "Sync Worker"
+db = aws/rds "RDS Database" datastore
 dashboard = sys/app-window "Admin Dashboard"
 
-erp ~> worker "data sync"
-worker -> db
+erp ~> sync_worker "data feed"
+sync_worker -> db
 db -> dashboard
-admin -> dashboard "uses"
+admin -> dashboard

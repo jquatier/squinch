@@ -1,24 +1,17 @@
 pack aws
 
 system api "API Service" {
-  gw = aws/api-gateway "API Gateway"
-
+  gw     = aws/api-gateway "API Gateway"
   create = aws/lambda "Create Handler"
   read   = aws/lambda "Read Handler"
   update = aws/lambda "Update Handler"
   delete = aws/lambda "Delete Handler"
   search = aws/lambda "Search Handler"
+  table  = aws/dynamodb "Items Table" datastore
 
-  table = aws/dynamodb "Items Table" datastore
-
-  gw -> create
-  gw -> read
-  gw -> update
-  gw -> delete
-  gw -> search
-
+  gw -> create, read, update, delete, search
   create -> table
-  read   -> table
+  read -> table
   update -> table
   delete -> table
   search -> table

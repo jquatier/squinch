@@ -1,9 +1,9 @@
-// Approval chain with policy engine and audit log on same row
+// Approval chain with policy engine and audit log on same rank
 
-request = sys/app-window "Request Service"
-policy = sys/shield-check "Policy Engine"
-approver = sys/code "Approver Service"
-audit = sys/database "Audit Log" datastore
+request  = sys/webhook "Request Service"
+policy   = sys/shield  "Policy Engine"
+approver = sys/server  "Approver Service"
+audit    = sys/database "Audit Log" datastore
 
 request -> policy
 policy -> approver

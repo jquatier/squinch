@@ -1,17 +1,15 @@
-// Ingestion estate — wide layout for slides
+// Ingestion estate — wide layout for a single slide
 
-collector1 = sys/container "Collector 1"
-collector2 = sys/container "Collector 2"
-collector3 = sys/container "Collector 3"
-collector4 = sys/container "Collector 4"
-collector5 = sys/container "Collector 5"
-collector6 = sys/container "Collector 6"
-
-normaliser = sys/cpu "Normaliser"
-
-warehouse = sys/database "Warehouse" datastore
-search    = sys/search   "Search Index" datastore
-alerting  = sys/siren    "Alerting"
+collector1 = sys/antenna      "Collector 1"
+collector2 = sys/antenna      "Collector 2"
+collector3 = sys/antenna      "Collector 3"
+collector4 = sys/antenna      "Collector 4"
+collector5 = sys/antenna      "Collector 5"
+collector6 = sys/antenna      "Collector 6"
+normaliser = sys/filter       "Normaliser"
+warehouse  = sys/database     "Warehouse" datastore
+search     = sys/search       "Search Index" datastore
+alerting   = sys/siren        "Alerting Service"
 
 collector1 ~> normaliser
 collector2 ~> normaliser
@@ -24,10 +22,11 @@ normaliser ~> warehouse
 normaliser ~> search
 normaliser ~> alerting
 
-view default {
+view landscape {
+  title "Ingestion Estate"
+  include *
   layout {
     direction right
     density compact
-    rows [collector1 collector2 collector3 collector4 collector5 collector6] [normaliser] [warehouse search] [alerting]
   }
 }

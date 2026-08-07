@@ -1,23 +1,29 @@
 pack aws
 pack logos
 
-// Payments architecture components
-gw   = aws/api-gateway "API Gateway"
-auth = sys/lock "Auth Service"
-ledger = logos/postgres "Ledger" datastore
-worker = sys/workflow "Settlement Worker"
-bank = box "Bank" external
+system payments "Payments Architecture" {
+  gw = aws/api-gateway "API Gateway"
+  auth = sys/shield "Auth Service"
+  ledger = sys/code "Ledger Service"
+  db = logos/postgres "Ledger DB" datastore
+  worker = sys/workflow "Settlement Worker"
+  bank = box "Bank" external
 
-// Connections
-gw -> auth "authenticate"
-gw -> ledger "record payment"
-ledger ~> worker "batch records"
-worker -> bank "settle"
+  gw -> auth
+  gw -> ledger
+  ledger -> db
+  worker ~> bank "overnight batches"
+  ledger ~> worker
+}
 
 view payments {
   title "Payments Architecture"
+  show descriptions
   titleblock {
     version: "2.1"
-    owner: "payments team"
+    owner: payments-team
+  }
+  layout {
+    rows [gw] [auth ledger] [db worker] [bank]
   }
 }

@@ -2,35 +2,30 @@ pack azure
 
 person shopper "Shopper"
 
-system orders "Order System" {
-  description: "Order processing and fulfilment"
+system order_system "Order System" {
+  apim = azure/api-management "API Management"
+  order_func = azure/functions "Order Function" {
+    description: "Creates and persists order"
+  }
+  cosmos = azure/cosmos "Orders DB" datastore
+  bus = azure/service-bus "Service Bus"
+  fulfil_func = azure/functions "Fulfilment Function" {
+    description: "Processes order fulfilment"
+  }
 
-  apim      = azure/api-management "API Management"
-  create    = azure/functions      "Create Order"
-  db        = azure/cosmos         "Orders DB" datastore
-  bus       = azure/service-bus    "Order Events"
-  fulfil    = azure/functions      "Fulfilment Handler"
-
-  apim -> create
-  create -> db
-  create ~> bus
-  bus ~> fulfil
+  apim -> order_func
+  order_func -> cosmos
+  order_func ~> bus
+  bus ~> fulfil_func
 }
 
-shopper -> orders.apim "places order"
+shopper -> order_system.apim "place order"
 
 flow order_flow "Order Flow" {
-  shopper -> orders.apim -> orders.create -> orders.db
-  orders.create ~> orders.bus ~> orders.fulfil
+  shopper -> order_system.apim -> order_system.order_func -> order_system.cosmos
+  order_system.order_func ~> order_system.bus ~> order_system.fulfil_func
 }
 
-view landscape {
-  title "Order System Landscape"
-  include *
-}
-
-view orders {
+view order_system {
   show flow order_flow
-  show descriptions
-  legend auto
 }

@@ -69,7 +69,11 @@ NodeDecl { Ident "=" (IconRef | kw<"box"> | kw<"person">) String? (NodeKind | At
 NodeKind { kw<"external"> | kw<"datastore"> }
 IconRef { Ident "/" Ident }
 
-EdgeStmt { Path Arrow PathList String? AttrBlock? }
+// A tag in trailing position, exactly as on a node. Round 16: an agent wrote
+// `handler -> db #sensitive` twice in one file, having been given positional
+// tags on nodes the round before — the generalisation is the obvious one, and
+// refusing it here would make the rule "positional tags, except on edges".
+EdgeStmt { Path Arrow PathList String? (AttrBlock | Tag)* }
 PathList { Path ("," Path)* }
 Path { Ident ("." Ident)* }
 

@@ -453,7 +453,7 @@ node        = ident "=" iconref [ label ] { kind | tag | attrs }
 iconref     = ident "/" ident | "box" ;
 kind        = "external" | "datastore" ;   (* `person` comes from the
                                               declaration forms, not a keyword *)
-edge        = path arrow pathlist [ label ] [ attrs ] ;
+edge        = path arrow pathlist [ label ] { tag | attrs } ;
 arrow       = "->" | "~>" | "<->" | "--" ;
 path        = ident { "." ident } ;
 pathlist    = path { "," path } ;

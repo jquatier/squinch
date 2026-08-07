@@ -1,76 +1,58 @@
+// Databricks lakehouse architecture
 pack logos
 
-// External data source
-kafka = logos/kafka "Kafka" external
+// External data source (not Databricks)
+kafka = logos/kafka "Order Events" external
 
-person analyst "Analyst"
-
-// Databricks lakehouse components
-system lakehouse "Databricks Lakehouse" {
-  description: "Delta Lake medallion architecture"
-  glyph: logos/databricks
-
-  // Ingestion
-  autoloader = sys/workflow "Auto Loader" {
-    badge: logos/databricks
-  }
-
-  // Storage layers
-  bronze = sys/table "Bronze Orders" datastore {
-    description: "Raw events"
-    badge: logos/databricks
-  }
-
-  silver = sys/table "Silver Customers" datastore {
-    description: "Cleansed and merged"
-    badge: logos/databricks
-  }
-
-  // Governance
-  catalog = sys/catalog "Unity Catalog" {
-    badge: logos/databricks
-  }
-
-  // Processing
-  merge_job = sys/workflow "Nightly Merge Job" {
-    description: "Bronze to Silver ETL"
-    badge: logos/databricks
-  }
-
-  // Analytics
-  warehouse = sys/database "SQL Warehouse" {
-    badge: logos/databricks
-  }
-
-  // ML components
-  vector_idx = sys/waypoints "Vector Search Index" {
-    badge: logos/databricks
-  }
-
-  model = sys/model "Model Serving" {
-    badge: logos/databricks
-  }
-
-  // Data flow
-  kafka ~> autoloader "order events"
-  autoloader ~> bronze
-  bronze ~> merge_job
-  merge_job -> silver
-  catalog -> silver "governs"
-  silver -> warehouse
-  silver -> vector_idx
-  vector_idx -> model
+// Databricks ingestion and storage
+autoloader = sys/workflow "Auto Loader" {
+  badge: logos/databricks
+  description: "Streaming ingestion"
+}
+bronze = sys/table "Bronze Delta" datastore {
+  badge: logos/databricks
+  description: "Raw order events"
+}
+job = sys/workflow "Nightly Merge Job" {
+  badge: logos/databricks
+}
+silver = sys/table "Silver Customers" datastore {
+  badge: logos/databricks
+  description: "Curated customer data"
+}
+catalog = sys/catalog "Unity Catalog" {
+  badge: logos/databricks
+  description: "Data governance"
 }
 
-// External interactions
-analyst -> lakehouse.warehouse "queries"
+// Analytics and ML
+warehouse = sys/database "SQL Warehouse" {
+  badge: logos/databricks
+}
+person analyst "Analyst"
 
-view landscape {
-  title "Lakehouse Architecture"
+vector = sys/waypoints "Vector Search Index" {
+  badge: logos/databricks
+}
+model = sys/model "Model Serving" {
+  badge: logos/databricks
+}
+
+// Data flow
+kafka ~> autoloader "stream"
+autoloader ~> bronze
+bronze ~> job "daily batch"
+job -> silver
+catalog -> silver "governs"
+silver -> warehouse
+warehouse -> analyst "queries"
+silver -> vector "indexes"
+vector -> model "embeddings"
+
+view lakehouse {
+  title "Databricks Lakehouse Architecture"
   layout {
-    rows [kafka] [lakehouse.autoloader] [lakehouse.bronze] [lakehouse.merge_job] [lakehouse.silver lakehouse.catalog] [lakehouse.warehouse lakehouse.vector_idx] [lakehouse.model analyst]
-    place lakehouse.catalog right-of lakehouse.silver
-    place lakehouse.vector_idx right-of lakehouse.warehouse
-    place analyst right-of lakehouse.model
+    direction down
+    rows [kafka] [autoloader] [bronze] [job] [silver catalog] [warehouse vector] [analyst model]
   }
 }

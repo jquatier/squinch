@@ -1,7 +1,7 @@
 pack aws
 
-system api "Order Service" {
-  description: "Lambda-based API for orders"
+system api "Lambda API" {
+  description: "Lambda-based API with search"
 
   gw = aws/api-gateway "API Gateway"
 
@@ -9,20 +9,20 @@ system api "Order Service" {
   get    = aws/lambda "Get Handler"
   search = aws/lambda "Search Handler"
 
-  db    = aws/dynamodb "Orders Table" datastore
-  files = aws/s3 "Files Bucket" datastore
-  idx   = aws/opensearch "Search Index" datastore
+  db     = aws/dynamodb  "DynamoDB" datastore
+  files  = aws/s3        "S3" datastore
+  idx    = aws/opensearch "OpenSearch" datastore
 
-  sync = aws/lambda "Index Sync"
+  sync   = aws/lambda "Stream Processor"
 
-  gw -> create
-  gw -> get
-  gw -> search
+  gw -> create, get, search
 
   create -> db
-  create ~> files
+  create -> files
+
   get -> db
   get -> files
+
   search -> idx
 
   db ~> sync "DynamoDB stream"
@@ -31,7 +31,7 @@ system api "Order Service" {
 
 view api {
   layout {
-    rows [gw] [create get search] [db files idx sync]
-    place sync right-of idx
+    rows [gw] [create get search] [db files idx]
+    place sync right-of db
   }
 }

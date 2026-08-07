@@ -1,43 +1,24 @@
 pack aws
 
-system order_processing "Order Processing" {
-  description: "Event-driven order processing"
+// Order events flow through EventBridge to two consumers
+eventbus = aws/eventbridge "EventBridge"
 
-  events = aws/eventbridge "EventBridge" {
-    description: "Order event bus"
-  }
+// Email notification consumer
+email_lambda = aws/lambda "Email Notifier"
+sns = aws/sns "SNS Topic"
 
-  email_fn = aws/lambda "Email Notifier" {
-    description: "Sends order confirmations"
-  }
+// Analytics consumer
+analytics_lambda = aws/lambda "Analytics Writer"
+datalake = aws/s3 "Data Lake" datastore
 
-  sns = aws/sns "SNS" {
-    description: "Email delivery"
-  }
+// Failed events handler
+dlq = aws/sqs "Dead-Letter Queue"
 
-  analytics_fn = aws/lambda "Analytics Writer" {
-    description: "Writes to data lake"
-  }
+// Event flows (async)
+eventbus ~> email_lambda "order.created"
+email_lambda ~> sns "send notification"
 
-  lake = aws/s3 "Data Lake" datastore {
-    description: "Analytics storage"
-  }
+eventbus ~> analytics_lambda "order.created"
+analytics_lambda ~> datalake "write events"
 
-  dlq = aws/sqs "Dead Letter Queue" {
-    description: "Failed events"
-  }
-
-  events ~> email_fn "order.created"
-  email_fn -> sns
-
-  events ~> analytics_fn "order.created"
-  analytics_fn -> lake
-
-  events ~> dlq "failed events"
-}
-
-view order_processing {
-  layout {
-    rows [events] [email_fn analytics_fn] [sns lake dlq]
-  }
-}
+eventbus ~> dlq "failed events"

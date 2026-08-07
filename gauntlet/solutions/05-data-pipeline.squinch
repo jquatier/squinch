@@ -1,16 +1,15 @@
 pack aws
 
-person analyst "Analyst"
+person analyst "Data Analyst"
 
-stream = aws/kinesis "Clickstream Stream"
-lambda = aws/lambda "Transformer"
-lake = aws/s3 "Data Lake" datastore
-catalog = aws/glue "Glue Catalog"
-query = aws/athena "Athena"
+stream     = aws/kinesis "Clickstream"
+transformer = aws/lambda  "Transformer"
+lake       = aws/s3      "Data Lake" datastore
+catalog    = aws/glue    "Catalog"
+query      = aws/athena  "Athena"
 
-stream ~> lambda "ingest"
-lambda ~> lake "land data"
+stream ~> transformer "events"
+transformer ~> lake "processed data"
 catalog -> lake "catalogs"
 analyst -> query "queries"
 query -> lake "reads"
-query -> catalog "metadata"

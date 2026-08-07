@@ -1,36 +1,29 @@
-// Kubernetes cluster platform diagram
 pack k8s
 
-// Ingress
-ingress = k8s/ing "nginx-ingress"
+ingress = k8s/ing "nginx Ingress"
 
-// Services
-web_svc = k8s/svc "web-service"
-api_svc = k8s/svc "api-service"
-worker_svc = k8s/svc "worker-service"
+web_svc = k8s/svc "web Service"
+web_deploy = k8s/deploy "web"
 
-// Deployments
-web = k8s/deploy "web"
-api = k8s/deploy "api"
-worker = k8s/deploy "worker"
+api_svc = k8s/svc "api Service"
+api_deploy = k8s/deploy "api"
 
-// Stateful data stores
+worker_svc = k8s/svc "worker Service"
+worker_deploy = k8s/deploy "worker"
+
 postgres = k8s/sts "Postgres" datastore
-redis = k8s/sts "Redis" datastore
+redis = k8s/deploy "Redis" datastore
 
-// Maintenance job
-prune = k8s/cronjob "Prune old records"
+pruner = k8s/cronjob "Prune Job"
 
-// Traffic flow
 ingress -> web_svc
 ingress -> api_svc
-web_svc -> web
-api_svc -> api
-worker_svc -> worker
 
-// API data access
-api -> postgres "read/write"
-api -> redis "cache"
+web_svc -> web_deploy
+api_svc -> api_deploy
+worker_svc -> worker_deploy
 
-// Maintenance
-prune -> postgres "cleanup"
+api_deploy -> postgres
+api_deploy -> redis
+
+pruner -> postgres

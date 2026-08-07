@@ -1,67 +1,77 @@
+// Order platform architecture
 pack aws
 
+// Customer
 person customer "Customer"
 
+// Edge layer
 storefront = aws/cloudfront "Storefront"
 
+// API Gateway
 gw = aws/api-gateway "API Gateway"
 
+// Catalog service
 system catalog "Catalog Service" {
   description: "Product catalog"
-  glyph: sys/code
+  glyph: sys/database
 
-  lambda = aws/lambda "Catalog Handler"
-  db = aws/dynamodb "Catalog DB" datastore
+  handler = aws/lambda "Catalog Handler"
+  db = aws/dynamodb "Products" datastore
 
-  lambda -> db
+  handler -> db
 }
 
+// Orders service
 system orders "Orders Service" {
   description: "Order management"
   glyph: sys/code
-  tags: #orders
+  tags: #core
 
-  lambda = aws/lambda "Orders Handler" { tags: #sensitive }
-  db = aws/dynamodb "Orders DB" datastore { tags: #sensitive }
+  handler = aws/lambda "Orders Handler"
+  db = aws/dynamodb "Orders" datastore
+  bus = aws/eventbridge "Event Bus"
 
-  lambda -> db
+  handler -> db
+  handler ~> bus "order events"
 }
 
+// Payments service
 system payments "Payments Service" {
   description: "Payment processing"
-  glyph: sys/code
+  glyph: sys/lock
   tags: #sensitive
 
-  lambda = aws/lambda "Payments Handler"
-  db = aws/dynamodb "Payments DB" datastore
+  handler = aws/lambda "Payments Handler" { tags: #sensitive }
+  db = aws/dynamodb "Payments" datastore { tags: #sensitive }
 
-  lambda -> db
+  handler -> db { tags: #sensitive }
 }
 
-bus = aws/eventbridge "EventBridge"
+// Fulfilment worker
+fulfilment = aws/lambda "Fulfilment Worker"
 
-fulfillment = aws/lambda "Fulfillment Worker"
-
+// Connections
 customer -> storefront "browse"
 storefront -> gw
-gw -> catalog.lambda
-gw -> orders.lambda
-gw -> payments.lambda { tags: #sensitive }
-orders.lambda ~> bus "order events"
-bus ~> fulfillment
+gw -> catalog.handler
+gw -> orders.handler
+gw -> payments.handler "checkout" { tags: #sensitive }
+orders.bus ~> fulfilment "consume events"
 
+// Production VPC boundary
 zone prod_vpc "Production VPC" vpc {
-  contains gw, catalog, orders, payments, bus, fulfillment
+  contains gw, catalog, orders, payments, fulfilment
 }
 
+// Landscape view
 view landscape {
-  title "System Landscape"
+  title "Order Platform Landscape"
   include *
 }
 
+// Orders service view
 view orders {
+  title "Orders Service"
   scope orders
-  titleblock {
-    version: "2026-08"
-  }
+  highlight #core
 }
