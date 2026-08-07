@@ -1,25 +1,28 @@
-// Tech stack diagram
 pack logos
 
 person dev "Developer"
+github = box "GitHub" external
 
-frontend = logos/nextdotjs "Next.js Frontend"
-api      = logos/nestjs   "NestJS API"
-db       = logos/postgres "PostgreSQL" datastore
-cache    = logos/redis    "Redis Cache" datastore
-events   = logos/kafka    "Kafka Events" datastore
-monitor  = logos/grafana  "Grafana"
-github   = logos/github   "GitHub" external
-k8s      = logos/kubernetes "Kubernetes"
+system stack "Application Stack" {
+  frontend = logos/nextdotjs "Next.js Frontend"
+  api      = logos/nestjs "NestJS API"
+  db       = logos/postgres "PostgreSQL" datastore
+  cache    = logos/redis "Redis Cache" datastore
+  events   = logos/kafka "Kafka Events" datastore
+  monitor  = logos/grafana "Grafana"
 
-dev -> github "pushes code"
-github ~> k8s "deploys to"
-k8s -> frontend
-k8s -> api
-frontend -> api "API calls"
-api -> db "queries"
-api -> cache "reads/writes"
-api ~> events "publishes events"
-monitor -> frontend "scrapes metrics"
-monitor -> api "scrapes metrics"
-monitor -> db "monitors"
+  frontend -> api
+  api -> db
+  api -> cache
+  api ~> events "publish events"
+  monitor -> api "metrics"
+  monitor -> db "metrics"
+  monitor -> cache "metrics"
+  monitor -> events "metrics"
+}
+
+k8s = logos/kubernetes "Kubernetes Cluster"
+
+dev -> github "push code"
+github ~> k8s "deploy"
+k8s -> stack "runs"

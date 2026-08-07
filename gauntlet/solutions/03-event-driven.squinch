@@ -1,24 +1,21 @@
 pack aws
 
-// Order events flow through EventBridge to two consumers
-eventbus = aws/eventbridge "EventBridge"
+// Event-driven order processing architecture
+bus = aws/eventbridge "Order Events"
+email_handler = aws/lambda "Email Notifier"
+analytics_handler = aws/lambda "Analytics Writer"
+sns = aws/sns "Email Topic"
+lake = aws/s3 "Data Lake" datastore
+dlq = aws/sqs "Dead Letter Queue"
 
-// Email notification consumer
-email_lambda = aws/lambda "Email Notifier"
-sns = aws/sns "SNS Topic"
+// Async flows from event bus to consumers
+bus ~> email_handler "order.created"
+bus ~> analytics_handler "order.created"
 
-// Analytics consumer
-analytics_lambda = aws/lambda "Analytics Writer"
-datalake = aws/s3 "Data Lake" datastore
+// Downstream processing
+email_handler ~> sns
+analytics_handler ~> lake
 
-// Failed events handler
-dlq = aws/sqs "Dead-Letter Queue"
-
-// Event flows (async)
-eventbus ~> email_lambda "order.created"
-email_lambda ~> sns "send notification"
-
-eventbus ~> analytics_lambda "order.created"
-analytics_lambda ~> datalake "write events"
-
-eventbus ~> dlq "failed events"
+// Failed events to DLQ
+email_handler ~> dlq "failures"
+analytics_handler ~> dlq "failures"

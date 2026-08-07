@@ -1,42 +1,49 @@
-// Warehouse floor automation system - on-premises physical automation
+// Warehouse floor automation system
 
 person supervisor "Shift Supervisor"
 
-system warehouse "Warehouse Floor" {
-  description: "Packing and sorting automation"
+system floor "Warehouse Floor" {
+  description: "Physical automation and control"
   glyph: sys/warehouse
 
-  scanner1 = sys/workflow "Scanner A" { description: "Packing bench 1" }
-  scanner2 = sys/workflow "Scanner B" { description: "Packing bench 2" }
-  scanner3 = sys/workflow "Scanner C" { description: "Packing bench 3" }
+  bench1  = sys/smartphone "Bench 1 Scanner"
+  bench2  = sys/smartphone "Bench 2 Scanner"
+  bench3  = sys/smartphone "Bench 3 Scanner"
 
-  controller = sys/cpu "Floor Controller" { description: "Local automation logic" }
+  ctrl    = sys/server     "Floor Controller" {
+    description: "Local automation controller"
+  }
 
-  sorter  = sys/route "Conveyor Sorter"
-  printer = sys/printer "Label Printer"
-  board   = sys/monitor "Status Board"
+  sorter  = sys/workflow   "Conveyor Sorter" {
+    description: "Automated sorting system"
+  }
+  printer = sys/printer    "Label Printer"
+  board   = sys/monitor    "Status Board"
+
+  bench1  -> ctrl "scan"
+  bench2  -> ctrl "scan"
+  bench3  -> ctrl "scan"
+
+  ctrl    -> sorter "route"
+  ctrl    -> printer "print label"
+  ctrl    -> board "status updates"
 }
 
-erp = box "ERP System" external { description: "Corporate system" }
+erp = box "ERP System" external
 
-warehouse.scanner1 -> warehouse.controller "scan event"
-warehouse.scanner2 -> warehouse.controller "scan event"
-warehouse.scanner3 -> warehouse.controller "scan event"
+floor.ctrl ~> erp "sync" {
+  description: "Once per minute"
+}
 
-warehouse.controller -> warehouse.sorter "routing command"
-warehouse.controller -> warehouse.printer "print job"
-warehouse.controller -> warehouse.board "status update"
-warehouse.controller ~> erp "sync batch" { animate: slow }
+supervisor -> floor.board "monitors"
 
-supervisor -> warehouse.board "monitors"
+zone site "Site Network" network {
+  contains floor.ctrl, erp
+}
 
-view main {
-  title "Warehouse Automation System"
-  scope warehouse
-
+view landscape {
+  title "Warehouse Automation"
   layout {
-    direction down
-    density comfortable
-    rows [scanner1 scanner2 scanner3] [controller] [sorter printer board]
+    rows [floor.bench1 floor.bench2 floor.bench3] [floor.ctrl] [floor.sorter floor.printer floor.board] [erp]
   }
 }

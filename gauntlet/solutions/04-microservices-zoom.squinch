@@ -1,20 +1,21 @@
 pack aws
 
+person customer "Customer"
 gw = aws/api-gateway "API Gateway"
 
 system catalog "Catalog Service" {
-  description: "Product inventory and search"
-  glyph: sys/database
+  description: "Product browsing and search"
+  glyph: sys/search
 
   api = aws/lambda "Catalog API"
-  db = aws/dynamodb "Products" datastore
+  db = aws/dynamodb "Product Catalog" datastore
 
   api -> db
 }
 
 system checkout "Checkout Service" {
-  description: "Order processing and payment"
-  glyph: sys/code
+  description: "Shopping cart and orders"
+  glyph: sys/package
 
   api = aws/lambda "Checkout API"
   db = aws/dynamodb "Orders" datastore
@@ -23,8 +24,8 @@ system checkout "Checkout Service" {
 }
 
 system identity "Identity Service" {
-  description: "Authentication and user management"
-  glyph: sys/lock
+  description: "Authentication and users"
+  glyph: sys/user
 
   api = aws/lambda "Identity API"
   db = aws/dynamodb "Users" datastore
@@ -32,6 +33,7 @@ system identity "Identity Service" {
   api -> db
 }
 
+customer -> gw "browse and purchase"
 gw -> catalog.api
 gw -> checkout.api
 gw -> identity.api
@@ -43,4 +45,5 @@ view landscape {
 
 view checkout {
   scope checkout
+  expand checkout
 }

@@ -1,12 +1,12 @@
 pack azure
 
 gw  = azure/app-gateway "Application Gateway"
-aks = azure/aks         "AKS Cluster"
-acr = azure/acr         "Container Registry"
-sql = azure/sql         "Azure SQL"
+aks = azure/aks          "AKS Cluster"
+acr = azure/acr          "Container Registry"
+sql = azure/sql          "Azure SQL"
 
 gw -> aks
-aks -> acr "pulls images"
+aks -> acr
 aks -> sql
 
 zone subscription "Azure Subscription" account {

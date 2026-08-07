@@ -65,47 +65,44 @@ nothing.
 
 ## Latest round
 
-**Round 16 — 29/29 on the deep scorer; 22 of 29 clean on the first `check`**
-(2026-08-07). The first round on the loosened grammar, and it found three
-things, one of which was hiding in plain sight for the whole project.
+**Round 17 — 29/29 on the deep scorer; 25 of 29 clean on the first `check`, the
+best recorded** (2026-08-07). Run to test two skill rules added the same day,
+and it split them.
 
-**Twenty-eight errors for one mistake.** An agent declared nine nodes inside
-`system warehouse` and then referenced them unqualified from a zone and a
-layout. Every `unknown id` was correct and every one named its own fix —
-`did you mean \`warehouse.scanner1\`?` — so the agent recovered. But a wall of
-twenty-eight errors buries the single thing worth saying, which is that ids
-declared inside a system are written with their prefix from outside it. Three
-or more that agree on the same missing prefix now fold into one message that
-says exactly that. Deliberately conservative: two stay separate, because two is
-not yet a pattern, and a suggestion that is a *correction* rather than a
-qualification is never folded — without that guard three typos collapse into
-"3 ids are missing their `` prefix", which is nonsense wearing a confident
-tone. `unknown id` was 38 of this round's 48 diagnostics and is the largest
-class in the project's history after hint conflicts.
+**Zero syntax errors, in 37 check calls.** Two rounds ago syntax was 12% of all
+diagnostics and the reason the grammar was loosened. The whole round produced
+seven diagnostics total, against forty-eight last round.
 
-**Positional tags on edges.** `handler -> db #sensitive`, twice in one file.
-When positional tags landed on nodes last round the scoping note said edges had
-"no evidence" and left them out; there is evidence now, and the generalisation
-is the obvious one. Refusing it would have made the rule "positional tags,
-except on edges" — the kind of exception that is exactly why the comma rule
-was worth fixing.
+**The zone rule looks like it worked.** "To rank a zone, name one member of it —
+not all of them" went from eleven occurrences historically, to one last round,
+to none here. Directionally right, on a sample far too small to be sure.
 
-**The two person forms, crossed.** `analyst = person analyst "Analyst"` —
-the inline form and the top-level form written at once — produced a bare syntax
-error. It now names the doubling and offers both ways out.
+**The `cols`/`align` rule did not.** It went from one to two, and both are the
+same prompt and the same pair of nodes. 26-wide-ingestion asks, in the user's
+words, to "keep the warehouse and the search index in the same column" — and
+`cols` is the wrong construct for that, because those two are siblings on one
+rank and are already side by side. The agent read the word *column* in the
+prompt and reached for the construct spelled `cols`, then tried `align`, then
+gave up and dropped the hint. The diagnostic told it to write `rows` both times.
 
-**On the doctrine added last round.** SKILL.md now tells agents to start with
-no layout block and add hints only to fix what they see, aimed at hint
-conflicts — the biggest error class in project history at 39 of 80
-diagnostic-bearing calls. This round they were 3 of 39 calls, and one of those
-three is 27-rank-conflict, which exists to provoke exactly that error. So: a
-possible improvement on a sample far too small to claim one, and two agents
-still pinned rows that fought their own back-edges. Treat it as unproven for at
-least another round.
+That is worth being precise about, because it is not a documentation failure and
+another paragraph will not fix it. The prompt's vocabulary collides with the
+DSL's: `cols` names a cross-rank axis, and a reader saying "column" means what
+they see on screen. The rule now in SKILL.md says exactly this, and the agent
+still followed the prompt's word over the skill's. Options are to live with it,
+or to reconsider the name — and renaming a shipped construct to fix one prompt
+is not obviously the better trade.
 
-Clean-first-try slipped from 23 to 22, which is noise at this sample size and
-not worth reading either way. The round's value is the three defects, which is
-this file's standard.
+**27-rank-conflict took five calls**, its worst yet, hitting the conflict three
+times across two different node pairs before finding an arrangement. It exists
+to provoke exactly that error, so this is the prompt working; but it is also the
+clearest evidence that agents resolve a rank conflict by *guessing another
+arrangement* rather than by reading the fix, which names both ways out.
+
+Hint conflicts held at 3 of 37 calls, matching last round. Two rounds at that
+level, against 39 of 367 historically, and with only nine of twenty-nine
+solutions declaring a layout block at all: the decline is real, and the likeliest
+mechanism is agents writing fewer hints rather than writing better ones.
 
 The corpus in `solutions/` is this round's twenty-nine answers, cold-authored and
 deep-scored.

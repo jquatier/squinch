@@ -1,46 +1,36 @@
-// Market data processing system
+// Market data flow architecture
 
 exchange = box "Exchange" external
-clearinghouse = box "Clearing House" external
 
-system market "Market Data System" {
-  feedhandler = sys/router "Feed Handler" {
-    description: "Ingests price stream"
-  }
-
-  pricing = sys/cpu "Pricing Engine" {
-    description: "Price processing"
-  }
-
-  ui = sys/app-window "Trading UI" {
-    description: "Trading interface"
-  }
-
-  batch = sys/clock "Overnight Batch" {
-    description: "Daily reconciliation"
-  }
-
-  risk = sys/shield "Risk Service" {
-    description: "Health monitoring"
-  }
-
-  // Continuous price stream
-  exchange ~> feedhandler "price stream" { animate: packets }
-  feedhandler ~> pricing "normalized ticks" { animate: fast }
-  pricing ~> ui "price updates" { animate: fast }
-
-  // Nightly batch job
-  batch ~> clearinghouse "reconcile fills" { animate: slow }
-
-  // Health polling
-  risk -> pricing "health check" { animate: pulse }
+feed = sys/radio-tower "Feed Handler" {
+  description: "Ingests price stream"
 }
 
-view landscape {
-  title "Market Data Flow"
-  layout {
-    rows [exchange] [market.feedhandler market.pricing] [market.ui market.batch market.risk] [clearinghouse]
-    place market.batch right-of market.ui
-    place market.risk right-of market.batch
-  }
+pricing = sys/gauge "Pricing Engine" {
+  description: "Real-time pricing"
 }
+
+ui = sys/monitor "Trading UI" {
+  description: "Trader interface"
+}
+
+batch = sys/clock "Overnight Batch" {
+  description: "Nightly reconciliation"
+}
+
+clearing = box "Clearing House" external
+
+risk = sys/shield "Risk Service" {
+  description: "System health monitoring"
+}
+
+// Continuous streams (async)
+exchange ~> feed "price stream" { animate: packets }
+feed ~> pricing "ticks" { animate: packets }
+pricing ~> ui "pricing updates" { animate: packets }
+
+// Nightly batch job
+batch -> clearing "reconcile fills"
+
+// Health polling (sync, periodic)
+risk -> pricing "health check" { animate: pulse }

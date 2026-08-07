@@ -1,77 +1,79 @@
 // Order platform architecture
 pack aws
 
-// Customer
+// Actors
 person customer "Customer"
 
-// Edge layer
-storefront = aws/cloudfront "Storefront"
-
-// API Gateway
+// Edge infrastructure
+cdn = aws/cloudfront "CloudFront"
 gw = aws/api-gateway "API Gateway"
 
-// Catalog service
+// Services
 system catalog "Catalog Service" {
-  description: "Product catalog"
-  glyph: sys/database
-
-  handler = aws/lambda "Catalog Handler"
-  db = aws/dynamodb "Products" datastore
-
-  handler -> db
-}
-
-// Orders service
-system orders "Orders Service" {
-  description: "Order management"
+  description: "Product browsing"
   glyph: sys/code
-  tags: #core
 
-  handler = aws/lambda "Orders Handler"
-  db = aws/dynamodb "Orders" datastore
-  bus = aws/eventbridge "Event Bus"
+  lambda = aws/lambda "Catalog Handler"
+  db = aws/dynamodb "Products Table" datastore
 
-  handler -> db
-  handler ~> bus "order events"
+  lambda -> db
 }
 
-// Payments service
-system payments "Payments Service" {
-  description: "Payment processing"
-  glyph: sys/lock
+system orders "Orders Service" {
+  description: "Order processing"
+  glyph: sys/code
   tags: #sensitive
 
-  handler = aws/lambda "Payments Handler" { tags: #sensitive }
-  db = aws/dynamodb "Payments" datastore { tags: #sensitive }
+  lambda = aws/lambda "Orders Handler" {
+    tags: #sensitive
+  }
+  db = aws/dynamodb "Orders Table" datastore {
+    tags: #sensitive
+  }
 
-  handler -> db { tags: #sensitive }
+  lambda -> db
+  lambda ~> bus "publish order events"
 }
 
-// Fulfilment worker
+system payments "Payments Service" {
+  description: "Payment processing"
+  glyph: sys/code
+  tags: #sensitive
+
+  lambda = aws/lambda "Payments Handler" {
+    tags: #sensitive
+  }
+  db = aws/dynamodb "Payments Table" datastore {
+    tags: #sensitive
+  }
+
+  lambda -> db
+}
+
+// Event infrastructure
+bus = aws/eventbridge "EventBridge"
 fulfilment = aws/lambda "Fulfilment Worker"
 
 // Connections
-customer -> storefront "browse"
-storefront -> gw
-gw -> catalog.handler
-gw -> orders.handler
-gw -> payments.handler "checkout" { tags: #sensitive }
-orders.bus ~> fulfilment "consume events"
+customer -> cdn "browse & order"
+cdn -> gw
+gw -> catalog.lambda "GET /products"
+gw -> orders.lambda "POST /orders"
+gw -> payments.lambda "POST /payments"
+bus ~> fulfilment "order events"
 
-// Production VPC boundary
-zone prod_vpc "Production VPC" vpc {
-  contains gw, catalog, orders, payments, fulfilment
+// Deployment boundary
+zone prod_vpc "VPC prod" vpc {
+  contains gw, catalog, orders, payments, bus, fulfilment
 }
 
-// Landscape view
+// Views
 view landscape {
-  title "Order Platform Landscape"
+  title "System Landscape"
   include *
 }
 
-// Orders service view
 view orders {
-  title "Orders Service"
   scope orders
-  highlight #core
+  show descriptions
 }

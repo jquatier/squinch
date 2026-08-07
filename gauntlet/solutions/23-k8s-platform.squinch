@@ -1,29 +1,39 @@
 pack k8s
 
-ingress = k8s/ing "nginx Ingress"
+// ingress layer
+ingress = k8s/ing "nginx-ingress"
 
-web_svc = k8s/svc "web Service"
-web_deploy = k8s/deploy "web"
+// application deployments
+web    = k8s/deploy "web"
+api    = k8s/deploy "api"
+worker = k8s/deploy "worker"
 
-api_svc = k8s/svc "api Service"
-api_deploy = k8s/deploy "api"
+// services
+web_svc    = k8s/svc "web-service"
+api_svc    = k8s/svc "api-service"
+worker_svc = k8s/svc "worker-service"
 
-worker_svc = k8s/svc "worker Service"
-worker_deploy = k8s/deploy "worker"
-
+// data layer
 postgres = k8s/sts "Postgres" datastore
-redis = k8s/deploy "Redis" datastore
+redis    = k8s/deploy "Redis" datastore
 
-pruner = k8s/cronjob "Prune Job"
+// scheduled jobs
+prune = k8s/cronjob "prune-job" {
+  description: "Nightly cleanup"
+}
 
+// ingress to services
 ingress -> web_svc
 ingress -> api_svc
 
-web_svc -> web_deploy
-api_svc -> api_deploy
-worker_svc -> worker_deploy
+// services to deployments
+web_svc    -> web
+api_svc    -> api
+worker_svc -> worker
 
-api_deploy -> postgres
-api_deploy -> redis
+// api interactions
+api -> postgres "read/write"
+api -> redis "cache"
 
-pruner -> postgres
+// cronjob cleanup
+prune -> postgres "delete old records"

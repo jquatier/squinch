@@ -1,19 +1,18 @@
+// Payments architecture for design review
 pack aws
 pack logos
 
-system payments "Payments Architecture" {
+system payments "Payments System" {
   gw = aws/api-gateway "API Gateway"
-  auth = sys/shield "Auth Service"
-  ledger = sys/code "Ledger Service"
-  db = logos/postgres "Ledger DB" datastore
-  worker = sys/workflow "Settlement Worker"
-  bank = box "Bank" external
+  auth = sys/shield-check "Auth Service"
+  ledger = logos/postgres "Ledger" datastore
+  worker = sys/cog "Settlement Worker"
+  bank = box "Bank System" external
 
   gw -> auth
   gw -> ledger
-  ledger -> db
-  worker ~> bank "overnight batches"
-  ledger ~> worker
+  worker -> ledger
+  worker ~> bank "overnight batch"
 }
 
 view payments {
@@ -22,8 +21,6 @@ view payments {
   titleblock {
     version: "2.1"
     owner: payments-team
-  }
-  layout {
-    rows [gw] [auth ledger] [db worker] [bank]
+    date: "Q1 2026"
   }
 }

@@ -1,58 +1,29 @@
 // Databricks lakehouse architecture
 pack logos
 
-// External data source (not Databricks)
+// External data source
 kafka = logos/kafka "Order Events" external
 
-// Databricks ingestion and storage
-autoloader = sys/workflow "Auto Loader" {
-  badge: logos/databricks
-  description: "Streaming ingestion"
-}
-bronze = sys/table "Bronze Delta" datastore {
-  badge: logos/databricks
-  description: "Raw order events"
-}
-job = sys/workflow "Nightly Merge Job" {
-  badge: logos/databricks
-}
-silver = sys/table "Silver Customers" datastore {
-  badge: logos/databricks
-  description: "Curated customer data"
-}
-catalog = sys/catalog "Unity Catalog" {
-  badge: logos/databricks
-  description: "Data governance"
-}
+// Databricks components - using sys/* icons with databricks badge
+autoloader = sys/code "Auto Loader" { badge: logos/databricks }
+bronze = sys/table "Bronze Delta Table" datastore { badge: logos/databricks }
+job = sys/workflow "Nightly Merge Job" { badge: logos/databricks }
+silver = sys/table "Silver Customers Table" datastore { badge: logos/databricks }
+catalog = sys/catalog "Unity Catalog" { badge: logos/databricks }
+warehouse = sys/database "SQL Warehouse" { badge: logos/databricks }
+vector = sys/waypoints "Vector Search Index" { badge: logos/databricks }
+serving = sys/model "Model Serving Endpoint" { badge: logos/databricks }
 
-// Analytics and ML
-warehouse = sys/database "SQL Warehouse" {
-  badge: logos/databricks
-}
-person analyst "Analyst"
+// Analysts
+person analyst "Analysts"
 
-vector = sys/waypoints "Vector Search Index" {
-  badge: logos/databricks
-}
-model = sys/model "Model Serving" {
-  badge: logos/databricks
-}
-
-// Data flow
-kafka ~> autoloader "stream"
-autoloader ~> bronze
-bronze ~> job "daily batch"
-job -> silver
+// Connections
+kafka ~> autoloader "stream events"
+autoloader ~> bronze "ingest"
+job -> bronze "read"
+job -> silver "merge"
 catalog -> silver "governs"
-silver -> warehouse
-warehouse -> analyst "queries"
-silver -> vector "indexes"
-vector -> model "embeddings"
-
-view lakehouse {
-  title "Databricks Lakehouse Architecture"
-  layout {
-    direction down
-    rows [kafka] [autoloader] [bronze] [job] [silver catalog] [warehouse vector] [analyst model]
-  }
-}
+analyst -> warehouse "query"
+warehouse -> silver "read"
+silver -> vector "index"
+vector -> serving "feeds"

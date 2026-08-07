@@ -1,48 +1,33 @@
 pack aws
 pack logos
 
-// Actors
 person customer "Customer"
 
-// Frontend
-mobile = sys/smartphone "Mobile App"
-web = sys/app-window "Website"
+mobile  = sys/smartphone "Mobile App"
+website = sys/monitor     "Website"
+gw      = aws/api-gateway "Gateway"
 
-// Backend
-gw = aws/api-gateway "API Gateway"
-account = aws/lambda "Account Service"
-billing = aws/lambda "Billing Service"
+account = sys/server   "Account Service"
+billing = sys/server   "Billing Service"
 
-// Databases
-account_db = logos/postgres "Main Database" datastore
-billing_db = logos/postgres "Billing Database" datastore
+account_db = logos/postgres "Main Postgres" datastore
+billing_db = logos/postgres "Billing DB" datastore
 
-// External integrations
 stripe = box "Stripe" external
-s3 = aws/s3 "Data Export" datastore
+export = aws/s3 "Data Export" datastore
 
-// Data team
-person data_team "Data Team"
-
-// Edges - customer interactions
 customer -> mobile
-customer -> web
+customer -> website
 
-// Frontend to gateway
-mobile -> gw
-web -> gw
+mobile  -> gw
+website -> gw
 
-// Gateway to services
 gw -> account
 gw -> billing
 
-// Service to database
 account -> account_db
 billing -> billing_db
 
-// Billing to Stripe
-billing -> stripe "payment processing"
+billing -> stripe
 
-// Nightly export
-account ~> s3 "nightly export"
-data_team -> s3
+account ~> export "nightly export"

@@ -1,17 +1,16 @@
-// Approval chain with policy engine and audit log on same rank
+// Approval chain diagram
+req    = sys/server  "Request Service"
+policy = sys/cog     "Policy Engine"
+approve = sys/shield-check "Approver Service"
+audit  = sys/database "Audit Log" datastore
 
-request  = sys/webhook "Request Service"
-policy   = sys/shield  "Policy Engine"
-approver = sys/server  "Approver Service"
-audit    = sys/database "Audit Log" datastore
-
-request -> policy
-policy -> approver
-approver -> audit
+req -> policy
+policy -> approve
+approve -> audit
 
 view main {
   layout {
-    rows [request] [policy audit]
+    rows [req] [policy audit]
     place audit right-of policy
   }
 }

@@ -2,17 +2,16 @@ pack aws
 pack logos
 
 person operator "Operator"
-
 erp = sys/database "Legacy ERP" external
 
 ingest = aws/lambda "Ingestion Lambda"
 db = aws/aurora "Aurora Database" datastore
 
-operator -> erp
-erp -> ingest
-ingest -> db
+operator -> erp "uses"
+erp ~> ingest "feeds data"
+ingest -> db "writes"
 
-zone onprem "On-Premises Data Centre" onprem {
+zone onprem "On-Premises Data Center" onprem {
   contains operator, erp
 }
 

@@ -1,50 +1,62 @@
-// Order platform - onboarding view for new engineers
+// Order Platform — system landscape with focus on orders service internals
+
 pack aws
 
 person customer "Customer"
 
 system orders "Orders Service" {
-  description: "Checkout and order processing"
+  description: "Order processing and checkout"
   glyph: sys/code
 
   api = aws/api-gateway "API Gateway"
-  create = aws/lambda "Create Order"
-  validate = aws/lambda "Validate Order"
-  db = aws/dynamodb "Orders DB" datastore
-  stream = aws/kinesis "Order Events"
+  create = aws/lambda "Create Order Handler"
+  get = aws/lambda "Get Order Handler"
+  search = aws/lambda "Search Handler"
+  db = aws/dynamodb "Orders Table" datastore
+  queue = aws/sqs "Processing Queue"
+  processor = aws/lambda "Order Processor"
 
   api -> create
-  api -> validate
+  api -> get
+  api -> search
   create -> db
-  db ~> stream "changes"
+  get -> db
+  search -> db
+  create ~> queue
+  queue ~> processor
+  processor -> db
 }
 
 system inventory "Inventory Service" {
   description: "Stock management"
   glyph: sys/database
 
-  handler = aws/lambda "Inventory Handler"
-  stock = aws/dynamodb "Stock DB" datastore
+  api = aws/api-gateway "Inventory API"
+  db = aws/dynamodb "Stock Table" datastore
+
+  api -> db
 }
 
 system notifications "Notifications Service" {
   description: "Customer notifications"
   glyph: sys/workflow
 
-  processor = aws/lambda "Notification Processor"
-  queue = aws/sqs "Notifications Queue"
+  handler = aws/lambda "Notification Handler"
+  sns = aws/sns "Topics"
 
-  queue ~> processor
+  handler -> sns
 }
 
 customer -> orders.api "places order"
-orders.stream ~> inventory.handler "stock update"
-orders.stream ~> notifications.queue "order events"
+orders.processor -> inventory.api "checks stock"
+orders.processor ~> notifications.handler "sends confirmation"
 
 view landscape {
-  title "Order Platform Overview"
+  title "Order Platform"
+  include *
 }
 
 view orders {
   title "Orders Service Detail"
+  show descriptions
 }

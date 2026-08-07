@@ -1,29 +1,52 @@
+// Payments platform with PCI scope tagging
 pack aws
 
 system payments "Payments Platform" {
   description: "Payment processing and analytics"
+  tags: #payments
 
-  api = aws/lambda "API Handler" #pci
-  tokenizer = aws/lambda "Tokenizer" #pci
-  vault = aws/dynamodb "Card Vault" datastore #pci
-  analytics = aws/lambda "Analytics"
-  warehouse = aws/redshift "Data Warehouse" datastore
+  api = aws/lambda "API Handler" {
+    description: "Request validation"
+    tags: #pci
+  }
 
+  tokenizer = aws/lambda "Tokenizer" {
+    description: "Card tokenization"
+    tags: #pci
+  }
+
+  vault = aws/dynamodb "Card Vault" datastore {
+    description: "Encrypted card data"
+    tags: #pci
+  }
+
+  analytics = aws/lambda "Analytics" {
+    description: "Transaction analytics"
+  }
+
+  warehouse = aws/redshift "Data Warehouse" datastore {
+    description: "Analytics storage"
+  }
+
+  // Payment flow
   api -> tokenizer
   tokenizer -> vault
-  vault ~> analytics
+
+  // Analytics flow
+  api ~> analytics "transaction events"
   analytics -> warehouse
 }
 
+// Full view showing everything
 view full {
-  title "Payments Platform - Full View"
+  title "Payments Platform - Full Architecture"
   scope payments
-  show descriptions
 }
 
-view pci {
+// Auditor's view showing only PCI-scoped components
+view auditor {
   title "Payments Platform - PCI Scope"
   scope payments
   only #pci
-  show descriptions
+  highlight #pci
 }
