@@ -243,7 +243,10 @@ describe("SKILL.md — diagnostic coverage", () => {
     // slip the gate entirely. Two of these predate this session; three were
     // added by the syntax work and would have shipped unchecked. Each one
     // writes the corrected line out in full, which is the bar for this list.
-    "names the person twice", "comma splits the tag list — tags separate with spaces",
+    "names the person twice", "appears twice — the second wins",
+    "description` appears twice — the second wins", "duplicate view",
+    "has the same id as a",
+    "the `{` must sit on the declaration's own line — statements end at newline", "comma splits the tag list — tags separate with spaces",
     "has a space in its value, so it needs quotes",
     "layout hints live in views, not systems", "layout` block inside",
     "layout` block at the top level — layout hints live inside a view",

@@ -16,7 +16,7 @@
    columns, `right-of`, sides). There is no way to write `x: 340` — by design.
 2. **Structure and layout never mix.** The model reads clean; layout lives in `layout`
    blocks inside views. Deleting every `layout` block always yields a valid render.
-3. **Forgiving surface, strict core.** Optional quotes and trailing commas; `//` and
+3. **Forgiving surface, strict core.** Trailing commas; `//` and
    `#` comments; newline- or comma-separated lists. But unknown identifiers are errors
    (with did-you-mean suggestions) — silent typos make lying diagrams.
 4. **Ids are the API.** `api = aws/api-gateway "API Gateway"` — the id `api` is what
@@ -70,9 +70,6 @@ stripe = logos/stripe     "Stripe" external      // trailing keywords: external,
 
 create = aws/lambda "Create Handler" {           // optional attribute block
   description: "Validates and persists new orders"
-  owner:  team-orders
-  link:   https://github.com/org/order-service
-  status: planned            // planned | deprecated → rendered as badge/ghost
   tags:   #pci #critical            // …or positionally: `create = aws/lambda "X" #pci`
 }
 ```
@@ -96,7 +93,6 @@ Descriptions render as the card tagline, in hover cards, and inline via a view's
 system shop "Order Service" {
   glyph:   sys/code           // optional badge on the collapsed card
   preview: auto               // none | auto | [api db] — mini-strip of inner icons
-  owner:   team-orders
 
   api = aws/api-gateway "API Gateway"
   container workers "Async Workers" {

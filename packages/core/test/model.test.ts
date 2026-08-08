@@ -460,3 +460,66 @@ describe("the two person forms, crossed", () => {
     expect(r.ok, JSON.stringify(r.diagnostics)).toBe(true);
   });
 });
+
+describe("soundness: silent corners closed", () => {
+  it("duplicate view names are an error, not a silent pick", () => {
+    const r = buildModel(
+      `pack aws\nsystem s "S" {\n  a = aws/lambda "A"\n  b = aws/lambda "B"\n  a -> b\n}\nview main { scope s }\nview main { scope s }\n`,
+    );
+    const d = r.diagnostics.find((x) => x.message === "duplicate view `main`")!;
+    expect(d).toBeDefined();
+    expect(d.fix).toContain("would pick one of them silently");
+  });
+
+  it("a zone sharing a node's id is an error", () => {
+    const r = buildModel(
+      `pack aws\ngw = aws/api-gateway "GW"\nvpc = aws/lambda "Node"\ngw -> vpc\nzone vpc "Zone" vpc { contains gw }\n`,
+    );
+    expect(r.diagnostics.some((x) => x.message === "zone `vpc` has the same id as a node")).toBe(true);
+  });
+
+  it("a top-level person takes a positional tag, like every other declaration", () => {
+    const r = buildModel(
+      `pack aws\nperson vip "V" #gold\nsystem s "S" {\n  a = aws/lambda "A"\n}\nvip -> s.a\n`,
+    );
+    expect(r.ok, JSON.stringify(r.diagnostics)).toBe(true);
+    expect(r.model.nodes.get("vip")!.tags).toEqual(["gold"]);
+  });
+
+  it("tags collect from `tags:` only — a tag under another key is an error", () => {
+    const r = buildModel(
+      `pack aws\nsystem s "S" {\n  a = aws/lambda "A" { owner: #team }\n  b = aws/lambda "B"\n  a -> b\n}\n`,
+    );
+    const d = r.diagnostics.find((x) => x.message.includes("has a tag value"))!;
+    expect(d.message).toBe("`owner` has a tag value — tags live in `tags:`");
+    expect(d.fix).toContain("write `tags: #team`");
+    expect(r.model.nodes.get("s.a")!.tags).toEqual([]);
+  });
+
+  it("a duplicated attr key warns instead of silently last-winning", () => {
+    const r = buildModel(
+      `pack aws\nsystem s "S" {\n  a = aws/lambda "A" {\n    description: "x"\n    description: "y"\n  }\n  b = aws/lambda "B"\n  a -> b\n}\n`,
+    );
+    const d = r.diagnostics.find((x) => x.message.includes("appears twice"))!;
+    expect(d.severity).toBe("warning");
+    expect(r.model.nodes.get("s.a")!.description).toBe("y");
+  });
+
+  it("an Allman brace names the rule and writes the joined line", () => {
+    const r = buildModel(`pack aws\nsystem s "S"\n{\n  a = aws/lambda "A"\n  b = aws/lambda "B"\n  a -> b\n}\n`);
+    const d = r.diagnostics.find((x) => x.message.includes("must sit on the declaration's own line"))!;
+    expect(d).toBeDefined();
+    expect(d.fix).toBe('write `system s "S" {`');
+    expect(r.diagnostics.some((x) => x.message.startsWith("syntax error near"))).toBe(false);
+  });
+
+  it("fan-in gets one error naming the rule, with no unknown-id debris", () => {
+    const r = buildModel(
+      `pack aws\nsystem s "S" {\n  x = aws/lambda "X"\n  y = aws/lambda "Y"\n  z = aws/sqs "Z"\n  x, y -> z\n}\n`,
+    );
+    const errs = r.diagnostics.filter((d) => d.severity === "error");
+    expect(errs.length).toBe(1);
+    expect(errs[0].message).toBe("an edge has one source — `x, y` cannot fan in");
+    expect(errs[0].fix).toContain("channel x, y -> z");
+  });
+});

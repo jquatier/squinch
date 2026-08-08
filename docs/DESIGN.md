@@ -71,8 +71,8 @@
   step number on an edge, a **node badge** is whose platform a leaf belongs to.
 - **System card** (collapsed container): height `88`; kind silhouette + accent bar,
   title 15/550, tagline 11 muted, glyph badge top-right `20×20` mono, `preview`
-  strip = up to 3 icons at `16×16` bottom-right at 60% opacity, owner/status badges
-  as `11px` pills. `external` — someone else's system — takes a hatched surface
+  strip = up to 3 icons at `16×16` bottom-right at 60% opacity. `external` —
+  someone else's system — takes a hatched surface
   variant, on a leaf node the same way: a texture rather than a colour, since
   colour is already spoken for (accent = subject, muted = scenery, zone tints =
   boundary) and the hatch has to survive `contrast` and print. The pattern is

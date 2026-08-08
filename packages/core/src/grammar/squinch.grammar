@@ -27,7 +27,11 @@ kw<term> { @extend[@name={term}]<Ident, term> }
 
 PackStmt { kw<"pack"> Ident (kw<"from"> String)? }
 FileTheme { kw<"theme"> Ident }
-PersonDecl { kw<"person"> Ident String? }
+// Tag* for the same reason NodeDecl and Container have it: rounds 15-16
+// legalized the kind-position tag everywhere else, and `person vip "V" #gold`
+// erroring while `vip = person "V" #gold` parses is exactly the
+// "positional tags, except on X" exception that change existed to remove.
+PersonDecl { kw<"person"> Ident String? Tag* }
 
 // A kind on the container itself: DESIGN §3 hangs the hatched surface off
 // `external`, and "someone else's system" is a property of the whole system,

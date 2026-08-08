@@ -105,10 +105,29 @@ export function buildProject(input: ProjectFile[]): BuildResult {
         if (!identNode || !v) continue;
         const key = ctx.text(identNode);
         const tagNodes = v.getChildren("Tag");
-        if (tagNodes.length) tags.push(...tagNodes.map((t) => ctx.text(t).slice(1)));
-        else if (key === "description")
+        if (tagNodes.length) {
+          // Only `tags:` collects. This used to key off the *value* having Tag
+          // children, so `owner: #team` silently tagged the node — forgiving of
+          // a typo'd key, but an accidental tag is a lie in every tag lens.
+          if (key === "tags") {
+            tags.push(...tagNodes.map((t) => ctx.text(t).slice(1)));
+          } else {
+            const list = tagNodes.map((t) => ctx.text(t)).join(" ");
+            error(ctx, a, `\`${key}\` has a tag value — tags live in \`tags:\``,
+              `write \`tags: ${list}\`, or quote it if \`${key}\` really means the text \`"${list}"\``);
+          }
+        }
+        else if (key === "description") {
+          if (description !== undefined)
+            warn(ctx, a, `\`description\` appears twice — the second wins`,
+              `keep one`);
           description = v.getChild("String") ? ctx.str(v.getChild("String")!) : ctx.text(v);
-        else attrs[key] = v.getChild("String") ? ctx.str(v.getChild("String")!) : ctx.text(v);
+        } else {
+          if (key in attrs)
+            warn(ctx, a, `\`${key}\` appears twice — the second wins`,
+              `keep one`);
+          attrs[key] = v.getChild("String") ? ctx.str(v.getChild("String")!) : ctx.text(v);
+        }
       }
     return { attrs, tags, description };
   };
@@ -156,6 +175,38 @@ export function buildProject(input: ProjectFile[]): BuildResult {
         error(ctx, ctx.loc({ from, to: from + "layout".length } as SyntaxNode),
           `\`layout\` block inside \`${sys}\` — layout hints live in views, not systems`,
           `move it below the system: view ${sys} { layout { … } }`);
+      }
+      // An opening brace on its own line. The C#/Java habit; statements end
+      // at newline, so `system s "S"` terminates and the lone `{` is noise.
+      for (const m of f.src.matchAll(/^([ \t]*(?:system|container|zone|view|flow)\b[^{\n]*?)[ \t]*\n[ \t]*\{/gm)) {
+        const at = m.index! + m[0].lastIndexOf("{");
+        if (strings.some(([a2, b2]) => at >= a2 && at < b2)) continue;
+        error(ctx, ctx.loc({ from: at, to: at + 1 } as SyntaxNode),
+          "the `{` must sit on the declaration's own line — statements end at newline",
+          `write \`${m[1].trim()} {\``);
+        for (let i = diagnostics.length - 1; i >= 0; i--) {
+          const d = diagnostics[i];
+          if (d.file === ctx.name && d.message.startsWith("syntax error near")
+              && d.loc.from >= m.index! && d.loc.from <= at + 1)
+            diagnostics.splice(i, 1);
+        }
+      }
+      // Fan-in. `a -> b, c` fans out, so `x, y -> z` is the guess the mirror
+      // image invites — but an edge has one source, and the comma list on the
+      // left parses as garbage.
+      for (const m of f.src.matchAll(/^[ \t]*([\w.]+(?:[ \t]*,[ \t]*[\w.]+)+)[ \t]*(->|~>|<->|--)[ \t]*([\w.]+)/gm)) {
+        if (strings.some(([a2, b2]) => m.index! >= a2 && m.index! < b2)) continue;
+        const sources = m[1].split(",").map((x) => x.trim());
+        error(ctx, ctx.loc({ from: m.index!, to: m.index! + m[0].length } as SyntaxNode),
+          `an edge has one source — \`${m[1]}\` cannot fan in`,
+          `write ${sources.map((x) => `\`${x} ${m[2]} ${m[3]}\``).join(", ")}; to draw them as one trunk, add \`channel ${m[1]} ${m[2]} ${m[3]}\` to the view's layout`);
+        for (let i = diagnostics.length - 1; i >= 0; i--) {
+          const d = diagnostics[i];
+          if (d.file === ctx.name
+              && (d.message.startsWith("syntax error near") || d.message.startsWith("unknown id"))
+              && d.loc.from >= m.index! && d.loc.from <= m.index! + m[0].length + 20)
+            diagnostics.splice(i, 1);
+        }
       }
       // The two person forms, crossed. `person analyst "Analyst"` declares one
       // at the top level; `analyst = person "Analyst"` declares one inline.
@@ -417,7 +468,9 @@ export function buildProject(input: ProjectFile[]): BuildResult {
         path: name, name,
         label: labelNode ? ctx.str(labelNode) : name,
         icon: { pack: "builtin", id: "person" },
-        kinds: ["person"], tags: [], attrs: {}, loc: ctx.loc(p), file: ctx.name,
+        kinds: ["person"],
+        tags: p.getChildren("Tag").map((t: SyntaxNode) => ctx.text(t).slice(1)),
+        attrs: {}, loc: ctx.loc(p), file: ctx.name,
       });
     }
     for (const decl of top.getChildren("NodeDecl")) declareNode(decl, "");
@@ -440,6 +493,14 @@ export function buildProject(input: ProjectFile[]): BuildResult {
     const i = node.getChild("Ident");
     const body = node.getChild("ZoneBody");
     if (!i) continue;
+    // A zone sharing a name with a node or container is legal to the parser
+    // and poison to everything downstream: both are addressable in `rows`, so
+    // `rows [vpc]` would rank one of them without saying which, and "a zone id
+    // is an error where a node is meant" presumes the names never collide.
+    const zid = ctx.text(i);
+    if (model.nodes.has(zid) || model.containers.has(zid))
+      error(ctx, i, `zone \`${zid}\` has the same id as a ${model.nodes.has(zid) ? "node" : "system"}`,
+        `rename one — \`rows\`, \`place\` and edges could name either, and the pick would be silent`);
     zoneMemberNames.set(
       ctx.text(i),
       (body?.getChildren("ContainsStmt") ?? []).flatMap(
@@ -479,6 +540,12 @@ export function buildProject(input: ProjectFile[]): BuildResult {
     // like it — told them nothing about which of the two ideas was wrong.
     // Every zone id, not just the ones declared above this point: zone order in
     // the file is free, and the outer boundary is usually written first.
+    // An "id" containing a comma is never a real reference — idents cannot
+    // hold one — it is error-recovery debris from a malformed statement (a
+    // fan-in like `x, y -> z`), and that line already carries a targeted
+    // syntax diagnostic. Reporting `unknown id \`x, y\`` on top adds a second
+    // error that reads as a second mistake.
+    if (ref.includes(",")) return undefined;
     if (zoneMemberNames.has(ref)) {
       const inner = zoneMemberNames.get(ref)!;
       error(ctx, at, `\`${ref}\` is a zone, not a node`,
@@ -1098,6 +1165,9 @@ export function buildProject(input: ProjectFile[]): BuildResult {
           });
       }
     }
+    if (model.views.some((other) => other.name === view.name))
+      error(ctx, view.loc, `duplicate view \`${view.name}\``,
+        `\`render --view ${view.name}\` would pick one of them silently — rename or merge`);
     model.views.push(view);
   }
 
