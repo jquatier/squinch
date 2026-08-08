@@ -1,0 +1,61 @@
+# Deploys the playground to GitHub Pages. Plumbing ships while the repo is
+# private: every job is gated on repository visibility, so this workflow
+# no-ops until the repo goes public and then starts deploying on its own —
+# no flag to remember to flip. (Pages is not available on private free repos,
+# so an ungated deploy step would fail on every push until launch.)
+name: pages
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+# One deploy at a time; a newer push supersedes a queued one but never
+# cancels an in-flight deploy.
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  build:
+    if: ${{ !github.event.repository.private }}
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - id: pages
+        uses: actions/configure-pages@v5
+        with:
+          # First public run auto-enables Pages (source: GitHub Actions), so
+          # going public needs no settings visit before this deploys.
+          enablement: true
+      - name: Build the playground
+        run: pnpm --filter @squinch/spa build
+        env:
+          # "/<repo>" from Pages config, "" on a custom domain — either way
+          # the trailing slash makes it a valid Vite base.
+          BASE_PATH: ${{ steps.pages.outputs.base_path }}/
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: apps/spa/dist
+
+  deploy:
+    if: ${{ !github.event.repository.private }}
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v4
