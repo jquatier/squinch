@@ -16,6 +16,12 @@ import { test, expect, type Page } from "@playwright/test";
 const canvas = (page: Page) => page.locator("main svg, .canvas svg").first();
 const nodes = (page: Page) => page.locator("[data-path]");
 
+// The first-visit greeting would sit over every control; these tests exercise
+// the working surface, so arrive as a returning visitor.
+test.beforeEach(({ page }) =>
+  page.addInitScript(() => localStorage.setItem("squinch:welcomed", "1")),
+);
+
 test("loads, compiles and draws — with a clean console", async ({ page }) => {
   const errors: string[] = [];
   page.on("console", (m) => m.type() === "error" && errors.push(m.text()));
@@ -78,4 +84,24 @@ test("a syntax error reports itself and keeps the last good drawing", async ({ p
 
   await expect(page.getByText(/error/).first()).toBeVisible();
   await expect(nodes(page)).toHaveCount(before);
+});
+
+test("first visit greets once; Start dismisses; the wordmark reopens", async ({ browser, baseURL }) => {
+  // A genuinely fresh context: the file-level init script seeds the dismissal
+  // into every page of the shared context — including after a reload — so
+  // "clear and reload" can never simulate a first visit. A new context can.
+  const context = await browser.newContext({ baseURL });
+  const page = await context.newPage();
+  await page.goto("/");
+  const dialog = page.getByRole("dialog", { name: "Welcome to Squinch" });
+  await expect(dialog).toBeVisible();
+  await page.getByRole("button", { name: "Start" }).click();
+  await expect(dialog).not.toBeVisible();
+  // dismissal persists
+  await page.reload();
+  await expect(dialog).not.toBeVisible();
+  // and the wordmark brings it back on demand
+  await page.getByTitle("About Squinch").click();
+  await expect(dialog).toBeVisible();
+  await context.close();
 });

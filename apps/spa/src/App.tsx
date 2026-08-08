@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Editor, type EditorApi } from "./Editor";
 import { IconPalette } from "./IconPalette";
 import { CreditsDialog } from "./Credits";
+import { WelcomeDialog } from "./Welcome";
 // The brand mark, cropped from docs/assets/logo.svg by viewBox alone — its
 // gradients are userSpaceOnUse against the original 1536x1024 coordinates, so
 // the window moves, never the paths.
@@ -49,6 +50,17 @@ export function App() {
   const [editorOpen, setEditorOpen] = useState(true);
   const [paletteOpen, setPaletteOpen] = useState(false);
   const [creditsOpen, setCreditsOpen] = useState(false);
+  // First visit only — a returning author (stored source, share link, or a
+  // prior dismissal) goes straight to the editor.
+  const [welcomeOpen, setWelcomeOpen] = useState(
+    () => !localStorage.getItem("squinch:welcomed")
+      && !localStorage.getItem(STORAGE_KEY)
+      && !location.hash.slice(1).startsWith("s="),
+  );
+  const closeWelcome = useCallback(() => {
+    localStorage.setItem("squinch:welcomed", "1");
+    setWelcomeOpen(false);
+  }, []);
   const editorApi = useRef<EditorApi | null>(null);
   const [zoom, setZoom] = useState(1);
   const [fit, setFit] = useState(true);
@@ -280,13 +292,17 @@ export function App() {
   return (
     <div className="flex h-screen flex-col bg-[var(--chrome)] text-[var(--fg)]">
       <header className="flex items-center gap-3 border-b border-[var(--line)] px-4 py-2.5">
-        <div className="flex items-center gap-2">
+        <button
+          className="flex cursor-pointer items-center gap-2"
+          onClick={() => setWelcomeOpen(true)}
+          title="About Squinch"
+        >
           <img src={markUrl} width={18} height={18} alt="" />
           <span className="text-[13px] font-medium tracking-tight">squinch</span>
           <span className="rounded bg-[var(--chip)] px-1.5 py-0.5 text-[10px] text-[var(--muted)]">
             playground
           </span>
-        </div>
+        </button>
 
         <div className="ml-2 flex items-center gap-1">
           <select
@@ -453,6 +469,7 @@ export function App() {
         onCredits={() => { setPaletteOpen(false); setCreditsOpen(true); }}
       />
       <CreditsDialog open={creditsOpen} onClose={() => setCreditsOpen(false)} />
+      <WelcomeDialog open={welcomeOpen} onClose={closeWelcome} />
     </div>
   );
 }
