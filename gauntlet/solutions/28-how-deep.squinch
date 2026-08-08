@@ -1,49 +1,67 @@
-// Order platform — focused on orders service internal structure
+pack aws
+
+person customer "Customer"
 
 system orders "Orders Service" {
-  description: "Handles order lifecycle"
-  glyph: sys/box
+  description: "Checkout and order management"
+  glyph: sys/code
 
-  api = sys/webhook "Orders API"
-  processor = sys/workflow "Order Processor"
-  validator = sys/shield-check "Validator"
-  db = sys/database "Orders DB" datastore
+  api = aws/api-gateway "API Gateway"
+  create = aws/lambda "Create Handler" {
+    description: "Validates and persists orders"
+  }
+  get = aws/lambda "Get Handler" {
+    description: "Retrieves order details"
+  }
+  update = aws/lambda "Update Handler" {
+    description: "Modifies order status"
+  }
+  db = aws/dynamodb "Orders Table" datastore
+  queue = aws/sqs "Event Queue" {
+    description: "Order events for downstream"
+  }
 
-  api -> validator
-  validator -> processor
-  processor -> db
+  api -> create
+  api -> get
+  api -> update
+  create -> db
+  get -> db
+  update -> db
+  create ~> queue "order.created"
+  update ~> queue "order.updated"
 }
 
 system inventory "Inventory Service" {
-  description: "Stock and fulfillment"
-  glyph: sys/warehouse
+  description: "Stock tracking and allocation"
+  glyph: sys/database
 
-  svc = sys/server "Inventory API"
-  cache = sys/database "Inventory Cache" datastore
+  worker = aws/lambda "Inventory Worker"
+  stock_db = aws/dynamodb "Stock Table" datastore
 
-  svc -> cache
+  worker -> stock_db
 }
 
 system notifications "Notifications Service" {
-  description: "Customer alerts"
-  glyph: sys/siren
+  description: "Customer and internal notifications"
+  glyph: sys/mail
 
-  sender = sys/route "Notification Sender"
-  queue = sys/database "Event Queue" datastore
+  processor = aws/lambda "Notification Processor"
+  templates = aws/s3 "Template Store" datastore
 
-  queue ~> sender
+  processor -> templates
 }
 
-// Cross-service connections
-orders.processor -> inventory.svc "check stock"
-orders.processor ~> notifications.queue "order events"
+customer -> orders.api "places order"
+orders.queue ~> inventory.worker "stock events"
+orders.queue ~> notifications.processor "notification events"
 
 view landscape {
-  title "Order Platform"
+  title "Order Platform Overview"
   include *
 }
 
 view orders {
-  title "Orders Service Detail"
+  title "Orders Service - Internal Structure"
   scope orders
+  show descriptions
 }

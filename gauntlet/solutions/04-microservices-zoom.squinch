@@ -1,10 +1,12 @@
 pack aws
 
+// API Gateway
 gw = aws/api-gateway "API Gateway"
 
+// Catalog service
 system catalog "Catalog Service" {
-  description: "Product browsing and search"
-  glyph: sys/search
+  description: "Product catalog and inventory"
+  glyph: sys/database
 
   api = aws/lambda "Catalog API"
   db = aws/dynamodb "Catalog DB" datastore
@@ -12,36 +14,42 @@ system catalog "Catalog Service" {
   api -> db
 }
 
+// Checkout service
 system checkout "Checkout Service" {
-  description: "Cart and order processing"
+  description: "Shopping cart and order processing"
   glyph: sys/code
 
   api = aws/lambda "Checkout API"
-  db = aws/dynamodb "Orders DB" datastore
+  db = aws/dynamodb "Checkout DB" datastore
 
   api -> db
 }
 
+// Identity service
 system identity "Identity Service" {
-  description: "Authentication and user management"
+  description: "User authentication and authorization"
   glyph: sys/lock
 
-  api = aws/lambda "Auth API"
-  db = aws/dynamodb "Users DB" datastore
+  api = aws/lambda "Identity API"
+  db = aws/dynamodb "Identity DB" datastore
 
   api -> db
 }
 
+// Connections from gateway to services
 gw -> catalog.api
 gw -> checkout.api
 gw -> identity.api
 
+// Landscape view
 view landscape {
-  title "System Landscape"
+  title "Microservices Landscape"
   include *
+  show descriptions
 }
 
+// Zoomed view of checkout service
 view checkout {
-  title "Checkout Service"
   scope checkout
+  show descriptions
 }

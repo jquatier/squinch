@@ -65,46 +65,46 @@ nothing.
 
 ## Latest round
 
-**Round 18 — 29/29 on the deep scorer; 23 of 29 clean on the first `check`**
-(2026-08-07). Run to test one hypothesis, which it refuted.
+**Rounds 19 and 20 — certifying the SKILL.md rewrite: 23/29 then 24/29 clean,
+29/29 deep both times** (2026-08-07). The skill was fully restructured — 21
+rules that had accreted into 2-8 statements each over eighteen rounds of
+append-where-convenient were deduped to one authoritative statement plus their
+cookbook rows, zone semantics consolidated from three sections into one, the
+frontmatter description rewritten for triggering, and one stale fact fixed
+(sys is 164 icons, not 147). A full rewrite of the certified teaching surface
+warranted two rounds rather than one, stated up front when the risk was
+chosen.
 
-The hypothesis: round 17's 27-rank-conflict hit the same conflict twice in a
-row, so the agent looked to be guessing at arrangements rather than reading the
-fix — and the fixes that get applied in one iteration are the ones that write
-the corrected text out. So the rank conflict now prints the `rows` line to
-paste, guarded so it is only offered when the whole rearrangement comes back
-clean.
+Both rounds landed inside the pre-rewrite band (22-25/29, rounds 16-18), and
+round 20's 24/29 sits at its top. No failure in either round traces to a rule
+the rewrite moved or merged — the specific risk of deduplication. All second
+calls hit known classes, and the diagnostics added in rounds 15-16 carried
+them: the folded prefix error, the unquoted-value hint and the person-doubling
+hint each turned what used to be a bare syntax error or a 28-error cascade
+into a one-call recovery. 27-rank-conflict took two calls in round 20 — its
+best ever — with the transcript showing the concrete `write \`rows […]\``
+line being applied, the first observed use of the pasteable fix added after
+round 17.
 
-**It was offered three times and declined three times.** 27 went from five calls
-to four, and the transcript shows the agent reading
-`write \`rows [request] [policy] [audit approver]\`` and then not using it —
-reaching for `place audit right-of policy` instead, twice.
+What the rewrite deliberately did not do: hit its 15-20% token-reduction
+target. The cut came to 7% (498→465 lines, 5,312→4,939 words) because the
+why-explanations stayed — current skill-authoring guidance says explain the
+why, it is the part of this skill that demonstrably works, and trading it for
+a word count would have been optimising the measurable at the expense of the
+valuable. The duplication is gone; the teaching is intact.
 
-That is the agent being *right*. 27 asks for the policy engine and the audit log
-on the same row **and** for policy to read as upstream of audit, which cannot
-both hold. The suggested line satisfies the DSL by putting audit beside the
-approver — quietly abandoning the "same row as each other" half of the request.
-The agent declined it and tried `place`, which is the one construct that puts
-two nodes on a rank together: it was still trying to honour the user's
-constraint. Better reasoning than the fix it was offered.
+**And the safety net under the safety net earned its keep.** Round 20's fresh
+solution for 26-wide-ingestion wrote `place idx right-of wh` and then
+`align wh idx` — and the align pass parked `idx` exactly on top of `wh`, with
+`check` exiting 0. The align collision guard only scanned nodes on the same
+rank, assuming a snap stays inside one band; `place` chains under
+`direction right` break that assumption. The deep scorer missed it too — it
+checks structure, not geometry. What caught it was the corpus invariant sweep
+(no two nodes overlap, over every committed diagram), which failed CI-side the
+moment the corpus landed. The guard now checks every node — a geometric check
+has no business trusting rank labels — and 26 was re-run cold against the
+fixed engine. Three independent layers looked at that diagram; the third one
+worked. That is why there are three.
 
-**The prediction was wrong, and so was the choice of test.** 27 is built to be
-unsatisfiable, so some iteration is inherent to it and it cannot measure whether
-a concrete fix reduces iterations. No non-adversarial prompt hit a rank conflict
-this round, so the change is untested rather than disproven: it is strictly more
-informative than the prose it replaced, it is guarded against suggesting
-something that breaks a different edge, and it costs nothing — but nobody has
-yet applied one.
-
-There is a refinement the transcript points at. Two merges are always available
-— move the target down into the source's band, or move the source up into the
-target's — and only the first is offered. Where a prompt has pinned one of the
-two nodes, the other direction may be the one that keeps the author's intent.
-Not built; recorded because the evidence for it is one transcript.
-
-Icon errors rose to five (three unknown ids, one in a `glyph:`, one in a
-`badge:`) from one last round, all agents inventing plausible ids. The
-diagnostics name the search command and every one was fixed on the next call.
-
-The corpus in `solutions/` is this round's twenty-nine answers, cold-authored and
-deep-scored.
+The corpus in `solutions/` is round 20's twenty-nine answers (26 re-authored
+against the align fix), cold-authored and deep-scored.

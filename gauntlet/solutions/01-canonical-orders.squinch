@@ -9,18 +9,18 @@ system api "API Service" {
   get    = aws/lambda "Get Handler"
   search = aws/lambda "Search Handler"
 
-  db    = aws/dynamodb   "Orders Table" datastore
-  files = aws/s3         "Files Bucket" datastore
-  idx   = aws/opensearch "Search Index" datastore
+  db    = aws/dynamodb  "DynamoDB" datastore
+  files = aws/s3        "S3 Bucket" datastore
+  idx   = aws/opensearch "OpenSearch" datastore
 
-  sync  = aws/lambda "Index Sync"
+  sync = aws/lambda "Stream Processor"
 
   gw -> create, get, search
 
   create -> db
   create -> files
-  get    -> db
-  get    -> files
+  get -> db
+  get -> files
   search -> idx
 
   db ~> sync "DynamoDB stream"

@@ -1,81 +1,72 @@
-// Order platform architecture
 pack aws
-pack logos
 
-// Actors
 person customer "Customer"
 
-// Frontend
 storefront = aws/cloudfront "Storefront"
-
-// API layer
 gw = aws/api-gateway "API Gateway"
 
-// Catalog service
 system catalog "Catalog Service" {
-  description: "Product catalog"
-  glyph: sys/database
+  description: "Product browsing"
+  glyph: sys/search
 
-  handler = aws/lambda "Catalog Handler"
-  db = aws/dynamodb "Product DB" datastore
+  fn = aws/lambda "Catalog Handler"
+  db = aws/dynamodb "Products" datastore
 
-  handler -> db
+  fn -> db
 }
 
-// Orders service
 system orders "Orders Service" {
-  description: "Order processing"
-  glyph: sys/box
+  description: "Order management"
+  glyph: sys/code
 
-  handler = aws/lambda "Orders Handler" #sensitive
-  db = aws/dynamodb "Orders DB" datastore #sensitive
+  fn = aws/lambda "Orders Handler"
+  db = aws/dynamodb "Orders" datastore #sensitive
 
-  handler -> db
+  fn -> db
 }
 
-// Payments service
 system payments "Payments Service" {
   description: "Payment processing"
   glyph: sys/lock
   tags: #sensitive
 
-  handler = aws/lambda "Payment Handler"
-  db = aws/dynamodb "Payments DB" datastore
+  fn = aws/lambda "Payments Handler" #sensitive
+  db = aws/dynamodb "Payments" datastore #sensitive
 
-  handler -> db
+  fn -> db
 }
 
-// Event system
 bus = aws/eventbridge "Event Bus"
+worker = aws/lambda "Fulfillment Worker"
 
-// Fulfilment
-fulfilment = aws/lambda "Fulfilment Worker"
+customer -> storefront "browse"
+storefront -> gw
+gw -> catalog.fn "catalog requests"
+gw -> orders.fn "order requests"
+gw -> payments.fn "payment requests" #sensitive
 
-// Connections
-customer -> storefront "browses"
-storefront -> gw "API calls"
-gw -> catalog.handler
-gw -> orders.handler
-gw -> payments.handler
+orders.fn ~> bus "order events"
+bus ~> worker "fulfillment events"
 
-orders.handler ~> bus "order events"
-bus ~> fulfilment "order created"
-
-// VPC boundary
 zone prod_vpc "Production VPC" vpc {
-  contains gw, catalog, orders, payments, bus, fulfilment
+  contains gw, catalog, orders, payments, bus, worker
 }
 
-// Views
 view landscape {
   title "Order Platform Landscape"
   include *
-  legend auto
+  titleblock {
+    version: "2026-08"
+    owner: platform-team
+  }
 }
 
 view orders {
   scope orders
-  show descriptions
   highlight #sensitive
-  legend auto
+  show descriptions
+  titleblock {
+    version: "2026-08"
+    owner: orders-team
+  }
 }

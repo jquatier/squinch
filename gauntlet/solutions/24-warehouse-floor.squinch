@@ -1,60 +1,57 @@
-// Warehouse automation system - local physical setup
+// Warehouse automation system - physical infrastructure
 
+// Actors
 supervisor = person "Shift Supervisor"
-board = sys/monitor "Status Board"
 
-system warehouse_floor "Warehouse Floor Automation" {
-  description: "Local packing and sorting control"
-  glyph: sys/warehouse
+// Packing bench scanners
+bench1 = sys/scan "Bench 1 Scanner"
+bench2 = sys/scan "Bench 2 Scanner"
+bench3 = sys/scan "Bench 3 Scanner"
 
-  bench1 = sys/scan "Packing Bench 1"
-  bench2 = sys/scan "Packing Bench 2"
-  bench3 = sys/scan "Packing Bench 3"
-
-  controller = sys/cpu "Local Controller" {
-    description: "Orchestrates packing operations"
-  }
-
-  sorter = sys/route "Conveyor Sorter"
-  printer = sys/printer "Label Printer"
+// Local controller
+controller = sys/server "Packing Controller" {
+  description: "Local automation controller"
 }
 
-erp = sys/server "ERP System" external {
+// Output devices
+sorter = sys/route "Conveyor Sorter" {
+  description: "Automated package sorter"
+}
+printer = sys/printer "Label Printer"
+
+// Monitoring
+board = sys/monitor "Status Board"
+
+// External system
+erp = sys/database "ERP System" external {
   description: "Enterprise resource planning"
 }
 
-// Scanning workflow
-warehouse_floor.bench1 -> warehouse_floor.controller "scan event"
-warehouse_floor.bench2 -> warehouse_floor.controller "scan event"
-warehouse_floor.bench3 -> warehouse_floor.controller "scan event"
+// Barcode scanners feed the controller
+bench1 -> controller "scans"
+bench2 -> controller "scans"
+bench3 -> controller "scans"
 
 // Controller drives automation
-warehouse_floor.controller -> warehouse_floor.sorter "routing commands"
-warehouse_floor.controller -> warehouse_floor.printer "print job"
+controller -> sorter "routes packages"
+controller -> printer "prints labels"
 
-// Periodic sync to ERP
-warehouse_floor.controller ~> erp "batch sync (1min)" {
-  animate: pulse
-}
+// Controller syncs to ERP periodically
+controller ~> erp "sync batch"
 
-// Supervisor monitoring
-supervisor -> board "monitors"
-warehouse_floor.controller -> board "status updates" {
-  animate: pulse
-}
+// Supervisor monitors the system
+controller -> board "status updates"
+board -> supervisor "displays status"
 
-zone site_network "Site Network" network {
-  contains warehouse_floor.controller, erp
+// Network boundary
+zone site "Site Network" network {
+  contains controller, erp
 }
 
 view landscape {
-  title "Warehouse Automation System"
-  include *
-  show descriptions
-  legend auto
+  title "Warehouse Automation"
   layout {
-    direction down
-    density comfortable
-    rows [supervisor board] [warehouse_floor.bench1 warehouse_floor.bench2 warehouse_floor.bench3] [warehouse_floor.controller] [warehouse_floor.sorter warehouse_floor.printer erp]
+    rows [bench1 bench2 bench3] [site] [sorter printer board]
+    place supervisor right-of board
   }
 }

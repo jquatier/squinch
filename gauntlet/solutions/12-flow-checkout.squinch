@@ -1,12 +1,12 @@
 pack aws
 
 system checkout "Checkout Service" {
-  api = aws/api-gateway "API Gateway"
-  cart = aws/lambda "Cart Handler"
-  payment = aws/lambda "Payment Handler"
-  db = aws/dynamodb "Orders" datastore
-  queue = aws/sqs "Fulfilment Queue"
-  worker = aws/lambda "Fulfilment Worker"
+  api     = aws/api-gateway "API Gateway"
+  cart    = aws/lambda      "Cart Handler"
+  payment = aws/lambda      "Payment Handler"
+  db      = aws/dynamodb    "Orders" datastore
+  queue   = aws/sqs         "Fulfillment Queue"
+  worker  = aws/lambda      "Fulfillment Worker"
 
   api -> cart
   cart -> payment
@@ -15,15 +15,13 @@ system checkout "Checkout Service" {
   queue ~> worker
 }
 
-flow checkout "Checkout Journey" {
-  api -> cart
-  cart -> payment
-  payment -> db
-  payment ~> queue
-  queue ~> worker
+flow checkout_journey "Checkout Journey" {
+  checkout.api -> checkout.cart -> checkout.payment -> checkout.db
+  checkout.payment ~> checkout.queue ~> checkout.worker
 }
 
 view checkout {
-  show flow checkout
+  scope checkout
+  show flow checkout_journey
   legend auto
 }

@@ -1,42 +1,40 @@
-// Market data processing pipeline
+// Market data ingestion and distribution system
 pack logos
 
-// External systems
+// External actors and systems
 exchange = box "Exchange" external
-clearing = box "Clearing House" external
+clearing  = box "Clearing House" external
 
-// Core components
-feed = sys/antenna "Feed Handler" {
-  description: "Ingests price stream"
-}
-pricing = sys/gauge "Pricing Engine" {
-  description: "Real-time prices"
-}
-ui = sys/app-window "Trading UI"
-batch = sys/clock "Overnight Reconciliation" {
-  description: "Nightly fills reconciliation"
-}
-risk = sys/shield "Risk Service" {
-  description: "Health monitoring"
-}
+// Core price feed pipeline
+feed     = sys/network "Feed Handler"
+pricing  = sys/database "Pricing Engine" datastore
+ui       = sys/app-window "Trading UI"
 
-// Continuous data flows
+// Supporting services
+batch    = sys/clock "Batch Reconciliation"
+risk     = sys/shield "Risk Service"
+
+// Continuous price stream ingestion (exchange -> feed handler -> pricing engine)
 exchange ~> feed "price stream" { animate: packets }
-feed ~> pricing "ticks" { animate: packets }
-pricing ~> ui "price updates" { animate: packets }
+feed ~> pricing "normalized ticks" { animate: packets }
 
-// Nightly batch job
-clearing -> batch "fills"
-batch -> pricing "reconciliation"
+// UI subscription to pricing engine (continuous)
+pricing ~> ui "price updates" { animate: fast }
 
-// Health polling
-risk -> pricing "health check" { animate: pulse }
+// Overnight batch reconciliation (batch job)
+batch -> clearing "nightly fills" { animate: pulse }
+
+// Risk service polling for health (periodic check)
+risk -> pricing "health poll" { animate: comet }
 
 view landscape {
-  title "Market Data Pipeline"
+  title "Market Data System"
   layout {
-    rows [exchange clearing] [feed] [pricing batch risk] [ui]
-    place batch right-of pricing
-    place risk right-of batch
+    rows [exchange] [feed] [pricing risk] [ui] [batch clearing]
+    place risk right-of pricing
+    place clearing right-of batch
+  }
+  titleblock {
+    version: "2026-08"
   }
 }

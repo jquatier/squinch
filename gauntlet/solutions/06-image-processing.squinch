@@ -1,15 +1,24 @@
+// Serverless image processing pipeline
 pack aws
 
-person user "User"
+system pipeline "Image Pipeline" {
+  description: "Serverless image processing"
 
-bucket    = aws/s3         "Image Uploads" datastore
-processor = aws/lambda     "Image Processor"
-rekognize = aws/rekognition "Rekognition"
-metadata  = aws/dynamodb   "Metadata Store" datastore
-notify    = aws/sns        "Notification Topic"
+  bucket = aws/s3 "Upload Bucket" datastore
+  process = aws/lambda "Process Image"
+  rekognition = aws/rekognition "Rekognition"
+  metadata = aws/dynamodb "Metadata" datastore
+  notify = aws/sns "Notifications"
 
-user -> bucket "uploads image"
-bucket ~> processor "S3 event"
-processor -> rekognize "analyze image"
-processor -> metadata "write metadata"
-processor ~> notify "publish result"
+  bucket ~> process "upload event"
+  process -> rekognition "analyze image"
+  process -> metadata "write metadata"
+  process ~> notify "publish results"
+}
+
+view pipeline {
+  scope pipeline
+  layout {
+    rows [bucket] [process] [rekognition metadata notify]
+  }
+}

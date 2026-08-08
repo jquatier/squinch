@@ -1319,9 +1319,17 @@ export async function layoutView(
           });
           continue;
         }
+        // Every node, not just same-rank ones. The rank filter assumed an
+        // align move stays inside one band, but `place` chains under
+        // `direction right` can put visually adjacent nodes on different
+        // ranks — round 20 wrote `place idx right-of wh` + `align wh idx`,
+        // the guard skipped the cross-rank pair, and the snap parked `idx`
+        // exactly on top of `wh` with check exiting 0. The corpus invariant
+        // sweep caught the overlap; a geometric check has no business
+        // trusting rank labels.
         const clash = nodes.find(
           (o) =>
-            o.path !== path && o.rank === n.rank &&
+            o.path !== path &&
             moved.x < o.x + o.w + 16 && moved.x + moved.w + 16 > o.x &&
             moved.y < o.y + o.h + 16 && moved.y + moved.h + 16 > o.y,
         );

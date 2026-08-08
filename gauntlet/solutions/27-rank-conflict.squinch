@@ -1,13 +1,15 @@
-request = sys/app-window "Request Service"
-policy = sys/workflow "Policy Engine"
-approver = sys/server "Approver Service"
-audit = sys/database "Audit Log" datastore
+// Approval chain with policy engine and audit log on the same row
+
+request  = sys/workflow "Request Service"
+policy   = sys/shield-check "Policy Engine"
+approver = sys/code "Approver Service"
+audit    = sys/database "Audit Log" datastore
 
 request -> policy
 policy -> approver
 approver -> audit
 
-view main {
+view default {
   layout {
     rows [request] [policy approver audit]
   }

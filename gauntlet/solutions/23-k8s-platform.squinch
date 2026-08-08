@@ -1,37 +1,46 @@
 pack k8s
 
-// Ingress
-ingress = k8s/ing "nginx-ingress"
+system cluster "Application Cluster" {
+  description: "Production Kubernetes cluster"
 
-// Services
-web_svc = k8s/svc "web-service"
-api_svc = k8s/svc "api-service"
-worker_svc = k8s/svc "worker-service"
+  ingress = k8s/ing "nginx-ingress"
 
-// Deployments
-web = k8s/deploy "web"
-api = k8s/deploy "api"
-worker = k8s/deploy "worker"
+  web_svc = k8s/svc "web-service"
+  web = k8s/deploy "web" {
+    description: "Frontend application"
+  }
 
-// Data stores
-postgres = k8s/sts "postgres" datastore
-redis = k8s/sts "redis" datastore
+  api_svc = k8s/svc "api-service"
+  api = k8s/deploy "api" {
+    description: "Backend API"
+  }
 
-// Scheduled job
-pruner = k8s/cronjob "prune-old-records"
+  worker_svc = k8s/svc "worker-service"
+  worker = k8s/deploy "worker" {
+    description: "Background worker"
+  }
 
-// Ingress routes to services
-ingress -> web_svc
-ingress -> api_svc
+  postgres = k8s/sts "postgres" datastore {
+    description: "Primary database"
+  }
 
-// Services route to deployments
-web_svc -> web
-api_svc -> api
-worker_svc -> worker
+  redis = k8s/deploy "redis" datastore {
+    description: "Cache layer"
+  }
 
-// API interactions
-api -> postgres "read/write"
-api -> redis "cache"
+  pruner = k8s/cronjob "prune-old-records" {
+    description: "Nightly cleanup job"
+  }
 
-// Cronjob cleans data
-pruner -> postgres "prune"
+  ingress -> web_svc
+  ingress -> api_svc
+
+  web_svc -> web
+  api_svc -> api
+  worker_svc -> worker
+
+  api <-> postgres "read/write"
+  api <-> redis "cache"
+
+  pruner -> postgres "prune records"
+}
