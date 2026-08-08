@@ -6,20 +6,24 @@ check-render-fix loop. It is the *only* thing the twenty cold agents in the
 [gauntlet](../../gauntlet/) are given, alongside the `squinch` binary — so if
 something an agent needs isn't in here, the gauntlet is where that shows up.
 
-## Using it with Claude Code
+## Using it with any skills-compatible agent
 
-A skill is a directory containing `SKILL.md`. Install it for yourself:
+A skill is a directory containing `SKILL.md`, per the open [Agent Skills
+standard](https://agentskills.io) — so this works in any skills-compatible
+agent (Claude Code, Cursor, Codex, Gemini CLI, Copilot, and friends), not
+only Claude. Install it into a project, where every agent that touches the
+repo can discover it:
+
+```bash
+mkdir -p .agents/skills/squinch
+cp path/to/squinch/packages/skill/SKILL.md .agents/skills/squinch/
+```
+
+Or personally for Claude Code, so it follows you everywhere:
 
 ```bash
 mkdir -p ~/.claude/skills/squinch
 cp packages/skill/SKILL.md ~/.claude/skills/squinch/
-```
-
-or per-project, so it travels with the repo you're diagramming:
-
-```bash
-mkdir -p .claude/skills/squinch
-cp path/to/squinch/packages/skill/SKILL.md .claude/skills/squinch/
 ```
 
 Then ask for a diagram in plain language — the frontmatter's `description` is

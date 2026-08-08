@@ -23,6 +23,9 @@ squinch icons search <term>                   # find icon ids, e.g. "queue", "ka
 squinch diff --format json                    # what changed in the architecture
 ```
 
+If `squinch` is not on PATH, prefix every command with `npx` — `npx squinch
+check …` — or install it once with `npm i -g squinch`.
+
 1. Write the model first, with **no `layout` block at all** — most diagrams
    never need one. Your edges already say what the tiers are, and the engine
    ranks from them: a node sits below everything that points at it. Render it
