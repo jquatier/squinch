@@ -1,4 +1,4 @@
-// ViewGraph → positioned diagram. Phase-0-proven architecture:
+// ViewGraph → positioned diagram. Spike-proven architecture (docs/ENGINEERING.md):
 //   - declared ranks (rows/place) are ours, enforced via invisible scaffold edges
 //   - same-rank ("coplanar") edges bypass ELK → our deterministic coplanar router
 //   - one port per edge endpoint with FIXED_SIDE → ELK spreads ports + stubs
@@ -982,7 +982,7 @@ export async function layoutView(
     );
     const midCross = (n: PNode) => n[cross] + Math.round(n[crossSize] / 2);
     const carry = { label: e.label, async: e.async, animate: e.animate, style: e.style, count: e.count, tags: e.tags, heads: e.heads };
-    // Phase 2: the router owns coplanar geometry, so it reserves and reports
+    // The router owns coplanar geometry, so it reserves and reports
     // label space the same way ELK does for cross-rank edges — labelRect is
     // where the pill draws, no search. Straight runs got their gutter widened
     // at graph build (elk.spacing.individual); lanes are below the band where

@@ -11,10 +11,9 @@
 // one-line count of the pairs that are byte-identical. Open the HTML locally —
 // images are referenced relative to `.compare-tmp/`, nothing is copied.
 //
-// Grew out of `compare.mts` (which keeps a small, hand-edited TARGETS list for
-// single-change review). This one is exhaustive on purpose: the label-space
-// work moves most of the corpus, and a fixed list would hide the unexpected
-// mover — the thing DESIGN §9's anti-regression rule exists to catch.
+// Exhaustive on purpose (it replaced a hand-edited target list): a fixed list
+// hides the unexpected mover — the thing DESIGN §9's anti-regression rule
+// exists to catch.
 import { mkdirSync, readdirSync, readFileSync, rmSync, statSync, writeFileSync, existsSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
