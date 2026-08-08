@@ -1,25 +1,18 @@
+// Order Platform - high-level view for new engineers
 pack aws
 
 person customer "Customer"
 
 system orders "Orders Service" {
-  description: "Checkout and order management"
+  description: "Order processing and lifecycle"
   glyph: sys/code
 
   api = aws/api-gateway "API Gateway"
-  create = aws/lambda "Create Handler" {
-    description: "Validates and persists orders"
-  }
-  get = aws/lambda "Get Handler" {
-    description: "Retrieves order details"
-  }
-  update = aws/lambda "Update Handler" {
-    description: "Modifies order status"
-  }
+  create = aws/lambda "Create Handler"
+  get = aws/lambda "Get Handler"
+  update = aws/lambda "Update Handler"
   db = aws/dynamodb "Orders Table" datastore
-  queue = aws/sqs "Event Queue" {
-    description: "Order events for downstream"
-  }
+  stream = aws/kinesis "Event Stream"
 
   api -> create
   api -> get
@@ -27,33 +20,41 @@ system orders "Orders Service" {
   create -> db
   get -> db
   update -> db
-  create ~> queue "order.created"
-  update ~> queue "order.updated"
+  db ~> stream "order events"
 }
 
 system inventory "Inventory Service" {
-  description: "Stock tracking and allocation"
+  description: "Stock tracking"
   glyph: sys/database
 
-  worker = aws/lambda "Inventory Worker"
-  stock_db = aws/dynamodb "Stock Table" datastore
+  api = aws/api-gateway "API Gateway"
+  sync = aws/lambda "Stock Sync"
+  reserve = aws/lambda "Reserve Handler"
+  db = aws/dynamodb "Inventory Table" datastore
 
-  worker -> stock_db
+  api -> reserve
+  api -> sync
+  reserve -> db
+  sync -> db
 }
 
 system notifications "Notifications Service" {
-  description: "Customer and internal notifications"
-  glyph: sys/mail
+  description: "Customer notifications"
+  glyph: sys/workflow
 
-  processor = aws/lambda "Notification Processor"
-  templates = aws/s3 "Template Store" datastore
+  processor = aws/lambda "Event Processor"
+  email = aws/sns "Email Topic"
+  sms = aws/sns "SMS Topic"
 
-  processor -> templates
+  processor -> email
+  processor -> sms
 }
 
-customer -> orders.api "places order"
-orders.queue ~> inventory.worker "stock events"
-orders.queue ~> notifications.processor "notification events"
+customer -> orders.api "place order"
+orders.stream ~> inventory.api "stock updates"
+orders.stream ~> notifications.processor "order events"
+notifications.email ~> customer "order confirmation"
+notifications.sms ~> customer "status updates"
 
 view landscape {
   title "Order Platform Overview"
@@ -62,6 +63,4 @@ view landscape {
 
 view orders {
   title "Orders Service - Internal Structure"
-  scope orders
-  show descriptions
 }

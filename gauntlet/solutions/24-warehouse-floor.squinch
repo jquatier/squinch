@@ -1,57 +1,66 @@
-// Warehouse automation system - physical infrastructure
+// Warehouse automation system - on-premises physical infrastructure
+pack logos
 
-// Actors
 supervisor = person "Shift Supervisor"
 
-// Packing bench scanners
-bench1 = sys/scan "Bench 1 Scanner"
-bench2 = sys/scan "Bench 2 Scanner"
-bench3 = sys/scan "Bench 3 Scanner"
+system warehouse "Warehouse Floor" {
+  description: "Physical automation on-site"
+  glyph: sys/warehouse
 
-// Local controller
-controller = sys/server "Packing Controller" {
-  description: "Local automation controller"
+  bench1 = sys/smartphone "Scanner Bench 1"
+  bench2 = sys/smartphone "Scanner Bench 2"
+  bench3 = sys/smartphone "Scanner Bench 3"
+
+  controller = sys/server "Local Controller" {
+    description: "Drives sorter and printer"
+  }
+
+  sorter = sys/workflow "Conveyor Sorter" {
+    description: "Routes packages"
+  }
+
+  printer = sys/printer "Label Printer"
+
+  board = sys/monitor "Status Board" {
+    description: "Live floor status"
+  }
+
+  bench1 -> controller "scanned items"
+  bench2 -> controller "scanned items"
+  bench3 -> controller "scanned items"
+
+  controller -> sorter "routing instructions"
+  controller -> printer "print labels"
+  controller -> board "status updates"
 }
 
-// Output devices
-sorter = sys/route "Conveyor Sorter" {
-  description: "Automated package sorter"
-}
-printer = sys/printer "Label Printer"
-
-// Monitoring
-board = sys/monitor "Status Board"
-
-// External system
-erp = sys/database "ERP System" external {
+erp = box "ERP System" external {
   description: "Enterprise resource planning"
 }
 
-// Barcode scanners feed the controller
-bench1 -> controller "scans"
-bench2 -> controller "scans"
-bench3 -> controller "scans"
-
-// Controller drives automation
-controller -> sorter "routes packages"
-controller -> printer "prints labels"
-
-// Controller syncs to ERP periodically
-controller ~> erp "sync batch"
-
-// Supervisor monitors the system
-controller -> board "status updates"
-board -> supervisor "displays status"
-
-// Network boundary
-zone site "Site Network" network {
-  contains controller, erp
-}
+supervisor -> warehouse.board "monitors floor"
+warehouse.controller ~> erp "sync once per minute"
 
 view landscape {
   title "Warehouse Automation"
+  include *
+  show descriptions
+  legend auto
+  titleblock {
+    version: "2026-08"
+  }
   layout {
-    rows [bench1 bench2 bench3] [site] [sorter printer board]
-    place supervisor right-of board
+    direction down
+    density comfortable
+    rows [supervisor] [warehouse.board] [warehouse.controller] [erp]
+  }
+}
+
+view warehouse {
+  show descriptions
+  layout {
+    direction down
+    density comfortable
+    rows [bench1 bench2 bench3] [controller] [sorter printer] [board]
   }
 }

@@ -65,46 +65,29 @@ nothing.
 
 ## Latest round
 
-**Rounds 19 and 20 — certifying the SKILL.md rewrite: 23/29 then 24/29 clean,
-29/29 deep both times** (2026-08-07). The skill was fully restructured — 21
-rules that had accreted into 2-8 statements each over eighteen rounds of
-append-where-convenient were deduped to one authoritative statement plus their
-cookbook rows, zone semantics consolidated from three sections into one, the
-frontmatter description rewritten for triggering, and one stale fact fixed
-(sys is 164 icons, not 147). A full rewrite of the certified teaching surface
-warranted two rounds rather than one, stated up front when the risk was
-chosen.
+**Round 21 — 29/29 on the deep scorer; 22 of 29 clean on the first `check`**
+(2026-08-08). Run to certify the soundness fixes from the DSL evaluation:
+duplicate-view and zone/node-collision errors, tags collecting from `tags:`
+only, positional tags on top-level `person`, and targeted diagnostics for
+fan-in, Allman braces and duplicated attribute keys.
 
-Both rounds landed inside the pre-rewrite band (22-25/29, rounds 16-18), and
-round 20's 24/29 sits at its top. No failure in either round traces to a rule
-the rewrite moved or merged — the specific risk of deduplication. All second
-calls hit known classes, and the diagnostics added in rounds 15-16 carried
-them: the folded prefix error, the unquoted-value hint and the person-doubling
-hint each turned what used to be a bare syntax error or a 28-error cascade
-into a one-call recovery. 27-rank-conflict took two calls in round 20 — its
-best ever — with the transcript showing the concrete `write \`rows […]\``
-line being applied, the first observed use of the pasteable fix added after
-round 17.
+**None of the seven new diagnostics fired, and that is the honest headline.**
+These corners came from an eighteen-probe evaluation of the language, not from
+gauntlet transcripts — duplicate views, colliding zone ids and fan-in are
+mistakes these twenty-nine prompts don't naturally produce. So the round
+certifies no regression (22/29 sits at the bottom of the 22-25 band, all
+second calls on long-known classes, every one recovered) rather than
+validating the fixes. Validation, if it comes, arrives the day some future
+agent writes `x, y -> z` and gets one clear error instead of a bare syntax
+error plus `unknown id \`x, y\`` debris.
 
-What the rewrite deliberately did not do: hit its 15-20% token-reduction
-target. The cut came to 7% (498→465 lines, 5,312→4,939 words) because the
-why-explanations stayed — current skill-authoring guidance says explain the
-why, it is the part of this skill that demonstrably works, and trading it for
-a word count would have been optimising the measurable at the expense of the
-valuable. The duplication is gone; the teaching is intact.
+21-market-data failed the deep scorer on its stylistic expectation (one
+distinct `animate:` value where the prompt asks for contrast) despite a clean
+check, and was re-run per protocol; the second authoring passed. That
+expectation has now caught three rounds' agents — it is doing its job of
+demanding cadence-as-meaning rather than decoration, and the prompt wording
+stays as the test of whether agents read "make it obvious at a glance" as a
+motion requirement.
 
-**And the safety net under the safety net earned its keep.** Round 20's fresh
-solution for 26-wide-ingestion wrote `place idx right-of wh` and then
-`align wh idx` — and the align pass parked `idx` exactly on top of `wh`, with
-`check` exiting 0. The align collision guard only scanned nodes on the same
-rank, assuming a snap stays inside one band; `place` chains under
-`direction right` break that assumption. The deep scorer missed it too — it
-checks structure, not geometry. What caught it was the corpus invariant sweep
-(no two nodes overlap, over every committed diagram), which failed CI-side the
-moment the corpus landed. The guard now checks every node — a geometric check
-has no business trusting rank labels — and 26 was re-run cold against the
-fixed engine. Three independent layers looked at that diagram; the third one
-worked. That is why there are three.
-
-The corpus in `solutions/` is round 20's twenty-nine answers (26 re-authored
-against the align fix), cold-authored and deep-scored.
+The corpus in `solutions/` is this round's twenty-nine answers (21
+re-authored), cold-authored and deep-scored.

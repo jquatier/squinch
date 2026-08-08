@@ -1,9 +1,9 @@
 pack aws
 
-// API Gateway
+// API Gateway entry point
 gw = aws/api-gateway "API Gateway"
 
-// Catalog service
+// Catalog Service
 system catalog "Catalog Service" {
   description: "Product catalog and inventory"
   glyph: sys/database
@@ -14,9 +14,9 @@ system catalog "Catalog Service" {
   api -> db
 }
 
-// Checkout service
+// Checkout Service
 system checkout "Checkout Service" {
-  description: "Shopping cart and order processing"
+  description: "Order processing and payment"
   glyph: sys/code
 
   api = aws/lambda "Checkout API"
@@ -25,9 +25,9 @@ system checkout "Checkout Service" {
   api -> db
 }
 
-// Identity service
+// Identity Service
 system identity "Identity Service" {
-  description: "User authentication and authorization"
+  description: "Authentication and authorization"
   glyph: sys/lock
 
   api = aws/lambda "Identity API"
@@ -36,20 +36,18 @@ system identity "Identity Service" {
   api -> db
 }
 
-// Connections from gateway to services
+// Gateway routes to each service
 gw -> catalog.api
 gw -> checkout.api
 gw -> identity.api
 
-// Landscape view
+// Landscape view showing all services
 view landscape {
-  title "Microservices Landscape"
+  title "Microservices Architecture"
   include *
-  show descriptions
 }
 
 // Zoomed view of checkout service
 view checkout {
   scope checkout
-  show descriptions
 }

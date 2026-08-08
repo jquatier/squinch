@@ -1,17 +1,16 @@
 pack azure
 
-person customer "Customer"
+customer = person "Customer"
+cdn = azure/front-door "Azure Front Door"
+web = azure/app-services "Web App"
+db = azure/sql "SQL Database" datastore
+cache = azure/redis "Redis Cache" datastore
+vault = azure/key-vault "Key Vault"
+insights = azure/application-insights "Application Insights"
 
-fd  = azure/front-door       "Front Door"
-app = azure/app-services     "Web App"
-sql = azure/sql              "Azure SQL" datastore
-cache = azure/redis          "Redis Cache" datastore
-kv  = azure/key-vault        "Key Vault"
-ai  = azure/application-insights "Application Insights"
-
-customer -> fd "HTTPS"
-fd -> app
-app -> sql "read/write"
-app -> cache "cache operations"
-app -> kv "fetch secrets"
-app ~> ai "telemetry"
+customer -> cdn "HTTPS"
+cdn -> web
+web -> db "read/write"
+web -> cache "cache"
+web -> vault "fetch secrets"
+web ~> insights "telemetry"

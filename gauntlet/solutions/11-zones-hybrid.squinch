@@ -1,30 +1,30 @@
 pack aws
 pack logos
 
-// On-premises components
-operator = person "Operator"
+// On-premises side
+operator = person "Operators"
 erp = sys/database "Legacy ERP" {
   description: "Oracle-style ERP"
 }
 
-// AWS cloud components
+// AWS cloud side
 ingest = aws/lambda "Ingestion Lambda"
 db = aws/aurora "Aurora Database" datastore
 
 // Connections
-operator -> erp "uses"
-erp ~> ingest "feeds data"
-ingest -> db "writes"
+operator -> erp
+erp ~> ingest "data feed"
+ingest -> db
 
 // Deployment boundaries
-zone onprem "On-Premises Data Center" onprem {
+zone onprem "On-Premises Data Centre" onprem {
   contains operator, erp
+}
+
+zone aws_cloud "AWS Cloud" cloud {
+  contains ingest, db
 }
 
 zone vpc "VPC" vpc {
   contains db
-}
-
-zone cloud "AWS Cloud" cloud {
-  contains ingest, db
 }

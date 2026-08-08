@@ -1,40 +1,43 @@
 pack aws
 pack logos
 
-// Customers
-person mobile_user "Mobile Customer"
-person web_user "Web Customer"
-
-// Gateway
+person customer "Customer"
+mobile = sys/smartphone "Mobile App"
+web = sys/app-window "Website"
 gw = aws/api-gateway "API Gateway"
 
-// Services
-account = aws/lambda "Account Service"
-billing = aws/lambda "Billing Service"
+system account "Account Service" {
+  api = sys/code "Account API"
+  db = logos/postgres "Account DB" datastore
 
-// Datastores
-account_db = logos/postgres "Main Postgres" datastore
-billing_db = logos/postgres "Billing DB" datastore
-export_bucket = aws/s3 "Data Export" datastore
+  api -> db
+}
 
-// External
+system billing "Billing Service" {
+  api = sys/code "Billing API"
+  db = logos/postgres "Billing DB" datastore
+
+  api -> db
+}
+
 stripe = box "Stripe" external
+export = aws/s3 "Data Export" datastore
+datateam = person "Data Team"
 
-// Connections
-mobile_user -> gw
-web_user -> gw
-
-gw -> account
-gw -> billing
-
-account -> account_db "write"
-billing -> billing_db
-
-billing -> stripe "payment processing"
-
-account_db ~> export_bucket "nightly export"
+customer -> mobile
+customer -> web
+mobile -> gw
+web -> gw
+gw -> account.api
+gw -> billing.api
+billing.api -> stripe
+account.db ~> export "nightly export"
+export -> datateam
 
 view landscape {
   title "System Overview"
   include *
+  layout {
+    rows [customer] [mobile web] [gw] [account billing] [stripe export datateam]
+  }
 }

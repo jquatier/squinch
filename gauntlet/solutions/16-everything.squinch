@@ -1,72 +1,88 @@
+// Order platform architecture
 pack aws
+pack logos
 
+// External actors
 person customer "Customer"
 
+// Edge storefront (outside VPC)
 storefront = aws/cloudfront "Storefront"
+
+// API Gateway
 gw = aws/api-gateway "API Gateway"
 
+// Catalog service
 system catalog "Catalog Service" {
-  description: "Product browsing"
+  description: "Product catalog and search"
   glyph: sys/search
 
-  fn = aws/lambda "Catalog Handler"
-  db = aws/dynamodb "Products" datastore
+  handler = aws/lambda "Catalog Handler"
+  db = aws/dynamodb "Catalog Table" datastore
 
-  fn -> db
+  handler -> db
 }
 
+// Orders service
 system orders "Orders Service" {
-  description: "Order management"
-  glyph: sys/code
+  description: "Order management and tracking"
+  glyph: sys/database
+  tags: #core
 
-  fn = aws/lambda "Orders Handler"
-  db = aws/dynamodb "Orders" datastore #sensitive
+  handler = aws/lambda "Orders Handler"
+  db = aws/dynamodb "Orders Table" datastore
+  bus = aws/eventbridge "Order Events"
 
-  fn -> db
+  handler -> db
+  handler ~> bus "order.placed"
 }
 
+// Payments service
 system payments "Payments Service" {
   description: "Payment processing"
   glyph: sys/lock
   tags: #sensitive
 
-  fn = aws/lambda "Payments Handler" #sensitive
-  db = aws/dynamodb "Payments" datastore #sensitive
+  handler = aws/lambda "Payment Handler" {
+    tags: #sensitive
+  }
+  db = aws/dynamodb "Payments Table" datastore {
+    tags: #sensitive
+  }
 
-  fn -> db
+  handler -> db { tags: #sensitive }
 }
 
-bus = aws/eventbridge "Event Bus"
-worker = aws/lambda "Fulfillment Worker"
+// Fulfilment worker
+fulfil = aws/lambda "Fulfilment Worker"
 
-customer -> storefront "browse"
-storefront -> gw
-gw -> catalog.fn "catalog requests"
-gw -> orders.fn "order requests"
-gw -> payments.fn "payment requests" #sensitive
+// Connections
+customer -> storefront "browses"
+storefront -> gw "API calls"
+gw -> catalog.handler "catalog requests"
+gw -> orders.handler "order requests"
+gw -> payments.handler "payment requests" { tags: #sensitive }
+orders.bus ~> fulfil "consumes events"
 
-orders.fn ~> bus "order events"
-bus ~> worker "fulfillment events"
-
+// Production VPC boundary (everything except storefront)
 zone prod_vpc "Production VPC" vpc {
-  contains gw, catalog, orders, payments, bus, worker
+  contains gw, catalog, orders, payments, fulfil
 }
 
+// Landscape view
 view landscape {
   title "Order Platform Landscape"
   include *
   titleblock {
     version: "2026-08"
-    owner: platform-team
   }
 }
 
+// Orders service detail view
 view orders {
   scope orders
-  highlight #sensitive
-  show descriptions
+  highlight #core
   titleblock {
     version: "2026-08"
-    owner: orders-team
+    owner: team-orders
   }
 }

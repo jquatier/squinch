@@ -1,38 +1,60 @@
-// Market data ingestion and distribution system
+pack aws
 pack logos
 
-// External actors and systems
+// Actors
+trader = person "Trader"
+
+// External systems
 exchange = box "Exchange" external
-clearing  = box "Clearing House" external
+clearing = box "Clearing House" external
 
-// Core price feed pipeline
-feed     = sys/network "Feed Handler"
-pricing  = sys/database "Pricing Engine" datastore
-ui       = sys/app-window "Trading UI"
+// Core components
+feed_handler = aws/kinesis "Feed Handler" {
+  description: "Ingests price stream"
+}
 
-// Supporting services
-batch    = sys/clock "Batch Reconciliation"
-risk     = sys/shield "Risk Service"
+normalizer = aws/lambda "Normalizer" {
+  description: "Standardizes ticks"
+}
 
-// Continuous price stream ingestion (exchange -> feed handler -> pricing engine)
-exchange ~> feed "price stream" { animate: packets }
-feed ~> pricing "normalized ticks" { animate: packets }
+pricing_engine = sys/server "Pricing Engine" {
+  description: "Real-time pricing"
+}
 
-// UI subscription to pricing engine (continuous)
-pricing ~> ui "price updates" { animate: fast }
+trading_ui = sys/app-window "Trading UI" {
+  description: "Trader interface"
+}
 
-// Overnight batch reconciliation (batch job)
-batch -> clearing "nightly fills" { animate: pulse }
+risk_service = sys/shield "Risk Service" {
+  description: "Health monitoring"
+}
 
-// Risk service polling for health (periodic check)
-risk -> pricing "health poll" { animate: comet }
+batch = aws/batch "Reconciliation Job" {
+  description: "Overnight fill reconciliation"
+}
+
+// Continuous price stream path
+exchange ~> feed_handler "price stream" { animate: packets }
+feed_handler ~> normalizer "raw ticks" { animate: fast }
+normalizer ~> pricing_engine "normalized ticks" { animate: fast }
+pricing_engine ~> trading_ui "price updates" { animate: packets }
+
+// Trader interaction
+trader -> trading_ui "views prices"
+
+// Nightly batch reconciliation
+batch -> clearing "fetch fills" { animate: comet }
+
+// Risk service polling
+risk_service -> pricing_engine "health check" { animate: pulse }
 
 view landscape {
-  title "Market Data System"
+  title "Market Data Pipeline"
   layout {
-    rows [exchange] [feed] [pricing risk] [ui] [batch clearing]
-    place risk right-of pricing
-    place clearing right-of batch
+    direction down
+    rows [exchange] [feed_handler, normalizer] [pricing_engine, risk_service] [trading_ui, batch] [clearing]
+    place risk_service right-of pricing_engine
+    place batch right-of trading_ui
   }
   titleblock {
     version: "2026-08"

@@ -1,19 +1,22 @@
+// ML Inference System
 pack aws
 
-person client "Client Apps"
+person client "Client App"
 
 gw = aws/api-gateway "API Gateway"
-infer = aws/lambda "Inference Handler"
+inference = aws/lambda "Inference Handler"
+model = aws/sagemaker "ML Model Endpoint"
 features = aws/dynamodb "Feature Store" datastore
-model = aws/sagemaker "ML Endpoint"
 
 training_data = aws/s3 "Training Data" datastore
-batch = aws/batch "Nightly Trainer"
+batch_job = aws/batch "Retrain Job"
 
-client -> gw "requests"
-gw -> infer
-infer -> features "fetch features"
-infer -> model "predict"
+// Real-time inference flow
+client -> gw "inference request"
+gw -> inference
+inference -> features "fetch features"
+inference -> model "predict"
 
-batch ~> model "retrain"
-training_data ~> batch "training data"
+// Async batch training flow
+batch_job ~> training_data "reads"
+batch_job ~> model "retrain"

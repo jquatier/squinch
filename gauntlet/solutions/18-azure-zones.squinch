@@ -1,18 +1,14 @@
-// Azure estate with network boundaries
 pack azure
 
-// Components at top level for visibility
-gw  = azure/app-gateway        "Application Gateway"
-aks = azure/aks                "AKS Cluster"
-acr = azure/acr                "Container Registry"
-sql = azure/sql                "Azure SQL Database" datastore
+gw  = azure/app-gateway      "Application Gateway"
+aks = azure/aks              "AKS Cluster"
+acr = azure/acr              "Container Registry"
+sql = azure/sql              "Azure SQL"
 
-// Edges showing relationships
-gw  -> aks "routes traffic"
-aks -> acr "pulls images"
-aks -> sql "queries"
+gw -> aks
+aks -> acr
+aks -> sql
 
-// Zone boundaries - nested via shared members
 zone subscription "Azure Subscription" account {
   contains gw, aks, acr, sql
 }

@@ -7,7 +7,15 @@ worker = aws/lambda "Sync Worker"
 db = aws/rds "Admin Database" datastore
 dashboard = sys/app-window "Admin Dashboard"
 
-erp ~> worker "sync data"
+erp ~> worker "data feed"
 worker -> db
-dashboard -> db
+db -> dashboard "queries"
 admin -> dashboard "uses"
+
+zone onprem "On-Premises" onprem {
+  contains erp
+}
+
+zone cloud "AWS Cloud" cloud {
+  contains worker, db, dashboard
+}
