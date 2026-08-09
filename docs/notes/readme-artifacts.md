@@ -42,6 +42,20 @@ regeneration surfaced two things a static render never would: the script's own
 breadcrumb caption sat exactly where the renderer now draws a diagram's title
 (moved to the bottom-left, opposite the logo), and its `›` separator drew as a
 blank because that character was outside the font subset — the same class of
-bug the new check-time lint exists to name. Commit the GIFs in the same commit as the change that staled them —
+bug the new check-time lint exists to name. A third only showed up on the
+finished clip: the pointer pressed a card's width above every card, because
+the renderer wraps the diagram body in a translate once a header exists and
+this script reads node coordinates straight out of the markup, which are
+*pre*-transform. `bodyShift` parses the transform back out rather than
+recomputing it — one source, and it cannot drift.
+
+The encode settings are tuned to this artwork rather than to general advice:
+256 colours, `stats_mode=full`, and no dithering at all. These frames are flat
+vector art from a small palette, so the full palette represents them almost
+exactly and a dither has nothing to approximate — the ordered dither that used
+to be here laid a regular speckle over every card, which read as striping the
+moment the restyle gave cards a gradient. `KEEP_FRAMES=1` leaves the PNGs
+behind so the next person can compare encodes on one fixed set of frames
+instead of re-rendering between attempts. Commit the GIFs in the same commit as the change that staled them —
 they are large binaries, and a separate "refresh the gifs" commit is how the
 last two went missing.

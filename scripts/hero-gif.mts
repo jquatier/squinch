@@ -93,6 +93,20 @@ const flowAt = (frameIndex: number, svg: string) => {
 const clamp = (v: number, lo: number, hi: number) => Math.min(hi, Math.max(lo, v));
 const lerp = (a: number, b: number, t: number) => a + (b - a) * t;
 
+/** The renderer wraps the diagram body in a translate when anything sits
+ *  outside it — a note that grew the canvas leftward, and now the header band
+ *  above every titled view. Node coordinates in the markup are *pre*-transform,
+ *  so anything reading them back (the dive anchors below) has to add this or it
+ *  aims at where the card used to be. The header made that a visible bug: the
+ *  pointer pressed a card's width above the card.
+ *
+ *  Deliberately a parse of the emitted string rather than a second copy of the
+ *  layout maths — one source, and it cannot drift. */
+function bodyShift(svg: string): { x: number; y: number } {
+  const m = svg.match(/<g transform="translate\((-?[\d.]+), (-?[\d.]+)\)">/);
+  return m ? { x: +m[1], y: +m[2] } : { x: 0, y: 0 };
+}
+
 interface Art { svg: string; w: number; h: number }
 
 async function view(name: string, theme: string): Promise<Art> {
@@ -174,6 +188,15 @@ const watermark = () =>
       `width="${MARK.w}" height="${MARK.h}" opacity="0.9"/>`
     : "";
 
+/** The breadcrumb's own position — bottom-left, opposite the logo lockup. It
+ *  used to sit top-left, which is where the renderer now draws a diagram's own
+ *  title (docs/design restyle): two names in one corner, one of them real.
+ *
+ *  A constant because the pointer clicks it. When these were separate numbers
+ *  the caption moved and the click did not, and the GIF spent a beat pressing
+ *  empty canvas. */
+const CAPTION = { x: 28, y: H - LOGO_BOTTOM - 6 };
+
 const caption = (crumbs: string[]) => {
   const trail = crumbs
     .map((c, i) =>
@@ -183,10 +206,7 @@ const caption = (crumbs: string[]) => {
       (i < crumbs.length - 1 ? `<tspan fill="${T.muted}"> › </tspan>` : ""),
     )
     .join("");
-  // Bottom-left, opposite the logo lockup. It used to sit at the top-left,
-  // which is where the renderer now draws a diagram's own title (docs/design
-  // restyle) — two names in one corner, one of them the real thing.
-  return `<text x="28" y="${H - LOGO_BOTTOM - 6}" font-family="Inter" font-size="15" font-weight="500">${trail}</text>`;
+  return `<text x="${CAPTION.x}" y="${CAPTION.y}" font-family="Inter" font-size="15" font-weight="500">${trail}</text>`;
 };
 
 /** A pointer, drawn dark on light with a thin light outline so it stays legible
@@ -267,9 +287,10 @@ const build = async (theme: string) => {
     );
     if (!card) throw new Error(`could not find the \`${name}\` card to dive through`);
     const f = fitOf(land);
+    const b = bodyShift(land.svg);
     const A = {
-      x: f.x + (+card[1] + +card[3] / 2) * f.s,
-      y: f.y + (+card[2] + +card[4] / 2) * f.s,
+      x: f.x + (+card[1] + b.x + +card[3] / 2) * f.s,
+      y: f.y + (+card[2] + b.y + +card[4] / 2) * f.s,
       w: +card[3] * f.s,
       h: +card[4] * f.s,
     };
@@ -316,7 +337,9 @@ const build = async (theme: string) => {
   // breadcrumb is how you come back — the same two affordances the app has, so
   // the GIF teaches the interaction rather than just showing the motion.
   const cardPoint = (g: Target) => ({ x: g.A.x + 6, y: g.A.y - 4 });
-  const CRUMB = { x: 58, y: 34 };
+  // the first crumb — "landscape", the one that climbs back out. The tip of
+  // the pointer lands on the word, so y is a few px above the text baseline.
+  const CRUMB = { x: CAPTION.x + 24, y: CAPTION.y - 5 };
   const START = { x: W - 150, y: STAGE_H - 70 };
 
   /** Pointer travelling from `a` to `b` across `n` frames, clicking at the end:
@@ -390,17 +413,32 @@ const build = async (theme: string) => {
 
   // Two passes: build a palette from the whole clip, then map to it. One-pass
   // GIF encoding picks a palette from frame 1 and bands everything after it.
+  //
+  // The full 256 with no dithering at all, which is not the usual advice — it
+  // is right here because these frames are flat vector art from a deliberately
+  // small palette: a few greys, a few brand hues, and card ramps that span
+  // about 4%. 256 slots represent that almost exactly, so a dither has nothing
+  // left to approximate and only adds texture of its own. The previous
+  // ordered dither (bayer, 128 colours) did exactly that — a regular speckle
+  // across every card, read as striping once the restyle put a gradient on
+  // them. Measured against the same 166 frames: bayer 1085 KB with the
+  // pattern, floyd_steinberg 1109 KB clean, none 1026 KB and cleanest.
+  // `stats_mode=full` rather than `diff` for the same reason — the ramps sit
+  // on cards that hold still, and `diff` spends the palette on what moves.
   const OUT = out(theme);
   const pal = join(tmp, "palette.png");
   const args = (a: string[]) => execFileSync("ffmpeg", ["-y", "-hide_banner", "-loglevel", "error", ...a]);
   const crop = `crop=${W}:${H}:${M.x}:${M.y}`;
   args(["-framerate", String(FPS), "-i", join(tmp, "f%04d.png"),
-        "-vf", `${crop},palettegen=max_colors=128:stats_mode=diff`, pal]);
+        "-vf", `${crop},palettegen=max_colors=256:stats_mode=full`, pal]);
   mkdirSync(dirname(OUT), { recursive: true });
   args(["-framerate", String(FPS), "-i", join(tmp, "f%04d.png"), "-i", pal,
-        "-lavfi", `[0:v]${crop}[c];[c][1:v]paletteuse=dither=bayer:bayer_scale=5`,
+        "-lavfi", `[0:v]${crop}[c];[c][1:v]paletteuse=dither=none`,
         "-loop", "0", OUT]);
-  rmSync(tmp, { recursive: true, force: true });
+  // KEEP_FRAMES=1 leaves the PNGs behind. Palette and dither settings can only
+  // be judged by comparing encodes of the *same* frames, and re-rendering 166
+  // of them between attempts is both slow and one more variable.
+  if (!process.env.KEEP_FRAMES) rmSync(tmp, { recursive: true, force: true });
 
   const kb = Math.round(statSync(OUT).size / 1024);
   console.log(`wrote ${OUT} — ${frames.length} frames, ${(frames.length / FPS).toFixed(1)}s, ${kb} KB`);
