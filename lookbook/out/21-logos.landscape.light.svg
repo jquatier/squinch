@@ -5,7 +5,7 @@
 <defs><linearGradient id="sq-accent" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#C441FE"/><stop offset="1" stop-color="#15B6FF"/></linearGradient></defs>
 <defs><linearGradient id="sq-surface" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#FFFFFF"/><stop offset="1" stop-color="#F2F1ED"/></linearGradient></defs>
 <defs><linearGradient id="sq-actor" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#EFEFEC"/><stop offset="1" stop-color="#E4E3DE"/></linearGradient></defs>
-<defs><filter id="sq-shadow" x="-10%" y="-10%" width="130%" height="130%"><feDropShadow dx="0" dy="1" stdDeviation="1" flood-color="rgba(28,28,26,0.06)"/></filter></defs>
+<defs><filter id="sq-shadow" x="-10%" y="-10%" width="130%" height="130%" color-interpolation-filters="sRGB"><feDropShadow dx="0" dy="1" stdDeviation="1" flood-color="rgba(28,28,26,0.06)"/></filter></defs>
 <defs><pattern id="sq-hatch" width="8" height="8" patternUnits="userSpaceOnUse" patternTransform="rotate(45)"><line x1="0" y1="0" x2="0" y2="8" stroke="#EAE9E5" stroke-width="1.5" opacity="0.4"/></pattern></defs>
 <defs>
 <symbol id="sq-builtin-person" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="3.75"/><path d="M5 20c0-4.1 3.1-6.5 7-6.5s7 2.4 7 6.5"/></g></symbol>

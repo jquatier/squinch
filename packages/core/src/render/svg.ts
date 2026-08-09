@@ -137,7 +137,15 @@ const actorGradient = (t: Theme, id: string) =>
  *  feDropShadow, so PNG export keeps it. */
 const SHADOW = "sq-shadow";
 const shadowFilter = (t: Theme, id: string) =>
-  `<filter id="${id}" x="-10%" y="-10%" width="130%" height="130%">` +
+  // `color-interpolation-filters="sRGB"` is load-bearing, not boilerplate. SVG
+  // filters default to linearRGB, so a filtered element is converted to linear
+  // space, filtered, and converted back — at 8 bits. Near white that costs
+  // almost nothing; near black the linear encoding is so coarse that the round
+  // trip flattens a subtle ramp into a few wide steps. The dark card's 4% ramp
+  // spans nine levels, and the trip left five uneven ones with a six-level
+  // cliff about three quarters down: the surface visibly "fell" rather than
+  // shading. Filtering in sRGB keeps the gradient the renderer computed.
+  `<filter id="${id}" x="-10%" y="-10%" width="130%" height="130%" color-interpolation-filters="sRGB">` +
   `<feDropShadow dx="0" dy="1" stdDeviation="1" flood-color="${t.shadow}"/>` +
   `</filter>`;
 const accentGradient = () =>

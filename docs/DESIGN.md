@@ -58,9 +58,15 @@
   and a zone's `detail:` — where digits have to line up between diagrams.
 - **Depth**: a 4% top-to-bottom gradient on every lit surface, over a 1px
   contact shadow. It is the whole of the depth system: no elevation ladder, no
-  blur beyond `stdDeviation="1"`. The alpha lives in the shadow's `flood-color`
-  rather than an opacity, because the adaptive merge only rewrites
-  colour-valued attributes (§6).
+  blur beyond `stdDeviation="1"`. Two details are load-bearing rather than
+  incidental. The alpha lives in the shadow's `flood-color` rather than an
+  opacity, because the adaptive merge only rewrites colour-valued attributes
+  (§6). And the filter carries `color-interpolation-filters="sRGB"`: SVG
+  filters default to linearRGB, so a filtered element round-trips through
+  linear space at 8 bits — near white that costs nothing, near black it
+  flattens a 4% ramp into a handful of wide steps with a visible cliff. A
+  subtle gradient and a drop shadow on the same element is exactly the
+  combination that exposes it.
 - **Colour roles**: see `themes/index.ts`, which is the list — every theme
   defines every role, and the doc comment on each says what it is for. Diagrams
   reference roles, never hex (already a SPEC rule). Two roles are deliberately
