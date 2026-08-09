@@ -49,6 +49,15 @@ this script reads node coordinates straight out of the markup, which are
 *pre*-transform. `bodyShift` parses the transform back out rather than
 recomputing it — one source, and it cannot drift.
 
+Frames are drawn at 2× and resolved down with lanczos. resvg rasterizes glyphs
+with grayscale AA and no hinting, so 15px and 11px type at 1:1 comes out
+ragged — invisible in the diagrams themselves, where a reader can zoom the SVG,
+but a GIF is pixels forever. It costs about 330ms a frame against 85ms, and
+roughly 45% more bytes: smoother edges mean more distinct tones for the palette
+to carry. Both were weighed. Dropping the palette to 160 colours recovers
+150 KB and keeps the text, but takes a dark card's ramp from 11 tones to 8,
+which is the banding the sRGB filter fix had just removed — so 256 it stays.
+
 The encode settings are tuned to this artwork rather than to general advice:
 256 colours, `stats_mode=full`, and no dithering at all. These frames are flat
 vector art from a small palette, so the full palette represents them almost

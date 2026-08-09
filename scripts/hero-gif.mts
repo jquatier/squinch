@@ -170,6 +170,15 @@ function board(a: Art, tag: string, extra: string, opacity: number): string {
  *  frame of a dive past ~2.2×. Margin means nothing is ever fully outside. */
 const M = { x: W, y: H };
 const BIG = { w: W * 3, h: H * 3 };
+/** Supersampling. resvg rasterizes glyphs with grayscale AA and no hinting, so
+ *  15px and 11px type at 1:1 comes out ragged — the diagram's own SVGs never
+ *  show this because a reader zooms them, but a GIF is pixels forever. Drawing
+ *  at 2× and letting lanczos resolve it down is the same trick the logo above
+ *  already uses, and it costs ~330ms a frame against ~85ms.
+ *
+ *  Only the raster step scales: every coordinate in this file stays in CSS
+ *  pixels, so nothing else has to know. */
+const SS = 2;
 
 /** The frame's own chrome — background, breadcrumb, pointer, ripple — drawn
  *  from the theme's tokens so the animation matches the diagram it wraps and
@@ -404,7 +413,7 @@ const build = async (theme: string) => {
   frames.forEach((raw, i) => {
     const svg = flowAt(i, raw);
     if (process.env.DUMP_SVG) { writeFileSync(join(tmp, `f${String(i).padStart(4,"0")}.svg`), svg); return; }
-    writeFileSync(join(tmp, `f${String(i).padStart(4, "0")}.png`), svgToPng(svg));
+    writeFileSync(join(tmp, `f${String(i).padStart(4, "0")}.png`), svgToPng(svg, { width: BIG.w * SS }));
     if (i % 20 === 0) console.log(`  frame ${i + 1}/${frames.length}`);
   });
   // DUMP_SVG=1 writes the frame SVGs instead of rasterizing — how the resvg
@@ -428,7 +437,9 @@ const build = async (theme: string) => {
   const OUT = out(theme);
   const pal = join(tmp, "palette.png");
   const args = (a: string[]) => execFileSync("ffmpeg", ["-y", "-hide_banner", "-loglevel", "error", ...a]);
-  const crop = `crop=${W}:${H}:${M.x}:${M.y}`;
+  // crop in device pixels, then resolve back down to the target size — the
+  // downscale is where the supersampling is actually cashed in
+  const crop = `crop=${W * SS}:${H * SS}:${M.x * SS}:${M.y * SS},scale=${W}:${H}:flags=lanczos`;
   args(["-framerate", String(FPS), "-i", join(tmp, "f%04d.png"),
         "-vf", `${crop},palettegen=max_colors=256:stats_mode=full`, pal]);
   mkdirSync(dirname(OUT), { recursive: true });
