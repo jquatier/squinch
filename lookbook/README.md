@@ -16,7 +16,7 @@ Source: [`cases/01-minimal.squinch`](cases/01-minimal.squinch)
 
 ## 02-fan-out
 
-One entry point feeding many handlers. Connections spread evenly along the edge of a node rather than stacking at a single point, so a wide fan stays readable.
+One entry point feeding many handlers. Connections spread evenly along the edge of a node rather than stacking at a single point, so the fan stays readable. Five is enough to show the spread — a dozen only made the case too wide to read in this grid.
 
 Source: [`cases/02-fan-out.squinch`](cases/02-fan-out.squinch)
 
@@ -26,7 +26,7 @@ Source: [`cases/02-fan-out.squinch`](cases/02-fan-out.squinch)
 
 ## 03-fan-in
 
-The reverse shape: many producers all feeding one destination.
+The reverse shape: many producers all feeding one destination. Written as separate edges rather than a fan-out list, because an edge has one source — this is what several of them arriving at one port looks like.
 
 Source: [`cases/03-fan-in.squinch`](cases/03-fan-in.squinch)
 
@@ -36,7 +36,7 @@ Source: [`cases/03-fan-in.squinch`](cases/03-fan-in.squinch)
 
 ## 04-deep-chain
 
-A pipeline read left to right. Set `direction right` on a view and the stages run across the page instead of down it.
+A pipeline read left to right. Set `direction right` on a view and the stages run across the page instead of down it. Five stages is what it takes to read as a chain — the eight it had before ran wider than this grid.
 
 Source: [`cases/04-deep-chain.squinch`](cases/04-deep-chain.squinch)
 

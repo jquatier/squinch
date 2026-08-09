@@ -1,24 +1,19 @@
 // A pipeline read left to right. Set `direction right` on a view and the
-// stages run across the page instead of down it.
+// stages run across the page instead of down it. Five stages is what it takes
+// to read as a chain — the eight it had before ran wider than this grid.
 pack aws
 
 system pipe "Pipeline" {
   ingest    = aws/kinesis "Ingest"
   validate  = aws/lambda  "Validate"
-  enrich    = aws/lambda  "Enrich"
-  dedupe    = aws/lambda  "Dedupe"
   transform = aws/lambda  "Transform"
   land      = aws/s3      "Data Lake" datastore
   catalog   = aws/glue    "Catalog"
-  query     = aws/athena  "Query"
 
   ingest ~> validate
-  validate -> enrich
-  enrich -> dedupe
-  dedupe -> transform
+  validate -> transform
   transform -> land "parquet"
   land ~> catalog "crawl"
-  catalog -> query
 }
 
 view pipe {

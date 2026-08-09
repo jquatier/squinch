@@ -1,21 +1,15 @@
 // One entry point feeding many handlers. Connections spread evenly along the
-// edge of a node rather than stacking at a single point, so a wide fan stays
-// readable.
+// edge of a node rather than stacking at a single point, so the fan stays
+// readable. Five is enough to show the spread — a dozen only made the case
+// too wide to read in this grid.
 pack aws
 
 system fan "Fan-out" {
   gw = aws/api-gateway "Gateway"
-  h01 = aws/lambda "Orders"
-  h02 = aws/lambda "Refunds"
-  h03 = aws/lambda "Catalog"
-  h04 = aws/lambda "Search"
-  h05 = aws/lambda "Pricing"
-  h06 = aws/lambda "Sessions"
-  h07 = aws/lambda "Profiles"
-  h08 = aws/lambda "Carts"
-  h09 = aws/lambda "Reviews"
-  h10 = aws/lambda "Shipping"
-  h11 = aws/lambda "Taxes"
-  h12 = aws/lambda "Emails"
-  gw -> h01, h02, h03, h04, h05, h06, h07, h08, h09, h10, h11, h12
+  h1 = aws/lambda "Orders"
+  h2 = aws/lambda "Refunds"
+  h3 = aws/lambda "Catalog"
+  h4 = aws/lambda "Search"
+  h5 = aws/lambda "Pricing"
+  gw -> h1, h2, h3, h4, h5
 }
