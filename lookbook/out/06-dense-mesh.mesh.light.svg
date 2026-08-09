@@ -5,143 +5,143 @@
 <symbol id="sq-aws-lambda" viewBox="0 0 80 80"><title>Icon-Architecture/64/Arch_AWS-Lambda_64</title><g id="aws-lambda-Icon-Architecture/64/Arch_AWS-Lambda_64" stroke="none" stroke-width="1" fill="none" fill-rule="evenodd"><g id="aws-lambda-Icon-Architecture-BG/64/Compute" fill="#ED7100"><rect id="aws-lambda-Rectangle" x="0" y="0" width="80" height="80"/></g><path d="M28.0075352,66 L15.5907274,66 L29.3235885,37.296 L35.5460249,50.106 L28.0075352,66 Z M30.2196674,34.553 C30.0512768,34.208 29.7004629,33.989 29.3175745,33.989 L29.3145676,33.989 C28.9286723,33.99 28.5778583,34.211 28.4124746,34.558 L13.097944,66.569 C12.9495999,66.879 12.9706487,67.243 13.1550766,67.534 C13.3374998,67.824 13.6582439,68 14.0020416,68 L28.6420072,68 C29.0299071,68 29.3817234,67.777 29.5481094,67.428 L37.563706,50.528 C37.693006,50.254 37.6920037,49.937 37.5586944,49.665 L30.2196674,34.553 Z M64.9953491,66 L52.6587274,66 L32.866809,24.57 C32.7014253,24.222 32.3486067,24 31.9617091,24 L23.8899822,24 L23.8990031,14 L39.7197081,14 L59.4204149,55.429 C59.5857986,55.777 59.9386172,56 60.3255148,56 L64.9953491,56 L64.9953491,66 Z M65.9976745,54 L60.9599868,54 L41.25928,12.571 C41.0938963,12.223 40.7410777,12 40.3531778,12 L22.89768,12 C22.3453987,12 21.8963569,12.447 21.8953545,12.999 L21.884329,24.999 C21.884329,25.265 21.9885708,25.519 22.1780103,25.707 C22.3654452,25.895 22.6200358,26 22.8866544,26 L31.3292417,26 L51.1221625,67.43 C51.2885485,67.778 51.6393624,68 52.02626,68 L65.9976745,68 C66.5519605,68 67,67.552 67,67 L67,55 C67,54.448 66.5519605,54 65.9976745,54 L65.9976745,54 Z" id="aws-lambda-AWS-Lambda_Icon_64_Squid" fill="#FFFFFF"/></g></symbol>
 </defs>
 <g>
-<path d="M 404 96 L 404 112 Q 404 120 396 120 L 172 120 Q 164 120 164 128 L 164 364 Q 164 372 156 372 L 108 372 Q 100 372 100 380 L 100 416" fill="none" stroke="#8A897F" stroke-width="1.5"/>
-<path d="M 100 416 L 106 408 L 94 408 Z" fill="#8A897F"/>
+<path d="M 404 96 L 404 112 Q 404 120 396 120 L 172 120 Q 164 120 164 128 L 164 364 Q 164 372 156 372 L 108 372 Q 100 372 100 380 L 100 416" fill="none" stroke="#57564F" stroke-width="1.5"/>
+<path d="M 100 416 L 106 408 L 94 408 Z" fill="#57564F"/>
 </g>
 <g>
-<path d="M 436 96 L 436 218" fill="none" stroke="#8A897F" stroke-width="1.5"/>
-<path d="M 436 218 L 442 210 L 430 210 Z" fill="#8A897F"/>
+<path d="M 436 96 L 436 218" fill="none" stroke="#57564F" stroke-width="1.5"/>
+<path d="M 436 218 L 442 210 L 430 210 Z" fill="#57564F"/>
 </g>
 <g>
-<path d="M 468 96 L 468 186 Q 468 194 476 194 L 616 194 Q 624 194 624 202 L 624 218" fill="none" stroke="#8A897F" stroke-width="1.5"/>
-<path d="M 624 218 L 630 210 L 618 210 Z" fill="#8A897F"/>
+<path d="M 468 96 L 468 186 Q 468 194 476 194 L 616 194 Q 624 194 624 202 L 624 218" fill="none" stroke="#57564F" stroke-width="1.5"/>
+<path d="M 624 218 L 630 210 L 618 210 Z" fill="#57564F"/>
 </g>
 <g>
-<path d="M 500 96 L 500 176 Q 500 184 508 184 L 824 184 Q 832 184 832 192 L 832 218" fill="none" stroke="#8A897F" stroke-width="1.5"/>
-<path d="M 832 218 L 838 210 L 826 210 Z" fill="#8A897F"/>
+<path d="M 500 96 L 500 176 Q 500 184 508 184 L 824 184 Q 832 184 832 192 L 832 218" fill="none" stroke="#57564F" stroke-width="1.5"/>
+<path d="M 832 218 L 838 210 L 826 210 Z" fill="#57564F"/>
 </g>
 <g>
-<path d="M 80 480 L 80 572 Q 80 580 88 580 L 228 580 Q 236 580 236 588 L 236 614" fill="none" stroke="#8A897F" stroke-width="1.5"/>
-<path d="M 236 614 L 242 606 L 230 606 Z" fill="#8A897F"/>
+<path d="M 80 480 L 80 572 Q 80 580 88 580 L 228 580 Q 236 580 236 588 L 236 614" fill="none" stroke="#57564F" stroke-width="1.5"/>
+<path d="M 236 614 L 242 606 L 230 606 Z" fill="#57564F"/>
 </g>
 <g>
-<path d="M 436 282 L 436 416" fill="none" stroke="#8A897F" stroke-width="1.5"/>
-<path d="M 436 416 L 442 408 L 430 408 Z" fill="#8A897F"/>
+<path d="M 436 282 L 436 416" fill="none" stroke="#57564F" stroke-width="1.5"/>
+<path d="M 436 416 L 442 408 L 430 408 Z" fill="#57564F"/>
 </g>
 <g>
-<path d="M 466 282 L 466 384 Q 466 392 474 392 L 591 392 Q 599 392 599 400 L 599 614" fill="none" stroke="#8A897F" stroke-width="1.5"/>
-<path d="M 599 614 L 605 606 L 593 606 Z" fill="#8A897F"/>
+<path d="M 466 282 L 466 384 Q 466 392 474 392 L 591 392 Q 599 392 599 400 L 599 614" fill="none" stroke="#57564F" stroke-width="1.5"/>
+<path d="M 599 614 L 605 606 L 593 606 Z" fill="#57564F"/>
 </g>
 <g>
-<path d="M 651 282 L 651 298 Q 651 306 659 306 L 683 306 Q 691 306 691 314 L 691 384 Q 691 392 699 392 L 762 392 Q 770 392 770 400 L 770 416" fill="none" stroke="#8A897F" stroke-width="1.5"/>
-<path d="M 770 416 L 776 408 L 764 408 Z" fill="#8A897F"/>
+<path d="M 651 282 L 651 298 Q 651 306 659 306 L 683 306 Q 691 306 691 314 L 691 384 Q 691 392 699 392 L 762 392 Q 770 392 770 400 L 770 416" fill="none" stroke="#57564F" stroke-width="1.5"/>
+<path d="M 770 416 L 776 408 L 764 408 Z" fill="#57564F"/>
 </g>
 <g>
-<path d="M 859 282 L 859 364 Q 859 372 851 372 L 832 372 Q 824 372 824 380 L 824 416" fill="none" stroke="#8A897F" stroke-width="1.5"/>
-<path d="M 824 416 L 830 408 L 818 408 Z" fill="#8A897F"/>
+<path d="M 859 282 L 859 364 Q 859 372 851 372 L 832 372 Q 824 372 824 380 L 824 416" fill="none" stroke="#57564F" stroke-width="1.5"/>
+<path d="M 824 416 L 830 408 L 818 408 Z" fill="#57564F"/>
 </g>
 <g>
-<path d="M 805 282 L 805 298 Q 805 306 797 306 L 768 306 Q 760 306 760 314 L 760 374 Q 760 382 752 382 L 695 382" fill="none" stroke="#8A897F" stroke-width="1.5"/>
-<path d="M 687 382 L 470 382" fill="none" stroke="#8A897F" stroke-width="1.5"/>
-<path d="M 462 382 L 440 382" fill="none" stroke="#8A897F" stroke-width="1.5"/>
-<path d="M 432 382 L 296 382 Q 288 382 288 390 L 288 416" fill="none" stroke="#8A897F" stroke-width="1.5"/>
-<path d="M 288 416 L 294 408 L 282 408 Z" fill="#8A897F"/>
+<path d="M 805 282 L 805 298 Q 805 306 797 306 L 768 306 Q 760 306 760 314 L 760 374 Q 760 382 752 382 L 695 382" fill="none" stroke="#57564F" stroke-width="1.5"/>
+<path d="M 687 382 L 470 382" fill="none" stroke="#57564F" stroke-width="1.5"/>
+<path d="M 462 382 L 440 382" fill="none" stroke="#57564F" stroke-width="1.5"/>
+<path d="M 432 382 L 296 382 Q 288 382 288 390 L 288 416" fill="none" stroke="#57564F" stroke-width="1.5"/>
+<path d="M 288 416 L 294 408 L 282 408 Z" fill="#57564F"/>
 </g>
 <g>
-<path d="M 416 480 L 416 572 Q 416 580 408 580 L 308 580 Q 300 580 300 588 L 300 614" fill="none" stroke="#8A897F" stroke-width="1.5"/>
-<path d="M 300 614 L 306 606 L 294 606 Z" fill="#8A897F"/>
+<path d="M 416 480 L 416 572 Q 416 580 408 580 L 308 580 Q 300 580 300 588 L 300 614" fill="none" stroke="#57564F" stroke-width="1.5"/>
+<path d="M 300 614 L 306 606 L 294 606 Z" fill="#57564F"/>
 </g>
 <g>
-<path d="M 456 480 L 456 496 Q 456 504 464 504 L 559 504 Q 567 504 567 512 L 567 614" fill="none" stroke="#8A897F" stroke-width="1.5"/>
-<path d="M 567 614 L 573 606 L 561 606 Z" fill="#8A897F"/>
+<path d="M 456 480 L 456 496 Q 456 504 464 504 L 559 504 Q 567 504 567 512 L 567 614" fill="none" stroke="#57564F" stroke-width="1.5"/>
+<path d="M 567 614 L 573 606 L 561 606 Z" fill="#57564F"/>
 </g>
 <g>
-<path d="M 797 480 L 797 562 Q 797 570 789 570 L 639 570 Q 631 570 631 578 L 631 614" fill="none" stroke="#8A897F" stroke-width="1.5"/>
-<path d="M 631 614 L 637 606 L 625 606 Z" fill="#8A897F"/>
+<path d="M 797 480 L 797 562 Q 797 570 789 570 L 639 570 Q 631 570 631 578 L 631 614" fill="none" stroke="#57564F" stroke-width="1.5"/>
+<path d="M 631 614 L 637 606 L 625 606 Z" fill="#57564F"/>
 </g>
 <g>
-<path d="M 268 480 L 268 614" fill="none" stroke="#8A897F" stroke-width="1.5"/>
-<path d="M 268 614 L 274 606 L 262 606 Z" fill="#8A897F"/>
+<path d="M 268 480 L 268 614" fill="none" stroke="#57564F" stroke-width="1.5"/>
+<path d="M 268 614 L 274 606 L 262 606 Z" fill="#57564F"/>
 </g>
 <g>
-<path d="M 597 282 L 597 364 Q 597 372 605 372 L 613 372 Q 616 372 616 375 L 616 378" fill="none" stroke="#8A897F" stroke-width="1.5"/>
-<path d="M 616 386 L 616 584 Q 616 590 610 590 L 603 590" fill="none" stroke="#8A897F" stroke-width="1.5"/>
-<path d="M 595 590 L 571 590" fill="none" stroke="#8A897F" stroke-width="1.5"/>
-<path d="M 563 590 L 340 590 Q 332 590 332 598 L 332 614" fill="none" stroke="#8A897F" stroke-width="1.5"/>
-<path d="M 332 614 L 338 606 L 326 606 Z" fill="#8A897F"/>
+<path d="M 597 282 L 597 364 Q 597 372 605 372 L 613 372 Q 616 372 616 375 L 616 378" fill="none" stroke="#57564F" stroke-width="1.5"/>
+<path d="M 616 386 L 616 584 Q 616 590 610 590 L 603 590" fill="none" stroke="#57564F" stroke-width="1.5"/>
+<path d="M 595 590 L 571 590" fill="none" stroke="#57564F" stroke-width="1.5"/>
+<path d="M 563 590 L 340 590 Q 332 590 332 598 L 332 614" fill="none" stroke="#57564F" stroke-width="1.5"/>
+<path d="M 332 614 L 338 606 L 326 606 Z" fill="#57564F"/>
 </g>
 <g>
-<path d="M 406 282 L 406 298 Q 406 306 398 306 L 256 306 Q 248 306 248 314 L 248 416" fill="none" stroke="#8A897F" stroke-width="1.5"/>
-<path d="M 248 416 L 254 408 L 242 408 Z" fill="#8A897F"/>
+<path d="M 406 282 L 406 298 Q 406 306 398 306 L 256 306 Q 248 306 248 314 L 248 416" fill="none" stroke="#57564F" stroke-width="1.5"/>
+<path d="M 248 416 L 254 408 L 242 408 Z" fill="#57564F"/>
 </g>
 <g>
-<path d="M 120 480 L 120 496 Q 120 504 128 504 L 199 504 Q 207 504 207 512 L 207 562 Q 207 570 215 570 L 264 570" fill="none" stroke="#8A897F" stroke-width="1.5"/>
-<path d="M 272 570 L 412 570" fill="none" stroke="#8A897F" stroke-width="1.5"/>
-<path d="M 420 570 L 527 570 Q 535 570 535 578 L 535 586" fill="none" stroke="#8A897F" stroke-width="1.5"/>
-<path d="M 535 594 L 535 614" fill="none" stroke="#8A897F" stroke-width="1.5"/>
-<path d="M 535 614 L 541 606 L 529 606 Z" fill="#8A897F"/>
+<path d="M 120 480 L 120 496 Q 120 504 128 504 L 199 504 Q 207 504 207 512 L 207 562 Q 207 570 215 570 L 264 570" fill="none" stroke="#57564F" stroke-width="1.5"/>
+<path d="M 272 570 L 412 570" fill="none" stroke="#57564F" stroke-width="1.5"/>
+<path d="M 420 570 L 527 570 Q 535 570 535 578 L 535 586" fill="none" stroke="#57564F" stroke-width="1.5"/>
+<path d="M 535 594 L 535 614" fill="none" stroke="#57564F" stroke-width="1.5"/>
+<path d="M 535 614 L 541 606 L 529 606 Z" fill="#57564F"/>
 </g>
 <g data-path="mesh.a" data-kind="leaf">
-<rect x="40" y="416" width="120" height="64" rx="4" fill="#FFFFFF" stroke="#D8D7D3" stroke-width="1.5"/>
+<rect x="40" y="416" width="120" height="64" rx="4" fill="#FFFFFF" stroke="#EAE9E5" stroke-width="1.5"/>
 <clipPath id="clip-sq-aws-lambda-52-428-40"><rect x="52" y="428" width="40" height="40" rx="4"/></clipPath><g clip-path="url(#clip-sq-aws-lambda-52-428-40)"><use href="#sq-aws-lambda" x="52" y="428" width="40" height="40"/></g>
 <text x="104" y="453" font-size="13" font-weight="500" fill="#1C1C1A">Auth</text>
 </g>
 <g data-path="mesh.b" data-kind="leaf">
-<rect x="376" y="218" width="120" height="64" rx="4" fill="#FFFFFF" stroke="#D8D7D3" stroke-width="1.5"/>
+<rect x="376" y="218" width="120" height="64" rx="4" fill="#FFFFFF" stroke="#EAE9E5" stroke-width="1.5"/>
 <clipPath id="clip-sq-aws-lambda-388-230-40"><rect x="388" y="230" width="40" height="40" rx="4"/></clipPath><g clip-path="url(#clip-sq-aws-lambda-388-230-40)"><use href="#sq-aws-lambda" x="388" y="230" width="40" height="40"/></g>
 <text x="440" y="255" font-size="13" font-weight="500" fill="#1C1C1A">Billing</text>
 </g>
 <g data-path="mesh.c" data-kind="leaf">
-<rect x="544" y="218" width="160" height="64" rx="4" fill="#FFFFFF" stroke="#D8D7D3" stroke-width="1.5"/>
+<rect x="544" y="218" width="160" height="64" rx="4" fill="#FFFFFF" stroke="#EAE9E5" stroke-width="1.5"/>
 <clipPath id="clip-sq-aws-lambda-556-230-40"><rect x="556" y="230" width="40" height="40" rx="4"/></clipPath><g clip-path="url(#clip-sq-aws-lambda-556-230-40)"><use href="#sq-aws-lambda" x="556" y="230" width="40" height="40"/></g>
 <text x="608" y="255" font-size="13" font-weight="500" fill="#1C1C1A">Catalog</text>
 </g>
 <g data-path="mesh.d" data-kind="leaf">
-<rect x="752" y="218" width="160" height="64" rx="4" fill="#FFFFFF" stroke="#D8D7D3" stroke-width="1.5"/>
+<rect x="752" y="218" width="160" height="64" rx="4" fill="#FFFFFF" stroke="#EAE9E5" stroke-width="1.5"/>
 <clipPath id="clip-sq-aws-lambda-764-230-40"><rect x="764" y="230" width="40" height="40" rx="4"/></clipPath><g clip-path="url(#clip-sq-aws-lambda-764-230-40)"><use href="#sq-aws-lambda" x="764" y="230" width="40" height="40"/></g>
 <text x="816" y="255" font-size="13" font-weight="500" fill="#1C1C1A">Delivery</text>
 </g>
 <g data-path="mesh.e" data-kind="leaf">
-<rect x="208" y="416" width="120" height="64" rx="4" fill="#FFFFFF" stroke="#D8D7D3" stroke-width="1.5"/>
+<rect x="208" y="416" width="120" height="64" rx="4" fill="#FFFFFF" stroke="#EAE9E5" stroke-width="1.5"/>
 <clipPath id="clip-sq-aws-lambda-220-428-40"><rect x="220" y="428" width="40" height="40" rx="4"/></clipPath><g clip-path="url(#clip-sq-aws-lambda-220-428-40)"><use href="#sq-aws-lambda" x="220" y="428" width="40" height="40"/></g>
 <text x="272" y="453" font-size="13" font-weight="500" fill="#1C1C1A">Email</text>
 </g>
 <g data-path="mesh.f" data-kind="leaf">
-<rect x="376" y="416" width="120" height="64" rx="4" fill="#FFFFFF" stroke="#D8D7D3" stroke-width="1.5"/>
+<rect x="376" y="416" width="120" height="64" rx="4" fill="#FFFFFF" stroke="#EAE9E5" stroke-width="1.5"/>
 <clipPath id="clip-sq-aws-lambda-388-428-40"><rect x="388" y="428" width="40" height="40" rx="4"/></clipPath><g clip-path="url(#clip-sq-aws-lambda-388-428-40)"><use href="#sq-aws-lambda" x="388" y="428" width="40" height="40"/></g>
 <text x="440" y="453" font-size="13" font-weight="500" fill="#1C1C1A">Fraud</text>
 </g>
 <g data-path="mesh.g" data-kind="leaf">
-<rect x="372" y="32" width="160" height="64" rx="4" fill="#FFFFFF" stroke="#D8D7D3" stroke-width="1.5"/>
+<rect x="372" y="32" width="160" height="64" rx="4" fill="#FFFFFF" stroke="#EAE9E5" stroke-width="1.5"/>
 <clipPath id="clip-sq-aws-lambda-384-44-40"><rect x="384" y="44" width="40" height="40" rx="4"/></clipPath><g clip-path="url(#clip-sq-aws-lambda-384-44-40)"><use href="#sq-aws-lambda" x="384" y="44" width="40" height="40"/></g>
 <text x="436" y="69" font-size="13" font-weight="500" fill="#1C1C1A">Gateway</text>
 </g>
 <g data-path="mesh.h" data-kind="leaf">
-<rect x="204" y="614" width="160" height="64" rx="4" fill="#FFFFFF" stroke="#D8D7D3" stroke-width="1.5"/>
+<rect x="204" y="614" width="160" height="64" rx="4" fill="#FFFFFF" stroke="#EAE9E5" stroke-width="1.5"/>
 <clipPath id="clip-sq-aws-lambda-216-626-40"><rect x="216" y="626" width="40" height="40" rx="4"/></clipPath><g clip-path="url(#clip-sq-aws-lambda-216-626-40)"><use href="#sq-aws-lambda" x="216" y="626" width="40" height="40"/></g>
 <text x="268" y="651" font-size="13" font-weight="500" fill="#1C1C1A">History</text>
 </g>
 <g data-path="mesh.i" data-kind="leaf">
-<rect x="717" y="416" width="160" height="64" rx="4" fill="#FFFFFF" stroke="#D8D7D3" stroke-width="1.5"/>
+<rect x="717" y="416" width="160" height="64" rx="4" fill="#FFFFFF" stroke="#EAE9E5" stroke-width="1.5"/>
 <clipPath id="clip-sq-aws-lambda-729-428-40"><rect x="729" y="428" width="40" height="40" rx="4"/></clipPath><g clip-path="url(#clip-sq-aws-lambda-729-428-40)"><use href="#sq-aws-lambda" x="729" y="428" width="40" height="40"/></g>
 <text x="781" y="453" font-size="13" font-weight="500" fill="#1C1C1A">Inventory</text>
 </g>
 <g data-path="mesh.j" data-kind="leaf">
-<rect x="503" y="614" width="160" height="64" rx="4" fill="#FFFFFF" stroke="#D8D7D3" stroke-width="1.5"/>
+<rect x="503" y="614" width="160" height="64" rx="4" fill="#FFFFFF" stroke="#EAE9E5" stroke-width="1.5"/>
 <clipPath id="clip-sq-aws-lambda-515-626-40"><rect x="515" y="626" width="40" height="40" rx="4"/></clipPath><g clip-path="url(#clip-sq-aws-lambda-515-626-40)"><use href="#sq-aws-lambda" x="515" y="626" width="40" height="40"/></g>
 <text x="567" y="651" font-size="13" font-weight="500" fill="#1C1C1A">Journal</text>
 </g>
-<g><rect x="32" y="528" width="38" height="18" rx="2" fill="#FFFFFF" stroke="#D8D7D3" stroke-width="1"/><text x="51" y="541" text-anchor="middle" font-size="11" fill="#6F6E69">audit</text></g>
-<g><rect x="385" y="330" width="41" height="18" rx="2" fill="#FFFFFF" stroke="#D8D7D3" stroke-width="1"/><text x="406" y="343" text-anchor="middle" font-size="11" fill="#6F6E69">score</text></g>
-<g><rect x="544" y="439" width="45" height="18" rx="2" fill="#FFFFFF" stroke="#D8D7D3" stroke-width="1"/><text x="567" y="452" text-anchor="middle" font-size="11" fill="#6F6E69">ledger</text></g>
-<g><rect x="641" y="330" width="40" height="18" rx="2" fill="#FFFFFF" stroke="#D8D7D3" stroke-width="1"/><text x="661" y="343" text-anchor="middle" font-size="11" fill="#6F6E69">stock</text></g>
-<g><rect x="797" y="330" width="52" height="18" rx="2" fill="#FFFFFF" stroke="#D8D7D3" stroke-width="1"/><text x="823" y="343" text-anchor="middle" font-size="11" fill="#6F6E69">reserve</text></g>
-<g><rect x="708" y="330" width="42" height="18" rx="2" fill="#FFFFFF" stroke="#D8D7D3" stroke-width="1"/><text x="729" y="343" text-anchor="middle" font-size="11" fill="#6F6E69">notify</text></g>
-<g><rect x="374" y="528" width="32" height="18" rx="2" fill="#FFFFFF" stroke="#D8D7D3" stroke-width="1"/><text x="390" y="541" text-anchor="middle" font-size="11" fill="#6F6E69">flag</text></g>
-<g><rect x="520" y="528" width="37" height="18" rx="2" fill="#FFFFFF" stroke="#D8D7D3" stroke-width="1"/><text x="539" y="541" text-anchor="middle" font-size="11" fill="#6F6E69">case</text></g>
-<g><rect x="720" y="528" width="67" height="18" rx="2" fill="#FFFFFF" stroke="#D8D7D3" stroke-width="1"/><text x="754" y="541" text-anchor="middle" font-size="11" fill="#6F6E69">movement</text></g>
-<g><rect x="224" y="528" width="34" height="18" rx="2" fill="#FFFFFF" stroke="#D8D7D3" stroke-width="1"/><text x="241" y="541" text-anchor="middle" font-size="11" fill="#6F6E69">sent</text></g>
-<g><rect x="627" y="439" width="42" height="18" rx="2" fill="#FFFFFF" stroke="#D8D7D3" stroke-width="1"/><text x="648" y="452" text-anchor="middle" font-size="11" fill="#6F6E69">views</text></g>
-<g><rect x="189" y="330" width="49" height="18" rx="2" fill="#FFFFFF" stroke="#D8D7D3" stroke-width="1"/><text x="214" y="343" text-anchor="middle" font-size="11" fill="#6F6E69">invoice</text></g>
-<g><rect x="154" y="528" width="43" height="18" rx="2" fill="#FFFFFF" stroke="#D8D7D3" stroke-width="1"/><text x="176" y="541" text-anchor="middle" font-size="11" fill="#6F6E69">logins</text></g>
+<g><rect x="32" y="528" width="38" height="18" rx="2" fill="#FFFFFF" stroke="#EAE9E5" stroke-width="1"/><text x="51" y="541" text-anchor="middle" font-size="11" fill="#6F6E69">audit</text></g>
+<g><rect x="385" y="330" width="41" height="18" rx="2" fill="#FFFFFF" stroke="#EAE9E5" stroke-width="1"/><text x="406" y="343" text-anchor="middle" font-size="11" fill="#6F6E69">score</text></g>
+<g><rect x="544" y="439" width="45" height="18" rx="2" fill="#FFFFFF" stroke="#EAE9E5" stroke-width="1"/><text x="567" y="452" text-anchor="middle" font-size="11" fill="#6F6E69">ledger</text></g>
+<g><rect x="641" y="330" width="40" height="18" rx="2" fill="#FFFFFF" stroke="#EAE9E5" stroke-width="1"/><text x="661" y="343" text-anchor="middle" font-size="11" fill="#6F6E69">stock</text></g>
+<g><rect x="797" y="330" width="52" height="18" rx="2" fill="#FFFFFF" stroke="#EAE9E5" stroke-width="1"/><text x="823" y="343" text-anchor="middle" font-size="11" fill="#6F6E69">reserve</text></g>
+<g><rect x="708" y="330" width="42" height="18" rx="2" fill="#FFFFFF" stroke="#EAE9E5" stroke-width="1"/><text x="729" y="343" text-anchor="middle" font-size="11" fill="#6F6E69">notify</text></g>
+<g><rect x="374" y="528" width="32" height="18" rx="2" fill="#FFFFFF" stroke="#EAE9E5" stroke-width="1"/><text x="390" y="541" text-anchor="middle" font-size="11" fill="#6F6E69">flag</text></g>
+<g><rect x="520" y="528" width="37" height="18" rx="2" fill="#FFFFFF" stroke="#EAE9E5" stroke-width="1"/><text x="539" y="541" text-anchor="middle" font-size="11" fill="#6F6E69">case</text></g>
+<g><rect x="720" y="528" width="67" height="18" rx="2" fill="#FFFFFF" stroke="#EAE9E5" stroke-width="1"/><text x="754" y="541" text-anchor="middle" font-size="11" fill="#6F6E69">movement</text></g>
+<g><rect x="224" y="528" width="34" height="18" rx="2" fill="#FFFFFF" stroke="#EAE9E5" stroke-width="1"/><text x="241" y="541" text-anchor="middle" font-size="11" fill="#6F6E69">sent</text></g>
+<g><rect x="627" y="439" width="42" height="18" rx="2" fill="#FFFFFF" stroke="#EAE9E5" stroke-width="1"/><text x="648" y="452" text-anchor="middle" font-size="11" fill="#6F6E69">views</text></g>
+<g><rect x="189" y="330" width="49" height="18" rx="2" fill="#FFFFFF" stroke="#EAE9E5" stroke-width="1"/><text x="214" y="343" text-anchor="middle" font-size="11" fill="#6F6E69">invoice</text></g>
+<g><rect x="154" y="528" width="43" height="18" rx="2" fill="#FFFFFF" stroke="#EAE9E5" stroke-width="1"/><text x="176" y="541" text-anchor="middle" font-size="11" fill="#6F6E69">logins</text></g>
 </svg>

@@ -841,6 +841,7 @@ export function buildProject(input: ProjectFile[]): BuildResult {
     }
     model.zones.push({
       id, kind, members, icon, labelPos, color,
+      detail: zAttrs.attrs.detail,
       label: labelNode ? ctx.str(labelNode) : undefined,
       loc: ctx.loc(z), file: ctx.name,
     });

@@ -8,11 +8,11 @@
 <symbol id="sq-sys-code" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m16 18 6-6-6-6"/><path d="m8 6-6 6 6 6"/></g></symbol>
 </defs>
 <g>
-<path d="M 132 120 L 132 158" fill="none" stroke="#8A897F" stroke-width="1.5"/>
-<path d="M 132 158 L 138 150 L 126 150 Z" fill="#8A897F"/>
+<path d="M 132 120 L 132 158" fill="none" stroke="#57564F" stroke-width="1.5"/>
+<path d="M 132 158 L 138 150 L 126 150 Z" fill="#57564F"/>
 </g>
 <g data-path="front" data-kind="card">
-<rect x="32" y="32" width="200" height="88" rx="6" fill="#FFFFFF" stroke="#D8D7D3" stroke-width="1.5"/>
+<rect x="32" y="32" width="200" height="88" rx="6" fill="#FFFFFF" stroke="#EAE9E5" stroke-width="1.5"/>
 <rect x="32" y="32" width="4" height="88" rx="2" fill="url(#sq-accent)"/>
 <text x="50" y="66" font-size="15" font-weight="500" fill="#1C1C1A">Frontend</text>
 <text x="50" y="86" font-size="11" fill="#6F6E69">Customer-facing surfaces</text>
@@ -21,7 +21,7 @@
 <clipPath id="clip-sq-aws-lambda-184-92-16"><rect x="184" y="92" width="16" height="16" rx="2"/></clipPath><g clip-path="url(#clip-sq-aws-lambda-184-92-16)" opacity="0.6"><use href="#sq-aws-lambda" x="184" y="92" width="16" height="16"/></g>
 </g>
 <g data-path="back" data-kind="card">
-<rect x="32" y="158" width="200" height="88" rx="6" fill="#FFFFFF" stroke="#D8D7D3" stroke-width="1.5"/>
+<rect x="32" y="158" width="200" height="88" rx="6" fill="#FFFFFF" stroke="#EAE9E5" stroke-width="1.5"/>
 <rect x="32" y="158" width="4" height="88" rx="2" fill="url(#sq-accent)"/>
 <text x="50" y="192" font-size="15" font-weight="500" fill="#1C1C1A">Backend</text>
 <text x="50" y="212" font-size="11" fill="#6F6E69">Domain services</text>
@@ -29,5 +29,5 @@
 <clipPath id="clip-sq-aws-lambda-204-218-16"><rect x="204" y="218" width="16" height="16" rx="2"/></clipPath><g clip-path="url(#clip-sq-aws-lambda-204-218-16)" opacity="0.6"><use href="#sq-aws-lambda" x="204" y="218" width="16" height="16"/></g>
 <clipPath id="clip-sq-aws-lambda-184-218-16"><rect x="184" y="218" width="16" height="16" rx="2"/></clipPath><g clip-path="url(#clip-sq-aws-lambda-184-218-16)" opacity="0.6"><use href="#sq-aws-lambda" x="184" y="218" width="16" height="16"/></g>
 </g>
-<g><rect x="96" y="130" width="26" height="18" rx="2" fill="#FFFFFF" stroke="#D8D7D3" stroke-width="1"/><text x="109" y="143" text-anchor="middle" font-size="11" fill="#6F6E69">×4</text></g>
+<g><rect x="96" y="130" width="26" height="18" rx="2" fill="#FFFFFF" stroke="#EAE9E5" stroke-width="1"/><text x="109" y="143" text-anchor="middle" font-size="11" fill="#6F6E69">×4</text></g>
 </svg>

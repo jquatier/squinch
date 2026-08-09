@@ -18,40 +18,40 @@
 <symbol id="sq-sys-search" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m21 21-4.34-4.34"/><circle cx="11" cy="11" r="8"/></g></symbol>
 </defs>
 <g>
-<path d="M 471 96 L 471 134" fill="none" stroke="#8A897F" stroke-width="1.5"/>
-<path d="M 471 134 L 477 126 L 465 126 Z" fill="#8A897F"/>
+<path d="M 471 96 L 471 134" fill="none" stroke="#57564F" stroke-width="1.5"/>
+<path d="M 471 134 L 477 126 L 465 126 Z" fill="#57564F"/>
 </g>
 <g>
-<path d="M 471 222 L 471 260" fill="none" stroke="#8A897F" stroke-width="1.5"/>
-<path d="M 471 260 L 477 252 L 465 252 Z" fill="#8A897F"/>
+<path d="M 471 222 L 471 260" fill="none" stroke="#57564F" stroke-width="1.5"/>
+<path d="M 471 260 L 477 252 L 465 252 Z" fill="#57564F"/>
 </g>
 <g>
-<path d="M 421 324 L 421 340 Q 421 348 413 348 L 160 348 Q 152 348 152 356 L 152 400" fill="none" stroke="#8A897F" stroke-width="1.5"/>
-<path d="M 152 400 L 158 392 L 146 392 Z" fill="#8A897F"/>
+<path d="M 421 324 L 421 340 Q 421 348 413 348 L 160 348 Q 152 348 152 356 L 152 400" fill="none" stroke="#57564F" stroke-width="1.5"/>
+<path d="M 152 400 L 158 392 L 146 392 Z" fill="#57564F"/>
 </g>
 <g>
-<path d="M 471 324 L 471 400" fill="none" stroke="#8A897F" stroke-width="1.5"/>
-<path d="M 471 400 L 477 392 L 465 392 Z" fill="#8A897F"/>
+<path d="M 471 324 L 471 400" fill="none" stroke="#57564F" stroke-width="1.5"/>
+<path d="M 471 400 L 477 392 L 465 392 Z" fill="#57564F"/>
 </g>
 <g>
-<path d="M 521 324 L 521 340 Q 521 348 529 348 L 762 348 Q 770 348 770 356 L 770 400" fill="none" stroke="#8A897F" stroke-width="1.5"/>
-<path d="M 770 400 L 776 392 L 764 392 Z" fill="#8A897F"/>
+<path d="M 521 324 L 521 340 Q 521 348 529 348 L 762 348 Q 770 348 770 356 L 770 400" fill="none" stroke="#57564F" stroke-width="1.5"/>
+<path d="M 770 400 L 776 392 L 764 392 Z" fill="#57564F"/>
 </g>
 <g>
-<path d="M 371 444 L 272 444" fill="none" stroke="#8A897F" stroke-width="1.5"/>
-<path d="M 272 444 L 280 438 L 280 450 Z" fill="#8A897F"/>
+<path d="M 371 444 L 272 444" fill="none" stroke="#57564F" stroke-width="1.5"/>
+<path d="M 272 444 L 280 438 L 280 450 Z" fill="#57564F"/>
 </g>
 <g>
-<path d="M 571 444 L 670 444" fill="none" stroke="#8A897F" stroke-width="1.5"/>
-<path d="M 670 444 L 662 450 L 662 438 Z" fill="#8A897F"/>
+<path d="M 571 444 L 670 444" fill="none" stroke="#57564F" stroke-width="1.5"/>
+<path d="M 670 444 L 662 450 L 662 438 Z" fill="#57564F"/>
 </g>
 <g data-path="customer" data-kind="leaf">
-<rect x="391" y="32" width="160" height="64" rx="4" fill="#FFFFFF" stroke="#D8D7D3" stroke-width="1.5"/>
+<rect x="391" y="32" width="160" height="64" rx="4" fill="#FFFFFF" stroke="#EAE9E5" stroke-width="1.5"/>
 <rect x="403" y="44" width="40" height="40" rx="4" fill="#6F6E69"/><g color="#FFFFFF" fill="#FFFFFF"><use href="#sq-builtin-person" x="411" y="52" width="24" height="24"/></g>
 <text x="455" y="69" font-size="13" font-weight="500" fill="#1C1C1A">Customer</text>
 </g>
 <g data-path="web" data-kind="card">
-<rect x="351" y="134" width="240" height="88" rx="6" fill="#FFFFFF" stroke="#D8D7D3" stroke-width="1.5"/>
+<rect x="351" y="134" width="240" height="88" rx="6" fill="#FFFFFF" stroke="#EAE9E5" stroke-width="1.5"/>
 <rect x="351" y="134" width="4" height="88" rx="2" fill="url(#sq-accent)"/>
 <text x="369" y="168" font-size="15" font-weight="500" fill="#1C1C1A">Storefront</text>
 <text x="369" y="188" font-size="11" fill="#6F6E69">React SPA on S3 behind CloudFront</text>
@@ -60,12 +60,12 @@
 <clipPath id="clip-sq-aws-simple-storage-service-543-194-16"><rect x="543" y="194" width="16" height="16" rx="2"/></clipPath><g clip-path="url(#clip-sq-aws-simple-storage-service-543-194-16)" opacity="0.6"><use href="#sq-aws-simple-storage-service" x="543" y="194" width="16" height="16"/></g>
 </g>
 <g data-path="gw" data-kind="leaf">
-<rect x="371" y="260" width="200" height="64" rx="4" fill="#FFFFFF" stroke="#D8D7D3" stroke-width="1.5"/>
+<rect x="371" y="260" width="200" height="64" rx="4" fill="#FFFFFF" stroke="#EAE9E5" stroke-width="1.5"/>
 <clipPath id="clip-sq-aws-api-gateway-383-272-40"><rect x="383" y="272" width="40" height="40" rx="4"/></clipPath><g clip-path="url(#clip-sq-aws-api-gateway-383-272-40)"><use href="#sq-aws-api-gateway" x="383" y="272" width="40" height="40"/></g>
 <text x="435" y="297" font-size="13" font-weight="500" fill="#1C1C1A">Edge Gateway</text>
 </g>
 <g data-path="catalog" data-kind="card">
-<rect x="32" y="400" width="240" height="88" rx="6" fill="#FFFFFF" stroke="#D8D7D3" stroke-width="1.5"/>
+<rect x="32" y="400" width="240" height="88" rx="6" fill="#FFFFFF" stroke="#EAE9E5" stroke-width="1.5"/>
 <rect x="32" y="400" width="4" height="88" rx="2" fill="url(#sq-accent)"/>
 <text x="50" y="434" font-size="15" font-weight="500" fill="#1C1C1A">Catalog Service</text>
 <text x="50" y="454" font-size="11" fill="#6F6E69">Products, browse and search</text>
@@ -75,7 +75,7 @@
 <clipPath id="clip-sq-aws-opensearch-service-204-460-16"><rect x="204" y="460" width="16" height="16" rx="2"/></clipPath><g clip-path="url(#clip-sq-aws-opensearch-service-204-460-16)" opacity="0.6"><use href="#sq-aws-opensearch-service" x="204" y="460" width="16" height="16"/></g>
 </g>
 <g data-path="orders" data-kind="card">
-<rect x="371" y="400" width="200" height="88" rx="6" fill="#FFFFFF" stroke="#D8D7D3" stroke-width="1.5"/>
+<rect x="371" y="400" width="200" height="88" rx="6" fill="#FFFFFF" stroke="#EAE9E5" stroke-width="1.5"/>
 <rect x="371" y="400" width="4" height="88" rx="2" fill="url(#sq-accent)"/>
 <text x="389" y="434" font-size="15" font-weight="500" fill="#1C1C1A">Order Service</text>
 <text x="389" y="454" font-size="11" fill="#6F6E69">Cart, checkout, fulfillment</text>
@@ -85,7 +85,7 @@
 <clipPath id="clip-sq-aws-simple-queue-service-503-460-16"><rect x="503" y="460" width="16" height="16" rx="2"/></clipPath><g clip-path="url(#clip-sq-aws-simple-queue-service-503-460-16)" opacity="0.6"><use href="#sq-aws-simple-queue-service" x="503" y="460" width="16" height="16"/></g>
 </g>
 <g data-path="accounts" data-kind="card">
-<rect x="670" y="400" width="200" height="88" rx="6" fill="#FFFFFF" stroke="#D8D7D3" stroke-width="1.5"/>
+<rect x="670" y="400" width="200" height="88" rx="6" fill="#FFFFFF" stroke="#EAE9E5" stroke-width="1.5"/>
 <rect x="670" y="400" width="4" height="88" rx="2" fill="url(#sq-accent)"/>
 <text x="688" y="434" font-size="15" font-weight="500" fill="#1C1C1A">Account Service</text>
 <text x="688" y="454" font-size="11" fill="#6F6E69">Identity and profiles</text>
@@ -93,11 +93,11 @@
 <clipPath id="clip-sq-aws-lambda-842-460-16"><rect x="842" y="460" width="16" height="16" rx="2"/></clipPath><g clip-path="url(#clip-sq-aws-lambda-842-460-16)" opacity="0.6"><use href="#sq-aws-lambda" x="842" y="460" width="16" height="16"/></g>
 <clipPath id="clip-sq-aws-rds-822-460-16"><rect x="822" y="460" width="16" height="16" rx="2"/></clipPath><g clip-path="url(#clip-sq-aws-rds-822-460-16)" opacity="0.6"><use href="#sq-aws-rds" x="822" y="460" width="16" height="16"/></g>
 </g>
-<g><rect x="405" y="106" width="56" height="18" rx="2" fill="#FFFFFF" stroke="#D8D7D3" stroke-width="1"/><text x="433" y="119" text-anchor="middle" font-size="11" fill="#6F6E69">browses</text></g>
-<g><rect x="399" y="232" width="62" height="18" rx="2" fill="#FFFFFF" stroke="#D8D7D3" stroke-width="1"/><text x="430" y="245" text-anchor="middle" font-size="11" fill="#6F6E69">REST /api</text></g>
-<g><rect x="91" y="372" width="51" height="18" rx="2" fill="#FFFFFF" stroke="#D8D7D3" stroke-width="1"/><text x="117" y="385" text-anchor="middle" font-size="11" fill="#6F6E69">browse</text></g>
-<g><rect x="401" y="372" width="60" height="18" rx="2" fill="#FFFFFF" stroke="#D8D7D3" stroke-width="1"/><text x="431" y="385" text-anchor="middle" font-size="11" fill="#6F6E69">checkout</text></g>
-<g><rect x="715" y="372" width="45" height="18" rx="2" fill="#FFFFFF" stroke="#D8D7D3" stroke-width="1"/><text x="738" y="385" text-anchor="middle" font-size="11" fill="#6F6E69">profile</text></g>
-<g><rect x="309" y="435" width="26" height="18" rx="2" fill="#FFFFFF" stroke="#D8D7D3" stroke-width="1"/><text x="322" y="448" text-anchor="middle" font-size="11" fill="#6F6E69">×2</text></g>
-<g><rect x="579" y="435" width="83" height="18" rx="2" fill="#FFFFFF" stroke="#D8D7D3" stroke-width="1"/><text x="621" y="448" text-anchor="middle" font-size="11" fill="#6F6E69">verify identity</text></g>
+<g><rect x="405" y="106" width="56" height="18" rx="2" fill="#FFFFFF" stroke="#EAE9E5" stroke-width="1"/><text x="433" y="119" text-anchor="middle" font-size="11" fill="#6F6E69">browses</text></g>
+<g><rect x="399" y="232" width="62" height="18" rx="2" fill="#FFFFFF" stroke="#EAE9E5" stroke-width="1"/><text x="430" y="245" text-anchor="middle" font-size="11" fill="#6F6E69">REST /api</text></g>
+<g><rect x="91" y="372" width="51" height="18" rx="2" fill="#FFFFFF" stroke="#EAE9E5" stroke-width="1"/><text x="117" y="385" text-anchor="middle" font-size="11" fill="#6F6E69">browse</text></g>
+<g><rect x="401" y="372" width="60" height="18" rx="2" fill="#FFFFFF" stroke="#EAE9E5" stroke-width="1"/><text x="431" y="385" text-anchor="middle" font-size="11" fill="#6F6E69">checkout</text></g>
+<g><rect x="715" y="372" width="45" height="18" rx="2" fill="#FFFFFF" stroke="#EAE9E5" stroke-width="1"/><text x="738" y="385" text-anchor="middle" font-size="11" fill="#6F6E69">profile</text></g>
+<g><rect x="309" y="435" width="26" height="18" rx="2" fill="#FFFFFF" stroke="#EAE9E5" stroke-width="1"/><text x="322" y="448" text-anchor="middle" font-size="11" fill="#6F6E69">×2</text></g>
+<g><rect x="579" y="435" width="83" height="18" rx="2" fill="#FFFFFF" stroke="#EAE9E5" stroke-width="1"/><text x="621" y="448" text-anchor="middle" font-size="11" fill="#6F6E69">verify identity</text></g>
 </svg>

@@ -7,54 +7,54 @@
 <symbol id="sq-aws-lambda" viewBox="0 0 80 80"><title>Icon-Architecture/64/Arch_AWS-Lambda_64</title><g id="aws-lambda-Icon-Architecture/64/Arch_AWS-Lambda_64" stroke="none" stroke-width="1" fill="none" fill-rule="evenodd"><g id="aws-lambda-Icon-Architecture-BG/64/Compute" fill="#ED7100"><rect id="aws-lambda-Rectangle" x="0" y="0" width="80" height="80"/></g><path d="M28.0075352,66 L15.5907274,66 L29.3235885,37.296 L35.5460249,50.106 L28.0075352,66 Z M30.2196674,34.553 C30.0512768,34.208 29.7004629,33.989 29.3175745,33.989 L29.3145676,33.989 C28.9286723,33.99 28.5778583,34.211 28.4124746,34.558 L13.097944,66.569 C12.9495999,66.879 12.9706487,67.243 13.1550766,67.534 C13.3374998,67.824 13.6582439,68 14.0020416,68 L28.6420072,68 C29.0299071,68 29.3817234,67.777 29.5481094,67.428 L37.563706,50.528 C37.693006,50.254 37.6920037,49.937 37.5586944,49.665 L30.2196674,34.553 Z M64.9953491,66 L52.6587274,66 L32.866809,24.57 C32.7014253,24.222 32.3486067,24 31.9617091,24 L23.8899822,24 L23.8990031,14 L39.7197081,14 L59.4204149,55.429 C59.5857986,55.777 59.9386172,56 60.3255148,56 L64.9953491,56 L64.9953491,66 Z M65.9976745,54 L60.9599868,54 L41.25928,12.571 C41.0938963,12.223 40.7410777,12 40.3531778,12 L22.89768,12 C22.3453987,12 21.8963569,12.447 21.8953545,12.999 L21.884329,24.999 C21.884329,25.265 21.9885708,25.519 22.1780103,25.707 C22.3654452,25.895 22.6200358,26 22.8866544,26 L31.3292417,26 L51.1221625,67.43 C51.2885485,67.778 51.6393624,68 52.02626,68 L65.9976745,68 C66.5519605,68 67,67.552 67,67 L67,55 C67,54.448 66.5519605,54 65.9976745,54 L65.9976745,54 Z" id="aws-lambda-AWS-Lambda_Icon_64_Squid" fill="#FFFFFF"/></g></symbol>
 </defs>
 <g>
-<path d="M 210 96 L 210 112 Q 210 120 202 120 L 100 120 Q 92 120 92 128 L 92 170" fill="none" stroke="#8A897F" stroke-width="1.5"/>
-<path d="M 92 170 L 98 162 L 86 162 Z" fill="#8A897F"/>
+<path d="M 210 96 L 210 112 Q 210 120 202 120 L 100 120 Q 92 120 92 128 L 92 170" fill="none" stroke="#57564F" stroke-width="1.5"/>
+<path d="M 92 170 L 98 162 L 86 162 Z" fill="#57564F"/>
 </g>
 <g>
-<path d="M 260 96 L 260 170" fill="none" stroke="#8A897F" stroke-width="1.5"/>
-<path d="M 260 170 L 266 162 L 254 162 Z" fill="#8A897F"/>
+<path d="M 260 96 L 260 170" fill="none" stroke="#57564F" stroke-width="1.5"/>
+<path d="M 260 170 L 266 162 L 254 162 Z" fill="#57564F"/>
 </g>
 <g>
-<path d="M 310 96 L 310 112 Q 310 120 318 120 L 420 120 Q 428 120 428 128 L 428 170" fill="none" stroke="#8A897F" stroke-width="1.5"/>
-<path d="M 428 170 L 434 162 L 422 162 Z" fill="#8A897F"/>
+<path d="M 310 96 L 310 112 Q 310 120 318 120 L 420 120 Q 428 120 428 128 L 428 170" fill="none" stroke="#57564F" stroke-width="1.5"/>
+<path d="M 428 170 L 434 162 L 422 162 Z" fill="#57564F"/>
 </g>
 <g>
-<path d="M 260 234 L 260 310" fill="none" stroke="#8A897F" stroke-width="1.5"/>
-<path d="M 260 310 L 266 302 L 254 302 Z" fill="#8A897F"/>
+<path d="M 260 234 L 260 310" fill="none" stroke="#57564F" stroke-width="1.5"/>
+<path d="M 260 310 L 266 302 L 254 302 Z" fill="#57564F"/>
 </g>
 <g>
-<path d="M 92 234 L 92 278 Q 92 286 100 286 L 202 286 Q 210 286 210 294 L 210 310" fill="none" stroke="#8A897F" stroke-width="1.5"/>
-<path d="M 210 310 L 216 302 L 204 302 Z" fill="#8A897F"/>
+<path d="M 92 234 L 92 278 Q 92 286 100 286 L 202 286 Q 210 286 210 294 L 210 310" fill="none" stroke="#57564F" stroke-width="1.5"/>
+<path d="M 210 310 L 216 302 L 204 302 Z" fill="#57564F"/>
 </g>
 <g>
-<path d="M 428 234 L 428 278 Q 428 286 420 286 L 318 286 Q 310 286 310 294 L 310 310" fill="none" stroke="#8A897F" stroke-width="1.5"/>
-<path d="M 310 310 L 316 302 L 304 302 Z" fill="#8A897F"/>
+<path d="M 428 234 L 428 278 Q 428 286 420 286 L 318 286 Q 310 286 310 294 L 310 310" fill="none" stroke="#57564F" stroke-width="1.5"/>
+<path d="M 310 310 L 316 302 L 304 302 Z" fill="#57564F"/>
 </g>
 <g data-path="s.gw" data-kind="leaf">
-<rect x="160" y="32" width="200" height="64" rx="4" fill="#FFFFFF" stroke="#D8D7D3" stroke-width="1.5"/>
+<rect x="160" y="32" width="200" height="64" rx="4" fill="#FFFFFF" stroke="#EAE9E5" stroke-width="1.5"/>
 <clipPath id="clip-sq-aws-api-gateway-172-44-40"><rect x="172" y="44" width="40" height="40" rx="4"/></clipPath><g clip-path="url(#clip-sq-aws-api-gateway-172-44-40)"><use href="#sq-aws-api-gateway" x="172" y="44" width="40" height="40"/></g>
 <text x="224" y="69" font-size="13" font-weight="500" fill="#1C1C1A">Edge Gateway</text>
 </g>
 <g data-path="s.a" data-kind="leaf">
-<rect x="32" y="170" width="120" height="64" rx="4" fill="#FFFFFF" stroke="#D8D7D3" stroke-width="1.5"/>
+<rect x="32" y="170" width="120" height="64" rx="4" fill="#FFFFFF" stroke="#EAE9E5" stroke-width="1.5"/>
 <clipPath id="clip-sq-aws-lambda-44-182-40"><rect x="44" y="182" width="40" height="40" rx="4"/></clipPath><g clip-path="url(#clip-sq-aws-lambda-44-182-40)"><use href="#sq-aws-lambda" x="44" y="182" width="40" height="40"/></g>
 <text x="96" y="207" font-size="13" font-weight="500" fill="#1C1C1A">Alpha</text>
 </g>
 <g data-path="s.b" data-kind="leaf">
-<rect x="200" y="170" width="120" height="64" rx="4" fill="#FFFFFF" stroke="#D8D7D3" stroke-width="1.5"/>
+<rect x="200" y="170" width="120" height="64" rx="4" fill="#FFFFFF" stroke="#EAE9E5" stroke-width="1.5"/>
 <clipPath id="clip-sq-aws-lambda-212-182-40"><rect x="212" y="182" width="40" height="40" rx="4"/></clipPath><g clip-path="url(#clip-sq-aws-lambda-212-182-40)"><use href="#sq-aws-lambda" x="212" y="182" width="40" height="40"/></g>
 <text x="264" y="207" font-size="13" font-weight="500" fill="#1C1C1A">Bravo</text>
 </g>
 <g data-path="s.c" data-kind="leaf">
-<rect x="368" y="170" width="120" height="64" rx="4" fill="#FFFFFF" stroke="#D8D7D3" stroke-width="1.5"/>
+<rect x="368" y="170" width="120" height="64" rx="4" fill="#FFFFFF" stroke="#EAE9E5" stroke-width="1.5"/>
 <clipPath id="clip-sq-aws-lambda-380-182-40"><rect x="380" y="182" width="40" height="40" rx="4"/></clipPath><g clip-path="url(#clip-sq-aws-lambda-380-182-40)"><use href="#sq-aws-lambda" x="380" y="182" width="40" height="40"/></g>
 <text x="432" y="207" font-size="13" font-weight="500" fill="#1C1C1A">Charlie</text>
 </g>
 <g data-path="s.db" data-kind="leaf">
-<rect x="160" y="310" width="200" height="64" rx="4" fill="#FFFFFF" stroke="#D8D7D3" stroke-width="1.5"/>
+<rect x="160" y="310" width="200" height="64" rx="4" fill="#FFFFFF" stroke="#EAE9E5" stroke-width="1.5"/>
 <clipPath id="clip-sq-aws-aurora-172-322-40"><rect x="172" y="322" width="40" height="40" rx="4"/></clipPath><g clip-path="url(#clip-sq-aws-aurora-172-322-40)"><use href="#sq-aws-aurora" x="172" y="322" width="40" height="40"/></g>
 <text x="224" y="347" font-size="13" font-weight="500" fill="#1C1C1A">System of Record</text>
 </g>
-<g><rect x="38" y="244" width="44" height="18" rx="2" fill="#FFFFFF" stroke="#D8D7D3" stroke-width="1"/><text x="60" y="257" text-anchor="middle" font-size="11" fill="#6F6E69">writes</text></g>
-<g><rect x="377" y="244" width="41" height="18" rx="2" fill="#FFFFFF" stroke="#D8D7D3" stroke-width="1"/><text x="398" y="257" text-anchor="middle" font-size="11" fill="#6F6E69">reads</text></g>
+<g><rect x="38" y="244" width="44" height="18" rx="2" fill="#FFFFFF" stroke="#EAE9E5" stroke-width="1"/><text x="60" y="257" text-anchor="middle" font-size="11" fill="#6F6E69">writes</text></g>
+<g><rect x="377" y="244" width="41" height="18" rx="2" fill="#FFFFFF" stroke="#EAE9E5" stroke-width="1"/><text x="398" y="257" text-anchor="middle" font-size="11" fill="#6F6E69">reads</text></g>
 </svg>

@@ -150,6 +150,10 @@ export interface SZone {
   icon?: { pack: string; id: string }; // optional chip icon (flush tab)
   labelPos: ZoneLabelPos; // which border corner the chip straddles
   color?: ZoneColor; // outline/tint override; default derives from kind
+  /** A second, monospaced chip segment for the boundary's hard fact — a CIDR
+   *  block, an account number, a region. Free text: the engine never parses
+   *  it, it just sets it in mono so digits line up between diagrams. */
+  detail?: string;
   loc: Loc;
   file?: string;
 }

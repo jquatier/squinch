@@ -13,20 +13,20 @@
 <symbol id="sq-sys-code" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m16 18 6-6-6-6"/><path d="m8 6-6 6 6 6"/></g></symbol>
 </defs>
 <g>
-<path d="M 152 96 L 152 134" fill="none" stroke="#8A897F" stroke-width="1.5"/>
-<path d="M 152 134 L 158 126 L 146 126 Z" fill="#8A897F"/>
+<path d="M 152 96 L 152 134" fill="none" stroke="#57564F" stroke-width="1.5"/>
+<path d="M 152 134 L 158 126 L 146 126 Z" fill="#57564F"/>
 </g>
 <g>
-<path d="M 152 222 L 152 260" fill="none" stroke="#8A897F" stroke-width="1.5"/>
-<path d="M 152 260 L 158 252 L 146 252 Z" fill="#8A897F"/>
+<path d="M 152 222 L 152 260" fill="none" stroke="#57564F" stroke-width="1.5"/>
+<path d="M 152 260 L 158 252 L 146 252 Z" fill="#57564F"/>
 </g>
 <g data-path="customer" data-kind="leaf">
-<rect x="72" y="32" width="160" height="64" rx="4" fill="#FFFFFF" stroke="#D8D7D3" stroke-width="1.5"/>
+<rect x="72" y="32" width="160" height="64" rx="4" fill="#FFFFFF" stroke="#EAE9E5" stroke-width="1.5"/>
 <rect x="84" y="44" width="40" height="40" rx="4" fill="#6F6E69"/><g color="#FFFFFF" fill="#FFFFFF"><use href="#sq-builtin-person" x="92" y="52" width="24" height="24"/></g>
 <text x="136" y="69" font-size="13" font-weight="500" fill="#1C1C1A">Customer</text>
 </g>
 <g data-path="web" data-kind="card">
-<rect x="32" y="134" width="240" height="88" rx="6" fill="#FFFFFF" stroke="#D8D7D3" stroke-width="1.5"/>
+<rect x="32" y="134" width="240" height="88" rx="6" fill="#FFFFFF" stroke="#EAE9E5" stroke-width="1.5"/>
 <rect x="32" y="134" width="4" height="88" rx="2" fill="url(#sq-accent)"/>
 <text x="50" y="168" font-size="15" font-weight="500" fill="#1C1C1A">Storefront</text>
 <text x="50" y="188" font-size="11" fill="#6F6E69">Customer-facing web experience</text>
@@ -35,7 +35,7 @@
 <clipPath id="clip-sq-aws-amplify-224-194-16"><rect x="224" y="194" width="16" height="16" rx="2"/></clipPath><g clip-path="url(#clip-sq-aws-amplify-224-194-16)" opacity="0.6"><use href="#sq-aws-amplify" x="224" y="194" width="16" height="16"/></g>
 </g>
 <g data-path="orders" data-kind="card">
-<rect x="52" y="260" width="200" height="88" rx="6" fill="#FFFFFF" stroke="#D8D7D3" stroke-width="1.5"/>
+<rect x="52" y="260" width="200" height="88" rx="6" fill="#FFFFFF" stroke="#EAE9E5" stroke-width="1.5"/>
 <rect x="52" y="260" width="4" height="88" rx="2" fill="url(#sq-accent)"/>
 <text x="70" y="294" font-size="15" font-weight="500" fill="#1C1C1A">Order Service</text>
 <text x="70" y="314" font-size="11" fill="#6F6E69">4 components</text>
@@ -44,6 +44,6 @@
 <clipPath id="clip-sq-aws-dynamodb-204-320-16"><rect x="204" y="320" width="16" height="16" rx="2"/></clipPath><g clip-path="url(#clip-sq-aws-dynamodb-204-320-16)" opacity="0.6"><use href="#sq-aws-dynamodb" x="204" y="320" width="16" height="16"/></g>
 <clipPath id="clip-sq-aws-lambda-184-320-16"><rect x="184" y="320" width="16" height="16" rx="2"/></clipPath><g clip-path="url(#clip-sq-aws-lambda-184-320-16)" opacity="0.6"><use href="#sq-aws-lambda" x="184" y="320" width="16" height="16"/></g>
 </g>
-<g><rect x="86" y="106" width="56" height="18" rx="2" fill="#FFFFFF" stroke="#D8D7D3" stroke-width="1"/><text x="114" y="119" text-anchor="middle" font-size="11" fill="#6F6E69">browses</text></g>
-<g><rect x="102" y="232" width="40" height="18" rx="2" fill="#FFFFFF" stroke="#D8D7D3" stroke-width="1"/><text x="122" y="245" text-anchor="middle" font-size="11" fill="#6F6E69">REST</text></g>
+<g><rect x="86" y="106" width="56" height="18" rx="2" fill="#FFFFFF" stroke="#EAE9E5" stroke-width="1"/><text x="114" y="119" text-anchor="middle" font-size="11" fill="#6F6E69">browses</text></g>
+<g><rect x="102" y="232" width="40" height="18" rx="2" fill="#FFFFFF" stroke="#EAE9E5" stroke-width="1"/><text x="122" y="245" text-anchor="middle" font-size="11" fill="#6F6E69">REST</text></g>
 </svg>

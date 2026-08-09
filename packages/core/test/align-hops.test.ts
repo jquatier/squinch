@@ -2,7 +2,7 @@
 // one thing DESIGN §1.4 forbids, so layout snaps it. Crossing hops (DESIGN
 // §4): crossings break the later edge so they can't read as junctions.
 import { describe, it, expect } from "vitest";
-import { buildModel, layoutView, render } from "../src/index.js";
+import { buildModel, layoutView, render, themes } from "../src/index.js";
 import { validateSVG } from "../src/render/validate.js";
 
 const SRC = `pack aws
@@ -139,7 +139,7 @@ view s { layout { rows [a1 a2] [b1 b2] } }
     expect(r.ok).toBe(true);
     expect(validateSVG(r.svg!).ok).toBe(true);
     // 2 edges but 3 path elements — one edge was split by a hop
-    const edgePaths = r.svg!.match(/<path d="M[^"]*" fill="none" stroke="#8A897F"/g) ?? [];
+    const edgePaths = r.svg!.match(new RegExp(`<path d="M[^"]*" fill="none" stroke="${themes.light.edge}"`, "g")) ?? [];
     expect(edgePaths.length).toBeGreaterThan(2);
   });
 
@@ -155,7 +155,7 @@ system s "S" {
 view s { layout { rows [gw] [a b] } }
 `;
     const r = await render(src, { view: "s", theme: "light" });
-    const edgePaths = r.svg!.match(/<path d="M[^"]*" fill="none" stroke="#8A897F"/g) ?? [];
+    const edgePaths = r.svg!.match(new RegExp(`<path d="M[^"]*" fill="none" stroke="${themes.light.edge}"`, "g")) ?? [];
     expect(edgePaths.length).toBe(2); // untouched — a junction, not a crossing
   });
 });

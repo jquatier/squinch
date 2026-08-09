@@ -8,43 +8,43 @@
 <symbol id="sq-aws-simple-storage-service" viewBox="0 0 80 80"><title>Icon-Architecture/64/Arch_Amazon-Simple-Storage-Service_64</title><g id="aws-simple-storage-service-Icon-Architecture/64/Arch_Amazon-Simple-Storage-Service_64" stroke="none" stroke-width="1" fill="none" fill-rule="evenodd"><g id="aws-simple-storage-service-Icon-Architecture-BG/64/Storage" fill="#7AA116"><rect id="aws-simple-storage-service-Rectangle" x="0" y="0" width="80" height="80"/></g><g id="aws-simple-storage-service-Icon-Service/64/Amazon-Simple-Storage-Service_64" transform="translate(12.999900, 11.999600)" fill="#FFFFFF"><path d="M47.836,30.893 L48.22,28.189 C51.761,30.31 51.807,31.186 51.8060132,31.21 C51.8,31.215 51.196,31.719 47.836,30.893 L47.836,30.893 Z M45.893,30.353 C39.773,28.501 31.25,24.591 27.801,22.961 C27.801,22.947 27.805,22.934 27.805,22.92 C27.805,21.595 26.727,20.517 25.401,20.517 C24.077,20.517 22.999,21.595 22.999,22.92 C22.999,24.245 24.077,25.323 25.401,25.323 C25.983,25.323 26.511,25.106 26.928,24.761 C30.986,26.682 39.443,30.535 45.608,32.355 L43.17,49.561 C43.163,49.608 43.16,49.655 43.16,49.702 C43.16,51.217 36.453,54 25.494,54 C14.419,54 7.641,51.217 7.641,49.702 C7.641,49.656 7.638,49.611 7.632,49.566 L2.538,12.359 C6.947,15.394 16.43,17 25.5,17 C34.556,17 44.023,15.4 48.441,12.374 L45.893,30.353 Z M2,8.478 C2.072,7.162 9.634,2 25.5,2 C41.364,2 48.927,7.161 49,8.478 L49,8.927 C48.13,11.878 38.33,15 25.5,15 C12.648,15 2.843,11.868 2,8.913 L2,8.478 Z M51,8.5 C51,5.035 41.066,0 25.5,0 C9.934,0 0,5.035 0,8.5 L0.094,9.254 L5.642,49.778 C5.775,54.31 17.861,56 25.494,56 C34.966,56 45.029,53.822 45.159,49.781 L47.555,32.884 C48.888,33.203 49.985,33.366 50.866,33.366 C52.049,33.366 52.849,33.077 53.334,32.499 C53.732,32.025 53.884,31.451 53.77,30.84 C53.511,29.456 51.868,27.964 48.522,26.055 L50.898,9.293 L51,8.5 Z" id="aws-simple-storage-service-Amazon-Simple-Storage-Service-Icon_64_Squid"/></g></g></symbol>
 </defs>
 <g>
-<path d="M 112 96 L 112 134" fill="none" stroke="#8A897F" stroke-width="1.5"/>
-<path d="M 112 134 L 118 126 L 106 126 Z" fill="#8A897F"/>
+<path d="M 112 96 L 112 134" fill="none" stroke="#57564F" stroke-width="1.5"/>
+<path d="M 112 134 L 118 126 L 106 126 Z" fill="#57564F"/>
 </g>
 <g>
-<path d="M 112 198 L 112 236" fill="none" stroke="#8A897F" stroke-width="1.5"/>
-<path d="M 112 236 L 118 228 L 106 228 Z" fill="#8A897F"/>
+<path d="M 112 198 L 112 236" fill="none" stroke="#57564F" stroke-width="1.5"/>
+<path d="M 112 236 L 118 228 L 106 228 Z" fill="#57564F"/>
 </g>
 <g>
-<path d="M 192 155 L 396 155 Q 404 155 404 163 L 404 260 Q 404 268 396 268 L 172 268" fill="none" stroke="#8A897F" stroke-width="1.5"/>
-<path d="M 172 268 L 180 262 L 180 274 Z" fill="#8A897F"/>
+<path d="M 192 155 L 396 155 Q 404 155 404 163 L 404 260 Q 404 268 396 268 L 172 268" fill="none" stroke="#57564F" stroke-width="1.5"/>
+<path d="M 172 268 L 180 262 L 180 274 Z" fill="#57564F"/>
 </g>
 <g>
-<path d="M 192 177 L 292 177 Q 300 177 300 185 L 300 236" fill="none" stroke="#8A897F" stroke-width="1.5"/>
-<path d="M 300 236 L 306 228 L 294 228 Z" fill="#8A897F"/>
+<path d="M 192 177 L 292 177 Q 300 177 300 185 L 300 236" fill="none" stroke="#57564F" stroke-width="1.5"/>
+<path d="M 300 236 L 306 228 L 294 228 Z" fill="#57564F"/>
 </g>
 <g data-path="api.gw" data-kind="leaf">
-<rect x="32" y="32" width="160" height="64" rx="4" fill="#FFFFFF" stroke="#D8D7D3" stroke-width="1.5"/>
+<rect x="32" y="32" width="160" height="64" rx="4" fill="#FFFFFF" stroke="#EAE9E5" stroke-width="1.5"/>
 <clipPath id="clip-sq-aws-api-gateway-44-44-40"><rect x="44" y="44" width="40" height="40" rx="4"/></clipPath><g clip-path="url(#clip-sq-aws-api-gateway-44-44-40)"><use href="#sq-aws-api-gateway" x="44" y="44" width="40" height="40"/></g>
 <text x="96" y="69" font-size="13" font-weight="500" fill="#1C1C1A">Gateway</text>
 </g>
 <g data-path="api.fn" data-kind="leaf">
-<rect x="32" y="134" width="160" height="64" rx="4" fill="#FFFFFF" stroke="#D8D7D3" stroke-width="1.5"/>
+<rect x="32" y="134" width="160" height="64" rx="4" fill="#FFFFFF" stroke="#EAE9E5" stroke-width="1.5"/>
 <clipPath id="clip-sq-aws-lambda-44-146-40"><rect x="44" y="146" width="40" height="40" rx="4"/></clipPath><g clip-path="url(#clip-sq-aws-lambda-44-146-40)"><use href="#sq-aws-lambda" x="44" y="146" width="40" height="40"/></g>
 <text x="96" y="171" font-size="13" font-weight="500" fill="#1C1C1A">Handler</text>
 </g>
 <g data-path="api.db" data-kind="leaf">
-<rect x="52" y="236" width="120" height="64" rx="4" fill="#FFFFFF" stroke="#D8D7D3" stroke-width="1.5"/>
+<rect x="52" y="236" width="120" height="64" rx="4" fill="#FFFFFF" stroke="#EAE9E5" stroke-width="1.5"/>
 <clipPath id="clip-sq-aws-dynamodb-64-248-40"><rect x="64" y="248" width="40" height="40" rx="4"/></clipPath><g clip-path="url(#clip-sq-aws-dynamodb-64-248-40)"><use href="#sq-aws-dynamodb" x="64" y="248" width="40" height="40"/></g>
 <text x="116" y="273" font-size="13" font-weight="500" fill="#1C1C1A">Orders</text>
 </g>
 <g data-path="api.audit" data-kind="leaf">
-<rect x="220" y="236" width="160" height="64" rx="4" fill="#FFFFFF" stroke="#D8D7D3" stroke-width="1.5"/>
+<rect x="220" y="236" width="160" height="64" rx="4" fill="#FFFFFF" stroke="#EAE9E5" stroke-width="1.5"/>
 <clipPath id="clip-sq-aws-simple-storage-service-232-248-40"><rect x="232" y="248" width="40" height="40" rx="4"/></clipPath><g clip-path="url(#clip-sq-aws-simple-storage-service-232-248-40)"><use href="#sq-aws-simple-storage-service" x="232" y="248" width="40" height="40"/></g>
 <text x="284" y="273" font-size="13" font-weight="500" fill="#1C1C1A">Audit Log</text>
 </g>
-<g><rect x="50" y="106" width="52" height="18" rx="2" fill="#FFFFFF" stroke="#D8D7D3" stroke-width="1"/><text x="76" y="119" text-anchor="middle" font-size="11" fill="#6F6E69">request</text></g>
-<g><rect x="67" y="208" width="35" height="18" rx="2" fill="#FFFFFF" stroke="#D8D7D3" stroke-width="1"/><text x="85" y="221" text-anchor="middle" font-size="11" fill="#6F6E69">read</text></g>
-<g><rect x="356" y="208" width="38" height="18" rx="2" fill="#FFFFFF" stroke="#D8D7D3" stroke-width="1"/><text x="375" y="221" text-anchor="middle" font-size="11" fill="#6F6E69">write</text></g>
-<g><rect x="239" y="208" width="51" height="18" rx="2" fill="#FFFFFF" stroke="#D8D7D3" stroke-width="1"/><text x="265" y="221" text-anchor="middle" font-size="11" fill="#6F6E69">append</text></g>
+<g><rect x="50" y="106" width="52" height="18" rx="2" fill="#FFFFFF" stroke="#EAE9E5" stroke-width="1"/><text x="76" y="119" text-anchor="middle" font-size="11" fill="#6F6E69">request</text></g>
+<g><rect x="67" y="208" width="35" height="18" rx="2" fill="#FFFFFF" stroke="#EAE9E5" stroke-width="1"/><text x="85" y="221" text-anchor="middle" font-size="11" fill="#6F6E69">read</text></g>
+<g><rect x="356" y="208" width="38" height="18" rx="2" fill="#FFFFFF" stroke="#EAE9E5" stroke-width="1"/><text x="375" y="221" text-anchor="middle" font-size="11" fill="#6F6E69">write</text></g>
+<g><rect x="239" y="208" width="51" height="18" rx="2" fill="#FFFFFF" stroke="#EAE9E5" stroke-width="1"/><text x="265" y="221" text-anchor="middle" font-size="11" fill="#6F6E69">append</text></g>
 </svg>

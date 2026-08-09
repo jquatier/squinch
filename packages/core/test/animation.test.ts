@@ -64,20 +64,25 @@ describe("animate vocabulary + edge styles", () => {
   it("slow and fast share the flow keyframe at their own durations", async () => {
     const src = SRC.replace(`db ~> sync "stream"`, `db ~> sync "stream" { animate: slow }`);
     const r = await render(src, { theme: "light" });
-    expect(r.svg).toContain(".sq-flow-s{animation:sq-flow 2.6s");
+    // one keyframe, several durations — that is what makes px/s constant
+    expect(r.svg).toContain(".sq-flow-s{animation:sq-flow 14.29s");
     expect(r.svg!.match(/@keyframes sq-flow\{/g)!.length).toBe(1);
   });
 
-  it("flow-only output is byte-identical to the pre-vocabulary stylesheet", async () => {
-    // The cost-control invariant: a diagram using only today's behaviour must
-    // not re-render a single committed SVG. This is the exact string the
-    // renderer emitted before the vocabulary existed.
+  it("drifts a whole number of dash periods, so the loop never jumps", async () => {
+    // The offset serves every pattern one class can carry: dashed 6+5=11 and
+    // dotted 2+3=5, so it is their LCM. Shifting five dashed periods looks
+    // exactly like shifting one; what it buys is a seamless loop for both.
     const r = await render(SRC, { theme: "light" });
     expect(r.svg).toContain(
       "<style>@media (prefers-reduced-motion: no-preference){" +
-        ".sq-flow{animation:sq-flow 0.9s linear infinite}" +
-        "@keyframes sq-flow{to{stroke-dashoffset:-10}}}</style>",
+        ".sq-flow{animation:sq-flow 4.95s linear infinite}" +
+        "@keyframes sq-flow{to{stroke-dashoffset:-55}}}</style>",
     );
+    for (const period of [11, 5]) expect(55 % period).toBe(0);
+    // and the speed the vocabulary promises is unchanged: 55px / 4.95s is the
+    // same 11.1 px/s the old 10px / 0.9s keyframe drifted at
+    expect(55 / 4.95).toBeCloseTo(10 / 0.9, 1);
   });
 
   it("style: dotted changes the pattern; style: dashed + animate makes sync edges travel", async () => {

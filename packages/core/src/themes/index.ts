@@ -21,8 +21,15 @@ export interface Theme {
   edge: string;
   asyncEdge: string;
   plateText: string;
-  accent: string; // card accent bar, highlight ring
-  warnTint: string; // warning-styled note chips
+  accent: string; // card accent bar, highlight ring, flow beads
+  /** Ink inside a flow bead — dark on the light-on-dark bead, white on the
+   *  saturated light one, so the number reads at 10px either way. */
+  beadText: string;
+  /** Warning-note plate. On its way out: docs/design retires the amber fill
+   *  (the only third hue in a two-hue palette, and it read as a sticky note),
+   *  and the distinction moves to a glyph. It stays until that glyph exists —
+   *  dropping it first would silently erase an authored `style: warning`. */
+  warnTint: string;
   surfaceAlt: string; // container-frame recession (DESIGN §5)
   font: ThemeFont;
   /** The dark counterpart this theme can share one adaptive file with. Only
@@ -52,13 +59,16 @@ export const light: Theme = {
   zoneNeutral: "#7A776E",
   canvas: "#F7F7F5",
   surface: "#FFFFFF",
-  border: "#D8D7D3",
+  border: "#EAE9E5",
   ink: "#1C1C1A",
   muted: "#6F6E69",
-  edge: "#8A897F",
-  asyncEdge: "#7C74D9",
+  edge: "#57564F",
+  // one purple, not two: the design exploration shipped #7C74D9 for async
+  // beside #5A57C9 for flow beads and flagged them as indistinguishable
+  asyncEdge: "#5A57C9",
   plateText: "#FFFFFF",
   accent: "#5A57C9",
+  beadText: "#FFFFFF",
   warnTint: "#FBF3DC",
   surfaceAlt: "#EFEFEC",
 };
@@ -76,9 +86,11 @@ export const dark: Theme = {
   ink: "#EDEDEA",
   muted: "#9C9B94",
   edge: "#8D8C84",
-  asyncEdge: "#968EE8",
+  asyncEdge: "#8B88E8",
   plateText: "#FFFFFF",
   accent: "#8B88E8",
+  // the dark bead is a light lavender disc, so its number is ink, not white
+  beadText: "#1B1B2E",
   warnTint: "#3A3423",
   surfaceAlt: "#1D1D20",
 };

@@ -12,31 +12,31 @@
 </defs>
 <g transform="translate(0, 16)">
 <g opacity="0.35">
-<path d="M 152 222 L 152 260" fill="none" stroke="#8A897F" stroke-width="1.5"/>
-<path d="M 152 260 L 158 252 L 146 252 Z" fill="#8A897F"/>
+<path d="M 152 222 L 152 260" fill="none" stroke="#57564F" stroke-width="1.5"/>
+<path d="M 152 260 L 158 252 L 146 252 Z" fill="#57564F"/>
 </g>
 <g opacity="0.35">
-<path d="M 152 348 L 152 386" fill="none" stroke="#8A897F" stroke-width="1.5"/>
-<path d="M 152 386 L 158 378 L 146 378 Z" fill="#8A897F"/>
+<path d="M 152 348 L 152 386" fill="none" stroke="#57564F" stroke-width="1.5"/>
+<path d="M 152 386 L 158 378 L 146 378 Z" fill="#57564F"/>
 </g>
 <g opacity="0.35">
-<path d="M 152 120 L 152 158" fill="none" stroke="#8A897F" stroke-width="1.5"/>
-<path d="M 152 158 L 158 150 L 146 150 Z" fill="#8A897F"/>
+<path d="M 152 120 L 152 158" fill="none" stroke="#57564F" stroke-width="1.5"/>
+<path d="M 152 158 L 158 150 L 146 150 Z" fill="#57564F"/>
 </g>
 <g data-path="orders.api" data-kind="leaf" opacity="0.35">
-<rect x="72" y="158" width="160" height="64" rx="4" fill="#FFFFFF" stroke="#D8D7D3" stroke-width="1.5"/>
+<rect x="72" y="158" width="160" height="64" rx="4" fill="#FFFFFF" stroke="#EAE9E5" stroke-width="1.5"/>
 <clipPath id="clip-sq-aws-api-gateway-84-170-40"><rect x="84" y="170" width="40" height="40" rx="4"/></clipPath><g clip-path="url(#clip-sq-aws-api-gateway-84-170-40)"><use href="#sq-aws-api-gateway" x="84" y="170" width="40" height="40"/></g>
 <text x="136" y="195" font-size="13" font-weight="500" fill="#1C1C1A">API Gateway</text>
 </g>
 <g data-path="orders.db" data-kind="leaf">
-<rect x="72" y="386" width="160" height="64" rx="4" fill="#FFFFFF" stroke="#D8D7D3" stroke-width="1.5"/>
+<rect x="72" y="386" width="160" height="64" rx="4" fill="#FFFFFF" stroke="#EAE9E5" stroke-width="1.5"/>
 <clipPath id="clip-sq-aws-dynamodb-84-398-40"><rect x="84" y="398" width="40" height="40" rx="4"/></clipPath><g clip-path="url(#clip-sq-aws-dynamodb-84-398-40)"><use href="#sq-aws-dynamodb" x="84" y="398" width="40" height="40"/></g>
 <text x="136" y="417" font-size="13" font-weight="500" fill="#1C1C1A">Orders Table</text>
 <text x="136" y="433" font-size="11" fill="#6F6E69">Single-table d…</text>
 </g>
 <rect x="69" y="383" width="166" height="70" rx="7" fill="none" stroke="#5A57C9" stroke-width="1.5" opacity="0.8"/>
 <g data-path="orders.handlers" data-kind="card" opacity="0.35">
-<rect x="52" y="260" width="200" height="88" rx="6" fill="#FFFFFF" stroke="#D8D7D3" stroke-width="1.5"/>
+<rect x="52" y="260" width="200" height="88" rx="6" fill="#FFFFFF" stroke="#EAE9E5" stroke-width="1.5"/>
 <rect x="52" y="260" width="4" height="88" rx="2" fill="url(#sq-accent)"/>
 <text x="70" y="294" font-size="15" font-weight="500" fill="#1C1C1A">API Handlers</text>
 <text x="70" y="314" font-size="11" fill="#6F6E69">2 components</text>
@@ -44,7 +44,7 @@
 <clipPath id="clip-sq-aws-lambda-204-320-16"><rect x="204" y="320" width="16" height="16" rx="2"/></clipPath><g clip-path="url(#clip-sq-aws-lambda-204-320-16)" opacity="0.6"><use href="#sq-aws-lambda" x="204" y="320" width="16" height="16"/></g>
 </g>
 <g data-path="web" data-kind="context-card" opacity="0.35">
-<rect x="32" y="32" width="240" height="88" rx="6" fill="#FFFFFF" stroke="#D8D7D3" stroke-width="1.5" stroke-dasharray="4 3"/>
+<rect x="32" y="32" width="240" height="88" rx="6" fill="#FFFFFF" stroke="#EAE9E5" stroke-width="1.5" stroke-dasharray="4 3"/>
 <rect x="32" y="32" width="4" height="88" rx="2" fill="#6F6E69"/>
 <text x="50" y="66" font-size="15" font-weight="500" fill="#6F6E69">Storefront</text>
 <text x="50" y="86" font-size="11" fill="#6F6E69">Customer-facing web experience</text>
@@ -52,17 +52,17 @@
 <clipPath id="clip-sq-aws-cloudfront-244-92-16"><rect x="244" y="92" width="16" height="16" rx="2"/></clipPath><g clip-path="url(#clip-sq-aws-cloudfront-244-92-16)" opacity="0.6"><use href="#sq-aws-cloudfront" x="244" y="92" width="16" height="16"/></g>
 <clipPath id="clip-sq-aws-amplify-224-92-16"><rect x="224" y="92" width="16" height="16" rx="2"/></clipPath><g clip-path="url(#clip-sq-aws-amplify-224-92-16)" opacity="0.6"><use href="#sq-aws-amplify" x="224" y="92" width="16" height="16"/></g>
 </g>
-<g opacity="0.35"><rect x="116" y="232" width="26" height="18" rx="2" fill="#FFFFFF" stroke="#D8D7D3" stroke-width="1"/><text x="129" y="245" text-anchor="middle" font-size="11" fill="#6F6E69">×2</text></g>
-<g opacity="0.35"><rect x="116" y="358" width="26" height="18" rx="2" fill="#FFFFFF" stroke="#D8D7D3" stroke-width="1"/><text x="129" y="371" text-anchor="middle" font-size="11" fill="#6F6E69">×2</text></g>
-<g opacity="0.35"><rect x="102" y="130" width="40" height="18" rx="2" fill="#FFFFFF" stroke="#D8D7D3" stroke-width="1"/><text x="122" y="143" text-anchor="middle" font-size="11" fill="#6F6E69">REST</text></g>
+<g opacity="0.35"><rect x="116" y="232" width="26" height="18" rx="2" fill="#FFFFFF" stroke="#EAE9E5" stroke-width="1"/><text x="129" y="245" text-anchor="middle" font-size="11" fill="#6F6E69">×2</text></g>
+<g opacity="0.35"><rect x="116" y="358" width="26" height="18" rx="2" fill="#FFFFFF" stroke="#EAE9E5" stroke-width="1"/><text x="129" y="371" text-anchor="middle" font-size="11" fill="#6F6E69">×2</text></g>
+<g opacity="0.35"><rect x="102" y="130" width="40" height="18" rx="2" fill="#FFFFFF" stroke="#EAE9E5" stroke-width="1"/><text x="122" y="143" text-anchor="middle" font-size="11" fill="#6F6E69">REST</text></g>
 <g data-note="right-of:orders.db">
 <line x1="256" y1="418" x2="232" y2="418" stroke="#6F6E69" stroke-width="1" stroke-dasharray="2 3"/>
-<rect x="256" y="397" width="174" height="42" rx="3" fill="#FFFFFF" stroke="#D8D7D3" stroke-width="1"/>
+<rect x="256" y="397" width="174" height="42" rx="3" fill="#FFFFFF" stroke="#EAE9E5" stroke-width="1"/>
 <text x="268" y="414" font-size="11" fill="#1C1C1A">Encrypted at rest (KMS); see</text>
 <text x="268" y="429" font-size="11" fill="#1C1C1A">ADR-31</text>
 </g>
 <g data-note="top-right">
-<rect x="150" y="-8" width="138" height="27" rx="3" fill="#FBF3DC" stroke="#D8D7D3" stroke-width="1"/>
+<rect x="150" y="-8" width="138" height="27" rx="3" fill="#FBF3DC" stroke="#EAE9E5" stroke-width="1"/>
 <text x="162" y="9" font-size="11" fill="#1C1C1A">Audit scope: Q3 2026</text>
 </g>
 </g>

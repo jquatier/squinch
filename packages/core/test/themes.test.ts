@@ -6,7 +6,7 @@ import { themes, type Theme } from "../src/index.js";
 
 const ROLES: (keyof Theme)[] = [
   "canvas", "surface", "border", "ink", "muted", "edge", "asyncEdge",
-  "plateText", "accent", "warnTint", "surfaceAlt",
+  "plateText", "accent", "beadText", "warnTint", "surfaceAlt",
   "zoneAccount", "zoneNetwork", "zoneCloud", "zoneNeutral",
 ];
 

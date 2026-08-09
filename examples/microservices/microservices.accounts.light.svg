@@ -10,34 +10,34 @@
 <symbol id="sq-sys-code" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m16 18 6-6-6-6"/><path d="m8 6-6 6 6 6"/></g></symbol>
 </defs>
 <g>
-<path d="M 159 260 L 159 296" fill="none" stroke="#8A897F" stroke-width="1.5"/>
-<path d="M 159 296 L 165 288 L 153 288 Z" fill="#8A897F"/>
+<path d="M 159 260 L 159 296" fill="none" stroke="#57564F" stroke-width="1.5"/>
+<path d="M 159 296 L 165 288 L 153 288 Z" fill="#57564F"/>
 </g>
 <g>
-<path d="M 132 120 L 132 196" fill="none" stroke="#8A897F" stroke-width="1.5"/>
-<path d="M 132 196 L 138 188 L 126 188 Z" fill="#8A897F"/>
+<path d="M 132 120 L 132 196" fill="none" stroke="#57564F" stroke-width="1.5"/>
+<path d="M 132 196 L 138 188 L 126 188 Z" fill="#57564F"/>
 </g>
 <g>
-<path d="M 380 120 L 380 136 Q 380 144 372 144 L 194 144 Q 186 144 186 152 L 186 196" fill="none" stroke="#8A897F" stroke-width="1.5"/>
-<path d="M 186 196 L 192 188 L 180 188 Z" fill="#8A897F"/>
+<path d="M 380 120 L 380 136 Q 380 144 372 144 L 194 144 Q 186 144 186 152 L 186 196" fill="none" stroke="#57564F" stroke-width="1.5"/>
+<path d="M 186 196 L 192 188 L 180 188 Z" fill="#57564F"/>
 </g>
 <g data-path="accounts.api" data-kind="leaf">
-<rect x="79" y="196" width="160" height="64" rx="4" fill="#FFFFFF" stroke="#D8D7D3" stroke-width="1.5"/>
+<rect x="79" y="196" width="160" height="64" rx="4" fill="#FFFFFF" stroke="#EAE9E5" stroke-width="1.5"/>
 <clipPath id="clip-sq-aws-lambda-91-208-40"><rect x="91" y="208" width="40" height="40" rx="4"/></clipPath><g clip-path="url(#clip-sq-aws-lambda-91-208-40)"><use href="#sq-aws-lambda" x="91" y="208" width="40" height="40"/></g>
 <text x="143" y="233" font-size="13" font-weight="500" fill="#1C1C1A">Accounts API</text>
 </g>
 <g data-path="accounts.db" data-kind="leaf">
-<rect x="79" y="296" width="160" height="64" rx="4" fill="#FFFFFF" stroke="#D8D7D3" stroke-width="1.5"/>
+<rect x="79" y="296" width="160" height="64" rx="4" fill="#FFFFFF" stroke="#EAE9E5" stroke-width="1.5"/>
 <clipPath id="clip-sq-aws-rds-91-308-40"><rect x="91" y="308" width="40" height="40" rx="4"/></clipPath><g clip-path="url(#clip-sq-aws-rds-91-308-40)"><use href="#sq-aws-rds" x="91" y="308" width="40" height="40"/></g>
 <text x="143" y="333" font-size="13" font-weight="500" fill="#1C1C1A">Accounts DB</text>
 </g>
 <g data-path="gw" data-kind="context-leaf">
-<rect x="32" y="56" width="200" height="64" rx="4" fill="#FFFFFF" stroke="#D8D7D3" stroke-width="1.5" stroke-dasharray="4 3"/>
+<rect x="32" y="56" width="200" height="64" rx="4" fill="#FFFFFF" stroke="#EAE9E5" stroke-width="1.5" stroke-dasharray="4 3"/>
 <clipPath id="clip-sq-aws-api-gateway-44-68-40"><rect x="44" y="68" width="40" height="40" rx="4"/></clipPath><g clip-path="url(#clip-sq-aws-api-gateway-44-68-40)" opacity="0.6"><use href="#sq-aws-api-gateway" x="44" y="68" width="40" height="40"/></g>
 <text x="96" y="93" font-size="13" font-weight="500" fill="#6F6E69">Edge Gateway</text>
 </g>
 <g data-path="orders" data-kind="context-card" opacity="0.75">
-<rect x="280" y="32" width="200" height="88" rx="6" fill="#FFFFFF" stroke="#D8D7D3" stroke-width="1.5" stroke-dasharray="4 3"/>
+<rect x="280" y="32" width="200" height="88" rx="6" fill="#FFFFFF" stroke="#EAE9E5" stroke-width="1.5" stroke-dasharray="4 3"/>
 <rect x="280" y="32" width="4" height="88" rx="2" fill="#6F6E69"/>
 <text x="298" y="66" font-size="15" font-weight="500" fill="#6F6E69">Order Service</text>
 <text x="298" y="86" font-size="11" fill="#6F6E69">Cart, checkout, fulfillment</text>
@@ -46,6 +46,6 @@
 <clipPath id="clip-sq-aws-dynamodb-432-92-16"><rect x="432" y="92" width="16" height="16" rx="2"/></clipPath><g clip-path="url(#clip-sq-aws-dynamodb-432-92-16)" opacity="0.6"><use href="#sq-aws-dynamodb" x="432" y="92" width="16" height="16"/></g>
 <clipPath id="clip-sq-aws-simple-queue-service-412-92-16"><rect x="412" y="92" width="16" height="16" rx="2"/></clipPath><g clip-path="url(#clip-sq-aws-simple-queue-service-412-92-16)" opacity="0.6"><use href="#sq-aws-simple-queue-service" x="412" y="92" width="16" height="16"/></g>
 </g>
-<g><rect x="77" y="168" width="45" height="18" rx="2" fill="#FFFFFF" stroke="#D8D7D3" stroke-width="1"/><text x="100" y="181" text-anchor="middle" font-size="11" fill="#6F6E69">profile</text></g>
-<g><rect x="197" y="168" width="83" height="18" rx="2" fill="#FFFFFF" stroke="#D8D7D3" stroke-width="1"/><text x="239" y="181" text-anchor="middle" font-size="11" fill="#6F6E69">verify identity</text></g>
+<g><rect x="77" y="168" width="45" height="18" rx="2" fill="#FFFFFF" stroke="#EAE9E5" stroke-width="1"/><text x="100" y="181" text-anchor="middle" font-size="11" fill="#6F6E69">profile</text></g>
+<g><rect x="197" y="168" width="83" height="18" rx="2" fill="#FFFFFF" stroke="#EAE9E5" stroke-width="1"/><text x="239" y="181" text-anchor="middle" font-size="11" fill="#6F6E69">verify identity</text></g>
 </svg>

@@ -27,6 +27,9 @@ const PAD = 12;
  *  spacing. One knob: change this and both option value and spacer follow.
  *  Went 16 → 12 → 8 across three gate reviews, then to 10. */
 const LABEL_GAP = 10;
+/** Zone chip height (docs/design). Shared: the placer reserves it, the
+ *  renderer fills it, and the chip straddles its border by half of it. */
+export const CHIP_H = 22;
 /** The pill a label will render as, measured with the layout's font — the
  *  single source of truth shared by the ELK reservation (here) and the
  *  renderer's pill text (svg.ts). If these two ever diverge, the reservation
@@ -53,6 +56,8 @@ export interface PZone {
   icon?: { pack: string; id: string };
   labelPos: ZoneLabelPos;
   color?: ZoneColor;
+  /** mono chip segment — a CIDR, an account id (SPEC §zones) */
+  detail?: string;
   x: number; y: number; w: number; h: number;
   depth: number; // nesting depth, outermost = 0 (render order)
 }
@@ -83,7 +88,13 @@ export interface Positioned {
    *  is theme-free (the adaptive contract shares one layout across palettes).
    *  Slid along their zone's border to the least-crossed spot, exactly the
    *  algorithm that lived in svg.ts. */
-  chips: { x: number; y: number; w: number; h: number; label: string; zone: string; icon?: { pack: string; id: string } }[];
+  chips: {
+    x: number; y: number; w: number; h: number; label: string; zone: string;
+    icon?: { pack: string; id: string };
+    /** mono segment text, and the width reserved for it — measured here so
+     *  the renderer draws the segment the placer actually made room for */
+    detail?: string; detailW?: number;
+  }[];
   /** Flow badges, reserved for the FULL flow's step text. Walking a flow
    *  (`flowStep`) is a viewer concern: the renderer draws the walked subset
    *  right-aligned inside the reservation, so per-step text changes never move
@@ -153,6 +164,7 @@ export async function layoutView(
     id: string; label: string; kind: ZoneKind;
     icon?: { pack: string; id: string }; labelPos: ZoneLabelPos;
     color?: ZoneColor;
+    detail?: string;
     set: Set<string>;
   }
   const zones: LZone[] = [];
@@ -171,7 +183,7 @@ export async function layoutView(
     if (set.size > 0)
       zones.push({
         id: z.id, label: z.label ?? z.id, kind: z.kind,
-        icon: z.icon, labelPos: z.labelPos, color: z.color, set,
+        icon: z.icon, labelPos: z.labelPos, color: z.color, detail: z.detail, set,
       });
     else if (!view.auto)
       // A zone follows visibility by design, but vanishing in silence is not
@@ -842,7 +854,7 @@ export async function layoutView(
       const z = zoneById.get(c.id)!;
       pZones.push({
         id: z.id, label: z.label, kind: z.kind, icon: z.icon, labelPos: z.labelPos,
-        color: z.color,
+        color: z.color, detail: z.detail,
         x, y, w: q(c.width), h: q(c.height), depth,
       });
       containerOffset.set(c.id, { x, y });
@@ -1143,10 +1155,26 @@ export async function layoutView(
     });
     const obstacles = () => [...segs, ...nodes, ...pillRects, ...badges, ...chips];
     for (const z of [...pZones].sort((a, b) => a.depth - b.depth)) {
-      const iconW = z.icon ? 26 : 0;
-      const label = fit(z.label, z.w - 48 - iconW, fx(11), "500", font.metrics);
-      const w = Math.round(measure(label, fx(11), "500", font.metrics)) + 16 + iconW;
-      const y = z.labelPos.startsWith("top") ? z.y - 10 : z.y + z.h - 10;
+      // Chip anatomy (docs/design): a flush icon tab, the label segment, and
+      // an optional mono segment for the boundary's hard fact. Each segment is
+      // measured in the face it will be drawn with — the mono one in mono
+      // metrics — because the placer's rect must be the rect the renderer
+      // fills, or the chip overhangs its own border.
+      const iconW = z.icon ? CHIP_H : 0; // a square tab, flush with the label bed
+      const room = z.w - 24; // 12 clear of each corner
+      const labelNat = Math.round(measure(z.label, fx(11), "500", font.metrics)) + 16;
+      const detailNat = z.detail ? Math.round(measure(z.detail, fx(11), "400", "mono")) + 16 : 0;
+      // The detail segment is all-or-nothing: it holds facts like `10.0.0.0/16`
+      // where a truncated value is not a shortened label, it is a *different
+      // network*. So when the boundary is too narrow for both, the segment goes
+      // and the name keeps its room; only if the name alone still overflows
+      // does it ellipsize.
+      const showDetail = !!z.detail && iconW + labelNat + detailNat <= room;
+      const detail = showDetail ? z.detail : undefined;
+      const detailW = showDetail ? detailNat : 0;
+      const label = fit(z.label, Math.max(24, room - iconW - detailW - 16), fx(11), "500", font.metrics);
+      const w = Math.round(measure(label, fx(11), "500", font.metrics)) + 16 + iconW + detailW;
+      const y = z.labelPos.startsWith("top") ? z.y - CHIP_H / 2 : z.y + z.h - CHIP_H / 2;
       const xLo = z.x + 12;
       const xHi = Math.max(xLo, z.x + z.w - 12 - w);
       const fromRight = z.labelPos.endsWith("right");
@@ -1154,14 +1182,17 @@ export async function layoutView(
       for (let step = 0; ; step++) {
         const x = fromRight ? xHi - step * 16 : xLo + step * 16;
         if (x < xLo || x > xHi) break;
-        const rect = { x, y, w, h: 20 };
+        const rect = { x, y, w, h: CHIP_H };
         const n = obstacles().filter((o) =>
           o.x < rect.x + rect.w + 6 && o.x + o.w + 6 > rect.x &&
           o.y < rect.y + rect.h + 6 && o.y + o.h + 6 > rect.y).length;
         if (n < best.hits) best = { x, hits: n };
         if (n === 0) break;
       }
-      chips.push({ x: best.x, y, w, h: 20, label, zone: z.id, icon: z.icon });
+      chips.push({
+        x: best.x, y, w, h: CHIP_H, label, zone: z.id, icon: z.icon,
+        ...(detail ? { detail, detailW } : {}),
+      });
     }
   }
 

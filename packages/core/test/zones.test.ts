@@ -447,3 +447,88 @@ view v {
     }
   });
 });
+
+describe("zone chips — the segmented grammar (docs/design)", () => {
+  const src = (detail: string, label = "vpc-prod", wide = true) => `pack aws
+system app "Platform" {
+  api = aws/api-gateway "API Gateway"
+  db  = aws/dynamodb "Orders Table" datastore
+  ${wide ? `cache = aws/elasticache "Session Cache"\n  api -> cache "reads"` : ""}
+  api -> db "writes"
+}
+zone vpc_a "${label}" vpc {
+  contains app
+  icon: aws/vpc
+${detail ? `  detail: "${detail}"` : ""}
+}
+view main {
+  expand app
+${wide ? "  layout { rows [app.api] [app.db app.cache] }" : ""}
+}`;
+
+  it("draws the mono segment when the boundary has room for it", async () => {
+    const r = await render(src("10.0.0.0/16"), { view: "main", theme: "light" });
+    expect(r.ok, JSON.stringify(r.diagnostics)).toBe(true);
+    expect(validateSVG(r.svg!).ok).toBe(true);
+    expect(r.svg).toContain(">10.0.0.0/16<");
+    // in mono, and the face is embedded because this render reached for it
+    expect(r.svg).toMatch(/font-family="SquinchMono[^"]*" fill="[^"]+">10\.0\.0\.0\/16</);
+    expect(r.svg).toContain("font-family:SquinchMono");
+  });
+
+  it("segments are flush — no canvas sliver between the icon tab and the bed", async () => {
+    // The tab was a square of artwork inside a `c.h + 4` slot, so 4px of the
+    // canvas knockout showed between icon and label bed as a white strip.
+    const r = await render(src("10.0.0.0/16"), { view: "main", theme: "light" });
+    const at = r.svg!.indexOf(`<g data-kind="zone-chip"`);
+    const chip = r.svg!.slice(at, r.svg!.indexOf("</g>", r.svg!.indexOf(">vpc-prod<")));
+    const beds = [...chip.matchAll(/<rect x="(\d+)"[^>]*width="(\d+)"[^>]*clip-path/g)]
+      .map((m) => ({ x: +m[1], w: +m[2] }))
+      .sort((a, b) => a.x - b.x);
+    expect(beds.length).toBe(3); // icon tab, label, detail
+    for (let i = 1; i < beds.length; i++)
+      expect(beds[i].x, "segment starts where the previous ends").toBe(beds[i - 1].x + beds[i - 1].w);
+  });
+
+  it("drops the segment rather than truncating it on a narrow boundary", async () => {
+    // A clipped `10.0.0.0/16` is not a shortened label, it is a different
+    // network — so the segment is all-or-nothing and the name keeps the room.
+    const long = "production network boundary, eu-west-1";
+    const r = await render(src("10.0.0.0/16", long, false), { view: "main", theme: "light" });
+    expect(r.ok, JSON.stringify(r.diagnostics)).toBe(true);
+    expect(r.svg).not.toContain("10.0.0.0");
+    // and nothing paid for a face it never drew with
+    expect(r.svg).not.toContain("font-family:SquinchMono");
+  });
+
+  it("beds sit under the border, so the chip never paints over its own tints", async () => {
+    const r = await render(src("10.0.0.0/16"), { view: "main", theme: "light" });
+    const at = r.svg!.indexOf(`<g data-kind="zone-chip"`);
+    const chip = r.svg!.slice(at, r.svg!.indexOf("</g>", r.svg!.indexOf(">vpc-prod<")));
+    // the bordered rect is fill="none": a filled one drawn last would erase
+    // the segment beds underneath it (it did, once)
+    expect(chip).toMatch(/rx="3" fill="none" stroke="#[0-9A-F]{6}59"/);
+    // three strengths of one hue, never a second colour
+    const tints = [...chip.matchAll(/fill="(#[0-9A-F]{6})(1F|33)"/g)].map((m) => m[1]);
+    expect(new Set(tints).size).toBe(1);
+  });
+
+  it("zone frames carry no fill, so nesting cannot compound", async () => {
+    // genuinely nested: the outer boundary holds the inner one's member plus
+    // another, which is how zones nest (by shared members, never by naming)
+    const nested = `pack aws
+system app "P" { api = aws/api-gateway "API" }
+system ops "Ops" { runner = aws/lambda "Runner" }
+zone outer "Outer" cloud { contains app, ops }
+zone inner "Inner" vpc { contains app }
+view main { include * }`;
+    const r = await render(nested, { view: "main", theme: "light" });
+    expect(r.ok, JSON.stringify(r.diagnostics)).toBe(true);
+    const frames = [...r.svg!.matchAll(/<g data-kind="zone"[^>]*><rect[^>]*\/>/g)].map((m) => m[0]);
+    expect(frames.length).toBe(2);
+    for (const f of frames) {
+      expect(f).toContain(`fill="none"`);
+      expect(f).not.toContain("fill-opacity");
+    }
+  });
+});

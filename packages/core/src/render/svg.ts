@@ -539,7 +539,7 @@ function legend(p: Positioned, rc: RC, y: number, L: string[]): { h: number; w: 
     });
   if (p.edges.some((e) => e.async))
     items.push({
-      sample: (x, cy) => `<line x1="${x}" y1="${cy}" x2="${x + 24}" y2="${cy}" stroke="${t.asyncEdge}" stroke-width="1.5" stroke-dasharray="6 4"/>`,
+      sample: (x, cy) => `<line x1="${x}" y1="${cy}" x2="${x + 24}" y2="${cy}" stroke="${t.asyncEdge}" stroke-width="1.5" stroke-dasharray="6 5"/>`,
       label: "async",
     });
   // Declared stroke styles on sync edges, in style-list order, deduped — the
@@ -551,7 +551,7 @@ function legend(p: Positioned, rc: RC, y: number, L: string[]): { h: number; w: 
   for (const st of stylesPresent)
     items.push({
       sample: (x, cy) =>
-        `<line x1="${x}" y1="${cy}" x2="${x + 24}" y2="${cy}" stroke="${t.edge}" stroke-width="1.5" stroke-dasharray="${st === "dashed" ? "6 4" : "2 3"}"/>`,
+        `<line x1="${x}" y1="${cy}" x2="${x + 24}" y2="${cy}" stroke="${t.edge}" stroke-width="1.5" stroke-dasharray="${st === "dashed" ? "6 5" : "2 3"}"/>`,
       label: st,
     });
   if (p.edges.some((e) => e.count > 1))
@@ -570,7 +570,7 @@ function legend(p: Positioned, rc: RC, y: number, L: string[]): { h: number; w: 
     items.push({
       sample: (x, cy) =>
         `<circle cx="${x + 12}" cy="${cy}" r="8" fill="${t.accent}"/>` +
-        `<text x="${x + 12}" y="${cy + 3}" text-anchor="middle" font-size="${rc.fx(9)}" font-weight="500" fill="${t.plateText}">1</text>`,
+        `<text x="${x + 12}" y="${cy + 3}" text-anchor="middle" font-size="${rc.fx(9)}" font-weight="500" fill="${t.beadText}">1</text>`,
       label: `flow: ${p.flow.label}`,
     });
   // zone kinds present in this render, in kind-list order, deduped
@@ -579,7 +579,7 @@ function legend(p: Positioned, rc: RC, y: number, L: string[]): { h: number; w: 
     const col = ZONE_TINT[kind](t);
     items.push({
       sample: (x, cy) =>
-        `<rect x="${x + 2}" y="${cy - 7}" width="20" height="14" rx="2" fill="${col}" fill-opacity="0.04" stroke="${col}" stroke-width="1" stroke-dasharray="4 3"/>`,
+        `<rect x="${x + 2}" y="${cy - 7}" width="20" height="14" rx="2" fill="none" stroke="${col}" stroke-width="1" stroke-dasharray="4 3"/>`,
       label: kind,
     });
   }
@@ -696,26 +696,67 @@ function computePills(p: Positioned, rc: RC, edgeMatches: (e: PEdge) => boolean)
 // placeZoneChips moved to layout.ts (Positioned consolidation): chip geometry
 // is layout's; the colour below is the renderer's.
 
+/** Tints of the zone's own colour, as 8-digit hex. The chip is built from one
+ *  hue at three strengths — border, label bed, detail bed — so a boundary's
+ *  identity carries across every segment without a second colour entering the
+ *  palette. Alpha in the fill (not `fill-opacity`) keeps the adaptive merge
+ *  treating these as colour rather than geometry. */
+const CHIP_BORDER_A = "59"; // 35%
+const CHIP_LABEL_A = "1F"; // 12%
+const CHIP_DETAIL_A = "33"; // 20%
+
 function chipMarkup(c: Positioned["chips"][number], p: Positioned, rc: RC, t: Theme): string {
   const zone = (p.zones ?? []).find((z) => z.id === c.zone);
   const col = zone ? zoneColor(zone, t) : t.muted;
   // halo first: a canvas knockout 3px proud of the chip, so any edge the chip
   // must sit over reads as deliberately interrupted, never collided-with
   const halo = `<rect x="${c.x - 3}" y="${c.y - 3}" width="${c.w + 6}" height="${c.h + 6}" rx="4" fill="${t.canvas}"/>`;
-  const chip = `<rect x="${c.x}" y="${c.y}" width="${c.w}" height="${c.h}" rx="3" fill="${t.canvas}" stroke="${col}" stroke-width="1"/>`;
+  // Border only, and drawn last: the segment beds are painted underneath it,
+  // so a filled chip rect here would erase them. The halo above already lays
+  // the canvas knockout this sits on.
+  const chip = `<rect x="${c.x}" y="${c.y}" width="${c.w}" height="${c.h}" rx="3" fill="none" stroke="${col}${CHIP_BORDER_A}" stroke-width="1"/>`;
   // the icon is a flush, full-height tab on the chip's left edge — the AWS
   // boundary-label convention — never a padded thumbnail floating in the pill.
   // Full-bleed artwork (k8s) is the exception: drawn edge-to-edge it collides
   // with the chip border, so it gets a small inset inside the same tab slot —
   // the text position never moves.
   const inset = c.icon && packFullBleed(c.icon.pack) ? 3 : 0;
+  // A square tab, and the label bed starts where it ends — no gap. The tab
+  // used to be `c.h + 4` wide while the artwork filled only `c.h`, so 4px of
+  // the canvas knockout showed between icon and bed as a white sliver.
+  const iconTab = c.icon ? c.h : 0;
   const icon = c.icon
     ? iconPlate(c.icon, c.x + inset, c.y + inset, c.h - 2 * inset, rc)
     : "";
-  const tx = c.x + 8 + (c.icon ? c.h + 4 : 0);
+  const tx = c.x + 8 + iconTab;
+  // Segments are clipped to the chip's rounded rect so a bed reaching an end
+  // takes the corner with it — a square bed inside a 3px radius shows as two
+  // pale wedges at that end.
+  const clip = `sq-chip-${c.x}-${c.y}-${c.w}-${c.h}`;
+  const clipDef = def(rc, clip,
+    `<clipPath id="${clip}"><rect x="${c.x}" y="${c.y}" width="${c.w}" height="${c.h}" rx="3"/></clipPath>`);
+  // clip-path on the rects themselves, not a wrapping <g>: the beds are plain
+  // rects (the "clip a wrapping g" rule is about `<use>`), and a nested group
+  // here would hide the icon from anything reading the chip as one element.
+  const clipped = ` clip-path="url(#${clip})"`;
+  // The tab is its own quiet step (docs/design): the icon sits on surface, not
+  // on the canvas the chip floats over, so a transparent mark reads against a
+  // plate rather than against whatever the chip happens to cover.
+  const iconBed = c.icon
+    ? `<rect x="${c.x}" y="${c.y}" width="${iconTab}" height="${c.h}"${clipped} fill="${t.surface}"/>`
+    : "";
+  const labelBed = `<rect x="${c.x + iconTab}" y="${c.y}" width="${c.w - iconTab - (c.detailW ?? 0)}" height="${c.h}"${clipped} fill="${col}${CHIP_LABEL_A}"/>`;
+  const detail = c.detail
+    ? `<rect x="${c.x + c.w - c.detailW!}" y="${c.y}" width="${c.detailW!}" height="${c.h}"${clipped} fill="${col}${CHIP_DETAIL_A}"/>` +
+      // mono, because this segment is where digits live and a CIDR read in a
+      // proportional face is a different width in every diagram
+      `<text x="${c.x + c.w - c.detailW! + 8}" y="${c.y + 15}" font-size="${rc.fx(11)}" font-family="${MONO_CSS}" fill="${col}">${esc(c.detail)}</text>`
+    : "";
+  if (c.detail) rc.faces.add("mono:400");
   return (
-    `<g data-kind="zone-chip" data-zone="${esc(c.zone)}">${halo}${chip}${icon}` +
-    `<text x="${tx}" y="${c.y + 14}" font-size="${rc.fx(11)}" font-weight="500" fill="${col}">${esc(c.label)}</text></g>`
+    `${clipDef}<g data-kind="zone-chip" data-zone="${esc(c.zone)}">${halo}` +
+    `${iconBed}${labelBed}${detail}${chip}${icon}` +
+    `<text x="${tx}" y="${c.y + 15}" font-size="${rc.fx(11)}" font-weight="500" fill="${col}">${esc(c.label)}</text></g>`
   );
 }
 
@@ -882,7 +923,10 @@ export function renderSVG(p: Positioned, t: Theme, opts: RenderOpts = {}): strin
   const zoneMarkup = (z: PZone): string => {
     const col = zoneColor(z, t);
     const dash = ` stroke-dasharray="8 5"`;
-    const boundary = `<rect x="${z.x}" y="${z.y}" width="${z.w}" height="${z.h}" rx="8" fill="${col}" fill-opacity="0.04" stroke="${col}" stroke-width="1.5"${dash}/>`;
+    // No fill, deliberately: a tint compounds where zones nest, so a subnet
+    // inside a VPC read darker than either — the boundary is the dashed line,
+    // and nesting must not change its weight (docs/design).
+    const boundary = `<rect x="${z.x}" y="${z.y}" width="${z.w}" height="${z.h}" rx="8" fill="none" stroke="${col}" stroke-width="1.5"${dash}/>`;
     return `<g data-kind="zone" data-zone="${esc(z.id)}" data-zone-kind="${z.kind}">${boundary}</g>`;
   };
   for (const z of [...(p.zones ?? [])].sort((a, b) => a.depth - b.depth)) body.push(zoneMarkup(z));
@@ -911,7 +955,7 @@ export function renderSVG(p: Positioned, t: Theme, opts: RenderOpts = {}): strin
     // (async edges resolve to `dashed` by default, so their output here is
     // byte-identical to when this line only knew about `e.async`).
     const pattern = e.animate === "packets" ? "3 15"
-      : e.style === "dashed" ? "6 4"
+      : e.style === "dashed" ? "6 5"
       : e.style === "dotted" ? "2 3" : undefined;
     const dash = pattern ? ` stroke-dasharray="${pattern}"` : "";
     // Animation: dashes drift at constant px/s (shared keyframes with a fixed
@@ -1003,7 +1047,9 @@ export function renderSVG(p: Positioned, t: Theme, opts: RenderOpts = {}): strin
         (rWide > 9
           ? `<rect x="${cx - rWide}" y="${cy - 9}" width="${rWide * 2}" height="18" rx="9" fill="${t.accent}"/>`
           : `<circle cx="${cx}" cy="${cy}" r="9" fill="${t.accent}"/>`) +
-        `<text x="${cx}" y="${cy + 4}" text-anchor="middle" font-size="${rc.fx(10)}" font-weight="500" fill="${t.plateText}">${esc(text)}</text></g>`,
+        // beadText, not plateText: the dark theme's bead is a pale lavender
+        // disc, and white-on-lavender is unreadable at 10px (docs/design)
+        `<text x="${cx}" y="${cy + 4}" text-anchor="middle" font-size="${rc.fx(10)}" font-weight="500" fill="${t.beadText}">${esc(text)}</text></g>`,
     );
   }
 
@@ -1071,31 +1117,42 @@ export function renderSVG(p: Positioned, t: Theme, opts: RenderOpts = {}): strin
     // to what this block emitted before the vocabulary existed, which is what
     // keeps every already-committed render untouched.
     //
-    // Dash periods and offsets must agree or the loop jumps: dashed 6+4=10 and
-    // dotted 2+3=5 both divide the shared -10 offset; packets 3+15=18 gets its
-    // own keyframe. Speeds reuse the flow keyframe at other durations —
-    // constant px/s comes from fixed periods, never per-edge maths. `pulse`
-    // animates `opacity` (not stroke-opacity) because a sync arrowhead is a
-    // filled path and has to breathe with its wire.
+    // The drift offset must be a whole number of dash periods, or the pattern
+    // visibly jumps each time the animation loops. One class carries every
+    // pattern (a dashed edge and a dotted one can both be `animate: flow`), so
+    // the offset is the least common multiple of the periods it has to serve:
+    // dashed 6+5=11 and dotted 2+3=5 → 55. Shifting by five dashed periods
+    // looks exactly like shifting by one, so the longer cycle is invisible;
+    // what it buys is a seamless loop for both patterns from one keyframe.
+    // Durations are then derived from the speed the vocabulary promises rather
+    // than restated — px/s is the constant, so a long edge never appears to
+    // flow faster than a short one. Adding a pattern means revisiting DRIFT.
+    // `packets` keeps its own keyframe (period 18, its own sparse rhythm), and
+    // `pulse` animates `opacity` (not stroke-opacity) because a sync arrowhead
+    // is a filled path and has to breathe with its wire.
     const used = new Set(p.edges.map((e) => e.animate).filter(Boolean));
     if (used.size) {
       const rules: string[] = [];
       const frames = new Map<string, string>();
-      const flowKF = `@keyframes sq-flow{to{stroke-dashoffset:-10}}`;
+      const DRIFT = 55;
+      /** seconds for one cycle at the given speed, rounded like every other
+       *  float that reaches the string (2dp — CI byte-compares this) */
+      const secs = (pxPerSec: number) => (Math.round((DRIFT / pxPerSec) * 100) / 100).toFixed(2);
+      const flowKF = `@keyframes sq-flow{to{stroke-dashoffset:-${DRIFT}}}`;
       if (used.has("flow")) {
-        rules.push(`.sq-flow{animation:sq-flow 0.9s linear infinite}`);
+        rules.push(`.sq-flow{animation:sq-flow ${secs(11.11)}s linear infinite}`);
         frames.set("sq-flow", flowKF);
       }
       if (used.has("reverse")) {
-        rules.push(`.sq-flow-r{animation:sq-flow-r 0.9s linear infinite}`);
-        frames.set("sq-flow-r", `@keyframes sq-flow-r{to{stroke-dashoffset:10}}`);
+        rules.push(`.sq-flow-r{animation:sq-flow-r ${secs(11.11)}s linear infinite}`);
+        frames.set("sq-flow-r", `@keyframes sq-flow-r{to{stroke-dashoffset:${DRIFT}}}`);
       }
       if (used.has("slow")) {
-        rules.push(`.sq-flow-s{animation:sq-flow 2.6s linear infinite}`);
+        rules.push(`.sq-flow-s{animation:sq-flow ${secs(3.85)}s linear infinite}`);
         frames.set("sq-flow", flowKF);
       }
       if (used.has("fast")) {
-        rules.push(`.sq-flow-f{animation:sq-flow 0.38s linear infinite}`);
+        rules.push(`.sq-flow-f{animation:sq-flow ${secs(26.32)}s linear infinite}`);
         frames.set("sq-flow", flowKF);
       }
       if (used.has("packets")) {

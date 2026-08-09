@@ -142,13 +142,23 @@ zone vpc_a "VPC A" vpc {
   label: top-right                    // chip corner: top-left (default) |
                                       //   top-right | bottom-left | bottom-right
   color: ink                          // e.g. match a dark provider mark; roles:
-}                                     //   account | network | cloud | neutral |
+                                      //   account | network | cloud | neutral |
                                       //   ink | muted | accent — never hex
+  detail: "10.0.0.0/16"               // optional second chip segment, set in
+}                                     //   mono: a CIDR, an account id, a region
 ```
+
+`detail` is free text the engine never parses — it just sets it monospaced so
+digits line up between diagrams. It is all-or-nothing: on a boundary too narrow
+for both, the segment is dropped rather than ellipsized, because a clipped
+`10.0.0.0/16` is not a shortened label, it is a different network.
 
 Zone kinds (`account | region | vpc | subnet | network | cloud | onprem | custom`)
 drive the frame styling —
-the classic dashed boundary with a corner label. Constraint: within any single view,
+the classic dashed boundary with a corner label. The frame is an outline only,
+never a tint: a fill compounds where zones nest, so a subnet inside a VPC would
+read darker than either, and the boundary's weight would encode depth rather
+than kind. Constraint: within any single view,
 visible zones must form a clean hierarchy (nested or disjoint); partial overlap is a
 render error naming the offending members. Zones are model facts (deployment truth),
 but only render in views where their members are visible.
