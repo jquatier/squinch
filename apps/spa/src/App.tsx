@@ -13,12 +13,9 @@ import { compile, decodeShare, encodeShare, ensureRenderable, svgToPng, type Pre
 import { themes, exportHTML, crumbs as crumbsFor, hop, upView as upViewFor, viewForPath as viewFor } from "@squinch/core/browser";
 import { EXAMPLES } from "./examples";
 
-type Theme = "light" | "dark" | "sketch" | "sketch-dark" | "contrast";
-const THEME_CYCLE: Theme[] = ["light", "dark", "sketch", "sketch-dark", "contrast"];
-const THEME_LABEL: Record<Theme, string> = {
-  light: "Light", dark: "Dark", sketch: "Sketch", "sketch-dark": "Sketch dark",
-  contrast: "Contrast",
-};
+type Theme = "light" | "dark";
+const THEME_CYCLE: Theme[] = ["light", "dark"];
+const THEME_LABEL: Record<Theme, string> = { light: "Light", dark: "Dark" };
 
 const STORAGE_KEY = "squinch:source";
 
@@ -75,8 +72,7 @@ export function App() {
   const debounced = useDebounced(source, 180);
 
   useEffect(() => {
-    // app chrome only knows light/dark; sketch maps to its nearest shade
-    document.documentElement.dataset.theme = theme.includes("dark") ? "dark" : "light";
+    document.documentElement.dataset.theme = theme;
     localStorage.setItem("squinch:theme", theme);
   }, [theme]);
 
@@ -105,8 +101,9 @@ export function App() {
   const shown = preview.svg ?? lastGood;
   // The light half of the adaptive pair for whatever is on screen: the theme
   // itself if it declares a dark counterpart, otherwise the one that declares
-  // *it*. Undefined for contrast, which deliberately has no pair. Read off the
-  // theme table rather than restated here, so adding a pair needs one edit.
+  // *it*. Read off the theme table rather than restated here, so adding a pair
+  // needs one edit — and absent when a theme has neither, which is why the
+  // export button is optional rather than assumed.
   const adaptiveBase = useMemo(
     () =>
       themes[theme]?.pairsWith
@@ -492,7 +489,7 @@ function ExportMenu({
 }: {
   onSvg: () => void;
   onPng: () => void;
-  /** absent when the current theme has no dark counterpart (contrast) */
+  /** absent when the current theme is in no adaptive pair */
   onAdaptive?: () => void;
   onHtml: () => void;
   /** the interactive export renders every view × palette, which takes a beat */

@@ -29,7 +29,7 @@
    semantics (status, `highlight`, flows, async). Provider icons supply the color;
    our chrome stays out of the way.
 6. **Deterministic beauty.** Every rule here produces identical pixels from identical
-   input — including the sketch theme (see §7).
+   input.
 
 ## 2. Tokens
 
@@ -64,8 +64,8 @@
   **node badge** (`badge:`) sits on the plate's bottom-right corner: `22×22`
   plate, radius 5, surface fill + border stroke, holding a `14×14` mark in its
   own brand colour. It is inset so it clears the card's edge by 5 — the plate,
-  not the card, is what it belongs to. Plain in every theme, including sketch:
-  roughness stops at a plate edge, and a wobbled trademark is worse than none.
+  not the card, is what it belongs to. A trademark is never restyled by a theme:
+  the plate is quiet chrome, the mark is the vendor's own colour.
   Three things in this language are called badges and they are distinct: a
   **card glyph** is the identity of a collapsed system, a **flow badge** is a
   step number on an edge, a **node badge** is whose platform a leaf belongs to.
@@ -75,7 +75,7 @@
   someone else's system — takes a hatched surface
   variant, on a leaf node the same way: a texture rather than a colour, since
   colour is already spoken for (accent = subject, muted = scenery, zone tints =
-  boundary) and the hatch has to survive `contrast` and print. The pattern is
+  boundary) and the hatch has to survive print and a colour-blind reader. The pattern is
   emitted only where one is used, so a diagram with no external node renders
   byte-for-byte as it did before the variant existed.
   The accent bar on a *live* card carries the brand ramp off the Squinch mark —
@@ -138,9 +138,8 @@
   the line. Never docked to a pill's side without regard for where the wire is —
   that is how a badge ends up reading as the neighbouring edge's number
   (`docs/notes/edge-labels.md`).
-- **Notes**: sticky-chip styling — `surface` bg, `warn`-tinted variant, 11px, max
-  width `200`, connector leader line (dotted, 1px) to their anchor. In sketch theme
-  they render genuinely hand-written.
+- **Notes**: `surface` bg, `warn`-tinted variant, 11px, max
+  width `200`, connector leader line (dotted, 1px) to their anchor.
   Placement: the anchor's own side, sliding along it past every obstacle (nodes,
   pills, chips, badges, the footer band, notes already placed) before standing
   further off; a corner note hugs its corner and grows the canvas rather than
@@ -152,22 +151,24 @@
 
 Every theme is the full token set of §2 — never a palette swap on top of light.
 
-- **`light` / `dark`** (v1, flagship): near-neutral surfaces, restrained accent,
-  AAA-contrast ink. Dark is designed, not inverted: icon plates lighten, borders
-  drop contrast, canvas is near-black not gray.
-- **`sketch` / `sketch-dark`**: rough.js strokes + a hand-lettered font
-  (bundled, metrics-precomputed like everything else). Roughness/jitter is seeded
-  from `hash(source)` — **deterministically rough**, so the lockfile model holds.
-- **`blueprint`** (v2): white-on-Prussian-blue monoline, mono glyphs only, grid dots.
-- **`contrast`**: WCAG-first; encodes async/status with dash patterns and
-  markers, never color alone (this rule actually applies to *all* themes: color is
-  reinforcement, shape/pattern is the encoding).
+- **`light` / `dark`** — the shipping pair, and the whole set. Near-neutral
+  surfaces, restrained accent, AAA-contrast ink. Dark is designed, not inverted:
+  icon plates lighten, borders drop contrast, canvas is near-black not gray.
+- Meaning never rests on hue: async is dashed with an open chevron, context is
+  dashed, zones are dashed and kind-tinted, boundary crossings change colour
+  *and* keep their pattern. Colour is reinforcement; shape and pattern are the
+  encoding. That rule is what made a dedicated high-contrast theme redundant.
+- Retired with the docs/design restyle (2026-08): `sketch` / `sketch-dark`
+  (rough.js + hand-lettered Caveat) and `contrast` (WCAG-first). The restyle's
+  card anatomy — gradient ramps, contact shadows, stacked sheets, the segmented
+  chip grammar — has no hand-drawn or pure-black translation, and three
+  unreviewed palettes riding every geometry change cost more than they returned.
+  A new theme is a design exercise against docs/design, not a token swap.
 
 ## 7. Design references
 
 Study: Stripe docs diagrams (restraint, edge craft), AWS official reference
-architectures (zone framing, icon discipline), Excalidraw (why sketch charms:
-font + jitter + muted palette), Linear (geometry, spacing rhythm), Vercel/Geist
+architectures (zone framing, icon discipline), Linear (geometry, spacing rhythm), Vercel/Geist
 docs (typography in technical drawings), Railway's canvas (dark-theme depth).
 Failure modes to design against, wherever they appear: auto-fit box sizing (the
 ransom-note effect), unmanaged edge crossings and spline chaos, container soup at

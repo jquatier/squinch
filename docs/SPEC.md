@@ -283,7 +283,7 @@ view shop {
 Notes are view-level commentary (never model facts): anchored relative to a node
 (`right-of`/`left-of`/`above`/`below`), to an edge (`on a -> b`), or to a canvas
 corner (`top-left`…`bottom-right`) — the no-coordinates principle applies to notes
-too. Themes style them as callouts; the sketch theme renders them handwritten.
+too. Themes style them as callouts.
 
 - Every `system`/`container` gets an auto-generated default view (`view <path>`), so
   double-click-to-zoom always works even with zero `view` blocks written. Declaring
@@ -437,12 +437,12 @@ expose api, db               // [v2] this file's public surface for importers
 
 Missing pack/icon never fails a render: placeholder box + warning diagnostic.
 
-Themes come in pairs that can share one file. `light`/`dark` and
-`sketch`/`sketch-dark` each draw the same geometry — a pair must share a font,
-because type metrics drive layout — so a render can carry both palettes and let
-`prefers-color-scheme` choose (`squinch render --adaptive`). `contrast` has no pair by
-design: it is a deliberate accessibility choice, not a default for the reader's
-OS to swap out from under them.
+Themes come in pairs that can share one file. `light`/`dark` draw the same
+geometry — a pair must share a font, because type metrics drive layout — so a
+render can carry both palettes and let `prefers-color-scheme` choose (`squinch
+render --adaptive`). `dark` is the counterpart, not a base: an adaptive file is
+a light render carrying a dark override, so `--adaptive --theme dark` is a
+check error naming the themes that do pair.
 
 ## 8. Grammar sketch (informal EBNF)
 

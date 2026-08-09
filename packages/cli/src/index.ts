@@ -43,7 +43,7 @@ Render options
   --view <name>     view to render (default: first)
   --theme <name>    ${Object.keys(themes).join(" | ")} (default: view's theme)
   --adaptive        one SVG carrying both palettes, switched by the reader's
-                    prefers-color-scheme (light or sketch; svg only)
+                    prefers-color-scheme (svg only)
   -o <file>         output path (default: stdout; .png rasterizes,
                     .html builds the interactive export)
   --format <fmt>    svg | png | html (default: inferred from -o)

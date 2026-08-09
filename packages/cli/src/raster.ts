@@ -16,7 +16,7 @@ import { Resvg } from "@resvg/resvg-js";
 const require = createRequire(import.meta.url);
 
 /** The sfnt twins of the embedded woff2 faces, emitted by core's gen-fonts. */
-const FACES = ["inter-400", "inter-500", "caveat-400", "caveat-500"];
+const FACES = ["inter-400", "inter-500"];
 
 let fontFiles: string[] | undefined;
 function faces(): string[] {

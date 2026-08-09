@@ -38,17 +38,6 @@ export function diffProjects(before: ProjectFile[], after: ProjectFile[]) {
   return diffModels(buildProject(before).model, buildProject(after).model);
 }
 
-// FNV-1a over the project source — the sketch themes' jitter seed. Any edit
-// to any file re-rolls every wobble; identical input wobbles identically.
-function fnv1a(s: string): number {
-  let h = 0x811c9dc5;
-  for (let i = 0; i < s.length; i++) {
-    h ^= s.charCodeAt(i);
-    h = Math.imul(h, 0x01000193);
-  }
-  return h >>> 0;
-}
-
 /** Every icon a source references — preload these before rendering in a browser. */
 export function iconsUsedBy(files: ProjectFile[] | string): { pack: string; id: string }[] {
   const project = typeof files === "string" ? [{ name: "input", src: files }] : files;
@@ -165,9 +154,10 @@ export async function renderProject(
     defsScope?: string;
   } = {},
 ): Promise<RenderResult> {
-  // Normalized here as well as inside buildProject, because the sketch seed
-  // below hashes the source text directly: a CRLF checkout would otherwise
-  // render the same diagram with different jitter (model/source.ts).
+  // Normalized here as well as inside buildProject: this is a public entry
+  // point, so anything it derives from the source text — today the model, and
+  // whatever a later render option reads — sees LF regardless of how the file
+  // was checked out (model/source.ts). Idempotent, so the second pass is free.
   const files = normalizeFiles(input);
   const built: BuildResult = buildProject(files);
   if (!built.ok) return { diagnostics: built.diagnostics, ok: false };
@@ -250,8 +240,6 @@ export async function renderProject(
       flowStep: opts.flowStep,
       collectDefs: opts.collectDefs,
       defsScope: opts.defsScope,
-      // sketch jitter is a pure function of the source text (never randomness)
-      seed: fnv1a(files.map((f) => f.src).join("\u0000")),
     });
 
   let svg = draw(theme);

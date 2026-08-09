@@ -2,7 +2,7 @@
 // layout never asks the environment how wide text is). Browser-safe.
 import { METRICS } from "./metrics.generated.js";
 
-export type FontFamily = "inter" | "caveat";
+export type FontFamily = "inter";
 
 export function measure(
   text: string,

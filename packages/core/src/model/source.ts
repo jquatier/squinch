@@ -1,11 +1,15 @@
 // Line endings are an *input* invariant, not only an output one.
 //
 // The determinism contract is: same (source, packs, theme, tool version) →
-// byte-identical SVG. A `.squinch` file checked out on Windows arrives CRLF,
-// and the sketch theme's jitter is seeded from `hash(source)` — so without
-// normalization the same diagram renders with different wobble on Windows than
-// on macOS, and the contract is quietly false. The grammar itself already skips
-// `\r`, which is exactly why the bug would have been invisible.
+// byte-identical SVG. A `.squinch` file checked out on Windows arrives CRLF.
+// The grammar itself skips `\r`, so nothing *fails* — which is precisely the
+// danger: anything downstream that reads the source text rather than the parse
+// tree sees a different string on Windows and quietly renders a different file.
+// The sketch theme was the first such reader (its jitter hashed the source, so
+// a CRLF checkout wobbled differently); it is gone, and the rule outlives it —
+// labels, descriptions and titleblock values are all source text that reaches
+// the SVG verbatim, and a host mapping `Loc` offsets back into its own buffer
+// depends on the same normalization.
 //
 // This is the ONE place source line endings are normalized. It is applied at
 // core's two entry points (`buildProject` and `renderProject`) rather than in

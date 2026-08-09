@@ -1,13 +1,10 @@
 // Positioned + Theme (+ view annotations) → deterministic SVG string.
-// DESIGN.md-lite; integers, LF, fixed attribute order — the string is the
-// artifact under byte-identity tests. Sketch themes swap crisp strokes for
-// seeded rough.js paths and hand-lettered type; light/dark output is
-// byte-for-byte what it was before sketch existed.
+// Integers, LF, fixed attribute order — the string is the artifact under
+// byte-identity tests.
 import { fit, measure, wrapText, type FontFamily } from "../metrics.js";
 import { FONTS } from "../fonts.generated.js";
 import { iconMeta, packMonochrome, packFullBleed } from "../model/packs.js";
 import { iconAsset, symbolId } from "../packs/registry.js";
-import { makeSketcher, type Sketcher } from "./sketch.js";
 import type { Theme } from "../themes/index.js";
 import { pillDims } from "../layout/layout.js";
 import type { Positioned, PEdge, PNode, PZone } from "../layout/layout.js";
@@ -44,9 +41,6 @@ export interface RenderOpts {
    *  sandboxed contexts like GitHub's <img>. Off = smaller output for hosts
    *  that already serve the fonts. */
   embedFonts?: boolean;
-  /** Sketch-theme jitter seed — hash(source), threaded in by the API so
-   *  roughness is a pure function of the input (never randomness). */
-  seed?: number;
   /** Reveal this many hops of a `show flow`, dimming everything the request has
    *  not reached yet and picking out the current one. A viewer concern — the
    *  DSL declares the flow, the presenter walks it — so it lives here and not
@@ -109,12 +103,11 @@ const accentGradient = () =>
   `<stop offset="0" stop-color="#C441FE"/><stop offset="1" stop-color="#15B6FF"/>` +
   `</linearGradient>`;
 
-/** Everything the emitters need beyond geometry: theme, type, jitter. */
+/** Everything the emitters need beyond geometry: theme and type. */
 interface RC {
   t: Theme;
   fam: FontFamily;
-  fx: (px: number) => number; // theme-scaled font size (sketch type runs larger)
-  sk: Sketcher | null;
+  fx: (px: number) => number; // theme-scaled font size
   /** `sq-hatch`, plus the document scope when one is set */
   hatch: string;
   /** when present, id-bearing defs go here instead of into this SVG */
@@ -130,26 +123,20 @@ export function fontFaceCSS(t: Theme): string {
   const cssFamily = t.font.css.split(",")[0];
   const face = (w: "400" | "500") =>
     `@font-face{font-family:${cssFamily};font-style:normal;font-weight:${w};` +
-    `src:url(data:font/woff2;base64,${FONTS[t.font.metrics][w]}) format("woff2")}`;
+    `src:url(data:font/woff2;base64,${FONTS[t.font.metrics][w]!}) format("woff2")}`;
   return `${face("400")}${face("500")}`;
 }
 function fontDefs(t: Theme): string {
   return `<style>${fontFaceCSS(t)}</style>`;
 }
 
-/** Crisp fill + theme-appropriate stroke: one rect in light/dark, a fill rect
- *  under a seeded rough outline in sketch. `extra` lands on the stroke. */
+/** Crisp fill + stroke in one rect. `extra` lands on the same element. */
 function box(
-  rc: RC,
+  _rc: RC,
   x: number, y: number, w: number, h: number, rx: number,
   fill: string, stroke: string, strokeW: number, extra = "",
 ): string {
-  if (!rc.sk)
-    return `<rect x="${x}" y="${y}" width="${w}" height="${h}" rx="${rx}" fill="${fill}" stroke="${stroke}" stroke-width="${strokeW}"${extra}/>`;
-  return (
-    `<rect x="${x}" y="${y}" width="${w}" height="${h}" rx="2" fill="${fill}"/>` +
-    `<path d="${rc.sk.rect(x, y, w, h, { roughness: w < 80 ? 0.6 : undefined, multi: w >= 80 })}" fill="none" stroke="${stroke}" stroke-width="${strokeW}" stroke-linecap="round"${extra}/>`
-  );
+  return `<rect x="${x}" y="${y}" width="${w}" height="${h}" rx="${rx}" fill="${fill}" stroke="${stroke}" stroke-width="${strokeW}"${extra}/>`;
 }
 
 /** A vendor mark on the icon plate's corner (`badge:`, SPEC §nodes) — a 22px
@@ -158,9 +145,9 @@ function box(
  *
  *  Deliberately NOT iconPlate: the logos pack is monochrome, and iconPlate's
  *  monochrome branch draws a brand-coloured plate with a white knockout — the
- *  inverse of this treatment. Here the plate is quiet (surface + border, plain
- *  even in sketch, same "roughness stops at the plate" rule) and the mark
- *  carries its own brand colour from the pack manifest. Colour-pack artwork
+ *  inverse of this treatment. Here the plate is quiet (surface + border) and
+ *  the mark carries its own brand colour from the pack manifest. Colour-pack
+ *  artwork
  *  falls back to the same clip treatment iconPlate uses.
  */
 function badgeMarkup(
@@ -682,10 +669,7 @@ function chipMarkup(c: Positioned["chips"][number], p: Positioned, rc: RC, t: Th
   // halo first: a canvas knockout 3px proud of the chip, so any edge the chip
   // must sit over reads as deliberately interrupted, never collided-with
   const halo = `<rect x="${c.x - 3}" y="${c.y - 3}" width="${c.w + 6}" height="${c.h + 6}" rx="4" fill="${t.canvas}"/>`;
-  const chip = rc.sk
-    ? `<rect x="${c.x}" y="${c.y}" width="${c.w}" height="${c.h}" rx="2" fill="${t.canvas}"/>` +
-      `<path d="${rc.sk.rect(c.x, c.y, c.w, c.h, { roughness: 0.6, multi: false })}" fill="none" stroke="${col}" stroke-width="1"/>`
-    : `<rect x="${c.x}" y="${c.y}" width="${c.w}" height="${c.h}" rx="3" fill="${t.canvas}" stroke="${col}" stroke-width="1"/>`;
+  const chip = `<rect x="${c.x}" y="${c.y}" width="${c.w}" height="${c.h}" rx="3" fill="${t.canvas}" stroke="${col}" stroke-width="1"/>`;
   // the icon is a flush, full-height tab on the chip's left edge — the AWS
   // boundary-label convention — never a padded thumbnail floating in the pill.
   // Full-bleed artwork (k8s) is the exception: drawn edge-to-edge it collides
@@ -758,7 +742,7 @@ function iconDefs(p: Positioned, rc: RC): string {
 }
 
 /** Icon artwork clipped to our plate radius, or a lettered fallback plate.
- *  Always crisp — the AWS art is verbatim; sketch roughness stops at its edge. */
+ *  The pack art is verbatim — nothing here recolours or restyles it. */
 function iconPlate(
   icon: { pack: string; id: string } | undefined,
   x: number, y: number, size: number, rc: RC, soften = false,
@@ -807,7 +791,6 @@ export function renderSVG(p: Positioned, t: Theme, opts: RenderOpts = {}): strin
     t,
     fam: t.font.metrics,
     fx: (px) => Math.round(px * t.font.scale),
-    sk: t.sketch ? makeSketcher(opts.seed ?? 1, t.sketch.roughness, t.sketch.bowing) : null,
     hatch: `${HATCH}${opts.defsScope ?? ""}`,
     collect: opts.collectDefs,
   };
@@ -865,24 +848,16 @@ export function renderSVG(p: Positioned, t: Theme, opts: RenderOpts = {}): strin
   const zoneMarkup = (z: PZone): string => {
     const col = zoneColor(z, t);
     const dash = ` stroke-dasharray="8 5"`;
-    const boundary = rc.sk
-      ? `<rect x="${z.x}" y="${z.y}" width="${z.w}" height="${z.h}" rx="2" fill="${col}" fill-opacity="0.04"/>` +
-        `<path d="${rc.sk.rect(z.x, z.y, z.w, z.h, { multi: false })}" fill="none" stroke="${col}" stroke-width="1.5"${dash} stroke-linecap="round"/>`
-      : `<rect x="${z.x}" y="${z.y}" width="${z.w}" height="${z.h}" rx="8" fill="${col}" fill-opacity="0.04" stroke="${col}" stroke-width="1.5"${dash}/>`;
+    const boundary = `<rect x="${z.x}" y="${z.y}" width="${z.w}" height="${z.h}" rx="8" fill="${col}" fill-opacity="0.04" stroke="${col}" stroke-width="1.5"${dash}/>`;
     return `<g data-kind="zone" data-zone="${esc(z.id)}" data-zone-kind="${z.kind}">${boundary}</g>`;
   };
   for (const z of [...(p.zones ?? [])].sort((a, b) => a.depth - b.depth)) body.push(zoneMarkup(z));
 
   // container frames first — recessed surface behind everything (DESIGN §5)
   for (const f of p.frames) {
-    if (rc.sk) {
-      body.push(`<g data-path="${esc(f.path)}" data-kind="frame">` +
-        box(rc, f.x, f.y, f.w, f.h, 8, t.surfaceAlt, t.border, 1) + `</g>`);
-    } else {
-      body.push(
-        `<rect data-path="${esc(f.path)}" data-kind="frame" x="${f.x}" y="${f.y}" width="${f.w}" height="${f.h}" rx="8" fill="${t.surfaceAlt}" stroke="${t.border}" stroke-width="1"/>`,
-      );
-    }
+    body.push(
+      `<rect data-path="${esc(f.path)}" data-kind="frame" x="${f.x}" y="${f.y}" width="${f.w}" height="${f.h}" rx="8" fill="${t.surfaceAlt}" stroke="${t.border}" stroke-width="1"/>`,
+    );
     body.push(
       `<text x="${f.x + 14}" y="${f.y + 24}" font-size="${rc.fx(13)}" font-weight="500" fill="${t.muted}">${esc(f.label)}</text>`,
     );
@@ -919,15 +894,13 @@ export function renderSVG(p: Positioned, t: Theme, opts: RenderOpts = {}): strin
     for (const run of runs) {
       const d = edgePath(run, p.lines);
       body.push(
-        `<path${anim} d="${rc.sk ? rc.sk.path(d) : d}" fill="none" stroke="${col}" stroke-width="${weight}"${dash}${rc.sk ? ` stroke-linecap="round"` : ""}/>`,
+        `<path${anim} d="${d}" fill="none" stroke="${col}" stroke-width="${weight}"${dash}/>`,
       );
     }
     if (e.animate === "comet") {
       // The dot rides the *unsplit* route. Hop splitting exists to break the
       // stroke where two edges cross; the traveller has no such problem, and a
-      // dot sailing over the gap is what a reader expects. Same reason the
-      // sketch theme gets the ideal path rather than the roughened one — the
-      // wobble is the drawing, not the road.
+      // dot sailing over the gap is what a reader expects.
       const road = edgePath(e.points, p.lines);
       // Constant px/s, like every other animation here — but a comet cannot get
       // it from a shared keyframe, so the duration carries it: len ÷ speed.

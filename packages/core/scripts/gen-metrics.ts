@@ -21,7 +21,6 @@ const REPERTOIRE =
 
 const FAMILIES: Record<string, string> = {
   inter: "@fontsource/inter/files/inter-latin-WEIGHT-normal.woff2",
-  caveat: "@fontsource/caveat/files/caveat-latin-WEIGHT-normal.woff2",
 };
 
 const table: Record<string, Record<string, { advances: Record<string, number>; fallback: number }>> = {};

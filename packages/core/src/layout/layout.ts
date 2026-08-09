@@ -99,9 +99,11 @@ export interface Positioned {
   noteBoxes?: Map<number, { x: number; y: number; w: number; h: number }>;
 }
 
-// Node width depends on the theme's font (sketch measures hand-lettered
-// Caveat at its own scale) — the theme is a determinism input, so this is
-// still a pure function of (source, theme).
+// Node width depends on the theme's font — the theme is a determinism input,
+// so this is still a pure function of (source, theme). Both shipping themes
+// use Inter at scale 1, so the parameter is currently constant; it stays
+// because a theme that changed the face would change every node's width, and
+// that dependency should be visible in the signature rather than assumed away.
 const INTER: Pick<ThemeFont, "metrics" | "scale"> = { metrics: "inter", scale: 1 };
 
 function sizeOf(n: VNode, font: Pick<ThemeFont, "metrics" | "scale">): { w: number; h: number } {

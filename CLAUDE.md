@@ -22,12 +22,13 @@ extension all ship (see §Current phase).
 - **Determinism**: same (source, packs, theme, tool version) → byte-identical SVG,
   **across platforms, not just across runs** — CI byte-compares the goldens on
   macOS, Linux and Windows. No `Date.now`/`Math.random` in the render path;
-  sketch-theme roughness is seeded from `hash(source)`; emitted SVG always uses
-  LF; exported SVG never contains JS (animations are CSS keyframes at constant
-  px/s).
+  emitted SVG always uses LF; exported SVG never contains JS (animations are CSS
+  keyframes at constant px/s).
 - **LF is an *input* invariant too.** A `.squinch` file checked out on Windows
-  arrives CRLF, and because the seed above hashes the source text, that rendered
-  the same diagram with different jitter. Line endings are normalized in exactly
+  arrives CRLF, and source text reaches the SVG verbatim through labels,
+  descriptions and titleblock values. (The first victim was the sketch theme,
+  whose jitter hashed the source; it is gone, the rule is not.) Line endings are
+  normalized in exactly
   one place — `normalizeSource` in `src/model/source.ts`, applied at the top of
   `buildProject` *and* `renderProject` (the second because the seed is computed
   there, past the first). Do not normalize anywhere else. A host that maps core's

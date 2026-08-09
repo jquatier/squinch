@@ -54,7 +54,7 @@ system s "S" {
 
   it("stays deterministic and valid in every theme", async () => {
     const src = `pack logos\nsystem s "S" {\n k = logos/kafka "Kafka"\n}\n`;
-    for (const theme of ["light", "dark", "sketch", "contrast"]) {
+    for (const theme of ["light", "dark"]) {
       const a = await render(src, { theme });
       const b = await render(src, { theme });
       expect(a.ok, theme).toBe(true);

@@ -82,10 +82,7 @@
           "type": "string",
           "enum": [
             "light",
-            "dark",
-            "sketch",
-            "sketch-dark",
-            "contrast"
+            "dark"
           ],
           "default": "light",
           "description": "Theme used for the live preview."

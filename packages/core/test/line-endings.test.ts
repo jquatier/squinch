@@ -1,11 +1,13 @@
 // LF is an input invariant, not only an output one.
 //
 // A `.squinch` file checked out on Windows arrives CRLF. The grammar skips
-// `\r`, so it parses fine — which is why the real bug was invisible: the sketch
-// themes seed their jitter from `hash(source)`, so CRLF source rendered the
-// same diagram with *different wobble*. The determinism contract says same
+// `\r`, so it parses fine — which is why the original bug was invisible: the
+// sketch theme seeded its jitter from `hash(source)`, so CRLF source rendered
+// the same diagram with *different wobble*. The determinism contract says same
 // (source, packs, theme, tool version) → byte-identical SVG, and that was
-// quietly false across platforms.
+// quietly false across platforms. That theme is gone; the invariant is not,
+// because source text still reaches the SVG verbatim through every label,
+// description and titleblock value.
 //
 // These tests are the only coverage for a *user's* CRLF repo. Windows CI cannot
 // provide it: this repo's own .gitattributes gives that runner an LF tree.
@@ -29,9 +31,7 @@ describe("CRLF source is the same source", () => {
     expect(normalizeSource(lf)).toBe(lf);
   });
 
-  // light first: proves the plain path, and would fail loudly if normalization
-  // were dropped from buildProject rather than only from the seed.
-  it.each(["light", "sketch"])("renders byte-identically in %s", async (theme) => {
+  it.each(["light", "dark"])("renders byte-identically in %s", async (theme) => {
     const a = await render(lf, { theme });
     const b = await render(crlf, { theme });
     expect(a.ok && b.ok).toBe(true);
@@ -48,7 +48,7 @@ describe("CRLF source is the same source", () => {
   });
 
   it("never lets a CR reach the output", async () => {
-    const r = await render(crlf, { theme: "sketch" });
+    const r = await render(crlf, { theme: "dark" });
     expect(r.svg!.includes("\r")).toBe(false);
   });
 });

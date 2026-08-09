@@ -1,6 +1,6 @@
 // Theme tokens are a contract (DESIGN §2/§6), so they get checked rather than
-// eyeballed: every theme defines every role, and `contrast` actually meets the
-// WCAG bar it claims.
+// eyeballed: every theme defines every role, and both shipping themes meet the
+// contrast bar their palettes claim.
 import { describe, it, expect } from "vitest";
 import { themes, type Theme } from "../src/index.js";
 
@@ -28,19 +28,12 @@ describe("themes", () => {
         expect(String(t[role]), `${name}.${String(role)}`).toMatch(/^#[0-9A-Fa-f]{6}$/);
   });
 
-  it("the contrast theme clears AAA for text and 3:1 for structure", () => {
-    const t = themes.contrast;
-    // body and label text: AAA is 7:1
-    expect(ratio(t.ink, t.canvas)).toBeGreaterThanOrEqual(7);
-    expect(ratio(t.muted, t.canvas)).toBeGreaterThanOrEqual(7);
-    expect(ratio(t.ink, t.surface)).toBeGreaterThanOrEqual(7);
-    expect(ratio(t.ink, t.surfaceAlt)).toBeGreaterThanOrEqual(7);
-    expect(ratio(t.ink, t.warnTint)).toBeGreaterThanOrEqual(7);
-    expect(ratio(t.plateText, t.accent)).toBeGreaterThanOrEqual(7);
-    // structural strokes: non-text UI needs 3:1
-    for (const role of ["border", "edge", "asyncEdge", "accent",
-                        "zoneAccount", "zoneNetwork", "zoneCloud", "zoneNeutral"] as const)
-      expect(ratio(t[role], t.canvas), role).toBeGreaterThanOrEqual(3);
+  it("ships exactly the designed pair — a palette is never added by swap", () => {
+    // The sketch/sketch-dark/contrast themes were retired with the docs/design
+    // restyle: its card anatomy has no hand-drawn or pure-black translation,
+    // and an unreviewed palette riding along on every geometry change is a
+    // cost with no reader. A new theme is a design exercise, not a token dump.
+    expect(Object.keys(themes).sort()).toEqual(["dark", "light"]);
   });
 
   it("the flagship light theme keeps AA for its text", () => {

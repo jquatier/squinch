@@ -86,26 +86,14 @@ describe("adaptive SVG", () => {
   });
 
   it("refuses a theme with no dark counterpart, and says which have one", async () => {
-    const r = await render(SRC, { theme: "contrast", adaptive: true });
+    // `dark` is the counterpart, not a pairable base: an adaptive file is a
+    // light render carrying a dark override, so asking dark to pair has no
+    // answer. The fix names every theme that does.
+    const r = await render(SRC, { theme: "dark", adaptive: true });
     expect(r.ok).toBe(false);
     const [d] = r.diagnostics;
     expect(d.message).toContain("no dark counterpart");
     expect(d.fix).toContain("light");
-    expect(d.fix).toContain("sketch");
-  });
-
-  it("pairs sketch with sketch-dark", async () => {
-    const r = await render(SRC, { theme: "sketch", adaptive: true });
-    expect(r.ok).toBe(true);
-    expect(r.svg).toContain("@media (prefers-color-scheme: dark)");
-  });
-
-  it("rejects a pair that did not draw the same diagram", async () => {
-    // Cross-font pairing is the real hazard: type metrics drive layout, so the
-    // dark half would be a different picture wearing the light one's geometry.
-    const a = (await render(SRC, { theme: "light" })).svg!;
-    const b = (await render(SRC, { theme: "sketch" })).svg!;
-    expect(() => mergeAdaptive(a, b)).toThrow(AdaptivePairError);
   });
 
   it("rejects a pair that disagrees about geometry rather than colour", async () => {
@@ -116,6 +104,18 @@ describe("adaptive SVG", () => {
     );
     expect(b).not.toBe((await render(SRC, { theme: "dark" })).svg!); // the mutation landed
     expect(() => mergeAdaptive(a, b)).toThrow(/geometry rather than colour/);
+  });
+
+  it("rejects a pair that did not draw the same diagram", async () => {
+    // The hazard the skeleton compare exists for: two renders whose *shapes*
+    // differ, not just their palettes. Cross-font pairing used to supply the
+    // case (type metrics drive layout, so the dark half was a different
+    // picture wearing the light one's geometry); with one font shipping, the
+    // guard is proven by dropping an element instead. Either way `mergeAdaptive`
+    // must refuse rather than silently emit a file that is half one diagram.
+    const a = (await render(SRC, { theme: "light" })).svg!;
+    const b = (await render(SRC, { theme: "dark" })).svg!.replace(/<text[^>]*>[^<]*<\/text>/, "");
+    expect(() => mergeAdaptive(a, b)).toThrow(AdaptivePairError);
   });
 
   it("costs far less than shipping both files", async () => {

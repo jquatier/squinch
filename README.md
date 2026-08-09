@@ -86,7 +86,8 @@ drift — see [examples/microservices](examples/microservices) for the source.
   code it describes, and a ready-made GitHub Action re-renders on every push —
   failing the build when a committed diagram has drifted, so the picture in your
   README is never stale.
-- **Multiple themes.** Light, dark, contrast and sketch.
+- **Light and dark.** Dark is designed, not inverted — and one `--adaptive`
+  file can carry both, switching with the reader's `prefers-color-scheme`.
 
 ## From source to diagram
 
@@ -346,29 +347,22 @@ script: a stylesheet is not code.
 
 ## Themes
 
-Five, and dark is designed rather than inverted — not a palette flipped through
-a filter. The same two nodes, four ways:
+Two, and dark is designed rather than inverted — not a palette flipped through
+a filter. The same two nodes, both ways:
 
 <table>
 <tr>
 <th align="center"><code>light</code></th>
 <th align="center"><code>dark</code></th>
-<th align="center"><code>sketch</code></th>
-<th align="center"><code>sketch-dark</code></th>
 </tr>
 <tr>
 <td align="center"><img alt="The same two-node diagram in the Light theme" src="lookbook/out/01-minimal.tiny.light.svg" width="180"></td>
 <td align="center"><img alt="The same two-node diagram in the Dark theme" src="lookbook/out/01-minimal.tiny.dark.svg" width="180"></td>
-<td align="center"><img alt="The same two-node diagram in the Sketch theme" src="lookbook/out/01-minimal.tiny.sketch.svg" width="180"></td>
-<td align="center"><img alt="The same two-node diagram in the Sketch dark theme" src="lookbook/out/01-minimal.tiny.sketch-dark.svg" width="180"></td>
 </tr>
 </table>
 
-`sketch` is hand-drawn and still perfectly deterministic: the jitter is seeded
-from `hash(source)`, so the same file always produces the same wobble. The fifth
-theme, `contrast`, is WCAG-first — every text pair clears AAA and every
-structural stroke clears 3:1, asserted in tests rather than eyeballed, with
-meaning never resting on hue alone.
+`--adaptive` folds the pair into one file behind `prefers-color-scheme`, so an
+embedded diagram follows the reader's OS without you picking a side.
 
 The [lookbook](lookbook/) renders 30 deliberately awkward cases — dense meshes,
 long labels, deep nesting, coplanar rows — to 82 committed SVGs across the

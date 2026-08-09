@@ -5,20 +5,18 @@
 // what cold agents actually wrote — and asserts the geometry directly rather
 // than through the renderer's string output.
 //
-// Two fonts, not five themes: `layoutView` is a pure function of
-// `(model, view, font)`, and `themes/index.ts` defines exactly two ThemeFonts —
-// `inter` (light/dark/contrast) and `caveat` (sketch/sketch-dark). Sweeping
-// themes would do identical work 2.5× over.
+// One font, not two themes: `layoutView` is a pure function of
+// `(model, view, font)`, and both shipping themes use the same ThemeFont, so
+// sweeping themes would do identical work twice. The list stays a list — a
+// second face means a second geometry, and this sweep is where that gets
+// caught.
 import { describe, it, expect } from "vitest";
 import { buildProject } from "../src/index.js";
 import { layoutView, type Positioned } from "../src/layout/layout.js";
 import { corpus } from "./helpers/corpus.js";
 import { checkLayout, type Ctx } from "./invariants.js";
 
-const FONTS = [
-  { name: "inter", font: { metrics: "inter" as const, scale: 1 } },
-  { name: "caveat", font: { metrics: "caveat" as const, scale: 1.3 } },
-];
+const FONTS = [{ name: "inter", font: { metrics: "inter" as const, scale: 1 } }];
 
 const files = corpus();
 
@@ -27,7 +25,7 @@ describe("geometric invariants over the whole corpus", () => {
     expect(files.length).toBeGreaterThan(40);
   });
 
-  it("every view, in both fonts, is well-formed", async () => {
+  it("every view, in every shipping font, is well-formed", async () => {
     const violations: string[] = [];
     let views = 0;
 
@@ -56,7 +54,9 @@ describe("geometric invariants over the whole corpus", () => {
         }
     }
 
-    expect(views).toBeGreaterThan(200);
+    // ~137 views today, one font. The floor exists so a corpus-discovery bug
+    // cannot turn this sweep into a no-op that still reports green.
+    expect(views).toBeGreaterThan(120);
     expect(violations, `${violations.length} geometric violation(s)`).toEqual([]);
   }, 60_000);
 });

@@ -10,9 +10,9 @@ The smallest useful diagram: one system, a few components, and the connections b
 
 Source: [`cases/01-minimal.squinch`](cases/01-minimal.squinch)
 
-| light | dark | sketch | sketch-dark |
-|---|---|---|---|
-| ![](out/01-minimal.tiny.light.svg) | ![](out/01-minimal.tiny.dark.svg) | ![](out/01-minimal.tiny.sketch.svg) | ![](out/01-minimal.tiny.sketch-dark.svg) |
+| light | dark |
+|---|---|
+| ![](out/01-minimal.tiny.light.svg) | ![](out/01-minimal.tiny.dark.svg) |
 
 ## 02-fan-out
 
@@ -60,9 +60,9 @@ Ten services that all talk to each other. Where wires have to cross, the crossin
 
 Source: [`cases/06-dense-mesh.squinch`](cases/06-dense-mesh.squinch)
 
-| light | dark | sketch | sketch-dark | contrast |
-|---|---|---|---|---|
-| ![](out/06-dense-mesh.mesh.light.svg) | ![](out/06-dense-mesh.mesh.dark.svg) | ![](out/06-dense-mesh.mesh.sketch.svg) | ![](out/06-dense-mesh.mesh.sketch-dark.svg) | ![](out/06-dense-mesh.mesh.contrast.svg) |
+| light | dark |
+|---|---|
+| ![](out/06-dense-mesh.mesh.light.svg) | ![](out/06-dense-mesh.mesh.dark.svg) |
 
 ## 07-nested-frames
 
@@ -80,9 +80,9 @@ The top-level view of an estate: each system is a card, with the people and outs
 
 Source: [`cases/08-landscape.squinch`](cases/08-landscape.squinch)
 
-| light | dark | sketch | sketch-dark |
-|---|---|---|---|
-| ![](out/08-landscape.landscape.light.svg) | ![](out/08-landscape.landscape.dark.svg) | ![](out/08-landscape.landscape.sketch.svg) | ![](out/08-landscape.landscape.sketch-dark.svg) |
+| light | dark |
+|---|---|
+| ![](out/08-landscape.landscape.light.svg) | ![](out/08-landscape.landscape.dark.svg) |
 
 ## 09-coplanar-row
 
@@ -100,9 +100,9 @@ Annotation. `highlight` picks out everything carrying a tag and dims the rest, a
 
 Source: [`cases/10-highlight-notes.squinch`](cases/10-highlight-notes.squinch)
 
-| light | dark | sketch | sketch-dark |
-|---|---|---|---|
-| ![](out/10-highlight-notes.pci.light.svg) | ![](out/10-highlight-notes.pci.dark.svg) | ![](out/10-highlight-notes.pci.sketch.svg) | ![](out/10-highlight-notes.pci.sketch-dark.svg) |
+| light | dark |
+|---|---|
+| ![](out/10-highlight-notes.pci.light.svg) | ![](out/10-highlight-notes.pci.dark.svg) |
 
 ## 11-async-mesh
 
@@ -192,9 +192,9 @@ Source: [`cases/16-legend-titleblock.squinch`](cases/16-legend-titleblock.squinc
 
 Source: [`cases/17-zones.squinch`](cases/17-zones.squinch)
 
-| light | dark | sketch | sketch-dark | contrast |
-|---|---|---|---|---|
-| ![](out/17-zones.landscape.light.svg) | ![](out/17-zones.landscape.dark.svg) | ![](out/17-zones.landscape.sketch.svg) | ![](out/17-zones.landscape.sketch-dark.svg) | ![](out/17-zones.landscape.contrast.svg) |
+| light | dark |
+|---|---|
+| ![](out/17-zones.landscape.light.svg) | ![](out/17-zones.landscape.dark.svg) |
 
 ## 18-flows
 

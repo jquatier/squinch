@@ -17,10 +17,6 @@ rmSync(outDir, { recursive: true, force: true });
 mkdirSync(outDir, { recursive: true });
 
 const THEMES = ["light", "dark"];
-// sketch snapshots on a curated subset (the Caveat embed adds ~110KB per SVG)
-const SKETCH_CASES = new Set(["01-minimal", "06-dense-mesh", "08-landscape", "10-highlight-notes", "17-zones"]);
-// the accessibility theme gets snapshot coverage on a dense, annotated case
-const CONTRAST_CASES = new Set(["06-dense-mesh", "17-zones"]);
 const cases = readdirSync(join(here, "cases")).filter((f) => f.endsWith(".squinch")).sort();
 
 interface Cell {
@@ -80,11 +76,7 @@ for (const file of cases) {
   }
   const explicit = built.model.views.filter((v) => !v.auto);
   const views = (explicit.length ? explicit : built.model.views.slice(0, 1)).map((v) => v.name);
-  const caseThemes = [
-    ...THEMES,
-    ...(SKETCH_CASES.has(caseName) ? ["sketch", "sketch-dark"] : []),
-    ...(CONTRAST_CASES.has(caseName) ? ["contrast"] : []),
-  ];
+  const caseThemes = THEMES;
   for (const view of views) {
     const cell: Cell = { caseName, view, files: {}, description: describe(src) };
     for (const theme of caseThemes) {

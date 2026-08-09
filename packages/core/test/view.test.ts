@@ -280,7 +280,7 @@ view v { scope s }`;
     expect(validateSVG(r.svg!).ok).toBe(true);
   });
 
-  it("keeps its plate crisp in sketch, and survives the adaptive merge", async () => {
+  it("survives the adaptive merge with its brand colour intact", async () => {
     const doc = `pack aws
 system s "S" {
   wh = sys/database "SQL warehouse" { badge: logos/databricks }
@@ -288,12 +288,6 @@ system s "S" {
   wh -> nb
 }
 view v { scope s }`;
-    // sketch roughens boxes but never plates — the badge plate is a plain rect
-    // like the icon plate it sits on, so the mark is never drawn on a wobble.
-    const sk = await render(doc, { theme: "sketch", view: "v" });
-    expect(sk.ok, JSON.stringify(sk.diagnostics)).toBe(true);
-    expect(sk.svg).toMatch(/<rect x="\d+" y="\d+" width="22" height="22" rx="5"/);
-
     // adaptive merges two palettes positionally: the plate's fill/stroke are
     // theme tokens and diverge, the brand colour is identical in both and must
     // survive as a literal rather than being rewritten.
@@ -359,13 +353,14 @@ view v { scope s }`;
     expect(r.svg).toContain(`opacity="0" style="offset-path`);
   });
 
-  it("uses the ideal route in sketch, not the roughened stroke", async () => {
-    const r = await render(doc(), { theme: "sketch", view: "v" });
+  it("rides the unsplit route, not the hop-broken stroke", async () => {
+    // Hop splitting breaks the *stroke* where two edges cross; the traveller
+    // has no such problem, so its road is the whole polyline.
+    const r = await render(doc(), { theme: "light", view: "v" });
     expect(r.ok).toBe(true);
     const path = /offset-path:path\('([^']+)'\)/.exec(r.svg!)![1];
-    // rough.js emits cubics; the road the dot travels has none of them
-    expect(path).not.toContain("C");
     expect(path.startsWith("M ")).toBe(true);
+    expect(path.split("M").length - 1).toBe(1);
   });
 
   it("keeps the duration byte-identical across platforms", async () => {
