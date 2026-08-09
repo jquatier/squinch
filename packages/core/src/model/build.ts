@@ -3,6 +3,7 @@
 // single model namespace: declarations are collected per file, resolution runs
 // across all of them (SPEC §2 "Projects").
 import type { SyntaxNode } from "@lezer/common";
+import { drawable } from "../metrics.js";
 // @ts-ignore generated
 import { parser } from "../grammar/parser.js";
 import { iconExists, packExists, iconIds, allPackNames } from "./packs.js";
@@ -29,6 +30,34 @@ interface Ctx {
 
 export function buildModel(src: string): BuildResult {
   return buildProject([{ name: "input", src }]);
+}
+
+/** Every author-written string that reaches the SVG as text, with where to
+ *  point when something is wrong with it. Labels, descriptions, taglines,
+ *  titles and titleblock values all render verbatim; ids never do. */
+function textsInModel(model: SModel): [string, string, Loc, string | undefined][] {
+  const out: [string, string, Loc, string | undefined][] = [];
+  for (const n of model.nodes.values()) {
+    out.push([`label \`${n.name}\``, n.label, n.loc, n.file]);
+    if (n.description) out.push([`description of \`${n.name}\``, n.description, n.loc, n.file]);
+  }
+  for (const c of model.containers.values()) {
+    if (c.label) out.push([`label \`${c.name}\``, c.label, c.loc, c.file]);
+    const d = c.attrs["description"];
+    if (d) out.push([`description of \`${c.name}\``, d, c.loc, c.file]);
+  }
+  for (const e of model.edges) if (e.label) out.push([`edge label`, e.label, e.loc, e.file]);
+  for (const z of model.zones) {
+    if (z.label) out.push([`zone \`${z.id}\``, z.label, z.loc, z.file]);
+    if (z.detail) out.push([`detail of zone \`${z.id}\``, z.detail, z.loc, z.file]);
+  }
+  for (const v of model.views) {
+    if (v.title) out.push([`title of view \`${v.name}\``, v.title, v.loc, v.file]);
+    for (const [k, val] of Object.entries(v.titleblock ?? {}))
+      out.push([`titleblock \`${k}\``, val, v.loc, v.file]);
+    for (const note of v.notes) out.push([`note`, note.text, v.loc, v.file]);
+  }
+  return out;
 }
 
 export function buildProject(input: ProjectFile[]): BuildResult {
@@ -664,6 +693,30 @@ export function buildProject(input: ProjectFile[]): BuildResult {
       { name: n.file ?? "input" } as Ctx, n.loc,
       `label is ${label.length} characters — it will be cut off`,
       "labels wrap to two lines then ellipsize: shorten it and put the detail in `description:`",
+    );
+  }
+
+  // Text the bundled faces cannot draw. `measure` falls back to an average
+  // advance for an unknown character, so layout stays sane and nothing errors
+  // — but the glyph is not in the subset, so it renders as *nothing*. A
+  // committed lookbook title read "Payments — money path" and drew "Payments
+  // money path" for as long as the em dash sat outside the repertoire, and no
+  // gate noticed, because the SVG was valid and deterministic either way.
+  //
+  // The repertoire covers ASCII plus the punctuation people type; anything
+  // past it (an accented name, a CJK label) is a real limitation of a
+  // subsetted bundle and the author deserves to hear it here rather than find
+  // a hole in the render.
+  const undrawable = (text: string) =>
+    [...new Set([...text])].filter((ch) => ch !== "\n" && !drawable(ch));
+  for (const [where, text, loc, file] of textsInModel(model)) {
+    const missing = undrawable(text);
+    if (!missing.length) continue;
+    warn(
+      { name: file ?? "input" } as Ctx, loc,
+      `${where} uses ${missing.map((c) => `\`${c}\``).join(", ")}, which the bundled font cannot draw`,
+      `it renders as a gap, not a glyph — use an ASCII equivalent, or open an issue to add ` +
+        `${missing.length === 1 ? "it" : "them"} to the subset`,
     );
   }
 

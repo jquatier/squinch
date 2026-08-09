@@ -8,7 +8,7 @@ const ROLES: (keyof Theme)[] = [
   "canvas", "surface", "border", "ink", "muted", "edge", "asyncEdge",
   "plateText", "accent", "beadText", "warnTint", "surfaceAlt",
   "surfaceHi", "surfaceLo", "shelfLine", "plate", "actorLo", "brandPlate",
-  "sheetFill", "sheetBorder",
+  "sheetFill", "sheetBorder", "faint", "dim",
   "zoneAccount", "zoneNetwork", "zoneCloud", "zoneNeutral",
 ];
 

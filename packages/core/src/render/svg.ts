@@ -8,7 +8,7 @@ import { iconAsset, symbolId } from "../packs/registry.js";
 import type { Theme } from "../themes/index.js";
 // SHELF_H is layout's: the shelf is inside the card height it sets, so the
 // strip the renderer fills and the room the card reserves are one number.
-import { pillDims, SHELF_H } from "../layout/layout.js";
+import { pillDims, NOTE_GUTTER, SHELF_H } from "../layout/layout.js";
 import type { Positioned, PEdge, PNode, PZone } from "../layout/layout.js";
 import type { EdgeAnimate, SNote, ZoneColor, ZoneKind } from "../model/types.js";
 
@@ -647,6 +647,24 @@ function card(n: PNode, rc: RC, dimmed: boolean, L: string[]) {
   L.push(`</g>`);
 }
 
+/** The 11px mark a note opens with. It carries the job the amber fill used to
+ *  do — "this is commentary, not a diagram object" — without spending a third
+ *  hue on it. An authored `style: warning` keeps its distinction here rather
+ *  than in the plate: same neutral note, a triangle instead of an i, which is
+ *  the difference a reader is scanning for anyway.
+ *
+ *  Drawn from primitives rather than pulled from a pack: a note is chrome, and
+ *  chrome that depended on an installed pack would vanish from a diagram that
+ *  happens not to use one. */
+function noteGlyph(x: number, y: number, warn: boolean, rc: RC): string {
+  const stroke = ` fill="none" stroke="${rc.t.faint}" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"`;
+  return warn
+    ? `<g${stroke}><path d="M${x + 5.5} ${y + 0.6} L${x + 10.8} ${y + 9.9} L${x + 0.2} ${y + 9.9} Z"/>` +
+      `<path d="M${x + 5.5} ${y + 4} L${x + 5.5} ${y + 6.4}"/><path d="M${x + 5.5} ${y + 8.2} L${x + 5.5} ${y + 8.3}"/></g>`
+    : `<g${stroke}><circle cx="${x + 5.5}" cy="${y + 5.5}" r="4.9"/>` +
+      `<path d="M${x + 5.5} ${y + 5} L${x + 5.5} ${y + 8}"/><path d="M${x + 5.5} ${y + 3.2} L${x + 5.5} ${y + 3.3}"/></g>`;
+}
+
 /**
  * Sticky chips with a leader to their anchor (DESIGN §5). Returns the extent of
  * everything drawn, because a note placed relative to a node at the edge of the
@@ -668,7 +686,12 @@ function notes(
     const { x, y, w, h, lines } = n;
     ext.minX = Math.min(ext.minX, x); ext.minY = Math.min(ext.minY, y);
     ext.maxX = Math.max(ext.maxX, x + w); ext.maxY = Math.max(ext.maxY, y + h);
-    const bg = note.style === "warning" ? t.warnTint : t.surface;
+    // One plate for every note. The amber `warning` fill is retired here
+    // (docs/design: the only third hue in a two-hue palette, and it read as a
+    // sticky note stuck onto the diagram rather than as part of it) — and the
+    // distinction it carried moves to the glyph below in the same change, so
+    // an authored `style: warning` is never silently dropped.
+    const warn = note.style === "warning";
     const id = note.anchor.kind === "relpos"
       ? `${note.anchor.relpos}:${note.anchor.target}`
       : note.anchor.kind === "edge"
@@ -677,12 +700,16 @@ function notes(
     L.push(`<g data-note="${esc(id)}">`);
     if (n.leader)
       L.push(
-        `<line x1="${n.leader.x1}" y1="${n.leader.y1}" x2="${n.leader.x2}" y2="${n.leader.y2}" stroke="${t.muted}" stroke-width="1" stroke-dasharray="2 3"/>`,
+        `<line x1="${n.leader.x1}" y1="${n.leader.y1}" x2="${n.leader.x2}" y2="${n.leader.y2}" stroke="${t.border}" stroke-width="1" stroke-dasharray="2 3"/>`,
       );
-    L.push(box(rc, x, y, w, h, 3, bg, t.border, 1));
+    L.push(
+      `<rect x="${x}" y="${y}" width="${w}" height="${h}" rx="4" fill="${t.surface}" ` +
+      `stroke="${t.border}" stroke-width="1" filter="url(#${rc.shadow})"/>`,
+    );
+    L.push(noteGlyph(x + 12, y + 11, warn, rc));
     lines.forEach((line, i) =>
       L.push(
-        `<text x="${x + 12}" y="${y + 17 + i * 15}" font-size="${rc.fx(11)}" fill="${t.ink}">${esc(line)}</text>`,
+        `<text x="${x + 12 + NOTE_GUTTER}" y="${y + 17 + i * 15}" font-size="${rc.fx(11)}" fill="${t.ink}">${esc(line)}</text>`,
       ),
     );
     L.push(`</g>`);
@@ -751,6 +778,21 @@ function legend(p: Positioned, rc: RC, y: number, L: string[]): { h: number; w: 
         `<text x="${x + 12}" y="${cy - 4}" text-anchor="middle" font-size="${rc.fx(9)}" fill="${t.muted}">×n</text>`,
       label: "aggregated",
     });
+  // The two affordances the restyle added, each earned the same way as the
+  // rest: a diagram with no container never explains diving, and one with no
+  // actor never explains the filled tile.
+  if (p.nodes.some((n) => n.kind === "card"))
+    items.push({
+      sample: (x, cy) =>
+        `<rect x="${x + 5}" y="${cy - 5}" width="14" height="10" rx="2" fill="url(#${ACCENT_GRAD})"/>`,
+      label: "dive in",
+    });
+  if (p.nodes.some((n) => n.kind === "person"))
+    items.push({
+      sample: (x, cy) =>
+        `<rect x="${x + 5}" y="${cy - 5}" width="14" height="10" rx="2" fill="${t.plate}" stroke="${t.border}" stroke-width="1"/>`,
+      label: "actor",
+    });
   if (p.nodes.some((n) => n.kind.startsWith("context")))
     items.push({
       sample: (x, cy) => `<rect x="${x + 2}" y="${cy - 7}" width="20" height="14" rx="2" fill="${t.surface}" stroke="${t.border}" stroke-width="1.5" stroke-dasharray="4 3"/>`,
@@ -785,39 +827,93 @@ function legend(p: Positioned, rc: RC, y: number, L: string[]): { h: number; w: 
   return { h: 24, w: x - 24 };
 }
 
-function titleblockDims(rc: RC, title: string | undefined, kv: Record<string, string>, canvasW: number) {
-  const rows = Object.entries(kv);
-  const keyW = Math.max(0, ...rows.map(([k]) => measure(k, rc.fx(11), "400", rc.fam)));
-  const wNeed = Math.max(
-    title ? measure(title, rc.fx(13), "500", rc.fam) : 0,
-    ...rows.map(([, v]) => keyW + 12 + measure(v, rc.fx(11), "400", rc.fam)),
-  );
-  return {
-    rows, keyW,
-    w: Math.min(280, canvasW - 32, Math.round(wNeed) + 24), // never wider than the canvas
-    h: (title ? 24 : 8) + rows.length * 16 + 8,
-  };
+/** Reserved keys the meta chip lays out in a fixed order, each in its own
+ *  segment. Everything else an author writes follows in declaration order —
+ *  nothing is dropped, because a titleblock is free-form by design and the
+ *  corpus already carries `owner` and `status`. */
+const META_ORDER = ["version", "commit", "date"];
+
+/** The header block: name, subtitle, and a segmented meta chip. Top-left,
+ *  where a drawing's identity belongs — it used to sit bottom-right, which put
+ *  the two things a reader needs first (what is this, which version) in the
+ *  last place they look. Returns the band's height so the body can shift. */
+function headerDims(rc: RC, title: string | undefined, kv: Record<string, string>) {
+  if (!title && !Object.keys(kv).length) return { h: 0, segs: [] as [string, string][], chipW: 0 };
+  const known = new Set([...META_ORDER, "subtitle"]);
+  const segs: [string, string][] = [
+    ...META_ORDER.filter((k) => kv[k]).map((k) => [k, kv[k]] as [string, string]),
+    ...Object.entries(kv).filter(([k]) => !known.has(k)),
+  ];
+  // A reserved key's value speaks for itself — `v4.2`, `a41f0c2`, a date. An
+  // arbitrary one does not: `platform` alone says nothing, so `owner platform`
+  // is what goes in the segment. Losing the key would be losing the fact.
+  const segW = (k: string, v: string) =>
+    Math.ceil(measure(v, rc.fx(10.5), k === "commit" ? "400" : "500", k === "commit" ? "mono" : rc.fam)) +
+    (META_ORDER.includes(k) ? 0 : Math.ceil(measure(`${k} `, rc.fx(10.5), "400", rc.fam))) + 14;
+  const chipW = segs.length ? segs.reduce((a, [k, v]) => a + segW(k, v), 0) : 0;
+  const h = (title ? 24 : 0) + (kv.subtitle ? 16 : 0) + (segs.length ? 28 : 0);
+  return { h, segs, chipW };
 }
 
-/** Drafting-style corner block, bottom-right: title row + key/value rows. */
-function titleblock(
-  p: Positioned, rc: RC, y: number, dims: ReturnType<typeof titleblockDims>,
-  title: string | undefined, L: string[],
+function header(
+  rc: RC, x: number, y: number, title: string | undefined, kv: Record<string, string>,
+  dims: ReturnType<typeof headerDims>, L: string[],
 ): void {
   const { t } = rc;
-  const { rows, keyW, w, h } = dims;
-  const x = p.width - w - 16;
-  L.push(box(rc, x, y, w, h, 3, t.surface, t.border, 1));
-  let ty = y + 18;
+  let ty = y;
   if (title) {
-    L.push(`<text x="${x + 12}" y="${ty}" font-size="${rc.fx(13)}" font-weight="500" fill="${t.ink}">${esc(fit(title, w - 24, rc.fx(13), "500", rc.fam))}</text>`);
-    ty += 20;
-  } else ty -= 2;
-  for (const [k, v] of rows) {
-    L.push(`<text x="${x + 12}" y="${ty}" font-size="${rc.fx(11)}" fill="${t.muted}">${esc(k)}</text>`);
-    L.push(`<text x="${x + 12 + Math.round(keyW) + 12}" y="${ty}" font-size="${rc.fx(11)}" fill="${t.ink}">${esc(fit(v, w - 24 - keyW - 12, rc.fx(11), "400", rc.fam))}</text>`);
-    ty += 16;
+    // -.01em: at 19px the default tracking reads loose against the 11.5px
+    // subtitle under it. Negative, so the measured width is an overestimate
+    // and nothing it is fitted against can overflow.
+    ty += 18;
+    L.push(
+      `<text x="${x}" y="${ty}" font-size="${rc.fx(19)}" font-weight="600" letter-spacing="-.01em" fill="${t.ink}">${esc(title)}</text>`,
+    );
+    rc.faces.add("inter:600");
+    ty += 6;
   }
+  if (kv.subtitle) {
+    ty += 12;
+    L.push(
+      `<text x="${x}" y="${ty}" font-size="${rc.fx(11.5)}" fill="${t.muted}">${esc(kv.subtitle)}</text>`,
+    );
+    ty += 4;
+  }
+  if (!dims.segs.length) return;
+  // The meta chip: one hairline-bordered strip, segments in alternating tints
+  // so version / commit / date read as separate facts rather than a sentence.
+  // Clipped to the strip's radius, so a bed at either end takes the corner.
+  ty += 8;
+  const clip = `sq-meta-${dims.chipW}`;
+  L.push(def(rc, clip, `<clipPath id="${clip}"><rect x="0" y="0" width="${dims.chipW}" height="20" rx="3"/></clipPath>`));
+  const inChip: string[] = [];
+  let sx = 0;
+  for (const [i, [k, v]] of dims.segs.entries()) {
+    const mono = k === "commit";
+    const named = !META_ORDER.includes(k);
+    const keyW = named ? Math.ceil(measure(`${k} `, rc.fx(10.5), "400", rc.fam)) : 0;
+    const w = Math.ceil(measure(v, rc.fx(10.5), mono ? "400" : "500", mono ? "mono" : rc.fam)) + keyW + 14;
+    if (i % 2) inChip.push(`<rect x="${sx}" y="0" width="${w}" height="20" fill="${t.plate}"/>`);
+    if (named)
+      inChip.push(
+        `<text x="${sx + 7}" y="14" font-size="${rc.fx(10.5)}" fill="${t.faint}">${esc(k)}</text>`,
+      );
+    // the date is the least urgent of the three reserved facts, and reads so
+    const ink = k === "date" ? t.faint : t.muted;
+    inChip.push(
+      `<text x="${sx + 7 + keyW}" y="14" font-size="${rc.fx(10.5)}"` +
+      (mono ? ` font-family="${MONO_CSS}"` : ` font-weight="500"`) +
+      ` fill="${ink}">${esc(v)}</text>`,
+    );
+    if (mono) rc.faces.add("mono:400");
+    sx += w;
+  }
+  L.push(
+    `<g transform="translate(${x},${ty})">` +
+    `<rect x="0" y="0" width="${dims.chipW}" height="20" rx="3" fill="${t.surface}"/>` +
+    `<g clip-path="url(#${clip})">${inChip.join("")}</g>` +
+    `<rect x="0" y="0" width="${dims.chipW}" height="20" rx="3" fill="none" stroke="${t.border}" stroke-width="1"/></g>`,
+  );
 }
 
 interface Pill {
@@ -1302,6 +1398,10 @@ export function renderSVG(p: Positioned, t: Theme, opts: RenderOpts = {}): strin
   // Grow the canvas to fit, and shift everything right/down when a note went
   // negative, since an SVG cannot draw left of its own origin.
   let padX = 0, padY = 0, width = p.width;
+  // The header sits above everything, so the body shifts down by its height —
+  // the same padY machinery notes already use for a diagram that grew upward.
+  const hd = headerDims(rc, opts.title, opts.titleblock ?? {});
+  const headerH = hd.h ? hd.h + 22 : 0;
   if (opts.notes?.length) {
     // Everything a note must not land on. The legend and titleblock are drawn
     // *after* notes but positioned from the final height, which is circular —
@@ -1315,25 +1415,36 @@ export function renderSVG(p: Positioned, t: Theme, opts: RenderOpts = {}): strin
     height = Math.max(height, Math.ceil(ext.maxY) + (ext.maxY > height ? 8 : 0)) + padY;
   }
 
-  // footer band: legend bottom-left, titleblock bottom-right; the titleblock
-  // drops below the legend when the canvas is too narrow for both
-  if (opts.legend || (opts.titleblock && Object.keys(opts.titleblock).length)) {
-    const bandY = height - 8;
-    const lg = opts.legend ? legend(p, rc, bandY, body) : { h: 0, w: 0 };
+  // Chrome — the header above the diagram, the footer band below it — is drawn
+  // in canvas coordinates, not the body's. The body is translated (a note can
+  // push it right and down), and chrome that rode along would slide with it: a
+  // full-width band starting 8px in, a header 8px off the corner.
+  const chrome: string[] = [];
+  const contentH = height;
+  const wordmark = "squinch";
+  if (headerH) header(rc, 18, 14, opts.title, opts.titleblock ?? {}, hd, chrome);
+
+  let bandH = 0;
+  if (opts.legend || headerH) {
+    const bandY = headerH + contentH;
+    const lg = opts.legend ? legend(p, rc, bandY + 5, chrome) : { h: 0, w: 0 };
+    // +.02em over seven characters is ~1.5px the metrics table cannot see;
+    // reserve it so the mark never sits closer to the edge than intended
+    const markW = Math.ceil(measure(wordmark, rc.fx(10.5), "500", rc.fam)) + 2;
     // A legend wider than the canvas used to clip silently at the right edge;
-    // grow the canvas instead. No existing view trips this (asserted by the
-    // corpus gallery when it landed), so it is a safety net, not a reflow.
-    width = Math.max(width, 16 + lg.w + 16);
-    let bottom = bandY + lg.h;
-    if (opts.titleblock && Object.keys(opts.titleblock).length) {
-      const tb = titleblockDims(rc, opts.title, opts.titleblock, width);
-      const beside = lg.w === 0 || 16 + lg.w + 24 + tb.w + 16 <= width;
-      const ty = beside ? bandY : bottom + 8;
-      titleblock(p, rc, ty, tb, opts.title, body);
-      bottom = Math.max(bottom, ty + tb.h);
-    }
-    if (bottom > bandY) height = bottom + 16;
+    // grow the canvas instead.
+    width = Math.max(width, 18 + lg.w + 24 + markW + 18, headerH ? hd.chipW + 36 : 0);
+    bandH = Math.max(lg.h, 24) + 10;
+    // Unshifted so the band lands *under* the legend already drawn into
+    // `chrome`, and the whole of chrome lands over the body.
+    chrome.unshift(
+      `<rect x="0" y="${bandY}" width="${width}" height="${bandH}" fill="${t.canvas}"/>` +
+      `<line x1="0" y1="${bandY}" x2="${width}" y2="${bandY}" stroke="${t.border}" stroke-width="1"/>` +
+      `<text x="${width - 18}" y="${bandY + Math.round(bandH / 2) + 4}" text-anchor="end" ` +
+      `font-size="${rc.fx(10.5)}" font-weight="500" letter-spacing=".02em" fill="${t.dim}">${wordmark}</text>`,
+    );
   }
+  height = headerH + contentH + bandH;
 
   // A view that resolves to nothing laid out to 0×0, and `<svg width="0">` is
   // not a picture — resvg rejects it outright ("SVG has an invalid size"), so
@@ -1436,9 +1547,10 @@ export function renderSVG(p: Positioned, t: Theme, opts: RenderOpts = {}): strin
   for (const d of inline) if (d) L.push(`<defs>${d}</defs>`);
   const defs = iconDefs(p, rc);
   if (defs) L.push(defs);
-  if (padX || padY) L.push(`<g transform="translate(${padX}, ${padY})">`);
+  if (padX || padY || headerH) L.push(`<g transform="translate(${padX}, ${padY + headerH})">`);
   L.push(...body);
-  if (padX || padY) L.push(`</g>`);
+  if (padX || padY || headerH) L.push(`</g>`);
+  L.push(...chrome);
   L.push(`</svg>`);
   return L.join("\n") + "\n";
 }

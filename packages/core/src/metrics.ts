@@ -10,6 +10,14 @@ export type FontFamily = "inter" | "mono";
  *  lookup below throws rather than silently measuring the wrong face. */
 export type FontWeight = "400" | "500" | "600";
 
+/** Can the bundled subset actually draw this character? `measure` answers a
+ *  different question — it falls back to an average advance so layout never
+ *  breaks — and the gap between the two is where a glyph goes missing from a
+ *  render without anything failing. Space is drawable by definition. */
+export function drawable(ch: string): boolean {
+  return ch === " " || ch in METRICS.inter["400"]!.advances;
+}
+
 export function measure(
   text: string,
   sizePx: number,

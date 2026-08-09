@@ -42,17 +42,31 @@ describe("legend + titleblock", () => {
     expect(noAsync.svg).not.toContain(">async</text>");
   });
 
-  it("titleblock renders title + key/value rows and grows the canvas", async () => {
+  it("draws the title, with or without a titleblock beside it", async () => {
+    // `title` used to render only *inside* the bottom-right titleblock, so a
+    // view that named itself and nothing else drew nothing at all — a
+    // documented gotcha rather than a feature. The header owns the title now,
+    // and a titleblock only adds the meta chip under it.
     const src = `${BASE}\nview s {\n title "Payments — settlement path"\n titleblock {\n  version: "2026-07"\n  status: "draft"\n }\n}`;
     const withTb = await render(src, { theme: "light" });
     const without = await render(`${BASE}\nview s { title "Payments — settlement path" }`, { theme: "light" });
     expect(withTb.ok).toBe(true);
     expect(withTb.svg).toContain("Payments — settlement path");
-    expect(without.svg).not.toContain("Payments — settlement path"); // title alone stays metadata
-    expect(withTb.svg).toContain(">version</text>");
-    expect(withTb.svg).toContain(">2026-07</text>");
+    expect(without.svg).toContain("Payments — settlement path");
     const h = (s: string) => +s.match(/height="(\d+)"/)![1];
     expect(h(withTb.svg!)).toBeGreaterThan(h(without.svg!));
     expect(validateSVG(withTb.svg!).ok).toBe(true);
+  });
+
+  it("keeps an arbitrary key with its value, and lets a reserved one speak alone", async () => {
+    // `2026-07` reads as a version unaided; `draft` alone says nothing, so the
+    // key rides with it. Dropping either would drop the fact.
+    const src = `${BASE}\nview s {\n title "T"\n titleblock {\n  version: "2026-07"\n  status: "draft"\n }\n}`;
+    const r = await render(src, { theme: "light" });
+    expect(r.svg).toContain(">2026-07</text>");
+    expect(r.svg).toContain(">status</text>");
+    expect(r.svg).toContain(">draft</text>");
+    expect(r.svg).not.toContain(">version</text>"); // the value is self-describing
+    expect(validateSVG(r.svg!).ok).toBe(true);
   });
 });

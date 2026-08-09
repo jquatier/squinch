@@ -257,6 +257,9 @@ describe("SKILL.md — diagnostic coverage", () => {
     ", which this view also expands — a view opens one level of depth",
     "is not among the scope's direct children — nothing opens",
     "targets a leaf — only containers open",
+    // The fix names the substitution ("use an ASCII equivalent") and the
+    // escape hatch, which is the bar for this list.
+    ", which the bundled font cannot draw",
   ]);
 
   it("every diagnostic that needs a technique is in the cookbook", () => {

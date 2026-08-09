@@ -41,6 +41,9 @@ const LABEL_GAP = 10;
 /** Zone chip height (docs/design). Shared: the placer reserves it, the
  *  renderer fills it, and the chip straddles its border by half of it. */
 export const CHIP_H = 22;
+/** Room a note reserves for its leading glyph, gutter included. Shared: layout
+ *  wraps text to what is left, the renderer draws the mark in it. */
+export const NOTE_GUTTER = 19;
 /** The pill a label will render as, measured with the layout's font — the
  *  single source of truth shared by the ELK reservation (here) and the
  *  renderer's pill text (svg.ts). If these two ever diverge, the reservation
@@ -674,8 +677,12 @@ export async function layoutView(
   // docs/notes/note-placement.md.
   const noteDims = (text: string) => {
     const fx11 = Math.round(11 * font.scale);
-    const lines = wrapText(text, 176, fx11, font.metrics, 3);
-    const w = Math.round(Math.min(200, Math.max(...lines.map((l) => measure(l, fx11, "400", font.metrics))) + 24));
+    // The text column narrows by the glyph gutter, and the box widens by it:
+    // a note now opens with an 11px mark saying "this is commentary, not a
+    // diagram object" (docs/design), and the room it needs is reserved here
+    // because the renderer draws exactly the box this reserves.
+    const lines = wrapText(text, 176 - NOTE_GUTTER, fx11, font.metrics, 3);
+    const w = Math.round(Math.min(200, Math.max(...lines.map((l) => measure(l, fx11, "400", font.metrics))) + 24 + NOTE_GUTTER));
     return { w, h: lines.length * 15 + 12 };
   };
   const edgeNotes: { i: number; edgeId: string; w: number; h: number }[] = [];

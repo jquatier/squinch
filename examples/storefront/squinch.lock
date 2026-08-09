@@ -1,13 +1,13 @@
 {
   "version": "0.0.0",
   "files": {
-    "storefront.landscape.light.svg": "852039dc7207df37",
-    "storefront.landscape.dark.svg": "4e1fca0f2a9f81d5",
-    "storefront.orders.light.svg": "743cf27ddd6475dc",
-    "storefront.orders.dark.svg": "1e707e8cf391e1e3",
-    "storefront.orders-pci.light.svg": "903393b6f85229e2",
-    "storefront.orders-pci.dark.svg": "277d9e84ba73bf93",
-    "storefront.orders-detail.light.svg": "ec66f2dec85dbe02",
-    "storefront.orders-detail.dark.svg": "6c89c1e2f09763fe"
+    "storefront.landscape.light.svg": "b11ff400f88d30b7",
+    "storefront.landscape.dark.svg": "9bbb813eb57efe1f",
+    "storefront.orders.light.svg": "e537107702f4a5e3",
+    "storefront.orders.dark.svg": "0d34e8e025db816a",
+    "storefront.orders-pci.light.svg": "fd986e62138e595b",
+    "storefront.orders-pci.dark.svg": "a057570fde826731",
+    "storefront.orders-detail.light.svg": "5b4524a0c6f943fd",
+    "storefront.orders-detail.dark.svg": "a84ebf67eb8abe21"
   }
 }

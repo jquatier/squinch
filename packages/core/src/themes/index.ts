@@ -56,6 +56,11 @@ export interface Theme {
    *  than the card's own border and fill: a hint, not a stack of real cards. */
   sheetFill: string;
   sheetBorder: string;
+  /** Dimmer than `muted`: a note's glyph, the title block's date — present,
+   *  but never the thing read first. */
+  faint: string;
+  /** Dimmest tone that still passes as text: the footer wordmark. */
+  dim: string;
   /** The 1px contact shadow under cards, leaves, actors and notes. rgba, not
    *  hex: the alpha is the whole effect, and it must ride `flood-color` for
    *  the adaptive merge to treat it as colour rather than geometry. */
@@ -106,6 +111,8 @@ export const light: Theme = {
   plate: "#EFEFEC",
   actorLo: "#E4E3DE",
   brandPlate: "#EFEFEC",
+  faint: "#8A8880",
+  dim: "#A5A199",
   sheetFill: "#F2F1ED",
   sheetBorder: "#DEDDD6",
   shadow: "rgba(28,28,26,0.06)",
@@ -137,6 +144,8 @@ export const dark: Theme = {
   plate: "#2F2F34",
   actorLo: "#26262A",
   brandPlate: "#FFFFFF",
+  faint: "#7A796F",
+  dim: "#6E6D67",
   sheetFill: "#1D1D20",
   sheetBorder: "#33333A",
   shadow: "rgba(0,0,0,0.5)",

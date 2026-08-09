@@ -13,13 +13,21 @@ import { createRequire } from "node:module";
 const require = createRequire(import.meta.url);
 const fontkit = require("fontkit");
 
-// The repertoire every theme/label can draw from. Anything outside falls back
-// to `fallback` (average advance) in measure() — keep this in sync with what
-// the renderer actually emits (esc() keeps arbitrary text, but labels are
-// overwhelmingly ASCII; ·, × and … are used by the renderer itself).
+// The repertoire every label can draw from — and the subset gen-fonts ships,
+// which is the part that bites: `measure` falls back to an average advance for
+// an unknown character, so layout stays sane, but the *glyph* is simply not in
+// the embedded face and the character renders as nothing at all.
+//
+// A committed lookbook title read "Payments — money path" and drew "Payments
+// money path" for as long as the em dash has been outside this string. So the
+// list covers the punctuation people actually type into a title: dashes,
+// curly quotes an editor substitutes on its own, an arrow, a bullet. The
+// renderer's own ·, × and … are here too. Anything still outside it is caught
+// at check time rather than dropped in silence (model/build.ts).
 const REPERTOIRE =
   "0123456789 !\"#$%&'()*+,-./:;<=>?@ABCDEFGHIJKLMNOPQRSTUVWXYZ[\\]^_`" +
-  "abcdefghijklmnopqrstuvwxyz{|}~·×…";
+  "abcdefghijklmnopqrstuvwxyz{|}~·×…" +
+  "—–‘’“”→←↔•§©®™°±≈≥≤";
 
 // 600 is the title block's display weight; mono 400 sets the chip segments that
 // have to line up digit-for-digit (a commit hash, a CIDR block).
