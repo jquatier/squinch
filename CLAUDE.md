@@ -141,7 +141,7 @@ committed SVGs that CI verifies.
 Everything planned for v1 and v1.1 ships: the engine (grammar → model →
 visibility/lifting → layout → themed SVG), the CLI (check/render/diff/icons/
 init/watch + lockfile model + Actions), the SPA playground, the VS Code
-extension + language server, five icon packs, and five themes. The acceptance
+extension + language server, five icon packs, and the light/dark pair. The acceptance
 bar — an agent producing clean diagrams from prose using only the skill + CLI —
 is certified at **29/29
 by independent cold agents**, most recently at **22/29 clean on the first
@@ -192,6 +192,25 @@ shared layout and merged by walking their attributes **positionally**, never by
 substituting colour literals — pack artwork shares hexes with the theme, so a
 search-and-replace would recolour someone else's trademark. Only themes with the
 same font can pair (`Theme.pairsWith`); type metrics drive layout.
+
+The **docs/design restyle** (2026-08) is the current visual language, and
+`docs/design/README.md` is its source of truth — DESIGN.md §§2-5 were rewritten
+to match and the reference render lives beside it. What it changed, in one
+place: cards are a gradient surface with a contact shadow, a 3px brand spine, a
+40px icon tile, a bordered glyph chip and a 30px shelf (child icons, `+N`, an
+optional `domain:` tag); two stacked sheets sit behind every container, drawn
+outside its group and bleeding into gaps an invariant proves are empty;
+`person` became a real render kind (a filled, borderless actor tile); zones
+lost their fill so nesting cannot compound, and their chips gained a segmented
+grammar with an optional mono `detail:`; notes lost the amber and gained an
+info/warning glyph; the title block moved top-left as a header with a meta
+chip, and the legend joined a full-width footer band with the wordmark. New
+optional attrs: `icon:`/`domain:` on containers, `detail:` on zones, and the
+reserved titleblock keys (`subtitle`, `version`, `commit`, `date`) — none of
+them derived, because a render is a pure function of its source. The sketch and
+contrast themes were retired in the same work: the anatomy has no hand-drawn or
+pure-black translation, and three unreviewed palettes riding every geometry
+change cost more than they returned.
 
 Key architecture, still binding: same-rank edges bypass ELK and use
 our coplanar router; declared ranks are enforced via invisible scaffold edges; an

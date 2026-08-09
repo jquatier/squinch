@@ -37,6 +37,11 @@ renderer — a change to the dive can stale the GIF without touching a single SV
 
 **Regenerate it when any of these move:** node or card styling, the wordmark,
 the theme palettes, the dive constants or easing, or the example the animation
-uses. Commit the GIFs in the same commit as the change that staled them —
+uses. The docs/design restyle (2026-08) hit the first three at once and the
+regeneration surfaced two things a static render never would: the script's own
+breadcrumb caption sat exactly where the renderer now draws a diagram's title
+(moved to the bottom-left, opposite the logo), and its `›` separator drew as a
+blank because that character was outside the font subset — the same class of
+bug the new check-time lint exists to name. Commit the GIFs in the same commit as the change that staled them —
 they are large binaries, and a separate "refresh the gifs" commit is how the
 last two went missing.

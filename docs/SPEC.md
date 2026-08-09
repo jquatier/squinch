@@ -74,6 +74,10 @@ create = aws/lambda "Create Handler" {           // optional attribute block
 }
 ```
 
+Nothing in a titleblock is derived — not the commit, not the date. A render is
+a pure function of its source (SPEC §determinism), so a field that read the
+working tree or the clock would make two renders of one file disagree.
+
 `description` and `tags` are available on **every** node, container, and edge.
 Descriptions render as the card tagline, in hover cards, and inline via a view's
 `show descriptions` toggle. Container tags are inherited by everything inside
@@ -91,7 +95,10 @@ Descriptions render as the card tagline, in hover cards, and inline via a view's
 
 ```squinch
 system shop "Order Service" {
-  glyph:   sys/code           // optional badge on the collapsed card
+  icon:    aws/api-gateway    // the card's own mark; defaults to the first
+                              //   child icon, so a card is never plateless
+  glyph:   sys/code           // kind mark, in a chip at the card's top right
+  domain:  "orders"           // optional ownership tag on the card's shelf
   preview: auto               // none | auto | [api db] — mini-strip of inner icons
 
   api = aws/api-gateway "API Gateway"
@@ -279,9 +286,12 @@ view shop {
   show flow checkout            // ①②③ badges along a declared flow
   legend auto                   // auto | off — legend of the edge styles
                                 // and kinds this view actually uses
-  titleblock {                  // drafting-style corner block
-    version: "2026-07"
-    owner:   team-orders
+  titleblock {                  // the header's meta chip, under the title
+    subtitle: "Landscape view"  // a line under the diagram's name
+    version:  "2026-07"         // version | commit | date are reserved: their
+    commit:   "a41f0c2"         //   values stand alone, and `commit` sets in
+    date:     "7 Aug 2026"      //   mono so hashes line up between diagrams
+    owner:    team-orders       // any other key keeps its key beside its value
   }
 
   note right-of db "Single-table design; see ADR-42"

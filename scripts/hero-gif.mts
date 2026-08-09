@@ -178,10 +178,15 @@ const caption = (crumbs: string[]) => {
   const trail = crumbs
     .map((c, i) =>
       `<tspan fill="${i === crumbs.length - 1 ? T.ink : T.muted}">${c}</tspan>` +
-      (i < crumbs.length - 1 ? `<tspan fill="${T.border}"> › </tspan>` : ""),
+      // `muted`, not `border`: the restyle lightened borders to a hairline
+      // tone, and a separator drawn in it disappeared between the crumbs
+      (i < crumbs.length - 1 ? `<tspan fill="${T.muted}"> › </tspan>` : ""),
     )
     .join("");
-  return `<text x="28" y="42" font-family="Inter" font-size="15" font-weight="500">${trail}</text>`;
+  // Bottom-left, opposite the logo lockup. It used to sit at the top-left,
+  // which is where the renderer now draws a diagram's own title (docs/design
+  // restyle) — two names in one corner, one of them the real thing.
+  return `<text x="28" y="${H - LOGO_BOTTOM - 6}" font-family="Inter" font-size="15" font-weight="500">${trail}</text>`;
 };
 
 /** A pointer, drawn dark on light with a thin light outline so it stays legible

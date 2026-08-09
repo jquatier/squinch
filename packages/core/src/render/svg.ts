@@ -1422,10 +1422,16 @@ export function renderSVG(p: Positioned, t: Theme, opts: RenderOpts = {}): strin
   const chrome: string[] = [];
   const contentH = height;
   const wordmark = "squinch";
-  if (headerH) header(rc, 18, 14, opts.title, opts.titleblock ?? {}, hd, chrome);
+  if (headerH) {
+    header(rc, 18, 14, opts.title, opts.titleblock ?? {}, hd, chrome);
+    width = Math.max(width, hd.chipW + 36);
+  }
 
+  // The band exists to carry the legend; the wordmark rides it. Tying it to
+  // the header instead would put an otherwise-empty strip under any diagram
+  // that merely named itself — a signature looking for a reason to be there.
   let bandH = 0;
-  if (opts.legend || headerH) {
+  if (opts.legend) {
     const bandY = headerH + contentH;
     const lg = opts.legend ? legend(p, rc, bandY + 5, chrome) : { h: 0, w: 0 };
     // +.02em over seven characters is ~1.5px the metrics table cannot see;
@@ -1433,7 +1439,7 @@ export function renderSVG(p: Positioned, t: Theme, opts: RenderOpts = {}): strin
     const markW = Math.ceil(measure(wordmark, rc.fx(10.5), "500", rc.fam)) + 2;
     // A legend wider than the canvas used to clip silently at the right edge;
     // grow the canvas instead.
-    width = Math.max(width, 18 + lg.w + 24 + markW + 18, headerH ? hd.chipW + 36 : 0);
+    width = Math.max(width, 18 + lg.w + 24 + markW + 18);
     bandH = Math.max(lg.h, 24) + 10;
     // Unshifted so the band lands *under* the legend already drawn into
     // `chrome`, and the whole of chrome lands over the body.

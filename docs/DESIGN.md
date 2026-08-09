@@ -34,9 +34,10 @@
 ## 2. Tokens
 
 - **Grid**: base unit `8px`, and it governs the numbers *we* choose: node
-  dimensions (tiers `120/160/200/240` and `200/240/280/320`, heights `64`/`88`),
-  padding, radii, stroke widths, and the `16` minimum edge stub. Positions are
-  ELK's and are whole pixels rather than multiples of 8 — see §1.4.
+  dimensions (tiers `120/160/200/240` and `200/240/280/320`, heights `64` leaf,
+  `96` card, `56` actor), padding, radii, stroke widths, and the `16` minimum
+  edge stub. Positions are ELK's and are whole pixels rather than multiples of
+  8 — see §1.4.
   Two deliberate exceptions, both container paddings, both holding a label
   against a border: zone padding is `28` top / `20` sides, and frame padding is
   `44` top. Each is tuned to seat its label, and rounding them onto the grid only
@@ -44,47 +45,84 @@
   top-heavy; 48 pushes a frame's contents down without moving its title. Where
   the grid and a proportion disagree, the proportion wins; the grid exists to
   serve the drawing, not the reverse.
-- **Radii**: `2 / 4 / 8` (badges / nodes / containers). One scale, no exceptions.
+- **Radii**: `2 / 3 / 4 / 6 / 8` — label pill / chips / notes & leaf plate /
+  icon tile / nodes, cards and zones. A shape's radius says how big it is,
+  which is why a chip and a card never share one.
 - **Strokes**: `1 / 1.5 / 2` (hairline dividers / edges & node borders / emphasis).
   Odd widths get half-pixel alignment (§8).
-- **Type scale**: `11 / 13 / 15` — tagline & badges / node labels / container titles.
-  Weights 450/550 (regular-plus/medium-plus of the bundled font). Labels never bold;
-  hierarchy comes from size + color, not weight shouting.
-- **Color roles** (every theme defines exactly these): `canvas`, `surface`,
-  `surface-1..3` (nesting recession), `border`, `border-strong`, `ink`, `ink-muted`,
-  `accent`, `ok/warn/error`, `dim` (highlight backdrop). Diagrams reference roles,
-  never hex (already a SPEC rule).
+- **Type scale**: `10.5 / 11 / 11.5 / 13 / 15 / 19` — chip segments & wordmark /
+  taglines, pills, shelf / header subtitle / node labels / card titles / the
+  header's diagram name. Weights 400/500, plus 600 for the header name alone.
+  Labels never bold; hierarchy comes from size and colour, not weight shouting.
+  One mono face (IBM Plex Mono 400) exists for exactly two jobs — a commit hash
+  and a zone's `detail:` — where digits have to line up between diagrams.
+- **Depth**: a 4% top-to-bottom gradient on every lit surface, over a 1px
+  contact shadow. It is the whole of the depth system: no elevation ladder, no
+  blur beyond `stdDeviation="1"`. The alpha lives in the shadow's `flood-color`
+  rather than an opacity, because the adaptive merge only rewrites
+  colour-valued attributes (§6).
+- **Colour roles**: see `themes/index.ts`, which is the list — every theme
+  defines every role, and the doc comment on each says what it is for. Diagrams
+  reference roles, never hex (already a SPEC rule). Two roles are deliberately
+  not theme-relative: the brand ramp `#C441FE → #15B6FF`, identical in both
+  themes as the logo is, and `brandPlate`, the surface a vendor mark sits on.
 
 ## 3. Node anatomy
 
-- **Leaf node**: fixed height (`64`), width snapped to tiers (`120/160/200/240`).
-  Icon plate `40×40` left-aligned; label 13/550 ink; optional tagline 11 ink-muted,
-  one line. Padding `12`. Provider icons sit on a neutral plate (radius 4) so
-  full-color AWS art never touches the surface color directly. An optional
-  **node badge** (`badge:`) sits on the plate's bottom-right corner: `22×22`
-  plate, radius 5, surface fill + border stroke, holding a `14×14` mark in its
-  own brand colour. It is inset so it clears the card's edge by 5 — the plate,
-  not the card, is what it belongs to. A trademark is never restyled by a theme:
-  the plate is quiet chrome, the mark is the vendor's own colour.
-  Three things in this language are called badges and they are distinct: a
-  **card glyph** is the identity of a collapsed system, a **flow badge** is a
-  step number on an edge, a **node badge** is whose platform a leaf belongs to.
-- **System card** (collapsed container): height `88`; kind silhouette + accent bar,
-  title 15/550, tagline 11 muted, glyph badge top-right `20×20` mono, `preview`
-  strip = up to 3 icons at `16×16` bottom-right at 60% opacity. `external` —
-  someone else's system — takes a hatched surface
-  variant, on a leaf node the same way: a texture rather than a colour, since
-  colour is already spoken for (accent = subject, muted = scenery, zone tints =
-  boundary) and the hatch has to survive print and a colour-blind reader. The pattern is
-  emitted only where one is used, so a diagram with no external node renders
-  byte-for-byte as it did before the variant existed.
-  The accent bar on a *live* card carries the brand ramp off the Squinch mark —
-  `#C441FE` to `#15B6FF`, top to bottom over the card's own height. It is brand
-  rather than theme: identical in light and dark, as the logo is. A **context**
-  card keeps the flat `muted` bar, so the one that is the subject and the one
-  that is scenery never read alike.
+Every node is the same surface — a rounded rect with the 4% ramp, a hairline
+border and the contact shadow — and the parts hung on it say what kind of thing
+it is. Nothing carries an affordance it cannot honour: a leaf has no inside, so
+it gets none of the marks that imply one.
+
+- **Icon tile**: `40×40`, radius 6, in the neutral `plate` tone, holding the
+  artwork at `26`. The ring of tile is the point — vendor art is drawn against
+  white in its own guidelines and reads as pasted on when it touches a gradient.
+  A single-colour mark goes straight onto the tile in its own colour rather than
+  getting a plate of its own; a plate inside a plate is what that looked like.
+  Our own vocabulary (`builtin`, `sys`) has no brand colour and follows the
+  theme; a trademark keeps its hue and gets `brandPlate` under it, because the
+  mark's contrast was designed against white and is not ours to re-balance.
+- **Leaf node**: height `64`, width snapped to tiers. Tile left-aligned at
+  padding `12`, label 13/500, optional description line 11 muted. An optional
+  **node badge** (`badge:`) sits on the tile's bottom-right corner: `22×22`,
+  radius 5, surface fill + border stroke, holding a `14×14` mark in its own
+  brand colour, inset so it clears the card edge by 5.
+- **Actor tile** (`person`): height `56`, filled rather than outlined and with
+  no border at all, holding a `34` round avatar. The human who starts the story
+  should read as a different sort of thing before the icon is read, and shape
+  is the fastest way to say so.
+- **System card** (collapsed container): height `96`. A `3px` spine down the
+  left edge in the brand ramp, clipped to the card's own radius — it is the
+  "divable" mark, containers only. The tile, then title 15/500 and tagline 11
+  muted, their baselines hung off the tile's centre line. A `26×26` bordered
+  chip top-right holds the kind glyph, whose column is reserved whether or not
+  one is drawn. Along the bottom, a `30` **shelf** continuing the gradient's
+  lower tone under a hairline: child icons at `16`, a `+N` overflow count, and
+  an optional `domain:` chip right-aligned. The shelf is drawn only when it has
+  something to hold, and a card without one centres its header rather than
+  leaving the bottom half empty.
+- **Stacked sheets**: two outline rects behind every container, offset `4` and
+  `8` back and down at opacity .8 and .5. "There is more inside", said by the
+  shape before anyone clicks. They bleed past the card rather than being sized
+  into it — inflating the node would put ELK's ports on the inflated face and
+  every edge would stop short of the card it points at — so a corpus invariant
+  asserts the bleed lands in empty space (`test/invariants.ts`). They are
+  emitted *outside* the node's own group, because the playground styles the
+  group's first rect on hover and measures its bounding box for the dive.
+- **Context** cards and leaves keep the flat surface and a dashed border: they
+  are scenery, and scenery is not lit, lifted, or advertised as divable. A
+  context card keeps a muted spine, so subject and scenery never read alike.
+- **`external`** — someone else's — takes a hatched overlay across the whole
+  card, shelf included: a texture rather than a colour, since colour is already
+  spoken for, and it has to survive print and a colour-blind reader.
+- Three things here are called badges and they are distinct: a **card glyph**
+  is the identity of a collapsed system, a **flow badge** is a step number on
+  an edge, a **node badge** is whose platform a leaf belongs to.
 - **Labels**: wrap at container width, max 2 lines, then ellipsis; full text on
-  hover (SPA/VSCode) and in `<title>` (static SVG). Lint nudges labels > ~40 chars.
+  hover (SPA/VSCode) and in `<title>` (static SVG). Lint nudges labels > ~40
+  chars, and a second lint names any character the bundled font subset cannot
+  draw — it renders as a gap rather than a glyph, and nothing else would catch
+  it (the SVG stays valid and deterministic either way).
 
 ## 4. Edge craft (where diagrams are won)
 
@@ -98,6 +136,11 @@
   — the strongest "drawn by a person who cared" signal there is.
 - **Arrowheads**: filled chevron `8×6`, matched to stroke color; open chevron for
   `~>` async. Small, sharp, consistent — never SVG default markers.
+- **Async dashes** are `6 5`. The drift animation's offset must then be a whole
+  number of dash periods or the pattern jumps each time it loops, so one shared
+  keyframe uses the LCM of the periods it serves (dashed 11, dotted 5 → 55) and
+  the durations are derived from the px/s the vocabulary promises. Adding a
+  pattern means revisiting that number.
 - **Edge labels**: pill chips (11px, surface bg, radius 2, 1px border) with a canvas
   halo — a label never sits raw on a line, and never collides with another chip.
   Placement: space is **reserved at layout** — ELK inline labels on cross-rank
@@ -123,29 +166,52 @@
   author asked for a comet. One value per edge; anything marquee-like stays
   out.
 
-## 5. Containers, zones, notes
+## 5. Containers, zones, notes, chrome
 
-- **Recession**: each nesting level moves surface one step (`surface-1..3`) — light
-  theme darkens ~3% per level, dark theme lightens ~4% — with border one step
-  lighter and title one size smaller. Depth you can feel, without shadows.
-- **Elevation**: none by default (flat + borders). Themes may define one soft shadow
-  for the *hover/selected* state only.
-- **Zone frames** (v1.1): dashed `1.5` border, radius 8, kind-tinted at low opacity,
-  label chip pinned to the top-left corner *outside* the flow of nodes.
-- **Flow badges**: a numbered disc attached to the wire it numbers, and no other.
-  On a labelled edge it is reserved together with the pill and sits at the end of
-  that reservation nearest the wire; on an unlabelled one it is a bead centred on
-  the line. Never docked to a pill's side without regard for where the wire is —
-  that is how a badge ends up reading as the neighbouring edge's number
-  (`docs/notes/edge-labels.md`).
-- **Notes**: `surface` bg, `warn`-tinted variant, 11px, max
-  width `200`, connector leader line (dotted, 1px) to their anchor.
-  Placement: the anchor's own side, sliding along it past every obstacle (nodes,
-  pills, chips, badges, the footer band, notes already placed) before standing
-  further off; a corner note hugs its corner and grows the canvas rather than
-  drifting inward. The authored side never changes, and a note may travel far —
-  its leader keeps it attached. Policy and its history:
-  `docs/notes/note-placement.md`.
+- **Expanded frames**: a recessed surface behind their children, radius `8`,
+  with the container's name at their top-left. Depth is one step, not a ladder:
+  a view opens one level (SPEC §5), so a frame inside a frame never happens.
+- **Zones** (deployment boundaries): a dashed outline, radius `8`, in the kind's
+  colour — and **no fill, ever**. A tint compounds where zones nest, so a subnet
+  inside a VPC read darker than either and the boundary's weight encoded depth
+  rather than kind.
+- **Zone chips** straddle their boundary's border and are built from one hue at
+  three strengths: a square icon tab on a quiet plate, a label bed at 12%, an
+  optional mono `detail:` segment at 20%, and a 35% border. Segments are flush —
+  a gap between them shows the canvas through and reads as a mistake. The
+  `detail:` segment is all-or-nothing: a clipped `10.0.0.0/16` is not a
+  shortened label, it is a different network, so on a boundary too narrow for
+  both the segment goes and the name keeps its room. Placement slides along the
+  border to the spot clear of edges and pills (`docs/notes/note-placement.md`).
+- **Flow badges**: a numbered disc in the accent, its ink chosen so the number
+  reads on it in both themes — the dark theme's bead is a pale lavender, and
+  white on lavender is unreadable at 10px.
+- **Notes**: the same neutral plate as everything else, radius `4`, with a
+  contact shadow and a dotted leader to their anchor. They open with an 11px
+  glyph — a circle-i, or a triangle for `style: warning`. The glyph is what
+  carries "this is commentary, not a diagram object"; an amber fill used to,
+  and it was the only third hue in a two-hue palette, reading as a sticky note
+  stuck onto the drawing rather than part of it. Max width `200`, three lines.
+  Placement: the anchor's own side, sliding past every obstacle (nodes, pills,
+  chips, badges, the footer band, notes already placed) before standing further
+  off; a corner note hugs its corner and grows the canvas rather than
+  overlapping (`docs/notes/note-placement.md`).
+
+### Chrome — what frames the drawing
+
+- **Header**, top-left: the diagram's name at 19/600, an optional subtitle at
+  11.5, and a meta chip whose segments alternate tints. `version`, `commit` and
+  `date` are reserved and their values speak for themselves; any other key an
+  author writes keeps its key beside its value, because `platform` alone says
+  nothing. Nothing is derived — no git, no clock — because a render is a pure
+  function of its source (§1.6).
+- **Footer**, full width under a hairline: the legend on the left, the `squinch`
+  wordmark on the right. The legend shows only what the diagram earned — a
+  drawing with no async edge never explains dashes.
+- Both are drawn in canvas coordinates, never inside the body's transform. A
+  note can push the diagram right and down, and chrome that rode along would
+  slide with it.
+- A diagram with no title, no legend and no titleblock gets no chrome at all.
 
 ## 6. Themes
 

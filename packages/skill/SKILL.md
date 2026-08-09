@@ -56,8 +56,12 @@ gw = aws/api-gateway "Edge Gateway"   // components may sit at the top level too
 
 system shop "Order Service" {         // systems/containers nest arbitrarily
   description: "Checkout and orders"  // optional; shows on the collapsed card
-  glyph: sys/code                     // badge for the collapsed card — any pack
-                                      // icon works; a bad ref is a check error
+  icon: aws/api-gateway               // the card's own mark; without it the
+                                      // first child's icon stands in
+  glyph: sys/code                     // kind mark, in a chip at the card's
+                                      // top right; a bad ref is a check error
+  domain: "orders"                    // optional owner/team tag on the card's
+                                      // shelf, beside the child icons
   tags: #core                         // tags inherit to everything inside
 
   api    = aws/api-gateway "API Gateway"        // id = pack/icon "Label"
@@ -140,7 +144,10 @@ ships purpose-made group marks like `aws/vpc`, `aws/region`,
 `color: ink` (theme roles only — account, network, cloud, neutral, ink, muted,
 accent; never hex). A zone's `kind` already picks its colour, so two nested
 zones of related kinds come out nearly the same shade — set `color:` on the
-inner one to tell them apart.
+inner one to tell them apart. `detail: "10.0.0.0/16"` adds a second, monospaced
+segment to the chip for the boundary's hard fact — a CIDR, an account id, a
+region. It is dropped rather than truncated on a boundary too narrow for both,
+since a clipped CIDR is a different network, not a shortened label.
 
 **Zones nest by sharing members, never by naming each other.** `contains` takes
 nodes, so an outer boundary repeats the inner one's members:
@@ -164,9 +171,8 @@ add lenses:
 
 ```squinch
 view landscape {            // views take no positional label — the title is a
-  title "System Landscape"  // statement, and it is *only drawn* inside a
-                            // `titleblock` (below); on its own it names the
-                            // view for tooling and nothing appears in the SVG.
+  title "System Landscape"  // statement. It draws top-left as the diagram's
+                            // name, with or without a `titleblock`.
   include *                 // all TOP-LEVEL entities, as collapsed cards
 }
 
@@ -188,9 +194,11 @@ view shop {                 // name matching a system = that system's view
   context off               // drop the muted neighbour cards this view earned
                             // (default is `context auto`)
   legend auto               // footer key of the styles actually used
-  titleblock {              // drafting-style corner block — this is what
-    version: "2026-07"      // actually renders the view's `title`
-    owner: team-orders
+  titleblock {                // a meta chip under the title. version/commit/
+    subtitle: "Landscape view" // date are reserved — their values stand alone,
+    version: "2026-07"         // and `commit` sets in mono. Any other key
+    commit: "a41f0c2"          // keeps its key beside its value.
+    owner: team-orders         // Nothing here is derived: no git, no clock.
   }
 }
 ```

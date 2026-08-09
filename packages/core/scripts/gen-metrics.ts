@@ -21,13 +21,15 @@ const fontkit = require("fontkit");
 // A committed lookbook title read "Payments — money path" and drew "Payments
 // money path" for as long as the em dash has been outside this string. So the
 // list covers the punctuation people actually type into a title: dashes,
-// curly quotes an editor substitutes on its own, an arrow, a bullet. The
+// curly quotes an editor substitutes on its own, an arrow, a bullet, the
+// angle quotes a breadcrumb separator uses (our own hero GIF drew a blank one
+// until they landed here — the lint below exists because of exactly that). The
 // renderer's own ·, × and … are here too. Anything still outside it is caught
 // at check time rather than dropped in silence (model/build.ts).
 const REPERTOIRE =
   "0123456789 !\"#$%&'()*+,-./:;<=>?@ABCDEFGHIJKLMNOPQRSTUVWXYZ[\\]^_`" +
   "abcdefghijklmnopqrstuvwxyz{|}~·×…" +
-  "—–‘’“”→←↔•§©®™°±≈≥≤";
+  "—–‘’“”→←↔•§©®™°±≈≥≤‹›«»";
 
 // 600 is the title block's display weight; mono 400 sets the chip segments that
 // have to line up digit-for-digit (a commit hash, a CIDR block).
