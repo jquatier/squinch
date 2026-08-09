@@ -714,7 +714,14 @@ function notes(
       `<rect x="${x}" y="${y}" width="${w}" height="${h}" rx="4" fill="${t.surface}" ` +
       `stroke="${t.border}" stroke-width="1" filter="url(#${rc.shadow})"/>`,
     );
-    L.push(noteGlyph(x + 12, y + 11, warn, rc));
+    // Aligned to the first line's optical centre, not the box's. A note can
+    // run to three lines, and a mark that centred itself on the box would
+    // drift down the taller ones — a leading glyph belongs beside the first
+    // line the way a bullet does. 11px Inter caps are ~8 tall and the first
+    // baseline sits at y+17, so that centre is y+13 and an 11px mark starts
+    // 5.5 above it. For a one-line note this is also the box's centre, which
+    // is why the two used to look interchangeable.
+    L.push(noteGlyph(x + 12, y + 8, warn, rc));
     lines.forEach((line, i) =>
       L.push(
         `<text x="${x + 12 + NOTE_GUTTER}" y="${y + 17 + i * 15}" font-size="${rc.fx(11)}" fill="${t.ink}">${esc(line)}</text>`,

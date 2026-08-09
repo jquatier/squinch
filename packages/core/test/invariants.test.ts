@@ -163,6 +163,15 @@ describe("the invariants themselves", () => {
     expect(checkLayout(base({ edges: [withLabel({ x: 200, y: 120, w: 60, h: 18 })] }))).toEqual([]);
   });
 
+  it("catches a note whose text is wider than its box", () => {
+    // The shape of a real bug: two functions sized notes, only one learned
+    // about the glyph gutter, and the paths served by the other reserved a box
+    // 19px narrower than the text drawn into it.
+    const note = (w: number) => ({ i: 0, x: 0, y: 200, w, h: 27, lines: ["a reasonably long note"] });
+    expect(checkLayout(base({ notes: [note(60)] } as any)).join()).toContain("but its box is 60");
+    expect(checkLayout(base({ notes: [note(200)] } as any))).toEqual([]);
+  });
+
   it("catches a chip or badge sitting on a node", () => {
     const onNode = { x: 10, y: 10, w: 80, h: 20 };
     expect(checkLayout(base({ chips: [{ ...onNode, label: "Z", zone: "z" }] } as any)).join())

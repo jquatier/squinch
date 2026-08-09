@@ -44,6 +44,11 @@ export const CHIP_H = 22;
 /** Room a note reserves for its leading glyph, gutter included. Shared: layout
  *  wraps text to what is left, the renderer draws the mark in it. */
 export const NOTE_GUTTER = 19;
+/** A note's widest box, and the text column inside it. The column is what the
+ *  wrap runs against; the box is the column plus padding plus the gutter, so
+ *  the two can never disagree about whether the text fits. */
+const NOTE_MAX_W = 200;
+const NOTE_TEXT_W = NOTE_MAX_W - 24 - NOTE_GUTTER;
 /** The pill a label will render as, measured with the layout's font — the
  *  single source of truth shared by the ELK reservation (here) and the
  *  renderer's pill text (svg.ts). If these two ever diverge, the reservation
@@ -54,6 +59,31 @@ export function pillDims(text: string, font: Pick<ThemeFont, "metrics" | "scale"
   const fx11 = Math.round(11 * font.scale);
   const label = fit(text, 240 - 12, fx11, "400", font.metrics);
   return { label, w: Math.round(measure(label, fx11, "400", font.metrics)) + 12, h: 18 };
+}
+
+/** The box a note will render as, and the lines inside it — the single source
+ *  of truth shared by every path that places one (edge notes, layer notes, the
+ *  candidate-ladder resolver) and by the renderer that draws it.
+ *
+ *  It is one function because it was briefly two. The resolver kept its own
+ *  copy of this arithmetic, so when notes gained a leading glyph only the
+ *  other copy learned about the gutter: corner and `right-of` notes reserved a
+ *  box 19px narrower than the text drawn into it, and the text ran out through
+ *  the side. Exactly the failure `pillDims` exists to prevent, in the one
+ *  place that had not been given the same treatment.
+ *
+ *  The column narrows by the gutter and the box widens by it, so the text
+ *  keeps its 12px right margin whatever the glyph does. */
+export function noteBox(text: string, font: Pick<ThemeFont, "metrics" | "scale">) {
+  const fx11 = Math.round(11 * font.scale);
+  const lines = wrapText(text, NOTE_TEXT_W, fx11, font.metrics, 3);
+  // ceil the *text*, then add the padding — rounding the total instead let a
+  // 32.4px word round its box down and quietly spend a pixel of the right
+  // margin. Integers either way (DESIGN §8); this way the margin is the 12 it
+  // claims to be.
+  const widest = Math.ceil(Math.max(...lines.map((l) => measure(l, fx11, "400", font.metrics))));
+  const w = Math.min(NOTE_MAX_W, widest + 24 + NOTE_GUTTER);
+  return { lines, w, h: lines.length * 15 + 12 };
 }
 
 const SIDE_UP: Record<string, string> = { north: "NORTH", south: "SOUTH", east: "EAST", west: "WEST" };
@@ -675,16 +705,7 @@ export async function layoutView(
   // port sides; in-layer edges re-rank), corners are canvas chrome, and
   // `above`/`below` would insert whole layers — deferred, recorded in
   // docs/notes/note-placement.md.
-  const noteDims = (text: string) => {
-    const fx11 = Math.round(11 * font.scale);
-    // The text column narrows by the glyph gutter, and the box widens by it:
-    // a note now opens with an 11px mark saying "this is commentary, not a
-    // diagram object" (docs/design), and the room it needs is reserved here
-    // because the renderer draws exactly the box this reserves.
-    const lines = wrapText(text, 176 - NOTE_GUTTER, fx11, font.metrics, 3);
-    const w = Math.round(Math.min(200, Math.max(...lines.map((l) => measure(l, fx11, "400", font.metrics))) + 24 + NOTE_GUTTER));
-    return { w, h: lines.length * 15 + 12 };
-  };
+  const noteDims = (text: string) => noteBox(text, font);
   const edgeNotes: { i: number; edgeId: string; w: number; h: number }[] = [];
   // `above`/`below` on a bare anchor join the layout as layer nodes: a plain
   // node with a directed invisible edge (note→anchor places it above,
@@ -1471,15 +1492,11 @@ export async function layoutView(
     // A note the layout reserved space for draws exactly there — the same
     // contract as labelRect. The candidate ladder never runs for it.
     const reserved = p.noteBoxes?.get(noteIdx);
-    const inner = 176;
-    const lines = wrapText(note.text, inner, fx(11), font.metrics, 3);
-    // integers, like every other rect (DESIGN §8) — `measure` returns a float
-    // and only x/y used to be rounded, so note widths shipped as
-    // `width="174.22411799999998"`
-    const w = Math.round(
-      Math.min(200, Math.max(...lines.map((l) => measure(l, fx(11), "400", font.metrics))) + 24),
-    );
-    const h = lines.length * 15 + 12;
+    // `noteBox`, not a second copy of its arithmetic — see the comment there.
+    // Integers, like every other rect (DESIGN §8): `measure` returns a float
+    // and only x/y used to be rounded, so note widths once shipped as
+    // `width="174.22411799999998"`.
+    const { lines, w, h } = noteBox(note.text, font);
 
     // Candidates, in preference order. The authored side is never changed: an
     // author who wrote `right-of` gets right-of, further out or slid along it,

@@ -14,6 +14,8 @@
 // caller decides how to report, and so one sweep can check a whole corpus and
 // list everything at once instead of dying on the first failure.
 import type { Positioned, PNode, PEdge } from "../src/layout/layout.js";
+import { NOTE_GUTTER } from "../src/layout/layout.js";
+import { measure } from "../src/metrics.js";
 
 /** What `Positioned` does not carry, and the rules need. */
 export interface Ctx {
@@ -161,6 +163,19 @@ export function checkLayout(p: Positioned, ctx: Ctx = {}): string[] {
       if (a.x < b.x + b.w && a.x + a.w > b.x && a.y < b.y + b.h && a.y + a.h > b.y)
         bad.push(`labels of ${labelled[i].id} and ${labelled[j].id} overlap`);
     }
+
+  // ── a note's text fits the box the layout reserved for it ───────────────
+  // The renderer draws text at `x + 12 + NOTE_GUTTER` into a box the layout
+  // sized, and for a while two functions computed that size — so the paths the
+  // second one served reserved a box 19px too narrow and the text ran out
+  // through the side. The sizing is one function now; this is the assertion
+  // that keeps it that way, since a second copy would show up here first.
+  for (const n of p.notes ?? []) {
+    const widest = Math.max(...n.lines.map((l) => measure(l, 11, "400", "inter")));
+    const need = 12 + NOTE_GUTTER + Math.ceil(widest) + 12;
+    if (need > n.w)
+      bad.push(`note ${n.i}: text needs ${need} but its box is ${n.w}`);
+  }
 
   // ── reserved note boxes (edge-anchored notes) never collide ─────────────
   for (const [i, r] of p.noteBoxes ?? [])

@@ -9,8 +9,8 @@
     "microservices.orders.dark.svg": "b909e445b70c8f24",
     "microservices.accounts.light.svg": "9a19e4126ac766d7",
     "microservices.accounts.dark.svg": "7666e1c0b910c3f3",
-    "microservices.orders-pci.light.svg": "375b545cfc77382d",
-    "microservices.orders-pci.dark.svg": "1b94eb6d99b8e786",
+    "microservices.orders-pci.light.svg": "2a9fe80afa2a7b94",
+    "microservices.orders-pci.dark.svg": "9ffa685b0ae6f5b4",
     "microservices.checkout.light.svg": "4533af4f143e07e0",
     "microservices.checkout.dark.svg": "89b0e7e2d1f04777"
   }

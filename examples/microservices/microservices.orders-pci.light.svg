@@ -114,15 +114,15 @@
 <g><rect x="436" y="256" width="83" height="18" rx="2" fill="#FFFFFF" stroke="#EAE9E5" stroke-width="1"/><text x="478" y="269" text-anchor="middle" font-size="11" fill="#6F6E69">verify identity</text></g>
 <g data-note="below:orders.db">
 <line x1="129" y1="695" x2="129" y2="671" stroke="#EAE9E5" stroke-width="1" stroke-dasharray="2 3"/>
-<rect x="42" y="695" width="174" height="42" rx="4" fill="#FFFFFF" stroke="#EAE9E5" stroke-width="1" filter="url(#sq-shadow)"/>
-<g fill="none" stroke="#8A8880" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="59.5" cy="711.5" r="4.9"/><path d="M59.5 711 L59.5 714"/><path d="M59.5 709.2 L59.5 709.3"/></g>
-<text x="73" y="712" font-size="11" fill="#1C1C1A">Card tokens only; PAN never</text>
-<text x="73" y="727" font-size="11" fill="#1C1C1A">stored</text>
+<rect x="32" y="695" width="194" height="42" rx="4" fill="#FFFFFF" stroke="#EAE9E5" stroke-width="1" filter="url(#sq-shadow)"/>
+<g fill="none" stroke="#8A8880" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="49.5" cy="708.5" r="4.9"/><path d="M49.5 708 L49.5 711"/><path d="M49.5 706.2 L49.5 706.3"/></g>
+<text x="63" y="712" font-size="11" fill="#1C1C1A">Card tokens only; PAN never</text>
+<text x="63" y="727" font-size="11" fill="#1C1C1A">stored</text>
 </g>
 <g data-note="top-right">
-<rect x="566" y="16" width="107" height="27" rx="4" fill="#FFFFFF" stroke="#EAE9E5" stroke-width="1" filter="url(#sq-shadow)"/>
-<g fill="none" stroke="#8A8880" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M583.5 27.6 L588.8 36.9 L578.2 36.9 Z"/><path d="M583.5 31 L583.5 33.4"/><path d="M583.5 35.2 L583.5 35.3"/></g>
-<text x="597" y="33" font-size="11" fill="#1C1C1A">Audit scope: Q3</text>
+<rect x="546" y="16" width="127" height="27" rx="4" fill="#FFFFFF" stroke="#EAE9E5" stroke-width="1" filter="url(#sq-shadow)"/>
+<g fill="none" stroke="#8A8880" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M563.5 24.6 L568.8 33.9 L558.2 33.9 Z"/><path d="M563.5 28 L563.5 30.4"/><path d="M563.5 32.2 L563.5 32.3"/></g>
+<text x="577" y="33" font-size="11" fill="#1C1C1A">Audit scope: Q3</text>
 </g>
 </g>
 <text x="18" y="32" font-size="19" font-weight="600" letter-spacing="-.01em" fill="#1C1C1A">Order Service — PCI surface</text>
