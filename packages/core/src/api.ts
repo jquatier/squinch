@@ -4,6 +4,8 @@ import { buildModel, buildProject, formatDiagnostics, type ProjectFile } from ".
 import { normalizeFiles } from "./model/source.js";
 import { layoutView } from "./layout/layout.js";
 import { renderSVG } from "./render/svg.js";
+// the bundled face inventory — the HTML export hoists it, tests assert against it
+export { allFaces, fontFaceCSS } from "./render/svg.js";
 import { validateSVG } from "./render/validate.js";
 import { mergeAdaptive } from "./render/adaptive.js";
 import { themes, type Theme } from "./themes/index.js";

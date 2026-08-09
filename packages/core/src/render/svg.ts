@@ -1,7 +1,7 @@
 // Positioned + Theme (+ view annotations) → deterministic SVG string.
 // Integers, LF, fixed attribute order — the string is the artifact under
 // byte-identity tests.
-import { fit, measure, wrapText, type FontFamily } from "../metrics.js";
+import { fit, measure, wrapText } from "../metrics.js";
 import { FONTS } from "../fonts.generated.js";
 import { iconMeta, packMonochrome, packFullBleed } from "../model/packs.js";
 import { iconAsset, symbolId } from "../packs/registry.js";
@@ -106,28 +106,61 @@ const accentGradient = () =>
 /** Everything the emitters need beyond geometry: theme and type. */
 interface RC {
   t: Theme;
-  fam: FontFamily;
+  /** the document face — narrower than FontFamily on purpose: `mono` is
+   *  reached for per element, never as the body face layout measured with */
+  fam: Theme["font"]["metrics"];
   fx: (px: number) => number; // theme-scaled font size
   /** `sq-hatch`, plus the document scope when one is set */
   hatch: string;
   /** when present, id-bearing defs go here instead of into this SVG */
   collect?: Map<string, string>;
+  /** Faces this render actually drew with, beyond the two body weights every
+   *  render carries. An emitter that reaches for a display weight or the mono
+   *  face registers it here (`face()`), and only then is it embedded — a
+   *  two-node diagram should not carry 21 KB of base64 for a title block it
+   *  does not have. */
+  faces: Set<string>;
 }
+
+/** The faces every render embeds: the document face at its two body weights.
+ *  Kept unconditional because nearly every diagram draws both, and making
+ *  them earned would churn every committed render for no bytes saved. */
+const BASE_FACES = ["inter:400", "inter:500"];
+/** Mono gets its own dedicated name for the same reason `SquinchInter` has
+ *  one: the embedded face must win over whatever the page has installed, or
+ *  text stops matching the metrics layout was computed from. */
+const MONO_CSS = "SquinchMono, 'IBM Plex Mono', ui-monospace, monospace";
 
 // Dedicated family names: guarantee the embedded face wins over any
 // page-level font, so text width always matches the precomputed metrics.
 /** The @font-face rules alone. Exported because the interactive HTML export
  *  hoists them into one <style> for the whole document instead of repeating
- *  33 KB of base64 in every view. One implementation of the rule either way. */
-export function fontFaceCSS(t: Theme): string {
-  const cssFamily = t.font.css.split(",")[0];
-  const face = (w: "400" | "500") =>
-    `@font-face{font-family:${cssFamily};font-style:normal;font-weight:${w};` +
-    `src:url(data:font/woff2;base64,${FONTS[t.font.metrics][w]!}) format("woff2")}`;
-  return `${face("400")}${face("500")}`;
+ *  33 KB of base64 in every view. One implementation of the rule either way.
+ *
+ *  `used` names extra `family:weight` faces to embed. The HTML export passes
+ *  every face rather than a union of what its views drew: one document holds
+ *  many views, any of which may be re-rendered client-side, so a hoisted set
+ *  that happened to miss mono would silently fall back mid-navigation. */
+export function fontFaceCSS(t: Theme, used: Iterable<string> = []): string {
+  const cssName = (family: string) =>
+    (family === "mono" ? MONO_CSS : t.font.css).split(",")[0];
+  const face = (key: string) => {
+    const [family, w] = key.split(":");
+    const data = FONTS[family as keyof typeof FONTS]?.[w as "400"];
+    if (!data) throw new Error(`no embedded face for ${key} — regenerate with gen-fonts`);
+    return `@font-face{font-family:${cssName(family)};font-style:normal;font-weight:${w};` +
+      `src:url(data:font/woff2;base64,${data}) format("woff2")}`;
+  };
+  // sorted so the string is a pure function of the set, and so the two body
+  // weights keep leading — which is what keeps existing renders byte-identical
+  return [...new Set([...BASE_FACES, ...used])].sort().map(face).join("");
 }
-function fontDefs(t: Theme): string {
-  return `<style>${fontFaceCSS(t)}</style>`;
+/** Every face the bundle carries — the HTML export's hoisted set. */
+export function allFaces(): string[] {
+  return Object.entries(FONTS).flatMap(([f, ws]) => Object.keys(ws).map((w) => `${f}:${w}`));
+}
+function fontDefs(t: Theme, used: Iterable<string>): string {
+  return `<style>${fontFaceCSS(t, used)}</style>`;
 }
 
 /** Crisp fill + stroke in one rect. `extra` lands on the same element. */
@@ -791,6 +824,7 @@ export function renderSVG(p: Positioned, t: Theme, opts: RenderOpts = {}): strin
     t,
     fam: t.font.metrics,
     fx: (px) => Math.round(px * t.font.scale),
+    faces: new Set<string>(),
     hatch: `${HATCH}${opts.defsScope ?? ""}`,
     collect: opts.collectDefs,
   };
@@ -1029,7 +1063,7 @@ export function renderSVG(p: Positioned, t: Theme, opts: RenderOpts = {}): strin
   L.push(
     `<svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${height}" viewBox="0 0 ${width} ${height}" font-family="${t.font.css}">`,
   );
-  if (opts.embedFonts !== false) L.push(fontDefs(t));
+  if (opts.embedFonts !== false) L.push(fontDefs(t, rc.faces));
   {
     // One rule per animate value in use, one keyframe per distinct motion, all
     // inside the single reduced-motion gate. Emission is by fixed order so the

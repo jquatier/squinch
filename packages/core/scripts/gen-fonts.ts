@@ -19,8 +19,11 @@ import subsetFont from "subset-font";
 const require = createRequire(import.meta.url);
 const metrics = JSON.parse(readFileSync("metrics.json", "utf8"));
 
+// Which weights of each get subset comes from metrics.json, not from here —
+// the table is the declaration (scripts/gen-metrics.ts), this is the source.
 const FILES: Record<string, string> = {
   inter: "@fontsource/inter/files/inter-latin-WEIGHT-normal.woff2",
+  mono: "@fontsource/ibm-plex-mono/files/ibm-plex-mono-latin-WEIGHT-normal.woff2",
 };
 
 mkdirSync("fonts", { recursive: true });
@@ -34,8 +37,8 @@ for (const [family, pattern] of Object.entries(FILES)) {
     const repertoire = Object.keys(metrics[family][weight].advances).join("");
     const woff2 = await subsetFont(source, repertoire, { targetFormat: "woff2" });
     out[family][weight] = woff2.toString("base64");
-    // sfnt keeps the source face's own family name (Inter) — which is exactly
-    // what the theme's CSS stack falls through to after SquinchInter.
+    // sfnt keeps the source face's own family name (Inter / IBM Plex Mono) —
+    // which is exactly what the CSS stack falls through to after ours.
     const sfnt = await subsetFont(source, repertoire, { targetFormat: "sfnt" });
     writeFileSync(`fonts/${family}-${weight}.ttf`, sfnt);
     console.log(

@@ -2,15 +2,22 @@
 // layout never asks the environment how wide text is). Browser-safe.
 import { METRICS } from "./metrics.generated.js";
 
-export type FontFamily = "inter";
+/** Families the metrics table carries. `inter` is the document face; `mono`
+ *  is IBM Plex Mono, used only where digits must line up in a chip segment. */
+export type FontFamily = "inter" | "mono";
+/** Weights the table carries. Not every family has every weight — mono ships
+ *  400 alone — and asking for a missing one is a programming error, so the
+ *  lookup below throws rather than silently measuring the wrong face. */
+export type FontWeight = "400" | "500" | "600";
 
 export function measure(
   text: string,
   sizePx: number,
-  weight: "400" | "500" = "500",
+  weight: FontWeight = "500",
   family: FontFamily = "inter",
 ): number {
-  const m = METRICS[family][weight];
+  const m = METRICS[family]?.[weight];
+  if (!m) throw new Error(`no metrics for ${family} ${weight} — regenerate with gen-metrics`);
   let em = 0;
   for (const ch of text) em += m.advances[ch] ?? m.fallback;
   return em * sizePx;
@@ -20,7 +27,7 @@ export function fit(
   text: string,
   maxPx: number,
   sizePx: number,
-  weight: "400" | "500" = "500",
+  weight: FontWeight = "500",
   family: FontFamily = "inter",
 ): string {
   if (measure(text, sizePx, weight, family) <= maxPx) return text;

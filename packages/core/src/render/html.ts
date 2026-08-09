@@ -23,7 +23,7 @@
 // right shape for the file to have.
 import { buildProject, type ProjectFile } from "../model/build.js";
 import { themes, type Theme } from "../themes/index.js";
-import { fontFaceCSS } from "./svg.js";
+import { fontFaceCSS, allFaces } from "./svg.js";
 import { RUNTIME_JS } from "./html/runtime.generated.js";
 import type { Diagnostic } from "../model/types.js";
 import type { NavView } from "../view/navigate.js";
@@ -162,7 +162,11 @@ export async function exportHTML(
       }
     }
 
-  const fonts = [...new Set(palette.map((n) => fontFaceCSS(themes[n])))].join("");
+  // Every face, not the union of what these views happened to draw: the
+  // viewer swaps views (and palettes) client-side from bodies it already
+  // holds, so a set trimmed to the entry view would leave a later one's title
+  // block falling back to a face with different metrics.
+  const fonts = [...new Set(palette.map((n) => fontFaceCSS(themes[n], allFaces())))].join("");
   const sprite = [...defs.keys()].sort().map((k) => defs.get(k)!).join("");
   const title = opts.title ?? list.find((v) => v.name === entry)?.title ?? files[0]?.name.replace(/\.squinch$/, "") ?? "diagram";
 

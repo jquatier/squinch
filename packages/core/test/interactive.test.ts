@@ -7,7 +7,7 @@
 // forwarded file has to be true about regardless of who opens it: deterministic,
 // self-contained, and script-free where it matters.
 import { describe, it, expect } from "vitest";
-import { exportHTML, validateSVG } from "../src/index.js";
+import { allFaces, exportHTML, validateSVG } from "../src/index.js";
 
 const SRC = `pack aws
 
@@ -136,10 +136,16 @@ describe("interactive HTML export", () => {
     for (const svg of svgs) expect(validateSVG(svg).ok).toBe(true);
   });
 
-  it("hoists the font once and the icons once", async () => {
+  it("hoists the fonts once and the icons once", async () => {
     const { html } = await exportHTML(files);
-    // two faces (400/500) of one family, for the whole document — not per view
-    expect(html!.match(/@font-face/g)).toHaveLength(2);
+    // Every bundled face, once for the whole document — not once per view.
+    // The document carries the full set rather than what its entry view drew:
+    // the viewer swaps views client-side, and a set trimmed to one view would
+    // leave a later title block falling back to different metrics.
+    const faces = html!.match(/@font-face/g)!;
+    expect(faces).toHaveLength(allFaces().length);
+    // one <style>, not one per view: the whole point of hoisting
+    expect(new Set(html!.match(/font-family:Squinch\w+/g)).size).toBeGreaterThan(1);
     const symbols = [...html!.matchAll(/<symbol id="([^"]+)"/g)].map((m) => m[1]);
     expect(symbols.length).toBeGreaterThan(3);
     expect(new Set(symbols).size).toBe(symbols.length);
