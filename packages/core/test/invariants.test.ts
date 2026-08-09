@@ -109,6 +109,18 @@ describe("the invariants themselves", () => {
     expect(checkLayout(p).join()).toContain("overlap");
   });
 
+  it("catches sheets reaching a neighbour, and leaves a leaf's gap alone", () => {
+    const card = (path: string, x: number) =>
+      ({ ...node(path, x, 0, 200, 96), kind: "card" }) as any;
+    // 8px of bleed with only 6px of gap: the back sheet lands on the neighbour
+    expect(checkLayout(base({ nodes: [card("a", 0), card("b", 206)] })).join())
+      .toContain("sheets behind a reach b");
+    // the same pair at the spacing the layout actually uses is fine
+    expect(checkLayout(base({ nodes: [card("a", 0), card("b", 232)] }))).toEqual([]);
+    // a leaf has no sheets, so the same tight gap is legal for one
+    expect(checkLayout(base({ nodes: [node("a", 0, 0), node("b", 126, 0)] }))).toEqual([]);
+  });
+
   it("catches a child escaping its frame", () => {
     const p = base({
       nodes: [{ ...node("a", 400, 0), frame: "f" }],

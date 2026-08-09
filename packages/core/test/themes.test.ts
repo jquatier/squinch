@@ -7,6 +7,8 @@ import { themes, type Theme } from "../src/index.js";
 const ROLES: (keyof Theme)[] = [
   "canvas", "surface", "border", "ink", "muted", "edge", "asyncEdge",
   "plateText", "accent", "beadText", "warnTint", "surfaceAlt",
+  "surfaceHi", "surfaceLo", "shelfLine", "plate", "actorLo", "brandPlate",
+  "sheetFill", "sheetBorder",
   "zoneAccount", "zoneNetwork", "zoneCloud", "zoneNeutral",
 ];
 
@@ -26,6 +28,15 @@ describe("themes", () => {
     for (const [name, t] of Object.entries(themes))
       for (const role of ROLES)
         expect(String(t[role]), `${name}.${String(role)}`).toMatch(/^#[0-9A-Fa-f]{6}$/);
+  });
+
+  it("states its shadow as rgba — the alpha is the effect", () => {
+    // Not in ROLES: it is deliberately not a 6-digit hex. It rides
+    // `flood-color`, which the adaptive merge treats as colour; expressed as
+    // `flood-opacity` the two themes would differ in a non-colour attribute
+    // and the merge would refuse the pair outright.
+    for (const [name, t] of Object.entries(themes))
+      expect(t.shadow, `${name}.shadow`).toMatch(/^rgba\(\d+,\d+,\d+,[\d.]+\)$/);
   });
 
   it("ships exactly the designed pair — a palette is never added by swap", () => {

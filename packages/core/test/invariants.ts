@@ -33,14 +33,12 @@ const STUB = 16;
 const rect = (r: { x: number; y: number; w: number; h: number }) => ({
   x1: r.x, y1: r.y, x2: r.x + r.w, y2: r.y + r.h,
 });
-const overlaps = (a: PNode, b: PNode) => {
+type Rect = { x: number; y: number; w: number; h: number };
+const overlaps = (a: Rect, b: Rect) => {
   const [p, q] = [rect(a), rect(b)];
   return p.x1 < q.x2 && p.x2 > q.x1 && p.y1 < q.y2 && p.y2 > q.y1;
 };
-const contains = (
-  outer: { x: number; y: number; w: number; h: number },
-  inner: { x: number; y: number; w: number; h: number },
-) => {
+const contains = (outer: Rect, inner: Rect) => {
   const [o, i] = [rect(outer), rect(inner)];
   return i.x1 >= o.x1 && i.x2 <= o.x2 && i.y1 >= o.y1 && i.y2 <= o.y2;
 };
@@ -106,6 +104,30 @@ export function checkLayout(p: Positioned, ctx: Ctx = {}): string[] {
     for (let j = i + 1; j < nodes.length; j++)
       if (overlaps(nodes[i], nodes[j]))
         bad.push(`nodes ${nodes[i].path} and ${nodes[j].path} overlap`);
+
+  // ── the stacked sheets have room to land ────────────────────────────────
+  // A container's sheets are drawn from its node rect, offset SHEET_BLEED
+  // right and down, rather than sized into it — inflating the node would put
+  // ELK's ports on the inflated face and every edge would stop short of the
+  // card it points at (layout.ts). That trade is only safe while the bleed
+  // lands in empty space, which the spacing constants guarantee: node spacing
+  // 32, frame padding 16, zone padding 20, root padding 32, all wider than 8.
+  // This asserts the guarantee instead of trusting it, so a future spacing
+  // change that breaks it fails here rather than shipping overlapped sheets.
+  const SHEET = 8;
+  const sheetBand = (n: PNode) => ({ x: n.x, y: n.y, w: n.w + SHEET, h: n.h + SHEET });
+  for (const n of nodes) {
+    if (n.kind !== "card") continue;
+    const band = sheetBand(n);
+    for (const other of nodes)
+      if (other !== n && overlaps(band, other))
+        bad.push(`sheets behind ${n.path} reach ${other.path}`);
+    for (const f of p.frames)
+      // a card's own frame is its container, so only a *different* frame's
+      // border is a collision
+      if (f.path !== n.frame && overlaps(band, f) && !contains(f, band))
+        bad.push(`sheets behind ${n.path} cross frame ${f.path}`);
+  }
 
   // ── containment ─────────────────────────────────────────────────────────
   for (const f of p.frames)

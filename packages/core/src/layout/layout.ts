@@ -16,7 +16,18 @@ import type { ThemeFont } from "../themes/index.js";
 const LEAF_TIERS = [120, 160, 200, 240];
 const CARD_TIERS = [200, 240, 280, 320];
 const LEAF_H = 64;
-const CARD_H = 88;
+/** 88 → 96: the card grew a 30px shelf along its bottom, and 66 of body is
+ *  what the title/tagline pair needs above it (docs/design). */
+const CARD_H = 96;
+/** Actor tiles: a name and a caption, no plate row under them. */
+const PERSON_H = 56;
+/** The bordered chip holding a card's kind glyph, top-right. */
+const GLYPH_CHIP = 26;
+/** The shelf strip along a card's bottom: child icons, `+N`, domain chip. */
+export const SHELF_H = 30;
+/** How far the stacked sheets bleed past a container, right and below. Not
+ *  added to the node's size on purpose — see the comment at `canvasExtent`. */
+export const SHEET_BLEED = 8;
 const PLATE = 40;
 const PAD = 12;
 /** The label gap, B. In a view that carries ELK labels the between-layers
@@ -122,14 +133,20 @@ function sizeOf(n: VNode, font: Pick<ThemeFont, "metrics" | "scale">): { w: numb
   const fx = (px: number) => Math.round(px * font.scale);
   const isCard = n.kind === "card" || n.kind === "context-card";
   if (isCard) {
-    const need = PAD + Math.max(
+    // The text column now starts after an icon plate and ends before the
+    // glyph chip, so both come out of the width rather than letting the label
+    // run under either.
+    const need = PAD + PLATE + PAD + Math.max(
       measure(n.label, fx(15), "500", fam),
       measure(n.tagline ?? "", fx(11), "400", fam),
-    ) + PAD + 28;
+    ) + PAD + GLYPH_CHIP + PAD;
     return { w: CARD_TIERS.find((t) => t >= need) ?? CARD_TIERS[CARD_TIERS.length - 1], h: CARD_H };
   }
   const need = PAD + PLATE + PAD + measure(n.label, fx(13), "500", fam) + PAD;
-  return { w: LEAF_TIERS.find((t) => t >= need) ?? LEAF_TIERS[LEAF_TIERS.length - 1], h: LEAF_H };
+  const w = LEAF_TIERS.find((t) => t >= need) ?? LEAF_TIERS[LEAF_TIERS.length - 1];
+  // An actor is shorter than a service: no description line, and its round
+  // avatar reads at 34 where a service plate reads at 40.
+  return { w, h: n.kind === "person" ? PERSON_H : LEAF_H };
 }
 
 export async function layoutView(
@@ -1390,11 +1407,21 @@ export async function layoutView(
     }
   }
 
+  // Stacked sheets bleed SHEET_BLEED past a container's right and bottom
+  // edges, and they are drawn from the node rect rather than sized into it:
+  // inflating the node would put ELK's ports on the inflated face, so every
+  // edge would stop 8px short of the card it points at. The bleed lands in
+  // gaps that are wider than it everywhere by construction (node spacing 32,
+  // frame padding 16, zone padding 20, root padding 32) — the one place it
+  // has no gap to land in is the canvas edge, which is what these two lines
+  // fix. `checkLayout` asserts the rest of that claim over the corpus.
+  const bleed = (n: PNode) => (n.kind === "card" || n.kind === "context-card" ? SHEET_BLEED : 0);
   const height = Math.max(
     q(out.height),
     ...pEdges.flatMap((e) => e.points.map((p) => p.y + 32)),
+    ...nodes.map((n) => n.y + n.h + bleed(n) + 32),
   );
-  const width = Math.max(q(out.width), ...nodes.map((n) => n.x + n.w + 32));
+  const width = Math.max(q(out.width), ...nodes.map((n) => n.x + n.w + bleed(n) + 32));
 
   // footer band + pill-extended height, exactly as the renderer computed them
   // when it owned note placement

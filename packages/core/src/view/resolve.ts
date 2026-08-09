@@ -7,7 +7,11 @@ import type { Diagnostic, EdgeAnimate, SEdge, SModel, SView } from "../model/typ
 
 export interface VNode {
   path: string;
-  kind: "leaf" | "card" | "context-card" | "context-leaf";
+  /** `person` is a leaf the restyle draws differently (a solid actor tile, no
+   *  border): the initiating human is not a service, and the shape says so
+   *  before the icon does. Context keeps the muted leaf treatment either way —
+   *  a periphery card is scenery, and scenery does not need a second shape. */
+  kind: "leaf" | "person" | "card" | "context-card" | "context-leaf";
   label: string;
   icon?: { pack: string; id: string };
   glyph?: { pack: string; id: string };
@@ -16,6 +20,13 @@ export interface VNode {
   badge?: { pack: string; id: string };
   tagline?: string;
   preview: { pack: string; id: string }[];
+  /** Leaves beyond the ones `preview` shows — the shelf's `+N`. Counted from
+   *  the icons that would have been drawn, so it never claims more than the
+   *  strip actually left out. */
+  more?: number;
+  /** A short ownership label for the card's shelf: the team, domain or
+   *  namespace a system belongs to (`domain: "payments"`). Free text. */
+  domain?: string;
   tags: string[]; // effective (container-inherited)
   /** someone else's system — DESIGN §3's hatched surface. A property of the
    *  thing itself, so a container carries it for its whole card. */
@@ -465,22 +476,30 @@ export function resolveView(model: SModel, view: SView): ViewGraph {
     if (container) {
       const leaves = leafDescendants(path);
       const previewMode = container.attrs["preview"] ?? "auto";
-      const preview =
-        previewMode === "none"
-          ? []
-          : leaves
-              .map((l) => model.nodes.get(l)?.icon)
-              .filter((i): i is NonNullable<typeof i> => !!i)
-              .slice(0, 3);
+      const icons = leaves
+        .map((l) => model.nodes.get(l)?.icon)
+        .filter((i): i is NonNullable<typeof i> => !!i);
+      const preview = previewMode === "none" ? [] : icons.slice(0, 3);
       const glyphRef = container.attrs["glyph"];
       const glyph = glyphRef?.includes("/")
         ? { pack: glyphRef.split("/")[0], id: glyphRef.split("/")[1] }
         : undefined;
+      // The card's own mark. Authored `icon:` wins; otherwise the first leaf
+      // icon stands in, so a system that never named one still gets a plate
+      // instead of a bare label — the same icon the preview strip leads with,
+      // which is what a reader already associates with that card.
+      const iconRef = container.attrs["icon"];
+      const icon = iconRef?.includes("/")
+        ? { pack: iconRef.split("/")[0], id: iconRef.split("/")[1] }
+        : icons[0];
       return {
         path,
         kind: isContext ? "context-card" : "card",
         label: container.label ?? container.name,
         glyph,
+        icon,
+        more: icons.length - preview.length || undefined,
+        domain: container.attrs["domain"],
         tagline:
           container.attrs["description"] ??
           `${leaves.length} component${leaves.length === 1 ? "" : "s"}`,
@@ -499,7 +518,7 @@ export function resolveView(model: SModel, view: SView): ViewGraph {
       : undefined;
     return {
       path,
-      kind: isContext ? "context-leaf" : "leaf",
+      kind: isContext ? "context-leaf" : n.kinds.includes("person") ? "person" : "leaf",
       label: n.label,
       icon: n.icon,
       badge,

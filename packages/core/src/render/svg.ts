@@ -3,10 +3,12 @@
 // byte-identity tests.
 import { fit, measure, wrapText } from "../metrics.js";
 import { FONTS } from "../fonts.generated.js";
-import { iconMeta, packMonochrome, packFullBleed } from "../model/packs.js";
+import { iconMeta, iconColor, packMonochrome, packFullBleed } from "../model/packs.js";
 import { iconAsset, symbolId } from "../packs/registry.js";
 import type { Theme } from "../themes/index.js";
-import { pillDims } from "../layout/layout.js";
+// SHELF_H is layout's: the shelf is inside the card height it sets, so the
+// strip the renderer fills and the room the card reserves are one number.
+import { pillDims, SHELF_H } from "../layout/layout.js";
 import type { Positioned, PEdge, PNode, PZone } from "../layout/layout.js";
 import type { EdgeAnimate, SNote, ZoneColor, ZoneKind } from "../model/types.js";
 
@@ -80,6 +82,21 @@ export interface RenderOpts {
  *  height rather than sampling a slice of one diagram-wide gradient — a short
  *  card and a tall one should look like the same object. */
 const ACCENT_GRAD = "sq-accent";
+/** Card/actor corner radius. Leaves use R_NODE; a container is the larger,
+ *  softer shape, and the sheets behind it share the radius so the stack reads
+ *  as three of the same object. */
+const R_CARD = 8;
+/** The artwork inside a PLATE-sized tile. The ring of tile around it is the
+ *  point: it separates vendor art from whatever surface the node is drawn on. */
+const ICON_ART = 26;
+/** The card's own inner margin for anything hung off an edge — the glyph chip
+ *  at the top right, the shelf's contents at both ends. One pixel tighter than
+ *  PAD, because these sit against a border rather than against text, and the
+ *  reference render is built to that rhythm (docs/design). */
+const CARD_INSET = 11;
+/** The bordered chip holding a card's kind glyph, top-right. Its column is
+ *  reserved in `sizeOf`, so the label never runs under it. */
+const GLYPH_CHIP = 26;
 
 /** DESIGN §3: "hatched surface variant for `external`" — someone else's system.
  *  A texture rather than a colour, because it has to survive every theme
@@ -98,6 +115,31 @@ const hatchPattern = (t: Theme, id: string) =>
   `</pattern>`;
 const hatched = (rc: RC, x: number, y: number, w: number, h: number, rx: number) =>
   `<rect x="${x}" y="${y}" width="${w}" height="${h}" rx="${rx}" fill="url(#${rc.hatch})"/>`;
+/** The card surface: a 4% ramp, top lighter. Theme-dependent, like the hatch,
+ *  so it takes the same scope suffix when several palettes share a document. */
+const SURFACE_GRAD = "sq-surface";
+const ACTOR_GRAD = "sq-actor";
+const surfaceGradient = (t: Theme, id: string) =>
+  `<linearGradient id="${id}" x1="0" y1="0" x2="0" y2="1">` +
+  `<stop offset="0" stop-color="${t.surfaceHi}"/><stop offset="1" stop-color="${t.surfaceLo}"/>` +
+  `</linearGradient>`;
+/** The actor tile is filled rather than outlined, so its ramp sits a step
+ *  darker than a card's — the fill *is* the shape, and at surface tones it
+ *  would disappear into the canvas. */
+const actorGradient = (t: Theme, id: string) =>
+  `<linearGradient id="${id}" x1="0" y1="0" x2="0" y2="1">` +
+  `<stop offset="0" stop-color="${t.plate}"/><stop offset="1" stop-color="${t.actorLo}"/>` +
+  `</linearGradient>`;
+/** The 1px contact shadow. The alpha rides `flood-color` rather than
+ *  `flood-opacity` on purpose: the adaptive merge only rewrites colour-valued
+ *  attributes, so an opacity that differed between light and dark would read
+ *  as geometry and be refused (render/adaptive.ts). resvg honours
+ *  feDropShadow, so PNG export keeps it. */
+const SHADOW = "sq-shadow";
+const shadowFilter = (t: Theme, id: string) =>
+  `<filter id="${id}" x="-10%" y="-10%" width="130%" height="130%">` +
+  `<feDropShadow dx="0" dy="1" stdDeviation="1" flood-color="${t.shadow}"/>` +
+  `</filter>`;
 const accentGradient = () =>
   `<linearGradient id="${ACCENT_GRAD}" x1="0" y1="0" x2="0" y2="1">` +
   `<stop offset="0" stop-color="#C441FE"/><stop offset="1" stop-color="#15B6FF"/>` +
@@ -112,6 +154,10 @@ interface RC {
   fx: (px: number) => number; // theme-scaled font size
   /** `sq-hatch`, plus the document scope when one is set */
   hatch: string;
+  /** the theme-dependent surface defs, scoped the same way as `hatch` */
+  grad: string;
+  actorGrad: string;
+  shadow: string;
   /** when present, id-bearing defs go here instead of into this SVG */
   collect?: Map<string, string>;
   /** Faces this render actually drew with, beyond the two body weights every
@@ -386,16 +432,33 @@ function wrap(rc: RC, text: string, maxPx: number, sizePx: number, maxLines: num
   return wrapText(text, maxPx, sizePx, rc.fam, maxLines);
 }
 
+/** The card/leaf surface: a 4% top-to-bottom ramp instead of a flat fill, over
+ *  a 1px contact shadow. Both are defs so the light and dark draws merge into
+ *  one adaptive file — a gradient's stops and a shadow's `flood-color` are
+ *  colour-valued, which is the only kind of attribute that may differ between
+ *  the two palettes (render/adaptive.ts). */
+function surfaceRect(
+  rc: RC, x: number, y: number, w: number, h: number, rx: number,
+): string {
+  return (
+    `<rect x="${x}" y="${y}" width="${w}" height="${h}" rx="${rx}" ` +
+    `fill="url(#${rc.grad})" stroke="${rc.t.border}" stroke-width="1" ` +
+    `filter="url(#${rc.shadow})"/>`
+  );
+}
+
 function leaf(n: PNode, rc: RC, opts: RenderOpts, dimmed: boolean, L: string[]) {
   const { t } = rc;
   const op = dimmed ? ` opacity="${DIM}"` : "";
   const ctx = n.kind === "context-leaf";
-  const stroke = ctx ? ` stroke-dasharray="4 3"` : "";
   L.push(`<g data-path="${esc(n.path)}" data-kind="${n.kind}"${op}>`);
-  L.push(box(rc, n.x, n.y, n.w, n.h, R_NODE, t.surface, t.border, 1.5, stroke));
+  // A context leaf keeps the flat surface and the dashed border: it is
+  // scenery, and scenery is not lit or lifted off the page.
+  if (ctx) L.push(box(rc, n.x, n.y, n.w, n.h, R_NODE, t.surface, t.border, 1.5, ` stroke-dasharray="4 3"`));
+  else L.push(surfaceRect(rc, n.x, n.y, n.w, n.h, R_NODE));
   if (n.external) L.push(hatched(rc, n.x, n.y, n.w, n.h, R_NODE));
   const px = n.x + PAD, py = n.y + PAD;
-  L.push(iconPlate(n.icon, px, py, PLATE, rc, ctx));
+  L.push(iconTile(n.icon, px, py, rc, ctx));
   if (n.badge) L.push(badgeMarkup(n.badge, px, py, rc));
   const maxLabel = n.w - PAD - PLATE - PAD - PAD;
   const withDesc = opts.showDescriptions && n.description;
@@ -410,50 +473,177 @@ function leaf(n: PNode, rc: RC, opts: RenderOpts, dimmed: boolean, L: string[]) 
   L.push(`</g>`);
 }
 
+/** The actor tile (docs/design): filled rather than outlined, so the human who
+ *  starts the story separates from the services by shape before the icon is
+ *  read. No border, a round avatar, and a caption where a service carries its
+ *  description. */
+function person(n: PNode, rc: RC, opts: RenderOpts, dimmed: boolean, L: string[]) {
+  const { t } = rc;
+  const op = dimmed ? ` opacity="${DIM}"` : "";
+  L.push(`<g data-path="${esc(n.path)}" data-kind="${n.kind}"${op}>`);
+  L.push(
+    `<rect x="${n.x}" y="${n.y}" width="${n.w}" height="${n.h}" rx="${R_CARD}" ` +
+    `fill="url(#${rc.actorGrad})" filter="url(#${rc.shadow})"/>`,
+  );
+  if (n.external) L.push(hatched(rc, n.x, n.y, n.w, n.h, R_CARD));
+  // A disc, not a plate: round is the oldest shorthand for a person, and it
+  // keeps the actor legible where the icon is a generic silhouette.
+  const r = 17, cx = n.x + PAD + r, cy = n.y + Math.round(n.h / 2);
+  L.push(`<circle cx="${cx}" cy="${cy}" r="${r}" fill="${t.plate}"/>`);
+  // The mark goes on the disc bare — `iconPlate` would draw the monochrome
+  // branch's own rounded square inside it, and a square plate centred in a
+  // circle reads as a mistake rather than as an avatar. Colour-pack artwork
+  // keeps its own palette, same as everywhere else.
+  const asset = n.icon && iconAsset(n.icon.pack, n.icon.id);
+  if (asset && n.icon)
+    L.push(
+      `<g color="${t.muted}"><use href="#${symbolId(n.icon.pack, n.icon.id)}" x="${cx - 10}" y="${cy - 10}" width="20" height="20"/></g>`,
+    );
+  const tx = n.x + PAD + r * 2 + PAD;
+  const maxLabel = n.w - (tx - n.x) - PAD;
+  const withDesc = opts.showDescriptions && n.description;
+  L.push(
+    `<text x="${tx}" y="${withDesc ? cy - 1 : cy + 5}" font-size="${rc.fx(13)}" font-weight="500" fill="${t.ink}">${esc(fit(n.label, maxLabel, rc.fx(13), "500", rc.fam))}</text>`,
+  );
+  if (withDesc)
+    L.push(
+      `<text x="${tx}" y="${cy + 15}" font-size="${rc.fx(11)}" fill="${t.muted}">${esc(fit(n.description!, maxLabel, rc.fx(11), "400", rc.fam))}</text>`,
+    );
+  L.push(`</g>`);
+}
+
+/** Two outline rects behind a container, offset back and down: "there is more
+ *  inside", said by the shape, before anyone clicks.
+ *
+ *  Emitted as siblings *outside* the node's own group on purpose. The SPA's
+ *  hover rule styles the group's first rect, and the dive animation measures
+ *  the group's bounding box — sheets inside it would light the back sheet on
+ *  hover and throw every zoom 8px off centre. */
+function sheets(n: PNode, rc: RC, dimmed: boolean): string {
+  const { t } = rc;
+  // back sheet first, so the nearer one overlaps it
+  return [{ d: 8, o: "0.5" }, { d: 4, o: "0.8" }]
+    .map(({ d, o }) =>
+      `<rect x="${n.x + d}" y="${n.y + d}" width="${n.w}" height="${n.h}" rx="${R_CARD}" ` +
+      `fill="${t.sheetFill}" stroke="${t.sheetBorder}" stroke-width="1" opacity="${dimmed ? DIM : o}"/>`)
+    .join("");
+}
+
 function card(n: PNode, rc: RC, dimmed: boolean, L: string[]) {
   const { t } = rc;
   const ctx = n.kind === "context-card";
   // one opacity, never two: dim wins over the context fade
   const op = dimmed ? ` opacity="${DIM}"` : ctx ? ` opacity="0.75"` : "";
-  const stroke = ctx ? ` stroke-dasharray="4 3"` : "";
+  // A context card gets no sheets: it stands for somewhere else, and this view
+  // is not the place to advertise diving into it.
+  if (!ctx) L.push(sheets(n, rc, dimmed));
   L.push(`<g data-path="${esc(n.path)}" data-kind="${n.kind}"${op}>`);
-  L.push(box(rc, n.x, n.y, n.w, n.h, 6, t.surface, t.border, 1.5, stroke));
-  if (n.external) L.push(hatched(rc, n.x, n.y, n.w, n.h, 6));
-  // accent bar (kind silhouette, DESIGN §3). A live card carries the brand
-  // ramp; a context card stays muted, because the bar is what tells the two
-  // apart at a glance and colour is the cheapest way to say "this one is the
-  // subject".
+  if (ctx) L.push(box(rc, n.x, n.y, n.w, n.h, R_CARD, t.surface, t.border, 1.5, ` stroke-dasharray="4 3"`));
+  else L.push(surfaceRect(rc, n.x, n.y, n.w, n.h, R_CARD));
+  // The spine: the brand ramp down the left edge, clipped to the card's own
+  // radius so it turns the corner instead of squaring it off. Containers only
+  // — a leaf has no inside, so it gets none of the affordances that imply one.
+  // A context card keeps a muted one: the spine is what separates subject from
+  // scenery, and colour is the cheapest way to say which is which.
+  const clipId = `sq-cardclip-${n.w}-${n.h}`;
+  L.push(def(rc, clipId,
+    `<clipPath id="${clipId}"><rect x="0" y="0" width="${n.w}" height="${n.h}" rx="${R_CARD}"/></clipPath>`));
+  const inCard = (markup: string) =>
+    `<g transform="translate(${n.x},${n.y})" clip-path="url(#${clipId})">${markup}</g>`;
+  L.push(inCard(`<rect x="0" y="0" width="3" height="${n.h}" fill="${ctx ? t.muted : `url(#${ACCENT_GRAD})`}"/>`));
+  // The shelf: what is inside, along the bottom. It continues the card's own
+  // surface (the gradient's lower tone) under a hairline, so it reads as one
+  // object with a divided base rather than a card sitting on a bar. Drawn only
+  // when it has something to hold — an empty strip is just a taller card.
+  const hasShelf = !!(n.preview.length || n.more || n.domain);
+  if (hasShelf)
+    L.push(inCard(
+      `<rect x="3" y="${n.h - SHELF_H}" width="${n.w - 3}" height="${SHELF_H}" fill="${t.surfaceLo}"/>` +
+      `<line x1="3" y1="${n.h - SHELF_H}" x2="${n.w}" y2="${n.h - SHELF_H}" stroke="${t.shelfLine}" stroke-width="1"/>`,
+    ));
+  // Hatch last of the surfaces, so "someone else's" covers the shelf too — it
+  // is one card, and a texture that stopped at the shelf line read as a gap.
+  if (n.external) L.push(hatched(rc, n.x, n.y, n.w, n.h, R_CARD));
+  // The card's own mark, on the tile a leaf's icon sits on. The header row is
+  // top-aligned in the body it shares with the shelf; with no shelf there is
+  // no body to share, so it centres instead of leaving the bottom half empty.
+  const bodyH = hasShelf ? n.h - SHELF_H : n.h;
+  const px = n.x + PAD + 5, py = n.y + Math.round((bodyH - PLATE) / 2);
+  if (n.icon) L.push(iconTile(n.icon, px, py, rc, ctx));
+  const tx = n.icon ? px + PLATE + PAD : n.x + PAD + 6;
+  // the glyph chip's column is reserved whether or not one is drawn, so a long
+  // label never runs under it
+  const maxText = n.x + n.w - CARD_INSET - GLYPH_CHIP - PAD - tx;
+  // Baselines hang off the tile's centre line, so the title/tagline pair reads
+  // as one block beside the icon rather than starting at an arbitrary height.
+  // Alone, the title takes the centre itself.
+  const mid = py + PLATE / 2;
   L.push(
-    `<rect x="${n.x}" y="${n.y}" width="4" height="${n.h}" rx="2" fill="${ctx ? t.muted : `url(#${ACCENT_GRAD})`}"/>`,
-  );
-  const tx = n.x + PAD + 6;
-  L.push(
-    `<text x="${tx}" y="${n.y + 34}" font-size="${rc.fx(15)}" font-weight="500" fill="${ctx ? t.muted : t.ink}">${esc(fit(n.label, n.w - 60, rc.fx(15), "500", rc.fam))}</text>`,
+    `<text x="${tx}" y="${n.tagline ? mid - 2 : mid + 5}" font-size="${rc.fx(15)}" font-weight="500" fill="${ctx ? t.muted : t.ink}">${esc(fit(n.label, maxText, rc.fx(15), "500", rc.fam))}</text>`,
   );
   if (n.tagline)
     L.push(
-      `<text x="${tx}" y="${n.y + 54}" font-size="${rc.fx(11)}" fill="${t.muted}">${esc(fit(n.tagline, n.w - 40, rc.fx(11), "400", rc.fam))}</text>`,
+      `<text x="${tx}" y="${mid + 13}" font-size="${rc.fx(11)}" fill="${t.muted}">${esc(fit(n.tagline, maxText + GLYPH_CHIP, rc.fx(11), "400", rc.fam))}</text>`,
     );
   if (n.glyph) {
+    // A bordered chip, not a bare mark: the glyph says what kind of thing the
+    // card is, and the chip is what makes it read as a label rather than as
+    // part of the card's own artwork.
+    const gx = n.x + n.w - CARD_INSET - GLYPH_CHIP, gy = n.y + 10;
     const asset = iconAsset(n.glyph.pack, n.glyph.id);
+    const meta = iconMeta(n.glyph.pack, n.glyph.id);
+    if (asset || meta)
+      L.push(
+        `<rect x="${gx}" y="${gy}" width="${GLYPH_CHIP}" height="${GLYPH_CHIP}" rx="5" fill="${t.surface}" stroke="${t.border}" stroke-width="1"/>`,
+      );
     if (asset)
       L.push(
-        `<g color="${t.muted}"><use href="#${symbolId(n.glyph.pack, n.glyph.id)}" x="${n.x + n.w - PAD - 18}" y="${n.y + 10}" width="18" height="18"/></g>`,
+        `<g color="${t.muted}"><use href="#${symbolId(n.glyph.pack, n.glyph.id)}" x="${gx + 5}" y="${gy + 5}" width="16" height="16"/></g>`,
       );
-    else {
-      const g = iconMeta(n.glyph.pack, n.glyph.id);
-      if (g)
-        L.push(
-          `<text x="${n.x + n.w - PAD}" y="${n.y + 22}" text-anchor="end" font-size="${rc.fx(10)}" font-weight="500" fill="${t.muted}">${esc(g.code)}</text>`,
-        );
+    else if (meta)
+      L.push(
+        `<text x="${gx + GLYPH_CHIP / 2}" y="${gy + 17}" text-anchor="middle" font-size="${rc.fx(10)}" font-weight="500" fill="${t.muted}">${esc(meta.code)}</text>`,
+      );
+  }
+  // Shelf contents. The bed itself went down with the surface, above.
+  if (hasShelf) {
+    const sy = n.y + n.h - SHELF_H;
+    let ix = n.x + CARD_INSET;
+    for (const icon of n.preview) {
+      L.push(iconPlate(icon, ix, sy + 7, 16, rc, ctx));
+      ix += 22; // 16 of icon + a 6 gap, the shelf's rhythm
+    }
+    if (n.more) {
+      const label = `+${n.more}`;
+      L.push(
+        `<text x="${ix}" y="${sy + 19}" font-size="${rc.fx(11)}" font-weight="500" fill="${t.muted}">${label}</text>`,
+      );
+      ix += Math.ceil(measure(label, rc.fx(11), "500", rc.fam));
+    }
+    // The chip takes the room the icons left, not a share of the card: sizing
+    // it against half the width let a long domain slide left over the `+N` it
+    // was supposed to sit beside. Below MIN_DOMAIN there is no room worth
+    // taking — two letters and an ellipsis name nothing — so it steps aside
+    // and the icons keep the shelf.
+    const MIN_DOMAIN = 44;
+    if (n.domain) {
+      // ceil, not round: a label measuring 51.05 rounds its chip down to 51
+      // and then `fit` ellipsizes the text against its own chip
+      const natural = Math.ceil(measure(n.domain, rc.fx(11), "400", rc.fam)) + 12;
+      const room = n.x + n.w - CARD_INSET - (ix + 8);
+      const dw = Math.min(natural, room);
+      if (dw >= MIN_DOMAIN) {
+      const dx = n.x + n.w - CARD_INSET - dw;
+      L.push(
+        // a hairline, because the chip's fill is a couple of percent off the
+        // shelf it sits on — quiet by design, but without an edge it read as
+        // floating text rather than as a tag
+        `<rect x="${dx}" y="${sy + 6}" width="${dw}" height="18" rx="2" fill="${t.plate}" stroke="${t.border}" stroke-width="1"/>` +
+        `<text x="${dx + 6}" y="${sy + 19}" font-size="${rc.fx(11)}" fill="${t.muted}">${esc(fit(n.domain, dw - 12, rc.fx(11), "400", rc.fam))}</text>`,
+      );
+      }
     }
   }
-  // preview strip: up to 3 inner icons, bottom-right, 16px at 60%
-  n.preview.forEach((icon, i) => {
-    const ix = n.x + n.w - PAD - 16 - i * 20;
-    const iy = n.y + n.h - PAD - 16;
-    L.push(iconPlate(icon, ix, iy, 16, rc, true));
-  });
   L.push(`</g>`);
 }
 
@@ -817,6 +1007,52 @@ function iconDefs(p: Positioned, rc: RC): string {
 
 /** Icon artwork clipped to our plate radius, or a lettered fallback plate.
  *  The pack art is verbatim — nothing here recolours or restyles it. */
+/** A node's main icon: the artwork at ICON_ART on a neutral tile of PLATE
+ *  (docs/design). The tile is what keeps a pack mark from sitting straight on
+ *  the card surface — vendor artwork is drawn on white in its own guidelines,
+ *  and against a gradient it reads as pasted on. `iconPlate` still draws the
+ *  mark itself, so monochrome packs keep their brand-coloured knockout. */
+function iconTile(
+  icon: { pack: string; id: string } | undefined,
+  x: number, y: number, rc: RC, soften = false,
+): string {
+  const { t } = rc;
+  const inset = Math.round((PLATE - ICON_ART) / 2);
+  const tile = `<rect x="${x}" y="${y}" width="${PLATE}" height="${PLATE}" rx="6" fill="${t.plate}"${soften ? ` opacity="0.6"` : ""}/>`;
+  const asset = icon ? iconAsset(icon.pack, icon.id) : undefined;
+  const mono = icon && (icon.pack === "builtin" || packMonochrome(icon.pack));
+  if (asset && icon && mono) {
+    // A single-colour mark goes straight onto the tile. `iconPlate` would draw
+    // its own brand-coloured plate with the mark knocked out — right when the
+    // mark stands alone, wrong here, where it nests a rounded rect inside a
+    // rounded rect. Same reasoning as the node badge: quiet plate, mark in its
+    // own colour (`fill` as well as `color`, because vendored marks carry no
+    // fill and would default to black).
+    //
+    // Whose colour, though, depends on whose mark it is. `iconColor` is
+    // defined only for packs that publish one, so a trademark keeps its brand
+    // hue while our own vocabulary (builtin, sys) follows the theme — those
+    // manifests carry no colour and used to inherit a hardcoded light grey,
+    // which went dim the moment the canvas did.
+    const brand = iconColor(icon.pack, icon.id);
+    const ink = brand ?? t.muted;
+    // A brand hue is fixed, so the surface under it is what moves. GitHub's
+    // near-black on the dark theme's tile is a 1.4:1 smudge, and recolouring
+    // someone's trademark is not an option — so every branded mark sits on the
+    // white plate its own guidelines assume. Unconditionally, not by contrast
+    // test: a rule that flipped per icon would put a white tile beside a dark
+    // one in the same row and read as a bug rather than as a policy.
+    const bed = brand ? t.brandPlate : t.plate;
+    return (
+      `<rect x="${x}" y="${y}" width="${PLATE}" height="${PLATE}" rx="6" fill="${bed}"${soften ? ` opacity="0.6"` : ""}/>` +
+      `<g color="${ink}" fill="${ink}"${soften ? ` opacity="0.6"` : ""}>` +
+      `<use href="#${symbolId(icon.pack, icon.id)}" x="${x + inset}" y="${y + inset}" width="${ICON_ART}" height="${ICON_ART}"/>` +
+      `</g>`
+    );
+  }
+  return tile + iconPlate(icon, x + inset, y + inset, ICON_ART, rc, soften);
+}
+
 function iconPlate(
   icon: { pack: string; id: string } | undefined,
   x: number, y: number, size: number, rc: RC, soften = false,
@@ -867,6 +1103,9 @@ export function renderSVG(p: Positioned, t: Theme, opts: RenderOpts = {}): strin
     fx: (px) => Math.round(px * t.font.scale),
     faces: new Set<string>(),
     hatch: `${HATCH}${opts.defsScope ?? ""}`,
+    grad: `${SURFACE_GRAD}${opts.defsScope ?? ""}`,
+    actorGrad: `${ACTOR_GRAD}${opts.defsScope ?? ""}`,
+    shadow: `${SHADOW}${opts.defsScope ?? ""}`,
     collect: opts.collectDefs,
   };
   const hl = opts.highlight ?? [];
@@ -1006,6 +1245,7 @@ export function renderSVG(p: Positioned, t: Theme, opts: RenderOpts = {}): strin
   for (const n of p.nodes) {
     const dimmed = !nodeMatches(n);
     if (n.kind === "card" || n.kind === "context-card") card(n, rc, dimmed, body);
+    else if (n.kind === "person") person(n, rc, opts, dimmed, body);
     else leaf(n, rc, opts, dimmed, body);
     if (!dimmed && hl.length > 0)
       body.push(
@@ -1182,7 +1422,16 @@ export function renderSVG(p: Positioned, t: Theme, opts: RenderOpts = {}): strin
   // A collected def comes back "" and lands in the caller's map instead; the
   // wrapping <defs> is only ours to emit when we are keeping them.
   const inline: string[] = [];
-  if (p.nodes.some((n) => n.kind === "card")) inline.push(def(rc, ACCENT_GRAD, accentGradient()));
+  if (p.nodes.some((n) => n.kind === "card" || n.kind === "context-card"))
+    inline.push(def(rc, ACCENT_GRAD, accentGradient()));
+  // Every lit surface shares one gradient and one shadow; a diagram of only
+  // context cards draws neither, and pays for neither.
+  const lit = p.nodes.some((n) => n.kind === "card" || n.kind === "leaf");
+  if (lit) inline.push(def(rc, rc.grad, surfaceGradient(rc.t, rc.grad)));
+  if (p.nodes.some((n) => n.kind === "person"))
+    inline.push(def(rc, rc.actorGrad, actorGradient(rc.t, rc.actorGrad)));
+  if (lit || p.nodes.some((n) => n.kind === "person") || (p.notes ?? []).length)
+    inline.push(def(rc, rc.shadow, shadowFilter(rc.t, rc.shadow)));
   if (p.nodes.some((n) => n.external)) inline.push(def(rc, rc.hatch, hatchPattern(rc.t, rc.hatch)));
   for (const d of inline) if (d) L.push(`<defs>${d}</defs>`);
   const defs = iconDefs(p, rc);

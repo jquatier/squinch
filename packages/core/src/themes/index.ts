@@ -31,6 +31,35 @@ export interface Theme {
    *  dropping it first would silently erase an authored `style: warning`. */
   warnTint: string;
   surfaceAlt: string; // container-frame recession (DESIGN §5)
+  /** The card gradient's two stops, top to bottom: a 4% ramp that reads as a
+   *  lit surface rather than a flat fill (docs/design). `surfaceLo` is also
+   *  the shelf, so the strip along a card's bottom continues the same surface
+   *  instead of reading as a separate block. */
+  surfaceHi: string;
+  surfaceLo: string;
+  /** Hairline between a card's body and its shelf — lighter than `border`,
+   *  because it divides one surface rather than bounding two. */
+  shelfLine: string;
+  /** The neutral chip an icon sits on: card plates, glyph chips, shelf chips.
+   *  Doubles as the actor tile's upper tone — an actor is a filled shape, and
+   *  this is the quietest fill that still separates from canvas. */
+  plate: string;
+  /** The actor tile's lower gradient stop, a step under `plate`. */
+  actorLo: string;
+  /** The plate under a vendor mark. A trademark's contrast was designed
+   *  against white and is not ours to re-balance, so when the theme's own tile
+   *  cannot carry a dark mark this one does — which is a dark-theme problem
+   *  only. In light it *is* `plate`: a white tile there would vanish into the
+   *  card's white top, which is exactly what it did when this was one value. */
+  brandPlate: string;
+  /** The stacked sheets behind a container — "there is more inside". Quieter
+   *  than the card's own border and fill: a hint, not a stack of real cards. */
+  sheetFill: string;
+  sheetBorder: string;
+  /** The 1px contact shadow under cards, leaves, actors and notes. rgba, not
+   *  hex: the alpha is the whole effect, and it must ride `flood-color` for
+   *  the adaptive merge to treat it as colour rather than geometry. */
+  shadow: string;
   font: ThemeFont;
   /** The dark counterpart this theme can share one adaptive file with. Only
    *  themes with the same font can pair: type metrics drive layout, so a
@@ -71,6 +100,15 @@ export const light: Theme = {
   beadText: "#FFFFFF",
   warnTint: "#FBF3DC",
   surfaceAlt: "#EFEFEC",
+  surfaceHi: "#FFFFFF",
+  surfaceLo: "#F2F1ED",
+  shelfLine: "#EFEFEC",
+  plate: "#EFEFEC",
+  actorLo: "#E4E3DE",
+  brandPlate: "#EFEFEC",
+  sheetFill: "#F2F1ED",
+  sheetBorder: "#DEDDD6",
+  shadow: "rgba(28,28,26,0.06)",
 };
 
 export const dark: Theme = {
@@ -93,6 +131,15 @@ export const dark: Theme = {
   beadText: "#1B1B2E",
   warnTint: "#3A3423",
   surfaceAlt: "#1D1D20",
+  surfaceHi: "#26262A",
+  surfaceLo: "#1D1D20",
+  shelfLine: "#2E2E33",
+  plate: "#2F2F34",
+  actorLo: "#26262A",
+  brandPlate: "#FFFFFF",
+  sheetFill: "#1D1D20",
+  sheetBorder: "#33333A",
+  shadow: "rgba(0,0,0,0.5)",
 };
 
 // Light and dark are the shipping pair. The sketch, sketch-dark and contrast

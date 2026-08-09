@@ -18,7 +18,11 @@ export function iconMeta(pack: string, id: string): IconMeta | undefined {
   return { code: "", color: iconColor(pack, id) ?? "#6F6E69" };
 }
 
-export { packMonochrome, packFullBleed };
+// `iconColor` is undefined for packs that publish no colours, which is the
+// honest test for "is this a brand mark?" — `iconMeta` folds a neutral grey in
+// as a fallback, and a renderer that read that could not tell a trademark from
+// our own generic vocabulary.
+export { packMonochrome, packFullBleed, iconColor };
 
 export function iconExists(pack: string, id: string): boolean {
   return hasIcon(pack, id);

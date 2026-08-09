@@ -15,7 +15,9 @@ describe("visibility resolution + edge lifting", () => {
   it("landscape: top-level cards, person leaf, lifted edges", () => {
     const g = resolveView(model, view("landscape"));
     const kinds = Object.fromEntries(g.nodes.map((n) => [n.path, n.kind]));
-    expect(kinds).toEqual({ customer: "leaf", web: "card", orders: "card" });
+    // `person` is its own kind now, not a leaf wearing a person icon: the
+    // restyle draws the initiating actor as a filled tile (docs/design).
+    expect(kinds).toEqual({ customer: "person", web: "card", orders: "card" });
     expect(g.edges.map((e) => `${e.from}>${e.to}`)).toEqual(["customer>web", "web>orders"]);
     expect(g.edges.every((e) => e.count === 1)).toBe(true); // single constituents keep identity
   });
