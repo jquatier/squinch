@@ -118,20 +118,58 @@ export function resolveView(model: SModel, view: SView): ViewGraph {
         ...[...model.containers.keys()].filter((p) => !p.includes(".")),
       ];
 
-  // expand: inline the container's children inside a rendered frame
+  // expand: inline the container's children inside a rendered frame.
+  // One level only, by the rule-stack design (§5 rule 1): frames do not nest.
+  // The layout flattens frames into single-level compounds, so a frame inside
+  // a frame would reach ELK childless and come back 0×0 with its label
+  // floating free — the depth the author wants is a deeper view, so say so.
   const frames: VFrame[] = [];
   const frameOf = new Map<string, string>(); // child path → frame path
+  const expandSet = new Set(view.expand);
   for (const ex of view.expand) {
+    let outer: string | undefined;
+    for (let p = parentOf(ex); p; p = parentOf(p)) if (expandSet.has(p)) outer = p;
+    if (outer) {
+      diagnostics.push({
+        severity: "error",
+        message: `expand \`${ex}\` sits inside \`${outer}\`, which this view also expands — a view opens one level of depth`,
+        fix: `give the inner container its own view: \`scope ${outer}\` + \`expand ${ex.slice(outer.length + 1)}\` — its card here dives there`,
+        loc: view.loc,
+      });
+      continue;
+    }
     const i = visible.indexOf(ex);
     const c = model.containers.get(ex);
     if (i >= 0 && c) {
       frames.push({ path: ex, label: c.label ?? c.name });
       for (const child of c.children) frameOf.set(child, ex);
       visible.splice(i, 1, ...c.children);
+    } else if (!c && model.nodes.has(ex)) {
+      diagnostics.push({
+        severity: "warning",
+        message: `expand \`${ex}\` targets a leaf — only containers open`,
+        fix: `drop the line; a leaf is already drawn at full depth`,
+        loc: view.loc,
+      });
+    } else if (c) {
+      diagnostics.push({
+        severity: "warning",
+        message: `expand \`${ex}\` is not among the scope's direct children — nothing opens`,
+        fix: `\`expand\` opens the scope's own children; an outside element is drawn at depth with \`detail ${ex}\``,
+        loc: view.loc,
+      });
     }
   }
 
   const visSet = () => new Set(visible);
+  /** Lift targets: the visible set plus expanded frames that still hold at
+   *  least one visible member. An expanded container is spliced out of
+   *  `visible`, but its frame is a real drawable entity — an edge naming the
+   *  container attaches to the frame border (layout hands ELK the compound
+   *  id, layout.ts's "ports live on leaves" comment). A frame `only` or
+   *  `exclude` has emptied is dead: it must neither render nor catch lifts. */
+  const liveFramePaths = () =>
+    frames.filter((f) => visible.some((p) => p.startsWith(`${f.path}.`))).map((f) => f.path);
 
   // ── 3. only: the view's filter ───────────────────────────────────────────
   // `scope` answers *where I stand*; `only` answers *which of that I keep*.
@@ -198,7 +236,9 @@ export function resolveView(model: SModel, view: SView): ViewGraph {
   // ── 4. context neighbors (top-level lift, earned against the filtered interior) ──────────────────
   const contextSet = new Set<string>();
   if (view.context === "auto") {
-    const v = visSet();
+    // frames count as inside: `client -> cluster` with the cluster expanded
+    // must still earn `client` its context card, exactly as a leaf target would
+    const v = new Set([...visible, ...liveFramePaths()]);
     for (const e of model.edges) {
       const fIn = liftIn(e.from, v);
       const tIn = liftIn(e.to, v);
@@ -306,7 +346,9 @@ export function resolveView(model: SModel, view: SView): ViewGraph {
   // Native edges (endpoints unchanged by lifting) always render individually —
   // parallel edges are legal and distinct at their own altitude. Only LIFTED
   // edges aggregate into count-badged neutrals.
-  const v = visSet();
+  const liveFrames = frames.filter((f) => visible.some((p) => p.startsWith(`${f.path}.`)));
+  const frameSet = new Set(liveFrames.map((f) => f.path));
+  const v = new Set([...visible, ...frameSet]);
   interface Group { edges: typeof model.edges; from: string; to: string }
   const groups = new Map<string, Group>();
   const edges: VEdge[] = [];
@@ -331,6 +373,11 @@ export function resolveView(model: SModel, view: SView): ViewGraph {
       continue;
     }
     if (!f || !t || f === t) continue;
+    // One end is an expanded frame and the other lifted to something inside
+    // it: internal at this altitude — the same silent drop as both ends
+    // lifting into one card (SPEC §5 lifting), just with the card held open.
+    if (frameSet.has(f) && t.startsWith(`${f}.`)) continue;
+    if (frameSet.has(t) && f.startsWith(`${t}.`)) continue;
     const lifted = f !== e.from || t !== e.to;
     if (!lifted) {
       edges.push({
@@ -400,7 +447,10 @@ export function resolveView(model: SModel, view: SView): ViewGraph {
       visible = visible.filter((p) => p !== c);
     }
   }
-  const finalEdges = scopeEdges.filter((e) => visSet().has(e.from) && visSet().has(e.to));
+  // frames are drawable endpoints too — an edge lifted to an expanded
+  // container attaches to its frame border
+  const drawable = new Set([...visible, ...frameSet]);
+  const finalEdges = scopeEdges.filter((e) => drawable.has(e.from) && drawable.has(e.to));
 
   // ── 6. materialize nodes ──────────────────────────────────────────────────
   const leafDescendants = (path: string): string[] => {
@@ -517,5 +567,7 @@ export function resolveView(model: SModel, view: SView): ViewGraph {
       loc: view.loc,
     });
 
-  return { nodes, edges: finalEdges, frames, flow, diagnostics };
+  // liveFrames, not frames: a frame `exclude`/`only` emptied has no members
+  // to size it and would reach ELK as a childless compound — a 0×0 rect.
+  return { nodes, edges: finalEdges, frames: liveFrames, flow, diagnostics };
 }

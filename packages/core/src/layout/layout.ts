@@ -405,10 +405,15 @@ export async function layoutView(
   // ── edge classes: inner (same entity) | coplanar (same rank, both bare) |
   //    cross-rank (ELK's) ────────────────────────────────────────────────────
   const inner = (e: VEdge) => entityOf(e.from) === entityOf(e.to) && byPath.get(e.from)?.frame;
-  // the coplanar router only handles bare nodes: unframed AND unzoned
+  // the coplanar router only handles bare nodes: unframed AND unzoned. An
+  // expanded frame passes the unitOf identity test (a frame is its own unit),
+  // so require a real node at both ends — a frame-endpoint edge goes to ELK,
+  // which attaches it to the compound border.
   const coplanar = edges.filter(
     (e) =>
       !inner(e) &&
+      byPath.has(e.from) &&
+      byPath.has(e.to) &&
       rank.get(unitOf(e.from)) === rank.get(unitOf(e.to)) &&
       unitOf(e.from) === e.from &&
       unitOf(e.to) === e.to,

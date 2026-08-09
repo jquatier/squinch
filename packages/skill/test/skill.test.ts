@@ -250,6 +250,13 @@ describe("SKILL.md — diagnostic coverage", () => {
     "has a space in its value, so it needs quotes",
     "layout hints live in views, not systems", "layout` block inside",
     "layout` block at the top level — layout hints live inside a view",
+    // The expand family (flexibility sweep, 2026-08): each fix writes the
+    // corrected view out in full — the `scope`+`expand` pair to split off, the
+    // `detail` to use instead, the line to drop — so a cookbook row would only
+    // restate it.
+    ", which this view also expands — a view opens one level of depth",
+    "is not among the scope's direct children — nothing opens",
+    "targets a leaf — only containers open",
   ]);
 
   it("every diagnostic that needs a technique is in the cookbook", () => {

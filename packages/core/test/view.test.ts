@@ -386,3 +386,178 @@ view v { scope s }`;
     expect(again.svg).toBe(r.svg);
   });
 });
+
+describe("expanded frames as edge endpoints (flexibility sweep, 2026-08)", () => {
+  const doc = (viewBody: string) => `client = box "Client"
+system svc "Service" {
+  container workers "Workers" {
+    w1 = box "Worker 1"
+    w2 = box "Worker 2"
+  }
+  db = box "DB"
+}
+client -> svc.workers "jobs"
+svc.workers -> svc.db
+view v {${viewBody}
+}`;
+
+  it("an edge naming an expanded container lifts to its frame and draws", async () => {
+    const built = buildModel(doc("\n  scope svc\n  expand workers\n  detail client"));
+    expect(built.ok, JSON.stringify(built.diagnostics)).toBe(true);
+    const g = resolveView(built.model, built.model.views.find((v) => v.name === "v")!);
+    expect(g.frames).toEqual([{ path: "svc.workers", label: "Workers" }]);
+    expect(g.edges.map((e) => `${e.from}>${e.to}`).sort()).toEqual([
+      "client>svc.workers",
+      "svc.workers>svc.db",
+    ]);
+    // and the layout actually routes them — two arrowheads in the SVG
+    const r = await render(doc("\n  scope svc\n  expand workers\n  detail client"), {
+      theme: "light",
+      view: "v",
+    });
+    expect(r.ok, JSON.stringify(r.diagnostics)).toBe(true);
+    expect(validateSVG(r.svg!).ok).toBe(true);
+    // two edge strokes routed to real coordinates (heads are drawn separately)
+    const strokes = r.svg!.match(/<path d="M [^"]+" fill="none" stroke="[^"]+" stroke-width="1.5"\/>/g) ?? [];
+    expect(strokes.length).toBe(2);
+  });
+
+  it("both endpoints expanded: the edge runs frame border to frame border", async () => {
+    const src = `container east "East" {
+  e1 = box "E1"
+}
+container west "West" {
+  w1 = box "W1"
+}
+east <-> west "replication"
+view v {
+  expand east
+  expand west
+}`;
+    const built = buildModel(src);
+    expect(built.ok, JSON.stringify(built.diagnostics)).toBe(true);
+    const g = resolveView(built.model, built.model.views.find((v) => v.name === "v")!);
+    expect(g.frames.map((f) => f.path).sort()).toEqual(["east", "west"]);
+    expect(g.edges.map((e) => `${e.from}>${e.to}:${e.heads}`)).toEqual(["east>west:both"]);
+    const r = await render(src, { theme: "light", view: "v" });
+    expect(r.ok, JSON.stringify(r.diagnostics)).toBe(true);
+    expect(validateSVG(r.svg!).ok).toBe(true);
+  });
+
+  it("context is earned through a frame endpoint, like through a leaf", () => {
+    // no `detail client` — the edge into the expanded frame must still pull
+    // `client` in as a context card
+    const built = buildModel(doc("\n  scope svc\n  expand workers"));
+    const g = resolveView(built.model, built.model.views.find((v) => v.name === "v")!);
+    expect(g.nodes.find((n) => n.path === "client")?.kind).toBe("context-leaf");
+    expect(g.edges.some((e) => e.from === "client" && e.to === "svc.workers")).toBe(true);
+  });
+
+  it("a member's edge to its own open frame is internal — dropped without noise", () => {
+    const src = `system svc "S" {
+  container workers "Workers" {
+    w1 = box "W1"
+    w2 = box "W2"
+  }
+  db = box "DB"
+}
+svc.workers.w1 -> svc.workers
+svc.workers -> svc.db
+view v {
+  scope svc
+  expand workers
+}`;
+    const built = buildModel(src);
+    expect(built.ok, JSON.stringify(built.diagnostics)).toBe(true);
+    const g = resolveView(built.model, built.model.views.find((v) => v.name === "v")!);
+    expect(g.edges.map((e) => `${e.from}>${e.to}`)).toEqual(["svc.workers>svc.db"]);
+    expect(g.diagnostics).toEqual([]);
+  });
+
+  it("a frame emptied by exclude neither renders nor catches lifts", () => {
+    const built = buildModel(
+      doc("\n  scope svc\n  expand workers\n  detail client\n  exclude workers.w1\n  exclude workers.w2"),
+    );
+    const g = resolveView(built.model, built.model.views.find((v) => v.name === "v")!);
+    // no members → no frame, and the edges that would have attached to it go too
+    expect(g.frames).toEqual([]);
+    expect(g.edges.map((e) => `${e.from}>${e.to}`)).toEqual([]);
+  });
+
+  it("highlight does not crash on a frame endpoint, and the leaf end decides", async () => {
+    const src = `client = box "Client" { tags: #hot }
+system svc "Service" {
+  container workers "Workers" {
+    w1 = box "W1"
+  }
+}
+client -> svc.workers "jobs"
+view v {
+  scope svc
+  expand workers
+  detail client
+  highlight #hot
+}`;
+    const r = await render(src, { theme: "light", view: "v" });
+    expect(r.ok, JSON.stringify(r.diagnostics)).toBe(true);
+    expect(validateSVG(r.svg!).ok).toBe(true);
+  });
+});
+
+describe("expand guardrails (flexibility sweep, 2026-08)", () => {
+  const nested = `system east "East" {
+  container app "App" {
+    web = box "Web"
+    db = box "DB"
+  }
+}
+view v {
+  expand east
+  expand east.app
+}`;
+
+  it("nested expand is an error naming the split, not a 0×0 frame", () => {
+    const built = buildModel(nested);
+    const g = resolveView(built.model, built.model.views.find((v) => v.name === "v")!);
+    const err = g.diagnostics.find((d) => d.severity === "error")!;
+    expect(err.message).toContain("a view opens one level of depth");
+    expect(err.fix).toContain("scope east");
+    // the outer frame still renders sanely: one frame, inner container a card
+    expect(g.frames).toEqual([{ path: "east", label: "East" }]);
+    expect(g.nodes.find((n) => n.path === "east.app")?.kind).toBe("card");
+  });
+
+  it("nested expand errors regardless of declaration order", () => {
+    const flipped = nested.replace("  expand east\n  expand east.app", "  expand east.app\n  expand east");
+    const g0 = resolveView(
+      buildModel(flipped).model,
+      buildModel(flipped).model.views.find((v) => v.name === "v")!,
+    );
+    expect(g0.diagnostics.some((d) => d.severity === "error" && d.message.includes("one level of depth"))).toBe(true);
+  });
+
+  it("expand of something the scope cannot see warns instead of no-opping", () => {
+    const src = `system a "A" { x = box "X" }
+system b "B" { container inner "Inner" { y = box "Y" } }
+view v {
+  scope a
+  expand b.inner
+}`;
+    const built = buildModel(src);
+    const g = resolveView(built.model, built.model.views.find((v) => v.name === "v")!);
+    const warn = g.diagnostics.find((d) => d.message.includes("nothing opens"))!;
+    expect(warn.severity).toBe("warning");
+    expect(warn.fix).toContain("detail b.inner");
+  });
+
+  it("expand of a leaf warns", () => {
+    const src = `system a "A" { x = box "X" }
+view v {
+  scope a
+  expand x
+}`;
+    const built = buildModel(src);
+    const g = resolveView(built.model, built.model.views.find((v) => v.name === "v")!);
+    expect(g.diagnostics.some((d) => d.message.includes("only containers open"))).toBe(true);
+  });
+});

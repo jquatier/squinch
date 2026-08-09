@@ -305,6 +305,12 @@ A deterministic rule stack, evaluated in fixed order:
 
 1. **Scope children**: the scope's *direct* children — containers as cards, leaves as
    icons. Exactly one level deep; depth is opened deliberately via `expand`.
+   `expand` itself obeys the same rule: it opens the scope's own children, one
+   level, and frames never nest. An `expand` whose target sits inside another
+   expanded container is a check **error** (the fix names the deeper view to
+   write: `scope` the outer container and `expand` the inner). An `expand` whose
+   target isn't among the scope's children, or is a leaf, warns and opens
+   nothing — silence was the old behaviour, and it read as a rendered no-op.
 2. **`only` filters the interior** — the view's *which* axis, applied after
    `expand` so an expanded container's children are filtered too. A container
    survives if it or anything beneath it matches, because at a high altitude the
@@ -337,8 +343,15 @@ attention.
 Edges are declared at whatever depth they're true (`web.app -> orders.api`); each view
 re-anchors them deterministically:
 
-1. Each endpoint lifts to its **nearest visible ancestor** in the view.
+1. Each endpoint lifts to its **nearest visible ancestor** in the view. An
+   *expanded* container counts as visible for this purpose even though it is
+   drawn as a frame rather than a card: an edge naming it (`client -> cluster`
+   with `cluster` expanded) attaches to the frame's border, and such an edge
+   earns context cards exactly as a leaf endpoint would. A frame that `only` or
+   `exclude` emptied of members is not a lift target (and does not render).
 2. Both endpoints lift to the same visible node → the edge is internal → hidden here.
+   The open-frame variant follows the same rule: an edge between a frame and one
+   of its own visible members is internal at this altitude and hidden.
 3. Edges lifting to the same visible (source, target) pair **merge into one aggregate
    edge**: single constituent keeps its label; multiple render a count badge (`×3`).
    In SPA/VSCode, hover/click lists the constituent relations with jump-links to the

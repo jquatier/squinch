@@ -843,10 +843,17 @@ export function renderSVG(p: Positioned, t: Theme, opts: RenderOpts = {}): strin
   // view graph, so `highlight #hot-path` dimmed the very edge it named. A
   // hot-path or a PCI wire is exactly the thing whose endpoints are often
   // ordinary, which is what makes tagging the edge worth doing at all.
+  // An endpoint can be an expanded frame rather than a node (the edge attaches
+  // to the compound border). A frame holds members of many tags, so it never
+  // blocks its edge — the leaf end decides.
+  const endpointMatches = (path: string) => {
+    const n = byPath.get(path);
+    return n ? nodeMatches(n) : true;
+  };
   const edgeMatches = (e: PEdge) =>
     (hl.length === 0 ||
       e.tags.some((tag) => hl.includes(tag)) ||
-      (nodeMatches(byPath.get(e.from)!) && nodeMatches(byPath.get(e.to)!))) &&
+      (endpointMatches(e.from) && endpointMatches(e.to))) &&
     edgeReached(e);
 
   const body: string[] = [];
