@@ -238,10 +238,13 @@ Unknown values and misspelled attribute keys are diagnosed with did-you-mean;
 attributes are never silently dropped.
 
 **Parallel edges & edge identity**: multiple edges between the same pair are legal and
-distinguished by label (`api -> db "read"` / `api -> db "write"`). Any construct that
-*references* an edge (`route`, `note on`, flows) may include the label to disambiguate:
-`route api -> db "write" from east`. Referencing an ambiguous parallel edge without a
-label is a check error ("2 edges match `api -> db` — add the label").
+distinguished by label (`api -> db "read"` / `api -> db "write"`). `route` may include
+the label to disambiguate — `route api -> db "write" from east` — and referencing an
+ambiguous parallel edge without one is a check error ("2 edges match `api -> db` — add
+the label"). `note on` and flow steps match on endpoints only, first declared edge wins:
+they have no label slot yet, so a note or badge meant for one of a parallel pair should
+anchor to the pair's first edge or the diagram restructured. (Extending the label slot
+to them is deliberate future work, waiting on evidence anyone hits this.)
 
 ## 5. Views
 
@@ -543,8 +546,11 @@ order-service.squinch:44:3   `rows` lists `files` twice
   a node can hold only one rank position; remove one occurrence
 ```
 
-Lint (non-fatal): orphan nodes, duplicate edges, unreachable `exclude` targets, labels
-over ~40 chars, layout hints referencing excluded nodes.
+Lint (non-fatal): duplicate edges, labels over ~40 chars, view filters that match
+nothing (`only`/`include`/`exclude` by tag). Layout hints naming nodes a view has
+filtered out are silently skipped — hints are per-view advice, not assertions — and a
+node with no edges renders as a floating card without comment: islands are a real
+topology, not a mistake.
 
 `squinch check --format json` emits structured diagnostics (location, code, message,
 suggested fix) — agents parse that, humans get the pretty version. Both carry the same
