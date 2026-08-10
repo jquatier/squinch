@@ -1,7 +1,7 @@
 # The gauntlet (end-to-end acceptance)
 
 Twenty-nine natural-language architecture prompts. An agent, armed with only
-[`packages/skill/SKILL.md`](../packages/skill/SKILL.md) and the `squinch` CLI,
+[`packages/skill/skills/squinch/SKILL.md`](../packages/skill/skills/squinch/SKILL.md) and the `squinch` CLI,
 must produce a clean diagram for each. **v1 ships at ≥ 16/20 with zero human
 layout fixes** (the original ≥ 8/10 bar, at the current prompt count).
 

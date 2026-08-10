@@ -1,7 +1,8 @@
-// squinch CLI — check / render / icons / init / watch.
+// squinch CLI — check / render / icons / init / skill / watch.
 // Exit codes: 0 ok, 1 diagnostics-or-stale, 2 usage error.
 import { readFileSync, writeFileSync, mkdirSync, existsSync } from "node:fs";
 import { join, relative, isAbsolute } from "node:path";
+import { homedir } from "node:os";
 import { createHash } from "node:crypto";
 import {
   buildProject, renderProject, formatDiagnostics, validateSVG, searchIcons, themes, packInfo,
@@ -9,6 +10,7 @@ import {
   type Diagnostic,
 } from "@squinch/core";
 import { parseArgs, str } from "./args.js";
+import { SKILL_MD } from "./skill.generated.js";
 import { loadInput, type Input } from "./project.js";
 import { isGitRepo, loadInputAtRef } from "./git.js";
 import { toPosix } from "./paths.js";
@@ -31,8 +33,14 @@ Usage
   squinch render <path> [options]             render SVG
   squinch icons search <query> [--pack aws]   find icon ids
   squinch init [dir]                          scaffold a starter project
+  squinch skill [dir] [options]               install the agent skill (SKILL.md)
   squinch watch <path> [options]              re-render on change
   squinch diff [<old>] [<new>] [options]      what changed in the architecture
+
+Skill options
+  --global          install for you (~/.claude/skills) instead of the project
+  --claude          also write .claude/skills/ even if no CLAUDE.md is found
+  --print           print SKILL.md to stdout and write nothing
 
 Diff options
   --base <ref>      compare against a git ref (default: HEAD)
@@ -462,7 +470,56 @@ function cmdInit(dir: string): number {
   }
   writeFileSync(file, STARTER);
   console.error(
-    `created ${file}\n\nnext:\n  squinch render ${file} -o diagram.svg\n  squinch render ${file} --sync   # commit-ready SVGs + README snippet`,
+    `created ${file}\n\nnext:\n  squinch render ${file} -o diagram.svg\n  squinch render ${file} --sync   # commit-ready SVGs + README snippet\n  squinch skill                   # teach your coding agent the language`,
+  );
+  return 0;
+}
+
+/**
+ * Install the bundled SKILL.md where agents discover skills. Unlike `init`,
+ * this *overwrites silently*: the installed file is a squinch-owned artifact
+ * version-locked to this CLI, and refreshing it after an upgrade is the point —
+ * there is nothing of the user's in it to protect.
+ *
+ * The project install always writes the cross-agent `.agents/skills/` dir
+ * (Cursor, Codex, Gemini CLI, Copilot and friends read it). Claude Code is the
+ * one agent that doesn't, so its `.claude/skills/` copy is added when the
+ * project shows Claude Code markers — or on request via `--claude`, which an
+ * agent that knows who it is can pass for itself.
+ */
+function cmdSkill(positionals: string[], flags: Record<string, string | boolean>): number {
+  if (flags.print) {
+    console.log(SKILL_MD);
+    return 0;
+  }
+  if (flags.global && positionals[0])
+    throw new Error("--global installs to your home directory — drop the path, or drop the flag");
+  if (flags.global && flags.claude)
+    throw new Error("--global already targets Claude Code's personal skills — drop --claude");
+
+  const install = (dir: string): string => {
+    mkdirSync(dir, { recursive: true });
+    const file = join(dir, "SKILL.md");
+    writeFileSync(file, SKILL_MD);
+    return file;
+  };
+
+  if (flags.global) {
+    const file = install(join(homedir(), ".claude", "skills", "squinch"));
+    console.error(`wrote ${file} (squinch ${VERSION})`);
+  } else {
+    const dir = positionals[0] ?? ".";
+    const wrote = [install(join(dir, ".agents", "skills", "squinch"))];
+    const marker = existsSync(join(dir, "CLAUDE.md")) || existsSync(join(dir, ".claude"));
+    if (marker || flags.claude) {
+      wrote.push(install(join(dir, ".claude", "skills", "squinch")));
+      if (!flags.claude)
+        console.error("detected Claude Code in this project (CLAUDE.md or .claude/) — installing there too");
+    }
+    for (const file of wrote) console.error(`wrote ${file} (squinch ${VERSION})`);
+  }
+  console.error(
+    `\nthe skill drives \`squinch check\` and \`squinch render\`, so keep squinch on\nPATH (\`npx squinch\` works too) — and re-run this after upgrading to refresh`,
   );
   return 0;
 }
@@ -509,6 +566,8 @@ export async function main(argv: string[]): Promise<number> {
         return await cmdIcons(positionals, flags);
       case "init":
         return cmdInit(positionals[0] ?? ".");
+      case "skill":
+        return cmdSkill(positionals, flags);
       case "watch":
         if (!positionals[0]) throw new Error("usage: squinch watch <path>");
         return await cmdWatch(positionals[0], flags);

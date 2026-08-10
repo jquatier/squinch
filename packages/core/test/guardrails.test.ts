@@ -183,7 +183,7 @@ describe("the pre-commit hook stays wired and armed", () => {
     // (which is just as well — it means nothing on Windows).
     expect(git("ls-files", ".husky/pre-commit"), "`.husky/pre-commit` is not tracked").not.toBe("");
     const hook = readFileSync(hookPath, "utf8");
-    for (const guarded of ["apps/spa/src/examples.ts", "runtime.generated.ts"])
+    for (const guarded of ["apps/spa/src/examples.ts", "runtime.generated.ts", "skill.generated.ts"])
       expect(hook, `hook no longer guards ${guarded}`).toContain(guarded);
   });
 
@@ -229,6 +229,10 @@ describe("the workspace ships one version", () => {
       "gauntlet",
     ]
       .map((d) => join(d, "package.json"))
+      // The Claude Code plugin manifest is not a package.json, but it answers
+      // the same "which squinch is this?" question for `/plugin` users, so it
+      // moves with the rest (version.mjs rewrites it too).
+      .concat(join("packages", "skill", ".claude-plugin", "plugin.json"))
       .filter((p) => existsSync(join(root, p)));
 
     expect(members.length, "found no workspace members — the walk is broken").toBeGreaterThan(8);
@@ -290,6 +294,19 @@ describe("the workspace ships one version", () => {
         expect(m.license, `${m.name} ships vendor artwork — its npm licence must point at the NOTICE`)
           .toBe("SEE LICENSE IN NOTICE");
     }
+  });
+
+  it("the marketplace points at the plugin, and the plugin carries the skill", () => {
+    // `/plugin marketplace add jquatier/squinch` resolves the relative source
+    // against the repo checkout — a rename of packages/skill, or a move of the
+    // canonical SKILL.md, would break installs with no local symptom at all.
+    const marketplace = JSON.parse(readFileSync(join(root, ".claude-plugin/marketplace.json"), "utf8"));
+    expect(marketplace.plugins?.[0]?.name).toBe("squinch");
+    expect(marketplace.plugins?.[0]?.source).toBe("./packages/skill");
+    expect(existsSync(join(root, "packages/skill/.claude-plugin/plugin.json")),
+      "the marketplace's source is not a plugin — .claude-plugin/plugin.json is missing").toBe(true);
+    expect(existsSync(join(root, "packages/skill/skills/squinch/SKILL.md")),
+      "the plugin has no skill at skills/squinch/SKILL.md — nothing would install").toBe(true);
   });
 
   it("the release workflow guards the tag against that version", () => {

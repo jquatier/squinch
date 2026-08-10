@@ -25,6 +25,7 @@ const isValue = (tok: string | undefined): boolean =>
  *  without a `<placeholder>` is boolean, and must appear here. */
 export const BOOLEAN_FLAGS = new Set([
   "help", "h", "version", "v", "adaptive", "no-flow-steps", "sync", "check",
+  "global", "print", "claude",
 ]);
 
 export function parseArgs(argv: string[]): Args {

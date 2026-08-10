@@ -238,7 +238,10 @@ The architecture it certified is still enforced by the corpus invariant sweep.
   block on purpose — that collides with npm's own lifecycle hook.
 - Pre-commit hook (husky; `.husky/pre-commit`, wired by the root `prepare`
   script on `pnpm install`): when their sources are staged, regenerates
-  `apps/spa/src/examples.ts` and `runtime.generated.ts` and fails until the
+  `apps/spa/src/examples.ts`, `runtime.generated.ts` and
+  `packages/cli/src/skill.generated.ts` (the bundled skill `squinch skill`
+  installs — canonical file is `packages/skill/skills/squinch/SKILL.md`,
+  generator `scripts/gen-skill.mjs`) and fails until the
   result is staged — the sub-second slice of CI's drift gates. Bypass with
   `--no-verify`, or `HUSKY=0` to disable husky including its install step; the
   slow gates (lookbook, `--check`, tests) stay CI-only. `.husky/_` is generated

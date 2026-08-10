@@ -5,24 +5,17 @@ import { useEffect, useState } from "react";
 import markUrl from "./mark.svg";
 
 const REPO = "https://github.com/jquatier/squinch";
-const RAW = "https://raw.githubusercontent.com/jquatier/squinch/main/packages/skill/SKILL.md";
-// One paste in a terminal, two destinations. SKILL.md already conforms to the
-// open Agent Skills standard (agentskills.io — folder + SKILL.md, name and
-// description in frontmatter), so the only choice is where it lands:
-// `.agents/skills/` in a project is the cross-client discovery convention
-// (Cursor, Codex, Gemini CLI, Copilot, Goose, …), and `~/.claude/skills/` is
-// Claude Code's personal install, which follows its user everywhere. Raw URLs
-// go live the moment the repo is public — same armed-at-launch posture as the
+// One paste in a terminal. The CLI bundles the skill and knows where every
+// agent looks: `.agents/skills/` in a project is the cross-client discovery
+// convention of the open Agent Skills standard (agentskills.io — Cursor,
+// Codex, Gemini CLI, Copilot, Goose, …), with a `.claude/skills/` copy added
+// when the project shows Claude Code markers; `--global` is Claude Code's
+// personal install, which follows its user everywhere. The commands are armed
+// at launch — they work the moment `squinch` is on npm — same posture as the
 // links below and the Pages workflow.
 const INSTALLS: { label: string; command: string }[] = [
-  {
-    label: "Any agent",
-    command: `mkdir -p .agents/skills/squinch && curl -fsSL ${RAW} -o .agents/skills/squinch/SKILL.md`,
-  },
-  {
-    label: "Claude Code",
-    command: `mkdir -p ~/.claude/skills/squinch && curl -fsSL ${RAW} -o ~/.claude/skills/squinch/SKILL.md`,
-  },
+  { label: "Any agent", command: "npx squinch skill" },
+  { label: "Claude Code", command: "npx squinch skill --global" },
 ];
 
 const LINKS: { label: string; hint: string; href: string }[] = [
@@ -105,7 +98,7 @@ export function WelcomeDialog({ open, onClose }: { open: boolean; onClose: () =>
             ))}
             <a
               className="text-[11px] text-[var(--muted)] underline decoration-[var(--line)] underline-offset-2 hover:text-[var(--fg)]"
-              href={`${REPO}/blob/main/packages/skill/SKILL.md`}
+              href={`${REPO}/blob/main/packages/skill/skills/squinch/SKILL.md`}
               target="_blank"
               rel="noreferrer"
             >

@@ -261,7 +261,7 @@ writeFileSync(
 }
 
 // ── one sandbox per prompt ─────────────────────────────────────────────────
-const skill = readFileSync(join(root, "packages/skill/SKILL.md"), "utf8");
+const skill = readFileSync(join(root, "packages/skill/skills/squinch/SKILL.md"), "utf8");
 mkdirSync(join(tmp, "logs"), { recursive: true });
 mkdirSync(join(runDir, "transcripts"), { recursive: true });
 

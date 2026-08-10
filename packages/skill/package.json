@@ -4,7 +4,7 @@
   "private": true,
   "type": "module",
   "description": "The agent-facing authoring guide (SKILL.md), and the tests that keep it true.",
-  "files": ["SKILL.md"],
+  "files": ["skills"],
   "scripts": {
     "test": "vitest run",
     "typecheck": "tsc --noEmit"

@@ -32,4 +32,9 @@ if echo "$staged" | grep -v "runtime\.generated\.ts" | grep -q -e "^packages/cor
   check packages/core/src/render/html/runtime.generated.ts gen-html-runtime
 fi
 
+if echo "$staged" | grep -q -e "^packages/skill/skills/squinch/SKILL\.md$" -e "^scripts/gen-skill\.mjs$"; then
+  node scripts/gen-skill.mjs >/dev/null
+  check packages/cli/src/skill.generated.ts gen-skill
+fi
+
 exit $fail

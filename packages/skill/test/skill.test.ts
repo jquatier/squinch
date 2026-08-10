@@ -15,7 +15,7 @@ import { dirname, join } from "node:path";
 import { buildModel, iconExists, packExists } from "@squinch/core";
 
 const pkg = join(dirname(fileURLToPath(import.meta.url)), "..");
-const SKILL = readFileSync(join(pkg, "SKILL.md"), "utf8");
+const SKILL = readFileSync(join(pkg, "skills", "squinch", "SKILL.md"), "utf8");
 const CORE = join(pkg, "..", "core", "src");
 
 /** Fenced ```squinch blocks, in document order. */
@@ -286,5 +286,27 @@ describe("SKILL.md — diagnostic coverage", () => {
     expect(stale, `allowlisted messages the engine no longer emits: ${stale.join(", ")}`).toEqual(
       [],
     );
+  });
+});
+
+describe("the plugin manifest", () => {
+  // packages/skill doubles as the Claude Code plugin (`/plugin install
+  // squinch@squinch`): .claude-plugin/plugin.json names it, skills/squinch/
+  // carries the skill. The marketplace-side contract — the relative source,
+  // the skill file existing — is asserted in core's guardrails; this is the
+  // plugin's own half.
+  it("plugin.json is well-formed and names this skill", () => {
+    const plugin = JSON.parse(readFileSync(join(pkg, ".claude-plugin", "plugin.json"), "utf8"));
+    expect(plugin.name).toBe("squinch");
+    expect(plugin.version, "the one-version guardrail rewrites this — it must exist").toBeTruthy();
+    expect(plugin.description).toContain("squinch CLI");
+  });
+
+  it("the skill's directory name matches its frontmatter name", () => {
+    // The Agent Skills spec keys discovery on the directory: <dir>/SKILL.md
+    // where <dir> is the skill's name. A rename of either half strands the
+    // other.
+    const name = /^name:\s*(\S+)/m.exec(SKILL)?.[1];
+    expect(name).toBe("squinch");
   });
 });

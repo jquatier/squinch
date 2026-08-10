@@ -316,10 +316,11 @@ claim, so it gets tested.
 Errors are built for the agent loop, not just for humans: every diagnostic
 carries a location, the problem, and a likely fix, with did-you-mean suggestions
 for unknown icons, views and identifiers. `squinch check --format json` emits
-exactly the same information a person sees. [`packages/skill/SKILL.md`](packages/skill/SKILL.md)
-is the whole contract an agent needs — copy it to `~/.claude/skills/squinch/`
-(or paste it into whatever your harness calls context) and ask for a diagram in
-plain language; [the package README](packages/skill/) has the details.
+exactly the same information a person sees.
+[`SKILL.md`](packages/skill/skills/squinch/SKILL.md) is the whole contract an
+agent needs — `npx squinch skill` installs it for every skills-compatible agent
+(or paste it into whatever your harness calls context), then ask for a diagram
+in plain language; [the package README](packages/skill/) has the details.
 
 The **gauntlet** is the acceptance test: twenty natural-language architecture
 prompts, each solved *cold* by a fresh agent given only SKILL.md and the CLI —
@@ -496,6 +497,7 @@ files share a namespace.
 | `diff` | semantic model diff — `--base <ref>`, `--format markdown`, `--fail-on structural\|any` for CI |
 | `icons search` | find an icon id across installed packs |
 | `init` | scaffold a starter project |
+| `skill` | install the agent skill — `.agents/skills/` for the project (plus `.claude/skills/` when it detects Claude Code), `--global` for `~/.claude/skills` |
 | `watch` | re-render on change |
 
 `squinch diff` compares architectures rather than text, so a reviewer gets the

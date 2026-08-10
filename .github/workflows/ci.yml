@@ -49,6 +49,9 @@ jobs:
       # edit to a lookbook case shipped a stale example to the playground for a
       # whole session. Same gate the lookbook itself has, one line later.
       - run: git diff --exit-code apps/spa/src/examples.ts
+      # The CLI's bundled copy of the agent skill must match the canonical file.
+      - run: node scripts/gen-skill.mjs
+      - run: git diff --exit-code packages/cli/src/skill.generated.ts
       # Phase-3 gauntlet solutions must stay green (regression over the skill+DSL)
       - run: pnpm --filter @squinch/gauntlet score
       # PLAN §2 performance budgets are acceptance criteria, not aspirations
@@ -104,6 +107,10 @@ jobs:
       # build costs a minute to prove something platform-generic.
       - run: pnpm --filter @squinch/spa sync-examples
       - run: git diff --exit-code apps/spa/src/examples.ts
+      # The skill constant embeds SKILL.md via JSON.stringify — the same
+      # CRLF-sensitive shape as sync-examples above.
+      - run: node scripts/gen-skill.mjs
+      - run: git diff --exit-code packages/cli/src/skill.generated.ts
       # The ten committed sketch renders are the direct test of the seed fix:
       # the jitter is hashed from source, so a CRLF checkout would re-roll it.
       - run: npx tsx lookbook/build.ts

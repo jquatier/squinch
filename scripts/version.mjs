@@ -18,14 +18,17 @@ import { fileURLToPath } from "node:url";
 
 const root = join(dirname(fileURLToPath(import.meta.url)), "..");
 
-/** Every pnpm workspace member (packages/*, apps/*, gauntlet), plus the root. */
+/** Every pnpm workspace member (packages/*, apps/*, gauntlet), plus the root —
+ *  and the Claude Code plugin manifest, which is not a package.json but answers
+ *  the same "which squinch is this?" question for `/plugin` users. */
 export function manifests() {
   const dirs = ["packages", "apps"].flatMap((d) =>
     readdirSync(join(root, d)).map((p) => join(d, p)),
   );
-  return ["", ...dirs, "gauntlet"]
-    .map((d) => join(d, "package.json"))
-    .filter((p) => existsSync(join(root, p)));
+  return [
+    ...["", ...dirs, "gauntlet"].map((d) => join(d, "package.json")),
+    join("packages", "skill", ".claude-plugin", "plugin.json"),
+  ].filter((p) => existsSync(join(root, p)));
 }
 
 const read = (rel) => JSON.parse(readFileSync(join(root, rel), "utf8"));

@@ -44,6 +44,70 @@ describe("squinch cli", () => {
     expect(err.join()).toContain("not overwriting");
   });
 
+  it("skill installs the bundled SKILL.md for cross-agent discovery", async () => {
+    expect(await main(["skill", dir])).toBe(0);
+    const file = join(dir, ".agents", "skills", "squinch", "SKILL.md");
+    expect(existsSync(file)).toBe(true);
+    // Byte-equal to the canonical file: this is the freshness gate that fires
+    // locally when someone edits SKILL.md and skips the generator.
+    const canonical = readFileSync(
+      new URL("../../skill/skills/squinch/SKILL.md", import.meta.url), "utf8");
+    expect(readFileSync(file, "utf8")).toBe(canonical);
+    // No Claude Code markers in an empty dir, so no .claude/ copy.
+    expect(existsSync(join(dir, ".claude"))).toBe(false);
+  });
+
+  it("skill detects Claude Code in the project and installs there too", async () => {
+    writeFileSync(join(dir, "CLAUDE.md"), "# project\n");
+    expect(await main(["skill", dir])).toBe(0);
+    expect(existsSync(join(dir, ".agents", "skills", "squinch", "SKILL.md"))).toBe(true);
+    expect(existsSync(join(dir, ".claude", "skills", "squinch", "SKILL.md"))).toBe(true);
+    expect(err.join("\n")).toContain("detected Claude Code");
+  });
+
+  it("skill --claude forces the .claude/ copy without markers", async () => {
+    expect(await main(["skill", dir, "--claude"])).toBe(0);
+    expect(existsSync(join(dir, ".claude", "skills", "squinch", "SKILL.md"))).toBe(true);
+    // Asked-for, not detected — no detection message.
+    expect(err.join("\n")).not.toContain("detected Claude Code");
+  });
+
+  it("skill overwrites a stale install silently — the inverse of init", async () => {
+    const file = join(dir, ".agents", "skills", "squinch", "SKILL.md");
+    await main(["skill", dir]);
+    writeFileSync(file, "stale");
+    expect(await main(["skill", dir])).toBe(0);
+    expect(readFileSync(file, "utf8")).not.toBe("stale");
+  });
+
+  it("skill --print emits the skill to stdout and writes nothing", async () => {
+    expect(await main(["skill", dir, "--print"])).toBe(0);
+    expect(out.join("\n")).toContain("name: squinch");
+    expect(readdirSync(dir)).toEqual([]);
+  });
+
+  it("skill --global writes under the home directory", async () => {
+    // os.homedir() reads the env at call time, so pointing both platforms'
+    // variables at the temp dir is enough — no module mocking.
+    const home = { HOME: process.env.HOME, USERPROFILE: process.env.USERPROFILE };
+    process.env.HOME = dir;
+    process.env.USERPROFILE = dir;
+    try {
+      expect(await main(["skill", "--global"])).toBe(0);
+      expect(existsSync(join(dir, ".claude", "skills", "squinch", "SKILL.md"))).toBe(true);
+    } finally {
+      process.env.HOME = home.HOME;
+      process.env.USERPROFILE = home.USERPROFILE;
+    }
+  });
+
+  it("skill --global rejects a path and --claude — they contradict it", async () => {
+    expect(await main(["skill", dir, "--global"])).toBe(2);
+    expect(err.join("\n")).toContain("drop the path");
+    expect(await main(["skill", "--global", "--claude"])).toBe(2);
+    expect(err.join("\n")).toContain("drop --claude");
+  });
+
   it("check reports errors with fixes and exits 1", async () => {
     const f = join(dir, "bad.squinch");
     writeFileSync(f, `system s "S" {\n fn = aws/lambd "F"\n}`);

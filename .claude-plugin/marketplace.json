@@ -1,0 +1,11 @@
+{
+  "name": "squinch",
+  "owner": { "name": "Jacob Quatier", "url": "https://github.com/jquatier" },
+  "plugins": [
+    {
+      "name": "squinch",
+      "source": "./packages/skill",
+      "description": "Architecture diagrams as code — the squinch authoring skill. Requires the squinch CLI (npx squinch)."
+    }
+  ]
+}
