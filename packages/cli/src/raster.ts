@@ -15,8 +15,14 @@ import { Resvg } from "@resvg/resvg-js";
 
 const require = createRequire(import.meta.url);
 
-/** The sfnt twins of the embedded woff2 faces, emitted by core's gen-fonts. */
-const FACES = ["inter-400", "inter-500"];
+/** The sfnt twins of the embedded woff2 faces, emitted by core's gen-fonts.
+ *  All of them, always: a face the SVG asks for and this list omits does not
+ *  fail, it silently rasterizes in the nearest weight resvg does have. The
+ *  restyle added Inter 600 (a view's title) and IBM Plex Mono (a zone's
+ *  `detail:` segment) without extending this list, so every PNG of a titled
+ *  diagram drew its heading a weight light. Keep this in step with
+ *  `BASE_FACES` and the mono usage in core's render/svg.ts. */
+const FACES = ["inter-400", "inter-500", "inter-600", "mono-400"];
 
 let fontFiles: string[] | undefined;
 function faces(): string[] {

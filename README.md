@@ -28,6 +28,31 @@ write fluently and humans control precisely — with real layout and edge-routin
 control, cloud icon packs, C4-style zooming, and deterministic rendering that lives
 in git next to the code it describes.
 
+## From description to diagram
+
+<p align="center">
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="docs/assets/prompt-dark.gif">
+    <img src="docs/assets/prompt-light.gif"
+         alt="A paragraph is typed into a prompt box — describing a products API on AWS where shoppers hit CloudFront, then an ALB and a Fargate service inside the prod-main VPC, reading a DynamoDB table and searching an OpenSearch index kept current by a Lambda on the table's stream. A status line reads Thinking, then Using squinch skill, then Finalizing diagram. The box shrinks to a caption and the finished diagram rises underneath it, every element from the sentence drawn with its real vendor icon."
+         width="900">
+  </picture>
+  <br>
+  <em>One paragraph in, a diagram out — the agent writes the model, Squinch
+  renders it.</em>
+</p>
+
+Hand your coding agent the bundled
+[skill](packages/skill) and describe the system in a paragraph. It writes the
+`.squinch` model, `squinch check` tells it what is wrong in terms it can act on,
+and `squinch render` produces the SVG — deterministic, reviewable in a pull
+request, and living in git beside the code it describes. The diagram above is
+[examples/products-api](examples/products-api); its source is
+[further down this page](#from-source-to-diagram), and CI holds the two
+together.
+
+## Zoom into any system
+
 <p align="center">
   <picture>
     <source media="(prefers-color-scheme: dark)" srcset="docs/assets/zoom-dark.gif">

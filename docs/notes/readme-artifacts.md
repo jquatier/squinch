@@ -1,7 +1,7 @@
 # Note — what the README shows, and which parts CI keeps honest
 
-The front page is four kinds of artefact, and only three of them are gated. The
-ungated one has gone stale twice, both times unnoticed until someone looked at
+The front page is five kinds of artefact, and only three of them are gated. The
+ungated ones have gone stale twice, both times unnoticed until someone looked at
 the page. This is the checklist for "I changed how diagrams render — what on the
 README is now a lie?"
 
@@ -20,14 +20,26 @@ either fence, so swapping back when Linguist ships a grammar is a one-line
 change. `packages/vscode/syntaxes/squinch.tmLanguage.json` is the grammar to
 submit.
 
-## Not gated: `docs/assets/zoom-{light,dark}.gif`
+## Not gated: the two animations
 
-The hero animation is **generated, never screen-recorded** — the frames are the
-real renderer's output, so it *can* be regenerated after any visual change:
+Both are **generated, never screen-recorded** — the frames are the real
+renderer's output, so they *can* be regenerated after any visual change:
 
-```bash
-npx tsx scripts/hero-gif.mts
-```
+| Clip | Script | What it says |
+| --- | --- | --- |
+| `docs/assets/prompt-{light,dark}.gif` | `npx tsx scripts/prompt-gif.mts` | A description in, a diagram out. The page's opening shot. |
+| `docs/assets/zoom-{light,dark}.gif` | `npx tsx scripts/hero-gif.mts` | C4 altitudes: click a system, come back up. |
+
+The prompt clip has one hazard the zoom clip does not: **the sentence is a
+claim about the picture.** Every clause maps to something drawn, and nothing
+drawn is unaccounted for. Change `examples/products-api`, and `PROMPT` in the
+script has to change with it — no test can catch that, because both halves stay
+internally valid while together they lie. Its diagram half is `renderProject`
+output, which CI does gate, so only the chrome and the sentence can drift.
+
+The rest of this section is about the zoom clip, but the encode notes at the
+bottom apply to both — they share their settings, their 2× supersampling and
+their reasons.
 
 Requires `ffmpeg`, which is why it is a maintainer-machine step and never runs
 in CI: a gate that cannot run in CI is a gate that does not exist, so this stays
