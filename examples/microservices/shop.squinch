@@ -139,4 +139,7 @@ view checkout {
 view full {
   title "Storefront — full detail"
   expand *
+  layout {
+    rows [customer] [web] [gw] [catalog orders accounts]
+  }
 }

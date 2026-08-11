@@ -333,7 +333,7 @@ view shop {
 | "hint conflict: `a` → `b` runs upward — row 6 to row 4" error | Your bands contradict your arrows. `rows` runs top to bottom, so every edge must point down the list. Usually a monitor or feedback path: put it in the **same** band as what it points at (equal ranks are legal), or drop it from `rows` and let the engine rank it |
 | "zones `a` and `b` contain exactly the same members" error | Two names for one boundary. Neither can sit inside the other, so merge them into a single `zone`, or narrow one's `contains` so it is genuinely a sub-boundary |
 | "zones `a` and `b` partially overlap — visible zones must nest or stay disjoint" error | Boundaries must nest or stay apart, never half-lap. The fix line lists which members are shared and which are exclusive — either give the inner zone only members the outer one also has, or move the odd one out |
-| "same-rank edge `a` → `b` crosses an expanded container or zone — layout quality may degrade" warning | The two ends were put on one row (usually by `place`) but the straight path between them runs through a boundary. Give one end its own band in `rows`, or drop the `expand` in this view |
+| "same-rank edge `a` → `b` involves a zone — the router cannot cross a zone boundary, so the row may not hold" warning | A zone lays out as one block. Give the zone its own band in `rows`, or drop one end from the zone. (Edges between *expanded containers* on one row need no workaround — they route wall-to-wall through the gutter automatically, so `rows [catalog orders accounts]` + `expand *` just works) |
 | Several things all write to one store, crossing each other | `channel a, b, c -> db` — they merge into one trunk |
 | "`x` connects to itself — a self-edge is not drawn" warning | Squinch draws connections between things, not loops on one thing. Put it on the node: `note right-of x "retries"`, or fold it into the label |
 | "label is N characters — it will be cut off" warning | Labels wrap to two lines and then ellipsize, so the reader loses the tail. Keep it a short noun phrase and move the detail into `description:` |
@@ -345,6 +345,7 @@ view shop {
 | Diagram too cramped / too airy | `density spacious` / `density compact` |
 | Too many boxes at once | Split into views: a landscape with `include *`, plus per-system views |
 | Everything open on one page, no clicking into containers | `view full { expand * }` — every container becomes a nested frame, every edge shows natively |
+| A full-detail view came out tall — want it wide | Add `layout { rows … }` banding the expanded systems side by side; calls between them route through the gutters |
 | "`expand *` already opens every container — the explicit `expand` lines are redundant" warning | Drop the explicit `expand x` lines; the star covers them |
 | "`expand *` opened nothing — no containers are visible here" warning | The model (or this scope) has no containers to open — drop the line |
 | Show **only** one concern (an auditor's view: "only the PCI parts") | `only #pci`. Anything outside the scope that the survivors still talk to stays as a muted context card — that boundary crossing is usually the point of the view; `context off` drops those too |

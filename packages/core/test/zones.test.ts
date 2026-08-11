@@ -402,12 +402,16 @@ view v {
     // The zone frame is sized by ELK long before the align pass moves nodes, so
     // an unchecked snap drew the member outside the boundary containing it —
     // a false claim, rendered cleanly, check exit 0.
+    // `far` deliberately has no edges: it sits on rank 0 beside `web`, so the
+    // pair crosses ranks and reaches the snap. When it shared pg's rank the
+    // align used to slip through only because zoned nodes carried
+    // `rank: undefined` — with real ranks that misuse now (correctly) gets the
+    // same-rank "cannot share an axis" warning before the zone guard runs.
     const src = `pack logos
 pg = logos/postgresql "PG" datastore
 far = logos/redis "Far"
 web = logos/nginx "Web"
 web -> pg
-web -> far
 zone onprem "On-Prem" onprem { contains pg }
 view v {
   include *

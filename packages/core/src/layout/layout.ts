@@ -126,6 +126,10 @@ export interface PEdge {
    *  the router (phase 2); until then they are undefined and the renderer's
    *  search still covers them. */
   labelRect?: { x: number; y: number; w: number; h: number };
+  /** Produced by the coplanar router rather than ELK. ELK's wires may cross a
+   *  frame interior legitimately (it routes them around what it knows); ours
+   *  must not cross anything, and the invariant sweep holds us to it. */
+  coplanar?: true;
 }
 export interface Positioned {
   name: string;
@@ -490,18 +494,24 @@ export async function layoutView(
   // ── edge classes: inner (same entity) | coplanar (same rank, both bare) |
   //    cross-rank (ELK's) ────────────────────────────────────────────────────
   const inner = (e: VEdge) => entityOf(e.from) === entityOf(e.to) && byPath.get(e.from)?.frame;
-  // the coplanar router only handles bare nodes: unframed AND unzoned. An
-  // expanded frame passes the unitOf identity test (a frame is its own unit),
-  // so require a real node at both ends — a frame-endpoint edge goes to ELK,
-  // which attaches it to the compound border.
+  // The coplanar router handles bare leaves, leaves inside expanded frames,
+  // and expanded frames themselves — a framed endpoint routes wall-to-wall
+  // between the outermost frame rects (docs/notes/coplanar.md, approach #5).
+  // Zone units stay out: a zone lays out as one block and its dashed boundary
+  // is not a wall a wire can enter, so those edges go to ELK with the warning
+  // below. Classifying an edge coplanar (hiding it from ELK) IS the entire
+  // same-rank mechanism — there is no other way to co-layer its units.
+  const framePathSet = new Set(graph.frames.map((f) => f.path));
+  const routable = (p: string) => byPath.has(p) || framePathSet.has(p);
   const coplanar = edges.filter(
     (e) =>
       !inner(e) &&
-      byPath.has(e.from) &&
-      byPath.has(e.to) &&
-      rank.get(unitOf(e.from)) === rank.get(unitOf(e.to)) &&
-      unitOf(e.from) === e.from &&
-      unitOf(e.to) === e.to,
+      routable(e.from) &&
+      routable(e.to) &&
+      !outerZoneOf(entityOf(e.from)) &&
+      !outerZoneOf(entityOf(e.to)) &&
+      unitOf(e.from) !== unitOf(e.to) &&
+      rank.get(unitOf(e.from)) === rank.get(unitOf(e.to)),
   );
   const coplanarSet = new Set(coplanar.map((e) => e.id));
   for (const e of edges) {
@@ -512,7 +522,8 @@ export async function layoutView(
     )
       diagnostics.push({
         severity: "warning",
-        message: `same-rank edge ${e.from} → ${e.to} crosses an expanded container or zone — layout quality may degrade`,
+        message: `same-rank edge ${e.from} → ${e.to} involves a zone — the router cannot cross a zone boundary, so the row may not hold`,
+        fix: `give the zone its own band in \`rows\`, or drop one end from the zone`,
         loc: view.loc,
       });
   }
@@ -674,7 +685,10 @@ export async function layoutView(
   for (const e of coplanar) {
     if (!e.label) continue;
     const bw = badgeW(e.id);
-    const need = pillDims(e.label, font).w + (bw ? bw + BADGE_GAP : 0) + 16;
+    // frame pairs reserve extra: their anchors come from interior leaves, so
+    // the run may jog at mid-gutter and the pill needs clearance past the jog
+    const framePair = unitOf(e.from) !== e.from || unitOf(e.to) !== e.to;
+    const need = pillDims(e.label, font).w + (bw ? bw + BADGE_GAP : 0) + (framePair ? 32 : 16);
     const [a, b] = [unitOf(e.from), unitOf(e.to)];
     const left = order.indexOf(a) <= order.indexOf(b) ? a : b;
     coplanarGutter.set(left, Math.max(coplanarGutter.get(left) ?? 0, need));
@@ -772,6 +786,12 @@ export async function layoutView(
             // contents down without moving the title, so the band above the
             // first row just reads as slack.
             "elk.padding": "[top=44,left=16,bottom=16,right=16]",
+            // A labelled frame-coplanar edge widens the gutter to its pill,
+            // exactly as leafChild does — spiked: elk.spacing.individual is
+            // honoured on a compound under INCLUDE_CHILDREN (coplanar.md #5)
+            ...(coplanarGutter.get(p)
+              ? { "elk.spacing.individual": `elk.spacing.nodeNode:${coplanarGutter.get(p)}` }
+              : {}),
             "elk.spacing.nodeNode": "32",
             "elk.layered.spacing.nodeNodeBetweenLayers": hasElkLabels ? String(LABEL_GAP) : "40",
             // Edge spacing has to be repeated on every compound. ELK does not
@@ -948,7 +968,11 @@ export async function layoutView(
     nodes.push({
       ...byPath.get(c.id)!,
       x, y, w: q(c.width), h: q(c.height),
-      rank: rank.get(entityOf(c.id))!,
+      // unitOf, not entityOf: rank is keyed by unit, and for a *zoned* leaf the
+      // entity is the leaf itself — entityOf handed every zoned node
+      // `rank: undefined`, which made the router's blocker test treat all of
+      // them as one rank and route coplanar wires straight through zones.
+      rank: rank.get(unitOf(c.id))!,
     });
     for (const p of c.ports ?? []) {
       if (p.id.startsWith("scaffold.")) continue;
@@ -1028,7 +1052,7 @@ export async function layoutView(
   // east/west in y, whichever way the diagram flows.
   const SIDE_AXIS = { north: "x", south: "x", east: "y", west: "y" } as const;
   const AXIS_SIZE = { x: "w", y: "h" } as const;
-  const freePort = (n: PNode, side: Side, want: number): number => {
+  const freePort = (n: { path: string; x: number; y: number; w: number; h: number }, side: Side, want: number): number => {
     const ax = SIDE_AXIS[side];
     const taken = ports.filter((p) => p.node === n.path && p.side === side).map((p) => p[ax]);
     const clear = (c: number) => taken.every((t) => Math.abs(t - c) >= 16);
@@ -1046,38 +1070,67 @@ export async function layoutView(
   // coplanar edges cannot collide anyway: a second target on the same side is
   // either blocked by the first or overlapping it.
 
+  // Routing rects: a bare leaf routes by its own rect; a framed leaf (or a
+  // frame endpoint) routes wall-to-wall by its *outermost* frame's rect —
+  // the interior stays ELK's on both axes (coplanar.md, approach #5).
+  type RRect = { path: string; x: number; y: number; w: number; h: number };
+  const frameByPath = new Map<string, RRect>(frames.map((f) => [f.path, f]));
+  const zoneRectById = new Map<string, RRect>(pZones.map((z) => [z.id, { path: z.id, ...z }]));
+  // a frame is its own unit, so try the frame rect first — the leaf branch is
+  // only for endpoints that are genuinely bare nodes
+  const routeRect = (p: string): RRect => frameByPath.get(unitOf(p)) ?? nodeById.get(p)!;
+  /** Every unit's rect on a rank — the obstacle set for blockedness. Unlike
+   *  the old leaf-only scan this sees frames and zones too, so a coplanar
+   *  wire no longer threads straight through a boundary it never noticed. */
+  const unitRect = (u: string): RRect | undefined =>
+    frameByPath.get(u) ?? zoneRectById.get(u) ?? nodeById.get(u);
+  const edgeRank = (e: VEdge) => rank.get(unitOf(e.from))!;
+  const blockedBy = (e: VEdge, a: RRect, b: RRect): boolean => {
+    const [l, r] = a[along] <= b[along] ? [a, b] : [b, a];
+    return units.some((u) => {
+      if (u === unitOf(e.from) || u === unitOf(e.to)) return false;
+      if (rank.get(u) !== edgeRank(e)) return false;
+      const rect = unitRect(u);
+      return !!rect && rect[along] > l[along] && rect[along] < r[along];
+    });
+  };
+
   const laneOf = new Map<string, number>();
   const lanesByRank = new Map<number, { lo: number; hi: number }[][]>();
   for (const e of coplanar) {
-    const a = nodeById.get(e.from)!;
-    const b = nodeById.get(e.to)!;
-    const [l, r] = a[along] <= b[along] ? [a, b] : [b, a];
-    const isBlocked = nodes.some(
-      (n) => n.path !== a.path && n.path !== b.path && n.rank === a.rank
-        && n[along] > l[along] && n[along] < r[along],
-    );
-    if (!isBlocked) continue;
+    const a = routeRect(e.from);
+    const b = routeRect(e.to);
+    if (!blockedBy(e, a, b)) continue;
     const span = {
       lo: Math.min(a[along] + a[alongSize] / 2, b[along] + b[alongSize] / 2),
       hi: Math.max(a[along] + a[alongSize] / 2, b[along] + b[alongSize] / 2),
     };
-    const lanes = lanesByRank.get(a.rank) ?? [];
+    const lanes = lanesByRank.get(edgeRank(e)) ?? [];
     let li = lanes.findIndex((spans) => spans.every((sp) => span.hi + 16 <= sp.lo || span.lo >= sp.hi + 16));
     if (li === -1) { li = lanes.length; lanes.push([]); }
     lanes[li].push(span);
-    lanesByRank.set(a.rank, lanes);
+    lanesByRank.set(edgeRank(e), lanes);
     laneOf.set(e.id, li);
   }
 
   const coplanarEdges: PEdge[] = coplanar.map((e) => {
-    const a = nodeById.get(e.from)!;
-    const b = nodeById.get(e.to)!;
-    const [l, r] = a[along] <= b[along] ? [a, b] : [b, a];
-    const blocked = nodes.some(
-      (n) => n.path !== a.path && n.path !== b.path && n.rank === a.rank
-        && n[along] > l[along] && n[along] < r[along],
-    );
-    const midCross = (n: PNode) => n[cross] + Math.round(n[crossSize] / 2);
+    const a = routeRect(e.from);
+    const b = routeRect(e.to);
+    const blocked = blockedBy(e, a, b);
+    const midCross = (n: RRect) => n[cross] + Math.round(n[crossSize] / 2);
+    /** The cross-coordinate the wire wants at an endpoint. A framed leaf pulls
+     *  the wire to its own height so the wall entry sits beside it — clamped
+     *  into the pair's shared cross-overlap band, because frames on one layer
+     *  are top-aligned with unequal sizes and an unclamped anchor could miss
+     *  the other rect entirely. */
+    const wantCross = (p: string, own: RRect, other: RRect): number => {
+      const leaf = byPath.has(p) ? nodeById.get(p) : undefined;
+      const raw = leaf ? midCross(leaf) : midCross(own);
+      const lo = Math.max(own[cross], other[cross]) + 12;
+      const hi = Math.min(own[cross] + own[crossSize], other[cross] + other[crossSize]) - 12;
+      if (lo > hi) return NaN; // no shared band — shelf territory
+      return Math.min(Math.max(raw, lo), hi);
+    };
     const carry = { label: e.label, async: e.async, animate: e.animate, style: e.style, count: e.count, tags: e.tags, heads: e.heads };
     // The router owns coplanar geometry, so it reserves and reports
     // label space the same way ELK does for cross-rank edges — labelRect is
@@ -1093,7 +1146,13 @@ export async function layoutView(
       const r = pt(mid - Math.round(w / 2), c - 9);
       return { x: r.x, y: r.y, ...(flowsRight ? { w: 18, h: w } : { w, h: 18 }) };
     };
-    if (!blocked) {
+    const bothBare = unitOf(e.from) === e.from && unitOf(e.to) === e.to;
+    if (!blocked && bothBare) {
+      // the pre-frames straight path, byte-for-byte: same-rank sibling leaves
+      // share a cross-centre, the line is straight *because* both ends sit at
+      // a's centre, and it never consults freePort (see the comment above it —
+      // straight pairs cannot collide, and a port probe here could nudge an
+      // existing diagram into a jog it never had)
       const c = midCross(a);
       const first = a[along] <= b[along];
       const pts = first
@@ -1106,15 +1165,66 @@ export async function layoutView(
         { edge: e.id, node: a.path, side: first ? highSide : lowSide, x: pts[0].x, y: pts[0].y },
         { edge: e.id, node: b.path, side: first ? lowSide : highSide, x: pts[1].x, y: pts[1].y },
       );
-      return { id: e.id, from: e.from, to: e.to, ...carry, points: pts, labelRect };
+      return { id: e.id, from: e.from, to: e.to, ...carry, points: pts, labelRect, coplanar: true as const };
     }
-    const bandEdge = Math.max(...nodes.filter((n) => n.rank === a.rank).map((n) => n[cross] + n[crossSize]));
+    const aWant = wantCross(e.from, a, b);
+    const bWant = wantCross(e.to, b, a);
+    if (!blocked && !Number.isNaN(aWant) && !Number.isNaN(bWant)) {
+      const first = a[along] <= b[along];
+      const [aSide, bSide]: [Side, Side] = first ? [highSide, lowSide] : [lowSide, highSide];
+      // freePort spreads parallel wall entries 16 apart; when both entries
+      // stay put and agree, the run is straight — otherwise it jogs at
+      // mid-gutter, which also gives every stub gutter/2 ≥ 24 of clearance
+      const aC = freePort(a, aSide, aWant);
+      const bC = freePort(b, bSide, bWant);
+      const aWall = first ? a[along] + a[alongSize] : a[along];
+      const bWall = first ? b[along] : b[along] + b[alongSize];
+      if (aC === bC) {
+        const pts = [pt(aWall, aC), pt(bWall, aC)];
+        const labelRect = rectOnRun(Math.min(aWall, bWall), Math.max(aWall, bWall), aC);
+        ports.push(
+          { edge: e.id, node: a.path, side: aSide, x: pts[0].x, y: pts[0].y },
+          { edge: e.id, node: b.path, side: bSide, x: pts[1].x, y: pts[1].y },
+        );
+        return { id: e.id, from: e.from, to: e.to, ...carry, points: pts, labelRect, coplanar: true as const };
+      }
+      // jog: 4-point Z at mid-gutter — the pill sits on the crossing segment
+      const mid = Math.round((Math.min(aWall, bWall) + Math.max(aWall, bWall)) / 2);
+      const pts = [pt(aWall, aC), pt(mid, aC), pt(mid, bC), pt(bWall, bC)];
+      const labelRect = e.label
+        ? (() => {
+            const bw = badgeW(e.id);
+            const w = pillDims(e.label!, font).w + (bw ? bw + BADGE_GAP : 0);
+            const c = Math.round((aC + bC) / 2);
+            const r = pt(mid - Math.round(w / 2), c - 9);
+            return { x: r.x, y: r.y, ...(flowsRight ? { w: 18, h: w } : { w, h: 18 }) };
+          })()
+        : undefined;
+      ports.push(
+        { edge: e.id, node: a.path, side: aSide, x: pts[0].x, y: pts[0].y },
+        { edge: e.id, node: b.path, side: bSide, x: pts[3].x, y: pts[3].y },
+      );
+      return { id: e.id, from: e.from, to: e.to, ...carry, points: pts, labelRect, coplanar: true as const };
+    }
+    // shelf: past the rank's far edge on the cross axis, measured over every
+    // unit rect on the rank — a frame's border, not the leaves inside it
+    const bandEdge = Math.max(
+      ...units.filter((u) => rank.get(u) === edgeRank(e)).map((u) => unitRect(u))
+        .filter((r): r is RRect => !!r).map((r) => r[cross] + r[crossSize]),
+    );
     // 28 not 16 when lanes carry labels: a pill is 18 tall, and two labelled
     // lanes at the old pitch would overlap by 2px before margins
     const lanePitch = coplanar.some((c) => c.label && laneOf.has(c.id)) ? 28 : 16;
     const lane = bandEdge + 24 + (laneOf.get(e.id) ?? 0) * lanePitch;
-    const aA = freePort(a, bandSide, a[along] + Math.round(a[alongSize] / 2));
-    const bA = freePort(b, bandSide, b[along] + Math.round(b[alongSize] / 2));
+    // exit at the interior leaf's along-centre where there is one, so the drop
+    // reads as belonging to the thing it serves
+    const wantAlong = (p: string, own: RRect) => {
+      const leaf = byPath.has(p) ? nodeById.get(p) : undefined;
+      const raw = leaf ? leaf[along] + Math.round(leaf[alongSize] / 2) : own[along] + Math.round(own[alongSize] / 2);
+      return Math.min(Math.max(raw, own[along] + 8), own[along] + own[alongSize] - 8);
+    };
+    const aA = freePort(a, bandSide, wantAlong(e.from, a));
+    const bA = freePort(b, bandSide, wantAlong(e.to, b));
     const pts = [
       pt(aA, a[cross] + a[crossSize]), pt(aA, lane),
       pt(bA, lane), pt(bA, b[cross] + b[crossSize]),
@@ -1126,6 +1236,7 @@ export async function layoutView(
     return {
       id: e.id, from: e.from, to: e.to, ...carry, points: pts,
       labelRect: rectOnRun(Math.min(aA, bA), Math.max(aA, bA), lane),
+      coplanar: true as const,
     };
   });
 
@@ -1482,7 +1593,14 @@ export async function layoutView(
     ...pEdges.flatMap((e) => e.points.map((p) => p.y + 32)),
     ...nodes.map((n) => n.y + n.h + bleed(n) + 32),
   );
-  const width = Math.max(q(out.width), ...nodes.map((n) => n.x + n.w + bleed(n) + 32));
+  // edge points count toward width exactly as they do toward height — under
+  // `direction right` the router's lanes run along the east side, and a lane
+  // the width never saw fell off the canvas
+  const width = Math.max(
+    q(out.width),
+    ...pEdges.flatMap((e) => e.points.map((p) => p.x + 32)),
+    ...nodes.map((n) => n.x + n.w + bleed(n) + 32),
+  );
 
   // footer band + pill-extended height, exactly as the renderer computed them
   // when it owned note placement

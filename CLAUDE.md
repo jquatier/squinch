@@ -224,6 +224,13 @@ expanded container is one "entity" for ranking, and ELK layers freely inside it.
 measured attempts, all closed. In Sugiyama layering a layer *is* a set of nodes
 with no edges between them, so no option puts two edge-connected nodes on one
 rank; the router is what makes `rows` a feature rather than a suggestion.
+Approach #5 (2026-08) extended it to expanded frames: same-rank cross-frame
+edges route wall-to-wall through reserved gutters (straight, mid-gutter jog,
+or below-row shelf over *unit* rects), which is what lets a full-detail view
+lay out wide — hiding the edge from ELK is the entire co-ranking mechanism,
+and the router's wires carry `coplanar: true` so the invariant sweep can hold
+them to crossing nothing. Interior routing stays deliberately unbuilt; zone
+pairs keep their warning.
 The hand-built spike harness that proved this is retired, and its canonical
 oracle followed (2026-08): label-space reservation legitimately moves node
 positions, so second-implementation parity stopped being a meaningful claim.

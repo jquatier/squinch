@@ -357,3 +357,13 @@ Source: [`cases/31-full-detail.squinch`](cases/31-full-detail.squinch)
 | light | dark |
 |---|---|
 | ![](out/31-full-detail.full.light.svg) | ![](out/31-full-detail.full.dark.svg) |
+
+## 32-coplanar-frames
+
+The row that used to break: expanded systems side by side with calls running between them. Same-rank cross-frame edges route wall-to-wall through reserved gutters — straight when the endpoints share a height, a mid-gutter jog when they don't (coplanar.md, approach #5). Before this, ELK saw the calls and silently re-layered the row into a stack.
+
+Source: [`cases/32-coplanar-frames.squinch`](cases/32-coplanar-frames.squinch)
+
+| light | dark |
+|---|---|
+| ![](out/32-coplanar-frames.row.light.svg) | ![](out/32-coplanar-frames.row.dark.svg) |

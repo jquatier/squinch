@@ -678,3 +678,142 @@ view full { expand * }
     expect(g.nodes.some((n) => n.path === "a.x")).toBe(false);
   });
 });
+
+describe("frame-coplanar routing (coplanar.md approach #5)", () => {
+  // Same-rank edges between the interiors of expanded frames route
+  // wall-to-wall through the gutter instead of being handed to ELK — which
+  // could only honour them by re-layering the frames apart and silently
+  // breaking the declared row.
+  const ROW = `system a "A" {
+  x = box "X"
+  y = box "Y"
+  x -> y
+}
+system b "B" {
+  p = box "P"
+  q = box "Q"
+  p -> q
+}
+system c "C" {
+  m = box "M"
+}
+gw = box "GW"
+gw -> a.x
+gw -> b.p
+gw -> c.m
+`;
+
+  const lay = async (extra: string, hints: string) => {
+    const { layoutView } = await import("../src/layout/layout.js");
+    const built = buildModel(`${ROW}${extra}view v {\n expand *\n layout {\n ${hints}\n }\n}`);
+    expect(built.diagnostics.filter((d) => d.severity === "error")).toEqual([]);
+    return layoutView(built.model, built.model.views.find((x) => x.name === "v")!);
+  };
+
+  it("adjacent frames on one declared row: straight wall-to-wall, row holds", async () => {
+    const { positioned, diagnostics } = await lay(`a.x -> b.p "call"\n`, "rows [gw] [a b c]");
+    expect(diagnostics.filter((d) => d.severity === "error" || d.severity === "warning")).toEqual([]);
+    const [fa, fb] = [positioned.frames.find((f) => f.path === "a")!, positioned.frames.find((f) => f.path === "b")!];
+    // the row held: frames overlap vertically
+    expect(fa.y < fb.y + fb.h && fb.y < fa.y + fa.h).toBe(true);
+    const e = positioned.edges.find((x) => x.from === "a.x" && x.to === "b.p")!;
+    expect(e.points.length).toBe(2); // straight
+    // the run spans the gutter between the two frame walls
+    expect(Math.min(...e.points.map((p) => p.x))).toBe(fa.x + fa.w);
+    expect(Math.max(...e.points.map((p) => p.x))).toBe(fb.x);
+    expect(e.labelRect).toBeTruthy(); // pill reserved on the run
+  });
+
+  it("mismatched heights jog at mid-gutter with stubs ≥ 16", async () => {
+    // q sits a row below x, so the anchors differ and the run must jog
+    const { positioned, diagnostics } = await lay(`a.x -> b.q "deep call"\n`, "rows [gw] [a b c]");
+    expect(diagnostics.filter((d) => d.severity === "error" || d.severity === "warning")).toEqual([]);
+    const e = positioned.edges.find((x) => x.from === "a.x" && x.to === "b.q")!;
+    expect(e.points.length).toBe(4); // Z through the gutter
+    const xs = e.points.map((p) => p.x);
+    const stubs = [Math.abs(xs[1] - xs[0]), Math.abs(xs[3] - xs[2])];
+    for (const s of stubs) expect(s).toBeGreaterThanOrEqual(16);
+  });
+
+  it("a frame between the pair sends the wire below the row (shelf)", async () => {
+    const { positioned, diagnostics } = await lay(`a.x -> c.m "skip"\n`, "rows [gw] [a b c]");
+    expect(diagnostics.filter((d) => d.severity === "error" || d.severity === "warning")).toEqual([]);
+    const e = positioned.edges.find((x) => x.from === "a.x" && x.to === "c.m")!;
+    expect(e.points.length).toBe(4);
+    const rowBottom = Math.max(...positioned.frames.map((f) => f.y + f.h));
+    // the crossing run sits below every frame on the row
+    expect(Math.max(...e.points.map((p) => p.y))).toBeGreaterThan(rowBottom);
+  });
+
+  it("parallel edges between one frame pair spread their wall entries", async () => {
+    const { positioned } = await lay(`a.x -> b.p "one"\na.y -> b.p "two"\n`, "rows [gw] [a b c]");
+    const arrivals = positioned.ports.filter((p) => p.node === "b" || p.node === "a");
+    const byWall = new Map<string, number[]>();
+    for (const p of arrivals) {
+      const k = `${p.node}|${p.side}`;
+      byWall.set(k, [...(byWall.get(k) ?? []), p.y]);
+    }
+    for (const ys of byWall.values())
+      for (let i = 0; i < ys.length; i++)
+        for (let j = i + 1; j < ys.length; j++)
+          expect(Math.abs(ys[i] - ys[j])).toBeGreaterThanOrEqual(16);
+  });
+
+  it("an edge naming the frame itself routes from its rect", async () => {
+    const { positioned, diagnostics } = await lay(`a -> b "system call"\n`, "rows [gw] [a b c]");
+    expect(diagnostics.filter((d) => d.severity === "error" || d.severity === "warning")).toEqual([]);
+    const e = positioned.edges.find((x) => x.from === "a" && x.to === "b")!;
+    expect(e.points.length).toBeGreaterThanOrEqual(2);
+  });
+
+  it("zone-involved same-rank edges keep the warning, now with a fix", async () => {
+    const src = `za = box "ZA"
+zb = box "ZB"
+w = box "W"
+w -> za
+w -> zb
+za -> zb "cross"
+zone z1 "Z1" vpc { contains za }
+zone z2 "Z2" vpc { contains zb }
+view v {
+  layout { rows [w] [za zb] }
+}`;
+    const { layoutView } = await import("../src/layout/layout.js");
+    const built = buildModel(src);
+    const r = await layoutView(built.model, built.model.views.find((x) => x.name === "v")!);
+    const warn = r.diagnostics.find((d) => d.message.includes("involves a zone"))!;
+    expect(warn.severity).toBe("warning");
+    expect(warn.fix).toContain("rows");
+  });
+
+  it("labelled gutters widen to the pill; unlabelled stay at density", async () => {
+    const labelled = await lay(`a.x -> b.p "a long label to reserve"\n`, "rows [gw] [a b c]");
+    const bare = await lay(`a.x -> b.p\n`, "rows [gw] [a b c]");
+    const gap = (r: typeof labelled) => {
+      const [fa, fb] = [r.positioned.frames.find((f) => f.path === "a")!, r.positioned.frames.find((f) => f.path === "b")!];
+      return fb.x - (fa.x + fa.w);
+    };
+    expect(gap(bare)).toBeLessThan(gap(labelled));
+    const e = labelled.positioned.edges.find((x) => x.from === "a.x" && x.to === "b.p")!;
+    const rect = e.labelRect!;
+    const [fa, fb] = [labelled.positioned.frames.find((f) => f.path === "a")!, labelled.positioned.frames.find((f) => f.path === "b")!];
+    // the pill fits inside the gutter, touching neither frame
+    expect(rect.x).toBeGreaterThanOrEqual(fa.x + fa.w);
+    expect(rect.x + rect.w).toBeLessThanOrEqual(fb.x);
+  });
+
+  it("direction right transposes the machinery", async () => {
+    const { positioned, diagnostics } = await lay(`a.x -> b.p "call"\n`, "direction right\n cols [gw] [a b c]");
+    expect(diagnostics.filter((d) => d.severity === "error")).toEqual([]);
+    const e = positioned.edges.find((x) => x.from === "a.x" && x.to === "b.p");
+    expect(e?.points.length).toBeGreaterThanOrEqual(2);
+  });
+
+  it("renders deterministically and validates", async () => {
+    const src = `${ROW}a.x -> b.p "call"\nview v { expand *\n layout { rows [gw] [a b c] } }`;
+    const one = (await render(src, { view: "v" })).svg!;
+    const two = (await render(src, { view: "v" })).svg!;
+    expect(one).toBe(two);
+    validateSVG(one);
+  });
+});

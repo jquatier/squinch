@@ -142,6 +142,30 @@ export function checkLayout(p: Positioned, ctx: Ctx = {}): string[] {
       if (outer !== f && f.path.startsWith(`${outer.path}.`) && !contains(outer, f))
         bad.push(`frame ${f.path} escapes its enclosing frame ${outer.path}`);
 
+  // ── router wires cross nothing ──────────────────────────────────────────
+  // ELK's edges may pass through a frame interior legitimately — it routes
+  // them around geometry it owns. The coplanar router's may not: every
+  // segment must stay clear of every node and frame rect except the ones the
+  // edge itself touches (its endpoints and their enclosing frames). Touching
+  // a wall is legal — that is how a wall-to-wall route ends — so the test is
+  // strict interior penetration.
+  for (const e of p.edges.filter((x) => x.coplanar)) {
+    const own = (path: string) =>
+      e.from === path || e.to === path ||
+      e.from.startsWith(`${path}.`) || e.to.startsWith(`${path}.`);
+    const obstacles = [
+      ...nodes.filter((n) => n.path !== e.from && n.path !== e.to).map((n) => ({ id: `node ${n.path}`, ...n })),
+      ...p.frames.filter((f) => !own(f.path)).map((f) => ({ id: `frame ${f.path}`, ...f })),
+    ];
+    for (let i = 0; i < e.points.length - 1; i++) {
+      const [a, b] = [e.points[i], e.points[i + 1]];
+      const seg = { x: Math.min(a.x, b.x), y: Math.min(a.y, b.y), w: Math.abs(a.x - b.x), h: Math.abs(a.y - b.y) };
+      for (const r of obstacles)
+        if (seg.x < r.x + r.w && seg.x + seg.w > r.x && seg.y < r.y + r.h && seg.y + seg.h > r.y)
+          bad.push(`coplanar wire ${e.id} crosses ${r.id}`);
+    }
+  }
+
   if (ctx.zoneMembers)
     for (const z of p.zones) {
       const members = ctx.zoneMembers.get(z.id) ?? [];
