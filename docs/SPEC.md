@@ -329,14 +329,24 @@ A deterministic rule stack, evaluated in fixed order:
 1. **Scope children**: the scope's *direct* children — containers as cards, leaves as
    icons. Exactly one level deep; depth is opened deliberately via `expand`.
    `expand` itself obeys the same rule: it opens the scope's own children, one
-   level, and frames never nest. An `expand` whose target sits inside another
+   level, and frames never nest — with one deliberate exception, `expand *`,
+   which opens **every** visible container to leaf depth and lets the frames it
+   creates nest. It is the whole-ladder spelling (the depth counterpart of
+   `include *`'s breadth); the later verbs operate on its fully opened interior
+   exactly as they do one level down. A container with no children stays a card
+   under `expand *` — the everything view never silently drops an element. An
+   explicit `expand` whose target sits inside another
    expanded container is a check **error** (the fix names the deeper view to
-   write: `scope` the outer container and `expand` the inner). An `expand` whose
+   write: `scope` the outer container and `expand` the inner — or `expand *`
+   for every level at once). An `expand` whose
    target isn't among the scope's children, or is a leaf, warns and opens
    nothing — silence was the old behaviour, and it read as a rendered no-op.
+   `expand *` alongside explicit `expand` lines warns (redundant), as does
+   `expand *` with no visible containers to open.
 2. **`only` filters the interior** — the view's *which* axis, applied after
    `expand` so an expanded container's children are filtered too. A container
-   survives if it or anything beneath it matches, because at a high altitude the
+   survives if it, anything beneath it, or a visible ancestor above it matches
+   — naming a container keeps its opened interior, and at a high altitude the
    tagged elements are usually leaves inside the cards.
 3. **Context neighbors**: elements outside the scope with ≥1 edge (after lifting)
    into the visible interior are auto-included, rendered at **top-level altitude**
@@ -385,6 +395,10 @@ re-anchors them deterministically:
    reappears at the altitude where those edges are native. (An all-`~>` bundle
    has always kept its dashes and drift; this codifies that.)
 5. Lifting is a pure model operation — identical results in SPA, VSCode, CLI, CI.
+
+In an `expand *` view no in-scope endpoint has anywhere to lift — every leaf is
+visible — so every interior edge is native and nothing aggregates; only edges
+to context cards still lift. Full detail *means* de-aggregated.
 
 ### Zoom navigation
 
@@ -496,7 +510,7 @@ view        = "view" path "{" { viewstmt } "}" ;
 viewstmt    = "title" string | "theme" ident | "scope" path
             | "only" targets
             | "include" targets | "exclude" targets
-            | "detail" path | "expand" path
+            | "detail" path | "expand" ( "*" | path )
             | "context" ( "auto" | "off" )
             | "highlight" tag { tag }
             | "show" ( "descriptions" | "flow" ident )

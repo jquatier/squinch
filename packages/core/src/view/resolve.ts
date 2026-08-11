@@ -38,6 +38,9 @@ export interface VNode {
 export interface VFrame {
   path: string;
   label: string;
+  /** Immediate enclosing frame — same field, same meaning as `VNode.frame`.
+   *  Only `expand *` produces it: explicit expands never nest (SPEC §5). */
+  frame?: string;
 }
 
 export interface VEdge {
@@ -130,45 +133,82 @@ export function resolveView(model: SModel, view: SView): ViewGraph {
       ];
 
   // expand: inline the container's children inside a rendered frame.
-  // One level only, by the rule-stack design (§5 rule 1): frames do not nest.
-  // The layout flattens frames into single-level compounds, so a frame inside
-  // a frame would reach ELK childless and come back 0×0 with its label
-  // floating free — the depth the author wants is a deeper view, so say so.
+  // One level only, by the rule-stack design (§5 rule 1): frames do not nest —
+  // unless the view says `expand *`, the one deliberate ladder, which opens
+  // every visible container to leaf depth and lets the frames it creates nest.
+  // For explicit expands the rule stands: the layout's single-level flattening
+  // of a *partial* ladder would leave "which levels am I looking at?"
+  // ambiguous, so the depth an author wants piecemeal is a deeper view.
   const frames: VFrame[] = [];
   const frameOf = new Map<string, string>(); // child path → frame path
-  const expandSet = new Set(view.expand);
-  for (const ex of view.expand) {
-    let outer: string | undefined;
-    for (let p = parentOf(ex); p; p = parentOf(p)) if (expandSet.has(p)) outer = p;
-    if (outer) {
-      diagnostics.push({
-        severity: "error",
-        message: `expand \`${ex}\` sits inside \`${outer}\`, which this view also expands — a view opens one level of depth`,
-        fix: `give the inner container its own view: \`scope ${outer}\` + \`expand ${ex.slice(outer.length + 1)}\` — its card here dives there`,
-        loc: view.loc,
-      });
-      continue;
-    }
-    const i = visible.indexOf(ex);
-    const c = model.containers.get(ex);
-    if (i >= 0 && c) {
-      frames.push({ path: ex, label: c.label ?? c.name });
-      for (const child of c.children) frameOf.set(child, ex);
-      visible.splice(i, 1, ...c.children);
-    } else if (!c && model.nodes.has(ex)) {
+  if (view.expandStar) {
+    if (view.expand.length)
       diagnostics.push({
         severity: "warning",
-        message: `expand \`${ex}\` targets a leaf — only containers open`,
-        fix: `drop the line; a leaf is already drawn at full depth`,
+        message: "`expand *` already opens every container — the explicit `expand` lines are redundant",
+        fix: "drop the explicit expand lines",
         loc: view.loc,
       });
-    } else if (c) {
+    // Recursively open everything. An empty container stays a card: a
+    // childless frame is the 0×0 ELK failure the one-level rule was built
+    // against, and the "everything" view must never silently drop an element.
+    const opened: string[] = [];
+    const open = (path: string, parent?: string) => {
+      const c = model.containers.get(path);
+      if (!c || c.children.length === 0) {
+        opened.push(path);
+        return;
+      }
+      frames.push({ path, label: c.label ?? c.name, frame: parent });
+      for (const child of c.children) {
+        frameOf.set(child, path);
+        open(child, path);
+      }
+    };
+    for (const p of visible) open(p);
+    visible = opened;
+    if (frames.length === 0)
       diagnostics.push({
         severity: "warning",
-        message: `expand \`${ex}\` is not among the scope's direct children — nothing opens`,
-        fix: `\`expand\` opens the scope's own children; an outside element is drawn at depth with \`detail ${ex}\``,
+        message: "`expand *` opened nothing — no containers are visible here",
+        fix: "drop the line; every element is already at full depth",
         loc: view.loc,
       });
+  } else {
+    const expandSet = new Set(view.expand);
+    for (const ex of view.expand) {
+      let outer: string | undefined;
+      for (let p = parentOf(ex); p; p = parentOf(p)) if (expandSet.has(p)) outer = p;
+      if (outer) {
+        diagnostics.push({
+          severity: "error",
+          message: `expand \`${ex}\` sits inside \`${outer}\`, which this view also expands — a view opens one level of depth`,
+          fix: `give the inner container its own view: \`scope ${outer}\` + \`expand ${ex.slice(outer.length + 1)}\` — its card here dives there. Or open every level at once with \`expand *\``,
+          loc: view.loc,
+        });
+        continue;
+      }
+      const i = visible.indexOf(ex);
+      const c = model.containers.get(ex);
+      if (i >= 0 && c) {
+        frames.push({ path: ex, label: c.label ?? c.name });
+        for (const child of c.children) frameOf.set(child, ex);
+        visible.splice(i, 1, ...c.children);
+      } else if (!c && model.nodes.has(ex)) {
+        diagnostics.push({
+          severity: "warning",
+          message: `expand \`${ex}\` targets a leaf — only containers open`,
+          fix: `drop the line; a leaf is already drawn at full depth`,
+          loc: view.loc,
+        });
+      } else if (c) {
+        diagnostics.push({
+          severity: "warning",
+          message: `expand \`${ex}\` is not among the scope's direct children — nothing opens`,
+          fix: `\`expand\` opens the scope's own children; an outside element is drawn at depth with \`detail ${ex}\``,
+          loc: view.loc,
+        });
+      }
     }
   }
 
@@ -211,10 +251,12 @@ export function resolveView(model: SModel, view: SView): ViewGraph {
             : `only #${on.tag}: nothing is tagged #${on.tag}`,
           loc: view.loc,
         });
-      // a match keeps itself and every visible ancestor holding it
+      // a match keeps itself, every visible ancestor holding it, and every
+      // visible descendant inside it — naming a container in an expanded view
+      // must keep its opened interior, not strand an empty frame
       for (const t of targets)
         for (const p of visible)
-          if (p === t || t.startsWith(`${p}.`)) keep.add(p);
+          if (p === t || t.startsWith(`${p}.`) || p.startsWith(`${t}.`)) keep.add(p);
     }
     const dropped = visible.filter((p) => !keep.has(p));
     visible = visible.filter((p) => keep.has(p));

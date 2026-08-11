@@ -96,6 +96,9 @@ export interface SView {
   includeStar: boolean;
   exclude: (string | { tag: string })[];
   expand: string[];
+  /** `expand *` — open every visible container to leaf depth, frames nesting
+   *  as they go (SPEC §5). The depth counterpart of `includeStar`'s breadth. */
+  expandStar: boolean;
   /** Outside elements to draw at their own depth instead of as their top-level
    *  card. Split out of `include`, which used to carry this second meaning. */
   detail: string[];

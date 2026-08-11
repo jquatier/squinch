@@ -135,3 +135,8 @@ view checkout {
     rows [api] [queue worker] [db]
   }
 }
+
+view full {
+  title "Storefront — full detail"
+  expand *
+}

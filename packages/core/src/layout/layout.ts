@@ -94,7 +94,13 @@ export interface PNode extends VNode {
   rank: number;
 }
 export interface PPort { edge: string; node: string; side: Side; x: number; y: number }
-export interface PFrame { path: string; label: string; x: number; y: number; w: number; h: number }
+export interface PFrame {
+  path: string; label: string; x: number; y: number; w: number; h: number;
+  /** Frame-chain nesting depth, outermost = 0. Counts *frames* only — a frame
+   *  inside a zone is still depth 0 — because the renderer keys the recessed
+   *  fill off it (depth 0 only; docs/notes/full-detail.md). */
+  depth: number;
+}
 export interface PZone {
   id: string; label: string; kind: ZoneKind;
   icon?: { pack: string; id: string };
@@ -194,10 +200,22 @@ export async function layoutView(
   const edges: VEdge[] = graph.edges;
 
   // Top "entities": frames count as one unit for ranking/order; framed nodes
-  // project to their frame. Inside frames, ELK's natural layering rules.
-  const entityOf = (p: string) => byPath.get(p)?.frame ?? p;
+  // project to their frame — the *outermost* one, since `expand *` nests
+  // frames and only a top-level frame is a ranking unit. Inside frames, ELK's
+  // natural layering rules.
+  const frameParent = new Map(graph.frames.map((f) => [f.path, f.frame]));
+  const outermostFrame = (frame: string) => {
+    let f = frame;
+    for (let p = frameParent.get(f); p; p = frameParent.get(p)) f = p;
+    return f;
+  };
+  const entityOf = (p: string) => {
+    const frame = byPath.get(p)?.frame; // a node's immediate frame
+    if (frame) return outermostFrame(frame);
+    return frameParent.has(p) ? outermostFrame(p) : p; // a frame is its outermost; anything else is itself
+  };
   const entities = [
-    ...graph.frames.map((f) => f.path),
+    ...graph.frames.filter((f) => !f.frame).map((f) => f.path),
     ...graph.nodes.filter((n) => !n.frame).map((n) => n.path),
   ];
   const entitySet = new Set(entities);
@@ -221,12 +239,15 @@ export async function layoutView(
   for (const z of model.zones) {
     const set = new Set(entities.filter((e) => z.members.some((m) => memberMatch(e, m))));
     for (const n of graph.nodes) {
-      if (!n.frame || set.has(n.frame)) continue;
+      // any enclosing frame in the zone keeps the node whole — under
+      // `expand *` the ranked entity is the outermost frame, so that is the
+      // one membership must cover, and the one the error should name
+      if (!n.frame || set.has(outermostFrame(n.frame))) continue;
       if (z.members.some((m) => memberMatch(n.path, m)))
         diagnostics.push({
           severity: "error",
-          message: `zone \`${z.id}\` cuts through expanded container \`${n.frame}\` (member \`${n.path}\`)`,
-          fix: `contain the whole container (\`contains ${n.frame}\`), or don't expand it in this view`,
+          message: `zone \`${z.id}\` cuts through expanded container \`${outermostFrame(n.frame)}\` (member \`${n.path}\`)`,
+          fix: `contain the whole container (\`contains ${outermostFrame(n.frame)}\`), or don't expand it in this view`,
           loc: z.loc,
         });
     }
@@ -682,8 +703,14 @@ export async function layoutView(
   };
 
   const frameLabels = new Map(graph.frames.map((f) => [f.path, f.label]));
-  const framedChildren = (framePath: string) =>
-    graph.nodes.filter((n) => n.frame === framePath).map((n) => leafChild(n.path));
+  // Child frames recurse through entityElk (defined below — mutual recursion
+  // is safe here because nothing invokes either until the ELK graph is built),
+  // so an `expand *` ladder reaches ELK as real nested compounds rather than
+  // the childless 0×0 leaves the one-level rule used to guard against.
+  const framedChildren = (framePath: string): any[] => [
+    ...graph.frames.filter((f) => f.frame === framePath).map((f) => entityElk(f.path)),
+    ...graph.nodes.filter((n) => n.frame === framePath).map((n) => leafChild(n.path)),
+  ];
 
   const density = view.layout.density ?? "comfortable";
   // On the 8px grid (DESIGN §2), and the ladder is now regular: each step is
@@ -907,7 +934,13 @@ export async function layoutView(
       return;
     }
     if (frameLabels.has(c.id)) {
-      frames.push({ path: c.id, label: frameLabels.get(c.id)!, x, y, w: q(c.width), h: q(c.height) });
+      // depth counts the frame chain, not the walk's compound nesting — a
+      // frame inside a zone is still depth 0, and keeps the recessed fill
+      let fd = 0;
+      for (let p = frameParent.get(c.id); p; p = frameParent.get(p)) fd++;
+      frames.push({
+        path: c.id, label: frameLabels.get(c.id)!, x, y, w: q(c.width), h: q(c.height), depth: fd,
+      });
       containerOffset.set(c.id, { x, y });
       for (const child of c.children ?? []) walk(child, x, y, depth + 1);
       return;

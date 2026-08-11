@@ -347,3 +347,13 @@ Source: [`cases/30-badges.squinch`](cases/30-badges.squinch)
 | light | dark |
 |---|---|
 | ![](out/30-badges.lakehouse.light.svg) | ![](out/30-badges.lakehouse.dark.svg) |
+
+## 31-full-detail
+
+`expand *` — the one deliberate ladder: every container open to leaf depth on one page. Frames nest to keep containment legible; only the outermost carry the recessed fill (depth would otherwise read as darkness), inner boundaries are the line and the label.
+
+Source: [`cases/31-full-detail.squinch`](cases/31-full-detail.squinch)
+
+| light | dark |
+|---|---|
+| ![](out/31-full-detail.full.light.svg) | ![](out/31-full-detail.full.dark.svg) |

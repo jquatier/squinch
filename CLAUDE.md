@@ -170,6 +170,11 @@ gives that whole platform a vocabulary. The mark is drawn from the pack manifest
 own brand colour on a quiet plate — never recoloured, never baked into an asset. Deliberately *not* built, with reasons recorded: `route … around`/`via`
 (`docs/notes/routing-hints.md` — ELK already avoids nodes) and `grid` (rows and
 cols compose to the same thing).
+`expand *` is the one deliberate depth ladder (2026-08): it opens every visible
+container to leaf depth with frames nesting (fill at depth 0 only — the zones
+no-compounding rule), while explicit nested expands stay a check error;
+`docs/notes/full-detail.md` records the rejected alternatives (auto-synthesized
+full view, viewer toggle, new verb).
 A view has **two** selection axes, and conflating them was a real bug: `scope` is
 *where* you stand, `only` is *which* of that you keep. Tags are cross-cutting, so
 no scope can ever name "the PCI parts" — before `only`, `include #pci` silently

@@ -105,7 +105,7 @@ OnlyStmt { kw<"only"> TargetList }
 IncludeStmt { kw<"include"> (Star | TargetList) }
 DetailStmt { kw<"detail"> Path }
 ExcludeStmt { kw<"exclude"> TargetList }
-ExpandStmt { kw<"expand"> Path }
+ExpandStmt { kw<"expand"> (Star | Path) }
 ContextStmt { kw<"context"> (kw<"auto"> | kw<"off">) }
 HighlightStmt { kw<"highlight"> Tag (","? Tag)* }
 ShowStmt { kw<"show"> (kw<"descriptions"> | kw<"flow"> Ident) }

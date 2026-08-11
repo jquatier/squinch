@@ -182,7 +182,8 @@ view shop {                 // name matching a system = that system's view
                             // where you stand, `only` says which of it you keep.
                             // Takes ids too: `only api, vault`
   exclude legacy            // trim noise (removes the subtree)
-  expand workers            // inline one child container in a frame
+  expand workers            // inline one child container in a frame — one
+                            // level; nesting two explicit expands is an error
   detail ledger.post        // draw an outside node itself, not its system card
   highlight #pci            // spotlight matches, dim the rest — this still
                             // shows EVERYTHING; "only the PCI parts" is `only`
@@ -200,6 +201,19 @@ view shop {                 // name matching a system = that system's view
     commit: "a41f0c2"          // keeps its key beside its value.
     owner: team-orders         // Nothing here is derived: no git, no clock.
   }
+}
+```
+
+When the reader wants **everything on one page** — every container open to
+leaf depth, no clicking around — declare a full-detail view with `expand *`
+(declare it after the landscape so the breadcrumb keeps pointing home). It
+composes with the other verbs: `scope orders` + `expand *` opens one subtree.
+
+```squinch
+view full {
+  title "Full detail"
+  expand *                  // open every container, frames nesting as they go;
+                            // empty containers stay cards, edges de-aggregate
 }
 ```
 
@@ -330,6 +344,9 @@ view shop {
 | A wire jogs slightly instead of running straight | `align a b` — b takes a's axis exactly (a is the anchor) |
 | Diagram too cramped / too airy | `density spacious` / `density compact` |
 | Too many boxes at once | Split into views: a landscape with `include *`, plus per-system views |
+| Everything open on one page, no clicking into containers | `view full { expand * }` — every container becomes a nested frame, every edge shows natively |
+| "`expand *` already opens every container — the explicit `expand` lines are redundant" warning | Drop the explicit `expand x` lines; the star covers them |
+| "`expand *` opened nothing — no containers are visible here" warning | The model (or this scope) has no containers to open — drop the line |
 | Show **only** one concern (an auditor's view: "only the PCI parts") | `only #pci`. Anything outside the scope that the survivors still talk to stays as a muted context card — that boundary crossing is usually the point of the view; `context off` drops those too |
 | Emphasise one concern while keeping its context | `highlight #pci` — spotlights matches, dims the rest, shows everything |
 | Narrow a view with `include #tag` | It does not narrow. `include` **adds**; an include that changes nothing warns and points at `only` |

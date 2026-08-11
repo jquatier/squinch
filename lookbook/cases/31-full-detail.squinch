@@ -1,0 +1,35 @@
+// `expand *` — the one deliberate ladder: every container open to leaf depth
+// on one page. Frames nest to keep containment legible; only the outermost
+// carry the recessed fill (depth would otherwise read as darkness), inner
+// boundaries are the line and the label.
+pack aws
+
+system edge "Edge" {
+  cdn = aws/cloudfront "CDN"
+  gw  = aws/api-gateway "Gateway"
+  cdn -> gw
+}
+
+system platform "Platform" {
+  container ingest "Ingestion" {
+    recv  = aws/lambda "Receiver"
+    queue = aws/sqs    "Buffer" datastore
+    recv ~> queue
+  }
+  container store "Storage" {
+    writer = aws/lambda   "Writer"
+    tbl    = aws/dynamodb "Events" datastore
+    container index "Indexing" {
+      idx = aws/opensearch "Search" datastore
+    }
+    writer -> tbl
+    tbl ~> index.idx "stream"
+  }
+  ingest.queue ~> store.writer "drain"
+}
+
+edge.gw -> platform.ingest.recv "POST /events"
+
+view full {
+  expand *
+}

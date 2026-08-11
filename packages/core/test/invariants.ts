@@ -135,6 +135,12 @@ export function checkLayout(p: Positioned, ctx: Ctx = {}): string[] {
   for (const f of p.frames)
     for (const n of nodes.filter((x) => x.frame === f.path))
       if (!contains(f, n)) bad.push(`node ${n.path} escapes its frame ${f.path}`);
+  // `expand *` nests frames; frame paths are model paths, so ancestry is the
+  // path prefix, and a nested frame must sit strictly inside every ancestor
+  for (const f of p.frames)
+    for (const outer of p.frames)
+      if (outer !== f && f.path.startsWith(`${outer.path}.`) && !contains(outer, f))
+        bad.push(`frame ${f.path} escapes its enclosing frame ${outer.path}`);
 
   if (ctx.zoneMembers)
     for (const z of p.zones) {

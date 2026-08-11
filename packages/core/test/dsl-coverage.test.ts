@@ -264,6 +264,16 @@ describe("declaration forms that nothing else exercises", () => {
     }
   });
 
+  it("`expand *` parses and sets the star, mirroring `include *`", () => {
+    const r = buildModel(
+      `system s "S" { container c "C" { a = aws/lambda "A" } }\nview full { expand * }\n`,
+    );
+    expect(r.ok).toBe(true);
+    const v = r.model.views.find((x) => x.name === "full")!;
+    expect(v.expandStar).toBe(true);
+    expect(v.expand).toEqual([]);
+  });
+
   it("a node can carry a kind and an attr block together", () => {
     // Never shown in SKILL.md until round 4, and two cold agents guessed the
     // order wrong in two separate rounds.

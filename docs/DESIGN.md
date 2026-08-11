@@ -175,8 +175,12 @@ it gets none of the marks that imply one.
 ## 5. Containers, zones, notes, chrome
 
 - **Expanded frames**: a recessed surface behind their children, radius `8`,
-  with the container's name at their top-left. Depth is one step, not a ladder:
-  a view opens one level (SPEC §5), so a frame inside a frame never happens.
+  with the container's name at their top-left. Depth is one step, not a ladder —
+  except `expand *`, the one deliberate ladder (SPEC §5), where frames do nest.
+  Nested frames carry **no fill**, only the 1px border and the label: the zones
+  argument applies verbatim — surfaceAlt compounds where frames nest, and the
+  recession must say "opened" once rather than encode depth as darkness
+  (docs/notes/full-detail.md).
 - **Zones** (deployment boundaries): a dashed outline, radius `8`, in the kind's
   colour — and **no fill, ever**. A tint compounds where zones nest, so a subnet
   inside a VPC read darker than either and the boundary's weight encoded depth

@@ -1281,10 +1281,18 @@ export function renderSVG(p: Positioned, t: Theme, opts: RenderOpts = {}): strin
   };
   for (const z of [...(p.zones ?? [])].sort((a, b) => a.depth - b.depth)) body.push(zoneMarkup(z));
 
-  // container frames first — recessed surface behind everything (DESIGN §5)
-  for (const f of p.frames) {
+  // container frames first — recessed surface behind everything (DESIGN §5),
+  // outermost first so an `expand *` ladder paints parent-then-child. No fill
+  // past depth 0, deliberately: surfaceAlt compounds where frames nest, and
+  // the recession must say "opened" once rather than encode depth as darkness
+  // — the zones rule, applied to frames (docs/notes/full-detail.md).
+  for (const f of [...p.frames].sort((a, b) => a.depth - b.depth)) {
+    const fill = f.depth === 0 ? t.surfaceAlt : "none";
+    // data-depth only past depth 0: every existing render has only depth-0
+    // frames, and the determinism contract keeps those byte-identical
+    const depthAttr = f.depth > 0 ? ` data-depth="${f.depth}"` : "";
     body.push(
-      `<rect data-path="${esc(f.path)}" data-kind="frame" x="${f.x}" y="${f.y}" width="${f.w}" height="${f.h}" rx="8" fill="${t.surfaceAlt}" stroke="${t.border}" stroke-width="1"/>`,
+      `<rect data-path="${esc(f.path)}" data-kind="frame"${depthAttr} x="${f.x}" y="${f.y}" width="${f.w}" height="${f.h}" rx="8" fill="${fill}" stroke="${t.border}" stroke-width="1"/>`,
     );
     body.push(
       `<text x="${f.x + 14}" y="${f.y + 24}" font-size="${rc.fx(13)}" font-weight="500" fill="${t.muted}">${esc(f.label)}</text>`,

@@ -55,9 +55,10 @@ function synth(): string {
   // ring of cross-system calls so lifting has work to do
   for (let s = 0; s < SYSTEMS; s++)
     L.push(`svc${s}.n${PER_SYSTEM - 1} -> svc${(s + 1) % SYSTEMS}.n0 "calls"`);
-  L.push("", `view all {`);
-  for (let s = 0; s < SYSTEMS; s++) L.push(`  expand svc${s}`);
-  L.push(`}`);
+  // `expand *` — this case has always been named "the fully-expanded 200-node
+  // view" in the budget table; now it is literally the feature's spelling, so
+  // the 500ms budget doubles as the full-detail perf test
+  L.push("", `view all {`, `  expand *`, `}`);
   return L.join("\n") + "\n";
 }
 

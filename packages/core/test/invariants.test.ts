@@ -124,7 +124,7 @@ describe("the invariants themselves", () => {
   it("catches a child escaping its frame", () => {
     const p = base({
       nodes: [{ ...node("a", 400, 0), frame: "f" }],
-      frames: [{ path: "f", label: "F", x: 0, y: 0, w: 200, h: 100 }],
+      frames: [{ path: "f", label: "F", x: 0, y: 0, w: 200, h: 100, depth: 0 }],
     });
     expect(checkLayout(p).join()).toContain("escapes its frame");
   });

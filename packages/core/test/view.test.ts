@@ -519,6 +519,7 @@ view v {
     const err = g.diagnostics.find((d) => d.severity === "error")!;
     expect(err.message).toContain("a view opens one level of depth");
     expect(err.fix).toContain("scope east");
+    expect(err.fix).toContain("expand *"); // …and the whole-ladder spelling
     // the outer frame still renders sanely: one frame, inner container a card
     expect(g.frames).toEqual([{ path: "east", label: "East" }]);
     expect(g.nodes.find((n) => n.path === "east.app")?.kind).toBe("card");
@@ -556,5 +557,124 @@ view v {
     const built = buildModel(src);
     const g = resolveView(built.model, built.model.views.find((v) => v.name === "v")!);
     expect(g.diagnostics.some((d) => d.message.includes("only containers open"))).toBe(true);
+  });
+});
+
+describe("expand * (full detail)", () => {
+  // The one deliberate ladder: `expand *` opens every visible container to
+  // leaf depth, frames nesting as they go, so the whole architecture sits on
+  // one page without losing the containment that says what belongs to what.
+  const DEEP = `system a "Alpha" {
+  x = box "X"
+  container inner "Inner" {
+    y = box "Y"
+    container core "Core" {
+      z = box "Z"
+    }
+    y -> core.z
+  }
+  x -> inner.y
+}
+system b "Beta" {
+  w = box "W"
+}
+a.inner.core.z -> b.w "sync"
+view full { expand * }
+`;
+  const built = buildModel(DEEP);
+  const full = () => built.model.views.find((v) => v.name === "full")!;
+
+  it("frames form the parent chain and every leaf keeps its immediate frame", () => {
+    const g = resolveView(built.model, full());
+    expect(g.diagnostics).toEqual([]);
+    const byPath = Object.fromEntries(g.frames.map((f) => [f.path, f.frame]));
+    expect(byPath).toEqual({ a: undefined, "a.inner": "a", "a.inner.core": "a.inner", b: undefined });
+    const frames = Object.fromEntries(g.nodes.map((n) => [n.path, n.frame]));
+    expect(frames).toEqual({
+      "a.x": "a", "a.inner.y": "a.inner", "a.inner.core.z": "a.inner.core", "b.w": "b",
+    });
+  });
+
+  it("every in-scope edge is native — full detail de-aggregates everything", () => {
+    const g = resolveView(built.model, full());
+    expect(g.edges.every((e) => e.count === 1)).toBe(true);
+    expect(g.edges.map((e) => `${e.from}>${e.to}`).sort()).toEqual([
+      "a.inner.core.z>b.w", "a.inner.y>a.inner.core.z", "a.x>a.inner.y",
+    ]);
+  });
+
+  it("composes with scope: only that subtree opens", () => {
+    const scoped = { ...full(), name: "s", scope: "a" };
+    const g = resolveView(built.model, scoped);
+    expect(g.frames.map((f) => f.path).sort()).toEqual(["a.inner", "a.inner.core"]);
+    expect(g.nodes.some((n) => n.path === "b.w" && n.kind !== "context-card")).toBe(false);
+  });
+
+  it("exclude of a mid-tree container removes its subtree and frame", () => {
+    const v = { ...full(), exclude: ["a.inner.core"] };
+    const g = resolveView(built.model, v);
+    expect(g.frames.some((f) => f.path === "a.inner.core")).toBe(false);
+    expect(g.nodes.some((n) => n.path === "a.inner.core.z")).toBe(false);
+  });
+
+  it("an empty container stays a card rather than a 0×0 frame", () => {
+    const src = `system a "A" { x = box "X" }\nsystem hollow "Hollow" {}\nview full { expand * }`;
+    const b = buildModel(src);
+    const g = resolveView(b.model, b.model.views.find((v) => v.name === "full")!);
+    expect(g.frames.map((f) => f.path)).toEqual(["a"]);
+    expect(g.nodes.find((n) => n.path === "hollow")?.kind).toBe("card");
+  });
+
+  it("redundant explicit expand, and expand * with nothing to open, both warn", () => {
+    const b1 = buildModel(`system a "A" { x = box "X" }\nview v { expand *\n expand a }`);
+    const g1 = resolveView(b1.model, b1.model.views.find((v) => v.name === "v")!);
+    expect(g1.diagnostics.some((d) => d.severity === "warning" && d.message.includes("already opens every container"))).toBe(true);
+    const b2 = buildModel(`a = box "A"\nb = box "B"\na -> b\nview v { expand * }`);
+    const g2 = resolveView(b2.model, b2.model.views.find((v) => v.name === "v")!);
+    expect(g2.diagnostics.some((d) => d.severity === "warning" && d.message.includes("opened nothing"))).toBe(true);
+  });
+
+  it("lays out nested: each frame strictly inside its parent, leaves inside their frame", async () => {
+    const { layoutView } = await import("../src/layout/layout.js");
+    const { positioned, diagnostics } = await layoutView(built.model, full());
+    expect(diagnostics.filter((d) => d.severity === "error")).toEqual([]);
+    const frameAt = Object.fromEntries(positioned.frames.map((f) => [f.path, f]));
+    for (const f of positioned.frames.filter((x) => x.depth > 0)) {
+      const parent = frameAt[positioned.frames.find((p) => p.path === f.path)!.path.split(".").slice(0, -1).join(".")]!;
+      expect(f.x).toBeGreaterThan(parent.x);
+      expect(f.y).toBeGreaterThan(parent.y);
+      expect(f.x + f.w).toBeLessThan(parent.x + parent.w);
+      expect(f.y + f.h).toBeLessThan(parent.y + parent.h);
+    }
+    for (const n of positioned.nodes.filter((x) => x.frame)) {
+      const f = frameAt[n.frame!]!;
+      expect(n.x).toBeGreaterThan(f.x);
+      expect(n.y).toBeGreaterThan(f.y);
+      expect(n.x + n.w).toBeLessThan(f.x + f.w);
+      expect(n.y + n.h).toBeLessThan(f.y + f.h);
+    }
+  });
+
+  it("renders deterministically, validates, and gates the fill at depth 0", async () => {
+    const one = (await render(DEEP, { view: "full" })).svg!;
+    const two = (await render(DEEP, { view: "full" })).svg!;
+    expect(one).toBe(two);
+    validateSVG(one);
+    const rects = [...one.matchAll(/<rect data-path="([^"]+)" data-kind="frame"(?: data-depth="(\d+)")?[^>]*fill="([^"]+)"/g)]
+      .map(([, path, depth, fill]) => ({ path, depth: depth ? +depth : 0, fill }));
+    for (const r of rects) {
+      if (r.depth === 0) expect(r.fill, r.path).not.toBe("none");
+      else expect(r.fill, r.path).toBe("none");
+    }
+    expect(rects.some((r) => r.depth > 0)).toBe(true);
+  });
+
+  it("only <container-id> keeps the opened interior, not a stranded frame", () => {
+    const v = { ...full(), only: ["a.inner"] };
+    const g = resolveView(built.model, v);
+    // inner and everything beneath it survive; unrelated leaves are gone
+    expect(g.nodes.some((n) => n.path === "a.inner.y")).toBe(true);
+    expect(g.nodes.some((n) => n.path === "a.inner.core.z")).toBe(true);
+    expect(g.nodes.some((n) => n.path === "a.x")).toBe(false);
   });
 });

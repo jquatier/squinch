@@ -288,7 +288,8 @@ export function diffModels(before: SModel, after: SModel): DiffResult {
       only: targets(v.only),
       include: targets(v.include),
       exclude: targets(v.exclude),
-      expand: [...v.expand].sort(), detail: [...v.detail].sort(), context: v.context,
+      expand: [...v.expand].sort(), expandStar: v.expandStar,
+      detail: [...v.detail].sort(), context: v.context,
     });
   // Deliberately loc-free: hints and notes carry source offsets, and every
   // edit above them shifts those. Comparing raw objects would report a

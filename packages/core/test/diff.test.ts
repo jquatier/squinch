@@ -158,6 +158,7 @@ LAYOUT}
     ["include", "include other.x"],
     ["exclude", "exclude b"],
     ["expand", "expand other"],
+    ["expand *", "expand *"],
   ] as const)
     it(`sees a change in \`${field}\``, () => {
       const d = diff(withStmt(""), withStmt(stmt));

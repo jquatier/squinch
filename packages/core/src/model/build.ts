@@ -908,7 +908,7 @@ export function buildProject(input: ProjectFile[]): BuildResult {
     const body = bodyNode;
     const view: SView = {
       name,
-      only: [], include: [], includeStar: false, exclude: [], expand: [], detail: [],
+      only: [], include: [], includeStar: false, exclude: [], expand: [], expandStar: false, detail: [],
       context: "auto", highlight: [], showDescriptions: false, legend: false, notes: [],
       layout: { place: [], routes: [], align: [], channels: [] },
       loc: ctx.loc(v), file: ctx.name,
@@ -987,6 +987,7 @@ export function buildProject(input: ProjectFile[]): BuildResult {
       if (r) view.detail.push(r);
     }
     for (const ex of body.getChildren("ExpandStmt")) {
+      if (ex.getChild("Star")) { view.expandStar = true; continue; }
       const path = ex.getChild("Path");
       const r = path && resolve(ctx.text(path), inScope, ex, ctx);
       if (r) view.expand.push(r);
@@ -1234,7 +1235,7 @@ export function buildProject(input: ProjectFile[]): BuildResult {
       name: path,
       scope: path,
       auto: true,
-      only: [], include: [], includeStar: false, exclude: [], expand: [], detail: [],
+      only: [], include: [], includeStar: false, exclude: [], expand: [], expandStar: false, detail: [],
       context: "auto", highlight: [], showDescriptions: false, legend: false, notes: [],
       layout: { place: [], routes: [], align: [], channels: [] },
       loc: model.containers.get(path)!.loc,

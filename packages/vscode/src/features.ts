@@ -179,7 +179,16 @@ export function completionsAt(src: string, offset: number): Completion[] {
     return pathCompletions(src, partial);
   }
 
-  // 4. keywords by block
+  // 4. `expand` argument: `*` (open everything, SPEC §5) or a container path
+  if (here === "view" && /\bexpand\s+[\w.]*$/.test(line)) {
+    const partial = /([\w.]*)$/.exec(line)?.[1] ?? "";
+    const star: Completion[] = partial === ""
+      ? [{ label: "*", kind: "value", detail: "open every container to leaf depth", insert: "*" }]
+      : [];
+    return [...star, ...pathCompletions(src, partial).filter((c) => c.detail === "container" || c.detail?.startsWith("container"))];
+  }
+
+  // 5. keywords by block
   const partial = /([a-zA-Z][\w-]*)?$/.exec(line)?.[1] ?? "";
   const pool =
     here === "layout" ? LAYOUT_KEYWORDS :

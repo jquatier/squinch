@@ -170,6 +170,23 @@ view detail {
     expect(r.diagnostics.some((x) => x.message.includes("cuts through"))).toBe(true);
   });
 
+  it("a zone enclosing a whole subtree is legal under `expand *`; a partial grab still errors", async () => {
+    const whole = BASE + `
+zone z "Z" vpc { contains core }
+view full { expand * }
+`;
+    const r1 = await render(whole, { view: "full" });
+    expect(r1.diagnostics.filter((x) => x.severity === "error")).toEqual([]);
+    expect(r1.svg).toContain(`data-kind="zone"`);
+    const partial = BASE + `
+zone z "Z" vpc { contains core.api }
+view full { expand * }
+`;
+    const r2 = await render(partial, { view: "full" });
+    expect(r2.ok).toBe(false);
+    expect(r2.diagnostics.some((x) => x.message.includes("cuts through"))).toBe(true);
+  });
+
   it("zones with no visible members disappear (SPEC: follow visibility)", async () => {
     const src = BASE + `
 zone z "Z" vpc { contains core.api }
