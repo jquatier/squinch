@@ -28,7 +28,7 @@ renderer's output, so they *can* be regenerated after any visual change:
 | Clip | Script | What it says |
 | --- | --- | --- |
 | `docs/assets/prompt-{light,dark}.gif` | `npx tsx scripts/prompt-gif.mts` | A description in, a diagram out. The page's opening shot. |
-| `docs/assets/zoom-{light,dark}.gif` | `npx tsx scripts/hero-gif.mts` | C4 altitudes: click a system, come back up. |
+| `docs/assets/zoom-{light,dark}.gif` | `npx tsx scripts/hero-gif.mts` | C4 altitudes: click a system, come back up — then `expand *` opens everything at once. |
 
 The prompt clip has one hazard the zoom clip does not: **the sentence is a
 claim about the picture.** Every clause maps to something drawn, and nothing

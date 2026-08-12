@@ -1,7 +1,11 @@
 // The README's hero animation: a landscape diagram, a dive into a system and
 // back out, then the same into a second one — two round trips, because one
 // dive shows a zoom and two show that the altitude belongs to the model rather
-// than to a particular diagram.
+// than to a particular diagram. A third act closes the argument: the full
+// view (`expand *`) opens every system at once, arriving as the app's own
+// lateral cut — sibling views crossfade rather than dive, there being no card
+// to anchor on (docs/notes/zoom-transitions.md) — and the breadcrumb still
+// walks back out.
 //
 // Maintainer-only, macOS/Linux: needs ffmpeg on PATH.
 //
@@ -22,9 +26,10 @@ import { execFileSync } from "node:child_process";
 import { mkdirSync, readFileSync, rmSync, statSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
-import { renderProject, themes } from "../packages/core/dist/index.js";
+import { renderProject, themes, buildModel } from "../packages/core/dist/index.js";
 import { svgToPng } from "../packages/cli/src/raster.js";
 import { TRAVEL, scaleFor, type Box } from "../packages/core/dist/index.js";
+import { measure } from "../packages/core/dist/metrics.js";
 
 const root = join(dirname(fileURLToPath(import.meta.url)), "..");
 const out = (theme: string) => join(root, `docs/assets/zoom-${theme}.gif`);
@@ -197,25 +202,58 @@ const watermark = () =>
       `width="${MARK.w}" height="${MARK.h}" opacity="0.9"/>`
     : "";
 
-/** The breadcrumb's own position — bottom-left, opposite the logo lockup. It
- *  used to sit top-left, which is where the renderer now draws a diagram's own
- *  title (docs/design restyle): two names in one corner, one of them real.
- *
- *  A constant because the pointer clicks it. When these were separate numbers
- *  the caption moved and the click did not, and the GIF spent a beat pressing
- *  empty canvas. */
-const CAPTION = { x: 28, y: H - LOGO_BOTTOM - 6 };
+/** Baseline of the bottom strip's chrome — the toolbar hangs off it. The
+ *  breadcrumb that used to sit here is gone: the toolbar names every view and
+ *  its chips are the click targets, so a second navigation affordance in the
+ *  same strip was one more thing to read for no new capability. */
+const STRIP = { y: H - LOGO_BOTTOM - 6 };
 
-const caption = (crumbs: string[]) => {
-  const trail = crumbs
-    .map((c, i) =>
-      `<tspan fill="${i === crumbs.length - 1 ? T.ink : T.muted}">${c}</tspan>` +
-      // `muted`, not `border`: the restyle lightened borders to a hairline
-      // tone, and a separator drawn in it disappeared between the crumbs
-      (i < crumbs.length - 1 ? `<tspan fill="${T.muted}"> › </tspan>` : ""),
-    )
-    .join("");
-  return `<text x="${CAPTION.x}" y="${CAPTION.y}" font-family="Inter" font-size="15" font-weight="500">${trail}</text>`;
+/** The SPA's view picker, transplanted to the bottom strip: every declared
+ *  view as a chip, the active one on a raised plate — the same affordance the
+ *  app gives for lateral moves, and the thing the pointer presses to reach
+ *  `full`. Geometry is computed once per theme from real text metrics so the
+ *  chips can be click targets. */
+const CHIP_FONT = 12, CHIP_PAD = 8, CHIP_H = 22, CHIP_GAP = 2;
+let TOOLBAR: { names: string[]; x: number; w: number; chips: Map<string, { x: number; w: number }> } =
+  { names: [], x: 0, w: 0, chips: new Map() };
+
+const toolbarLayout = (names: string[]) => {
+  const chips = new Map<string, { x: number; w: number }>();
+  const widths = names.map((n) => Math.round(measure(n, CHIP_FONT, "500")) + CHIP_PAD * 2);
+  const total = widths.reduce((a, b) => a + b, 0) + CHIP_GAP * (names.length - 1) + 8;
+  let x = (W - total) / 2 + 4;
+  names.forEach((n, i) => {
+    chips.set(n, { x, w: widths[i] });
+    x += widths[i] + CHIP_GAP;
+  });
+  TOOLBAR = { names, x: (W - total) / 2, w: total, chips };
+};
+
+/** Centre of a chip — where the pointer aims. */
+const chipPoint = (name: string) => {
+  const c = TOOLBAR.chips.get(name)!;
+  return { x: c.x + c.w / 2, y: STRIP.y - 8 };
+};
+
+const toolbar = (active: string) => {
+  if (!TOOLBAR.names.length) return "";
+  const top = STRIP.y - 8 - CHIP_H / 2;
+  const bar =
+    `<rect x="${(TOOLBAR.x - 3).toFixed(1)}" y="${(top - 3).toFixed(1)}" width="${(TOOLBAR.w + 6).toFixed(1)}" ` +
+    `height="${CHIP_H + 6}" rx="6" fill="${T.surface}" stroke="${T.border}" stroke-width="1"/>`;
+  const chips = TOOLBAR.names.map((n) => {
+    const c = TOOLBAR.chips.get(n)!;
+    const plate = n === active
+      ? `<rect x="${c.x.toFixed(1)}" y="${top.toFixed(1)}" width="${c.w.toFixed(1)}" height="${CHIP_H}" rx="4" fill="${T.surfaceAlt}"/>`
+      : "";
+    return (
+      plate +
+      `<text x="${(c.x + c.w / 2).toFixed(1)}" y="${(top + CHIP_H / 2 + CHIP_FONT * 0.36).toFixed(1)}" ` +
+      `text-anchor="middle" font-family="Inter" font-size="${CHIP_FONT}" font-weight="500" ` +
+      `fill="${n === active ? T.ink : T.muted}">${n}</text>`
+    );
+  }).join("");
+  return bar + chips;
 };
 
 /** A pointer, drawn dark on light with a thin light outline so it stays legible
@@ -245,7 +283,12 @@ const frame = (body: string, crumbs: string[]) =>
   `<svg xmlns="http://www.w3.org/2000/svg" width="${BIG.w}" height="${BIG.h}" ` +
   `viewBox="${-M.x} ${-M.y} ${BIG.w} ${BIG.h}">` +
   `<rect x="${-M.x}" y="${-M.y}" width="${BIG.w}" height="${BIG.h}" fill="${T.canvas}"/>` +
-  `${body}${caption(crumbs)}${watermark()}</svg>`;
+  // the active chip is wherever the trail currently ends, flipping at each
+  // transition's midpoint. The toolbar draws BEFORE the body: the stage never
+  // reaches the bottom strip so the order is invisible for the boards, but
+  // the pointer rides inside `body` and has to land ON the chips, not under
+  // them — the first cut had it sliding beneath the bar it was clicking.
+  `${toolbar(crumbs[crumbs.length - 1])}${body}${watermark()}</svg>`;
 
 const build = async (theme: string) => {
   T = (themes as Record<string, typeof themes.light>)[theme];
@@ -279,6 +322,10 @@ const build = async (theme: string) => {
   // between the diagram and the mark
   FOOT = LOGO_GAP + MARK.h + LOGO_BOTTOM;
   STAGE_H = H - FOOT;
+  // every declared view, in declaration order — what the SPA's picker shows
+  const declared = buildModel(readSource()).model.views.filter((v: any) => !v.auto).map((v: any) => v.name);
+  toolbarLayout(declared);
+
   const land = await view("landscape", theme);
   const V = { x: W / 2, y: STAGE_H / 2 };
 
@@ -343,12 +390,11 @@ const build = async (theme: string) => {
     frame(board(a, tag, "translate(0 0)", 1) + overlay, crumbs);
 
   // Where the pointer goes. Clicking the card is how you descend; clicking the
-  // breadcrumb is how you come back — the same two affordances the app has, so
-  // the GIF teaches the interaction rather than just showing the motion.
+  // `landscape` chip in the toolbar is how you come back — the same two
+  // affordances the app has, so the GIF teaches the interaction rather than
+  // just showing the motion.
   const cardPoint = (g: Target) => ({ x: g.A.x + 6, y: g.A.y - 4 });
-  // the first crumb — "landscape", the one that climbs back out. The tip of
-  // the pointer lands on the word, so y is a few px above the text baseline.
-  const CRUMB = { x: CAPTION.x + 24, y: CAPTION.y - 5 };
+  const LAND_CHIP = chipPoint("landscape");
   const START = { x: W - 150, y: STAGE_H - 70 };
 
   /** Pointer travelling from `a` to `b` across `n` frames, clicking at the end:
@@ -375,6 +421,23 @@ const build = async (theme: string) => {
   const frames: string[] = [];
   const hold = (svg: string, n: number) => { for (let i = 0; i < n; i++) frames.push(svg); };
 
+  /** The lateral move between sibling views — the app's anchorless CUT: a
+   *  plain crossfade, both boards at rest, caption flipping at the midpoint.
+   *  Deliberately not a dive; there is no card for one to anchor on. */
+  const cut = (
+    fromArt: Art, fromTag: string, toArt: Art, toTag: string,
+    fromCrumbs: string[], toCrumbs: string[], n: number,
+  ) => {
+    for (let i = 1; i <= n; i++) {
+      const e = ease(i / n);
+      frames.push(frame(
+        (1 - e > 0.005 ? board(fromArt, fromTag, "translate(0 0)", 1 - e) : "") +
+          (e > 0.005 ? board(toArt, toTag, "translate(0 0)", e) : ""),
+        e > 0.5 ? toCrumbs : fromCrumbs,
+      ));
+    }
+  };
+
   // Holds are long enough to read and no longer: the story is that the
   // *contents change*, and with two round trips the clip pays for every held
   // frame twice. They also cost more than they used to — while an animated
@@ -396,15 +459,27 @@ const build = async (theme: string) => {
       );
     }
     // read the detail, then reach for the breadcrumb to come back up
-    frames.push(...approach(g.art, "b", ["landscape", g.name], CARD, CRUMB, 12, 12, 6));
+    frames.push(...approach(g.art, "b", ["landscape", g.name], CARD, LAND_CHIP, 12, 12, 6));
     for (let j = 1; j <= 11; j++) {
       const t = j / 12;
       frames.push(
-        dive(t, false, g).replace("</svg>", `${cursor(CRUMB.x, CRUMB.y, Math.max(0, 1 - t * 2.2), false)}</svg>`),
+        dive(t, false, g).replace("</svg>", `${cursor(LAND_CHIP.x, LAND_CHIP.y, Math.max(0, 1 - t * 2.2), false)}</svg>`),
       );
     }
-    from = CRUMB;
+    from = LAND_CHIP;
   });
+
+  // Act three: everything at once. `expand *` opens all four systems on one
+  // page — the view the two dives have been trading detail for altitude to
+  // avoid needing. The pointer reaches it the way the app does: the view
+  // picker. A lateral cut, not a dive — siblings have no card to anchor on —
+  // and clicking `landscape` in the same toolbar closes the loop.
+  const full = await view("full", theme);
+  frames.push(...approach(land, "a", ["landscape"], from, chipPoint("full"), 4, 12, 6));
+  cut(land, "a", full, "c", ["landscape"], ["full"], 6);
+  hold(still(full, "c", ["full"]), 30);
+  frames.push(...approach(full, "c", ["full"], chipPoint("full"), chipPoint("landscape"), 0, 10, 6));
+  cut(full, "c", land, "a", ["full"], ["landscape"], 6);
   hold(still(land, "a", ["landscape"]), 10);
 
   // Phase is stamped here rather than in the timeline: held frames push the

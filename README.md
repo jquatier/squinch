@@ -57,13 +57,14 @@ together.
   <picture>
     <source media="(prefers-color-scheme: dark)" srcset="docs/assets/zoom-dark.gif">
     <img src="docs/assets/zoom-light.gif"
-         alt="On a landscape of five systems, clicking the Catalog Service card opens it into its own internals — API, products table, search index and stream sync, with the product stream animating between table and index — while the gateway and order service stay as muted context. The breadcrumb closes it again, and clicking Account Service opens that one the same way."
+         alt="On a landscape of five systems, clicking the Catalog Service card opens it into its own internals — API, products table, search index and stream sync, with the product stream animating between table and index — while the gateway and order service stay as muted context. The breadcrumb closes it again, and clicking Account Service opens that one the same way. Finally the view cuts to full detail: all four systems open at once as labelled frames on one page, the cross-service calls routed between them, before the breadcrumb returns to the landscape."
          width="900">
   </picture>
   <br>
   <em>Click a system to go inside it, the breadcrumb to come back up. Any
   system opens — the altitude is a property of the model, not a second
-  diagram.</em>
+  diagram. And when you want everything at once, <code>expand&nbsp;*</code>
+  opens all of them on one page.</em>
 </p>
 
 **C4-style zoom, from one model.** The altitudes are derived, never drawn twice:
