@@ -12,7 +12,7 @@
 // performs the same motion as the playground" a fact about the build rather
 // than a comment nobody can check.
 import { diveTransforms, type Box } from "../../view/dive.js";
-import { crumbs, hop, upView, viewForPath, type NavView } from "../../view/navigate.js";
+import { hop, upView, viewForPath, type NavView } from "../../view/navigate.js";
 
 interface Payload {
   views: NavView[];
@@ -28,7 +28,6 @@ function boot() {
   const data: Payload = JSON.parse($("#sq-data").textContent || "{}");
   const live = $<HTMLElement>("#sq-live");
   const ghost = $<HTMLElement>("#sq-ghost");
-  const trail = $<HTMLElement>("#sq-crumbs");
   const stage = $<HTMLElement>("#sq-stage");
   const reduced = () => matchMedia("(prefers-reduced-motion: reduce)").matches;
 
@@ -65,36 +64,27 @@ function boot() {
   };
 
   function paintChrome() {
-    trail.replaceChildren();
-    const trailItems = crumbs(data.views, scopeOf(view));
-    trailItems.forEach((c, i) => {
-      if (i) trail.append(Object.assign(document.createElement("span"), { className: "sep", textContent: "›" }));
-      if (c.view && c.view !== view) {
-        const a = document.createElement("button");
-        a.type = "button";
-        a.textContent = c.label;
-        a.onclick = () => go(c.view!);
-        trail.append(a);
-      } else {
-        trail.append(Object.assign(document.createElement("span"), { textContent: c.label }));
-      }
-    });
     document.title = data.views.find((v) => v.name === view)?.title ?? document.title;
 
-    const dots = document.querySelector<HTMLElement>("#sq-dots");
-    if (dots) {
-      dots.replaceChildren();
+    // The view tabs are the deck's one navigation surface — every view by
+    // name, the active one on a plate, exactly the SPA's picker. They replaced
+    // both the breadcrumb and the dots: the tabs already name where you are
+    // and where you can go, so two more spellings of the same facts were
+    // chrome without capability.
+    const tabs = document.querySelector<HTMLElement>("#sq-tabs");
+    if (tabs) {
+      tabs.replaceChildren();
       for (const v of data.views) {
         const b = document.createElement("button");
         b.type = "button";
         b.className = v.name === view ? "on" : "";
-        // a real label, not a decorative dot: this is the deck's only
-        // random-access control and it has to be reachable by name
-        b.setAttribute("aria-label", v.title ?? v.name);
+        b.textContent = v.name;
         b.title = v.title ?? v.name;
         b.onclick = () => go(v.name);
-        dots.append(b);
+        tabs.append(b);
       }
+      // keep the active tab reachable when the deck outgrows the bar
+      tabs.querySelector(".on")?.scrollIntoView?.({ block: "nearest", inline: "nearest" });
     }
     // Mark the cards that actually lead somewhere. Only the runtime can know:
     // it depends on which views this file carries and which one you are in.
@@ -161,11 +151,34 @@ function boot() {
       `transform ${t.ms}ms ${t.ease}, opacity ${Math.round(t.ms * 0.6)}ms ${t.ease} ${Math.round(t.ms * 0.25)}ms`;
     g.transform = t.gEnd; g.opacity = "0";
     l.transform = "none"; l.opacity = "1";
-    setTimeout(() => {
+    // Clean up when the dive actually lands, not on a wall-clock guess. The
+    // old timer fired t.ms after the *click*, but the transition cannot start
+    // until the browser paints the swapped-in body — a heavy first layout of
+    // a large view delayed that by hundreds of ms, the timer stripped the
+    // transition mid-flight, and the diagram visibly snapped into place a
+    // beat after the zoom. Watch the observable fact instead of an event:
+    // live's computed transform reads as interpolated matrices while the
+    // transition runs and becomes the literal "none" only when it has truly
+    // finished — one cheap read per frame for under half a second, immune to
+    // the transitionend quirks headless engines showed when this was
+    // event-driven. The timer is only a net for a hidden tab, where rAF
+    // stops; by then the motion is long over and cleanup is invisible.
+    let settled = false;
+    let raf = 0;
+    const settle = () => {
+      if (settled) return;
+      settled = true;
+      cancelAnimationFrame(raf);
       ghost.replaceChildren();
       ghost.removeAttribute("style");
       live.removeAttribute("style");
-    }, t.ms + 40);
+    };
+    const watch = () => {
+      if (getComputedStyle(live).transform === "none") settle();
+      else raf = requestAnimationFrame(watch);
+    };
+    raf = requestAnimationFrame(watch);
+    setTimeout(settle, t.ms + 1000);
   }
 
   function setTheme(name: string) {

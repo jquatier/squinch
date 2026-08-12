@@ -105,15 +105,22 @@ test("icons actually paint — the hoisted sprite resolves across <svg> roots", 
   expect(shot.byteLength).toBeGreaterThan(1000);
 });
 
-test("clicking a card dives, and the breadcrumb follows", async ({ page }) => {
+test("clicking a card dives, and the active tab follows", async ({ page }) => {
   await open(page);
-  await expect(page.locator("#sq-crumbs")).toHaveText("landscape");
+  await expect(page.locator("#sq-tabs .on")).toHaveText("landscape");
 
   await card(page, "api").click();
-  await page.waitForTimeout(600); // the dive is 460ms
-  await expect(page.locator("#sq-crumbs")).toContainText("api");
+  await expect(page.locator("#sq-tabs .on")).toHaveText("api");
   // the child view's own nodes are on screen now
   await expect(page.locator('#sq-live [data-path="api.gw"]')).toHaveCount(1);
+  // …and once the dive lands, cleanup leaves no transform to snap out of
+  // later. Polled, not fixed-waited: settle deliberately follows the *actual*
+  // end of the motion (a heavy first paint starts it late), which is the whole
+  // fix — the old wall-clock cleanup stripped the transition mid-flight and
+  // the diagram visibly jumped a beat after the zoom.
+  await expect
+    .poll(() => page.evaluate(() => document.querySelector("#sq-live")!.hasAttribute("style")), { timeout: 4000 })
+    .toBe(false);
   await expect(page.locator("#sq-ghost")).toBeEmpty();
 });
 
@@ -140,7 +147,7 @@ test("a card with nowhere to go does not pretend otherwise", async ({ page }) =>
 
 test("clicking the canvas climbs back out", async ({ page }) => {
   await open(page, { view: "api" });
-  await expect(page.locator("#sq-crumbs")).toContainText("api");
+  await expect(page.locator("#sq-tabs .on")).toHaveText("api");
   await page.locator("#sq-stage").click({ position: { x: 5, y: 5 } });
   await page.waitForTimeout(600);
   await expect(page.locator('#sq-live [data-path="web"]')).toHaveCount(1);
@@ -165,7 +172,7 @@ test("presentation mode steps the flow, then the deck", async ({ page }) => {
   // would silently collapse if the two axes were ever merged
   await page.keyboard.press("ArrowUp");
   await page.waitForTimeout(600);
-  await expect(page.locator("#sq-crumbs")).not.toContainText("story");
+  await expect(page.locator("#sq-tabs .on")).not.toHaveText("story");
 
   await page.keyboard.press("Escape");
   await expect(page.locator("body")).not.toHaveClass(/presenting/);

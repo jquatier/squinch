@@ -230,15 +230,16 @@ function document(a: {
     `<svg id="sq-defs" aria-hidden="true" style="position:absolute;width:0;height:0;overflow:hidden">` +
       `<defs>${a.sprite}</defs></svg>`,
   );
-  L.push('<header id="sq-bar"><nav id="sq-crumbs"></nav>' +
-    '<span id="sq-step"></span>' +
+  // No breadcrumb: the view tabs in the footer name where you are and where
+  // you can go, so the header keeps only the document-level controls.
+  L.push('<header id="sq-bar"><span id="sq-step"></span>' +
     (a.palette.length > 1 ? '<button id="sq-theme" type="button" title="Change palette (t)">◐</button>' : "") +
     (a.views.length > 1 ? '<button id="sq-present" type="button" title="Present (p)">Present</button>' : "") +
     "</header>");
   L.push('<main id="sq-stage"><div id="sq-ghost" aria-hidden="true"></div><div id="sq-live">');
   L.push(a.entryBody);
   L.push("</div></main>");
-  if (a.views.length > 1) L.push('<footer id="sq-foot"><nav id="sq-dots"></nav></footer>');
+  if (a.views.length > 1) L.push('<footer id="sq-foot"><nav id="sq-tabs" aria-label="Views"></nav></footer>');
   for (const [key, svg] of a.bodies) {
     if (key === `${a.entry}|${a.palette[0].name}`) continue; // already inline
     L.push(`<template data-key="${attr(key)}">${svg}</template>`);
@@ -260,15 +261,17 @@ const CHROME_CSS =
   "*{box-sizing:border-box}" +
   "body{margin:0;background:var(--sq-canvas);color:var(--sq-ink);" +
   "font:13px/1.5 system-ui,-apple-system,sans-serif;height:100vh;display:flex;flex-direction:column}" +
-  "#sq-bar{display:flex;align-items:center;gap:12px;padding:10px 16px;flex:none}" +
-  "#sq-crumbs{display:flex;align-items:center;gap:6px;flex:1;min-width:0;flex-wrap:wrap}" +
-  "#sq-crumbs button{font:inherit;background:none;border:0;padding:2px 4px;border-radius:4px;" +
-  "color:var(--sq-muted);cursor:pointer}" +
-  "#sq-crumbs button:hover{color:var(--sq-ink);background:var(--sq-surface)}" +
-  "#sq-crumbs .sep{color:var(--sq-muted);opacity:.6}" +
+  "#sq-bar{display:flex;align-items:center;justify-content:flex-end;gap:12px;padding:10px 16px;flex:none}" +
   "#sq-theme{font:inherit;background:var(--sq-surface);color:var(--sq-muted);cursor:pointer;" +
   "border:1px solid var(--sq-border);border-radius:6px;padding:2px 8px;flex:none}" +
   "#sq-stage{position:relative;flex:1;min-height:0;overflow:auto;display:grid;place-items:center}" +
+  // out of flow ALWAYS, not just while a dive's inline styles are on it. As a
+  // grid child the empty ghost owned a row, and default align-content:normal
+  // stretches auto rows — so the moment cleanup returned it to flow, the live
+  // layer's row moved down and the whole diagram jumped a beat after the
+  // zoom landed. The dive sets left/top/size inline per flight; this base
+  // rule is what holds between flights.
+  "#sq-ghost{position:absolute;left:0;top:0;pointer-events:none}" +
   "#sq-live svg,#sq-ghost svg{max-width:100%;height:auto;display:block}" +
   // a card that leads somewhere says so — and only one that does. The class is
   // applied by the runtime, which is the only thing that knows whether a path
@@ -277,11 +280,17 @@ const CHROME_CSS =
   "#sq-step{color:var(--sq-muted);font-variant-numeric:tabular-nums;flex:none}" +
   "#sq-present{font:inherit;background:var(--sq-surface);color:var(--sq-muted);cursor:pointer;" +
   "border:1px solid var(--sq-border);border-radius:6px;padding:2px 10px;flex:none}" +
-  "#sq-foot{display:flex;justify-content:center;padding:10px;flex:none}" +
-  "#sq-dots{display:flex;gap:8px}" +
-  "#sq-dots button{width:8px;height:8px;padding:0;border-radius:50%;cursor:pointer;" +
-  "border:1px solid var(--sq-border);background:none}" +
-  "#sq-dots button.on{background:var(--sq-ink);border-color:var(--sq-ink)}" +
+  "#sq-foot{display:flex;justify-content:center;padding:10px;flex:none;min-width:0}" +
+  // the SPA's view picker, verbatim in spirit: a quiet bar of view names, the
+  // active one on a plate. Scrolls sideways rather than wrapping when a deck
+  // outgrows it — a two-row bar reads as two bars.
+  "#sq-tabs{display:flex;gap:2px;padding:3px;max-width:calc(100% - 16px);overflow-x:auto;" +
+  "border:1px solid var(--sq-border);border-radius:8px;background:var(--sq-surface)}" +
+  "#sq-tabs button{font:inherit;font-size:12px;white-space:nowrap;padding:3px 10px;border-radius:5px;" +
+  "border:0;background:none;color:var(--sq-muted);cursor:pointer}" +
+  "#sq-tabs button:hover{color:var(--sq-ink)}" +
+  "#sq-tabs button.on{background:var(--sq-canvas);color:var(--sq-ink);" +
+  "box-shadow:inset 0 0 0 1px var(--sq-border)}" +
   // presenting: full bleed, chrome floats over the canvas and fades when idle
   "body.presenting #sq-bar,body.presenting #sq-foot{position:fixed;left:0;right:0;z-index:2;" +
   "transition:opacity .3s;background:transparent}" +

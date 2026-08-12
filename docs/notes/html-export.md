@@ -164,7 +164,13 @@ push's critical path. What it covers, in order of why it exists:
 1. **The sprite resolves** — a `<use>` in the live view instantiates, has a
    box, and the card it sits in screenshots to more than a blank plate's worth
    of PNG.
-2. Clicking a card dives, the breadcrumb follows, the ghost is cleaned up.
+2. Clicking a card dives, the active view tab follows, and the ghost is
+   cleaned up — when the motion *actually* ends, observed via the live
+   layer's computed transform, not on a wall-clock timer. The timer variant
+   stripped the transition mid-flight whenever a heavy first paint delayed
+   its start, and the diagram visibly snapped a beat after the zoom. (The
+   tabs are the SPA's view picker, transplanted; they replaced both the
+   breadcrumb and the dots — one navigation surface that names every view.)
 3. Clicking the canvas climbs.
 4. Presentation mode: `p` presents, the counter opens at hop 1, arrows walk the
    flow both ways, `↑` climbs *instead of* stepping, `Escape` leaves.
