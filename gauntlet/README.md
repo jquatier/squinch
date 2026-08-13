@@ -5,7 +5,7 @@ Twenty-nine natural-language architecture prompts. An agent, armed with only
 must produce a clean diagram for each. **v1 ships at ≥ 16/20 with zero human
 layout fixes** (the original ≥ 8/10 bar, at the current prompt count).
 
-> **Current standing: 29/29 on the deep scorer, 25 of 29 clean on the first
+> **Current standing: 29/29 on the deep scorer, 22 of 29 clean on the first
 > `check`.** The
 > solutions those agents wrote are committed in `solutions/` and re-scored by CI
 > on every push, so the claim is inspectable rather than asserted.

@@ -273,7 +273,7 @@ and byte-compared on every push — so none of them can quietly stop being true.
   <img alt="A notification pipeline: events queue, a worker archives and pushes to the customer" src="examples/notifications/notifications.pipeline.light.svg" width="100%">
 </picture>
 <b>Motion that carries meaning</b><br>
-Events arrive as <code>packets</code>, the archive job drifts <code>slow</code>, and a <code>comet</code> rides the final push — CSS keyframes at a constant 150px/s, animating right here in this README
+Events arrive as <code>packets</code>, the archive job drifts <code>slow</code>, and a <code>comet</code> rides the final push at 150px/s — CSS keyframes, each at its own constant speed, animating right here in this README
 </td>
 </tr>
 <tr>
@@ -387,8 +387,9 @@ agent needs — `npx squinch skill` installs it for every skills-compatible agen
 (or paste it into whatever your harness calls context), then ask for a diagram
 in plain language; [the package README](packages/skill/) has the details.
 
-The **gauntlet** is the acceptance test: twenty natural-language architecture
-prompts, each solved *cold* by a fresh agent given only SKILL.md and the CLI —
+The **gauntlet** is the acceptance test: twenty-nine natural-language
+architecture prompts, each solved *cold* by a fresh agent given only SKILL.md
+and the CLI —
 no examples, no human layout fixes, no coaching. A deterministic scorer checks
 the structure, icons, tags and views of every solution, and CI regression-tests
 the whole corpus on every push.
@@ -397,8 +398,9 @@ The agents are kept genuinely cold, and physically so: each one runs in a
 sandbox holding nothing but SKILL.md, its prompt and a `squinch` binary, with
 this repository unreachable from inside — no examples, no docs, no engine
 source, and no previous answers to copy. Every prompt is re-run from scratch as
-the language grows, and the bar rises with it — the corpus has gone 10 → 16 → 20
-prompts as zones, flows, tag lenses, channels and a second cloud pack landed.
+the language grows, and the bar rises with it — the corpus has gone
+10 → 16 → 20 → 29 prompts as zones, flows, tag lenses, channels, more packs
+and the positional-tag grammar landed.
 
 The current round scores **29/29** with zero human layout fixes. Every round is
 written up in [gauntlet/README.md](gauntlet/README.md) — what was asked, how it
@@ -452,7 +454,7 @@ squinch render diagrams/ --view landscape --adaptive -o architecture.svg
 The light theme stays in the presentation attributes and the dark one rides in a
 `@media` block, so anything that ignores CSS — including the resvg rasterizer
 behind PNG export — still draws the light theme correctly rather than nothing.
-It costs about 1.5% over a single render, versus two whole files. Still no
+It costs under 2% over a single render, versus two whole files. Still no
 script: a stylesheet is not code.
 
 ## Themes
@@ -520,7 +522,7 @@ The **VS Code extension** is a real language server — completions that know
 which block you're in, live diagnostics with quick fixes, hover, document
 symbols, and a preview pane that re-renders as you type.
 
-The **playground** is the app in the animation at the top: click a system to
+The **playground** is the app in the zoom animation above: click a system to
 dive into it, walk a flow one hop at a time, ⌘K to search 1,279 icons, and
 full-screen the declared views as a presentation deck. Run it locally with
 `pnpm --filter @squinch/spa dev`.
