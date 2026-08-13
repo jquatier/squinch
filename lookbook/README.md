@@ -370,7 +370,7 @@ Source: [`cases/32-coplanar-frames.squinch`](cases/32-coplanar-frames.squinch)
 
 ## 33-card-shelf
 
-The card shelf, fully loaded. `icon:` picks the card's own mark instead of inheriting the first child's; `domain:` stamps a chip on the shelf's right; and past three children the preview strip truncates to `+N`. The second card declares neither and shows the defaults: first child's icon, no chip.
+The card shelf, fully loaded. `icon:` picks the card's own mark instead of inheriting the first child's — here a storefront glyph, deliberately not an AWS service, because the card is the *system* and not any one component. `domain:` stamps a chip on the shelf's right; past three children the preview strip truncates to `+N`. The second card declares neither and shows the defaults: first child's icon, no chip.
 
 Source: [`cases/33-card-shelf.squinch`](cases/33-card-shelf.squinch)
 

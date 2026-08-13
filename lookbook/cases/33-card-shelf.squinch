@@ -1,12 +1,14 @@
 // The card shelf, fully loaded. `icon:` picks the card's own mark instead of
-// inheriting the first child's; `domain:` stamps a chip on the shelf's right;
-// and past three children the preview strip truncates to `+N`. The second
-// card declares neither and shows the defaults: first child's icon, no chip.
+// inheriting the first child's — here a storefront glyph, deliberately not an
+// AWS service, because the card is the *system* and not any one component.
+// `domain:` stamps a chip on the shelf's right; past three children the
+// preview strip truncates to `+N`. The second card declares neither and
+// shows the defaults: first child's icon, no chip.
 pack aws
 
 system checkout "Checkout" {
   description: "Cart to confirmed order"
-  icon: aws/cloudfront
+  icon: sys/store
   domain: "commerce"
   api   = aws/lambda   "Checkout API"
   cart  = aws/dynamodb "Cart Table" datastore
