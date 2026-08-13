@@ -126,9 +126,7 @@ squinch init my-diagrams
 squinch render my-diagrams --sync
 ```
 
-**macOS, Linux and Windows**, on Node ≥ 22 — CI renders on all three and the
-goldens must byte-match across them, so "deterministic" holds across platforms,
-not just across runs.
+macOS, Linux and Windows, on Node ≥ 22.
 
 The other surfaces, each its own one-liner:
 
