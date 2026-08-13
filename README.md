@@ -115,6 +115,57 @@ drift — see [examples/microservices](examples/microservices) for the source.
 - **Light and dark.** Dark is designed, not inverted — and one `--adaptive`
   file can carry both, switching with the reader's `prefers-color-scheme`.
 
+## Install
+
+The CLI is one package, and the first render is two commands:
+
+```bash
+npm i -g squinch          # or run everything through npx squinch <cmd>
+
+squinch init my-diagrams
+squinch render my-diagrams --sync
+```
+
+**macOS, Linux and Windows**, on Node ≥ 22 — CI renders on all three and the
+goldens must byte-match across them, so "deterministic" holds across platforms,
+not just across runs.
+
+The other surfaces, each its own one-liner:
+
+- **The agent skill** — `npx squinch skill` in your project writes
+  `.agents/skills/` (plus `.claude/skills/` when it detects Claude Code);
+  `--global` installs for your account, `--print` emits SKILL.md for any other
+  harness.
+- **The Claude Code plugin** — the same skill without touching your repo:
+  `/plugin marketplace add jquatier/squinch`, then
+  `/plugin install squinch@squinch`. Updates arrive with the plugin instead
+  of living in your tree.
+- **The VS Code extension** — download `squinch-vscode-<version>.vsix` from
+  [Releases](https://github.com/jquatier/squinch/releases) and
+  `code --install-extension` it. The same file installs in Cursor, Windsurf
+  and VSCodium.
+- **CI** — `uses: jquatier/squinch/.github/actions/squinch-check@main` fails
+  the build when a committed SVG is stale;
+  [`squinch-diff`](.github/actions/squinch-diff) comments what changed,
+  architecturally, on the PR. Pin the `version` input: rendering is
+  deterministic *per tool version*, so a floating `latest` can change your
+  goldens on someone else's release day.
+- **From source** — [CONTRIBUTING.md](CONTRIBUTING.md): two commands to
+  build, for running ahead of the last release or hacking on the engine.
+
+A path can be a single file or a directory — a directory is one project, and
+its files share a namespace.
+
+| Command | |
+| --- | --- |
+| `check` | parse + lint; `--format json` for agents |
+| `render` | `--view`, `--theme`, `--adaptive`, `--sync`, `--check`; `-o out.png` rasterizes (`--scale`, `--width`, `--background`), `-o out.html` exports the interactive viewer |
+| `diff` | semantic model diff — `--base <ref>`, `--format markdown`, `--fail-on structural\|any` for CI |
+| `icons search` | find an icon id across installed packs |
+| `init` | scaffold a starter project |
+| `skill` | install the agent skill |
+| `watch` | re-render on change |
+
 ## From source to diagram
 
 The whole file — structure first, then a separate `view` that says how to draw
@@ -498,54 +549,12 @@ contains script, full stop.
 ## Status
 
 🚧 **Pre-alpha.** It works end to end — parser, model, layout, renderer, CLI,
-VS Code extension, browser playground, five icon packs — but nothing is
-published to npm yet, so the `squinch` command in the examples above means the
-binary you build here. Build from source (below) if you want to play.
+VS Code extension, browser playground, five icon packs — and the whole
+workspace ships as one version, so a `squinch.lock`, a VSIX and the npm
+package always answer "which squinch is this?" the same way.
 
 The DSL will still break before 1.0. Rendered output is byte-stable *per tool
 version*, and an upgrade that changes it is one atomic regenerate commit.
-
-## Try it from source
-
-```bash
-pnpm install && pnpm -r build
-node packages/cli/bin/squinch.js init my-diagrams
-node packages/cli/bin/squinch.js render my-diagrams --sync
-```
-
-`pnpm install` also wires the repo's pre-commit hook (husky, `.husky/`), which
-keeps the committed generated files in sync; `git commit --no-verify` skips it
-once, `HUSKY=0` disables hooks entirely.
-
-**macOS, Linux and Windows**, on Node ≥ 22 — CI runs all three, and the goldens
-must byte-match across them, so "byte-identical" means across platforms and not
-just across runs. Nothing special is needed on Windows: the repo ships a
-`.gitattributes` that keeps the working tree LF, which is what makes that claim
-hold there.
-
-A path can be a single file or a directory — a directory is one project, and its
-files share a namespace.
-
-| Command | |
-| --- | --- |
-| `check` | parse + lint; `--format json` for agents |
-| `render` | `--view`, `--theme`, `--adaptive`, `--sync`, `--check`; `-o out.png` rasterizes (`--scale`, `--width`, `--background`), `-o out.html` exports the interactive viewer |
-| `diff` | semantic model diff — `--base <ref>`, `--format markdown`, `--fail-on structural\|any` for CI |
-| `icons search` | find an icon id across installed packs |
-| `init` | scaffold a starter project |
-| `skill` | install the agent skill — `.agents/skills/` for the project (plus `.claude/skills/` when it detects Claude Code), `--global` for `~/.claude/skills` |
-| `watch` | re-render on change |
-
-`squinch diff` compares architectures rather than text, so a reviewer gets the
-change itself instead of a wall of shifted SVG path data — and it separates the
-structural changes from the merely cosmetic:
-
-```
-structural
-  + edge      orders.files -> orders.idx "thumbnail text"
-
-1 structural, 0 cosmetic
-```
 
 ## Docs
 

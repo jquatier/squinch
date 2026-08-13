@@ -16,6 +16,15 @@ picks it up). `--filter @squinch/core` alone is *not* enough to run the CLI —
 `packages/cli/bin/` runs `packages/cli/dist`, which only the CLI's own build
 writes.
 
+The binary you just built is `packages/cli/bin/squinch.js`; a first render, and
+an alias if you'd rather type `squinch` than the path:
+
+```bash
+node packages/cli/bin/squinch.js init my-diagrams
+node packages/cli/bin/squinch.js render my-diagrams --sync
+alias squinch="node $PWD/packages/cli/bin/squinch.js"
+```
+
 `pnpm install` also installs the git hooks, via [husky](https://typicode.github.io/husky/)
 — [`.husky/pre-commit`](.husky/pre-commit) only regenerates two
 committed-but-generated files when their sources are staged (see below), and
