@@ -54,7 +54,7 @@
 </g>
 <g data-path="ops" data-kind="context-leaf">
 <rect x="92" y="32" width="160" height="64" rx="4" fill="#212124" stroke="#3B3B40" stroke-width="1.5" stroke-dasharray="4 3"/>
-<rect x="104" y="44" width="40" height="40" rx="6" fill="#2F2F34" opacity="0.6"/><g color="#9C9B94" fill="#9C9B94" opacity="0.6"><use href="#sq-builtin-person" x="111" y="51" width="26" height="26"/></g>
+<rect x="104" y="44" width="40" height="40" rx="6" fill="#2F2F34" opacity="0.6"/><rect x="111" y="51" width="26" height="26" rx="3" fill="#6F6E69" opacity="0.6"/><g color="#FFFFFF" fill="#FFFFFF" opacity="0.9"><use href="#sq-builtin-person" x="116" y="56" width="16" height="16"/></g>
 <text x="156" y="69" font-size="13" font-weight="500" fill="#9C9B94">Operator</text>
 </g>
 <g data-path="ledger" data-kind="context-card" opacity="0.75">

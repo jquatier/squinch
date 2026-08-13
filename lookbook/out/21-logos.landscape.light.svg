@@ -55,13 +55,13 @@
 <g data-path="gh" data-kind="leaf">
 <rect x="277" y="142" width="120" height="64" rx="4" fill="url(#sq-surface)" stroke="#EAE9E5" stroke-width="1" filter="url(#sq-shadow)"/>
 <rect x="277" y="142" width="120" height="64" rx="4" fill="url(#sq-hatch)"/>
-<rect x="289" y="154" width="40" height="40" rx="6" fill="#EFEFEC"/><g color="#181717" fill="#181717"><use href="#sq-logos-github" x="296" y="161" width="26" height="26"/></g>
+<rect x="289" y="154" width="40" height="40" rx="6" fill="#EFEFEC"/><rect x="296" y="161" width="26" height="26" rx="3" fill="#181717"/><g color="#FFFFFF" fill="#FFFFFF"><use href="#sq-logos-github" x="301" y="166" width="16" height="16"/></g>
 <text x="341" y="179" font-size="13" font-weight="500" fill="#1C1C1A">GitHub</text>
 </g>
 <g data-path="stripe" data-kind="leaf">
 <rect x="36" y="356" width="120" height="64" rx="4" fill="url(#sq-surface)" stroke="#EAE9E5" stroke-width="1" filter="url(#sq-shadow)"/>
 <rect x="36" y="356" width="120" height="64" rx="4" fill="url(#sq-hatch)"/>
-<rect x="48" y="368" width="40" height="40" rx="6" fill="#EFEFEC"/><g color="#635BFF" fill="#635BFF"><use href="#sq-logos-stripe" x="55" y="375" width="26" height="26"/></g>
+<rect x="48" y="368" width="40" height="40" rx="6" fill="#EFEFEC"/><rect x="55" y="375" width="26" height="26" rx="3" fill="#635BFF"/><g color="#FFFFFF" fill="#FFFFFF"><use href="#sq-logos-stripe" x="60" y="380" width="16" height="16"/></g>
 <text x="100" y="393" font-size="13" font-weight="500" fill="#1C1C1A">Stripe</text>
 </g>
 <rect x="453" y="134" width="240" height="96" rx="8" fill="#F2F1ED" stroke="#DEDDD6" stroke-width="1" opacity="0.5"/><rect x="449" y="130" width="240" height="96" rx="8" fill="#F2F1ED" stroke="#DEDDD6" stroke-width="1" opacity="0.8"/>
@@ -70,7 +70,7 @@
 <clipPath id="sq-cardclip-240-96"><rect x="0" y="0" width="240" height="96" rx="8"/></clipPath>
 <g transform="translate(445,126)" clip-path="url(#sq-cardclip-240-96)"><rect x="0" y="0" width="3" height="96" fill="url(#sq-accent)"/></g>
 <g transform="translate(445,126)" clip-path="url(#sq-cardclip-240-96)"><rect x="3" y="66" width="237" height="30" fill="#F2F1ED"/><line x1="3" y1="66" x2="240" y2="66" stroke="#EFEFEC" stroke-width="1"/></g>
-<rect x="462" y="139" width="40" height="40" rx="6" fill="#EFEFEC"/><g color="#000000" fill="#000000"><use href="#sq-logos-nextdotjs" x="469" y="146" width="26" height="26"/></g>
+<rect x="462" y="139" width="40" height="40" rx="6" fill="#EFEFEC"/><rect x="469" y="146" width="26" height="26" rx="3" fill="#000000"/><g color="#FFFFFF" fill="#FFFFFF"><use href="#sq-logos-nextdotjs" x="474" y="151" width="16" height="16"/></g>
 <text x="514" y="157" font-size="15" font-weight="500" fill="#1C1C1A">Storefront</text>
 <text x="514" y="172" font-size="11" fill="#6F6E69">Next.js on Vercel</text>
 <rect x="648" y="136" width="26" height="26" rx="5" fill="#FFFFFF" stroke="#EAE9E5" stroke-width="1"/>
@@ -84,7 +84,7 @@
 <clipPath id="sq-cardclip-240-96"><rect x="0" y="0" width="240" height="96" rx="8"/></clipPath>
 <g transform="translate(204,356)" clip-path="url(#sq-cardclip-240-96)"><rect x="0" y="0" width="3" height="96" fill="url(#sq-accent)"/></g>
 <g transform="translate(204,356)" clip-path="url(#sq-cardclip-240-96)"><rect x="3" y="66" width="237" height="30" fill="#F2F1ED"/><line x1="3" y1="66" x2="240" y2="66" stroke="#EFEFEC" stroke-width="1"/></g>
-<rect x="221" y="369" width="40" height="40" rx="6" fill="#EFEFEC"/><g color="#4169E1" fill="#4169E1"><use href="#sq-logos-postgresql" x="228" y="376" width="26" height="26"/></g>
+<rect x="221" y="369" width="40" height="40" rx="6" fill="#EFEFEC"/><rect x="228" y="376" width="26" height="26" rx="3" fill="#4169E1"/><g color="#FFFFFF" fill="#FFFFFF"><use href="#sq-logos-postgresql" x="233" y="381" width="16" height="16"/></g>
 <text x="273" y="387" font-size="15" font-weight="500" fill="#1C1C1A">Data Platform</text>
 <text x="273" y="402" font-size="11" fill="#6F6E69">Operational + analytics</text>
 <rect x="407" y="366" width="26" height="26" rx="5" fill="#FFFFFF" stroke="#EAE9E5" stroke-width="1"/>
@@ -100,7 +100,7 @@
 <clipPath id="sq-cardclip-200-96"><rect x="0" y="0" width="200" height="96" rx="8"/></clipPath>
 <g transform="translate(492,356)" clip-path="url(#sq-cardclip-200-96)"><rect x="0" y="0" width="3" height="96" fill="url(#sq-accent)"/></g>
 <g transform="translate(492,356)" clip-path="url(#sq-cardclip-200-96)"><rect x="3" y="66" width="197" height="30" fill="#F2F1ED"/><line x1="3" y1="66" x2="200" y2="66" stroke="#EFEFEC" stroke-width="1"/></g>
-<rect x="509" y="369" width="40" height="40" rx="6" fill="#EFEFEC"/><g color="#326CE5" fill="#326CE5"><use href="#sq-logos-kubernetes" x="516" y="376" width="26" height="26"/></g>
+<rect x="509" y="369" width="40" height="40" rx="6" fill="#EFEFEC"/><rect x="516" y="376" width="26" height="26" rx="3" fill="#326CE5"/><g color="#FFFFFF" fill="#FFFFFF"><use href="#sq-logos-kubernetes" x="521" y="381" width="16" height="16"/></g>
 <text x="561" y="387" font-size="15" font-weight="500" fill="#1C1C1A">Platform</text>
 <text x="561" y="402" font-size="11" fill="#6F6E69">3 components</text>
 <rect x="655" y="366" width="26" height="26" rx="5" fill="#FFFFFF" stroke="#EAE9E5" stroke-width="1"/>

@@ -67,7 +67,7 @@
 <g data-path="partner" data-kind="leaf">
 <rect x="32" y="652" width="200" height="64" rx="4" fill="url(#sq-surface)" stroke="#3B3B40" stroke-width="1" filter="url(#sq-shadow)"/>
 <rect x="32" y="652" width="200" height="64" rx="4" fill="url(#sq-hatch)"/>
-<rect x="44" y="664" width="40" height="40" rx="6" fill="#2F2F34"/><g color="#9C9B94" fill="#9C9B94"><use href="#sq-builtin-box" x="51" y="671" width="26" height="26"/></g>
+<rect x="44" y="664" width="40" height="40" rx="6" fill="#2F2F34"/><rect x="51" y="671" width="26" height="26" rx="3" fill="#6F6E69"/><g color="#FFFFFF" fill="#FFFFFF"><use href="#sq-builtin-box" x="56" y="676" width="16" height="16"/></g>
 <text x="96" y="689" font-size="13" font-weight="500" fill="#EDEDEA">Payment Network</text>
 </g>
 <rect x="138" y="134" width="280" height="96" rx="8" fill="#1D1D20" stroke="#33333A" stroke-width="1" opacity="0.5"/><rect x="134" y="130" width="280" height="96" rx="8" fill="#1D1D20" stroke="#33333A" stroke-width="1" opacity="0.8"/>

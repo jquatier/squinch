@@ -22,7 +22,7 @@
 <clipPath id="sq-cardclip-240-96"><rect x="0" y="0" width="240" height="96" rx="8"/></clipPath>
 <g transform="translate(32,32)" clip-path="url(#sq-cardclip-240-96)"><rect x="0" y="0" width="3" height="96" fill="url(#sq-accent)"/></g>
 <g transform="translate(32,32)" clip-path="url(#sq-cardclip-240-96)"><rect x="3" y="66" width="237" height="30" fill="#F2F1ED"/><line x1="3" y1="66" x2="240" y2="66" stroke="#EFEFEC" stroke-width="1"/></g>
-<rect x="49" y="45" width="40" height="40" rx="6" fill="#EFEFEC"/><g color="#6F6E69" fill="#6F6E69"><use href="#sq-sys-store" x="56" y="52" width="26" height="26"/></g>
+<rect x="49" y="45" width="40" height="40" rx="6" fill="#EFEFEC"/><rect x="56" y="52" width="26" height="26" rx="3" fill="#6F6E69"/><g color="#FFFFFF" fill="#FFFFFF"><use href="#sq-sys-store" x="61" y="57" width="16" height="16"/></g>
 <text x="101" y="63" font-size="15" font-weight="500" fill="#1C1C1A">Checkout</text>
 <text x="101" y="78" font-size="11" fill="#6F6E69">Cart to confirmed order</text>
 <clipPath id="clip-sq-aws-lambda-43-105-16"><rect x="43" y="105" width="16" height="16" rx="2"/></clipPath><g clip-path="url(#clip-sq-aws-lambda-43-105-16)"><use href="#sq-aws-lambda" x="43" y="105" width="16" height="16"/></g>

@@ -68,7 +68,7 @@
 </g>
 <g data-path="lakehouse.events" data-kind="leaf">
 <rect x="55" y="32" width="160" height="64" rx="4" fill="url(#sq-surface)" stroke="#EAE9E5" stroke-width="1" filter="url(#sq-shadow)"/>
-<rect x="67" y="44" width="40" height="40" rx="6" fill="#EFEFEC"/><g color="#231F20" fill="#231F20"><use href="#sq-logos-apachekafka" x="74" y="51" width="26" height="26"/></g>
+<rect x="67" y="44" width="40" height="40" rx="6" fill="#EFEFEC"/><rect x="74" y="51" width="26" height="26" rx="3" fill="#231F20"/><g color="#FFFFFF" fill="#FFFFFF"><use href="#sq-logos-apachekafka" x="79" y="56" width="16" height="16"/></g>
 <text x="119" y="69" font-size="13" font-weight="500" fill="#1C1C1A">order events</text>
 </g>
 <g data-path="lakehouse.landing" data-kind="leaf">
@@ -78,62 +78,62 @@
 </g>
 <g data-path="lakehouse.ingest" data-kind="leaf">
 <rect x="82" y="172" width="160" height="64" rx="4" fill="url(#sq-surface)" stroke="#EAE9E5" stroke-width="1" filter="url(#sq-shadow)"/>
-<rect x="94" y="184" width="40" height="40" rx="6" fill="#EFEFEC"/><g color="#6F6E69" fill="#6F6E69"><use href="#sq-sys-database-zap" x="101" y="191" width="26" height="26"/></g>
+<rect x="94" y="184" width="40" height="40" rx="6" fill="#EFEFEC"/><rect x="101" y="191" width="26" height="26" rx="3" fill="#6F6E69"/><g color="#FFFFFF" fill="#FFFFFF"><use href="#sq-sys-database-zap" x="106" y="196" width="16" height="16"/></g>
 <rect x="119" y="209" width="22" height="22" rx="5" fill="#FFFFFF" stroke="#EAE9E5"/><g color="#FF3621" fill="#FF3621"><use href="#sq-logos-databricks" x="123" y="213" width="14" height="14"/></g>
 <text x="146" y="209" font-size="13" font-weight="500" fill="#1C1C1A">Auto Loader</text>
 </g>
 <g data-path="lakehouse.bronze" data-kind="leaf">
 <rect x="62" y="274" width="200" height="64" rx="4" fill="url(#sq-surface)" stroke="#EAE9E5" stroke-width="1" filter="url(#sq-shadow)"/>
-<rect x="74" y="286" width="40" height="40" rx="6" fill="#EFEFEC"/><g color="#6F6E69" fill="#6F6E69"><use href="#sq-sys-table" x="81" y="293" width="26" height="26"/></g>
+<rect x="74" y="286" width="40" height="40" rx="6" fill="#EFEFEC"/><rect x="81" y="293" width="26" height="26" rx="3" fill="#6F6E69"/><g color="#FFFFFF" fill="#FFFFFF"><use href="#sq-sys-table" x="86" y="298" width="16" height="16"/></g>
 <rect x="99" y="311" width="22" height="22" rx="5" fill="#FFFFFF" stroke="#EAE9E5"/><g color="#FF3621" fill="#FF3621"><use href="#sq-logos-databricks" x="103" y="315" width="14" height="14"/></g>
 <text x="126" y="311" font-size="13" font-weight="500" fill="#1C1C1A">bronze.orders</text>
 </g>
 <g data-path="lakehouse.uc" data-kind="leaf">
 <rect x="32" y="424" width="160" height="64" rx="4" fill="url(#sq-surface)" stroke="#EAE9E5" stroke-width="1" filter="url(#sq-shadow)"/>
-<rect x="44" y="436" width="40" height="40" rx="6" fill="#EFEFEC"/><g color="#6F6E69" fill="#6F6E69"><use href="#sq-sys-library-big" x="51" y="443" width="26" height="26"/></g>
+<rect x="44" y="436" width="40" height="40" rx="6" fill="#EFEFEC"/><rect x="51" y="443" width="26" height="26" rx="3" fill="#6F6E69"/><g color="#FFFFFF" fill="#FFFFFF"><use href="#sq-sys-library-big" x="56" y="448" width="16" height="16"/></g>
 <rect x="69" y="461" width="22" height="22" rx="5" fill="#FFFFFF" stroke="#EAE9E5"/><g color="#FF3621" fill="#FF3621"><use href="#sq-logos-databricks" x="73" y="465" width="14" height="14"/></g>
 <text x="96" y="461" font-size="13" font-weight="500" fill="#1C1C1A">Unity Catalog</text>
 </g>
 <g data-path="lakehouse.silver" data-kind="leaf">
 <rect x="285" y="424" width="200" height="64" rx="4" fill="url(#sq-surface)" stroke="#EAE9E5" stroke-width="1" filter="url(#sq-shadow)"/>
-<rect x="297" y="436" width="40" height="40" rx="6" fill="#EFEFEC"/><g color="#6F6E69" fill="#6F6E69"><use href="#sq-sys-table" x="304" y="443" width="26" height="26"/></g>
+<rect x="297" y="436" width="40" height="40" rx="6" fill="#EFEFEC"/><rect x="304" y="443" width="26" height="26" rx="3" fill="#6F6E69"/><g color="#FFFFFF" fill="#FFFFFF"><use href="#sq-sys-table" x="309" y="448" width="16" height="16"/></g>
 <rect x="322" y="461" width="22" height="22" rx="5" fill="#FFFFFF" stroke="#EAE9E5"/><g color="#FF3621" fill="#FF3621"><use href="#sq-logos-databricks" x="326" y="465" width="14" height="14"/></g>
 <text x="349" y="461" font-size="13" font-weight="500" fill="#1C1C1A">silver.customers</text>
 </g>
 <g data-path="lakehouse.job" data-kind="leaf">
 <rect x="578" y="424" width="160" height="64" rx="4" fill="url(#sq-surface)" stroke="#EAE9E5" stroke-width="1" filter="url(#sq-shadow)"/>
-<rect x="590" y="436" width="40" height="40" rx="6" fill="#EFEFEC"/><g color="#6F6E69" fill="#6F6E69"><use href="#sq-sys-workflow" x="597" y="443" width="26" height="26"/></g>
+<rect x="590" y="436" width="40" height="40" rx="6" fill="#EFEFEC"/><rect x="597" y="443" width="26" height="26" rx="3" fill="#6F6E69"/><g color="#FFFFFF" fill="#FFFFFF"><use href="#sq-sys-workflow" x="602" y="448" width="16" height="16"/></g>
 <rect x="615" y="461" width="22" height="22" rx="5" fill="#FFFFFF" stroke="#EAE9E5"/><g color="#FF3621" fill="#FF3621"><use href="#sq-logos-databricks" x="619" y="465" width="14" height="14"/></g>
 <text x="642" y="461" font-size="13" font-weight="500" fill="#1C1C1A">nightly job</text>
 </g>
 <g data-path="lakehouse.wh" data-kind="leaf">
 <rect x="60" y="612" width="200" height="64" rx="4" fill="url(#sq-surface)" stroke="#EAE9E5" stroke-width="1" filter="url(#sq-shadow)"/>
-<rect x="72" y="624" width="40" height="40" rx="6" fill="#EFEFEC"/><g color="#6F6E69" fill="#6F6E69"><use href="#sq-sys-database" x="79" y="631" width="26" height="26"/></g>
+<rect x="72" y="624" width="40" height="40" rx="6" fill="#EFEFEC"/><rect x="79" y="631" width="26" height="26" rx="3" fill="#6F6E69"/><g color="#FFFFFF" fill="#FFFFFF"><use href="#sq-sys-database" x="84" y="636" width="16" height="16"/></g>
 <rect x="97" y="649" width="22" height="22" rx="5" fill="#FFFFFF" stroke="#EAE9E5"/><g color="#FF3621" fill="#FF3621"><use href="#sq-logos-databricks" x="101" y="653" width="14" height="14"/></g>
 <text x="124" y="649" font-size="13" font-weight="500" fill="#1C1C1A">SQL warehouse</text>
 </g>
 <g data-path="lakehouse.vs" data-kind="leaf">
 <rect x="318" y="612" width="200" height="64" rx="4" fill="url(#sq-surface)" stroke="#EAE9E5" stroke-width="1" filter="url(#sq-shadow)"/>
-<rect x="330" y="624" width="40" height="40" rx="6" fill="#EFEFEC"/><g color="#6F6E69" fill="#6F6E69"><use href="#sq-sys-waypoints" x="337" y="631" width="26" height="26"/></g>
+<rect x="330" y="624" width="40" height="40" rx="6" fill="#EFEFEC"/><rect x="337" y="631" width="26" height="26" rx="3" fill="#6F6E69"/><g color="#FFFFFF" fill="#FFFFFF"><use href="#sq-sys-waypoints" x="342" y="636" width="16" height="16"/></g>
 <rect x="355" y="649" width="22" height="22" rx="5" fill="#FFFFFF" stroke="#EAE9E5"/><g color="#FF3621" fill="#FF3621"><use href="#sq-logos-databricks" x="359" y="653" width="14" height="14"/></g>
 <text x="382" y="649" font-size="13" font-weight="500" fill="#1C1C1A">vector search</text>
 </g>
 <g data-path="lakehouse.nb" data-kind="leaf">
 <rect x="566" y="612" width="160" height="64" rx="4" fill="url(#sq-surface)" stroke="#EAE9E5" stroke-width="1" filter="url(#sq-shadow)"/>
-<rect x="578" y="624" width="40" height="40" rx="6" fill="#EFEFEC"/><g color="#6F6E69" fill="#6F6E69"><use href="#sq-sys-notebook-text" x="585" y="631" width="26" height="26"/></g>
+<rect x="578" y="624" width="40" height="40" rx="6" fill="#EFEFEC"/><rect x="585" y="631" width="26" height="26" rx="3" fill="#6F6E69"/><g color="#FFFFFF" fill="#FFFFFF"><use href="#sq-sys-notebook-text" x="590" y="636" width="16" height="16"/></g>
 <rect x="603" y="649" width="22" height="22" rx="5" fill="#FFFFFF" stroke="#EAE9E5"/><g color="#FF3621" fill="#FF3621"><use href="#sq-logos-databricks" x="607" y="653" width="14" height="14"/></g>
 <text x="630" y="649" font-size="13" font-weight="500" fill="#1C1C1A">analysis</text>
 </g>
 <g data-path="lakehouse.serving" data-kind="leaf">
 <rect x="43" y="762" width="200" height="64" rx="4" fill="url(#sq-surface)" stroke="#EAE9E5" stroke-width="1" filter="url(#sq-shadow)"/>
-<rect x="55" y="774" width="40" height="40" rx="6" fill="#EFEFEC"/><g color="#6F6E69" fill="#6F6E69"><use href="#sq-sys-brain-circuit" x="62" y="781" width="26" height="26"/></g>
+<rect x="55" y="774" width="40" height="40" rx="6" fill="#EFEFEC"/><rect x="62" y="781" width="26" height="26" rx="3" fill="#6F6E69"/><g color="#FFFFFF" fill="#FFFFFF"><use href="#sq-sys-brain-circuit" x="67" y="786" width="16" height="16"/></g>
 <rect x="80" y="799" width="22" height="22" rx="5" fill="#FFFFFF" stroke="#EAE9E5"/><g color="#FF3621" fill="#FF3621"><use href="#sq-logos-databricks" x="84" y="803" width="14" height="14"/></g>
 <text x="107" y="799" font-size="13" font-weight="500" fill="#1C1C1A">model serving</text>
 </g>
 <g data-path="lakehouse.bi" data-kind="leaf">
 <rect x="291" y="762" width="160" height="64" rx="4" fill="url(#sq-surface)" stroke="#EAE9E5" stroke-width="1" filter="url(#sq-shadow)"/>
 <rect x="291" y="762" width="160" height="64" rx="4" fill="url(#sq-hatch)"/>
-<rect x="303" y="774" width="40" height="40" rx="6" fill="#EFEFEC"/><g color="#4285F4" fill="#4285F4"><use href="#sq-logos-looker" x="310" y="781" width="26" height="26"/></g>
+<rect x="303" y="774" width="40" height="40" rx="6" fill="#EFEFEC"/><rect x="310" y="781" width="26" height="26" rx="3" fill="#4285F4"/><g color="#FFFFFF" fill="#FFFFFF"><use href="#sq-logos-looker" x="315" y="786" width="16" height="16"/></g>
 <text x="355" y="799" font-size="13" font-weight="500" fill="#1C1C1A">dashboards</text>
 </g>
 <g><rect x="77" y="144" width="48" height="18" rx="2" fill="#FFFFFF" stroke="#EAE9E5" stroke-width="1"/><text x="101" y="157" text-anchor="middle" font-size="11" fill="#6F6E69">stream</text></g>

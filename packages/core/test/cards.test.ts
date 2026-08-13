@@ -45,17 +45,26 @@ describe("the card's icon tile", () => {
     expect(s).toContain(`x="${x + 7}" y="${y + 7}" width="26" height="26"`);
   });
 
-  it("draws a single-colour mark bare, never a plate inside the plate", async () => {
-    // `iconPlate`'s monochrome branch paints a brand-coloured plate with the
-    // mark knocked out — right when the mark stands alone, wrong on a tile,
-    // where it nests one rounded rect inside another.
+  it("gives a single-colour mark the same shell as vendor art: tile + inset chip", async () => {
+    // One anatomy for every mark (2026-08): the neutral tile is the shell,
+    // and a monochrome mark becomes a brand-coloured knockout chip inset at
+    // ICON_ART — exactly where a Lambda's artwork would sit. The previous
+    // treatment drew the mark bare on the tile in its brand colour, which
+    // needed a white bed in dark mode (`brandPlate`) and split the design
+    // from the shelf chips, which were always knockout.
     // scoped, so the system's children are drawn rather than summarised
     const src = `${SRC(``, `  m = sys/server "Mono"`)}\nview inner { scope s }`;
     const r = await render(src, { view: "inner", theme: "light" });
     expect(r.ok, JSON.stringify(r.diagnostics)).toBe(true);
     const g = group(r.svg!, "s.m");
-    const rects = [...g.matchAll(/<rect[^>]*width="(\d+)" height="\1"[^>]*\/>/g)].map((r) => r[1]);
-    expect(rects, "one square behind the mark, not two").toEqual(["40"]);
+    const tile = /<rect x="(\d+)" y="(\d+)" width="40" height="40" rx="6" fill="([^"]+)"\/>/.exec(g)!;
+    expect(tile[3]).toBe(themes.light.plate);
+    // the chip sits at the same 7px inset as vendor artwork, filled with the
+    // mark's colour — sys has none, so it takes the theme's muted ink
+    const chip = /<rect x="(\d+)" y="(\d+)" width="26" height="26" rx="3" fill="([^"]+)"\/>/.exec(g)!;
+    expect(+chip[1]).toBe(+tile[1] + 7);
+    expect(+chip[2]).toBe(+tile[2] + 7);
+    expect(chip[3]).toBe(themes.light.muted);
   });
 });
 

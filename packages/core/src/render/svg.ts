@@ -3,7 +3,7 @@
 // byte-identity tests.
 import { fit, measure, wrapText } from "../metrics.js";
 import { FONTS } from "../fonts.generated.js";
-import { iconMeta, iconColor, packMonochrome, packFullBleed } from "../model/packs.js";
+import { iconMeta, packMonochrome, packFullBleed } from "../model/packs.js";
 import { iconAsset, symbolId } from "../packs/registry.js";
 import type { Theme } from "../themes/index.js";
 // SHELF_H is layout's: the shelf is inside the card height it sets, so the
@@ -1116,13 +1116,18 @@ function iconDefs(p: Positioned, rc: RC): string {
   return symbols.length ? `<defs>\n${symbols.join("\n")}\n</defs>` : "";
 }
 
-/** Icon artwork clipped to our plate radius, or a lettered fallback plate.
- *  The pack art is verbatim — nothing here recolours or restyles it. */
-/** A node's main icon: the artwork at ICON_ART on a neutral tile of PLATE
- *  (docs/design). The tile is what keeps a pack mark from sitting straight on
- *  the card surface — vendor artwork is drawn on white in its own guidelines,
- *  and against a gradient it reads as pasted on. `iconPlate` still draws the
- *  mark itself, so monochrome packs keep their brand-coloured knockout. */
+/** A node's main icon: one shell for every kind of mark — a PLATE-sized
+ *  neutral tile with the artwork inset at ICON_ART (docs/design). The tile is
+ *  what keeps pack art off the card surface: vendor artwork is drawn on white
+ *  in its own guidelines, and against a gradient it reads as pasted on. A
+ *  monochrome mark becomes `iconPlate`'s brand-coloured knockout chip in the
+ *  same inset, so a GitHub chip and a Lambda have identical anatomy.
+ *
+ *  This replaced the ink-on-neutral-tile treatment (2026-08): drawing the mark
+ *  in its brand colour needed a white bed in dark mode (`brandPlate`, now
+ *  gone) because navy ink on a dark tile was a 1.4:1 smudge — while the chip's
+ *  knockout ink carries its own contrast in either theme. It also ended the
+ *  split where shelf chips were knockout and tiles were not. */
 function iconTile(
   icon: { pack: string; id: string } | undefined,
   x: number, y: number, rc: RC, soften = false,
@@ -1130,39 +1135,25 @@ function iconTile(
   const { t } = rc;
   const inset = Math.round((PLATE - ICON_ART) / 2);
   const tile = `<rect x="${x}" y="${y}" width="${PLATE}" height="${PLATE}" rx="6" fill="${t.plate}"${soften ? ` opacity="0.6"` : ""}/>`;
-  const asset = icon ? iconAsset(icon.pack, icon.id) : undefined;
-  const mono = icon && (icon.pack === "builtin" || packMonochrome(icon.pack));
-  if (asset && icon && mono) {
-    // A single-colour mark goes straight onto the tile. `iconPlate` would draw
-    // its own brand-coloured plate with the mark knocked out — right when the
-    // mark stands alone, wrong here, where it nests a rounded rect inside a
-    // rounded rect. Same reasoning as the node badge: quiet plate, mark in its
-    // own colour (`fill` as well as `color`, because vendored marks carry no
-    // fill and would default to black).
-    //
-    // Whose colour, though, depends on whose mark it is. `iconColor` is
-    // defined only for packs that publish one, so a trademark keeps its brand
-    // hue while our own vocabulary (builtin, sys) follows the theme — those
-    // manifests carry no colour and used to inherit a hardcoded light grey,
-    // which went dim the moment the canvas did.
-    const brand = iconColor(icon.pack, icon.id);
-    const ink = brand ?? t.muted;
-    // A brand hue is fixed, so the surface under it is what moves. GitHub's
-    // near-black on the dark theme's tile is a 1.4:1 smudge, and recolouring
-    // someone's trademark is not an option — so every branded mark sits on the
-    // white plate its own guidelines assume. Unconditionally, not by contrast
-    // test: a rule that flipped per icon would put a white tile beside a dark
-    // one in the same row and read as a bug rather than as a policy.
-    const bed = brand ? t.brandPlate : t.plate;
-    return (
-      `<rect x="${x}" y="${y}" width="${PLATE}" height="${PLATE}" rx="6" fill="${bed}"${soften ? ` opacity="0.6"` : ""}/>` +
-      `<g color="${ink}" fill="${ink}"${soften ? ` opacity="0.6"` : ""}>` +
-      `<use href="#${symbolId(icon.pack, icon.id)}" x="${x + inset}" y="${y + inset}" width="${ICON_ART}" height="${ICON_ART}"/>` +
-      `</g>`
-    );
-  }
   return tile + iconPlate(icon, x + inset, y + inset, ICON_ART, rc, soften);
 }
+
+/** Perceived lightness of a `#rrggbb` chip, as the integer
+ *  `2126·R + 7152·G + 722·B` (0…2,550,000). Deliberately NOT the WCAG
+ *  formula: gamma correction runs through `pow()`, which carries no
+ *  bit-identical guarantee across platforms, and the determinism contract
+ *  byte-compares goldens on three OSes. A threshold needs a stable line with
+ *  the right chips on each side, not colourimetric truth — integer multiply
+ *  and add are exact everywhere. Validated against the WCAG measure over all
+ *  installed packs: everything below 2.5:1 white-contrast lands above the
+ *  line, and the only disagreements are borderline chips that flip to dark
+ *  ink harmlessly early. */
+const chipLightness = (hex: string): number => {
+  const [r, g, b] = [1, 3, 5].map((i) => parseInt(hex.slice(i, i + 2), 16));
+  return 2126 * r + 7152 * g + 722 * b;
+};
+const LIGHT_CHIP = 1_500_000;
+const KNOCKOUT_DARK = "#1C1C1A";
 
 function iconPlate(
   icon: { pack: string; id: string } | undefined,
@@ -1174,15 +1165,21 @@ function iconPlate(
   const r = Math.max(2, Math.round(size / 10));
   if (asset && icon && (icon.pack === "builtin" || packMonochrome(icon.pack))) {
     // single-colour marks — our own glyphs and logo packs alike: a coloured
-    // plate with the mark knocked out of it, so a wordless logo still reads
+    // plate with the mark knocked out of it, so a wordless logo still reads.
+    // The knockout ink follows the chip: white carries a dark chip, but 17 of
+    // the logos hexes are light (JavaScript's yellow, React's cyan) where
+    // white is a 1.2–1.6:1 ghost — and dark-on-colour is those brands' own
+    // usage anyway. One deterministic threshold, no per-icon table.
     const pad = Math.round(size * 0.2);
+    const chip = meta?.color ?? t.muted;
+    const ink = chipLightness(chip) > LIGHT_CHIP ? KNOCKOUT_DARK : t.plateText;
     return (
-      `<rect x="${x}" y="${y}" width="${size}" height="${size}" rx="${r}" fill="${meta?.color ?? t.muted}"${soften ? ` opacity="0.6"` : ""}/>` +
+      `<rect x="${x}" y="${y}" width="${size}" height="${size}" rx="${r}" fill="${chip}"${soften ? ` opacity="0.6"` : ""}/>` +
       // `fill` as well as `color`: our own glyphs paint with currentColor, but
       // vendored marks (Simple Icons) carry no fill at all and would default to
       // black — invisible on a dark brand plate. fill is inherited, and any
       // glyph that sets its own fill still wins.
-      `<g color="${t.plateText}" fill="${t.plateText}"${soften ? ` opacity="0.9"` : ""}>` +
+      `<g color="${ink}" fill="${ink}"${soften ? ` opacity="0.9"` : ""}>` +
       `<use href="#${symbolId(icon.pack, icon.id)}" x="${x + pad}" y="${y + pad}" width="${size - pad * 2}" height="${size - pad * 2}"/>` +
       `</g>`
     );

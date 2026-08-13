@@ -46,12 +46,6 @@ export interface Theme {
   plate: string;
   /** The actor tile's lower gradient stop, a step under `plate`. */
   actorLo: string;
-  /** The plate under a vendor mark. A trademark's contrast was designed
-   *  against white and is not ours to re-balance, so when the theme's own tile
-   *  cannot carry a dark mark this one does — which is a dark-theme problem
-   *  only. In light it *is* `plate`: a white tile there would vanish into the
-   *  card's white top, which is exactly what it did when this was one value. */
-  brandPlate: string;
   /** The stacked sheets behind a container — "there is more inside". Quieter
    *  than the card's own border and fill: a hint, not a stack of real cards. */
   sheetFill: string;
@@ -110,7 +104,6 @@ export const light: Theme = {
   shelfLine: "#EFEFEC",
   plate: "#EFEFEC",
   actorLo: "#E4E3DE",
-  brandPlate: "#EFEFEC",
   faint: "#8A8880",
   dim: "#A5A199",
   sheetFill: "#F2F1ED",
@@ -143,7 +136,6 @@ export const dark: Theme = {
   shelfLine: "#2E2E33",
   plate: "#2F2F34",
   actorLo: "#26262A",
-  brandPlate: "#FFFFFF",
   faint: "#7A796F",
   dim: "#6E6D67",
   sheetFill: "#1D1D20",

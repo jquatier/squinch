@@ -45,7 +45,7 @@
 <g data-path="legacy" data-kind="leaf">
 <rect x="2257" y="48" width="120" height="64" rx="4" fill="url(#sq-surface)" stroke="#EAE9E5" stroke-width="1" filter="url(#sq-shadow)"/>
 <rect x="2257" y="48" width="120" height="64" rx="4" fill="url(#sq-hatch)"/>
-<rect x="2269" y="60" width="40" height="40" rx="6" fill="#EFEFEC"/><g color="#6F6E69" fill="#6F6E69"><use href="#sq-builtin-box" x="2276" y="67" width="26" height="26"/></g>
+<rect x="2269" y="60" width="40" height="40" rx="6" fill="#EFEFEC"/><rect x="2276" y="67" width="26" height="26" rx="3" fill="#6F6E69"/><g color="#FFFFFF" fill="#FFFFFF"><use href="#sq-builtin-box" x="2281" y="72" width="16" height="16"/></g>
 <text x="2321" y="85" font-size="13" font-weight="500" fill="#1C1C1A">Box</text>
 </g>
 <rect x="2433" y="40" width="200" height="96" rx="8" fill="#F2F1ED" stroke="#DEDDD6" stroke-width="1" opacity="0.5"/><rect x="2429" y="36" width="200" height="96" rx="8" fill="#F2F1ED" stroke="#DEDDD6" stroke-width="1" opacity="0.8"/>
@@ -54,7 +54,7 @@
 <clipPath id="sq-cardclip-200-96"><rect x="0" y="0" width="200" height="96" rx="8"/></clipPath>
 <g transform="translate(2425,32)" clip-path="url(#sq-cardclip-200-96)"><rect x="0" y="0" width="3" height="96" fill="url(#sq-accent)"/></g>
 <g transform="translate(2425,32)" clip-path="url(#sq-cardclip-200-96)"><rect x="3" y="66" width="197" height="30" fill="#F2F1ED"/><line x1="3" y1="66" x2="200" y2="66" stroke="#EFEFEC" stroke-width="1"/></g>
-<rect x="2442" y="45" width="40" height="40" rx="6" fill="#EFEFEC"/><g color="#6F6E69" fill="#6F6E69"><use href="#sq-sys-server" x="2449" y="52" width="26" height="26"/></g>
+<rect x="2442" y="45" width="40" height="40" rx="6" fill="#EFEFEC"/><rect x="2449" y="52" width="26" height="26" rx="3" fill="#6F6E69"/><g color="#FFFFFF" fill="#FFFFFF"><use href="#sq-sys-server" x="2454" y="57" width="16" height="16"/></g>
 <text x="2494" y="63" font-size="15" font-weight="500" fill="#1C1C1A">Server</text>
 <text x="2494" y="78" font-size="11" fill="#6F6E69">1 component</text>
 <rect x="2588" y="42" width="26" height="26" rx="5" fill="#FFFFFF" stroke="#EAE9E5" stroke-width="1"/>
@@ -67,7 +67,7 @@
 <clipPath id="sq-cardclip-200-96"><rect x="0" y="0" width="200" height="96" rx="8"/></clipPath>
 <g transform="translate(2673,32)" clip-path="url(#sq-cardclip-200-96)"><rect x="0" y="0" width="3" height="96" fill="url(#sq-accent)"/></g>
 <g transform="translate(2673,32)" clip-path="url(#sq-cardclip-200-96)"><rect x="3" y="66" width="197" height="30" fill="#F2F1ED"/><line x1="3" y1="66" x2="200" y2="66" stroke="#EFEFEC" stroke-width="1"/></g>
-<rect x="2690" y="45" width="40" height="40" rx="6" fill="#EFEFEC"/><g color="#6F6E69" fill="#6F6E69"><use href="#sq-sys-container" x="2697" y="52" width="26" height="26"/></g>
+<rect x="2690" y="45" width="40" height="40" rx="6" fill="#EFEFEC"/><rect x="2697" y="52" width="26" height="26" rx="3" fill="#6F6E69"/><g color="#FFFFFF" fill="#FFFFFF"><use href="#sq-sys-container" x="2702" y="57" width="16" height="16"/></g>
 <text x="2742" y="63" font-size="15" font-weight="500" fill="#1C1C1A">Container</text>
 <text x="2742" y="78" font-size="11" fill="#6F6E69">1 component</text>
 <rect x="2836" y="42" width="26" height="26" rx="5" fill="#FFFFFF" stroke="#EAE9E5" stroke-width="1"/>
@@ -80,7 +80,7 @@
 <clipPath id="sq-cardclip-200-96"><rect x="0" y="0" width="200" height="96" rx="8"/></clipPath>
 <g transform="translate(2921,32)" clip-path="url(#sq-cardclip-200-96)"><rect x="0" y="0" width="3" height="96" fill="url(#sq-accent)"/></g>
 <g transform="translate(2921,32)" clip-path="url(#sq-cardclip-200-96)"><rect x="3" y="66" width="197" height="30" fill="#F2F1ED"/><line x1="3" y1="66" x2="200" y2="66" stroke="#EFEFEC" stroke-width="1"/></g>
-<rect x="2938" y="45" width="40" height="40" rx="6" fill="#EFEFEC"/><g color="#6F6E69" fill="#6F6E69"><use href="#sq-sys-code" x="2945" y="52" width="26" height="26"/></g>
+<rect x="2938" y="45" width="40" height="40" rx="6" fill="#EFEFEC"/><rect x="2945" y="52" width="26" height="26" rx="3" fill="#6F6E69"/><g color="#FFFFFF" fill="#FFFFFF"><use href="#sq-sys-code" x="2950" y="57" width="16" height="16"/></g>
 <text x="2990" y="63" font-size="15" font-weight="500" fill="#1C1C1A">Code</text>
 <text x="2990" y="78" font-size="11" fill="#6F6E69">1 component</text>
 <rect x="3084" y="42" width="26" height="26" rx="5" fill="#FFFFFF" stroke="#EAE9E5" stroke-width="1"/>
@@ -93,7 +93,7 @@
 <clipPath id="sq-cardclip-200-96"><rect x="0" y="0" width="200" height="96" rx="8"/></clipPath>
 <g transform="translate(1553,186)" clip-path="url(#sq-cardclip-200-96)"><rect x="0" y="0" width="3" height="96" fill="url(#sq-accent)"/></g>
 <g transform="translate(1553,186)" clip-path="url(#sq-cardclip-200-96)"><rect x="3" y="66" width="197" height="30" fill="#F2F1ED"/><line x1="3" y1="66" x2="200" y2="66" stroke="#EFEFEC" stroke-width="1"/></g>
-<rect x="1570" y="199" width="40" height="40" rx="6" fill="#EFEFEC"/><g color="#6F6E69" fill="#6F6E69"><use href="#sq-sys-app-window" x="1577" y="206" width="26" height="26"/></g>
+<rect x="1570" y="199" width="40" height="40" rx="6" fill="#EFEFEC"/><rect x="1577" y="206" width="26" height="26" rx="3" fill="#6F6E69"/><g color="#FFFFFF" fill="#FFFFFF"><use href="#sq-sys-app-window" x="1582" y="211" width="16" height="16"/></g>
 <text x="1622" y="217" font-size="15" font-weight="500" fill="#1C1C1A">Web App</text>
 <text x="1622" y="232" font-size="11" fill="#6F6E69">1 component</text>
 <rect x="1716" y="196" width="26" height="26" rx="5" fill="#FFFFFF" stroke="#EAE9E5" stroke-width="1"/>
@@ -106,7 +106,7 @@
 <clipPath id="sq-cardclip-200-96"><rect x="0" y="0" width="200" height="96" rx="8"/></clipPath>
 <g transform="translate(1801,186)" clip-path="url(#sq-cardclip-200-96)"><rect x="0" y="0" width="3" height="96" fill="url(#sq-accent)"/></g>
 <g transform="translate(1801,186)" clip-path="url(#sq-cardclip-200-96)"><rect x="3" y="66" width="197" height="30" fill="#F2F1ED"/><line x1="3" y1="66" x2="200" y2="66" stroke="#EFEFEC" stroke-width="1"/></g>
-<rect x="1818" y="199" width="40" height="40" rx="6" fill="#EFEFEC"/><g color="#6F6E69" fill="#6F6E69"><use href="#sq-sys-hexagon" x="1825" y="206" width="26" height="26"/></g>
+<rect x="1818" y="199" width="40" height="40" rx="6" fill="#EFEFEC"/><rect x="1825" y="206" width="26" height="26" rx="3" fill="#6F6E69"/><g color="#FFFFFF" fill="#FFFFFF"><use href="#sq-sys-hexagon" x="1830" y="211" width="16" height="16"/></g>
 <text x="1870" y="217" font-size="15" font-weight="500" fill="#1C1C1A">Service</text>
 <text x="1870" y="232" font-size="11" fill="#6F6E69">1 component</text>
 <rect x="1964" y="196" width="26" height="26" rx="5" fill="#FFFFFF" stroke="#EAE9E5" stroke-width="1"/>
@@ -119,7 +119,7 @@
 <clipPath id="sq-cardclip-200-96"><rect x="0" y="0" width="200" height="96" rx="8"/></clipPath>
 <g transform="translate(2049,186)" clip-path="url(#sq-cardclip-200-96)"><rect x="0" y="0" width="3" height="96" fill="url(#sq-accent)"/></g>
 <g transform="translate(2049,186)" clip-path="url(#sq-cardclip-200-96)"><rect x="3" y="66" width="197" height="30" fill="#F2F1ED"/><line x1="3" y1="66" x2="200" y2="66" stroke="#EFEFEC" stroke-width="1"/></g>
-<rect x="2066" y="199" width="40" height="40" rx="6" fill="#EFEFEC"/><g color="#6F6E69" fill="#6F6E69"><use href="#sq-sys-laptop" x="2073" y="206" width="26" height="26"/></g>
+<rect x="2066" y="199" width="40" height="40" rx="6" fill="#EFEFEC"/><rect x="2073" y="206" width="26" height="26" rx="3" fill="#6F6E69"/><g color="#FFFFFF" fill="#FFFFFF"><use href="#sq-sys-laptop" x="2078" y="211" width="16" height="16"/></g>
 <text x="2118" y="217" font-size="15" font-weight="500" fill="#1C1C1A">Laptop</text>
 <text x="2118" y="232" font-size="11" fill="#6F6E69">1 component</text>
 <rect x="2212" y="196" width="26" height="26" rx="5" fill="#FFFFFF" stroke="#EAE9E5" stroke-width="1"/>
@@ -132,7 +132,7 @@
 <clipPath id="sq-cardclip-200-96"><rect x="0" y="0" width="200" height="96" rx="8"/></clipPath>
 <g transform="translate(2297,186)" clip-path="url(#sq-cardclip-200-96)"><rect x="0" y="0" width="3" height="96" fill="url(#sq-accent)"/></g>
 <g transform="translate(2297,186)" clip-path="url(#sq-cardclip-200-96)"><rect x="3" y="66" width="197" height="30" fill="#F2F1ED"/><line x1="3" y1="66" x2="200" y2="66" stroke="#EFEFEC" stroke-width="1"/></g>
-<rect x="2314" y="199" width="40" height="40" rx="6" fill="#EFEFEC"/><g color="#6F6E69" fill="#6F6E69"><use href="#sq-sys-hard-drive" x="2321" y="206" width="26" height="26"/></g>
+<rect x="2314" y="199" width="40" height="40" rx="6" fill="#EFEFEC"/><rect x="2321" y="206" width="26" height="26" rx="3" fill="#6F6E69"/><g color="#FFFFFF" fill="#FFFFFF"><use href="#sq-sys-hard-drive" x="2326" y="211" width="16" height="16"/></g>
 <text x="2366" y="217" font-size="15" font-weight="500" fill="#1C1C1A">Disk</text>
 <text x="2366" y="232" font-size="11" fill="#6F6E69">1 component</text>
 <rect x="2460" y="196" width="26" height="26" rx="5" fill="#FFFFFF" stroke="#EAE9E5" stroke-width="1"/>
@@ -145,7 +145,7 @@
 <clipPath id="sq-cardclip-200-96"><rect x="0" y="0" width="200" height="96" rx="8"/></clipPath>
 <g transform="translate(2545,186)" clip-path="url(#sq-cardclip-200-96)"><rect x="0" y="0" width="3" height="96" fill="url(#sq-accent)"/></g>
 <g transform="translate(2545,186)" clip-path="url(#sq-cardclip-200-96)"><rect x="3" y="66" width="197" height="30" fill="#F2F1ED"/><line x1="3" y1="66" x2="200" y2="66" stroke="#EFEFEC" stroke-width="1"/></g>
-<rect x="2562" y="199" width="40" height="40" rx="6" fill="#EFEFEC"/><g color="#6F6E69" fill="#6F6E69"><use href="#sq-sys-factory" x="2569" y="206" width="26" height="26"/></g>
+<rect x="2562" y="199" width="40" height="40" rx="6" fill="#EFEFEC"/><rect x="2569" y="206" width="26" height="26" rx="3" fill="#6F6E69"/><g color="#FFFFFF" fill="#FFFFFF"><use href="#sq-sys-factory" x="2574" y="211" width="16" height="16"/></g>
 <text x="2614" y="217" font-size="15" font-weight="500" fill="#1C1C1A">Factory</text>
 <text x="2614" y="232" font-size="11" fill="#6F6E69">1 component</text>
 <rect x="2708" y="196" width="26" height="26" rx="5" fill="#FFFFFF" stroke="#EAE9E5" stroke-width="1"/>
@@ -158,7 +158,7 @@
 <clipPath id="sq-cardclip-200-96"><rect x="0" y="0" width="200" height="96" rx="8"/></clipPath>
 <g transform="translate(1057,340)" clip-path="url(#sq-cardclip-200-96)"><rect x="0" y="0" width="3" height="96" fill="url(#sq-accent)"/></g>
 <g transform="translate(1057,340)" clip-path="url(#sq-cardclip-200-96)"><rect x="3" y="66" width="197" height="30" fill="#F2F1ED"/><line x1="3" y1="66" x2="200" y2="66" stroke="#EFEFEC" stroke-width="1"/></g>
-<rect x="1074" y="353" width="40" height="40" rx="6" fill="#EFEFEC"/><g color="#6F6E69" fill="#6F6E69"><use href="#sq-sys-warehouse" x="1081" y="360" width="26" height="26"/></g>
+<rect x="1074" y="353" width="40" height="40" rx="6" fill="#EFEFEC"/><rect x="1081" y="360" width="26" height="26" rx="3" fill="#6F6E69"/><g color="#FFFFFF" fill="#FFFFFF"><use href="#sq-sys-warehouse" x="1086" y="365" width="16" height="16"/></g>
 <text x="1126" y="371" font-size="15" font-weight="500" fill="#1C1C1A">Warehou…</text>
 <text x="1126" y="386" font-size="11" fill="#6F6E69">1 component</text>
 <rect x="1220" y="350" width="26" height="26" rx="5" fill="#FFFFFF" stroke="#EAE9E5" stroke-width="1"/>
@@ -171,7 +171,7 @@
 <clipPath id="sq-cardclip-200-96"><rect x="0" y="0" width="200" height="96" rx="8"/></clipPath>
 <g transform="translate(1305,340)" clip-path="url(#sq-cardclip-200-96)"><rect x="0" y="0" width="3" height="96" fill="url(#sq-accent)"/></g>
 <g transform="translate(1305,340)" clip-path="url(#sq-cardclip-200-96)"><rect x="3" y="66" width="197" height="30" fill="#F2F1ED"/><line x1="3" y1="66" x2="200" y2="66" stroke="#EFEFEC" stroke-width="1"/></g>
-<rect x="1322" y="353" width="40" height="40" rx="6" fill="#EFEFEC"/><g color="#6F6E69" fill="#6F6E69"><use href="#sq-sys-building-2" x="1329" y="360" width="26" height="26"/></g>
+<rect x="1322" y="353" width="40" height="40" rx="6" fill="#EFEFEC"/><rect x="1329" y="360" width="26" height="26" rx="3" fill="#6F6E69"/><g color="#FFFFFF" fill="#FFFFFF"><use href="#sq-sys-building-2" x="1334" y="365" width="16" height="16"/></g>
 <text x="1374" y="371" font-size="15" font-weight="500" fill="#1C1C1A">Org</text>
 <text x="1374" y="386" font-size="11" fill="#6F6E69">1 component</text>
 <rect x="1468" y="350" width="26" height="26" rx="5" fill="#FFFFFF" stroke="#EAE9E5" stroke-width="1"/>
@@ -184,7 +184,7 @@
 <clipPath id="sq-cardclip-200-96"><rect x="0" y="0" width="200" height="96" rx="8"/></clipPath>
 <g transform="translate(1553,340)" clip-path="url(#sq-cardclip-200-96)"><rect x="0" y="0" width="3" height="96" fill="url(#sq-accent)"/></g>
 <g transform="translate(1553,340)" clip-path="url(#sq-cardclip-200-96)"><rect x="3" y="66" width="197" height="30" fill="#F2F1ED"/><line x1="3" y1="66" x2="200" y2="66" stroke="#EFEFEC" stroke-width="1"/></g>
-<rect x="1570" y="353" width="40" height="40" rx="6" fill="#EFEFEC"/><g color="#6F6E69" fill="#6F6E69"><use href="#sq-sys-network" x="1577" y="360" width="26" height="26"/></g>
+<rect x="1570" y="353" width="40" height="40" rx="6" fill="#EFEFEC"/><rect x="1577" y="360" width="26" height="26" rx="3" fill="#6F6E69"/><g color="#FFFFFF" fill="#FFFFFF"><use href="#sq-sys-network" x="1582" y="365" width="16" height="16"/></g>
 <text x="1622" y="371" font-size="15" font-weight="500" fill="#1C1C1A">Network</text>
 <text x="1622" y="386" font-size="11" fill="#6F6E69">1 component</text>
 <rect x="1716" y="350" width="26" height="26" rx="5" fill="#FFFFFF" stroke="#EAE9E5" stroke-width="1"/>
@@ -197,7 +197,7 @@
 <clipPath id="sq-cardclip-200-96"><rect x="0" y="0" width="200" height="96" rx="8"/></clipPath>
 <g transform="translate(1801,340)" clip-path="url(#sq-cardclip-200-96)"><rect x="0" y="0" width="3" height="96" fill="url(#sq-accent)"/></g>
 <g transform="translate(1801,340)" clip-path="url(#sq-cardclip-200-96)"><rect x="3" y="66" width="197" height="30" fill="#F2F1ED"/><line x1="3" y1="66" x2="200" y2="66" stroke="#EFEFEC" stroke-width="1"/></g>
-<rect x="1818" y="353" width="40" height="40" rx="6" fill="#EFEFEC"/><g color="#6F6E69" fill="#6F6E69"><use href="#sq-sys-router" x="1825" y="360" width="26" height="26"/></g>
+<rect x="1818" y="353" width="40" height="40" rx="6" fill="#EFEFEC"/><rect x="1825" y="360" width="26" height="26" rx="3" fill="#6F6E69"/><g color="#FFFFFF" fill="#FFFFFF"><use href="#sq-sys-router" x="1830" y="365" width="16" height="16"/></g>
 <text x="1870" y="371" font-size="15" font-weight="500" fill="#1C1C1A">Router</text>
 <text x="1870" y="386" font-size="11" fill="#6F6E69">1 component</text>
 <rect x="1964" y="350" width="26" height="26" rx="5" fill="#FFFFFF" stroke="#EAE9E5" stroke-width="1"/>
@@ -210,7 +210,7 @@
 <clipPath id="sq-cardclip-200-96"><rect x="0" y="0" width="200" height="96" rx="8"/></clipPath>
 <g transform="translate(2049,340)" clip-path="url(#sq-cardclip-200-96)"><rect x="0" y="0" width="3" height="96" fill="url(#sq-accent)"/></g>
 <g transform="translate(2049,340)" clip-path="url(#sq-cardclip-200-96)"><rect x="3" y="66" width="197" height="30" fill="#F2F1ED"/><line x1="3" y1="66" x2="200" y2="66" stroke="#EFEFEC" stroke-width="1"/></g>
-<rect x="2066" y="353" width="40" height="40" rx="6" fill="#EFEFEC"/><g color="#6F6E69" fill="#6F6E69"><use href="#sq-sys-wifi" x="2073" y="360" width="26" height="26"/></g>
+<rect x="2066" y="353" width="40" height="40" rx="6" fill="#EFEFEC"/><rect x="2073" y="360" width="26" height="26" rx="3" fill="#6F6E69"/><g color="#FFFFFF" fill="#FFFFFF"><use href="#sq-sys-wifi" x="2078" y="365" width="16" height="16"/></g>
 <text x="2118" y="371" font-size="15" font-weight="500" fill="#1C1C1A">Wifi</text>
 <text x="2118" y="386" font-size="11" fill="#6F6E69">1 component</text>
 <rect x="2212" y="350" width="26" height="26" rx="5" fill="#FFFFFF" stroke="#EAE9E5" stroke-width="1"/>
@@ -223,7 +223,7 @@
 <clipPath id="sq-cardclip-200-96"><rect x="0" y="0" width="200" height="96" rx="8"/></clipPath>
 <g transform="translate(561,494)" clip-path="url(#sq-cardclip-200-96)"><rect x="0" y="0" width="3" height="96" fill="url(#sq-accent)"/></g>
 <g transform="translate(561,494)" clip-path="url(#sq-cardclip-200-96)"><rect x="3" y="66" width="197" height="30" fill="#F2F1ED"/><line x1="3" y1="66" x2="200" y2="66" stroke="#EFEFEC" stroke-width="1"/></g>
-<rect x="578" y="507" width="40" height="40" rx="6" fill="#EFEFEC"/><g color="#6F6E69" fill="#6F6E69"><use href="#sq-sys-lock" x="585" y="514" width="26" height="26"/></g>
+<rect x="578" y="507" width="40" height="40" rx="6" fill="#EFEFEC"/><rect x="585" y="514" width="26" height="26" rx="3" fill="#6F6E69"/><g color="#FFFFFF" fill="#FFFFFF"><use href="#sq-sys-lock" x="590" y="519" width="16" height="16"/></g>
 <text x="630" y="525" font-size="15" font-weight="500" fill="#1C1C1A">Auth</text>
 <text x="630" y="540" font-size="11" fill="#6F6E69">1 component</text>
 <rect x="724" y="504" width="26" height="26" rx="5" fill="#FFFFFF" stroke="#EAE9E5" stroke-width="1"/>
@@ -236,7 +236,7 @@
 <clipPath id="sq-cardclip-200-96"><rect x="0" y="0" width="200" height="96" rx="8"/></clipPath>
 <g transform="translate(809,494)" clip-path="url(#sq-cardclip-200-96)"><rect x="0" y="0" width="3" height="96" fill="url(#sq-accent)"/></g>
 <g transform="translate(809,494)" clip-path="url(#sq-cardclip-200-96)"><rect x="3" y="66" width="197" height="30" fill="#F2F1ED"/><line x1="3" y1="66" x2="200" y2="66" stroke="#EFEFEC" stroke-width="1"/></g>
-<rect x="826" y="507" width="40" height="40" rx="6" fill="#EFEFEC"/><g color="#6F6E69" fill="#6F6E69"><use href="#sq-sys-shield" x="833" y="514" width="26" height="26"/></g>
+<rect x="826" y="507" width="40" height="40" rx="6" fill="#EFEFEC"/><rect x="833" y="514" width="26" height="26" rx="3" fill="#6F6E69"/><g color="#FFFFFF" fill="#FFFFFF"><use href="#sq-sys-shield" x="838" y="519" width="16" height="16"/></g>
 <text x="878" y="525" font-size="15" font-weight="500" fill="#1C1C1A">Shield</text>
 <text x="878" y="540" font-size="11" fill="#6F6E69">1 component</text>
 <rect x="972" y="504" width="26" height="26" rx="5" fill="#FFFFFF" stroke="#EAE9E5" stroke-width="1"/>
@@ -249,7 +249,7 @@
 <clipPath id="sq-cardclip-200-96"><rect x="0" y="0" width="200" height="96" rx="8"/></clipPath>
 <g transform="translate(1057,494)" clip-path="url(#sq-cardclip-200-96)"><rect x="0" y="0" width="3" height="96" fill="url(#sq-accent)"/></g>
 <g transform="translate(1057,494)" clip-path="url(#sq-cardclip-200-96)"><rect x="3" y="66" width="197" height="30" fill="#F2F1ED"/><line x1="3" y1="66" x2="200" y2="66" stroke="#EFEFEC" stroke-width="1"/></g>
-<rect x="1074" y="507" width="40" height="40" rx="6" fill="#EFEFEC"/><g color="#6F6E69" fill="#6F6E69"><use href="#sq-sys-database" x="1081" y="514" width="26" height="26"/></g>
+<rect x="1074" y="507" width="40" height="40" rx="6" fill="#EFEFEC"/><rect x="1081" y="514" width="26" height="26" rx="3" fill="#6F6E69"/><g color="#FFFFFF" fill="#FFFFFF"><use href="#sq-sys-database" x="1086" y="519" width="16" height="16"/></g>
 <text x="1126" y="525" font-size="15" font-weight="500" fill="#1C1C1A">Database</text>
 <text x="1126" y="540" font-size="11" fill="#6F6E69">1 component</text>
 <rect x="1220" y="504" width="26" height="26" rx="5" fill="#FFFFFF" stroke="#EAE9E5" stroke-width="1"/>
@@ -262,7 +262,7 @@
 <clipPath id="sq-cardclip-200-96"><rect x="0" y="0" width="200" height="96" rx="8"/></clipPath>
 <g transform="translate(1305,494)" clip-path="url(#sq-cardclip-200-96)"><rect x="0" y="0" width="3" height="96" fill="url(#sq-accent)"/></g>
 <g transform="translate(1305,494)" clip-path="url(#sq-cardclip-200-96)"><rect x="3" y="66" width="197" height="30" fill="#F2F1ED"/><line x1="3" y1="66" x2="200" y2="66" stroke="#EFEFEC" stroke-width="1"/></g>
-<rect x="1322" y="507" width="40" height="40" rx="6" fill="#EFEFEC"/><g color="#6F6E69" fill="#6F6E69"><use href="#sq-sys-folder" x="1329" y="514" width="26" height="26"/></g>
+<rect x="1322" y="507" width="40" height="40" rx="6" fill="#EFEFEC"/><rect x="1329" y="514" width="26" height="26" rx="3" fill="#6F6E69"/><g color="#FFFFFF" fill="#FFFFFF"><use href="#sq-sys-folder" x="1334" y="519" width="16" height="16"/></g>
 <text x="1374" y="525" font-size="15" font-weight="500" fill="#1C1C1A">Files</text>
 <text x="1374" y="540" font-size="11" fill="#6F6E69">1 component</text>
 <rect x="1468" y="504" width="26" height="26" rx="5" fill="#FFFFFF" stroke="#EAE9E5" stroke-width="1"/>
@@ -275,7 +275,7 @@
 <clipPath id="sq-cardclip-200-96"><rect x="0" y="0" width="200" height="96" rx="8"/></clipPath>
 <g transform="translate(1553,494)" clip-path="url(#sq-cardclip-200-96)"><rect x="0" y="0" width="3" height="96" fill="url(#sq-accent)"/></g>
 <g transform="translate(1553,494)" clip-path="url(#sq-cardclip-200-96)"><rect x="3" y="66" width="197" height="30" fill="#F2F1ED"/><line x1="3" y1="66" x2="200" y2="66" stroke="#EFEFEC" stroke-width="1"/></g>
-<rect x="1570" y="507" width="40" height="40" rx="6" fill="#EFEFEC"/><g color="#6F6E69" fill="#6F6E69"><use href="#sq-sys-search" x="1577" y="514" width="26" height="26"/></g>
+<rect x="1570" y="507" width="40" height="40" rx="6" fill="#EFEFEC"/><rect x="1577" y="514" width="26" height="26" rx="3" fill="#6F6E69"/><g color="#FFFFFF" fill="#FFFFFF"><use href="#sq-sys-search" x="1582" y="519" width="16" height="16"/></g>
 <text x="1622" y="525" font-size="15" font-weight="500" fill="#1C1C1A">Search</text>
 <text x="1622" y="540" font-size="11" fill="#6F6E69">1 component</text>
 <rect x="1716" y="504" width="26" height="26" rx="5" fill="#FFFFFF" stroke="#EAE9E5" stroke-width="1"/>
@@ -288,7 +288,7 @@
 <clipPath id="sq-cardclip-200-96"><rect x="0" y="0" width="200" height="96" rx="8"/></clipPath>
 <g transform="translate(65,648)" clip-path="url(#sq-cardclip-200-96)"><rect x="0" y="0" width="3" height="96" fill="url(#sq-accent)"/></g>
 <g transform="translate(65,648)" clip-path="url(#sq-cardclip-200-96)"><rect x="3" y="66" width="197" height="30" fill="#F2F1ED"/><line x1="3" y1="66" x2="200" y2="66" stroke="#EFEFEC" stroke-width="1"/></g>
-<rect x="82" y="661" width="40" height="40" rx="6" fill="#EFEFEC"/><g color="#6F6E69" fill="#6F6E69"><use href="#sq-sys-clock" x="89" y="668" width="26" height="26"/></g>
+<rect x="82" y="661" width="40" height="40" rx="6" fill="#EFEFEC"/><rect x="89" y="668" width="26" height="26" rx="3" fill="#6F6E69"/><g color="#FFFFFF" fill="#FFFFFF"><use href="#sq-sys-clock" x="94" y="673" width="16" height="16"/></g>
 <text x="134" y="679" font-size="15" font-weight="500" fill="#1C1C1A">Schedule</text>
 <text x="134" y="694" font-size="11" fill="#6F6E69">1 component</text>
 <rect x="228" y="658" width="26" height="26" rx="5" fill="#FFFFFF" stroke="#EAE9E5" stroke-width="1"/>
@@ -301,7 +301,7 @@
 <clipPath id="sq-cardclip-200-96"><rect x="0" y="0" width="200" height="96" rx="8"/></clipPath>
 <g transform="translate(313,648)" clip-path="url(#sq-cardclip-200-96)"><rect x="0" y="0" width="3" height="96" fill="url(#sq-accent)"/></g>
 <g transform="translate(313,648)" clip-path="url(#sq-cardclip-200-96)"><rect x="3" y="66" width="197" height="30" fill="#F2F1ED"/><line x1="3" y1="66" x2="200" y2="66" stroke="#EFEFEC" stroke-width="1"/></g>
-<rect x="330" y="661" width="40" height="40" rx="6" fill="#EFEFEC"/><g color="#6F6E69" fill="#6F6E69"><use href="#sq-sys-activity" x="337" y="668" width="26" height="26"/></g>
+<rect x="330" y="661" width="40" height="40" rx="6" fill="#EFEFEC"/><rect x="337" y="668" width="26" height="26" rx="3" fill="#6F6E69"/><g color="#FFFFFF" fill="#FFFFFF"><use href="#sq-sys-activity" x="342" y="673" width="16" height="16"/></g>
 <text x="382" y="679" font-size="15" font-weight="500" fill="#1C1C1A">Monitor</text>
 <text x="382" y="694" font-size="11" fill="#6F6E69">1 component</text>
 <rect x="476" y="658" width="26" height="26" rx="5" fill="#FFFFFF" stroke="#EAE9E5" stroke-width="1"/>
@@ -314,7 +314,7 @@
 <clipPath id="sq-cardclip-200-96"><rect x="0" y="0" width="200" height="96" rx="8"/></clipPath>
 <g transform="translate(561,648)" clip-path="url(#sq-cardclip-200-96)"><rect x="0" y="0" width="3" height="96" fill="url(#sq-accent)"/></g>
 <g transform="translate(561,648)" clip-path="url(#sq-cardclip-200-96)"><rect x="3" y="66" width="197" height="30" fill="#F2F1ED"/><line x1="3" y1="66" x2="200" y2="66" stroke="#EFEFEC" stroke-width="1"/></g>
-<rect x="578" y="661" width="40" height="40" rx="6" fill="#EFEFEC"/><g color="#6F6E69" fill="#6F6E69"><use href="#sq-sys-cog" x="585" y="668" width="26" height="26"/></g>
+<rect x="578" y="661" width="40" height="40" rx="6" fill="#EFEFEC"/><rect x="585" y="668" width="26" height="26" rx="3" fill="#6F6E69"/><g color="#FFFFFF" fill="#FFFFFF"><use href="#sq-sys-cog" x="590" y="673" width="16" height="16"/></g>
 <text x="630" y="679" font-size="15" font-weight="500" fill="#1C1C1A">Gear</text>
 <text x="630" y="694" font-size="11" fill="#6F6E69">1 component</text>
 <rect x="724" y="658" width="26" height="26" rx="5" fill="#FFFFFF" stroke="#EAE9E5" stroke-width="1"/>
@@ -327,7 +327,7 @@
 <clipPath id="sq-cardclip-200-96"><rect x="0" y="0" width="200" height="96" rx="8"/></clipPath>
 <g transform="translate(809,648)" clip-path="url(#sq-cardclip-200-96)"><rect x="0" y="0" width="3" height="96" fill="url(#sq-accent)"/></g>
 <g transform="translate(809,648)" clip-path="url(#sq-cardclip-200-96)"><rect x="3" y="66" width="197" height="30" fill="#F2F1ED"/><line x1="3" y1="66" x2="200" y2="66" stroke="#EFEFEC" stroke-width="1"/></g>
-<rect x="826" y="661" width="40" height="40" rx="6" fill="#EFEFEC"/><g color="#6F6E69" fill="#6F6E69"><use href="#sq-sys-box" x="833" y="668" width="26" height="26"/></g>
+<rect x="826" y="661" width="40" height="40" rx="6" fill="#EFEFEC"/><rect x="833" y="668" width="26" height="26" rx="3" fill="#6F6E69"/><g color="#FFFFFF" fill="#FFFFFF"><use href="#sq-sys-box" x="838" y="673" width="16" height="16"/></g>
 <text x="878" y="679" font-size="15" font-weight="500" fill="#1C1C1A">Cube</text>
 <text x="878" y="694" font-size="11" fill="#6F6E69">1 component</text>
 <rect x="972" y="658" width="26" height="26" rx="5" fill="#FFFFFF" stroke="#EAE9E5" stroke-width="1"/>
@@ -340,7 +340,7 @@
 <clipPath id="sq-cardclip-200-96"><rect x="0" y="0" width="200" height="96" rx="8"/></clipPath>
 <g transform="translate(1057,648)" clip-path="url(#sq-cardclip-200-96)"><rect x="0" y="0" width="3" height="96" fill="url(#sq-accent)"/></g>
 <g transform="translate(1057,648)" clip-path="url(#sq-cardclip-200-96)"><rect x="3" y="66" width="197" height="30" fill="#F2F1ED"/><line x1="3" y1="66" x2="200" y2="66" stroke="#EFEFEC" stroke-width="1"/></g>
-<rect x="1074" y="661" width="40" height="40" rx="6" fill="#EFEFEC"/><g color="#6F6E69" fill="#6F6E69"><use href="#sq-sys-circle" x="1081" y="668" width="26" height="26"/></g>
+<rect x="1074" y="661" width="40" height="40" rx="6" fill="#EFEFEC"/><rect x="1081" y="668" width="26" height="26" rx="3" fill="#6F6E69"/><g color="#FFFFFF" fill="#FFFFFF"><use href="#sq-sys-circle" x="1086" y="673" width="16" height="16"/></g>
 <text x="1126" y="679" font-size="15" font-weight="500" fill="#1C1C1A">Circle</text>
 <text x="1126" y="694" font-size="11" fill="#6F6E69">1 component</text>
 <rect x="1220" y="658" width="26" height="26" rx="5" fill="#FFFFFF" stroke="#EAE9E5" stroke-width="1"/>
@@ -353,7 +353,7 @@
 <clipPath id="sq-cardclip-200-96"><rect x="0" y="0" width="200" height="96" rx="8"/></clipPath>
 <g transform="translate(32,800)" clip-path="url(#sq-cardclip-200-96)"><rect x="0" y="0" width="3" height="96" fill="url(#sq-accent)"/></g>
 <g transform="translate(32,800)" clip-path="url(#sq-cardclip-200-96)"><rect x="3" y="66" width="197" height="30" fill="#F2F1ED"/><line x1="3" y1="66" x2="200" y2="66" stroke="#EFEFEC" stroke-width="1"/></g>
-<rect x="49" y="813" width="40" height="40" rx="6" fill="#EFEFEC"/><g color="#6F6E69" fill="#6F6E69"><use href="#sq-sys-triangle" x="56" y="820" width="26" height="26"/></g>
+<rect x="49" y="813" width="40" height="40" rx="6" fill="#EFEFEC"/><rect x="56" y="820" width="26" height="26" rx="3" fill="#6F6E69"/><g color="#FFFFFF" fill="#FFFFFF"><use href="#sq-sys-triangle" x="61" y="825" width="16" height="16"/></g>
 <text x="101" y="831" font-size="15" font-weight="500" fill="#1C1C1A">Triangle</text>
 <text x="101" y="846" font-size="11" fill="#6F6E69">1 component</text>
 <rect x="195" y="810" width="26" height="26" rx="5" fill="#FFFFFF" stroke="#EAE9E5" stroke-width="1"/>
@@ -366,7 +366,7 @@
 <clipPath id="sq-cardclip-200-96"><rect x="0" y="0" width="200" height="96" rx="8"/></clipPath>
 <g transform="translate(280,800)" clip-path="url(#sq-cardclip-200-96)"><rect x="0" y="0" width="3" height="96" fill="url(#sq-accent)"/></g>
 <g transform="translate(280,800)" clip-path="url(#sq-cardclip-200-96)"><rect x="3" y="66" width="197" height="30" fill="#F2F1ED"/><line x1="3" y1="66" x2="200" y2="66" stroke="#EFEFEC" stroke-width="1"/></g>
-<rect x="297" y="813" width="40" height="40" rx="6" fill="#EFEFEC"/><g color="#6F6E69" fill="#6F6E69"><use href="#sq-sys-diamond" x="304" y="820" width="26" height="26"/></g>
+<rect x="297" y="813" width="40" height="40" rx="6" fill="#EFEFEC"/><rect x="304" y="820" width="26" height="26" rx="3" fill="#6F6E69"/><g color="#FFFFFF" fill="#FFFFFF"><use href="#sq-sys-diamond" x="309" y="825" width="16" height="16"/></g>
 <text x="349" y="831" font-size="15" font-weight="500" fill="#1C1C1A">Diamond</text>
 <text x="349" y="846" font-size="11" fill="#6F6E69">1 component</text>
 <rect x="443" y="810" width="26" height="26" rx="5" fill="#FFFFFF" stroke="#EAE9E5" stroke-width="1"/>

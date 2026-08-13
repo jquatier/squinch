@@ -43,7 +43,7 @@
 <g data-path="erp" data-kind="leaf">
 <rect x="260" y="60" width="160" height="64" rx="4" fill="url(#sq-surface)" stroke="#EAE9E5" stroke-width="1" filter="url(#sq-shadow)"/>
 <rect x="260" y="60" width="160" height="64" rx="4" fill="url(#sq-hatch)"/>
-<rect x="272" y="72" width="40" height="40" rx="6" fill="#EFEFEC"/><g color="#6F6E69" fill="#6F6E69"><use href="#sq-builtin-box" x="279" y="79" width="26" height="26"/></g>
+<rect x="272" y="72" width="40" height="40" rx="6" fill="#EFEFEC"/><rect x="279" y="79" width="26" height="26" rx="3" fill="#6F6E69"/><g color="#FFFFFF" fill="#FFFFFF"><use href="#sq-builtin-box" x="284" y="84" width="16" height="16"/></g>
 <text x="324" y="97" font-size="13" font-weight="500" fill="#1C1C1A">Legacy ERP</text>
 </g>
 <rect x="118" y="471" width="280" height="96" rx="8" fill="#F2F1ED" stroke="#DEDDD6" stroke-width="1" opacity="0.5"/><rect x="114" y="467" width="280" height="96" rx="8" fill="#F2F1ED" stroke="#DEDDD6" stroke-width="1" opacity="0.8"/>

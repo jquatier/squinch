@@ -28,7 +28,7 @@ describe("pack-logos", () => {
     expect(hits).not.toContain("logos/postgres"); // alias collapses into canonical
   });
 
-  it("draws marks in their brand colour on the neutral tile", async () => {
+  it("draws a mark as a brand-coloured knockout chip inside the neutral tile", async () => {
     const src = `pack logos
 system s "S" {
   db = logos/postgres "PostgreSQL" datastore
@@ -40,18 +40,16 @@ system s "S" {
     expect(r.ok).toBe(true);
     expect(validateSVG(r.svg!).ok).toBe(true);
     expect(r.svg).toContain(`href="#sq-logos-postgresql"`);
-    // `fill` as well as `color`: vendored marks carry no fill of their own and
-    // would default to black
-    expect(r.svg).toContain(`<g color="#4169E1" fill="#4169E1">`);
+    // the chip carries the brand colour; the mark is knocked out of it
+    expect(r.svg).toContain(`width="26" height="26" rx="3" fill="#4169E1"`);
   });
 
-  it("gives a trademark a plate it reads on, in whichever theme", async () => {
-    // A brand hue is fixed; the surface under it is what moves. Two ways to
-    // get this wrong, and both shipped before this test existed: GitHub's
-    // near-black on the dark theme's tile is a 1.4:1 smudge, and a white tile
-    // in *light* vanishes into the card's white top. So the assertion is the
-    // thing that actually matters — the mark reads against its plate, and the
-    // plate reads against the card — rather than any particular hex.
+  it("picks the knockout ink from the chip's lightness, in whichever theme", async () => {
+    // A brand hex is fixed, so the ink on top is what moves. White carries a
+    // dark chip (GitHub's near-black), but a light chip (JavaScript's yellow)
+    // makes white a 1.4:1 ghost — and dark-on-colour is that brand's own
+    // usage. The threshold is integer arithmetic on the hex, so the same chip
+    // gets the same ink on every platform.
     const lum = (hex: string) => {
       const [r, g, b] = [1, 3, 5].map((i) => parseInt(hex.slice(i, i + 2), 16) / 255)
         .map((c) => (c <= 0.03928 ? c / 12.92 : ((c + 0.055) / 1.055) ** 2.4));
@@ -62,25 +60,18 @@ system s "S" {
       return (hi + 0.05) / (lo + 0.05);
     };
     for (const name of ["light", "dark"] as const) {
-      const t = themes[name];
-      const r = await render(`pack logos\nsystem s "S" {\n gh = logos/github "GitHub"\n}\n`, { theme: name });
-      const bed = /<rect x="\d+" y="\d+" width="40" height="40" rx="6" fill="(#[0-9A-Fa-f]{6})"/.exec(r.svg!)![1];
-      expect(ratio("#181717", bed), `${name}: mark on its plate`).toBeGreaterThan(3);
-      // and the plate itself is not invisible against the surface it sits on
-      expect(ratio(bed, t.surfaceHi), `${name}: plate on the card`).not.toBe(1);
+      const r = await render(
+        `pack logos\nsystem s "S" {\n gh = logos/github "GitHub"\n js = logos/javascript "JS"\n gh -> js\n}\n`,
+        { theme: name },
+      );
+      for (const [id, hex] of [["github", "#181717"], ["javascript", "#F7DF1E"]] as const) {
+        const m = new RegExp(
+          `rx="3" fill="${hex}"[^/]*/>\\s*<g color="(#[0-9A-Fa-f]{6})" fill="\\1"[^>]*>\\s*<use href="#sq-logos-${id}"`,
+        ).exec(r.svg!);
+        expect(m, `${name}: ${id} chip + knockout`).not.toBeNull();
+        expect(ratio(m![1], hex), `${name}: ${id} ink on its chip`).toBeGreaterThan(3);
+      }
     }
-  });
-
-  it("a near-black mark is not the same colour as the tile under it", async () => {
-    const r = await render(`pack logos
-system s "S" {
- gh = logos/github "GitHub"
-}
-`, { theme: "light" });
-    const tile = /<rect x="\d+" y="\d+" width="40" height="40" rx="6" fill="(#[0-9A-Fa-f]{6})"/.exec(r.svg!)![1];
-    const mark = /<g color="(#[0-9A-Fa-f]{6})" fill="#[0-9A-Fa-f]{6}"><use href="#sq-logos-github"/.exec(r.svg!)![1];
-    expect(mark.toLowerCase()).toBe("#181717"); // GitHub's own
-    expect(tile.toLowerCase()).not.toBe(mark.toLowerCase());
   });
 
   it("stays deterministic and valid in every theme", async () => {

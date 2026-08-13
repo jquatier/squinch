@@ -69,9 +69,9 @@
   combination that exposes it.
 - **Colour roles**: see `themes/index.ts`, which is the list — every theme
   defines every role, and the doc comment on each says what it is for. Diagrams
-  reference roles, never hex (already a SPEC rule). Two roles are deliberately
+  reference roles, never hex (already a SPEC rule). One role is deliberately
   not theme-relative: the brand ramp `#C441FE → #15B6FF`, identical in both
-  themes as the logo is, and `brandPlate`, the surface a vendor mark sits on.
+  themes as the logo is.
 
 ## 3. Node anatomy
 
@@ -81,13 +81,17 @@ it is. Nothing carries an affordance it cannot honour: a leaf has no inside, so
 it gets none of the marks that imply one.
 
 - **Icon tile**: `40×40`, radius 6, in the neutral `plate` tone, holding the
-  artwork at `26`. The ring of tile is the point — vendor art is drawn against
-  white in its own guidelines and reads as pasted on when it touches a gradient.
-  A single-colour mark goes straight onto the tile in its own colour rather than
-  getting a plate of its own; a plate inside a plate is what that looked like.
-  Our own vocabulary (`builtin`, `sys`) has no brand colour and follows the
-  theme; a trademark keeps its hue and gets `brandPlate` under it, because the
-  mark's contrast was designed against white and is not ours to re-balance.
+  artwork at `26` — one shell for every kind of mark. The ring of tile is the
+  point: vendor art is drawn against white in its own guidelines and reads as
+  pasted on when it touches a gradient. A single-colour mark becomes a
+  **knockout chip** in the same inset — the chip filled with the mark's own
+  colour (a trademark keeps its hue; `sys`/`builtin` take the theme's muted
+  ink) and the mark knocked out of it. The knockout ink follows the chip's
+  lightness: white on a dark chip, near-black on a light one (JavaScript's
+  yellow, React's cyan — which is those brands' own usage), by one
+  deterministic integer threshold. This is what makes the chip legible in both
+  themes with no per-theme machinery, and it is the same treatment at every
+  size — tile, shelf chip, and badge are one drawing routine.
 - **Leaf node**: height `64`, width snapped to tiers. Tile left-aligned at
   padding `12`, label 13/500, optional description line 11 muted. An optional
   **node badge** (`badge:`) sits on the tile's bottom-right corner: `22×22`,
