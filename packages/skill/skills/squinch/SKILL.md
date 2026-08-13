@@ -42,9 +42,11 @@ check …` — or install it once with `npm i -g squinch`.
 
 ```squinch
 // comments are // only (# belongs to tags)
-pack aws                              // enable a vendor icon pack (aws | azure |
-pack azure                            //  logos | k8s — declare each one you use).
-                                      //  `sys` and `builtin` need no declaration.
+pack aws                              // icon packs this file draws from (aws |
+pack azure                            //  azure | logos | k8s). Optional — any
+                                      //  installed pack resolves without it — but
+                                      //  declaring documents intent and catches a
+                                      //  misspelled pack name at check time.
 
 person customer "Customer"            // human actor. This form is top-level
                                       // only — inside a system write it as

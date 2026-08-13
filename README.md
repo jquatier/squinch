@@ -501,8 +501,10 @@ sys/factory  (or sys/onprem, sys/plant)
 
 Aliases collapse onto the canonical id, so the word you reach for usually works
 — `gear`, `cube`, `db`, `rack`, `firewall`, `vault`, `cron` all land somewhere
-sensible. `sys/*` is the generic half, for everything no cloud vendor draws, and
-it is the one pack needing no `pack` statement.
+sensible. `sys/*` is the generic half, for everything no cloud vendor draws. A
+`pack` statement is optional for every installed pack — it validates the name
+at check time and documents what the file draws from, but nothing gates on it;
+it becomes load-bearing when local packs (`pack corp from "./icons"`) land.
 
 Two constraints travel to you, not just to us. The **cloud** artwork must not be
 modified — not recoloured, not reshaped, not run through an SVG optimizer;
