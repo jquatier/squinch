@@ -1,0 +1,51 @@
+// The view verbs beyond scope. `only #pci` keeps just the tagged slice — tags
+// cut across systems, so no scope could ever name it. `detail` redraws an
+// outside caller at its real depth instead of as its system's card. And
+// `context off` clears the muted periphery when a view wants nothing but its
+// subject.
+pack aws
+
+person shopper "Shopper"
+
+system web "Storefront" {
+  app = aws/cloudfront "Web App"
+}
+
+system orders "Orders" {
+  api = aws/lambda   "Order API" #pci
+  db  = aws/dynamodb "Orders Table" datastore
+  api -> db
+}
+
+system pay "Payments" #pci {
+  description: "Card capture and settlement"
+  api   = aws/lambda   "Payment API"
+  vault = aws/dynamodb "Token Vault" datastore
+  api -> vault "tokenize"
+}
+
+shopper -> web.app
+web.app -> orders.api "checkout"
+orders.api -> pay.api "charge"
+
+// The audit: the tagged slice and nothing else. `orders` survives because a
+// node inside it is tagged; untagged `web` returns only as a muted context
+// card, because it calls in — the assessor sees the entry point, drawn as
+// periphery. Add `context off` and it would vanish too.
+view audit {
+  title "PCI surface"
+  only #pci
+}
+
+// The caller drawn at depth: without `detail`, orders.api would appear only
+// as the muted `orders` card standing in for its branch.
+view charge-path {
+  scope pay
+  detail orders.api
+}
+
+// The subject alone: same scope, periphery switched off.
+view pay-alone {
+  scope pay
+  context off
+}

@@ -170,7 +170,7 @@ Source: [`cases/15-densities.squinch`](cases/15-densities.squinch)
 
 ## 16-legend-titleblock
 
-Footer furniture. `legend auto` explains the line styles the diagram actually uses and nothing else; `titleblock` adds a drafting-style corner block for version, owner and anything else worth stamping on a drawing.
+Footer furniture. `legend auto` explains the line styles the diagram actually uses and nothing else; `titleblock` stamps the drawing. Four keys are reserved and drawn canonically — `subtitle` under the title, `version`, mono `commit` and a dimmed `date` in the meta chip — and every other key (owner, status) appends as its own chip segment. None are ever derived: a render is a pure function of its source, so the commit is what you wrote, not what git says.
 
 Source: [`cases/16-legend-titleblock.squinch`](cases/16-legend-titleblock.squinch)
 
@@ -188,7 +188,7 @@ Source: [`cases/16-legend-titleblock.squinch`](cases/16-legend-titleblock.squinc
 
 ## 17-zones
 
-`zone` draws a deployment boundary — a cloud, a VPC, an on-premises site — around whatever sits inside it. Boundaries cut across the ownership structure, and they nest.
+`zone` draws a deployment boundary — a cloud, a VPC, an on-premises site — around whatever sits inside it. Boundaries cut across the ownership structure, and they nest. `detail:` adds the boundary's hard fact — a CIDR block, an account — as a mono segment on the chip, so digits line up between diagrams.
 
 Source: [`cases/17-zones.squinch`](cases/17-zones.squinch)
 
@@ -367,3 +367,47 @@ Source: [`cases/32-coplanar-frames.squinch`](cases/32-coplanar-frames.squinch)
 | light | dark |
 |---|---|
 | ![](out/32-coplanar-frames.row.light.svg) | ![](out/32-coplanar-frames.row.dark.svg) |
+
+## 33-card-shelf
+
+The card shelf, fully loaded. `icon:` picks the card's own mark instead of inheriting the first child's; `domain:` stamps a chip on the shelf's right; and past three children the preview strip truncates to `+N`. The second card declares neither and shows the defaults: first child's icon, no chip.
+
+Source: [`cases/33-card-shelf.squinch`](cases/33-card-shelf.squinch)
+
+| light | dark |
+|---|---|
+| ![](out/33-card-shelf.landscape.light.svg) | ![](out/33-card-shelf.landscape.dark.svg) |
+
+## 34-view-axes
+
+The view verbs beyond scope. `only #pci` keeps just the tagged slice — tags cut across systems, so no scope could ever name it. `detail` redraws an outside caller at its real depth instead of as its system's card. And `context off` clears the muted periphery when a view wants nothing but its subject.
+
+Source: [`cases/34-view-axes.squinch`](cases/34-view-axes.squinch)
+
+**`audit`**
+
+| light | dark |
+|---|---|
+| ![](out/34-view-axes.audit.light.svg) | ![](out/34-view-axes.audit.dark.svg) |
+
+**`charge-path`**
+
+| light | dark |
+|---|---|
+| ![](out/34-view-axes.charge-path.light.svg) | ![](out/34-view-axes.charge-path.dark.svg) |
+
+**`pay-alone`**
+
+| light | dark |
+|---|---|
+| ![](out/34-view-axes.pay-alone.light.svg) | ![](out/34-view-axes.pay-alone.dark.svg) |
+
+## 35-rows-cols
+
+`rows` pins ranks, `cols` pins the cross axis, and together they are the grid the language has no third construct for: `rows [a b] [c]` composed with `cols [a c] [b]` is a 2×2 with one corner empty. This is the reason the once-planned `grid` statement was dropped.
+
+Source: [`cases/35-rows-cols.squinch`](cases/35-rows-cols.squinch)
+
+| light | dark |
+|---|---|
+| ![](out/35-rows-cols.quad.light.svg) | ![](out/35-rows-cols.quad.dark.svg) |

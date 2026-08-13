@@ -1,0 +1,33 @@
+// The card shelf, fully loaded. `icon:` picks the card's own mark instead of
+// inheriting the first child's; `domain:` stamps a chip on the shelf's right;
+// and past three children the preview strip truncates to `+N`. The second
+// card declares neither and shows the defaults: first child's icon, no chip.
+pack aws
+
+system checkout "Checkout" {
+  description: "Cart to confirmed order"
+  icon: aws/cloudfront
+  domain: "commerce"
+  api   = aws/lambda   "Checkout API"
+  cart  = aws/dynamodb "Cart Table" datastore
+  tax   = aws/lambda   "Tax"
+  ship  = aws/lambda   "Shipping Rates"
+  promo = aws/lambda   "Promotions"
+  api -> cart
+  api -> tax
+  api -> ship
+  api -> promo
+}
+
+system fulfil "Fulfillment" {
+  description: "Pick, pack, dispatch"
+  q = aws/sqs    "Order Queue" datastore
+  w = aws/lambda "Dispatcher"
+  q ~> w
+}
+
+checkout.api ~> fulfil.q "confirmed orders"
+
+view landscape {
+  title "Card anatomy"
+}

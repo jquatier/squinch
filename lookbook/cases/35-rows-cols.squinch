@@ -1,0 +1,24 @@
+// `rows` pins ranks, `cols` pins the cross axis, and together they are the
+// grid the language has no third construct for: `rows [a b] [c]` composed
+// with `cols [a c] [b]` is a 2×2 with one corner empty. This is the reason
+// the once-planned `grid` statement was dropped.
+pack aws
+
+system quad "Quadrants" {
+  ingress = aws/api-gateway "Ingress"
+  hot     = aws/lambda "Hot Path"
+  batch   = aws/lambda "Batch Path"
+  store   = aws/aurora "Store" datastore
+
+  ingress -> hot "live"
+  ingress ~> batch "spill"
+  hot -> store
+  batch ~> store "nightly"
+}
+
+view quad {
+  layout {
+    rows [ingress hot] [batch store]
+    cols [ingress batch] [hot store]
+  }
+}

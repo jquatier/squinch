@@ -1,6 +1,8 @@
 // `zone` draws a deployment boundary — a cloud, a VPC, an on-premises site —
 // around whatever sits inside it. Boundaries cut across the ownership
-// structure, and they nest.
+// structure, and they nest. `detail:` adds the boundary's hard fact — a CIDR
+// block, an account — as a mono segment on the chip, so digits line up
+// between diagrams.
 pack aws
 
 person ops "Operators"
@@ -33,10 +35,12 @@ zone cloud "AWS Cloud" cloud {
   contains ingest, core
   icon: aws/cloud
   label: bottom-right
+  detail: "acct 4821-7730"
 }
 zone vpc1 "VPC prod-main" vpc {
   contains core
   icon: aws/vpc
+  detail: "10.0.0.0/16"
 }
 
 view landscape {

@@ -1,6 +1,10 @@
 // Footer furniture. `legend auto` explains the line styles the diagram actually
-// uses and nothing else; `titleblock` adds a drafting-style corner block for
-// version, owner and anything else worth stamping on a drawing.
+// uses and nothing else; `titleblock` stamps the drawing. Four keys are
+// reserved and drawn canonically — `subtitle` under the title, `version`,
+// mono `commit` and a dimmed `date` in the meta chip — and every other key
+// (owner, status) appends as its own chip segment. None are ever derived:
+// a render is a pure function of its source, so the commit is what you
+// wrote, not what git says.
 pack aws
 
 person ops "Operator"
@@ -31,7 +35,10 @@ view overview {
   include *
   legend auto
   titleblock {
+    subtitle: "Settlement path, capture to ledger"
     version: "2026-07"
+    commit: "9f31c2e"
+    date: "2026-07-18"
     owner: team-payments
     status: "reviewed"
   }
