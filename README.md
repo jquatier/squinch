@@ -148,9 +148,6 @@ The other surfaces, each its own one-liner:
   architecturally, on the PR. Pin the `version` input: rendering is
   deterministic *per tool version*, so a floating `latest` can change your
   goldens on someone else's release day.
-- **From source** — [CONTRIBUTING.md](CONTRIBUTING.md): two commands to
-  build, for running ahead of the last release or hacking on the engine.
-
 A path can be a single file or a directory — a directory is one project, and
 its files share a namespace.
 
@@ -545,16 +542,6 @@ their sibling and never their content, and a test asserts nothing executable
 survives removing the two `<script>` elements
 ([docs/notes/html-export.md](docs/notes/html-export.md)). Exported `.svg` never
 contains script, full stop.
-
-## Status
-
-🚧 **Pre-alpha.** It works end to end — parser, model, layout, renderer, CLI,
-VS Code extension, browser playground, five icon packs — and the whole
-workspace ships as one version, so a `squinch.lock`, a VSIX and the npm
-package always answer "which squinch is this?" the same way.
-
-The DSL will still break before 1.0. Rendered output is byte-stable *per tool
-version*, and an upgrade that changes it is one atomic regenerate commit.
 
 ## Docs
 
