@@ -415,7 +415,7 @@ is a boundary, not a workload — prefer `zone team-a "team-a" custom { contains
 …, icon: k8s/ns }` over a `k8s/ns` node. Composing with a cloud pack is normal:
 `azure/aks` or `aws/eks` as the managed control plane, `k8s/*` for what it runs.
 
-**Non-AWS things** come from the `logos` pack (124 product marks, plated in
+**Non-AWS things** come from the `logos` pack (147 product marks, plated in
 their brand colour): `logos/postgres` · `logos/mysql` · `logos/mongodb` ·
 `logos/redis` · `logos/kafka` · `logos/rabbitmq` · `logos/elasticsearch` ·
 `logos/kubernetes` (`k8s`) · `logos/docker` · `logos/terraform` ·

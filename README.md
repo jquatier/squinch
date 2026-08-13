@@ -80,7 +80,7 @@ drift — see [examples/microservices](examples/microservices) for the source.
   [skill](packages/skill) and ask for a diagram of your system. The language was
   designed for agents to author rather than retrofitted for them, so what comes
   back is a correct diagram, not one you have to redraw.
-- **1,279 real vendor icons.** AWS, Azure, Kubernetes and product logos, not
+- **1,302 real vendor icons.** AWS, Azure, Kubernetes and product logos, not
   grey boxes with labels on them.
 - **Auto-layout that gets it right, and lets you overrule it.** Good diagrams
   with no hints at all; when you disagree, steer it with `rows`,
@@ -482,14 +482,14 @@ themes, and CI fails if any of them changes unintentionally.
 
 ## Icons
 
-**1,279 marks across five packs**, all chosen because they can be
+**1,302 marks across five packs**, all chosen because they can be
 redistributed:
 
 | Pack | Count | Terms |
 | --- | --- | --- |
 | [`pack-aws`](packages/pack-aws) | 316 | CC-BY-ND 2.0 — the same basis AWS uses for its own PlantUML icons |
 | [`pack-azure`](packages/pack-azure) | 636 | Microsoft's icon terms: copy and distribute **for architecture diagrams, training and documentation** |
-| [`pack-logos`](packages/pack-logos) | 124 | CC0, from [Simple Icons](https://simpleicons.org) — the non-cloud half of a stack |
+| [`pack-logos`](packages/pack-logos) | 147 | CC0, from [Simple Icons](https://simpleicons.org) — the non-cloud half of a stack |
 | [`pack-sys`](packages/pack-sys) | 164 | ISC, from [Lucide](https://lucide.dev) — the generic set: servers, hardware, network gear, shapes, data/ML concepts |
 | [`pack-k8s`](packages/pack-k8s) | 39 | Apache-2.0 / CC-BY-4.0 — the official [Kubernetes community icons](https://github.com/kubernetes/community/tree/main/icons), published to standardize cluster diagrams |
 
@@ -525,7 +525,7 @@ which block you're in, live diagnostics with quick fixes, hover, document
 symbols, and a preview pane that re-renders as you type.
 
 The **playground** is the app in the zoom animation above: click a system to
-dive into it, walk a flow one hop at a time, ⌘K to search 1,279 icons, and
+dive into it, walk a flow one hop at a time, ⌘K to search 1,302 icons, and
 full-screen the declared views as a presentation deck. Run it locally with
 `pnpm --filter @squinch/spa dev`.
 

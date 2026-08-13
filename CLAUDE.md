@@ -91,7 +91,7 @@ which permit copying and distributing them **for architecture diagrams, training
 and documentation only** — narrower than an open-source licence (see its NOTICE).
 Nearly all of them are gradient artwork, which is the one thing that
 distinguishes them from the other packs.
-`packages/pack-logos` — 124 curated Simple Icons marks (CC0) for the non-cloud
+`packages/pack-logos` — 147 curated Simple Icons marks (CC0) for the non-cloud
 half of a stack; `monochrome: true` in its manifest makes the renderer plate and
 tint them.
 `packages/pack-k8s` — 39 Kubernetes community icons (dual Apache-2.0 /

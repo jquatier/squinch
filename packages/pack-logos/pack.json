@@ -19,6 +19,12 @@
       "category": "Service",
       "color": "#003DFF"
     },
+    "americanexpress": {
+      "file": "americanexpress.svg",
+      "title": "American Express",
+      "category": "Company",
+      "color": "#2E77BC"
+    },
     "angular": {
       "file": "angular.svg",
       "title": "Angular",
@@ -85,6 +91,12 @@
       "category": "Protocol",
       "color": "#311C87"
     },
+    "apple": {
+      "file": "apple.svg",
+      "title": "Apple",
+      "category": "Company",
+      "color": "#000000"
+    },
     "argo": {
       "file": "argo.svg",
       "title": "Argo",
@@ -108,6 +120,12 @@
       "title": "Auth0",
       "category": "Service",
       "color": "#EB5424"
+    },
+    "bankofamerica": {
+      "file": "bankofamerica.svg",
+      "title": "Bank of America",
+      "category": "Company",
+      "color": "#012169"
     },
     "bitbucket": {
       "file": "bitbucket.svg",
@@ -139,11 +157,23 @@
       "category": "Storage",
       "color": "#EF5C55"
     },
+    "chase": {
+      "file": "chase.svg",
+      "title": "Chase",
+      "category": "Company",
+      "color": "#117ACA"
+    },
     "circleci": {
       "file": "circleci.svg",
       "title": "CircleCI",
       "category": "Source control",
       "color": "#343434"
+    },
+    "cisco": {
+      "file": "cisco.svg",
+      "title": "Cisco",
+      "category": "Company",
+      "color": "#1BA0D7"
     },
     "clickhouse": {
       "file": "clickhouse.svg",
@@ -156,6 +186,12 @@
       "title": "Cloudflare",
       "category": "Platform",
       "color": "#F38020"
+    },
+    "cocacola": {
+      "file": "cocacola.svg",
+      "title": "Coca-Cola",
+      "category": "Company",
+      "color": "#D00013"
     },
     "cockroachlabs": {
       "file": "cockroachlabs.svg",
@@ -180,6 +216,12 @@
       "title": "Datadog",
       "category": "Observability",
       "color": "#632CA6"
+    },
+    "delta": {
+      "file": "delta.svg",
+      "title": "Delta",
+      "category": "Company",
+      "color": "#003366"
     },
     "deno": {
       "file": "deno.svg",
@@ -265,6 +307,12 @@
       "category": "Platform",
       "color": "#FF282D"
     },
+    "fedex": {
+      "file": "fedex.svg",
+      "title": "FedEx",
+      "category": "Company",
+      "color": "#4D148C"
+    },
     "flask": {
       "file": "flask.svg",
       "title": "Flask",
@@ -301,6 +349,12 @@
       "category": "Runtime",
       "color": "#00ADD8"
     },
+    "google": {
+      "file": "google.svg",
+      "title": "Google",
+      "category": "Company",
+      "color": "#4285F4"
+    },
     "googlecloud": {
       "file": "googlecloud.svg",
       "title": "Google Cloud",
@@ -336,6 +390,12 @@
       "title": "InfluxDB",
       "category": "Database",
       "color": "#22ADF6"
+    },
+    "intel": {
+      "file": "intel.svg",
+      "title": "Intel",
+      "category": "Company",
+      "color": "#0071C5"
     },
     "istio": {
       "file": "istio.svg",
@@ -415,11 +475,29 @@
       "category": "Database",
       "color": "#003545"
     },
+    "mastercard": {
+      "file": "mastercard.svg",
+      "title": "MasterCard",
+      "category": "Company",
+      "color": "#EB001B"
+    },
+    "mcdonalds": {
+      "file": "mcdonalds.svg",
+      "title": "McDonald's",
+      "category": "Company",
+      "color": "#FBC817"
+    },
     "meilisearch": {
       "file": "meilisearch.svg",
       "title": "Meilisearch",
       "category": "Service",
       "color": "#FF5CAA"
+    },
+    "meta": {
+      "file": "meta.svg",
+      "title": "Meta",
+      "category": "Company",
+      "color": "#0467DF"
     },
     "minio": {
       "file": "minio.svg",
@@ -457,6 +535,12 @@
       "category": "Framework",
       "color": "#E0234E"
     },
+    "netflix": {
+      "file": "netflix.svg",
+      "title": "Netflix",
+      "category": "Company",
+      "color": "#E50914"
+    },
     "netlify": {
       "file": "netlify.svg",
       "title": "Netlify",
@@ -481,6 +565,12 @@
       "category": "Platform",
       "color": "#009639"
     },
+    "nike": {
+      "file": "nike.svg",
+      "title": "Nike",
+      "category": "Company",
+      "color": "#111111"
+    },
     "nodedotjs": {
       "file": "nodedotjs.svg",
       "title": "Node.js",
@@ -492,6 +582,12 @@
       "title": "Nuxt",
       "category": "Framework",
       "color": "#00DC82"
+    },
+    "nvidia": {
+      "file": "nvidia.svg",
+      "title": "NVIDIA",
+      "category": "Company",
+      "color": "#76B900"
     },
     "okta": {
       "file": "okta.svg",
@@ -522,6 +618,12 @@
       "title": "PagerDuty",
       "category": "Observability",
       "color": "#06AC38"
+    },
+    "paypal": {
+      "file": "paypal.svg",
+      "title": "PayPal",
+      "category": "Company",
+      "color": "#002991"
     },
     "php": {
       "file": "php.svg",
@@ -679,6 +781,12 @@
       "category": "Database",
       "color": "#003B57"
     },
+    "starbucks": {
+      "file": "starbucks.svg",
+      "title": "Starbucks",
+      "category": "Company",
+      "color": "#006241"
+    },
     "stripe": {
       "file": "stripe.svg",
       "title": "Stripe",
@@ -709,11 +817,23 @@
       "category": "Runtime",
       "color": "#F05138"
     },
+    "target": {
+      "file": "target.svg",
+      "title": "Target",
+      "category": "Company",
+      "color": "#CC0000"
+    },
     "terraform": {
       "file": "terraform.svg",
       "title": "Terraform",
       "category": "Platform",
       "color": "#844FBA"
+    },
+    "tesla": {
+      "file": "tesla.svg",
+      "title": "Tesla",
+      "category": "Company",
+      "color": "#CC0000"
     },
     "traefikproxy": {
       "file": "traefikproxy.svg",
@@ -727,6 +847,18 @@
       "category": "Runtime",
       "color": "#3178C6"
     },
+    "uber": {
+      "file": "uber.svg",
+      "title": "Uber",
+      "category": "Company",
+      "color": "#000000"
+    },
+    "ups": {
+      "file": "ups.svg",
+      "title": "UPS",
+      "category": "Company",
+      "color": "#150400"
+    },
     "vault": {
       "file": "vault.svg",
       "title": "Vault",
@@ -738,6 +870,12 @@
       "title": "Vercel",
       "category": "Platform",
       "color": "#000000"
+    },
+    "visa": {
+      "file": "visa.svg",
+      "title": "Visa",
+      "category": "Company",
+      "color": "#1A1F71"
     },
     "vuedotjs": {
       "file": "vuedotjs.svg",

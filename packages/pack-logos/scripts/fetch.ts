@@ -70,6 +70,18 @@ const CURATED: Record<string, string[]> = {
   Protocol: ["graphql", "apollographql", "swagger", "openapiinitiative", "socketdotio"],
   Gateway: ["kong", "traefikproxy", "caddy"],
   Storage: ["minio", "ceph"],
+  // Household-name companies, for the *other* side of an integration diagram —
+  // the payment network a checkout talks to, the carrier a label prints for.
+  // Curated to a short blue-chip list (2026-08); the deliberately-absent note
+  // above applies doubly here: simple-icons has removed most of the Fortune
+  // 100 at the owners' request (no Amazon, Microsoft, Walmart, IBM, Disney,
+  // JPMorgan-parent…), so absence upstream is usually a legal fact, not a typo.
+  Company: [
+    "apple", "google", "meta", "nvidia", "intel", "cisco", "tesla",
+    "visa", "mastercard", "paypal", "chase", "bankofamerica", "americanexpress",
+    "nike", "cocacola", "starbucks", "mcdonalds", "target", "netflix",
+    "ups", "fedex", "delta", "uber",
+  ],
 };
 
 interface IconEntry { file: string; title: string; category: string; color: string }
