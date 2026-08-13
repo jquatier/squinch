@@ -71,6 +71,33 @@ export function App() {
 
   const debounced = useDebounced(source, 180);
 
+  // Which example the buffer *is*, derived rather than remembered: the select
+  // used to pin `value=""`, so it snapped back to the placeholder the moment
+  // you picked anything. Matching on content instead of storing a choice means
+  // the dropdown also survives a reload (source comes back from localStorage),
+  // and honestly returns to "Examples…" once you edit — at that point the
+  // buffer is yours, not the example.
+  const currentExample = useMemo(
+    () => EXAMPLES.find((x) => x.source === source),
+    [source],
+  );
+
+  const loadExample = useCallback((ex: (typeof EXAMPLES)[number]) => {
+    setSource(ex.source);
+    setView(undefined);
+  }, []);
+
+  // Prev/next walk the list in its declared order (grouped, so neighbours are
+  // related cases). From an edited buffer there is no "current" to step from:
+  // next starts the tour at the first example, prev at the last.
+  const stepExample = useCallback(
+    (dir: 1 | -1) => {
+      const i = currentExample ? EXAMPLES.indexOf(currentExample) : dir === 1 ? -1 : EXAMPLES.length;
+      loadExample(EXAMPLES[(i + dir + EXAMPLES.length) % EXAMPLES.length]);
+    },
+    [currentExample, loadExample],
+  );
+
   useEffect(() => {
     document.documentElement.dataset.theme = theme;
     localStorage.setItem("squinch:theme", theme);
@@ -302,17 +329,22 @@ export function App() {
         </button>
 
         <div className="ml-2 flex items-center gap-1">
+          <button
+            onClick={() => stepExample(-1)}
+            className={btn}
+            title="Previous example"
+            aria-label="Previous example"
+          >
+            ‹
+          </button>
           <select
             className="rounded border border-[var(--line)] bg-[var(--surface)] px-2 py-1 text-[12px] outline-none"
-            value=""
+            value={currentExample ? `${currentExample.group}/${currentExample.name}` : ""}
             onChange={(e) => {
               // keyed by group too: `landscape` is both an example project and
               // a lookbook case, and matching on name alone loaded the wrong one
               const ex = EXAMPLES.find((x) => `${x.group}/${x.name}` === e.target.value);
-              if (ex) {
-                setSource(ex.source);
-                setView(undefined);
-              }
+              if (ex) loadExample(ex);
             }}
           >
             <option value="">Examples…</option>
@@ -326,6 +358,14 @@ export function App() {
               </optgroup>
             ))}
           </select>
+          <button
+            onClick={() => stepExample(1)}
+            className={btn}
+            title="Next example"
+            aria-label="Next example"
+          >
+            ›
+          </button>
         </div>
 
         <div className="flex-1" />
