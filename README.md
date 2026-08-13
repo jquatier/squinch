@@ -302,6 +302,24 @@ Events arrive as <code>packets</code>, the archive job drifts <code>slow</code>,
 <code>badge: logos/databricks</code> marks a generic <code>sys/*</code> concept as someone's platform — the licence-clean way to draw a vendor that ships no redistributable icons
 </td>
 </tr>
+<tr>
+<td width="50%" valign="top">
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="lookbook/out/34-view-axes.audit.dark.svg">
+  <img alt="An audit view: only the PCI-tagged systems survive, with the untagged caller reduced to a muted context card" src="lookbook/out/34-view-axes.audit.light.svg" width="100%">
+</picture>
+<b>The audit view</b><br>
+<code>only #pci</code> keeps the tagged slice and drops the rest — a view <code>scope</code> could never name, because tags cut across systems. The untagged caller survives only as a muted context card: the assessor sees the entry point, drawn as periphery
+</td>
+<td width="50%" valign="top">
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="lookbook/out/33-card-shelf.landscape.dark.svg">
+  <img alt="Card anatomy: a system card with its own icon, a domain chip on the shelf, and a +N overflow count" src="lookbook/out/33-card-shelf.landscape.light.svg" width="100%">
+</picture>
+<b>Cards that carry their metadata</b><br>
+<code>icon:</code> gives a system its own mark, <code>domain:</code> stamps the shelf, and past three children the preview truncates to <code>+N</code>
+</td>
+</tr>
 </table>
 
 Also in the language: `cols` to pin the other axis, `datastore` / `external`
@@ -354,6 +372,23 @@ squinch render diagrams/ --check   # CI gate: fail if a committed SVG is stale
 Commit the source *and* the render. Reviewers see the picture in the diff; CI makes
 sure it never drifts from the source. (Add `.github/actions/squinch-check` to your
 workflow to enforce it.)
+
+And when the picture changes, `squinch diff` says what changed in the
+architecture's own vocabulary, not in path data:
+
+```console
+$ squinch diff diagrams/ --base main
+structural
+  + node      cache "Hot Cache" (aws/elasticache)
+  + edge      app -> cache "session reads"
+
+2 structural, 0 cosmetic
+```
+
+Structural changes are new boxes and arrows; cosmetic ones are labels,
+descriptions and styling. `--format json | markdown` and
+`--fail-on structural` are built in, so a PR comment or a "no architecture
+changes slipped in" gate is one CLI call, not a parser.
 
 ### One file that follows the reader's theme
 
