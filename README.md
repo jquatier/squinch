@@ -410,8 +410,10 @@ was run, and what came back.
 ## Deterministic by construction
 
 The same source, packs, and theme always produce **byte-identical SVG** — text is
-measured from a bundled metrics table, never from the environment. That makes a
-lockfile workflow possible:
+measured from a bundled metrics table, never from the environment, and CI
+byte-compares the goldens on macOS, Linux and Windows, so the guarantee holds
+across platforms and not just across runs. That makes a lockfile workflow
+possible:
 
 ```bash
 squinch render diagrams/ --sync    # write SVGs for every view × theme, refresh squinch.lock
