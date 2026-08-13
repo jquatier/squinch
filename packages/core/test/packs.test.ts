@@ -38,6 +38,33 @@ describe("searchIcons", () => {
     expect(searchIcons("sqs")).not.toContain("azure/arc-postgresql");
     expect(searchIcons("sqs").every((h) => h.includes("sqs"))).toBe(true);
   });
+
+  // Searching `sys` used to surface azure's `defender-…-system` rows while the
+  // sys pack itself stayed invisible — the pack names were never in the
+  // haystack, so the most natural browsing query read as "no such icons".
+  it("a pack name alone lists that pack", () => {
+    const sys = searchIcons("sys");
+    expect(sys.length).toBeGreaterThan(100);
+    expect(sys.every((h) => h.startsWith("sys/"))).toBe(true);
+    const logos = searchIcons("logos");
+    expect(logos).toContain("logos/stripe");
+    expect(logos.every((h) => h.startsWith("logos/"))).toBe(true);
+  });
+
+  it("a pack name beside other words scopes the search to it", () => {
+    expect(searchIcons("logos stripe")).toEqual(["logos/stripe"]);
+    const q = searchIcons("sys server");
+    expect(q).toContain("sys/server");
+    expect(q.every((h) => h.startsWith("sys/"))).toBe(true);
+  });
+
+  it("an explicit pack argument wins, and the word stays a search term", () => {
+    // `sys` here is the term, scoped to azure by the argument — the old
+    // behavior, preserved for callers who pass the filter explicitly
+    const hits = searchIcons("sys", "azure");
+    expect(hits.length).toBeGreaterThan(0);
+    expect(hits.every((h) => h.startsWith("azure/"))).toBe(true);
+  });
 });
 
 describe("every installed pack", () => {

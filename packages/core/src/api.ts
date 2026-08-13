@@ -82,10 +82,27 @@ export function searchIcons(query: string, pack?: string): string[] {
       : w.endsWith("s") ? w.slice(0, -1)
       : w;
   const norm = (s: string) => s.toLowerCase().split(/[\s-]+/).filter(Boolean).map(stem).join(" ");
-  const words = norm(query).split(" ").filter(Boolean);
+  // A query word that names an installed pack is a filter, not a search term:
+  // `sys` should list the sys glyphs and `logos stripe` should look inside
+  // logos — matching the literal letters instead surfaced azure's
+  // `defender-…-system` rows while the pack itself stayed invisible, which
+  // read as "there are no sys icons". Detected on the raw words, before
+  // stemming turns `logos` into `logo`; an explicit `pack` argument wins, and
+  // the word then stays an ordinary term. With no terms left, every icon in
+  // the pack matches — the browsing listing that motivated this.
+  let packFilter = pack;
+  let rawWords = query.toLowerCase().split(/[\s-]+/).filter(Boolean);
+  if (!packFilter) {
+    const packWord = rawWords.find((w) => allPackNames().includes(w));
+    if (packWord) {
+      packFilter = packWord;
+      rawWords = rawWords.filter((w) => w !== packWord);
+    }
+  }
+  const words = rawWords.map(stem);
   const hits: string[] = [];
   for (const name of allPackNames()) {
-    if (pack && name !== pack) continue;
+    if (packFilter && name !== packFilter) continue;
     const aliases = packInfo(name)?.aliases ?? {};
     const haystack = (id: string) => norm(`${id} ${iconTitle(name, id) ?? ""}`);
     const matched = new Set(
