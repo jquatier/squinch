@@ -391,8 +391,8 @@ a filter. The same two nodes, both ways:
 `--adaptive` folds the pair into one file behind `prefers-color-scheme`, so an
 embedded diagram follows the reader's OS without you picking a side.
 
-The [lookbook](lookbook/) renders 30 deliberately awkward cases — dense meshes,
-long labels, deep nesting, coplanar rows — to 82 committed SVGs across the
+The [lookbook](lookbook/) renders 35 deliberately awkward cases — dense meshes,
+long labels, deep nesting, coplanar rows — to 86 committed SVGs across the
 themes, and CI fails if any of them changes unintentionally.
 
 ## Icons
