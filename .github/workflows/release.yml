@@ -1,15 +1,19 @@
 # Cut by `pnpm release` (scripts/release.mjs), which bumps every manifest,
 # writes the CHANGELOG section, and pushes main + the tag together. This
 # workflow builds the VSIX from the tagged commit, re-runs the suite — its own
-# gate, deliberately, rather than trusting that some other run was green — and
-# publishes the GitHub Release with the CHANGELOG section as its notes.
+# gate, deliberately, rather than trusting that some other run was green —
+# publishes the GitHub Release with the CHANGELOG section as its notes, and
+# then publishes to npm. npm goes last on purpose: the GitHub Release is the
+# fallback artifact, so a registry problem reddens the run without costing
+# anyone the VSIX. Needs an NPM_TOKEN repository secret with publish rights
+# for `squinch` and the @squinch scope.
 #
 # Two ways it fails on purpose: the tag not matching the workspace version
 # (someone tagged by hand), and the CHANGELOG missing this version's section
 # (someone skipped the release command). Both are the process working.
 #
 # Windows and e2e are not re-run here; they gate main, and the tag points at a
-# commit on main. npm publish is deliberately absent — later.
+# commit on main.
 name: release
 on:
   push:
