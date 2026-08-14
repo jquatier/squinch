@@ -41,7 +41,8 @@ const fail = (msg) => {
 };
 
 // ── preflight rails ─────────────────────────────────────────────────────────
-if (notesAt !== -1 && !givenNotes) fail("--notes needs a value");
+if (notesAt !== -1 && (!givenNotes || givenNotes.startsWith("--")))
+  fail("--notes needs a value — a following flag doesn't count");
 const branch = git("rev-parse", "--abbrev-ref", "HEAD");
 if (branch !== "main") fail(`on \`${branch}\` — releases cut from main`);
 if (git("status", "--porcelain") !== "") fail("working tree is dirty — commit or stash first");
