@@ -203,6 +203,19 @@ describe("the Marketplace manifest", () => {
   const root = join(dirname(fileURLToPath(import.meta.url)), "..");
   const pkg = JSON.parse(readFileSync(join(root, "package.json"), "utf8"));
 
+  it("surfaces the preview everywhere a reader right-clicks", () => {
+    // The command existed for months reachable only from the palette and the
+    // title-bar icon — "why can't I right-click a .squinch file?" was the bug.
+    // Every menu entry must name the preview command and gate on squinch, or
+    // the entry appears on every file in the workspace.
+    const menus = pkg.contributes.menus as Record<string, { command: string; when: string }[]>;
+    for (const place of ["editor/title", "editor/context", "editor/title/context", "explorer/context"]) {
+      const entry = menus[place]?.find((m) => m.command === "squinch.preview");
+      expect(entry, `no preview entry in ${place}`).toBeTruthy();
+      expect(entry!.when, `${place} entry is unguarded`).toMatch(/squinch/);
+    }
+  });
+
   it("declares an icon that is actually there, at Marketplace size", () => {
     expect(pkg.icon, "no icon — the listing gets a grey placeholder").toBeTruthy();
     const icon = join(root, pkg.icon);

@@ -23,7 +23,9 @@ export function activate(context: vscode.ExtensionContext) {
   void client.start();
 
   context.subscriptions.push(
-    vscode.commands.registerCommand("squinch.preview", () => Preview.open(context)),
+    // The Explorer and tab context menus pass the clicked file's URI; the
+    // palette and title-bar icon pass nothing and mean the active editor.
+    vscode.commands.registerCommand("squinch.preview", (uri?: vscode.Uri) => Preview.open(context, uri)),
   );
 }
 
@@ -37,7 +39,14 @@ class Preview {
   private view: string | undefined;
   private disposables: vscode.Disposable[] = [];
 
-  static open(context: vscode.ExtensionContext) {
+  static async open(context: vscode.ExtensionContext, uri?: vscode.Uri) {
+    // A context-menu invocation names a file that may not be open yet — open
+    // it first, so the preview has a document and the editor shows the source
+    // beside it, same as the markdown preview behaves.
+    if (uri) {
+      const doc = await vscode.workspace.openTextDocument(uri);
+      await vscode.window.showTextDocument(doc, { preview: false });
+    }
     const editor = vscode.window.activeTextEditor;
     if (editor?.document.languageId !== "squinch") {
       void vscode.window.showInformationMessage("Open a .squinch file first.");

@@ -73,6 +73,27 @@
           "when": "editorLangId == squinch",
           "group": "navigation"
         }
+      ],
+      "editor/context": [
+        {
+          "command": "squinch.preview",
+          "when": "editorLangId == squinch",
+          "group": "navigation"
+        }
+      ],
+      "editor/title/context": [
+        {
+          "command": "squinch.preview",
+          "when": "resourceExtname == .squinch",
+          "group": "1_open"
+        }
+      ],
+      "explorer/context": [
+        {
+          "command": "squinch.preview",
+          "when": "resourceExtname == .squinch",
+          "group": "navigation"
+        }
       ]
     },
     "configuration": {
