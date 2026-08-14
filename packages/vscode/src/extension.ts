@@ -69,6 +69,13 @@ class Preview {
       vscode.window.onDidChangeActiveTextEditor((e) => {
         if (e?.document.languageId === "squinch") { this.view = undefined; void this.refresh(); }
       }),
+      // `auto` follows the editor theme, so the preview must re-render the
+      // moment the editor flips — and when the setting itself changes, which
+      // previously waited for the next keystroke to take effect.
+      vscode.window.onDidChangeActiveColorTheme(() => void this.refresh()),
+      vscode.workspace.onDidChangeConfiguration((e) => {
+        if (e.affectsConfiguration("squinch.preview.theme")) void this.refresh();
+      }),
     );
     void this.refresh();
   }
@@ -84,7 +91,14 @@ class Preview {
     if (!doc) return;
     const src = doc.getText();
     const name = path.basename(doc.fileName);
-    const theme = vscode.workspace.getConfiguration("squinch").get<string>("preview.theme", "light");
+    const setting = vscode.workspace.getConfiguration("squinch").get<string>("preview.theme", "auto");
+    // `auto` follows the editor: both dark kinds map to dark, both light kinds
+    // to light. High-contrast users get the nearer palette rather than a
+    // guarantee — Squinch's contrast theme was retired with the restyle.
+    const kind = vscode.window.activeColorTheme.kind;
+    const theme = setting === "auto"
+      ? (kind === vscode.ColorThemeKind.Dark || kind === vscode.ColorThemeKind.HighContrast ? "dark" : "light")
+      : setting;
     const views = viewIndex(src);
     const view = this.view && views.some((v) => v.name === this.view) ? this.view : views[0]?.name;
 

@@ -81,11 +81,12 @@
         "squinch.preview.theme": {
           "type": "string",
           "enum": [
+            "auto",
             "light",
             "dark"
           ],
-          "default": "light",
-          "description": "Theme used for the live preview."
+          "default": "auto",
+          "description": "Theme for the live preview. `auto` follows the editor's color theme."
         }
       }
     }

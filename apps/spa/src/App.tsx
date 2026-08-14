@@ -38,7 +38,10 @@ export function App() {
     return localStorage.getItem(STORAGE_KEY) ?? EXAMPLES[0].source;
   });
   const [theme, setTheme] = useState<Theme>(
-    () => (localStorage.getItem("squinch:theme") as Theme) ?? "light",
+    // first visit follows the OS; an explicit choice (cycleTheme persists it)
+    // wins forever after
+    () => (localStorage.getItem("squinch:theme") as Theme)
+      ?? (matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light"),
   );
   const [view, setView] = useState<string>();
   const [preview, setPreview] = useState<Preview>({ diagnostics: [], ok: true, views: [] });
