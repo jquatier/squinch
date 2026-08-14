@@ -37,6 +37,7 @@ jobs:
       - run: node packages/cli/bin/squinch.js render examples/products-api --check
       - run: node packages/cli/bin/squinch.js render examples/storefront --check
       - run: node packages/cli/bin/squinch.js render examples/microservices --check
+      - run: node packages/cli/bin/squinch.js render examples/notifications --check
       # the playground must keep building (it embeds core via the browser entry)
       - run: pnpm --filter @squinch/spa build
       # The exported viewer is bundled ahead of time and committed, so that
@@ -100,6 +101,7 @@ jobs:
       - run: node packages/cli/bin/squinch.js render examples/products-api --check
       - run: node packages/cli/bin/squinch.js render examples/storefront --check
       - run: node packages/cli/bin/squinch.js render examples/microservices --check
+      - run: node packages/cli/bin/squinch.js render examples/notifications --check
       - run: cd packages/core && npx tsx scripts/gen-html-runtime.ts
       - run: git diff --exit-code packages/core/src/render/html/runtime.generated.ts
       # sync-examples rather than the whole SPA build: the CRLF-sensitive half is

@@ -8,9 +8,7 @@ coverage/
 .env
 .env.*
 !.env.example
-spike/out/
 packages/*/out/
-dist/
 
 # extension build output (bundler copies the icon pack beside dist/)
 packages/vscode/pack-*/
@@ -20,12 +18,13 @@ packages/vscode/pack-*/
 apps/spa/public/pack-*.json
 apps/spa/public/*-icons/
 
-# scratch frames for scripts/hero-gif.mts
+# scratch frames for scripts/hero-gif.mts and scripts/prompt-gif.mts
 .hero-tmp/
+.prompt-tmp/
 
 # per-prompt sandboxes + transcripts for gauntlet/run.ts
 gauntlet/.run/
-# before/after renders for scripts/compare.mts
+# before/after renders for scripts/gallery.mts
 .compare-tmp/
 
 # playwright: browsers are cached globally, runs are disposable

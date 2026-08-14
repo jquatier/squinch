@@ -9,19 +9,19 @@ Bundled fonts
 
 This package ships font data, and those files are NOT under Apache-2.0:
 
-  fonts/inter-400.ttf, fonts/inter-500.ttf
+  fonts/inter-400.ttf, fonts/inter-500.ttf, fonts/inter-600.ttf
   and the same faces embedded as woff2 data-URIs inside dist/
 
       Inter, Copyright 2016 The Inter Project Authors
       (https://github.com/rsms/inter), licensed under the SIL Open Font
       License, Version 1.1.
 
-  fonts/caveat-400.ttf, fonts/caveat-500.ttf
-  and the same faces embedded as woff2 data-URIs inside dist/
+  fonts/mono-400.ttf
+  and the same face embedded as a woff2 data-URI inside dist/
 
-      Caveat, Copyright 2014 The Caveat Project Authors
-      (https://github.com/googlefonts/caveat), licensed under the SIL Open
-      Font License, Version 1.1.
+      IBM Plex Mono, Copyright 2017 IBM Corp.
+      (https://github.com/IBM/plex), licensed under the SIL Open Font
+      License, Version 1.1.
 
 Both are subsetted, not modified in outline. The OFL requires this notice to
 travel with the font data, which is why it is in the published package and not

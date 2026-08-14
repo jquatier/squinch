@@ -59,7 +59,8 @@ the marks may be used.
 Bundled font
 --------------------------------------------------------------------------------
 
-Rendered SVGs embed subsetted Inter faces (packages/core/src/fonts.generated.ts,
-packages/core/fonts/*.ttf). Inter is licensed under the SIL Open Font License
-1.1, Copyright the Inter Project Authors (https://github.com/rsms/inter). The
-sketch theme uses Caveat, also OFL-1.1, Copyright the Caveat Project Authors.
+Rendered SVGs embed subsetted Inter and IBM Plex Mono faces
+(packages/core/src/fonts.generated.ts, packages/core/fonts/*.ttf). Inter is
+licensed under the SIL Open Font License 1.1, Copyright the Inter Project
+Authors (https://github.com/rsms/inter); IBM Plex Mono likewise OFL-1.1,
+Copyright 2017 IBM Corp. (https://github.com/IBM/plex).
