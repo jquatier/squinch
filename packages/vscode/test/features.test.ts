@@ -210,8 +210,10 @@ describe("the Marketplace manifest", () => {
     // PNG header: width and height are big-endian u32 at bytes 16 and 20.
     const buf = readFileSync(icon);
     expect(buf.subarray(1, 4).toString()).toBe("PNG");
-    expect([buf.readUInt32BE(16), buf.readUInt32BE(20)], "the Marketplace wants 128×128")
-      .toEqual([128, 128]);
+    // 128 is the Marketplace minimum; 256 is its retina recommendation and
+    // what ships (re-derived from the 1440px logo source, 2026-08)
+    expect([buf.readUInt32BE(16), buf.readUInt32BE(20)], "the Marketplace wants ≥128, ships 256")
+      .toEqual([256, 256]);
   });
 
   it("is not excluded from the package", () => {

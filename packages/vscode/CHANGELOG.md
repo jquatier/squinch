@@ -12,6 +12,6 @@ What works today:
   symbols.
 - **Preview pane** that re-renders as you type, following the view under the
   cursor.
-- **Five icon packs** bundled (AWS, Azure, Kubernetes, logos, sys — 1,279
+- **Five icon packs** bundled (AWS, Azure, Kubernetes, logos, sys — 1,302
   marks), so icon completion and validation work in an installed copy with
   nothing from the repo.
