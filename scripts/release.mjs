@@ -3,6 +3,7 @@
 //   pnpm release                # prompts for the new version
 //   pnpm release 0.1.0          # same, version given up front
 //   pnpm release 0.1.0 --no-edit   # accept the drafted notes as-is
+//   pnpm release 0.1.0 --notes "Initial release."   # your notes, no editor
 //   pnpm release --dry-run      # show everything, write nothing
 //
 // It drafts the CHANGELOG section from the commits since the last tag, opens
@@ -23,7 +24,12 @@ const root = join(dirname(fileURLToPath(import.meta.url)), "..");
 const args = process.argv.slice(2);
 const dryRun = args.includes("--dry-run");
 const noEdit = args.includes("--no-edit");
-const givenVersion = args.find((a) => !a.startsWith("--"));
+// --notes "text" supplies the section body directly — no draft, no editor.
+// This is the non-interactive path (an agent or CI has no $EDITOR), and the
+// honest spelling of "I already know what the notes should say".
+const notesAt = args.indexOf("--notes");
+const givenNotes = notesAt !== -1 ? args[notesAt + 1] : undefined;
+const givenVersion = args.find((a, i) => !a.startsWith("--") && i !== notesAt + 1);
 
 // stderr piped, not inherited: the no-tags-yet probe (`git describe`) fails
 // by design on a fresh repo, and its "fatal:" would leak into our output.
@@ -35,6 +41,7 @@ const fail = (msg) => {
 };
 
 // ── preflight rails ─────────────────────────────────────────────────────────
+if (notesAt !== -1 && !givenNotes) fail("--notes needs a value");
 const branch = git("rev-parse", "--abbrev-ref", "HEAD");
 if (branch !== "main") fail(`on \`${branch}\` — releases cut from main`);
 if (git("status", "--porcelain") !== "") fail("working tree is dirty — commit or stash first");
@@ -87,12 +94,12 @@ if (subjects.length === 0) fail(`nothing to release — no commits since ${lastT
 
 const today = new Date().toISOString().slice(0, 10);
 const heading = `## ${version} — ${today}`;
-let body = subjects.map((c) => `- ${c.subject} (${c.sha})`).join("\n");
+let body = givenNotes ?? subjects.map((c) => `- ${c.subject} (${c.sha})`).join("\n");
 
 console.log(`\n${subjects.length} commit(s) since ${lastTag ?? "the beginning"}.\n`);
 
 // ── edit ────────────────────────────────────────────────────────────────────
-if (!noEdit && process.stdout.isTTY) {
+if (!givenNotes && !noEdit && process.stdout.isTTY) {
   const editor = process.env.EDITOR ?? process.env.VISUAL;
   if (editor) {
     const dir = mkdtempSync(join(tmpdir(), "squinch-release-"));
