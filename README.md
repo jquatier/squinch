@@ -20,10 +20,11 @@
 > *squinch (n.) — the corner arch that lets a round dome sit on a square room; the
 > piece of architecture that makes mismatched structures fit together.*
 
-**Architecture diagrams as code, built for the age of AI agents.** A DSL that LLMs
-write fluently and humans control precisely — with real layout and edge-routing
-control, cloud icon packs, C4-style zooming, and deterministic rendering that lives
-in git next to the code it describes.
+**Your coding agent already knows the architecture — now it can draw it.**
+Describe the system in a paragraph: a DSL that LLMs write fluently and humans
+control precisely, real layout and edge-routing control, cloud icon packs,
+and diagrams you can zoom into — from the whole landscape down to one
+service's internals.
 
 ## From description to diagram
 

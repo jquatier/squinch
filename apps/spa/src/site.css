@@ -359,6 +359,15 @@ blockquote {
   font-size: clamp(1rem, 1.6vw, 1.12rem);
   text-wrap: balance;
 }
+/* wears the same ramp as the primary CTA, so the one claim worth pausing on
+   reads as brand voice rather than a plain bold */
+.hero-copy .tagline .lede {
+  font-weight: 600;
+  background: linear-gradient(135deg, #C441FE, #3585FF 55%, #15B6FF);
+  background-clip: text;
+  -webkit-background-clip: text;
+  color: transparent;
+}
 
 /* A full-width row below the hero grid, not crammed into the copy column —
    four equal CTAs read as one deliberate row instead of a cramped 2x2. */
