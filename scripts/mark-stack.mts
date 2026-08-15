@@ -163,10 +163,16 @@ const ty = n(MARK.top - (VB.y + INK.y0) * scale);
 // mark.svg's ids are namespaced on the way in, so the two marks can be inlined
 // on the same page without their gradients colliding
 const ns = (id: string) => id.replace(/^sq-/, "sqs-");
+/** Class handles for the landing, which inlines this markup and animates it
+ *  from site.css. They are inert here on purpose: this file carries no
+ *  stylesheet of its own, because three of its four consumers — the README,
+ *  og.png and the hero GIF's watermark — want a picture, not behaviour. Motion
+ *  belongs to the surface that has motion, next to the rest of the landing's. */
+const K = (name: string) => ` class="${name}"`;
 const box = `x="${VIEW.x}" y="${VIEW.y}" width="${VIEW.w}" height="${VIEW.h}"`;
 
 const svg = `<?xml version="1.0" encoding="utf-8"?>
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="${VIEW.x} ${VIEW.y} ${VIEW.w} ${VIEW.h}">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="${VIEW.x} ${VIEW.y} ${VIEW.w} ${VIEW.h}" class="sqs-mark" aria-hidden="true">
   <defs>
 ${gradients.map((g) => `    <linearGradient id="${ns(g[1])}"${g[2]}>${g[3].trim()}</linearGradient>`).join("\n")}
     ${ramp("sqs-top", PLANE.top)}
@@ -204,39 +210,39 @@ ${(["top", "mid", "bot"] as const).map((k) =>
 
   <g fill="none" stroke-linecap="round" stroke-linejoin="round">
     <!-- corner posts, left and right only: the original has none front or back -->
-    <g stroke="${GREY}" stroke-width="2" stroke-dasharray="5 6" opacity="0.4">
+    <g${K("sqs-posts")} stroke="${GREY}" stroke-width="2" stroke-dasharray="5 6" opacity="0.4">
       <path d="M${n(CX - POST)} ${PLANE.top}L${n(CX - POST)} ${PLANE.bot}"/>
       <path d="M${n(CX + POST)} ${PLANE.top}L${n(CX + POST)} ${PLANE.bot}"/>
     </g>
 
     <!-- bottom plane: dashed, carrying the wired graph -->
-    <g mask="url(#sqs-plane-bot)">
+    <g${K("sqs-layer sqs-bot")}><g mask="url(#sqs-plane-bot)">
       <path d="${plane(PLANE.bot)}" stroke="${GREY}" stroke-width="${GREY_SW}" stroke-dasharray="${DASH}"/>
-      <g stroke="${CYAN}" stroke-width="3">
+      <g${K("sqs-nodes")} stroke="${CYAN}" stroke-width="3">
         <path d="${wire(RING.l, RING.b)}"/>
         <path d="${wire(RING.b, RING.r)}"/>
         ${ring(RING.l)}${ring(RING.b)}${ring(RING.r)}
       </g>
-    </g>
+    </g></g>
 
     <!-- middle plane: the components -->
-    <g mask="url(#sqs-plane-mid)">
+    <g${K("sqs-layer sqs-mid")}><g mask="url(#sqs-plane-mid)">
       <path d="${plane(PLANE.mid)}" stroke="url(#sqs-mid)" stroke-width="${SW}"/>
-      <g stroke="url(#sqs-mid)" stroke-width="3">
+      <g${K("sqs-nodes")} stroke="url(#sqs-mid)" stroke-width="3">
         ${DIAMONDS.map((d) => `<path d="${diamond(on(PLANE.mid, ...d), 22, 15, 5)}"/>`).join("\n        ")}
       </g>
-    </g>
+    </g></g>
 
     <!-- top plane: what the S stands on. It sits ~15% dimmer than the middle
          one in the original, which keeps it from competing with the mark. -->
-    <g mask="url(#sqs-plane-top)" opacity="0.85">
+    <g${K("sqs-layer sqs-top")}><g mask="url(#sqs-plane-top)" opacity="0.85">
       <path d="${plane(PLANE.top)}" stroke="url(#sqs-top)" stroke-width="${SW}"/>
-    </g>
+    </g></g>
   </g>
 
-  <g transform="translate(${tx} ${ty}) scale(${scale})">
+  <g${K("sqs-layer sqs-s")}><g transform="translate(${tx} ${ty}) scale(${scale})">
     ${paths.map((m) => `<path fill="url(#${ns(m[1])})" d="${m[2]}"/>`).join("\n    ")}
-  </g>
+  </g></g>
 </svg>
 `;
 

@@ -4,7 +4,9 @@
 // ever reads it.
 //
 // The mark lands as favicon.svg and is then used for *both* jobs: the tab icon
-// and the visible logo on every page. There is one file because there is one
+// and the visible logo on the header of every page. (The landing's big layered
+// mark is not here: it is inlined into the HTML by a Vite plugin so its planes
+// can be animated, so nothing needs to fetch it.) There is one file because there is one
 // drawing — four byte-identical copies of it used to live in the tree, which is
 // four chances for the brand to drift. docs/assets/mark.svg is the canonical
 // one; docs/assets/mark-stack.svg is the layered mark, generated from it by
@@ -23,7 +25,6 @@ mkdirSync(publicDir, { recursive: true });
 /** [source in docs/assets, name under public/] */
 const FILES: [string, string][] = [
   ["mark.svg", "favicon.svg"],
-  ["mark-stack.svg", "mark-stack.svg"], // the layered mark, for the landing hero
   ["prompt-light.gif", "prompt-light.gif"],
   ["prompt-dark.gif", "prompt-dark.gif"],
   ["zoom-light.gif", "zoom-light.gif"],

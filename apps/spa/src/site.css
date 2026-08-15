@@ -276,19 +276,75 @@ blockquote {
   }
 }
 
-/* The landing gets the layered mark, stacked over the wordmark rather than
-   beside it — the stack is portrait, so setting it next to the type would have
-   forced it down to the wordmark's cap height, which is well under the ~48px
-   where its planes stop reading as planes. Sized by height, since height is
-   what has to stay in proportion to the type below it. */
+/* Mark beside the wordmark. The stack is portrait, so the row's height is set
+   by the mark rather than by the type — which is the whole reason this works:
+   it is free to stand well above the cap height instead of being squeezed down
+   to it, and the planes keep reading as planes. Sized by height for the same
+   reason, with the width following from the aspect. */
 .hero-brand {
   margin: 0;
   display: flex;
-  flex-direction: column;
   align-items: center;
-  gap: clamp(10px, 1.6vh, 18px);
+  gap: clamp(14px, 1.6vw, 22px);
 }
-.hero-brand .mark { height: clamp(92px, 11vw, 136px); width: auto; }
+.hero-brand .sqs-mark { display: block; height: clamp(104px, 11.5vw, 168px); width: auto; }
+
+/* The mark assembles on arrival, and folds back up under the pointer.
+   The planes start collapsed at the middle one's altitude and separate into
+   the stack, the S landing last — the expand verb, performed by the logo.
+   Hovering runs it backwards, so the collapsed pose is one named state that
+   the entrance and the hover both reuse (`--fold`).
+
+   It is animated from here rather than from inside the SVG because the mark is
+   inlined: page CSS reaches its planes, hover reaches them, and this media
+   query is honoured. None of that is true through an img — measured. */
+.hero-brand .sqs-bot { --fold: -90px; }
+.hero-brand .sqs-mid { --fold: 0px; }
+.hero-brand .sqs-top,
+.hero-brand .sqs-s { --fold: 105px; }
+
+.hero-brand .sqs-layer {
+  animation: mark-rise 1150ms cubic-bezier(0.22, 0.7, 0.24, 1) backwards;
+  transition: transform 420ms cubic-bezier(0.34, 1.2, 0.4, 1);
+}
+.hero-brand .sqs-mid { animation-delay: 90ms; }
+.hero-brand .sqs-top { animation-delay: 180ms; }
+.hero-brand .sqs-s { animation-delay: 280ms; }
+/* the posts are connectors — nothing to join until there is a gap */
+.hero-brand .sqs-posts {
+  animation: mark-posts 520ms ease-out 880ms backwards;
+  transition: opacity 260ms ease-out;
+}
+
+/* `backwards`, not `both`: a filled animation keeps winning the cascade after
+   it ends, which would leave the hover transform below with no effect. */
+@keyframes mark-rise {
+  from { transform: translateY(var(--fold)); opacity: 0; }
+  to { transform: translateY(0); opacity: 1; }
+}
+@keyframes mark-posts { from { opacity: 0; } to { opacity: 0.4; } }
+
+.hero-brand:hover .sqs-layer { transform: translateY(var(--fold)); }
+.hero-brand:hover .sqs-posts { opacity: 0; }
+
+/* What sits ON the lower two planes — the wired nodes and the components —
+   clears out while the stack is folded, so the collapsed pose is three clean
+   outlines rather than three planes' worth of contents piled on each other.
+   The two directions are timed differently on purpose: leaving, they go quickly
+   and at once, so the planes never close over them; returning, they come up
+   across the same window the planes take to separate, so the contents arrive
+   *with* their plane rather than popping in after it has settled. */
+.hero-brand .sqs-nodes { transition: opacity 420ms ease-out 40ms; }
+.hero-brand:hover .sqs-nodes { opacity: 0; transition-duration: 170ms; transition-delay: 0ms; }
+
+@media (prefers-reduced-motion: reduce) {
+  .hero-brand .sqs-layer,
+  .hero-brand .sqs-posts,
+  .hero-brand .sqs-nodes { animation: none; transition: none; }
+  .hero-brand:hover .sqs-layer { transform: none; }
+  .hero-brand:hover .sqs-posts { opacity: 0.4; }
+  .hero-brand:hover .sqs-nodes { opacity: 1; }
+}
 .hero-brand .name {
   font-size: clamp(1.9rem, 3.4vw, 2.5rem);
   font-weight: 600;
