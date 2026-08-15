@@ -68,23 +68,34 @@ const SS = 2;
  *  the first thing that had to go. The empty half of the shot is better left
  *  empty than signed twice. */
 
-/** The typing card: one measured column, centred. */
-const CARD_W = 660, CARD_PAD_X = 22, CARD_PAD_Y = 20;
+/** The typing card: one measured column, centred. Widened along with the type
+ *  below, so the sentence still wraps to four lines rather than six. */
+const CARD_W = 800, CARD_PAD_X = 28, CARD_PAD_Y = 26;
 /** Type sizes for the two states the prompt lives in — full size while it is
- *  being written, smaller once it is a caption over its own result. */
-const BIG = 15, SMALL = 12.5;
-const BIG_LH = 24, SMALL_LH = 19;
+ *  being written, smaller once it is a caption over its own result.
+ *
+ *  Sized for where the clip is actually watched, not for the canvas. This is a
+ *  940px-wide frame, and the landing draws it about 520 wide — so 15px of
+ *  prompt arrived on screen as roughly 8px, which is below reading size. The
+ *  type is ~1.6x that now. The ceiling is the caption, not the card: the card
+ *  can spend vertical room freely (it is alone on screen and simply wraps to a
+ *  fifth line), but every line the caption gains comes straight out of the
+ *  diagram's stage below it. 24/18.5 is the last step that still wraps the
+ *  caption to three lines — 25 spills it to four and costs the diagram 41px,
+ *  where this costs 9. */
+const BIG = 24, SMALL = 18.5;
+const BIG_LH = 36, SMALL_LH = 28;
 /** The chevron's column, and the text's, inside either box. */
-const CHEV_W = 22;
+const CHEV_W = 30;
 /** How far under the last baseline the status row sits — clear of the sentence,
  *  so it reads as the tool talking rather than more of the prompt. */
-const ROW_DROP = 26;
+const ROW_DROP = 34;
 /** The box grows by this much, downward, when the prompt is sent — the room the
  *  status row needs. Reserving it from the start instead would leave the typing
  *  state, which is on screen far longer, visibly bottom-heavy for a beat that
  *  has not happened yet. Growing from a fixed top edge is also what a composer
  *  does when a reply starts: no text moves, only the floor. */
-const GROW = 24;
+const GROW = 36;
 
 let T = themes.light;
 
@@ -203,7 +214,7 @@ const STATUSES = [
   { text: "Using squinch skill", n: 30 },
   { text: "Finalizing diagram", n: 24 },
 ];
-const STATUS_FS = 13;
+const STATUS_FS = 19;
 /** Frames per shimmer sweep, and per pulse of the leading dot. Both count in
  *  whole cycles rather than as a fraction of the beat: pace is a property of
  *  the animation, and normalizing it to the beat meant every change to how long
@@ -439,15 +450,23 @@ const build = async (theme: string) => {
   });
   if (process.env.DUMP_SVG) { console.log("dumped SVGs to", tmp); return; }
 
-  // Two passes, full palette, no dither — same reasoning as the hero clip: flat
-  // vector art from a small palette has nothing for a dither to approximate,
-  // and an ordered one puts a regular speckle across every card gradient.
+  // Two passes, no dither — flat vector art from a small palette has nothing
+  // for a dither to approximate, and an ordered one puts a regular speckle
+  // across every card gradient.
+  //
+  // 128 colours, not 256. Measured on this clip: 256→128 is 12.8% off the file
+  // for a worst-case channel error of 60 on a handful of antialiasing pixels,
+  // indistinguishable at 3x on the most-damaged region. The curve has a knee
+  // there — 192 saves 0.4% (i.e. nothing) while still quantising, and 64 doubles
+  // the error for another 11%. Frame cropping is *not* a lever here: ffmpeg
+  // already stores 272 of 273 frames as changed-rectangles only, a median of
+  // 0.1% of canvas each, so there is nothing for a gifsicle -O3 pass to reclaim.
   const OUT = out(theme);
   const pal = join(tmp, "palette.png");
   const ff = (a: string[]) => execFileSync("ffmpeg", ["-y", "-hide_banner", "-loglevel", "error", ...a]);
   const down = `scale=${W}:${H}:flags=lanczos`;
   ff(["-framerate", String(FPS), "-i", join(tmp, "f%04d.png"),
-      "-vf", `${down},palettegen=max_colors=256:stats_mode=full`, pal]);
+      "-vf", `${down},palettegen=max_colors=128:stats_mode=full`, pal]);
   mkdirSync(dirname(OUT), { recursive: true });
   ff(["-framerate", String(FPS), "-i", join(tmp, "f%04d.png"), "-i", pal,
       "-lavfi", `[0:v]${down}[c];[c][1:v]paletteuse=dither=none`, "-loop", "0", OUT]);
