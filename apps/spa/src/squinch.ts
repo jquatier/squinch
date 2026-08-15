@@ -14,11 +14,14 @@ export interface ViewRef {
 let ready: Promise<void> | undefined;
 
 /** Load every pack manifest once; icons stream in on demand.
- *  Paths match what scripts/sync-packs.ts writes into public/. */
+ *  Paths match what scripts/sync-packs.ts writes into public/ — which Vite
+ *  serves from the site root, while this document now lives at /playground/.
+ *  Anchoring on BASE_URL (never the document URL) is what keeps the fetches
+ *  pointed at the root from a sub-route, with or without a deploy base path. */
 export const PACK_NAMES = ["aws", "azure", "logos", "sys", "k8s"];
 const PACKS = PACK_NAMES.map((name) => ({
-  manifest: `pack-${name}.json`,
-  icons: `${name}-icons`,
+  manifest: `${import.meta.env.BASE_URL}pack-${name}.json`,
+  icons: `${import.meta.env.BASE_URL}${name}-icons`,
 }));
 export function ensurePacks(): Promise<void> {
   ready ??= (async () => {

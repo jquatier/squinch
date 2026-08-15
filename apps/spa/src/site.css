@@ -1,0 +1,588 @@
+/* The marketing site's stylesheet — four static documents sharing the
+   playground's token palette (tokens.css). No Tailwind here on purpose: the
+   pages are hand-set documents, and a utility pass over four files buys
+   nothing but a scanner dependency. `data-theme` on <html> is stamped from
+   prefers-color-scheme by each page's inline head script. */
+@import "./tokens.css";
+
+* { box-sizing: border-box; }
+
+/* The landing's hero glows are 60vmax discs hung off negative offsets, so they
+   reach past the right edge on purpose. Clipping has to happen on <html>: the
+   document element is the scroller, and `overflow-x` on <body> alone leaves the
+   page genuinely scrollable sideways (measured: 210px at 1280 wide). `clip`
+   rather than `hidden` so this never becomes a scroll container. */
+html { height: 100%; overflow-x: clip; }
+body {
+  margin: 0;
+  min-height: 100%;
+  overflow-x: clip;
+  background: var(--chrome);
+  color: var(--fg);
+  font-family: Inter, ui-sans-serif, system-ui, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  font-size: 16px;
+  line-height: 1.6;
+}
+/* The landing's dot grid runs the full page, not just the hero: one
+   background on <body> tiles seamlessly top to bottom, where two separate
+   per-section backgrounds would show a seam wherever a box height isn't a
+   multiple of 22px. */
+body#home {
+  background-image: radial-gradient(var(--dot) 1px, transparent 1px);
+  background-size: 22px 22px;
+}
+::selection { background: color-mix(in srgb, var(--accent) 25%, transparent); }
+
+a { color: var(--accent); text-decoration: none; }
+a:hover { text-decoration: underline; text-underline-offset: 3px; }
+a:focus-visible, button:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 3px;
+  border-radius: 4px;
+}
+
+code, pre {
+  font-family: "IBM Plex Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 0.9em;
+}
+code { background: var(--chip); border-radius: 4px; padding: 0.1em 0.35em; }
+pre {
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 14px 16px;
+  overflow-x: auto;                /* commands scroll, the page never does */
+  line-height: 1.55;
+}
+pre code { background: none; padding: 0; }
+
+/* ── content pages ─────────────────────────────────────────────────────── */
+
+.page {
+  max-width: 44rem;                /* ~65ch of body type */
+  margin: 0 auto;
+  padding: 0 20px 72px;
+}
+/* The lookbook's cases are diagrams, not prose — the 65ch column that suits
+   every other page would squeeze a wide diagram down to nothing. Install shares
+   the frame so the header and footer do not jump width as you move between
+   them. */
+.page.wide { max-width: 68rem; }
+/* …but a 68rem frame is for the things that need it — diagrams, code, tables.
+   Running text does not become readable just because there is room for a
+   140-character line, so prose keeps its measure inside the wider page and
+   left-aligns on the same axis as the header's wordmark. `ch` is the width of
+   "0", narrower than the average glyph, so 62ch of Inter measures out at about
+   75 characters — where a literal 70ch landed at 86. */
+.page.wide main > p,
+.page.wide main > ul,
+.page.wide main > .table-scroll,
+.page.wide .lb-case > p { max-width: 62ch; }
+.site-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 18px 0;
+  margin-bottom: clamp(20px, 6vw, 48px);
+  border-bottom: 1px solid var(--line);
+}
+.site-header .home {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--fg);
+  font-weight: 500;
+  letter-spacing: -0.01em;
+}
+.site-header .home:hover { text-decoration: none; }
+.site-header nav {
+  margin-left: auto;
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  row-gap: 4px;
+  column-gap: clamp(10px, 3vw, 24px);
+  font-size: 14px;
+}
+.site-header nav a { color: var(--muted); padding: 6px 2px; }
+.site-header nav a:hover { color: var(--fg); text-decoration: none; }
+.site-header nav a[href^="https://"] {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+.site-header nav a[href^="https://"]::after {
+  /* `/ ""` is alt text — the arrow is decoration, and without it the link's
+     accessible name reads "Docs ↗" */
+  content: "↗" / "";
+  font-size: 0.8em;
+  opacity: 0.6;
+}
+
+main h1 {
+  font-size: clamp(1.6rem, 5vw, 2.1rem);
+  letter-spacing: -0.02em;
+  line-height: 1.15;
+  margin: 0 0 0.4em;
+  text-wrap: balance;
+}
+main h2 {
+  font-size: 1.15rem;
+  letter-spacing: -0.01em;
+  margin: 2.2em 0 0.5em;
+}
+.lede { color: var(--muted); font-size: 1.05rem; margin: 0 0 2em; }
+
+main h3 {
+  font-size: 1rem;
+  letter-spacing: -0.005em;
+  margin: 1.8em 0 0.5em;
+}
+main p { margin: 0 0 1.1em; }
+
+.feature-list {
+  margin: 0 0 1.5em;
+  padding: 0;
+  list-style: none;
+  display: grid;
+  gap: 10px;
+}
+.feature-list li {
+  padding: 12px 0 12px 22px;
+  border-bottom: 1px solid var(--line);
+  position: relative;
+}
+.feature-list li::before {
+  content: "";
+  position: absolute;
+  left: 2px;
+  top: 20px;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--accent);
+}
+.feature-list li:last-child { border-bottom: none; }
+
+main table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.92rem;
+}
+main th, main td {
+  text-align: left;
+  padding: 8px 12px 8px 0;
+  border-bottom: 1px solid var(--line);
+  vertical-align: top;
+}
+main th { color: var(--muted); font-weight: 500; }
+.table-scroll { overflow-x: auto; }
+
+blockquote {
+  margin: 0 0 2em;
+  padding: 2px 0 2px 16px;
+  border-left: 3px solid var(--accent);
+  color: var(--muted);
+  font-style: italic;
+}
+
+.cards { display: grid; gap: 12px; padding: 0; margin: 0; list-style: none; }
+.cards a {
+  display: block;
+  padding: 16px 18px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: var(--surface);
+  color: var(--fg);
+}
+.cards a:hover { border-color: var(--accent); text-decoration: none; }
+.cards .t { font-weight: 500; letter-spacing: -0.01em; }
+.cards .d { color: var(--muted); font-size: 0.92rem; margin-top: 2px; }
+
+.site-footer {
+  margin-top: 72px;
+  padding-top: 20px;
+  border-top: 1px solid var(--line);
+  color: var(--muted);
+  font-size: 0.85rem;
+  display: flex;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+/* ── the landing ───────────────────────────────────────────────────────── */
+/* A two-column hero, not a full-viewport splash: the point of a diagrams
+   tool's front door is to show a diagram, so the first demo gif sits beside
+   the pitch instead of a scroll below it — nothing that matters is below
+   the fold on a typical laptop viewport. */
+
+.hero-body {
+  position: relative;
+  padding: clamp(48px, 9vh, 88px) 24px clamp(40px, 6vh, 64px);
+}
+.hero-grid {
+  position: relative;
+  z-index: 1;
+  max-width: 1180px;
+  margin: 0 auto;
+  display: grid;
+  grid-template-columns: minmax(280px, 440px) minmax(0, 1fr);
+  align-items: center;
+  gap: clamp(32px, 5vw, 64px);
+}
+/* The copy sits in its own centred block inside the left column rather than
+   hugging the gutter: the column is a `minmax(280px, 440px)` track, so at wide
+   viewports it is wider than the text wants to be, and left-aligning left the
+   lockup adrift from the tagline beneath it. Centring the box — while the text
+   inside stays ragged-right — keeps the mark, the sentence and the demo on one
+   optical axis without turning the whole hero into centred type. */
+.hero-copy {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: clamp(16px, 3vh, 26px);
+  width: 100%;
+  /* the lines centre too, not just their box: left-aligned ragged text puts its
+     optical mass to the left, so a perfectly centred lockup still reads as
+     offset from the paragraph under it */
+  text-align: center;
+}
+.hero-copy > * { width: fit-content; max-width: 100%; }
+/* Two columns only: centre the copy on the GIF itself, not on the <figure>.
+   The figure is image + caption, so plain centring drags the copy down by half
+   the caption's height and the lockup no longer lines up with the picture it
+   sits beside. Giving the caption a reserved height makes the compensation
+   exact rather than dependent on how it happens to wrap, and a bottom margin on
+   a centre-aligned grid item shifts its border box up by half that margin — so
+   margin-bottom = the caption block's full height lands the copy's centre
+   exactly on the image's. */
+@media (min-width: 861px) {
+  .hero-grid {
+    --cap: 62px; /* room for a two-line caption plus its gap */
+    padding-bottom: var(--cap);
+  }
+  /* Lifting the caption out of flow leaves the figure exactly as tall as the
+     image, so `align-items: center` lands the copy on the image's centre by
+     construction — no compensation to keep in sync with how the caption wraps.
+     The grid's padding-bottom reserves the space it used to occupy, so nothing
+     below moves. */
+  .hero-demo { position: relative; }
+  .hero-demo figcaption {
+    position: absolute;
+    top: 100%;
+    left: 0;
+    right: 0;
+  }
+}
+
+/* The landing gets the layered mark, stacked over the wordmark rather than
+   beside it — the stack is portrait, so setting it next to the type would have
+   forced it down to the wordmark's cap height, which is well under the ~48px
+   where its planes stop reading as planes. Sized by height, since height is
+   what has to stay in proportion to the type below it. */
+.hero-brand {
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: clamp(10px, 1.6vh, 18px);
+}
+.hero-brand .mark { height: clamp(92px, 11vw, 136px); width: auto; }
+.hero-brand .name {
+  font-size: clamp(1.9rem, 3.4vw, 2.5rem);
+  font-weight: 600;
+  letter-spacing: -0.04em;
+  line-height: 1;
+  color: var(--fg);
+}
+.hero-copy .tagline {
+  margin: 0;
+  max-width: 32rem;
+  color: var(--muted);
+  font-size: clamp(1rem, 1.6vw, 1.12rem);
+  text-wrap: balance;
+}
+
+/* A full-width row below the hero grid, not crammed into the copy column —
+   four equal CTAs read as one deliberate row instead of a cramped 2x2. */
+.hero-cta {
+  position: relative;
+  z-index: 1;
+  max-width: 1180px;
+  margin: clamp(28px, 5vh, 48px) auto 0;
+}
+.hero-links {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 12px;
+  padding: 0;
+  margin: 0;
+  list-style: none;
+}
+/* Four identical outlined boxes gave the row no hierarchy — every destination
+   shouted equally and the whole thing read as a form, not an invitation. So
+   one primary and three quiet ones.
+   The hairline is painted rather than bordered: a transparent border with two
+   backgrounds (surface clipped to the padding box, the ramp to the border box)
+   lets the brand gradient sit *in* the 1px edge, which a plain border-color
+   cannot do. It costs nothing until hover, when the ramp fades up. */
+.hero-links a {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  min-width: 138px;
+  padding: 13px 22px;
+  border: 1px solid transparent;
+  border-radius: 12px;
+  background:
+    linear-gradient(var(--surface), var(--surface)) padding-box,
+    linear-gradient(var(--line), var(--line)) border-box;
+  color: var(--fg);
+  font-weight: 500;
+  letter-spacing: -0.01em;
+  text-align: center;
+  box-shadow: 0 1px 2px rgba(20, 20, 22, 0.05);
+  transition: transform 0.18s ease, box-shadow 0.18s ease, background 0.18s ease;
+}
+.hero-links a:hover {
+  text-decoration: none;
+  transform: translateY(-2px);
+  background:
+    linear-gradient(var(--surface), var(--surface)) padding-box,
+    linear-gradient(135deg, #C441FE, #3585FF 55%, #15B6FF) border-box;
+  box-shadow: 0 10px 22px -12px rgba(28, 28, 32, 0.45);
+}
+
+/* The one thing we actually want clicked wears the ramp itself.
+   `border-box` is load-bearing: in the `background` shorthand a single <box>
+   sets background-origin as well as -clip. Without it the gradient is sized to
+   the padding box but painted across the border box, so the inherited 1px
+   transparent border shows the ramp's end colours stretched into a bright
+   magenta/cyan rim around the whole button. */
+.hero-links a.primary {
+  background: linear-gradient(135deg, #C441FE, #3585FF 55%, #15B6FF) border-box;
+  color: #fff;
+  border-color: transparent;
+  font-weight: 600;
+  box-shadow: 0 1px 2px rgba(20, 20, 22, 0.12), 0 10px 26px -12px rgba(120, 88, 255, 0.75);
+}
+.hero-links a.primary:hover {
+  background: linear-gradient(135deg, #C441FE, #3585FF 55%, #15B6FF) border-box;
+  box-shadow: 0 2px 4px rgba(20, 20, 22, 0.14), 0 16px 34px -12px rgba(120, 88, 255, 0.9);
+}
+/* the arrow leans into the direction of travel on hover */
+.hero-links a.primary::after {
+  /* the `/ ""` is alt text: it keeps a decorative glyph out of the link's
+     accessible name, which otherwise reads "Playground →" */
+  content: "→" / "";
+  font-size: 0.95em;
+  transition: transform 0.18s ease;
+}
+.hero-links a.primary:hover::after { transform: translateX(3px); }
+
+/* same "you're leaving the site" signal the top nav gives external links */
+.hero-links a[href^="https://"]::after {
+  content: "↗" / "";
+  font-size: 0.8em;
+  opacity: 0.55;
+}
+
+/* Capped, not left to fill the 1fr track: an uncapped demo image at
+   ~940:780 grows tall enough on a wide monitor to push the CTA row off a
+   720p-tall laptop viewport — the whole point of putting it beside the copy
+   instead of below it. */
+.hero-demo { margin: 0; max-width: 520px; justify-self: center; }
+.hero-demo picture {
+  display: block;
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  background: var(--surface);
+  overflow: hidden;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04);
+}
+.hero-demo img { display: block; width: 100%; height: auto; }
+.hero-demo figcaption {
+  margin-top: 10px;
+  color: var(--muted);
+  font-size: 0.88rem;
+  text-align: center;
+  text-wrap: balance;
+}
+
+.landing-foot {
+  text-align: center;
+  color: var(--muted);
+  font-size: 0.85rem;
+  padding: 0 24px 56px;
+}
+.landing-foot a { color: var(--muted); text-decoration: underline; text-underline-offset: 3px; }
+
+/* Once the hero stacks there is no left column to align to, so everything
+   centres on one axis: the lockup, the tagline and the demo.
+   This block has to sit AFTER the rules it overrides — it used to be declared
+   above `.hero-copy`, where the later `align-items: flex-start` silently won
+   on equal specificity and left the mark jammed against the left edge while
+   the tagline's *text* centred inside a left-aligned box. */
+@media (max-width: 860px) {
+  .hero-grid {
+    grid-template-columns: 1fr;
+    text-align: center;
+    gap: clamp(28px, 5vh, 40px);
+  }
+  .hero-copy { align-items: center; }
+  /* the demo no longer shares the row, so let it use the column's full width
+     up to its natural size rather than staying pinned to the 520px cap */
+  .hero-demo { max-width: min(560px, 100%); }
+}
+
+/* Two brand-hue glows drifting over the hero (the dot grid itself lives on
+   body#home so it runs the full page without a seam at the hero's edge).
+   Unclipped on purpose: each glow already fades to transparent within its
+   own radius, so letting it bleed past the hero box into the showcase below
+   reads as one continuous background, not a hard-edged panel. Designed per
+   theme, not inverted — light keeps the glows barely-there so the page
+   still reads as paper; dark lets them carry the room. */
+.bg {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+}
+.bg::before, .bg::after {
+  content: "";
+  position: absolute;
+  width: 60vmax;
+  height: 60vmax;
+  border-radius: 50%;
+  filter: blur(90px);
+}
+.bg::before {
+  background: radial-gradient(closest-side, rgba(196, 65, 254, 0.16), transparent 70%);
+  top: -18vmax;
+  left: -12vmax;
+  animation: drift-a 26s ease-in-out infinite alternate;
+}
+.bg::after {
+  background: radial-gradient(closest-side, rgba(21, 182, 255, 0.16), transparent 70%);
+  bottom: -20vmax;
+  right: -14vmax;
+  animation: drift-b 32s ease-in-out infinite alternate;
+}
+html[data-theme="dark"] .bg::before {
+  background: radial-gradient(closest-side, rgba(196, 65, 254, 0.28), transparent 70%);
+}
+html[data-theme="dark"] .bg::after {
+  background: radial-gradient(closest-side, rgba(21, 182, 255, 0.26), transparent 70%);
+}
+@keyframes drift-a {
+  from { transform: translate(0, 0) scale(1); }
+  to   { transform: translate(9vmax, 6vmax) scale(1.12); }
+}
+@keyframes drift-b {
+  from { transform: translate(0, 0) scale(1.08); }
+  to   { transform: translate(-8vmax, -5vmax) scale(1); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .bg::before, .bg::after { animation: none; }
+  .hero-links a:hover { transform: none; }
+}
+
+/* ── the showcase (landing demo gifs) ────────────────────────────────────── */
+
+.showcase {
+  position: relative;
+  z-index: 1;                  /* clear of the hero glow bleeding down from above */
+  max-width: 68rem;
+  margin: 0 auto;
+  padding: clamp(8px, 2vh, 24px) 20px 96px;
+  display: grid;
+  gap: clamp(20px, 4vw, 32px);
+}
+.showcase h2 {
+  margin: 0;
+  text-align: center;
+  font-size: clamp(1.3rem, 2.6vw, 1.7rem);
+  font-weight: 600;
+  letter-spacing: -0.025em;
+  color: var(--fg);
+}
+.demo {
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 14px;
+  text-align: center;
+}
+.demo picture {
+  display: block;
+  width: 100%;
+  max-width: 900px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: var(--surface);
+  overflow: hidden;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04);
+}
+.demo img { display: block; width: 100%; height: auto; }
+.demo figcaption {
+  max-width: 42rem;
+  color: var(--muted);
+  font-size: 0.95rem;
+  text-wrap: balance;
+}
+
+/* ── the lookbook ──────────────────────────────────────────────────────── */
+
+.lb-case {
+  padding-top: 2.4em;
+  margin-top: 2.4em;
+  border-top: 1px solid var(--line);
+}
+.lb-case:first-of-type { border-top: none; margin-top: 0; padding-top: 0; }
+.lb-case h2 {
+  margin-top: 0;
+  scroll-margin-top: 20px;         /* clears the sticky-feeling header on #anchor jumps */
+}
+.lb-source { margin: -0.4em 0 1.2em; font-size: 0.85rem; }
+.lb-source a {
+  font-family: "IBM Plex Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
+  color: var(--muted);
+}
+.lb-source a:hover { color: var(--fg); }
+
+.shots {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16px;
+  margin: 0;
+  padding: 0;
+}
+.shot {
+  flex: 0 1 auto;
+  width: fit-content;
+  max-width: 100%;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: var(--surface);
+  padding: 10px;
+  overflow-x: auto;                 /* a case wider than the column scrolls, the page never does */
+}
+.shot figcaption {
+  font-family: "IBM Plex Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 0.78rem;
+  color: var(--muted);
+  margin: 0 0 8px 2px;
+}
+.shot img { display: block; height: auto; max-width: none; }
+/* a case rendered wide (the deep chains, the dense meshes) is the point —
+   let it run at its natural size inside the scrollable shot rather than
+   shrinking to fit, which is what made those cases hard to read in the
+   lookbook grid in the first place */
+.shot img { width: auto; }
+@media (max-width: 640px) {
+  .shot { width: 100%; }
+}

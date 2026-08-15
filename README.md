@@ -1,11 +1,8 @@
 <p align="center">
-  <picture>
-    <source media="(prefers-color-scheme: dark)" srcset="docs/assets/logo-dark.png">
-    <img src="docs/assets/logo-light.png" alt="Squinch — AI-Native Architecture Diagrams" width="500">
-  </picture>
+  <img src="docs/assets/mark-stack.svg" alt="Squinch — AI-Native Architecture Diagrams" width="190">
 </p>
 
-# Squinch
+# squinch
 
 <p align="center">
   <a href="https://github.com/jquatier/squinch/actions/workflows/ci.yml"><img src="https://github.com/jquatier/squinch/actions/workflows/ci.yml/badge.svg" alt="CI"></a>

@@ -1,0 +1,103 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Install — Squinch</title>
+    <meta name="description" content="Install the Squinch CLI from npm, add the agent skill or Claude Code plugin, sideload the VS Code extension, and wire the CI actions." />
+    <link rel="canonical" href="https://squinch.cc/install/" />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+    <meta name="theme-color" media="(prefers-color-scheme: light)" content="#FBFBFA" />
+    <meta name="theme-color" media="(prefers-color-scheme: dark)" content="#141416" />
+    <meta property="og:type" content="website" />
+    <meta property="og:title" content="Install — Squinch" />
+    <meta property="og:description" content="One npm package; the first render is two commands." />
+    <meta property="og:image" content="https://squinch.cc/og.png" />
+    <meta property="og:url" content="https://squinch.cc/install/" />
+    <meta name="twitter:card" content="summary_large_image" />
+    <script>
+      const mq = matchMedia("(prefers-color-scheme: dark)");
+      const stamp = () => (document.documentElement.dataset.theme = mq.matches ? "dark" : "light");
+      stamp();
+      mq.addEventListener("change", stamp);
+    </script>
+    <link rel="stylesheet" href="/src/site.css" />
+  </head>
+  <body>
+    <div class="page wide">
+      <header class="site-header">
+        <a class="home" href="/"><img src="/favicon.svg" alt="" width="20" height="20" /> squinch</a>
+        <nav aria-label="Site">
+          <a href="/install/" aria-current="page">Install</a>
+          <a href="https://github.com/jquatier/squinch">Docs</a>
+          <a href="/lookbook/">Lookbook</a>
+          <a href="/playground/">Playground</a>
+          <a href="https://github.com/jquatier/squinch">GitHub</a>
+        </nav>
+      </header>
+      <main>
+        <h1>Install</h1>
+        <p class="lede">The CLI is one package, and the first render is two commands.</p>
+
+        <pre><code>npm i -g squinch          # or run everything through npx squinch &lt;cmd&gt;
+
+squinch init my-diagrams
+squinch render my-diagrams --sync</code></pre>
+        <p>macOS, Linux and Windows, on Node ≥ 22.</p>
+
+        <h2>The agent skill</h2>
+        <p>
+          <code>npx squinch skill</code> in your project writes
+          <code>.agents/skills/</code> (plus <code>.claude/skills/</code> when it
+          detects Claude Code); <code>--global</code> installs for your account,
+          <code>--print</code> emits SKILL.md for any other harness. Then ask
+          your agent for a diagram in plain language.
+        </p>
+
+        <h2>The Claude Code plugin</h2>
+        <p>The same skill without touching your repo — updates arrive with the plugin:</p>
+        <pre><code>/plugin marketplace add jquatier/squinch
+/plugin install squinch@squinch</code></pre>
+
+        <h2>The VS Code extension</h2>
+        <p>
+          Download <code>squinch-vscode-&lt;version&gt;.vsix</code> from
+          <a href="https://github.com/jquatier/squinch/releases">GitHub Releases</a>
+          and <code>code --install-extension</code> it. The same file installs in
+          Cursor, Windsurf and VSCodium.
+        </p>
+
+        <h2>CI</h2>
+        <p>
+          <code>uses: jquatier/squinch/.github/actions/squinch-check@main</code>
+          fails the build when a committed SVG is stale;
+          <a href="https://github.com/jquatier/squinch/tree/main/.github/actions/squinch-diff">squinch-diff</a>
+          comments what changed, architecturally, on the PR. Pin the
+          <code>version</code> input: rendering is deterministic
+          <em>per tool version</em>.
+        </p>
+
+        <h2>The commands</h2>
+        <p>A path can be a single file or a directory — a directory is one project, and its files share a namespace.</p>
+        <div class="table-scroll">
+          <table>
+            <tbody>
+              <tr><th scope="row"><code>check</code></th><td>parse + lint; <code>--format json</code> for agents</td></tr>
+              <tr><th scope="row"><code>render</code></th><td><code>--view</code>, <code>--theme</code>, <code>--adaptive</code>, <code>--sync</code>, <code>--check</code>; <code>-o out.png</code> rasterizes, <code>-o out.html</code> exports the interactive viewer</td></tr>
+              <tr><th scope="row"><code>diff</code></th><td>semantic model diff — <code>--base &lt;ref&gt;</code>, <code>--format markdown</code>, <code>--fail-on structural|any</code> for CI</td></tr>
+              <tr><th scope="row"><code>icons search</code></th><td>find an icon id across installed packs</td></tr>
+              <tr><th scope="row"><code>init</code></th><td>scaffold a starter project</td></tr>
+              <tr><th scope="row"><code>skill</code></th><td>install the agent skill</td></tr>
+              <tr><th scope="row"><code>watch</code></th><td>re-render on change</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </main>
+      <footer class="site-footer">
+        <a href="https://github.com/jquatier/squinch">GitHub</a>
+        <span>Apache-2.0</span>
+      </footer>
+    </div>
+  </body>
+</html>

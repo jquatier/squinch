@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- squinch.cc is the live domain. robots.txt and every page's canonical and
+     og:url carry the same origin, so a move means changing them together. -->
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+  <url><loc>https://squinch.cc/</loc></url>
+  <url><loc>https://squinch.cc/install/</loc></url>
+  <url><loc>https://squinch.cc/lookbook/</loc></url>
+  <url><loc>https://squinch.cc/playground/</loc></url>
+</urlset>

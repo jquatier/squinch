@@ -4,12 +4,14 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "dev": "npm run sync-examples && npm run sync-packs && vite",
-    "build": "npm run sync-examples && npm run sync-packs && vite build",
+    "dev": "npm run sync-examples && npm run sync-packs && npm run sync-lookbook && npm run sync-media && vite",
+    "build": "npm run sync-examples && npm run sync-packs && npm run sync-lookbook && npm run sync-media && vite build",
     "preview": "vite preview",
     "typecheck": "tsc --noEmit",
     "sync-examples": "tsx scripts/sync-examples.ts",
     "sync-packs": "tsx scripts/sync-packs.ts",
+    "sync-lookbook": "tsx scripts/sync-lookbook.ts",
+    "sync-media": "tsx scripts/sync-media.ts",
     "test": "vitest run",
     "test:e2e": "playwright test"
   },

@@ -1,0 +1,53 @@
+/* The theme tokens — one palette for the whole site AND the playground
+   (DESIGN.md §10 chrome roles). `data-theme` on <html> picks the set; the
+   site pages stamp it from prefers-color-scheme, the playground from its
+   own persisted toggle. Split out of index.css so the static site pages can
+   import the palette without the playground's layout rules. */
+:root,
+html[data-theme="light"] {
+  --chrome: #FBFBFA;
+  --surface: #FFFFFF;
+  --canvas: #F7F7F5;
+  --line: #E4E3DF;
+  --line-strong: #CFCEC9;
+  --chip: #F0EFEC;
+  --fg: #1C1C1A;
+  --muted: #6F6E69;
+  --accent: #5A57C9;
+  --error: #B3261E;
+  --warn: #8A6100;
+  --dot: #E8E7E3;
+  --active: #F7F7F5;
+  --gutter: #B5B4AE;
+  --sq-accent: #5A57C9;
+  --sq-string: #7A5C00;
+  --sq-tag: #8A4FBF;
+  --sq-arrow: #1C1C1A;
+  --sq-icon: #216B54;
+  --sq-prop: #6F6E69;
+  --sq-muted: #9C9B95;
+}
+
+html[data-theme="dark"] {
+  --chrome: #141416;
+  --surface: #1A1A1D;
+  --canvas: #161618;
+  --line: #2C2C30;
+  --line-strong: #46464C;
+  --chip: #242428;
+  --fg: #EDEDEA;
+  --muted: #9C9B94;
+  --accent: #8B88E8;
+  --error: #F2857C;
+  --warn: #D9B168;
+  --dot: #222226;
+  --active: #1E1E22;
+  --gutter: #4A4A50;
+  --sq-accent: #8B88E8;
+  --sq-string: #D9B168;
+  --sq-tag: #C79BE8;
+  --sq-arrow: #EDEDEA;
+  --sq-icon: #6FCFAA;
+  --sq-prop: #9C9B94;
+  --sq-muted: #6C6B66;
+}

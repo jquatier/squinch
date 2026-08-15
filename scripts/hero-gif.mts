@@ -50,8 +50,11 @@ const W = 900, H = 620, PAD = 28;
 const PAD_V = 14;
 /** Gap above the wordmark, and below it. */
 const LOGO_GAP = 8, LOGO_BOTTOM = 16;
-/** Displayed width of the wordmark; its height follows from the asset. */
-const LOGO_W = 132;
+/** Displayed width of the mark; its height follows from the asset. Sized so
+ *  the mark stands ~64px tall: the old wide lockup was 132 across but only
+ *  ~53 tall, and mark-stack.svg is portrait, so carrying the width over would
+ *  have tripled the reserved footer band and squeezed the diagram. */
+const LOGO_W = 56;
 /** A reserved strip along the bottom for the wordmark. Without it the diagram
  *  fills the full height and the landscape's bottom row collides with the
  *  logo — the artwork is centred, so there is no corner it reliably avoids.
@@ -298,19 +301,16 @@ const build = async (theme: string) => {
   rmSync(tmp, { recursive: true, force: true });
   mkdirSync(tmp, { recursive: true });
 
-  // logo-dark.png is the *dark-mode* variant (light ink), which is what the
-  // dark frames need — the same pairing the README's <picture> uses.
-  // The logo assets have no alpha — light sits on #FDFDFD, dark on #000000 —
-  // so dropped straight in, each shows as a pale or black box against the
-  // canvas. Key the flat background out. Verified not to punch holes in the
-  // mark: nothing inside it is pure white or pure black.
-  const small = join(tmp, "logo.png");
-  const key = theme === "dark" ? "0x000000" : "0xFDFDFD";
-  // 2x the display size, so resvg has pixels to sample down from
-  execFileSync("ffmpeg", ["-y", "-hide_banner", "-loglevel", "error",
-    "-i", join(root, `docs/assets/logo-${theme}.png`),
-    "-vf", `scale=${LOGO_W * 2}:-1,colorkey=${key}:0.12:0.0,format=rgba`, small]);
-  const raw = readFileSync(small);
+  // The mark comes from the vector, one asset for both themes: mark-stack.svg
+  // is drawn to read on either ground and carries real transparency, so there
+  // is no flat background to remove. This replaced a pair of PNG exports that
+  // had to be colour-keyed (light on #FDFDFD, dark on #000000) to fake an
+  // alpha channel — a step that only worked because nothing inside the mark
+  // was pure white or pure black.
+  // 2x the display size, so resvg has pixels to sample down from.
+  const raw = svgToPng(readFileSync(join(root, "docs/assets/mark-stack.svg"), "utf8"), {
+    width: LOGO_W * 2,
+  });
   // PNG IHDR: width and height are big-endian u32 at bytes 16 and 20
   const lw = raw.readUInt32BE(16), lh = raw.readUInt32BE(20);
   MARK = {

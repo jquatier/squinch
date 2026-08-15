@@ -16,18 +16,12 @@ import { test, expect, type Page } from "@playwright/test";
 const canvas = (page: Page) => page.locator("main svg, .canvas svg").first();
 const nodes = (page: Page) => page.locator("[data-path]");
 
-// The first-visit greeting would sit over every control; these tests exercise
-// the working surface, so arrive as a returning visitor.
-test.beforeEach(({ page }) =>
-  page.addInitScript(() => localStorage.setItem("squinch:welcomed", "1")),
-);
-
 test("loads, compiles and draws — with a clean console", async ({ page }) => {
   const errors: string[] = [];
   page.on("console", (m) => m.type() === "error" && errors.push(m.text()));
   page.on("pageerror", (e) => errors.push(String(e)));
 
-  await page.goto("/");
+  await page.goto("/playground/");
   await expect(canvas(page)).toBeVisible();
   await expect(nodes(page).first()).toBeVisible();
   await expect(page.getByText("No problems")).toBeVisible();
@@ -35,7 +29,7 @@ test("loads, compiles and draws — with a clean console", async ({ page }) => {
 });
 
 test("an example loads and its views appear as tabs", async ({ page }) => {
-  await page.goto("/");
+  await page.goto("/playground/");
   await page.getByRole("combobox").selectOption("Examples/Microservices");
 
   // the view bar is built from the compiled model, so its presence is evidence
@@ -46,7 +40,7 @@ test("an example loads and its views appear as tabs", async ({ page }) => {
 });
 
 test("switching view redraws the canvas", async ({ page }) => {
-  await page.goto("/");
+  await page.goto("/playground/");
   await page.getByRole("combobox").selectOption("Examples/Microservices");
   await expect(page.locator('[data-path="orders"]')).toBeVisible();
 
@@ -57,7 +51,7 @@ test("switching view redraws the canvas", async ({ page }) => {
 });
 
 test("clicking a card zooms, and the breadcrumb offers the way back", async ({ page }) => {
-  await page.goto("/");
+  await page.goto("/playground/");
   await page.getByRole("combobox").selectOption("Examples/Microservices");
   // the card, not its label: the click handler binds to closest([data-path]),
   // and a <text> glyph is not reliably the hit-test winner over the canvas rect
@@ -74,7 +68,7 @@ test("a syntax error reports itself and keeps the last good drawing", async ({ p
   // the failure this guards is a blank canvas mid-keystroke: the compile fails
   // on half-typed input constantly, and the editor would be unusable if the
   // picture vanished every time
-  await page.goto("/");
+  await page.goto("/playground/");
   await expect(nodes(page).first()).toBeVisible();
   const before = await nodes(page).count();
 
@@ -86,22 +80,9 @@ test("a syntax error reports itself and keeps the last good drawing", async ({ p
   await expect(nodes(page)).toHaveCount(before);
 });
 
-test("first visit greets once; Start dismisses; the wordmark reopens", async ({ browser, baseURL }) => {
-  // A genuinely fresh context: the file-level init script seeds the dismissal
-  // into every page of the shared context — including after a reload — so
-  // "clear and reload" can never simulate a first visit. A new context can.
-  const context = await browser.newContext({ baseURL });
-  const page = await context.newPage();
-  await page.goto("/");
-  const dialog = page.getByRole("dialog", { name: "Welcome to Squinch" });
-  await expect(dialog).toBeVisible();
-  await page.getByRole("button", { name: "Start" }).click();
-  await expect(dialog).not.toBeVisible();
-  // dismissal persists
-  await page.reload();
-  await expect(dialog).not.toBeVisible();
-  // and the wordmark brings it back on demand
-  await page.getByTitle("About Squinch").click();
-  await expect(dialog).toBeVisible();
-  await context.close();
+test("the wordmark takes you back to the landing", async ({ page }) => {
+  await page.goto("/playground/");
+  await page.getByTitle("Squinch — back to the site").click();
+  await expect(page).toHaveURL(/\/$/);
+  await expect(page.getByRole("heading", { name: "squinch" })).toBeVisible();
 });

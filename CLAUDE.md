@@ -80,9 +80,28 @@ extension all ship (see §Current phase).
 
 ## Layout of the workspace
 
-`apps/spa` — the playground (Vite/React/Tailwind; imports `@squinch/core/browser`
-and fetches pack icons from `public/`, which `scripts/sync-packs.ts` generates —
-those assets are build output, gitignored, never committed).
+`apps/spa` — the **site** (Vite/React/Tailwind), four HTML entries from one app:
+the landing at `/`, `/install/`, `/lookbook/` and the playground at
+`/playground/`. Only the playground is React; the rest are hand-set static
+documents sharing `src/tokens.css` via `src/site.css`. `/lookbook/` is generated
+from `lookbook/README.md` by `scripts/sync-lookbook.ts`. Everything the site
+serves out of `public/` is build output — pack icons (`scripts/sync-packs.ts`),
+the demo GIFs and the brand marks (`scripts/sync-media.ts`) — gitignored, never
+committed; only `og.png`, `apple-touch-icon.png`, `robots.txt` and `sitemap.xml`
+are real files there. Anything absolute must be anchored to
+`import.meta.env.BASE_URL`, or it breaks under a deploy sub-path.
+
+**The brand mark is drawn once**, in `docs/assets/mark.svg`, and nothing else
+holds a second copy of it. The site's `favicon.svg` is that file, copied at
+build time, and does double duty as tab icon and page logo. `mark-stack.svg` —
+the layered mark, for wherever the logo runs large — is *generated* from it by
+`scripts/mark-stack.mts`, lifting its paths **and** its gradient stops, so a
+recolour propagates by re-running rather than by remembering. The one copy that
+cannot be derived is `packages/vscode/icon.png` (a VSIX needs a raster), so it
+is asserted instead: `packages/cli/test/brand.test.ts` rasterises the SVG and
+demands pixel equality. Four byte-identical copies of the mark used to live in
+the tree, which was four chances for the brand to drift; two of them disagreed
+with the vector for three weeks.
 `packages/core` — the engine (see below).
 `packages/pack-aws` — 316 AWS icons
 (303 services + 13 group/boundary marks), verbatim + dual-licensed (see its NOTICE).
@@ -278,7 +297,11 @@ The architecture it certified is still enforced by the corpus invariant sweep.
   measurements report but never gate. `npx tsx scripts/bench.ts
   --update-baseline` re-records — do it in the same commit as the change that
   earned the cost. CI has no baseline, so there it is budgets only.
-- `pnpm --filter @squinch/spa dev` — playground on :5180 (`.claude/launch.json`).
+- `pnpm --filter @squinch/spa dev` — the site on :5180 (`.claude/launch.json`):
+  landing at `/`, playground at `/playground/`; one Vite app, four HTML entries.
+- `npx tsx scripts/mark-stack.mts` — regenerate the layered mark from
+  `docs/assets/mark.svg`. Maintainer-only; its header records the measurements
+  the shape was reconstructed from.
 - VS Code extension: <kbd>F5</kbd> ("Run Squinch extension") bundles core + the
   extension and opens `examples/` in a dev host; or
   `pnpm --filter squinch-vscode build`.

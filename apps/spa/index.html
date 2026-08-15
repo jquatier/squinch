@@ -1,13 +1,104 @@
 <!doctype html>
-<html lang="en" data-theme="light">
+<html lang="en">
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>Squinch — playground</title>
-    <meta name="description" content="Architecture diagrams as code. Everything runs in your browser; nothing is uploaded." />
+    <title>Squinch — architecture diagrams as code</title>
+    <meta name="description" content="A diagrams-as-code DSL that LLMs write fluently and humans control precisely. Real layout control, 1,302 vendor icons, C4-style zooming, deterministic SVG that lives in git." />
+    <link rel="canonical" href="https://squinch.cc/" />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+    <meta name="theme-color" media="(prefers-color-scheme: light)" content="#FBFBFA" />
+    <meta name="theme-color" media="(prefers-color-scheme: dark)" content="#141416" />
+    <meta property="og:type" content="website" />
+    <meta property="og:title" content="Squinch — architecture diagrams as code" />
+    <meta property="og:description" content="A diagrams-as-code DSL that LLMs write fluently and humans control precisely." />
+    <meta property="og:image" content="https://squinch.cc/og.png" />
+    <meta property="og:url" content="https://squinch.cc/" />
+    <meta name="twitter:card" content="summary_large_image" />
+    <script>
+      // theme follows the OS, before first paint and live thereafter
+      const mq = matchMedia("(prefers-color-scheme: dark)");
+      const stamp = () => (document.documentElement.dataset.theme = mq.matches ? "dark" : "light");
+      stamp();
+      mq.addEventListener("change", stamp);
+    </script>
+    <script type="application/ld+json">
+      {
+        "@context": "https://schema.org",
+        "@type": "SoftwareApplication",
+        "name": "Squinch",
+        "description": "Architecture diagrams as code, built for the age of AI agents.",
+        "applicationCategory": "DeveloperApplication",
+        "operatingSystem": "macOS, Linux, Windows",
+        "license": "https://www.apache.org/licenses/LICENSE-2.0",
+        "url": "https://squinch.cc/",
+        "sameAs": ["https://github.com/jquatier/squinch"]
+      }
+    </script>
+    <link rel="stylesheet" href="/src/site.css" />
   </head>
-  <body>
-    <div id="root"></div>
-    <script type="module" src="/src/main.tsx"></script>
+  <body id="home">
+    <div class="hero-body">
+      <div class="bg" aria-hidden="true"></div>
+      <div class="hero-grid">
+        <main class="hero-copy">
+          <h1 class="hero-brand">
+            <img class="mark" src="/mark-stack.svg" alt="" width="460" height="532" />
+            <span class="name">squinch</span>
+          </h1>
+          <p class="tagline">
+            Architecture diagrams as code, built for the age of AI agents — a DSL
+            that LLMs write fluently and humans control precisely, rendered as
+            deterministic SVG that lives in git next to the code it describes.
+          </p>
+        </main>
+        <figure class="hero-demo">
+          <picture>
+            <source media="(prefers-color-scheme: dark)" srcset="/prompt-dark.gif" />
+            <img
+              src="/prompt-light.gif"
+              width="940"
+              height="780"
+              alt="A paragraph is typed into a prompt box describing a products API on AWS. A status line reads Thinking, then Using squinch skill, then Finalizing diagram, and the finished diagram rises underneath it, every element from the sentence drawn with its real vendor icon."
+            />
+          </picture>
+          <figcaption>One paragraph in, a diagram out — the agent writes the model, Squinch renders it.</figcaption>
+        </figure>
+      </div>
+      <nav class="hero-cta" aria-label="Primary">
+        <ul class="hero-links">
+          <li><a href="/install/">Install</a></li>
+          <li><a href="https://github.com/jquatier/squinch">Docs</a></li>
+          <li><a href="/lookbook/">Lookbook</a></li>
+          <li><a class="primary" href="/playground/">Playground</a></li>
+        </ul>
+      </nav>
+    </div>
+
+    <section class="showcase" aria-labelledby="showcase-h">
+      <h2 id="showcase-h">Zoom into any system</h2>
+      <figure class="demo">
+        <picture>
+          <source media="(prefers-color-scheme: dark)" srcset="/zoom-dark.gif" />
+          <img
+            src="/zoom-light.gif"
+            width="900"
+            height="620"
+            loading="lazy"
+            alt="On a landscape of five systems, clicking a service card opens it into its own internals while the rest stay as muted context. The breadcrumb closes it again, and the view cuts to full detail with every system open at once before returning to the landscape."
+          />
+        </picture>
+        <figcaption>
+          Click a system to go inside it, the breadcrumb to come back up — any
+          system opens, the altitude is a property of the model, not a second diagram.
+        </figcaption>
+      </figure>
+    </section>
+
+    <footer class="landing-foot">
+      <a href="https://github.com/jquatier/squinch">GitHub</a>
+      &nbsp;·&nbsp; Apache-2.0
+    </footer>
   </body>
 </html>

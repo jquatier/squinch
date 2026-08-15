@@ -2,11 +2,11 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Editor, type EditorApi } from "./Editor";
 import { IconPalette } from "./IconPalette";
 import { CreditsDialog } from "./Credits";
-import { WelcomeDialog } from "./Welcome";
-// The brand mark, cropped from docs/assets/logo.svg by viewBox alone — its
-// gradients are userSpaceOnUse against the original 1536x1024 coordinates, so
-// the window moves, never the paths.
-import markUrl from "./mark.svg";
+// The brand mark is served, not bundled: docs/assets/mark.svg is copied to
+// public/favicon.svg by scripts/sync-media.ts and does double duty as the tab
+// icon and the visible logo, here and on the static pages. One drawing, one
+// file — there used to be four byte-identical copies of it in the tree.
+const markUrl = `${import.meta.env.BASE_URL}favicon.svg`;
 import { Presenter } from "./Presenter";
 import { Stage, useReducedMotion, type Box, type Intent } from "./Stage";
 import { compile, decodeShare, encodeShare, ensureRenderable, svgToPng, type Preview } from "./squinch";
@@ -50,17 +50,6 @@ export function App() {
   const [editorOpen, setEditorOpen] = useState(true);
   const [paletteOpen, setPaletteOpen] = useState(false);
   const [creditsOpen, setCreditsOpen] = useState(false);
-  // First visit only — a returning author (stored source, share link, or a
-  // prior dismissal) goes straight to the editor.
-  const [welcomeOpen, setWelcomeOpen] = useState(
-    () => !localStorage.getItem("squinch:welcomed")
-      && !localStorage.getItem(STORAGE_KEY)
-      && !location.hash.slice(1).startsWith("s="),
-  );
-  const closeWelcome = useCallback(() => {
-    localStorage.setItem("squinch:welcomed", "1");
-    setWelcomeOpen(false);
-  }, []);
   const editorApi = useRef<EditorApi | null>(null);
   const [zoom, setZoom] = useState(1);
   const [fit, setFit] = useState(true);
@@ -319,17 +308,17 @@ export function App() {
   return (
     <div className="flex h-screen flex-col bg-[var(--chrome)] text-[var(--fg)]">
       <header className="flex items-center gap-3 border-b border-[var(--line)] px-4 py-2.5">
-        <button
-          className="flex cursor-pointer items-center gap-2"
-          onClick={() => setWelcomeOpen(true)}
-          title="About Squinch"
+        <a
+          className="flex items-center gap-2"
+          href={import.meta.env.BASE_URL}
+          title="Squinch — back to the site"
         >
           <img src={markUrl} width={18} height={18} alt="" />
           <span className="text-[13px] font-medium tracking-tight">squinch</span>
           <span className="rounded bg-[var(--chip)] px-1.5 py-0.5 text-[10px] text-[var(--muted)]">
             playground
           </span>
-        </button>
+        </a>
 
         <div className="ml-2 flex items-center gap-1">
           <button
@@ -500,6 +489,9 @@ export function App() {
               {copied}
             </div>
           )}
+          <div className="absolute bottom-3 left-3 z-10 text-[11px] text-[var(--muted)]">
+            nothing you draw ever leaves your browser
+          </div>
         </Stage>
       </main>
       <IconPalette
@@ -509,7 +501,6 @@ export function App() {
         onCredits={() => { setPaletteOpen(false); setCreditsOpen(true); }}
       />
       <CreditsDialog open={creditsOpen} onClose={() => setCreditsOpen(false)} />
-      <WelcomeDialog open={welcomeOpen} onClose={closeWelcome} />
     </div>
   );
 }
