@@ -307,6 +307,9 @@ export function App() {
 
   return (
     <div className="flex h-screen flex-col bg-[var(--chrome)] text-[var(--fg)]">
+      {/* offscreen, not decorative — the editor UI has no visible page title,
+          so this is the only thing giving the document an <h1> at all */}
+      <h1 className="sr-only">Squinch — playground</h1>
       <header className="flex items-center gap-3 border-b border-[var(--line)] px-4 py-2.5">
         <a
           className="flex items-center gap-2"

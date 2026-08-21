@@ -1,27 +1,20 @@
 <!doctype html>
-<html lang="en">
+<html lang="en" data-theme="dark">
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>Install — Squinch</title>
-    <meta name="description" content="Install the Squinch CLI from npm, add the agent skill or Claude Code plugin, sideload the VS Code extension, and wire the CI actions." />
+    <meta name="description" content="Add the Claude Code or Codex plugin, install the CLI from npm, or drop in the agent skill — same engine, four ways in." />
     <link rel="canonical" href="https://squinch.cc/install/" />
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
-    <meta name="theme-color" media="(prefers-color-scheme: light)" content="#FBFBFA" />
-    <meta name="theme-color" media="(prefers-color-scheme: dark)" content="#141416" />
+    <meta name="theme-color" content="#141416" />
     <meta property="og:type" content="website" />
     <meta property="og:title" content="Install — Squinch" />
     <meta property="og:description" content="One npm package; the first render is two commands." />
     <meta property="og:image" content="https://squinch.cc/og.png" />
     <meta property="og:url" content="https://squinch.cc/install/" />
     <meta name="twitter:card" content="summary_large_image" />
-    <script>
-      const mq = matchMedia("(prefers-color-scheme: dark)");
-      const stamp = () => (document.documentElement.dataset.theme = mq.matches ? "dark" : "light");
-      stamp();
-      mq.addEventListener("change", stamp);
-    </script>
     <link rel="stylesheet" href="/src/site.css" />
   </head>
   <body>
@@ -30,7 +23,6 @@
         <a class="home" href="/"><img src="/favicon.svg" alt="" width="20" height="20" /> squinch</a>
         <nav aria-label="Site">
           <a href="/install/" aria-current="page">Install</a>
-          <a href="https://github.com/jquatier/squinch">Docs</a>
           <a href="/lookbook/">Lookbook</a>
           <a href="/playground/">Playground</a>
           <a href="https://github.com/jquatier/squinch">GitHub</a>
@@ -38,8 +30,28 @@
       </header>
       <main>
         <h1>Install</h1>
-        <p class="lede">The CLI is one package, and the first render is two commands.</p>
+        <p class="lede">
+          However you reach for it — the plugin your agent already speaks,
+          the CLI directly, or the skill dropped straight into your repo —
+          it's the same engine underneath.
+        </p>
 
+        <h2>The Claude Code plugin</h2>
+        <p>No repo changes — updates arrive with the plugin instead of living in your tree:</p>
+        <pre><code>/plugin marketplace add jquatier/squinch
+/plugin install squinch@squinch</code></pre>
+
+        <h2>The Codex plugin</h2>
+        <p>
+          The same directory, packaged as an
+          <a href="https://agent-plugins.org">Agent Plugin</a> — Codex reads it,
+          and so do Cursor, Copilot, Kiro and VS Code:
+        </p>
+        <pre><code>codex plugin marketplace add jquatier/squinch
+codex plugin add squinch@squinch</code></pre>
+
+        <h2>The CLI</h2>
+        <p>One package, and the first render is two commands:</p>
         <pre><code>npm i -g squinch          # or run everything through npx squinch &lt;cmd&gt;
 
 squinch init my-diagrams
@@ -54,20 +66,6 @@ squinch render my-diagrams --sync</code></pre>
           home directory, <code>--print</code> emits SKILL.md for any other
           harness. Then ask your agent for a diagram in plain language.
         </p>
-
-        <h2>The Claude Code plugin</h2>
-        <p>The same skill without touching your repo — updates arrive with the plugin:</p>
-        <pre><code>/plugin marketplace add jquatier/squinch
-/plugin install squinch@squinch</code></pre>
-
-        <h2>The Codex plugin</h2>
-        <p>
-          The same directory, packaged as an
-          <a href="https://agent-plugins.org">Agent Plugin</a> — Codex reads it,
-          and so do Cursor, Copilot, Kiro and VS Code:
-        </p>
-        <pre><code>codex plugin marketplace add jquatier/squinch
-codex plugin add squinch@squinch</code></pre>
 
         <h2>The VS Code extension</h2>
         <p>

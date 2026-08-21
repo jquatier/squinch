@@ -24,11 +24,13 @@ body {
   font-size: 16px;
   line-height: 1.6;
 }
-/* The landing's dot grid runs the full page, not just the hero: one
-   background on <body> tiles seamlessly top to bottom, where two separate
-   per-section backgrounds would show a seam wherever a box height isn't a
-   multiple of 22px. */
-body#home {
+/* The dot grid runs every page, not just the landing's hero: one background
+   on <body> tiles seamlessly top to bottom, where two separate per-section
+   backgrounds would show a seam wherever a box height isn't a multiple of
+   22px. Site-wide rather than #home-only so install/lookbook/playground
+   read as the same product as the front door instead of a flatter, plainer
+   afterthought. */
+body {
   background-image: radial-gradient(var(--dot) 1px, transparent 1px);
   background-size: 22px 22px;
 }
@@ -60,9 +62,50 @@ pre code { background: none; padding: 0; }
 /* ── content pages ─────────────────────────────────────────────────────── */
 
 .page {
+  position: relative;
   max-width: 44rem;                /* ~65ch of body type */
   margin: 0 auto;
   padding: 0 20px 72px;
+}
+/* A quiet, static echo of the hero's TWO-glow drift, not the full animated
+   pair and not one glow dead centre — a single centred circle reads as a
+   blob sitting on the page; two off-axis ones bleeding past the edges (same
+   trick the hero uses) read as ambient light instead of a shape. Enough
+   that install/lookbook/playground feel like the same product as the front
+   door, not so much that a page of prose or diagrams fights it for
+   attention. Same z-index split the hero uses: a positioned z-index:0
+   element paints ABOVE in-flow static content per stacking-order rules
+   (CSS2.1 §E.2, step 3 before step 6), so the header/main/footer need their
+   own z-index:1 or the glow sits on top of the text instead of behind it. */
+.page::before, .page::after {
+  content: "";
+  position: absolute;
+  z-index: 0;
+  width: 620px;
+  height: 620px;
+  border-radius: 50%;
+  filter: blur(95px);
+  pointer-events: none;
+}
+.page > .site-header, .page > main, .page > .site-footer {
+  position: relative;
+  z-index: 1;
+}
+.page::before {
+  top: -220px;
+  left: -260px;
+  background: radial-gradient(closest-side, rgba(196, 65, 254, 0.11), transparent 72%);
+}
+.page::after {
+  top: -190px;
+  right: -280px;
+  background: radial-gradient(closest-side, rgba(21, 182, 255, 0.1), transparent 72%);
+}
+html[data-theme="dark"] .page::before {
+  background: radial-gradient(closest-side, rgba(196, 65, 254, 0.22), transparent 72%);
+}
+html[data-theme="dark"] .page::after {
+  background: radial-gradient(closest-side, rgba(21, 182, 255, 0.2), transparent 72%);
 }
 /* The lookbook's cases are diagrams, not prose — the 65ch column that suits
    every other page would squeeze a wide diagram down to nothing. Install shares
@@ -107,6 +150,9 @@ pre code { background: none; padding: 0; }
 }
 .site-header nav a { color: var(--muted); padding: 6px 2px; }
 .site-header nav a:hover { color: var(--fg); text-decoration: none; }
+/* the page you're on was visually identical to every link you could click
+   next — same muted grey as the rest of the row */
+.site-header nav a[aria-current="page"] { color: var(--fg); font-weight: 500; }
 .site-header nav a[href^="https://"] {
   display: inline-flex;
   align-items: center;
@@ -219,7 +265,7 @@ blockquote {
 
 .hero-body {
   position: relative;
-  padding: clamp(48px, 9vh, 88px) 24px clamp(40px, 6vh, 64px);
+  padding: clamp(48px, 9vh, 88px) clamp(24px, 4vw, 48px) clamp(40px, 6vh, 64px);
 }
 .hero-grid {
   position: relative;
@@ -324,8 +370,12 @@ blockquote {
 }
 @keyframes mark-posts { from { opacity: 0; } to { opacity: 0.4; } }
 
-.hero-brand:hover .sqs-layer { transform: translateY(var(--fold)); }
-.hero-brand:hover .sqs-posts { opacity: 0; }
+/* `.is-collapsed` is the scroll-driven twin of `:hover` — added by the
+   IntersectionObserver at the end of index.html when the mark scrolls out
+   of view, removed when it scrolls back in. Same collapsed pose, a
+   different trigger. */
+.hero-brand:hover .sqs-layer, .hero-brand.is-collapsed .sqs-layer { transform: translateY(var(--fold)); }
+.hero-brand:hover .sqs-posts, .hero-brand.is-collapsed .sqs-posts { opacity: 0; }
 
 /* What sits ON the lower two planes — the wired nodes and the components —
    clears out while the stack is folded, so the collapsed pose is three clean
@@ -335,7 +385,8 @@ blockquote {
    across the same window the planes take to separate, so the contents arrive
    *with* their plane rather than popping in after it has settled. */
 .hero-brand .sqs-nodes { transition: opacity 420ms ease-out 40ms; }
-.hero-brand:hover .sqs-nodes { opacity: 0; transition-duration: 170ms; transition-delay: 0ms; }
+.hero-brand:hover .sqs-nodes,
+.hero-brand.is-collapsed .sqs-nodes { opacity: 0; transition-duration: 170ms; transition-delay: 0ms; }
 
 @media (prefers-reduced-motion: reduce) {
   .hero-brand .sqs-layer,
@@ -458,8 +509,13 @@ blockquote {
 /* Capped, not left to fill the 1fr track: an uncapped demo image at
    ~940:780 grows tall enough on a wide monitor to push the CTA row off a
    720p-tall laptop viewport — the whole point of putting it beside the copy
-   instead of below it. */
-.hero-demo { margin: 0; max-width: 520px; justify-self: center; }
+   instead of below it. `justify-self: end`, not `center`: the right column
+   is wider than the capped image, and centring it inside that extra width
+   left a bigger gap to the window's right edge than the copy has on the
+   left — flush the image to the column's own right edge instead, which is
+   the grid's right edge, so both sides read the same inset as the copy's
+   flush-left column. */
+.hero-demo { margin: 0; max-width: 520px; justify-self: end; }
 .hero-demo picture {
   display: block;
   border: 1px solid var(--line);
@@ -499,8 +555,11 @@ blockquote {
   }
   .hero-copy { align-items: center; }
   /* the demo no longer shares the row, so let it use the column's full width
-     up to its natural size rather than staying pinned to the 520px cap */
-  .hero-demo { max-width: min(560px, 100%); }
+     up to its natural size rather than staying pinned to the 520px cap, and
+     go back to centred — `end` was only ever about matching the copy
+     column's inset, and there is no second column to match once this
+     stacks */
+  .hero-demo { max-width: min(560px, 100%); justify-self: center; }
 }
 
 /* Two brand-hue glows drifting over the hero (the dot grid itself lives on
@@ -562,30 +621,26 @@ html[data-theme="dark"] .bg::after {
   z-index: 1;                  /* clear of the hero glow bleeding down from above */
   max-width: 68rem;
   margin: 0 auto;
-  padding: clamp(8px, 2vh, 24px) 20px 96px;
-  display: grid;
-  gap: clamp(20px, 4vw, 32px);
+  padding: clamp(8px, 2vh, 24px) clamp(24px, 4vw, 48px) clamp(32px, 5vh, 56px);
 }
-.showcase h2 {
-  margin: 0;
-  text-align: center;
-  font-size: clamp(1.3rem, 2.6vw, 1.7rem);
-  font-weight: 600;
-  letter-spacing: -0.025em;
-  color: var(--fg);
+/* Mirrors .hero-grid rather than reusing it: the hero puts copy on the left
+   and the image on the right, so capping the image column here at the same
+   520px the hero image wears and putting it on the LEFT staggers the two
+   sections into a zigzag read down the page, instead of two stacked
+   centred blocks that read as one shape twice. */
+.showcase-grid {
+  display: grid;
+  grid-template-columns: minmax(280px, 520px) minmax(280px, 1fr);
+  align-items: center;
+  gap: clamp(32px, 5vw, 64px);
 }
 .demo {
   margin: 0;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 14px;
-  text-align: center;
+  width: 100%;
 }
 .demo picture {
   display: block;
   width: 100%;
-  max-width: 900px;
   border: 1px solid var(--line);
   border-radius: 12px;
   background: var(--surface);
@@ -593,11 +648,122 @@ html[data-theme="dark"] .bg::after {
   box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04);
 }
 .demo img { display: block; width: 100%; height: auto; }
-.demo figcaption {
-  max-width: 42rem;
+.showcase-copy {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+.showcase-copy h2 {
+  margin: 0;
+  font-size: clamp(1.3rem, 2.6vw, 1.7rem);
+  font-weight: 600;
+  letter-spacing: -0.025em;
+  color: var(--fg);
+}
+.showcase-copy p {
+  margin: 0;
+  max-width: 38rem;
+  color: var(--muted);
+  font-size: 1rem;
+  text-wrap: balance;
+}
+/* Below the hero's own breakpoint: same collapse, image on top, copy
+   centred beneath it — the zigzag only reads at widths wide enough to hold
+   two columns without cramping either. */
+@media (max-width: 860px) {
+  .showcase-grid {
+    grid-template-columns: 1fr;
+    text-align: center;
+    gap: clamp(20px, 4vh, 32px);
+  }
+  .demo { max-width: min(520px, 100%); margin: 0 auto; }
+  .showcase-copy { align-items: center; }
+  .showcase-copy p { max-width: 34rem; }
+}
+
+/* ── the feature list ────────────────────────────────────────────────────
+   A plain list, not a card grid — ten items in bordered boxes read heavier
+   than the two demo sections above them put together. Two columns of five,
+   a hairline between rows, a dot on each so the bold lead-ins still scan
+   quickly top to bottom. */
+.features {
+  position: relative;
+  z-index: 1;
+  max-width: 78rem;
+  margin: 0 auto;
+  padding: 0 clamp(24px, 5vw, 64px) clamp(40px, 6vh, 64px);
+}
+.features h2 {
+  margin: 0 0 clamp(20px, 4vh, 28px);
+  text-align: center;
+  font-size: clamp(1.3rem, 2.6vw, 1.7rem);
+  font-weight: 600;
+  letter-spacing: -0.025em;
+  color: var(--fg);
+}
+.feature-grid {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  column-gap: clamp(32px, 5vw, 56px);
+}
+.feature-grid li {
+  padding: 16px 0;
+  border-bottom: 1px solid var(--line);
+}
+/* the last row, not just the last item — in a 2-column grid the bottom-left
+   cell is second-to-last in source order and needs the same treatment as
+   the true last child, or only one side loses its border */
+.feature-grid li:nth-last-child(-n+2) { border-bottom: none; }
+@media (max-width: 640px) {
+  .feature-grid { grid-template-columns: 1fr; }
+  .feature-grid li:nth-last-child(-n+2) { border-bottom: 1px solid var(--line); }
+  .feature-grid li:last-child { border-bottom: none; }
+}
+/* flex + align-items: center, not an absolutely-positioned dot with a
+   guessed `top` offset — that guess drifted every time the surrounding font
+   size or line-height changed context. Centering against the actual line
+   box holds regardless. */
+.feature-grid li strong {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  margin: 0 0 4px;
+  color: var(--fg);
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  white-space: nowrap;
+}
+/* the dot marks the headline, which is short by design — this is the one
+   line it needs to fit, so the description below is free to wrap normally */
+.feature-grid li strong::before {
+  content: "";
+  flex: none;
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #C441FE, #3585FF 55%, #15B6FF);
+}
+.feature-grid li p {
+  margin: 0;
+  padding-left: 16px;
   color: var(--muted);
   font-size: 0.95rem;
-  text-wrap: balance;
+  line-height: 1.55;
+}
+.feature-grid li code { font-size: 0.88em; }
+
+/* The closing CTA reuses .hero-cta/.hero-links wholesale rather than a new
+   component — same button, same gradient, same arrow, so "get it now" reads
+   as the same promise as the hero's Playground link, not a second design.
+   Only the outer spacing is section-specific. */
+.final-cta {
+  max-width: 68rem;
+  margin: 0 auto;
+  padding: 0 clamp(24px, 4vw, 48px) clamp(56px, 9vh, 96px);
+  text-align: center;
 }
 
 /* ── the lookbook ──────────────────────────────────────────────────────── */
@@ -614,10 +780,27 @@ html[data-theme="dark"] .bg::after {
 }
 .lb-source { margin: -0.4em 0 1.2em; font-size: 0.85rem; }
 .lb-source a {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
   font-family: "IBM Plex Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
   color: var(--muted);
 }
 .lb-source a:hover { color: var(--fg); }
+/* the filename alone read as a citation, not a link — a "SOURCE" tag makes
+   what clicking it does obvious before the reader parses the path */
+.lb-source-badge {
+  padding: 1px 7px;
+  border-radius: 999px;
+  background: var(--chip);
+  color: var(--muted);
+  font-family: Inter, ui-sans-serif, system-ui, sans-serif;
+  font-size: 0.68rem;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+.lb-source a:hover .lb-source-badge { color: var(--fg); }
 
 .shots {
   display: flex;

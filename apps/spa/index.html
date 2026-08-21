@@ -1,28 +1,20 @@
 <!doctype html>
-<html lang="en">
+<html lang="en" data-theme="dark">
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>Squinch — architecture diagrams as code</title>
-    <meta name="description" content="A diagrams-as-code DSL that LLMs write fluently and humans control precisely. Real layout control, 1,302 vendor icons, C4-style zooming, deterministic SVG that lives in git." />
+    <meta name="description" content="A DSL your coding agent already writes fluently — real layout control, 1,302 vendor icons, and diagrams you can zoom into, from landscape to internals." />
     <link rel="canonical" href="https://squinch.cc/" />
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
-    <meta name="theme-color" media="(prefers-color-scheme: light)" content="#FBFBFA" />
-    <meta name="theme-color" media="(prefers-color-scheme: dark)" content="#141416" />
+    <meta name="theme-color" content="#141416" />
     <meta property="og:type" content="website" />
     <meta property="og:title" content="Squinch — architecture diagrams as code" />
     <meta property="og:description" content="A diagrams-as-code DSL that LLMs write fluently and humans control precisely." />
     <meta property="og:image" content="https://squinch.cc/og.png" />
     <meta property="og:url" content="https://squinch.cc/" />
     <meta name="twitter:card" content="summary_large_image" />
-    <script>
-      // theme follows the OS, before first paint and live thereafter
-      const mq = matchMedia("(prefers-color-scheme: dark)");
-      const stamp = () => (document.documentElement.dataset.theme = mq.matches ? "dark" : "light");
-      stamp();
-      mq.addEventListener("change", stamp);
-    </script>
     <script type="application/ld+json">
       {
         "@context": "https://schema.org",
@@ -51,7 +43,7 @@
             <span class="name">squinch</span>
           </h1>
           <p class="tagline">
-            Your coding agent already knows the architecture.
+            Your coding agent already knows the architecture.<br />
             <strong class="lede">Now it can draw it.</strong> Describe the
             system in a paragraph and Squinch renders it precisely: real
             layout control, vendor-accurate icons, and diagrams you can zoom
@@ -74,7 +66,7 @@
       <nav class="hero-cta" aria-label="Primary">
         <ul class="hero-links">
           <li><a href="/install/">Install</a></li>
-          <li><a href="https://github.com/jquatier/squinch">Docs</a></li>
+          <li><a href="https://github.com/jquatier/squinch">GitHub</a></li>
           <li><a href="/lookbook/">Lookbook</a></li>
           <li><a class="primary" href="/playground/">Playground</a></li>
         </ul>
@@ -82,28 +74,112 @@
     </div>
 
     <section class="showcase" aria-labelledby="showcase-h">
-      <h2 id="showcase-h">Zoom into any system</h2>
-      <figure class="demo">
-        <picture>
-          <source media="(prefers-color-scheme: dark)" srcset="/zoom-dark.gif" />
-          <img
-            src="/zoom-light.gif"
-            width="900"
-            height="620"
-            loading="lazy"
-            alt="On a landscape of five systems, clicking a service card opens it into its own internals while the rest stay as muted context. The breadcrumb closes it again, and the view cuts to full detail with every system open at once before returning to the landscape."
-          />
-        </picture>
-        <figcaption>
-          Click a system to go inside it, the breadcrumb to come back up — any
-          system opens, the altitude is a property of the model, not a second diagram.
-        </figcaption>
-      </figure>
+      <div class="showcase-grid">
+        <figure class="demo">
+          <picture>
+            <source media="(prefers-color-scheme: dark)" srcset="/zoom-dark.gif" />
+            <img
+              src="/zoom-light.gif"
+              width="900"
+              height="620"
+              loading="lazy"
+              alt="On a landscape of five systems, clicking a service card opens it into its own internals while the rest stay as muted context. The breadcrumb closes it again, and the view cuts to full detail with every system open at once before returning to the landscape."
+            />
+          </picture>
+        </figure>
+        <div class="showcase-copy">
+          <h2 id="showcase-h">Zoom into any system</h2>
+          <p>
+            Every system opens into its own internals with one click, and
+            zooms back out just as easily — landscape, service, and
+            everything between are views of one model, not separate diagrams
+            you have to keep in sync.
+          </p>
+        </div>
+      </div>
     </section>
+
+    <section class="features" aria-labelledby="features-h">
+      <h2 id="features-h">Everything included</h2>
+      <ul class="feature-grid">
+        <li>
+          <strong>1,302 vendor icons</strong>
+          <p>AWS, Azure, Kubernetes and product logos, not grey boxes with labels on them.</p>
+        </li>
+        <li>
+          <strong>Layout you can overrule</strong>
+          <p>Good diagrams with no hints at all; disagree, and you steer it with relative hints, never pixel coordinates.</p>
+        </li>
+        <li>
+          <strong>One model, many diagrams</strong>
+          <p>A landscape view, a per-service view, a filtered view for an audit, all from the same source, so they can't disagree with each other.</p>
+        </li>
+        <li>
+          <strong>Real deployment boundaries</strong>
+          <p>VPCs, subnets, cloud and on-prem zones, nested, tinted by kind, labelled where you'd expect.</p>
+        </li>
+        <li>
+          <strong>Numbered request flows</strong>
+          <p>Declare a flow and its steps are numbered along the edges, walkable one hop at a time.</p>
+        </li>
+        <li>
+          <strong>SVG, PNG, or HTML export</strong>
+          <p>The HTML carries every view with click-to-zoom and presentation mode, no server, no internet, nothing to install.</p>
+        </li>
+        <li>
+          <strong>A real VS Code extension</strong>
+          <p>Autocomplete, live errors with one-click fixes, and a preview that updates as you type.</p>
+        </li>
+        <li>
+          <strong>Reviewable in a PR</strong>
+          <p>The source is a handful of readable lines, and <code>squinch diff</code> spells out exactly what changed.</p>
+        </li>
+        <li>
+          <strong>Generated in CI</strong>
+          <p>A ready-made GitHub Action re-renders on every push, so the picture in your docs is never stale.</p>
+        </li>
+        <li>
+          <strong>Light and dark</strong>
+          <p>Dark is designed, not inverted, one file can carry both and switch with the reader's system theme.</p>
+        </li>
+      </ul>
+    </section>
+
+    <nav class="hero-cta final-cta" aria-label="Get started">
+      <ul class="hero-links">
+        <li><a class="primary" href="/install/">Get it now</a></li>
+      </ul>
+    </nav>
 
     <footer class="landing-foot">
       <a href="https://github.com/jquatier/squinch">GitHub</a>
       &nbsp;·&nbsp; Apache-2.0
     </footer>
+    <script>
+      // The mark folds up the moment it scrolls out of view — the collapsed
+      // pose the hover interaction already defines, now also driven by the
+      // scroll itself. Unfolding waits a beat: an instant expand lands while
+      // the reader's eyes are still arriving at the top of the page, so it
+      // reads as nothing happened; a short pause first gives the collapsed
+      // mark a moment to actually be seen before it opens.
+      // Skipped entirely under reduced motion, same as the hover fold.
+      if (!matchMedia("(prefers-reduced-motion: reduce)").matches && "IntersectionObserver" in window) {
+        const brand = document.querySelector(".hero-brand");
+        if (brand) {
+          let expandTimer;
+          new IntersectionObserver(
+            ([entry]) => {
+              clearTimeout(expandTimer);
+              if (entry.isIntersecting) {
+                expandTimer = setTimeout(() => brand.classList.remove("is-collapsed"), 400);
+              } else {
+                brand.classList.add("is-collapsed");
+              }
+            },
+            { threshold: 0.6 },
+          ).observe(brand);
+        }
+      }
+    </script>
   </body>
 </html>

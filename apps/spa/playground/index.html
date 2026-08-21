@@ -1,12 +1,35 @@
 <!doctype html>
-<html lang="en" data-theme="light">
+<html lang="en">
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>Squinch — playground</title>
     <meta name="description" content="Architecture diagrams as code. Everything runs in your browser; nothing is uploaded." />
+    <link rel="canonical" href="https://squinch.cc/playground/" />
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+    <meta name="theme-color" media="(prefers-color-scheme: light)" content="#FBFBFA" />
+    <meta name="theme-color" media="(prefers-color-scheme: dark)" content="#141416" />
+    <meta property="og:type" content="website" />
+    <meta property="og:title" content="Squinch — playground" />
+    <meta property="og:description" content="Architecture diagrams as code. Everything runs in your browser; nothing is uploaded." />
+    <meta property="og:image" content="https://squinch.cc/og.png" />
+    <meta property="og:url" content="https://squinch.cc/playground/" />
+    <meta name="twitter:card" content="summary_large_image" />
+    <script>
+      // Same source of truth App.tsx's theme useState reads on mount
+      // (localStorage "squinch:theme", falling back to the OS) — stamped here
+      // too so the first paint already matches instead of flashing light and
+      // then flipping once React's effect runs. No matchMedia change
+      // listener: unlike the static pages, this app doesn't live-follow the
+      // OS after mount either (an explicit choice, or the OS reading at
+      // load, wins until the next reload).
+      const stored = localStorage.getItem("squinch:theme");
+      document.documentElement.dataset.theme =
+        stored === "light" || stored === "dark"
+          ? stored
+          : matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
+    </script>
   </head>
   <body>
     <div id="root"></div>
