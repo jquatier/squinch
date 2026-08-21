@@ -100,6 +100,18 @@ for (const file of cases) {
   }
 }
 
+// The slug ("01-minimal") is what the Source: line and every image filename
+// key off — stable, and it's the real file on disk. The heading a human
+// reads on GitHub is derived from it rather than stored twice, so the two
+// can never drift apart: strip the ordinal, title-case what's left ("k8s"
+// capitalizes as one word, giving the conventional "K8s" rather than "K8S").
+const titleize = (name: string) =>
+  name
+    .replace(/^\d+-/, "")
+    .split("-")
+    .map((w) => w.charAt(0).toUpperCase() + w.slice(1))
+    .join(" ");
+
 // review grid: light/dark side by side per view
 const md: string[] = [
   "# Lookbook",
@@ -116,7 +128,7 @@ for (let i = 0; i < cells.length; ) {
   const group = cells.filter((c) => c.caseName === caseName);
   i += group.length;
 
-  md.push(`## ${caseName}`, "");
+  md.push(`## ${titleize(caseName)}`, "");
   if (group[0].description) md.push(group[0].description, "");
   md.push(`Source: [\`cases/${caseName}.squinch\`](cases/${caseName}.squinch)`, "");
   for (const c of group) {

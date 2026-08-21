@@ -30,7 +30,12 @@ mkdirSync(pageDir, { recursive: true });
 // markdown parser — is what lets this stay a few regexes: the format has one
 // author (build.ts) and one reader (this file).
 interface Shot { view?: string; light: string; dark: string }
-interface Case { name: string; description: string; shots: Shot[] }
+// `title` is the "## " heading text — build.ts writes it humanized ("Minimal")
+// for GitHub's own rendering of this file. `slug` is what anchors, ids, image
+// filenames and the source path key off — pulled from the "Source: `cases/
+// x.squinch`" line instead, since it's the real filename and the two must
+// never be conflated (linking to "cases/Minimal.squinch" would 404).
+interface Case { slug: string; title: string; description: string; shots: Shot[] }
 
 const md = readFileSync(join(lookbookDir, "README.md"), "utf8");
 const lines = md.split("\n");
@@ -38,7 +43,7 @@ const cases: Case[] = [];
 
 let i = lines.findIndex((l) => l.startsWith("## "));
 while (i !== -1 && i < lines.length) {
-  const name = lines[i].slice(3).trim();
+  const title = lines[i].slice(3).trim();
   i++;
   const block: string[] = [];
   while (i < lines.length && !lines[i].startsWith("## ")) block.push(lines[i++]);
@@ -47,12 +52,16 @@ while (i !== -1 && i < lines.length) {
   const description = (sourceAt === -1 ? block : block.slice(0, sourceAt)).join("\n").trim();
   const rest = (sourceAt === -1 ? [] : block.slice(sourceAt + 1)).join("\n");
 
+  const slugMatch = sourceAt === -1 ? null : /cases\/([^./]+)\.squinch/.exec(block[sourceAt]);
+  if (!slugMatch) throw new Error(`lookbook case "${title}" has no parseable Source: line`);
+  const slug = slugMatch[1];
+
   const shots: Shot[] = [];
   const shotRe =
     /(?:\*\*`([^`]+)`\*\*\n\n)?\|[^|\n]*\|[^|\n]*\|\n\|[-\s|]+\|\n\|\s*!\[\]\(out\/([^)\s]+)\)\s*\|\s*!\[\]\(out\/([^)\s]+)\)\s*\|/g;
   for (const m of rest.matchAll(shotRe)) shots.push({ view: m[1], light: m[2], dark: m[3] });
 
-  cases.push({ name, description, shots });
+  cases.push({ slug, title, description, shots });
 }
 
 // ── copy the images, and read their pixel size off their own <svg> tag ─────
@@ -100,22 +109,22 @@ const shotHtml = (c: Case, s: Shot) => {
           <picture>
             <source srcset="/lookbook/${s.dark}" media="(prefers-color-scheme: dark)">
             <img src="/lookbook/${s.light}" width="${l.w}" height="${l.h}" loading="lazy"
-                 alt="${escapeHtml(c.name)}${s.view ? ` — ${escapeHtml(s.view)}` : ""}, rendered by Squinch">
+                 alt="${escapeHtml(c.title)}${s.view ? ` — ${escapeHtml(s.view)}` : ""}, rendered by Squinch">
           </picture>
         </figure>`;
 };
 
 const caseHtml = (c: Case) => `
-      <section class="lb-case" id="${escapeHtml(c.name)}" aria-labelledby="${escapeHtml(c.name)}-h">
-        <h2 id="${escapeHtml(c.name)}-h">${escapeHtml(c.name)}</h2>
+      <section class="lb-case" id="${escapeHtml(c.slug)}" aria-labelledby="${escapeHtml(c.slug)}-h">
+        <h2 id="${escapeHtml(c.slug)}-h">${escapeHtml(c.title)}</h2>
 ${descriptionHtml(c.description)}
-        <p class="lb-source"><a href="${CASE_SRC(c.name)}">cases/${escapeHtml(c.name)}.squinch</a></p>
+        <p class="lb-source"><a href="${CASE_SRC(c.slug)}"><span class="lb-source-badge">Source</span>cases/${escapeHtml(c.slug)}.squinch</a></p>
         <div class="shots">${c.shots.map((s) => shotHtml(c, s)).join("")}
         </div>
       </section>`;
 
 const html = `<!doctype html>
-<html lang="en">
+<html lang="en" data-theme="dark">
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
@@ -124,20 +133,13 @@ const html = `<!doctype html>
     <link rel="canonical" href="https://squinch.cc/lookbook/" />
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
-    <meta name="theme-color" media="(prefers-color-scheme: light)" content="#FBFBFA" />
-    <meta name="theme-color" media="(prefers-color-scheme: dark)" content="#141416" />
+    <meta name="theme-color" content="#141416" />
     <meta property="og:type" content="website" />
     <meta property="og:title" content="Lookbook — Squinch" />
     <meta property="og:description" content="${cases.length} rendered reference cases, in both palettes." />
     <meta property="og:image" content="https://squinch.cc/og.png" />
     <meta property="og:url" content="https://squinch.cc/lookbook/" />
     <meta name="twitter:card" content="summary_large_image" />
-    <script>
-      const mq = matchMedia("(prefers-color-scheme: dark)");
-      const stamp = () => (document.documentElement.dataset.theme = mq.matches ? "dark" : "light");
-      stamp();
-      mq.addEventListener("change", stamp);
-    </script>
     <link rel="stylesheet" href="/src/site.css" />
   </head>
   <body>
@@ -146,7 +148,6 @@ const html = `<!doctype html>
         <a class="home" href="/"><img src="/favicon.svg" alt="" width="20" height="20" /> squinch</a>
         <nav aria-label="Site">
           <a href="/install/">Install</a>
-          <a href="https://github.com/jquatier/squinch">Docs</a>
           <a href="/lookbook/" aria-current="page">Lookbook</a>
           <a href="/playground/">Playground</a>
           <a href="https://github.com/jquatier/squinch">GitHub</a>
