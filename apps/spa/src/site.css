@@ -506,6 +506,20 @@ blockquote {
   opacity: 0.55;
 }
 
+/* Below the width where all four buttons fit on one line, flex-wrap's greedy
+   packing does whatever the exact button widths allow — often 3 up top and
+   Playground stranded alone on a row by itself. A fixed 2x2 grid is
+   deterministic regardless of label width, so that never happens. Scoped off
+   the primary row only: the closing CTA reuses .hero-links for a single
+   button, and a 2-column grid under one item just shoves it off-centre. */
+@media (max-width: 640px) {
+  .hero-cta:not(.final-cta) .hero-links {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+  }
+  .hero-cta:not(.final-cta) .hero-links a { min-width: 0; }
+}
+
 /* Capped, not left to fill the 1fr track: an uncapped demo image at
    ~940:780 grows tall enough on a wide monitor to push the CTA row off a
    720p-tall laptop viewport — the whole point of putting it beside the copy
@@ -694,7 +708,7 @@ html[data-theme="dark"] .bg::after {
   padding: 0 clamp(24px, 5vw, 64px) clamp(40px, 6vh, 64px);
 }
 .features h2 {
-  margin: 0 0 clamp(20px, 4vh, 28px);
+  margin: 0 0 clamp(8px, 2vh, 16px);
   text-align: center;
   font-size: clamp(1.3rem, 2.6vw, 1.7rem);
   font-weight: 600;
