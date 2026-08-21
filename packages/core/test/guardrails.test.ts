@@ -325,6 +325,16 @@ describe("the workspace ships one version", () => {
     expect(marketplace.plugins?.[0]?.source?.path).toBe("./packages/skill");
     expect(existsSync(join(root, "packages/skill/plugin.json")),
       "the marketplace's source is not an Agent Plugin — the root plugin.json is missing").toBe(true);
+
+    // Both policy fields are closed enums in Codex's parser, and a bad value
+    // rejects the *whole marketplace file* rather than the one entry — every
+    // plugin in it disappears. The variants, read off codex-cli 0.149.0 by
+    // feeding it a bogus value: installation is NOT_AVAILABLE | AVAILABLE |
+    // INSTALLED_BY_DEFAULT, authentication is ON_INSTALL | ON_USE. There is no
+    // "none" for a plugin that authenticates nothing, and `ON_FIRST_USE` —
+    // which OpenAI's own docs imply exists — is rejected.
+    expect(marketplace.plugins?.[0]?.policy?.installation).toBe("AVAILABLE");
+    expect(["ON_INSTALL", "ON_USE"]).toContain(marketplace.plugins?.[0]?.policy?.authentication);
   });
 
   it("the release workflow guards the tag against that version", () => {

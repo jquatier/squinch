@@ -37,9 +37,8 @@ Codex, and anything else that reads [Agent Plugins](https://agent-plugins.org)
 
 ```
 codex plugin marketplace add jquatier/squinch
+codex plugin add squinch@squinch
 ```
-
-then install `squinch` from the plugin list.
 
 Then ask for a diagram in plain language — the frontmatter's `description` is
 what makes it fire, so "draw the architecture of this service" is enough. The

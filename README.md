@@ -138,7 +138,8 @@ The other surfaces, each its own one-liner:
   of living in your tree.
 - **The Codex plugin** — the same directory, packaged as an
   [Agent Plugin](https://agent-plugins.org): `codex plugin marketplace add
-  jquatier/squinch`, then install `squinch` from the plugin list.
+  jquatier/squinch`, then `codex plugin add squinch@squinch`. Cursor, Copilot
+  and Kiro read the same manifest.
 - **The VS Code extension** — download `squinch-vscode-<version>.vsix` from
   [Releases](https://github.com/jquatier/squinch/releases) and
   `code --install-extension` it. The same file installs in Cursor, Windsurf
