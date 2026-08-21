@@ -130,12 +130,15 @@ The other surfaces, each its own one-liner:
 
 - **The agent skill** — `npx squinch skill` in your project writes
   `.agents/skills/` (plus `.claude/skills/` when it detects Claude Code);
-  `--global` installs for your account, `--print` emits SKILL.md for any other
-  harness.
+  `--global` does the same under your home directory, `--print` emits SKILL.md
+  for any other harness.
 - **The Claude Code plugin** — the same skill without touching your repo:
   `/plugin marketplace add jquatier/squinch`, then
   `/plugin install squinch@squinch`. Updates arrive with the plugin instead
   of living in your tree.
+- **The Codex plugin** — the same directory, packaged as an
+  [Agent Plugin](https://agent-plugins.org): `codex plugin marketplace add
+  jquatier/squinch`, then install `squinch` from the plugin list.
 - **The VS Code extension** — download `squinch-vscode-<version>.vsix` from
   [Releases](https://github.com/jquatier/squinch/releases) and
   `code --install-extension` it. The same file installs in Cursor, Windsurf

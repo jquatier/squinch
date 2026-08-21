@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
-import { mkdtempSync, rmSync, writeFileSync, readFileSync, existsSync, readdirSync, renameSync } from "node:fs";
+import { mkdtempSync, mkdirSync, rmSync, writeFileSync, readFileSync, existsSync, readdirSync, renameSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { main } from "../src/index.js";
@@ -86,26 +86,52 @@ describe("squinch cli", () => {
     expect(readdirSync(dir)).toEqual([]);
   });
 
-  it("skill --global writes under the home directory", async () => {
-    // os.homedir() reads the env at call time, so pointing both platforms'
-    // variables at the temp dir is enough — no module mocking.
+  // os.homedir() reads the env at call time, so pointing both platforms'
+  // variables at the temp dir is enough — no module mocking.
+  const asHome = async (run: () => Promise<unknown>) => {
     const home = { HOME: process.env.HOME, USERPROFILE: process.env.USERPROFILE };
     process.env.HOME = dir;
     process.env.USERPROFILE = dir;
     try {
-      expect(await main(["skill", "--global"])).toBe(0);
-      expect(existsSync(join(dir, ".claude", "skills", "squinch", "SKILL.md"))).toBe(true);
+      await run();
     } finally {
       process.env.HOME = home.HOME;
       process.env.USERPROFILE = home.USERPROFILE;
     }
+  };
+
+  it("skill --global writes the cross-agent dir under the home directory", async () => {
+    // ~/.agents/skills is Codex's user scope, so --global has to reach it —
+    // it used to write only Claude Code's.
+    await asHome(async () => {
+      expect(await main(["skill", "--global"])).toBe(0);
+      expect(existsSync(join(dir, ".agents", "skills", "squinch", "SKILL.md"))).toBe(true);
+      expect(existsSync(join(dir, ".claude"))).toBe(false);
+    });
   });
 
-  it("skill --global rejects a path and --claude — they contradict it", async () => {
+  it("skill --global detects Claude Code for the account and installs there too", async () => {
+    mkdirSync(join(dir, ".claude"));
+    await asHome(async () => {
+      expect(await main(["skill", "--global"])).toBe(0);
+      expect(existsSync(join(dir, ".agents", "skills", "squinch", "SKILL.md"))).toBe(true);
+      expect(existsSync(join(dir, ".claude", "skills", "squinch", "SKILL.md"))).toBe(true);
+      expect(err.join("\n")).toContain("detected Claude Code");
+    });
+  });
+
+  it("skill --global --claude forces the .claude/ copy without markers", async () => {
+    await asHome(async () => {
+      expect(await main(["skill", "--global", "--claude"])).toBe(0);
+      expect(existsSync(join(dir, ".agents", "skills", "squinch", "SKILL.md"))).toBe(true);
+      expect(existsSync(join(dir, ".claude", "skills", "squinch", "SKILL.md"))).toBe(true);
+      expect(err.join("\n")).not.toContain("detected Claude Code");
+    });
+  });
+
+  it("skill --global rejects a path — they contradict each other", async () => {
     expect(await main(["skill", dir, "--global"])).toBe(2);
     expect(err.join("\n")).toContain("drop the path");
-    expect(await main(["skill", "--global", "--claude"])).toBe(2);
-    expect(err.join("\n")).toContain("drop --claude");
   });
 
   it("check reports errors with fixes and exits 1", async () => {

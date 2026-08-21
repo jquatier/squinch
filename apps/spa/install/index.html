@@ -50,15 +50,24 @@ squinch render my-diagrams --sync</code></pre>
         <p>
           <code>npx squinch skill</code> in your project writes
           <code>.agents/skills/</code> (plus <code>.claude/skills/</code> when it
-          detects Claude Code); <code>--global</code> installs for your account,
-          <code>--print</code> emits SKILL.md for any other harness. Then ask
-          your agent for a diagram in plain language.
+          detects Claude Code); <code>--global</code> does the same under your
+          home directory, <code>--print</code> emits SKILL.md for any other
+          harness. Then ask your agent for a diagram in plain language.
         </p>
 
         <h2>The Claude Code plugin</h2>
         <p>The same skill without touching your repo — updates arrive with the plugin:</p>
         <pre><code>/plugin marketplace add jquatier/squinch
 /plugin install squinch@squinch</code></pre>
+
+        <h2>The Codex plugin</h2>
+        <p>
+          The same directory, packaged as an
+          <a href="https://agent-plugins.org">Agent Plugin</a> — Codex reads it,
+          and so do Cursor, Copilot, Kiro and VS Code:
+        </p>
+        <pre><code>codex plugin marketplace add jquatier/squinch</code></pre>
+        <p>Then install <code>squinch</code> from the plugin list.</p>
 
         <h2>The VS Code extension</h2>
         <p>

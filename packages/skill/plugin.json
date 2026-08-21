@@ -1,0 +1,11 @@
+{
+  "$schema": "https://agent-plugins.org/schemas/1.0.0/plugin.schema.json",
+  "name": "squinch",
+  "version": "0.0.0",
+  "description": "Author architecture diagrams as code with the Squinch DSL. Requires the squinch CLI (npx squinch).",
+  "author": { "name": "Jacob Quatier", "url": "https://github.com/jquatier" },
+  "homepage": "https://github.com/jquatier/squinch",
+  "repository": "https://github.com/jquatier/squinch",
+  "license": "Apache-2.0",
+  "keywords": ["diagrams", "architecture", "svg", "c4", "aws"]
+}

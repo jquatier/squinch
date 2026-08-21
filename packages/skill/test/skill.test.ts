@@ -290,16 +290,45 @@ describe("SKILL.md — diagnostic coverage", () => {
 });
 
 describe("the plugin manifest", () => {
-  // packages/skill doubles as the Claude Code plugin (`/plugin install
-  // squinch@squinch`): .claude-plugin/plugin.json names it, skills/squinch/
-  // carries the skill. The marketplace-side contract — the relative source,
-  // the skill file existing — is asserted in core's guardrails; this is the
-  // plugin's own half.
+  // packages/skill is one directory published as two plugins off one skills/
+  // dir: Claude Code (`/plugin install squinch@squinch`) reads
+  // .claude-plugin/plugin.json, and Codex — with Cursor, Copilot, Kiro and
+  // VS Code — reads the root plugin.json in the Agent Plugins 1.0 format.
+  // The marketplace-side contract for both — the relative source, the skill
+  // file existing — is asserted in core's guardrails; this is the plugins'
+  // own half.
+  const claude = () => JSON.parse(readFileSync(join(pkg, ".claude-plugin", "plugin.json"), "utf8"));
+  const portable = () => JSON.parse(readFileSync(join(pkg, "plugin.json"), "utf8"));
+
   it("plugin.json is well-formed and names this skill", () => {
-    const plugin = JSON.parse(readFileSync(join(pkg, ".claude-plugin", "plugin.json"), "utf8"));
+    const plugin = claude();
     expect(plugin.name).toBe("squinch");
     expect(plugin.version, "the one-version guardrail rewrites this — it must exist").toBeTruthy();
     expect(plugin.description).toContain("squinch CLI");
+  });
+
+  it("the Agent Plugins manifest declares the schema it is validated against", () => {
+    const plugin = portable();
+    expect(plugin.$schema).toBe("https://agent-plugins.org/schemas/1.0.0/plugin.schema.json");
+    expect(plugin.name).toBe("squinch");
+    expect(plugin.version, "the one-version guardrail rewrites this — it must exist").toBeTruthy();
+    expect(plugin.description).toContain("squinch CLI");
+  });
+
+  it("the Agent Plugins manifest carries no key the closed schema rejects", () => {
+    // Agent Plugins 1.0 fixes the permitted top-level set — anything else is
+    // invalid, and a client that validates would refuse the install. Vendor
+    // extras belong under `extensions`, namespaced, not at the top level.
+    const permitted = ["$schema", "name", "version", "description", "author",
+      "homepage", "repository", "license", "keywords", "extensions"];
+    expect(Object.keys(portable()).filter((k) => !permitted.includes(k))).toEqual([]);
+  });
+
+  it("the two plugin manifests agree on what they are naming", () => {
+    // Two files describing one product is two chances for it to drift, so the
+    // agreement is asserted rather than remembered. version.mjs moves both.
+    const [a, b] = [claude(), portable()];
+    expect([a.name, a.version, a.description]).toEqual([b.name, b.version, b.description]);
   });
 
   it("the skill's directory name matches its frontmatter name", () => {

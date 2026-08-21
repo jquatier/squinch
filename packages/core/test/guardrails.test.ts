@@ -229,10 +229,15 @@ describe("the workspace ships one version", () => {
       "gauntlet",
     ]
       .map((d) => join(d, "package.json"))
-      // The Claude Code plugin manifest is not a package.json, but it answers
-      // the same "which squinch is this?" question for `/plugin` users, so it
-      // moves with the rest (version.mjs rewrites it too).
-      .concat(join("packages", "skill", ".claude-plugin", "plugin.json"))
+      // The two plugin manifests are not package.jsons, but they answer the
+      // same "which squinch is this?" question for plugin users — Claude Code
+      // reads .claude-plugin/plugin.json, Codex and the rest of the Agent
+      // Plugins clients read the root one — so they move with the rest
+      // (version.mjs rewrites them too).
+      .concat(
+        join("packages", "skill", ".claude-plugin", "plugin.json"),
+        join("packages", "skill", "plugin.json"),
+      )
       .filter((p) => existsSync(join(root, p)));
 
     expect(members.length, "found no workspace members — the walk is broken").toBeGreaterThan(8);
@@ -307,6 +312,19 @@ describe("the workspace ships one version", () => {
       "the marketplace's source is not a plugin — .claude-plugin/plugin.json is missing").toBe(true);
     expect(existsSync(join(root, "packages/skill/skills/squinch/SKILL.md")),
       "the plugin has no skill at skills/squinch/SKILL.md — nothing would install").toBe(true);
+  });
+
+  it("the Codex marketplace points at the same plugin directory", () => {
+    // `codex plugin marketplace add jquatier/squinch` resolves
+    // .agents/plugins/marketplace.json against the checkout, exactly as Claude
+    // Code resolves .claude-plugin/marketplace.json — one skills/ dir, two
+    // marketplaces, and the same rename breaks both with no local symptom.
+    // source.path must stay relative and inside the marketplace root.
+    const marketplace = JSON.parse(readFileSync(join(root, ".agents/plugins/marketplace.json"), "utf8"));
+    expect(marketplace.plugins?.[0]?.name).toBe("squinch");
+    expect(marketplace.plugins?.[0]?.source?.path).toBe("./packages/skill");
+    expect(existsSync(join(root, "packages/skill/plugin.json")),
+      "the marketplace's source is not an Agent Plugin — the root plugin.json is missing").toBe(true);
   });
 
   it("the release workflow guards the tag against that version", () => {

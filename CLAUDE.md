@@ -152,7 +152,16 @@ lockfile model (`--sync`/`--check`). `packages/vscode` — the editor extension:
 `src/features.ts` is every piece of editor intelligence as pure functions (unit
 tested), `src/server.ts` a thin LSP shell over it, `src/extension.ts` the client
 plus preview webview; `test/server.test.ts` drives the *bundled* server over real
-stdio LSP. `examples/` — one directory per project, with
+stdio LSP. `packages/skill` — the canonical `SKILL.md` and **two plugin
+manifests off the one `skills/` dir**: `.claude-plugin/plugin.json` for Claude
+Code, and `plugin.json` (Agent Plugins 1.0, `$schema`-declared, closed key set)
+for Codex, Cursor, Copilot and the rest. Each has a marketplace manifest at the
+repo root pointing back at `./packages/skill` —
+`.claude-plugin/marketplace.json` and `.agents/plugins/marketplace.json` — and
+`scripts/version.mjs` moves both plugin manifests with everything else. One
+product named in two files is two chances to drift, so the agreement is
+asserted (`skill.test.ts`), not remembered; core's guardrails assert both
+marketplaces still resolve. `examples/` — one directory per project, with
 committed SVGs that CI verifies.
 
 ## Where things stand

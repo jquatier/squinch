@@ -19,8 +19,11 @@ import { fileURLToPath } from "node:url";
 const root = join(dirname(fileURLToPath(import.meta.url)), "..");
 
 /** Every pnpm workspace member (packages/*, apps/*, gauntlet), plus the root —
- *  and the Claude Code plugin manifest, which is not a package.json but answers
- *  the same "which squinch is this?" question for `/plugin` users. */
+ *  and the two plugin manifests, which are not package.jsons but answer the
+ *  same "which squinch is this?" question for plugin users. packages/skill is
+ *  one directory published as two plugins off one skills/ dir: Claude Code
+ *  reads .claude-plugin/plugin.json, Codex and the rest of the Agent Plugins
+ *  clients read the root plugin.json. */
 export function manifests() {
   const dirs = ["packages", "apps"].flatMap((d) =>
     readdirSync(join(root, d)).map((p) => join(d, p)),
@@ -28,6 +31,7 @@ export function manifests() {
   return [
     ...["", ...dirs, "gauntlet"].map((d) => join(d, "package.json")),
     join("packages", "skill", ".claude-plugin", "plugin.json"),
+    join("packages", "skill", "plugin.json"),
   ].filter((p) => existsSync(join(root, p)));
 }
 
