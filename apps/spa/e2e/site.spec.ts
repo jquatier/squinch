@@ -10,16 +10,19 @@ test("the landing renders the lockup and all four links", async ({ page }) => {
 
   await page.goto("/");
   await expect(page.getByRole("heading", { name: "squinch" })).toBeVisible();
+  // Scoped to the hero's own CTA row: the footer repeats a "GitHub" link
+  // lower on the page, and an unscoped lookup would resolve to both.
+  const heroLinks = page.locator(".hero-links");
   // Exact names on all four: the decorative "↗" and "→" are emitted with CSS
   // alt text (`content: "↗" / ""`), which keeps them out of the accessible
   // name. Matching exactly is what proves that still holds — drop the alt text
-  // and this reads "Docs ↗" and fails.
-  for (const name of ["Install", "Docs", "Lookbook", "Playground"])
-    await expect(page.getByRole("link", { name, exact: true })).toBeVisible();
-  // and Docs leaves the site for the repo, not a page that no longer exists
-  expect(await page.getByRole("link", { name: "Docs", exact: true }).getAttribute("href")).toBe(
-    "https://github.com/jquatier/squinch",
-  );
+  // and this reads "GitHub ↗" and fails.
+  for (const name of ["Install", "GitHub", "Lookbook", "Playground"])
+    await expect(heroLinks.getByRole("link", { name, exact: true })).toBeVisible();
+  // and GitHub leaves the site for the repo, not a page that no longer exists
+  expect(
+    await heroLinks.getByRole("link", { name: "GitHub", exact: true }).getAttribute("href"),
+  ).toBe("https://github.com/jquatier/squinch");
   expect(errors).toEqual([]);
 });
 
@@ -51,9 +54,11 @@ test("the lookbook renders real cases with real images", async ({ page }) => {
   page.on("pageerror", (e) => errors.push(String(e)));
 
   await page.goto("/lookbook/");
-  // 01-minimal is the first case build.ts writes, so it's a stable anchor —
-  // this is generated content, but generated FROM something specific
-  await expect(page.getByRole("heading", { level: 2, name: "01-minimal" })).toBeVisible();
+  // "Minimal" (id "01-minimal") is the first case build.ts writes, so it's a
+  // stable anchor — this is generated content, but generated FROM something
+  // specific. The heading is the humanized title; the slug lives on the
+  // section id and the Source: link instead.
+  await expect(page.getByRole("heading", { level: 2, name: "Minimal", exact: true })).toBeVisible();
   const shots = page.locator(".shot img");
   await expect(shots.first()).toBeVisible();
   expect(await shots.count()).toBeGreaterThan(30); // 35 cases, most single-view
@@ -62,10 +67,13 @@ test("the lookbook renders real cases with real images", async ({ page }) => {
   expect(errors).toEqual([]);
 });
 
-test("the site follows the OS color scheme", async ({ page }) => {
-  await page.emulateMedia({ colorScheme: "dark" });
-  await page.goto("/");
-  await expect(page.locator("html")).toHaveAttribute("data-theme", "dark");
+test("the landing and content pages are always dark", async ({ page }) => {
+  // Unlike the playground, these three don't follow the OS or carry a
+  // toggle — emulating light proves the page isn't just defaulting to dark
+  // by coincidence.
   await page.emulateMedia({ colorScheme: "light" });
-  await expect(page.locator("html")).toHaveAttribute("data-theme", "light");
+  for (const path of ["/", "/install/", "/lookbook/"]) {
+    await page.goto(path);
+    await expect(page.locator("html")).toHaveAttribute("data-theme", "dark");
+  }
 });
