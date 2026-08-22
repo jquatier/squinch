@@ -311,6 +311,10 @@ The architecture it certified is still enforced by the corpus invariant sweep.
 - `npx tsx scripts/mark-stack.mts` — regenerate the layered mark from
   `docs/assets/mark.svg`. Maintainer-only; its header records the measurements
   the shape was reconstructed from.
+- `npx tsx scripts/og.mts` — regenerate `apps/spa/public/og.png`, the social
+  card: the layered mark lifted from `mark-stack.svg` beside the wordmark in
+  the bundled Inter 600, rasterised by resvg with system fonts off. Re-run
+  after a recolour; the lockup is the whole card, there is no tagline.
 - VS Code extension: <kbd>F5</kbd> ("Run Squinch extension") bundles core + the
   extension and opens `examples/` in a dev host; or
   `pnpm --filter squinch-vscode build`.
