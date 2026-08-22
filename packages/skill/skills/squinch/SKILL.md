@@ -1,6 +1,6 @@
 ---
 name: squinch
-description: Author architecture diagrams as code with the Squinch DSL. Use this whenever the user wants an architecture or system diagram — creating one from prose, editing or reviewing a .squinch file, drawing cloud infrastructure (AWS, Azure, Kubernetes, hybrid estates), documenting services for a README or a design review, or anything C4-flavoured — even when they never say "squinch". Write the .squinch model, validate it with `squinch check`, render SVG with `squinch render`, and fix what you see using the layout cookbook below.
+description: Author architecture diagrams as code with the Squinch DSL. Use this whenever the user wants an architecture or system diagram — creating one from prose, editing or reviewing a .squinch file, drawing cloud infrastructure (AWS, Azure, Kubernetes, hybrid estates), documenting services for a README or a design review, or any picture of systems, services and the connections between them — even when they never say "squinch". Write the .squinch model, validate it with `squinch check`, render SVG with `squinch render`, and fix what you see using the layout cookbook below.
 ---
 
 # Squinch — architecture diagrams as code

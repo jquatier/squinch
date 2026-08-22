@@ -2,13 +2,25 @@
   "name": "@squinch/core",
   "version": "0.0.0",
   "description": "The Squinch engine: parse, model, layout and deterministic SVG rendering for architecture diagrams as code.",
+  "keywords": [
+    "architecture",
+    "diagrams",
+    "diagrams-as-code",
+    "svg",
+    "aws",
+    "azure",
+    "kubernetes",
+    "ai",
+    "llm",
+    "agents"
+  ],
   "license": "Apache-2.0",
   "repository": {
     "type": "git",
     "url": "https://github.com/jquatier/squinch.git",
     "directory": "packages/core"
   },
-  "homepage": "https://github.com/jquatier/squinch",
+  "homepage": "https://squinch.cc/",
   "bugs": {
     "url": "https://github.com/jquatier/squinch/issues"
   },

@@ -155,9 +155,13 @@ const html = `<!doctype html>
     <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
     <meta name="theme-color" content="#141416" />
     <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="Squinch" />
     <meta property="og:title" content="Lookbook — Squinch" />
-    <meta property="og:description" content="${cases.length} rendered reference cases, each tied to its source." />
+    <meta property="og:description" content="${cases.length} rendered reference cases — dense meshes, deep nesting, zones, flows, themes — every corner of the renderer, each tied to its source." />
     <meta property="og:image" content="https://squinch.cc/og.png" />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:image:alt" content="The Squinch mark — an S standing on three stacked isometric planes — beside the wordmark" />
     <meta property="og:url" content="https://squinch.cc/lookbook/" />
     <meta name="twitter:card" content="summary_large_image" />
     <link rel="preconnect" href="https://fonts.googleapis.com" />

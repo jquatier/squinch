@@ -10,11 +10,12 @@
   "keywords": [
     "architecture",
     "diagram",
-    "c4",
+    "ai",
+    "agents",
     "diagrams as code",
     "documentation"
   ],
-  "homepage": "https://github.com/jquatier/squinch",
+  "homepage": "https://squinch.cc/",
   "bugs": {
     "url": "https://github.com/jquatier/squinch/issues"
   },

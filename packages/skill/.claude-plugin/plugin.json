@@ -1,8 +1,8 @@
 {
   "name": "squinch",
   "version": "0.0.0",
-  "description": "Author architecture diagrams as code with the Squinch DSL. Requires the squinch CLI (npx squinch).",
+  "description": "Author architecture diagrams as code with the Squinch DSL — the skill your coding agent uses to write, check and render .squinch files. Requires the squinch CLI (npx squinch).",
   "author": { "name": "Jacob Quatier", "url": "https://github.com/jquatier" },
-  "homepage": "https://github.com/jquatier/squinch",
+  "homepage": "https://squinch.cc/",
   "license": "Apache-2.0"
 }
