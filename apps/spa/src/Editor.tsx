@@ -3,7 +3,7 @@
 import { useEffect, useRef } from "react";
 import {
   Decoration, type DecorationSet, EditorView, GutterMarker, gutterLineClass,
-  keymap, lineNumbers, highlightActiveLine,
+  keymap, lineNumbers, highlightActiveLine, drawSelection,
 } from "@codemirror/view";
 import { EditorState, RangeSet, StateEffect, StateField, type Extension } from "@codemirror/state";
 import { defaultKeymap, history, historyKeymap, indentWithTab } from "@codemirror/commands";
@@ -88,14 +88,26 @@ const theme = EditorView.theme({
     fontFamily: "var(--font-mono)",
     lineHeight: "1.7",
   },
-  ".cm-content": { padding: "14px 0" },
+  ".cm-content": { padding: "14px 0", caretColor: "var(--fg)" },
   ".cm-gutters": {
     backgroundColor: "transparent",
     border: "none",
     color: "var(--text-faint)",
   },
   ".cm-lineNumbers .cm-gutterElement": { minWidth: "44px", paddingRight: "14px" },
-  ".cm-activeLine": { backgroundColor: "var(--active)" },
+  // Translucent, not the opaque --active token: drawSelection paints the
+  // selection in a layer *under* the lines, so an opaque active-line
+  // background sat on top of it and hid whatever you had highlighted.
+  ".cm-activeLine": { backgroundColor: "color-mix(in srgb, var(--fg) 4%, transparent)" },
+  // CodeMirror's defaults here are a 1px black caret and a pale blue
+  // selection — both tuned for paper, both near-invisible on the dark pane
+  ".cm-cursor, .cm-dropCursor": { borderLeftColor: "var(--fg)", borderLeftWidth: "2px" },
+  // the base theme's focused rule is this exact selector; anything shorter
+  // loses on specificity and the paper-lavender default comes back
+  ".cm-selectionLayer .cm-selectionBackground, &.cm-focused > .cm-scroller > .cm-selectionLayer .cm-selectionBackground": {
+    backgroundColor: "color-mix(in srgb, var(--accent) 38%, transparent)",
+  },
+  ".cm-matchingBracket": { backgroundColor: "color-mix(in srgb, var(--accent) 20%, transparent)" },
   ".cm-activeLineGutter": { backgroundColor: "transparent", color: "var(--text-4)" },
   ".cm-lintRange-error": {
     backgroundImage: "none",
@@ -108,6 +120,24 @@ const theme = EditorView.theme({
     textUnderlineOffset: "3px",
   },
   ".cm-gutter-lint .cm-gutterElement": { padding: "0 2px 0 4px" },
+  // the lint hover/gutter tooltip ships white-on-white for a dark pane:
+  // same surface, hairline and type as the diagnostics footer below it
+  ".cm-tooltip": {
+    backgroundColor: "var(--surface)",
+    border: "1px solid var(--line)",
+    borderRadius: "8px",
+    color: "var(--muted)",
+    boxShadow: "var(--panel-shadow)",
+    fontFamily: "var(--font-ui)",
+    fontSize: "12.5px",
+    lineHeight: "1.5",
+  },
+  ".cm-tooltip.cm-tooltip-lint": { padding: "4px 0" },
+  ".cm-diagnostic": { padding: "4px 10px 4px 9px", borderLeftWidth: "3px", marginLeft: "0" },
+  ".cm-diagnostic-error": { borderLeftColor: "var(--err)" },
+  ".cm-diagnostic-warning": { borderLeftColor: "var(--warn)" },
+  ".cm-diagnostic-info": { borderLeftColor: "var(--accent)" },
+  ".cm-diagnosticText": { color: "var(--fg)" },
   ".cm-sq-error-line": { backgroundColor: "var(--err-bg)" },
   ".cm-gutterElement.cm-sq-error-gutter": {
     backgroundColor: "var(--err-bg)",
@@ -144,6 +174,10 @@ export function Editor({
     const extensions: Extension[] = [
       lineNumbers(),
       history(),
+      // CodeMirror draws its own caret and selection with this on; without
+      // it the browser's native 1px caret is all there is, and on the dark
+      // pane that was too faint to tell which character you were on
+      drawSelection({ cursorBlinkRate: 1000 }),
       highlightActiveLine(),
       lintGutter(),
       errorLines,

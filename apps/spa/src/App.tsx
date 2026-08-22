@@ -449,37 +449,23 @@ export function App() {
         >
           {/* Everything over the stage is a floating translucent pill inset
               14/16px from the edges (design handoff §4). */}
-          <div className="absolute left-4 top-3.5 z-10 flex items-center gap-2">
-            <button onClick={() => setEditorOpen((o) => !o)} className="pg-btn pg-pill text-[12px]" title="⌘\">
-              {editorOpen ? "⇤ Hide editor" : "⇥ Show editor"}
-            </button>
-            {crumbs.length > 1 && (
-              <nav className="pg-pill pg-mono flex items-center gap-1.5 px-[11px] py-1.5 text-[11.5px] text-[var(--text-3)]">
-                {crumbs.map((c, i) => (
-                  <span key={i} className="flex items-center gap-1.5">
-                    {i > 0 && <span className="text-[var(--text-faint)]">/</span>}
-                    <button
-                      disabled={!c.view || c.view === activeView}
-                      onClick={() => c.view && navigate(c.view)}
-                      className={
-                        c.view && c.view !== activeView
-                          ? "cursor-zoom-out text-[var(--muted)] hover:text-[var(--fg)] hover:underline"
-                          : "text-[var(--fg)]"
-                      }
-                    >
-                      {c.label}
-                    </button>
-                  </span>
-                ))}
-              </nav>
-            )}
-          </div>
+          <button
+            onClick={() => setEditorOpen((o) => !o)}
+            className="pg-btn pg-pill absolute left-4 top-3.5 z-10 text-[12px]"
+            title="⌘\"
+          >
+            {editorOpen ? "⇤ Hide editor" : "⇥ Show editor"}
+          </button>
           {/* The views belong to the diagram, not to the app: they are its
               altitudes, and switching one is a move within the picture rather
               than a global mode. Top-centre keeps them clear of the editor
-              toggle and breadcrumb on the left and the readout top right. */}
+              toggle on the left and the readout top right. There is no
+              breadcrumb beside them: the tabs are the whole altitude ladder
+              (the one you are on is lit), and with eight views the two pills
+              collided and read as two selectors. Clicking the backdrop still
+              climbs one altitude, and Present keeps its own trail. */}
           {views.length > 1 && (
-            <nav className="pg-pill absolute left-1/2 top-3.5 z-10 flex max-w-[calc(100%-22rem)] -translate-x-1/2 items-center gap-0.5 overflow-x-auto rounded-[9px] p-[3px]">
+            <nav className="pg-pill absolute left-1/2 top-3.5 z-10 flex max-w-[calc(100%-24rem)] -translate-x-1/2 items-center gap-0.5 overflow-x-auto rounded-[9px] p-[3px]">
               {views.map((v) => (
                 <button
                   key={v.name}
