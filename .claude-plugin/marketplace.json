@@ -5,7 +5,7 @@
     {
       "name": "squinch",
       "source": "./packages/skill",
-      "description": "Author architecture diagrams as code with the Squinch DSL — the skill your coding agent uses to write, check and render .squinch files. Requires the squinch CLI (npx squinch)."
+      "description": "Turns your coding agent into an architecture diagrammer: describe a system in plain language and it writes, checks and renders the diagram — AWS, Azure and Kubernetes estates, zoomable system landscapes, numbered request flows — with real vendor icons, exported as SVG, PNG or interactive HTML. Requires the squinch CLI (npx squinch)."
     }
   ]
 }
