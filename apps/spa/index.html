@@ -28,12 +28,15 @@
         "sameAs": ["https://github.com/jquatier/squinch"]
       }
     </script>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet" />
     <link rel="stylesheet" href="/src/site.css" />
   </head>
   <body id="home">
     <div class="hero-body">
       <div class="bg" aria-hidden="true"></div>
-      <div class="hero-grid">
+      <div class="hero">
         <main class="hero-copy">
           <h1 class="hero-brand">
             <!-- docs/assets/mark-stack.svg, inlined at build time by the
@@ -42,119 +45,142 @@
             <!--mark-stack-->
             <span class="name">squinch</span>
           </h1>
-          <p class="tagline">
+          <h2 class="hero-title">
             Your coding agent already knows the architecture.<br />
-            <strong class="lede">Now it can draw it.</strong> Describe the
-            system in a paragraph and Squinch renders it precisely: real
-            layout control, vendor-accurate icons, and diagrams you can zoom
-            into — from the whole landscape down to one service's internals.
+            <span class="grad-text">Now it can draw it.</span>
+          </h2>
+          <p class="tagline">
+            Describe the system in a paragraph. Squinch renders it precisely —
+            real layout control, vendor-accurate icons, and diagrams you can
+            zoom into, from the whole landscape down to one service's internals.
           </p>
+          <nav class="hero-cta" aria-label="Primary">
+            <ul class="hero-links">
+              <li><a class="btn-grad" href="/playground/">Open the playground</a></li>
+              <li><a class="btn-ghost" href="/install/">Install</a></li>
+              <li><a class="btn-ghost" href="/lookbook/">Lookbook</a></li>
+              <li><a class="btn-ghost" href="https://github.com/jquatier/squinch">GitHub</a></li>
+            </ul>
+          </nav>
         </main>
-        <figure class="hero-demo">
-          <picture>
-            <source media="(prefers-color-scheme: dark)" srcset="/prompt-dark.gif" />
-            <img
-              src="/prompt-light.gif"
-              width="940"
-              height="780"
-              alt="A paragraph is typed into a prompt box describing a products API on AWS. A status line reads Thinking, then Using squinch skill, then Finalizing diagram, and the finished diagram rises underneath it, every element from the sentence drawn with its real vendor icon."
-            />
-          </picture>
-          <figcaption>One paragraph in, a diagram out — the agent writes the model, Squinch renders it.</figcaption>
+        <figure class="hero-demo panel shadowed">
+          <div class="panel-strip" aria-hidden="true">
+            <span class="dot"></span>
+            prompt<span class="arrow">→</span>products.svg
+          </div>
+          <img
+            src="/prompt-dark.gif"
+            width="940"
+            height="780"
+            alt="A paragraph is typed into a prompt box describing a products API on AWS. A status line reads Thinking, then Using squinch skill, then Finalizing diagram, and the finished diagram rises underneath it, every element from the sentence drawn with its real vendor icon."
+          />
         </figure>
       </div>
-      <nav class="hero-cta" aria-label="Primary">
-        <ul class="hero-links">
-          <li><a href="/install/">Install</a></li>
-          <li><a href="https://github.com/jquatier/squinch">GitHub</a></li>
-          <li><a href="/lookbook/">Lookbook</a></li>
-          <li><a class="primary" href="/playground/">Playground</a></li>
-        </ul>
-      </nav>
     </div>
 
-    <section class="showcase" aria-labelledby="showcase-h">
-      <div class="showcase-grid">
-        <figure class="demo">
-          <picture>
-            <source media="(prefers-color-scheme: dark)" srcset="/zoom-dark.gif" />
-            <img
-              src="/zoom-light.gif"
-              width="900"
-              height="620"
-              loading="lazy"
-              alt="On a landscape of five systems, clicking a service card opens it into its own internals while the rest stay as muted context. The breadcrumb closes it again, and the view cuts to full detail with every system open at once before returning to the landscape."
-            />
-          </picture>
-        </figure>
-        <div class="showcase-copy">
-          <h2 id="showcase-h">Zoom into any system</h2>
-          <p>
-            Every system opens into its own internals with one click, and
-            zooms back out just as easily — landscape, service, and
-            everything between are views of one model, not separate diagrams
-            you have to keep in sync.
-          </p>
-        </div>
+    <section class="band altitudes" aria-labelledby="altitudes-h">
+      <figure class="panel shadowed" style="margin: 0">
+        <img
+          src="/zoom-dark.gif"
+          width="900"
+          height="620"
+          loading="lazy"
+          alt="On a landscape of five systems, clicking a service card opens it into its own internals while the rest stay as muted context. The breadcrumb closes it again, and the view cuts to full detail with every system open at once before returning to the landscape."
+        />
+      </figure>
+      <div class="altitudes-copy">
+        <span class="eyebrow accent">Multiple altitudes, one model</span>
+        <h2 id="altitudes-h">Zoom into any system</h2>
+        <p>
+          Every system opens into its own internals with one click and zooms
+          back out just as easily — landscape, service and everything between
+          are views of one model, not separate diagrams to keep in sync.
+        </p>
       </div>
     </section>
 
-    <section class="features" aria-labelledby="features-h">
-      <h2 id="features-h">Everything included</h2>
-      <ul class="feature-grid">
-        <li>
-          <strong>1,302 vendor icons</strong>
-          <p>AWS, Azure, Kubernetes and product logos, not grey boxes with labels on them.</p>
-        </li>
-        <li>
-          <strong>Layout you can overrule</strong>
-          <p>Good diagrams with no hints at all; disagree, and you steer it with relative hints, never pixel coordinates.</p>
-        </li>
-        <li>
-          <strong>One model, many diagrams</strong>
-          <p>A landscape view, a per-service view, a filtered view for an audit, all from the same source, so they can't disagree with each other.</p>
-        </li>
-        <li>
-          <strong>Real deployment boundaries</strong>
-          <p>VPCs, subnets, cloud and on-prem zones, nested, tinted by kind, labelled where you'd expect.</p>
-        </li>
-        <li>
-          <strong>Numbered request flows</strong>
-          <p>Declare a flow and its steps are numbered along the edges, walkable one hop at a time.</p>
-        </li>
-        <li>
-          <strong>SVG, PNG, or HTML export</strong>
-          <p>The HTML carries every view with click-to-zoom and presentation mode, no server, no internet, nothing to install.</p>
-        </li>
-        <li>
-          <strong>A real VS Code extension</strong>
-          <p>Autocomplete, live errors with one-click fixes, and a preview that updates as you type.</p>
-        </li>
-        <li>
-          <strong>Reviewable in a PR</strong>
-          <p>The source is a handful of readable lines, and <code>squinch diff</code> spells out exactly what changed.</p>
-        </li>
-        <li>
-          <strong>Generated in CI</strong>
-          <p>A ready-made GitHub Action re-renders on every push, so the picture in your docs is never stale.</p>
-        </li>
-        <li>
-          <strong>Light and dark</strong>
-          <p>Dark is designed, not inverted, one file can carry both and switch with the reader's system theme.</p>
-        </li>
+    <section class="band promoted" aria-label="Capabilities">
+      <article class="panel pcard">
+        <div class="pcard-text">
+          <h3>Motion carries meaning</h3>
+          <p>Packets down a queue, a slow dashed archive job, a comet on the final push — cadence you can read, from CSS keyframes and never script.</p>
+        </div>
+        <div class="pcard-well">
+          <img src="/notifications-pipeline-dark.svg" loading="lazy" alt="A notification pipeline: events queue, a worker archives and pushes to the customer" />
+        </div>
+      </article>
+      <article class="panel pcard">
+        <div class="pcard-text">
+          <h3>Real deployment boundaries</h3>
+          <p>VPCs, subnets, cloud and on-prem zones: nested, tinted by kind, labelled where you'd expect them.</p>
+        </div>
+        <div class="pcard-well">
+          <img src="/lookbook/17-zones.landscape.dark.svg" loading="lazy" alt="Nested cloud, VPC and on-premises zones drawn as dashed boundaries around their members" />
+        </div>
+      </article>
+      <article class="panel pcard">
+        <div class="pcard-text">
+          <h3>1,302 vendor icons</h3>
+          <p>AWS, Azure, Kubernetes and the products around them — Kafka, Postgres, Datadog — not grey boxes with labels inside.</p>
+        </div>
+        <div class="pcard-well">
+          <img src="/lookbook/21-logos.landscape.dark.svg" loading="lazy" alt="Beyond the clouds — product logos alongside cloud vendor icons" />
+        </div>
+      </article>
+    </section>
+
+    <section class="band index" aria-labelledby="index-h">
+      <div class="index-head">
+        <h2 id="index-h">Also included</h2>
+        <span class="count">8 more</span>
+      </div>
+      <ul>
+        <li>One model, many diagrams <span class="tag">views</span></li>
+        <li>Layout you can overrule <span class="tag">relative hints</span></li>
+        <li>Numbered request flows <span class="tag">flow</span></li>
+        <li>SVG, PNG or HTML export <span class="tag">3 formats</span></li>
+        <li>A real VS Code extension <span class="tag">LSP</span></li>
+        <li>Reviewable in a pull request <span class="tag">squinch diff</span></li>
+        <li>Generated in CI <span class="tag">GitHub Action</span></li>
+        <li>Light and dark, both designed <span class="tag">--adaptive</span></li>
       </ul>
     </section>
 
-    <nav class="hero-cta final-cta" aria-label="Get started">
-      <ul class="hero-links">
-        <li><a class="primary" href="/install/">Get it now</a></li>
-      </ul>
-    </nav>
+    <section class="band teaser" aria-labelledby="teaser-h">
+      <div class="teaser-head">
+        <h2 id="teaser-h">Thirty-five worked cases</h2>
+        <span>fan-outs, meshes, flows, legends — each with its source</span>
+        <a href="/lookbook/">Browse the lookbook</a>
+      </div>
+      <div class="teaser-strip">
+        <a class="tile" href="/lookbook/#06-dense-mesh">
+          <div class="tile-well"><img src="/lookbook/06-dense-mesh.mesh.dark.svg" loading="lazy" alt="" /></div>
+          <div class="tile-cap">Dense Mesh <span class="n">06</span></div>
+        </a>
+        <a class="tile" href="/lookbook/#02-fan-out">
+          <div class="tile-well"><img src="/lookbook/02-fan-out.fan.dark.svg" loading="lazy" alt="" /></div>
+          <div class="tile-cap">Fan Out <span class="n">02</span></div>
+        </a>
+        <a class="tile" href="/lookbook/#18-flows">
+          <div class="tile-well"><img src="/lookbook/18-flows.shop.dark.svg" loading="lazy" alt="" /></div>
+          <div class="tile-cap">Flows <span class="n">18</span></div>
+        </a>
+        <a class="tile" href="/lookbook/#16-legend-titleblock">
+          <div class="tile-well"><img src="/lookbook/16-legend-titleblock.pay.dark.svg" loading="lazy" alt="" /></div>
+          <div class="tile-cap">Legend &amp; Titleblock <span class="n">16</span></div>
+        </a>
+        <a class="tile" href="/lookbook/#01-minimal">
+          <div class="tile-well"><img src="/lookbook/01-minimal.tiny.dark.svg" loading="lazy" alt="" /></div>
+          <div class="tile-cap">Minimal <span class="n">01</span></div>
+        </a>
+      </div>
+    </section>
 
-    <footer class="landing-foot">
-      <a href="https://github.com/jquatier/squinch">GitHub</a>
-      &nbsp;·&nbsp; Apache-2.0
+    <footer class="site-foot">
+      <span>Apache-2.0</span>
+      <a class="btn-grad" href="/install/">Install it now</a>
     </footer>
+
     <script>
       // The mark folds up the moment it scrolls out of view — the collapsed
       // pose the hover interaction already defines, now also driven by the

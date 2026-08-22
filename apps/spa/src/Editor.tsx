@@ -1,8 +1,11 @@
 // CodeMirror pane. Highlighting comes from the same Lezer grammar the compiler
 // uses — one grammar, no second syntax definition to drift.
 import { useEffect, useRef } from "react";
-import { EditorView, keymap, lineNumbers, highlightActiveLine } from "@codemirror/view";
-import { EditorState, type Extension } from "@codemirror/state";
+import {
+  Decoration, type DecorationSet, EditorView, GutterMarker, gutterLineClass,
+  keymap, lineNumbers, highlightActiveLine,
+} from "@codemirror/view";
+import { EditorState, RangeSet, StateEffect, StateField, type Extension } from "@codemirror/state";
 import { defaultKeymap, history, historyKeymap, indentWithTab } from "@codemirror/commands";
 import { LRLanguage, LanguageSupport, syntaxHighlighting, HighlightStyle } from "@codemirror/language";
 import { setDiagnostics, lintGutter } from "@codemirror/lint";
@@ -47,19 +50,74 @@ const highlight = HighlightStyle.define([
   { tag: t.atom, color: "var(--sq-prop)" },
 ]);
 
+// The error-line treatment (design handoff §4): the whole row tints, a 2px red
+// bar sits at the row's left edge, and the line number turns red. The lint
+// extension only underlines the offending range, so the row itself is a line
+// decoration of our own, fed from the same diagnostics — one StateField holds
+// the lines, and provides both the content-row class and the gutter class.
+// The bar is an inset shadow on the gutter cell rather than a border on the
+// line, so no row's text shifts by 2px relative to its neighbours.
+const setErrorLines = StateEffect.define<DecorationSet>();
+const errorLine = Decoration.line({ class: "cm-sq-error-line" });
+const errorGutter = new (class extends GutterMarker {
+  elementClass = "cm-sq-error-gutter";
+})();
+const errorLines = StateField.define<DecorationSet>({
+  create: () => Decoration.none,
+  update(deco, tr) {
+    deco = deco.map(tr.changes);
+    for (const e of tr.effects) if (e.is(setErrorLines)) deco = e.value;
+    return deco;
+  },
+  provide: (f) => [
+    EditorView.decorations.from(f),
+    gutterLineClass.compute([f], (state) => {
+      const marks = [];
+      for (const it = state.field(f).iter(); it.value; it.next()) marks.push(errorGutter.range(it.from));
+      return RangeSet.of(marks);
+    }),
+  ],
+});
+
+// Measurements from the design handoff's editor pane: 13px/1.7 Plex Mono, a
+// 44px right-aligned gutter in the faintest text tier, errors as a wavy red
+// underline under the offending range.
 const theme = EditorView.theme({
   "&": { height: "100%", fontSize: "13px", backgroundColor: "transparent" },
   ".cm-scroller": {
-    fontFamily: "ui-monospace, SFMono-Regular, Menlo, monospace",
-    lineHeight: "1.65",
+    fontFamily: "var(--font-mono)",
+    lineHeight: "1.7",
   },
-  ".cm-content": { padding: "16px 0" },
+  ".cm-content": { padding: "14px 0" },
   ".cm-gutters": {
     backgroundColor: "transparent",
     border: "none",
-    color: "var(--sq-gutter)",
+    color: "var(--text-faint)",
   },
-  ".cm-activeLine": { backgroundColor: "var(--sq-active)" },
+  ".cm-lineNumbers .cm-gutterElement": { minWidth: "44px", paddingRight: "14px" },
+  ".cm-activeLine": { backgroundColor: "var(--active)" },
+  ".cm-activeLineGutter": { backgroundColor: "transparent", color: "var(--text-4)" },
+  ".cm-lintRange-error": {
+    backgroundImage: "none",
+    textDecoration: "underline wavy var(--err)",
+    textUnderlineOffset: "3px",
+  },
+  ".cm-lintRange-warning": {
+    backgroundImage: "none",
+    textDecoration: "underline wavy var(--warn)",
+    textUnderlineOffset: "3px",
+  },
+  ".cm-gutter-lint .cm-gutterElement": { padding: "0 2px 0 4px" },
+  ".cm-sq-error-line": { backgroundColor: "var(--err-bg)" },
+  ".cm-gutterElement.cm-sq-error-gutter": {
+    backgroundColor: "var(--err-bg)",
+    color: "var(--err)",
+  },
+  // the bar goes on the leftmost gutter (the lint gutter sits first), so it
+  // reads as the row's edge rather than a stripe between number and code
+  ".cm-gutter:first-child .cm-gutterElement.cm-sq-error-gutter": {
+    boxShadow: "inset 2px 0 0 var(--err)",
+  },
   "&.cm-focused": { outline: "none" },
 });
 
@@ -88,6 +146,7 @@ export function Editor({
       history(),
       highlightActiveLine(),
       lintGutter(),
+      errorLines,
       keymap.of([...defaultKeymap, ...historyKeymap, indentWithTab]),
       new LanguageSupport(squinchLanguage),
       syntaxHighlighting(highlight),
@@ -132,6 +191,10 @@ export function Editor({
     const v = view.current;
     if (!v) return;
     const max = v.state.doc.length;
+    // one row decoration per line with an error, however many errors it has
+    const lines = new Set<number>();
+    for (const d of diagnostics)
+      if (d.severity === "error") lines.add(v.state.doc.lineAt(Math.min(d.loc.from, max)).from);
     v.dispatch(
       setDiagnostics(
         v.state,
@@ -142,6 +205,11 @@ export function Editor({
           message: d.fix ? `${d.message}\n${d.fix}` : d.message,
         })),
       ),
+      {
+        effects: setErrorLines.of(
+          Decoration.set([...lines].sort((a, b) => a - b).map((from) => errorLine.range(from))),
+        ),
+      },
     );
   }, [diagnostics]);
 

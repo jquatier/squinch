@@ -15,96 +15,201 @@
     <meta property="og:image" content="https://squinch.cc/og.png" />
     <meta property="og:url" content="https://squinch.cc/install/" />
     <meta name="twitter:card" content="summary_large_image" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet" />
     <link rel="stylesheet" href="/src/site.css" />
   </head>
   <body>
-    <div class="page wide">
-      <header class="site-header">
-        <a class="home" href="/"><img src="/favicon.svg" alt="" width="20" height="20" /> squinch</a>
-        <nav aria-label="Site">
-          <a href="/install/" aria-current="page">Install</a>
-          <a href="/lookbook/">Lookbook</a>
-          <a href="/playground/">Playground</a>
-          <a href="https://github.com/jquatier/squinch">GitHub</a>
-        </nav>
-      </header>
+    <header class="site-header">
+      <a class="home" href="/"><img src="/favicon.svg" alt="" width="20" height="20" />squinch</a>
+      <nav aria-label="Site">
+        <a href="/install/" aria-current="page">Install</a>
+        <a href="/lookbook/">Lookbook</a>
+        <a href="/playground/">Playground</a>
+        <a href="https://github.com/jquatier/squinch">GitHub</a>
+      </nav>
+    </header>
+
+    <div class="wrap sub-hero">
+      <span class="eyebrow">Install</span>
+      <h1>Four ways in.<br /><span class="grad-text">One engine underneath.</span></h1>
+      <p>
+        However you reach for it — the plugin your agent already speaks, the
+        CLI directly, or the skill dropped straight into your repo — it renders
+        the same deterministic SVG.
+      </p>
+      <div class="mono-row">
+        <span class="chip">npm i -g squinch</span>
+        <span class="sep">·</span>
+        <span>Node ≥ 22 · macOS / Linux / Windows</span>
+      </div>
+    </div>
+
+    <div class="wrap sub-body">
+      <nav class="rail" aria-label="Sections">
+        <a href="#claude-plugin" class="is-active"><span class="n">01</span>The Claude Code plugin</a>
+        <a href="#codex-plugin"><span class="n">02</span>The Codex plugin</a>
+        <a href="#cli"><span class="n">03</span>The CLI</a>
+        <a href="#skill"><span class="n">04</span>The agent skill</a>
+        <a href="#vscode"><span class="n">05</span>The VS Code extension</a>
+        <a href="#ci"><span class="n">06</span>CI</a>
+        <a href="#commands"><span class="n">07</span>The commands</a>
+      </nav>
+
       <main>
-        <h1>Install</h1>
-        <p class="lede">
-          However you reach for it — the plugin your agent already speaks,
-          the CLI directly, or the skill dropped straight into your repo —
-          it's the same engine underneath.
-        </p>
-
-        <h2>The Claude Code plugin</h2>
-        <p>No repo changes — updates arrive with the plugin instead of living in your tree:</p>
-        <pre><code>/plugin marketplace add jquatier/squinch
+        <section class="panel method" id="claude-plugin" aria-labelledby="claude-plugin-h">
+          <div class="card-head">
+            <span class="n">01</span>
+            <h2 id="claude-plugin-h">The Claude Code plugin</h2>
+            <span class="tag">Recommended</span>
+          </div>
+          <div class="card-body">
+            <p>No repo changes — updates arrive with the plugin instead of living in your tree.</p>
+            <pre><code>/plugin marketplace add jquatier/squinch
 /plugin install squinch@squinch</code></pre>
+          </div>
+        </section>
 
-        <h2>The Codex plugin</h2>
-        <p>
-          The same directory, packaged as an
-          <a href="https://agent-plugins.org">Agent Plugin</a> — Codex reads it,
-          and so do Cursor, Copilot, Kiro and VS Code:
-        </p>
-        <pre><code>codex plugin marketplace add jquatier/squinch
+        <section class="panel method" id="codex-plugin" aria-labelledby="codex-plugin-h">
+          <div class="card-head">
+            <span class="n">02</span>
+            <h2 id="codex-plugin-h">The Codex plugin</h2>
+            <span class="tag">Agent plugin</span>
+          </div>
+          <div class="card-body">
+            <p>
+              The same directory, packaged as an
+              <a href="https://agent-plugins.org">Agent Plugin</a> — Codex reads
+              it, and so do Cursor, Copilot, Kiro and VS Code.
+            </p>
+            <pre><code>codex plugin marketplace add jquatier/squinch
 codex plugin add squinch@squinch</code></pre>
+          </div>
+        </section>
 
-        <h2>The CLI</h2>
-        <p>One package, and the first render is two commands:</p>
-        <pre><code>npm i -g squinch          # or run everything through npx squinch &lt;cmd&gt;
+        <section class="panel method" id="cli" aria-labelledby="cli-h">
+          <div class="card-head">
+            <span class="n">03</span>
+            <h2 id="cli-h">The CLI</h2>
+            <span class="tag">npm</span>
+          </div>
+          <div class="card-body">
+            <p>One package, and the first render is two commands. macOS, Linux and Windows, on Node ≥ 22.</p>
+            <pre><code>npm i -g squinch          # or npx squinch &lt;cmd&gt;
 
 squinch init my-diagrams
 squinch render my-diagrams --sync</code></pre>
-        <p>macOS, Linux and Windows, on Node ≥ 22.</p>
+          </div>
+        </section>
 
-        <h2>The agent skill</h2>
-        <p>
-          <code>npx squinch skill</code> in your project writes
-          <code>.agents/skills/</code> (plus <code>.claude/skills/</code> when it
-          detects Claude Code); <code>--global</code> does the same under your
-          home directory, <code>--print</code> emits SKILL.md for any other
-          harness. Then ask your agent for a diagram in plain language.
-        </p>
+        <section class="panel method" id="skill" aria-labelledby="skill-h">
+          <div class="card-head">
+            <span class="n">04</span>
+            <h2 id="skill-h">The agent skill</h2>
+            <span class="tag">Any harness</span>
+          </div>
+          <div class="card-body">
+            <p>
+              <code>npx squinch skill</code> in your project writes
+              <code>.agents/skills/</code> (plus <code>.claude/skills/</code> when
+              it detects Claude Code); <code>--global</code> does the same under
+              your home directory, <code>--print</code> emits SKILL.md for any
+              other harness. Then ask your agent for a diagram in plain language.
+            </p>
+            <pre><code>npx squinch skill</code></pre>
+          </div>
+        </section>
 
-        <h2>The VS Code extension</h2>
-        <p>
-          Download <code>squinch-vscode-&lt;version&gt;.vsix</code> from
-          <a href="https://github.com/jquatier/squinch/releases">GitHub Releases</a>
-          and <code>code --install-extension</code> it. The same file installs in
-          Cursor, Windsurf and VSCodium.
-        </p>
+        <section class="panel method" id="vscode" aria-labelledby="vscode-h">
+          <div class="card-head">
+            <span class="n">05</span>
+            <h2 id="vscode-h">The VS Code extension</h2>
+            <span class="tag">vsix</span>
+          </div>
+          <div class="card-body">
+            <p>
+              Download <code>squinch-vscode-&lt;version&gt;.vsix</code> from
+              <a href="https://github.com/jquatier/squinch/releases">GitHub Releases</a>
+              and install it. The same file installs in Cursor, Windsurf and
+              VSCodium.
+            </p>
+            <pre><code>code --install-extension squinch-vscode-&lt;version&gt;.vsix</code></pre>
+          </div>
+        </section>
 
-        <h2>CI</h2>
-        <p>
-          <code>uses: jquatier/squinch/.github/actions/squinch-check@main</code>
-          fails the build when a committed SVG is stale;
-          <a href="https://github.com/jquatier/squinch/tree/main/.github/actions/squinch-diff">squinch-diff</a>
-          comments what changed, architecturally, on the PR. Pin the
-          <code>version</code> input: rendering is deterministic
-          <em>per tool version</em>.
-        </p>
+        <section class="panel method" id="ci" aria-labelledby="ci-h">
+          <div class="card-head">
+            <span class="n">06</span>
+            <h2 id="ci-h">CI</h2>
+            <span class="tag">GitHub Action</span>
+          </div>
+          <div class="card-body">
+            <p>
+              <code>squinch-check</code> fails the build when a committed SVG is
+              stale;
+              <a href="https://github.com/jquatier/squinch/tree/main/.github/actions/squinch-diff">squinch-diff</a>
+              comments what changed, architecturally, on the PR. Pin the
+              <code>version</code> input: rendering is deterministic per tool
+              version.
+            </p>
+            <pre><code>uses: jquatier/squinch/.github/actions/squinch-check@main</code></pre>
+          </div>
+        </section>
 
-        <h2>The commands</h2>
-        <p>A path can be a single file or a directory — a directory is one project, and its files share a namespace.</p>
-        <div class="table-scroll">
-          <table>
-            <tbody>
-              <tr><th scope="row"><code>check</code></th><td>parse + lint; <code>--format json</code> for agents</td></tr>
-              <tr><th scope="row"><code>render</code></th><td><code>--view</code>, <code>--theme</code>, <code>--adaptive</code>, <code>--sync</code>, <code>--check</code>; <code>-o out.png</code> rasterizes, <code>-o out.html</code> exports the interactive viewer</td></tr>
-              <tr><th scope="row"><code>diff</code></th><td>semantic model diff — <code>--base &lt;ref&gt;</code>, <code>--format markdown</code>, <code>--fail-on structural|any</code> for CI</td></tr>
-              <tr><th scope="row"><code>icons search</code></th><td>find an icon id across installed packs</td></tr>
-              <tr><th scope="row"><code>init</code></th><td>scaffold a starter project</td></tr>
-              <tr><th scope="row"><code>skill</code></th><td>install the agent skill</td></tr>
-              <tr><th scope="row"><code>watch</code></th><td>re-render on change</td></tr>
-            </tbody>
-          </table>
-        </div>
+        <section class="panel method" id="commands" aria-labelledby="commands-h">
+          <div class="card-head">
+            <span class="n">07</span>
+            <h2 id="commands-h">The commands</h2>
+            <span class="tag">CLI reference</span>
+          </div>
+          <div class="card-body" style="padding-bottom: 8px">
+            <p>A path can be a single file or a directory — a directory is one project, and its files share a namespace.</p>
+          </div>
+          <div class="cmd-rows">
+            <div class="cmd-row"><code>check</code><span>parse + lint; <code>--format json</code> for agents</span></div>
+            <div class="cmd-row"><code>render</code><span><code>--view</code>, <code>--theme</code>, <code>--adaptive</code>, <code>--sync</code>, <code>--check</code>; <code>-o out.png</code> rasterizes, <code>-o out.html</code> exports the interactive viewer</span></div>
+            <div class="cmd-row"><code>diff</code><span>semantic model diff — <code>--base &lt;ref&gt;</code>, <code>--format markdown</code>, <code>--fail-on structural|any</code> for CI</span></div>
+            <div class="cmd-row"><code>icons search</code><span>find an icon id across installed packs</span></div>
+            <div class="cmd-row"><code>init</code><span>scaffold a starter project</span></div>
+            <div class="cmd-row"><code>skill</code><span>install the agent skill</span></div>
+            <div class="cmd-row"><code>watch</code><span>re-render on change</span></div>
+          </div>
+        </section>
       </main>
-      <footer class="site-footer">
-        <a href="https://github.com/jquatier/squinch">GitHub</a>
-        <span>Apache-2.0</span>
-      </footer>
     </div>
+
+    <footer class="site-foot">
+      <span>Apache-2.0 · deterministic renders, reviewable in a pull request</span>
+      <a class="btn-grad" href="/playground/">Open the playground</a>
+    </footer>
+
+    <script>
+      // Scroll-spy for the rail: the active entry is the section nearest the
+      // top of the viewport. The root margin shrinks the observed band to the
+      // upper part of the screen, so a card counts as "current" once its head
+      // has scrolled into the top fifth, not the moment a pixel of it appears.
+      if ("IntersectionObserver" in window) {
+        const links = [...document.querySelectorAll(".rail a[href^='#']")];
+        const byId = new Map(links.map((a) => [a.getAttribute("href").slice(1), a]));
+        const visible = new Set();
+        const pick = () => {
+          const first = [...byId.keys()].find((id) => visible.has(id));
+          if (!first) return;
+          for (const [id, a] of byId) a.classList.toggle("is-active", id === first);
+        };
+        const io = new IntersectionObserver(
+          (entries) => {
+            for (const e of entries) e.isIntersecting ? visible.add(e.target.id) : visible.delete(e.target.id);
+            pick();
+          },
+          { rootMargin: "-15% 0px -70% 0px" },
+        );
+        for (const id of byId.keys()) {
+          const el = document.getElementById(id);
+          if (el) io.observe(el);
+        }
+      }
+    </script>
   </body>
 </html>

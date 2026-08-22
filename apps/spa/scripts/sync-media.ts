@@ -32,4 +32,16 @@ const FILES: [string, string][] = [
 ];
 for (const [from, to] of FILES) copyFileSync(join(assetsDir, from), join(publicDir, to));
 
-console.log(`sync-media: ${FILES.length} brand assets → apps/spa/public/`);
+// The landing's "Motion carries meaning" card shows the README's own motion
+// example. It is a committed example render, not a brand asset, and the
+// lookbook sync only copies lookbook/out/ — so it rides along here. Dark only:
+// the marketing pages never show the light palette.
+const EXAMPLES: [string, string][] = [
+  ["notifications/notifications.pipeline.dark.svg", "notifications-pipeline-dark.svg"],
+];
+for (const [from, to] of EXAMPLES)
+  copyFileSync(join(root, "examples", from), join(publicDir, to));
+
+console.log(
+  `sync-media: ${FILES.length} brand assets + ${EXAMPLES.length} example render → apps/spa/public/`,
+);

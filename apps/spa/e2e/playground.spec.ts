@@ -76,7 +76,9 @@ test("a syntax error reports itself and keeps the last good drawing", async ({ p
   await page.keyboard.press("End");
   await page.keyboard.type("\n%%% not squinch %%%");
 
-  await expect(page.getByText(/error/).first()).toBeVisible();
+  // the diagnostics footer counts problems ("1 problem") rather than
+  // labelling each line "error"
+  await expect(page.getByText(/\d+ problem/).first()).toBeVisible();
   await expect(nodes(page)).toHaveCount(before);
 });
 

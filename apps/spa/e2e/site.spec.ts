@@ -17,7 +17,7 @@ test("the landing renders the lockup and all four links", async ({ page }) => {
   // alt text (`content: "↗" / ""`), which keeps them out of the accessible
   // name. Matching exactly is what proves that still holds — drop the alt text
   // and this reads "GitHub ↗" and fails.
-  for (const name of ["Install", "GitHub", "Lookbook", "Playground"])
+  for (const name of ["Open the playground", "Install", "Lookbook", "GitHub"])
     await expect(heroLinks.getByRole("link", { name, exact: true })).toBeVisible();
   // and GitHub leaves the site for the repo, not a page that no longer exists
   expect(
@@ -27,9 +27,11 @@ test("the landing renders the lockup and all four links", async ({ page }) => {
 });
 
 test("each content page serves, styled, with its own title", async ({ page }) => {
+  // the h1s are two-line claims; a substring of the first line is enough to
+  // tell them apart and survives a copy tweak to the second
   for (const [path, title, h1] of [
-    ["/install/", "Install — Squinch", "Install"],
-    ["/lookbook/", "Lookbook — Squinch", "Lookbook"],
+    ["/install/", "Install — Squinch", "Four ways in."],
+    ["/lookbook/", "Lookbook — Squinch", "Thirty-five systems,"],
   ] as const) {
     await page.goto(path);
     await expect(page).toHaveTitle(title);
@@ -41,7 +43,7 @@ test("each content page serves, styled, with its own title", async ({ page }) =>
 
 test("the landing's Playground link opens the working playground", async ({ page }) => {
   await page.goto("/");
-  await page.getByRole("link", { name: "Playground", exact: true }).click();
+  await page.getByRole("link", { name: "Open the playground", exact: true }).click();
   await expect(page).toHaveURL(/\/playground\/$/);
   // the app compiled and drew — icons fetched from the site root, per the
   // BASE_URL anchoring in src/squinch.ts

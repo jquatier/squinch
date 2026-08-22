@@ -1,20 +1,38 @@
 /* The theme tokens — one palette for the whole site AND the playground
    (DESIGN.md §10 chrome roles). `data-theme` on <html> picks the set; the
-   site pages stamp it from prefers-color-scheme, the playground from its
-   own persisted toggle. Split out of index.css so the static site pages can
-   import the palette without the playground's layout rules. */
+   site pages are stamped dark in their markup, the playground from its own
+   persisted toggle. Split out of index.css so the static site pages can
+   import the palette without the playground's layout rules.
+
+   The dark set is the design system (design handoff, 2026-08): the marketing
+   pages only ever show it. The light set exists for one surface — the
+   playground's Light setting — so its values for the newer roles are picked
+   from the same family as the older ones rather than designed from scratch. */
 :root,
 html[data-theme="light"] {
   --chrome: #FBFBFA;
   --surface: #FFFFFF;
   --canvas: #F7F7F5;
+  --pane: #FBFBFA;
+  --control: #F0EFEC;
+  --control-active: #E4E3DF;
   --line: #E4E3DF;
   --line-strong: #CFCEC9;
+  --line-soft: #ECEBE8;
   --chip: #F0EFEC;
   --fg: #1C1C1A;
   --muted: #6F6E69;
+  --text-3: #8A8983;
+  --text-4: #B5B4AE;
+  --text-faint: #C9C8C2;
+  --text-mono-dim: #9C9B95;
   --accent: #5A57C9;
+  --ok: #1F8A66;
   --error: #B3261E;
+  --err: #B3261E;
+  --err-bg: rgba(179, 38, 30, 0.06);
+  --err-chip-bg: rgba(179, 38, 30, 0.1);
+  --err-chip-line: rgba(179, 38, 30, 0.3);
   --warn: #8A6100;
   --dot: #E8E7E3;
   --active: #F7F7F5;
@@ -32,13 +50,26 @@ html[data-theme="dark"] {
   --chrome: #141416;
   --surface: #1A1A1D;
   --canvas: #161618;
+  --pane: #17171A;
+  --control: #1F1F23;
+  --control-active: #26262B;
   --line: #2C2C30;
   --line-strong: #46464C;
+  --line-soft: #242428;
   --chip: #242428;
   --fg: #EDEDEA;
   --muted: #9C9B94;
+  --text-3: #6C6B66;
+  --text-4: #46464C;
+  --text-faint: #3A3A40;
+  --text-mono-dim: #5C5C63;
   --accent: #8B88E8;
+  --ok: #3FBF8F;
   --error: #F2857C;
+  --err: #E05656;
+  --err-bg: rgba(224, 86, 86, 0.07);
+  --err-chip-bg: rgba(224, 86, 86, 0.12);
+  --err-chip-line: rgba(224, 86, 86, 0.3);
   --warn: #D9B168;
   --dot: #222226;
   --active: #1E1E22;
@@ -50,4 +81,17 @@ html[data-theme="dark"] {
   --sq-icon: #6FCFAA;
   --sq-prop: #9C9B94;
   --sq-muted: #6C6B66;
+}
+
+/* Brand, untheme-d: the ramp is the one colour that never changes with the
+   palette (it is the mark's own gradient), and the glows are its shadow. */
+:root {
+  --grad: linear-gradient(135deg, #C441FE, #3585FF 55%, #15B6FF);
+  --grad-dot: linear-gradient(135deg, #C441FE, #15B6FF);
+  --glow-primary: 0 12px 30px -14px rgba(120, 88, 255, 0.85);
+  --glow-primary-hover: 0 16px 34px -12px rgba(120, 88, 255, 0.95);
+  --glow-primary-sm: 0 8px 22px -12px rgba(120, 88, 255, 0.9);
+  --panel-shadow: 0 24px 60px -30px rgba(0, 0, 0, 0.9);
+  --font-ui: Inter, ui-sans-serif, system-ui, sans-serif;
+  --font-mono: "IBM Plex Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
 }

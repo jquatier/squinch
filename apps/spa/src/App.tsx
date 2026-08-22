@@ -58,6 +58,9 @@ export function App() {
   // How much of the current view's flow has been narrated. Presentation only:
   // while authoring you want the whole flow at once, not a story.
   const [flowStep, setFlowStep] = useState(1);
+  // Wall-clock for the last successful compile+render, for the stage's
+  // "rendered in N ms" readout. Display only — nothing reads it back.
+  const [renderMs, setRenderMs] = useState<number>();
   const token = useRef(0);
   const reduced = useReducedMotion();
 
@@ -101,11 +104,15 @@ export function App() {
 
   useEffect(() => {
     let stale = false;
+    const t0 = performance.now();
     compile(debounced, { view, theme, flowStep: presenting ? flowStep : undefined }).then((next) => {
       if (stale) return;
       setPreview(next);
       // last-good preview: never blank the canvas while typing
-      if (next.svg) setLastGood(next.svg);
+      if (next.svg) {
+        setLastGood(next.svg);
+        setRenderMs(Math.max(1, Math.round(performance.now() - t0)));
+      }
     });
     return () => {
       stale = true;
@@ -305,96 +312,125 @@ export function App() {
       />
     );
 
+  // What the file strip calls the buffer: the example's name as a filename
+  // while the buffer IS that example, "untitled" once it has been edited.
+  const fileName = currentExample
+    ? `${currentExample.name.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "")}.squinch`
+    : "untitled.squinch";
+  const lineCount = source.split("\n").length;
+
   return (
     <div className="flex h-screen flex-col bg-[var(--chrome)] text-[var(--fg)]">
       {/* offscreen, not decorative — the editor UI has no visible page title,
           so this is the only thing giving the document an <h1> at all */}
       <h1 className="sr-only">Squinch — playground</h1>
-      <header className="flex items-center gap-3 border-b border-[var(--line)] px-4 py-2.5">
+      <header className="flex flex-none items-center gap-3.5 border-b border-[var(--line)] bg-[var(--pane)] px-4 py-2.5">
         <a
-          className="flex items-center gap-2"
+          className="flex items-center gap-2 text-[13.5px] font-semibold tracking-[-0.02em] text-[var(--fg)]"
           href={import.meta.env.BASE_URL}
           title="Squinch — back to the site"
         >
-          <img src={markUrl} width={18} height={18} alt="" />
-          <span className="text-[13px] font-medium tracking-tight">squinch</span>
-          <span className="rounded bg-[var(--chip)] px-1.5 py-0.5 text-[10px] text-[var(--muted)]">
-            playground
-          </span>
+          <img src={markUrl} width={19} height={19} alt="" />
+          squinch
         </a>
+        <span className="pg-chip">playground</span>
 
-        <div className="ml-2 flex items-center gap-1">
-          <button
-            onClick={() => stepExample(-1)}
-            className={btn}
-            title="Previous example"
-            aria-label="Previous example"
+        {/* one control for which example you're on: the arrows live inside it
+            rather than flanking a bare select */}
+        <div className="ml-1.5 flex items-center gap-1.5">
+          <div className="pg-group">
+            <button onClick={() => stepExample(-1)} title="Previous example" aria-label="Previous example">
+              ‹
+            </button>
+            <span className="div" />
+            <select
+              value={currentExample ? `${currentExample.group}/${currentExample.name}` : ""}
+              onChange={(e) => {
+                // keyed by group too: `landscape` is both an example project and
+                // a lookbook case, and matching on name alone loaded the wrong one
+                const ex = EXAMPLES.find((x) => `${x.group}/${x.name}` === e.target.value);
+                if (ex) loadExample(ex);
+              }}
+            >
+              <option value="">Examples…</option>
+              {[...new Set(EXAMPLES.map((ex) => ex.group))].map((group) => (
+                <optgroup key={group} label={group}>
+                  {EXAMPLES.filter((ex) => ex.group === group).map((ex) => (
+                    <option key={`${ex.group}/${ex.name}`} value={`${ex.group}/${ex.name}`}>
+                      {ex.name}
+                    </option>
+                  ))}
+                </optgroup>
+              ))}
+            </select>
+            <span className="div" />
+            <button onClick={() => stepExample(1)} title="Next example" aria-label="Next example">
+              ›
+            </button>
+          </div>
+          {/* honest, not decorative: the buffer is written to localStorage on
+              every change (the effect above), so there is never an unsaved
+              state to show */}
+          <span
+            className="pg-mono flex items-center gap-1.5 pl-1 text-[11px] font-medium text-[var(--text-3)]"
+            title="Your source is kept in this browser's local storage"
           >
-            ‹
-          </button>
-          <select
-            className="rounded border border-[var(--line)] bg-[var(--surface)] px-2 py-1 text-[12px] outline-none"
-            value={currentExample ? `${currentExample.group}/${currentExample.name}` : ""}
-            onChange={(e) => {
-              // keyed by group too: `landscape` is both an example project and
-              // a lookbook case, and matching on name alone loaded the wrong one
-              const ex = EXAMPLES.find((x) => `${x.group}/${x.name}` === e.target.value);
-              if (ex) loadExample(ex);
-            }}
-          >
-            <option value="">Examples…</option>
-            {[...new Set(EXAMPLES.map((ex) => ex.group))].map((group) => (
-              <optgroup key={group} label={group}>
-                {EXAMPLES.filter((ex) => ex.group === group).map((ex) => (
-                  <option key={`${ex.group}/${ex.name}`} value={`${ex.group}/${ex.name}`}>
-                    {ex.name}
-                  </option>
-                ))}
-              </optgroup>
-            ))}
-          </select>
-          <button
-            onClick={() => stepExample(1)}
-            className={btn}
-            title="Next example"
-            aria-label="Next example"
-          >
-            ›
-          </button>
+            <span className="h-1.5 w-1.5 rounded-full bg-[var(--ok)]" />
+            saved
+          </span>
         </div>
 
         <div className="flex-1" />
 
-        <button onClick={cycleTheme} className={btn} title="Cycle theme">
-          {THEME_LABEL[theme]}
-        </button>
-        <button
-          onClick={() => views.length && setPresenting(true)}
-          disabled={!views.length}
-          className={`${btn} disabled:opacity-40`}
-          title="⌘⏎ — full-screen the views as a deck; arrows to step, click a card to zoom in"
-        >
-          Present
-        </button>
-        <button onClick={() => setPaletteOpen(true)} className={btn} title="⌘K — search pack icons, insert at cursor">
-          Icons
-        </button>
-        <button onClick={share} className={btn} title="Copy a link — the source travels in the URL fragment">
-          Share
-        </button>
-        <ExportMenu
-          onSvg={download}
-          onPng={downloadPng}
-          onAdaptive={adaptiveBase ? downloadAdaptive : undefined}
-          onHtml={downloadHtml}
-          busy={exporting}
-        />
+        <div className="pg-seg" role="group" aria-label="Theme">
+          {THEME_CYCLE.map((t) => (
+            <button
+              key={t}
+              className={t === theme ? "on" : ""}
+              aria-pressed={t === theme}
+              onClick={() => setTheme(t)}
+            >
+              {THEME_LABEL[t]}
+            </button>
+          ))}
+        </div>
+
+        <div className="flex items-center gap-1.5">
+          <button onClick={() => setPaletteOpen(true)} className="pg-btn" title="⌘K — search pack icons, insert at cursor">
+            Icons<span className="pg-kbd">⌘K</span>
+          </button>
+          <button
+            onClick={() => views.length && setPresenting(true)}
+            disabled={!views.length}
+            className="pg-btn"
+            title="⌘⏎ — full-screen the views as a deck; arrows to step, click a card to zoom in"
+          >
+            Present
+          </button>
+          <button onClick={share} className="pg-btn" title="Copy a link — the source travels in the URL fragment">
+            Share
+          </button>
+          <ExportMenu
+            onSvg={download}
+            onPng={downloadPng}
+            onAdaptive={adaptiveBase ? downloadAdaptive : undefined}
+            onHtml={downloadHtml}
+            busy={exporting}
+          />
+        </div>
       </header>
 
       <main className="flex min-h-0 flex-1">
         {editorOpen && (
-          <section className="flex w-[42%] min-w-[320px] max-w-[640px] flex-col border-r border-[var(--line)] bg-[var(--surface)]">
-            <div className="flex-1 overflow-hidden">
+          <section className="flex w-[520px] min-w-0 flex-none flex-col border-r border-[var(--line)] bg-[var(--pane)]">
+            <div className="pg-mono flex flex-none items-center gap-2.5 border-b border-[var(--line)] px-3.5 py-2 text-[11.5px]">
+              <span className="font-medium text-[var(--fg)]">{fileName}</span>
+              <span className="text-[11px] text-[var(--text-mono-dim)]">{lineCount} lines</span>
+              <span className="ml-auto text-[10px] font-medium uppercase tracking-[0.08em] text-[var(--text-3)]">
+                {views.length} {views.length === 1 ? "view" : "views"}
+              </span>
+            </div>
+            <div className="min-h-0 flex-1 overflow-hidden">
               <Editor value={source} diagnostics={preview.diagnostics} onChange={setSource} apiRef={editorApi} />
             </div>
             <Diagnostics errors={errors} warnings={warnings} />
@@ -411,21 +447,39 @@ export function App() {
           onPick={onPick}
           onBlank={upView ? () => navigate(upView) : undefined}
         >
-          <button
-            onClick={() => setEditorOpen((o) => !o)}
-            className="absolute left-3 top-3 z-10 rounded border border-[var(--line)] bg-[var(--surface)] px-2 py-1 text-[11px] text-[var(--muted)] hover:text-[var(--fg)]"
-            title="⌘\"
-          >
-            {editorOpen ? "Hide editor" : "Show editor"}
-          </button>
+          {/* Everything over the stage is a floating translucent pill inset
+              14/16px from the edges (design handoff §4). */}
+          <div className="absolute left-4 top-3.5 z-10 flex items-center gap-2">
+            <button onClick={() => setEditorOpen((o) => !o)} className="pg-btn pg-pill text-[12px]" title="⌘\">
+              {editorOpen ? "⇤ Hide editor" : "⇥ Show editor"}
+            </button>
+            {crumbs.length > 1 && (
+              <nav className="pg-pill pg-mono flex items-center gap-1.5 px-[11px] py-1.5 text-[11.5px] text-[var(--text-3)]">
+                {crumbs.map((c, i) => (
+                  <span key={i} className="flex items-center gap-1.5">
+                    {i > 0 && <span className="text-[var(--text-faint)]">/</span>}
+                    <button
+                      disabled={!c.view || c.view === activeView}
+                      onClick={() => c.view && navigate(c.view)}
+                      className={
+                        c.view && c.view !== activeView
+                          ? "cursor-zoom-out text-[var(--muted)] hover:text-[var(--fg)] hover:underline"
+                          : "text-[var(--fg)]"
+                      }
+                    >
+                      {c.label}
+                    </button>
+                  </span>
+                ))}
+              </nav>
+            )}
+          </div>
           {/* The views belong to the diagram, not to the app: they are its
               altitudes, and switching one is a move within the picture rather
               than a global mode. Top-centre keeps them clear of the editor
-              toggle and breadcrumb on the left and the zoom control bottom
-              right, and they inherit the same surface the other canvas
-              overlays use so they read over any theme. */}
+              toggle and breadcrumb on the left and the readout top right. */}
           {views.length > 1 && (
-            <nav className="absolute left-1/2 top-3 z-10 flex max-w-[calc(100%-7rem)] -translate-x-1/2 items-center gap-1 overflow-x-auto rounded border border-[var(--line)] bg-[var(--surface)] p-0.5">
+            <nav className="pg-pill absolute left-1/2 top-3.5 z-10 flex max-w-[calc(100%-22rem)] -translate-x-1/2 items-center gap-0.5 overflow-x-auto rounded-[9px] p-[3px]">
               {views.map((v) => (
                 <button
                   key={v.name}
@@ -433,9 +487,9 @@ export function App() {
                   title={v.title}
                   // nowrap: a hyphenated name (`orders-pci`) breaks across two
                   // lines otherwise and the whole bar goes ragged
-                  className={`whitespace-nowrap rounded px-2 py-1 text-[12px] transition-colors ${
+                  className={`whitespace-nowrap rounded-md px-[13px] py-1.5 text-[12.5px] transition-colors ${
                     v.name === activeView
-                      ? "bg-[var(--chip)] text-[var(--fg)]"
+                      ? "bg-[var(--control-active)] font-medium text-[var(--fg)]"
                       : "text-[var(--muted)] hover:text-[var(--fg)]"
                   }`}
                 >
@@ -444,57 +498,55 @@ export function App() {
               ))}
             </nav>
           )}
-          {crumbs.length > 1 && (
-            <nav className="absolute left-3 top-12 z-10 flex items-center gap-1 text-[11px] text-[var(--muted)]">
-              {crumbs.map((c, i) => (
-                <span key={i} className="flex items-center gap-1">
-                  {i > 0 && <span className="opacity-50">›</span>}
-                  <button
-                    disabled={!c.view || c.view === activeView}
-                    onClick={() => c.view && navigate(c.view)}
-                    className={
-                      c.view && c.view !== activeView
-                        ? "cursor-zoom-out hover:text-[var(--fg)] hover:underline"
-                        : "text-[var(--fg)]"
-                    }
-                  >
-                    {c.label}
-                  </button>
-                </span>
-              ))}
-            </nav>
+          {renderMs !== undefined && (
+            <div className="pg-pill absolute right-4 top-3.5 z-10 flex items-center gap-2 px-[11px] py-1.5">
+              <span className="h-1.5 w-1.5 rounded-full [background:var(--grad-dot)]" />
+              <span className="pg-mono text-[11.5px] font-medium tabular-nums text-[var(--muted)]">
+                rendered in {renderMs} ms
+              </span>
+            </div>
           )}
-          <div className="absolute bottom-3 right-3 z-10 flex items-center gap-1 rounded border border-[var(--line)] bg-[var(--surface)] p-0.5 text-[11px]">
+          <div className="absolute bottom-3.5 left-4 z-10 flex items-center gap-2.5">
+            {views.length > 1 && (
+              <div className="pg-pill flex items-center gap-[9px] rounded-[9px] px-3 py-[7px]">
+                <span className="pg-mono text-[10px] font-medium uppercase tracking-[0.08em] text-[var(--text-3)]">
+                  Altitude
+                </span>
+                <span className="text-[12.5px] text-[var(--muted)]">click a system to open its internals</span>
+              </div>
+            )}
+            <span className="text-[11px] text-[var(--text-3)]">nothing you draw ever leaves your browser</span>
+          </div>
+          <div className="pg-pill absolute bottom-3.5 right-4 z-10 flex items-center gap-0.5 rounded-[9px] p-[3px] text-[12px]">
             <button
               onClick={() => { setFit(true); setZoom(1); }}
-              className={`rounded px-2 py-1 ${fit ? "bg-[var(--chip)] text-[var(--fg)]" : "text-[var(--muted)] hover:text-[var(--fg)]"}`}
+              className={`rounded-md px-[11px] py-[5px] ${fit ? "bg-[var(--control-active)] font-medium text-[var(--fg)]" : "text-[var(--muted)] hover:text-[var(--fg)]"}`}
             >
               Fit
             </button>
             <button
               onClick={() => { setFit(false); setZoom((z) => Math.max(0.25, +(z - 0.25).toFixed(2))); }}
-              className="rounded px-2 py-1 text-[var(--muted)] hover:text-[var(--fg)]"
+              className="h-[26px] w-7 rounded-md text-[13px] text-[var(--muted)] hover:text-[var(--fg)]"
+              aria-label="Zoom out"
             >
               −
             </button>
-            <span className="w-10 text-center tabular-nums text-[var(--muted)]">
+            <span className="pg-mono w-11 text-center text-[11.5px] font-medium tabular-nums text-[var(--muted)]">
               {fit ? "auto" : `${Math.round(zoom * 100)}%`}
             </span>
             <button
               onClick={() => { setFit(false); setZoom((z) => Math.min(3, +(z + 0.25).toFixed(2))); }}
-              className="rounded px-2 py-1 text-[var(--muted)] hover:text-[var(--fg)]"
+              className="h-[26px] w-7 rounded-md text-[13px] text-[var(--muted)] hover:text-[var(--fg)]"
+              aria-label="Zoom in"
             >
               +
             </button>
           </div>
           {copied && (
-            <div className="absolute bottom-4 left-1/2 -translate-x-1/2 rounded bg-[var(--fg)] px-3 py-1.5 text-[12px] text-[var(--canvas)]">
+            <div className="absolute bottom-4 left-1/2 z-10 -translate-x-1/2 rounded-lg bg-[var(--fg)] px-3 py-1.5 text-[12px] text-[var(--chrome)]">
               {copied}
             </div>
           )}
-          <div className="absolute bottom-3 left-3 z-10 text-[11px] text-[var(--muted)]">
-            nothing you draw ever leaves your browser
-          </div>
         </Stage>
       </main>
       <IconPalette
@@ -507,9 +559,6 @@ export function App() {
     </div>
   );
 }
-
-const btn =
-  "rounded border border-[var(--line)] bg-[var(--surface)] px-2.5 py-1 text-[12px] text-[var(--muted)] transition-colors hover:text-[var(--fg)] hover:border-[var(--line-strong)]";
 
 /** One Export button over both formats. They are the same intent — get the
  *  picture out — and two of the header's six buttons was a lot of chrome to
@@ -550,7 +599,7 @@ function ExportMenu({
   }, [open]);
 
   const item =
-    "block w-full px-3 py-1.5 text-left text-[12px] text-[var(--muted)] transition-colors hover:bg-[var(--chip)] hover:text-[var(--fg)]";
+    "block w-full px-3 py-1.5 text-left text-[12.5px] text-[var(--muted)] transition-colors hover:bg-[var(--control)] hover:text-[var(--fg)]";
 
   return (
     <div ref={wrap} className="relative">
@@ -558,15 +607,15 @@ function ExportMenu({
         onClick={() => setOpen((o) => !o)}
         aria-haspopup="menu"
         aria-expanded={open}
-        className={btn}
+        className="pg-grad"
         title="Save the diagram — ⌘S for SVG"
       >
-        Export ▾
+        Export<span className="text-[9px] opacity-75">▾</span>
       </button>
       {open && (
         <div
           role="menu"
-          className="absolute right-0 z-40 mt-1 w-44 overflow-hidden rounded border border-[var(--line)] bg-[var(--chrome)] py-1 shadow-xl"
+          className="absolute right-0 z-40 mt-1.5 w-48 overflow-hidden rounded-lg border border-[var(--line)] bg-[var(--surface)] py-1 shadow-[var(--panel-shadow)]"
         >
           <button
             role="menuitem"
@@ -631,29 +680,48 @@ function Diagnostics({
   errors: { message: string; fix?: string; loc: { line: number; col: number } }[];
   warnings: { message: string; loc: { line: number } }[];
 }) {
-  if (!errors.length && !warnings.length)
-    return (
-      <div className="border-t border-[var(--line)] px-3 py-2 text-[11px] text-[var(--muted)]">
-        No problems
-      </div>
-    );
+  const count = errors.length + warnings.length;
+  const first = errors[0] ?? warnings[0];
   return (
-    <div className="max-h-44 overflow-auto border-t border-[var(--line)] px-3 py-2 text-[11px]">
-      {errors.map((d, i) => (
-        <div key={`e${i}`} className="mb-1.5">
-          <span className="text-[var(--error)]">error</span>{" "}
-          <span className="text-[var(--muted)]">
-            {d.loc.line}:{d.loc.col}
-          </span>{" "}
-          {d.message}
-          {d.fix && <div className="pl-12 text-[var(--muted)]">{d.fix}</div>}
+    <div className="flex-none border-t border-[var(--line)] bg-[var(--surface)]">
+      <div className="flex items-center gap-2.5 px-3.5 py-[9px] text-[12px]">
+        <span className="flex items-center gap-[7px] text-[var(--fg)]">
+          <span
+            className={`h-[7px] w-[7px] rounded-full ${
+              errors.length ? "bg-[var(--err)]" : warnings.length ? "bg-[var(--warn)]" : "bg-[var(--ok)]"
+            }`}
+          />
+          {count ? `${count} ${count === 1 ? "problem" : "problems"}` : "No problems"}
+        </span>
+        {first && (
+          <span className="pg-mono ml-auto text-[11.5px] tabular-nums text-[var(--text-3)]">
+            {first.loc.line}{"col" in first.loc ? `:${first.loc.col}` : ""}
+          </span>
+        )}
+      </div>
+      {count > 0 && (
+        <div className="max-h-40 overflow-auto px-3.5 pb-3">
+          {errors.map((d, i) => (
+            <div key={`e${i}`} className="flex items-start gap-2.5 pb-2 text-[12.5px] leading-normal text-[var(--muted)]">
+              <span className="pg-mono mt-[3px] flex-none rounded border border-[var(--err-chip-line)] bg-[var(--err-chip-bg)] px-1.5 py-0.5 text-[10px] font-medium text-[var(--err)]">
+                {d.loc.line}:{d.loc.col}
+              </span>
+              <span>
+                {d.message}
+                {d.fix && <span className="text-[var(--accent)]"> {d.fix}</span>}
+              </span>
+            </div>
+          ))}
+          {warnings.map((d, i) => (
+            <div key={`w${i}`} className="flex items-start gap-2.5 pb-2 text-[12.5px] leading-normal text-[var(--muted)]">
+              <span className="pg-mono mt-[3px] flex-none rounded border border-[var(--line)] bg-[var(--chip)] px-1.5 py-0.5 text-[10px] font-medium text-[var(--warn)]">
+                {d.loc.line}
+              </span>
+              <span>{d.message}</span>
+            </div>
+          ))}
         </div>
-      ))}
-      {warnings.map((d, i) => (
-        <div key={`w${i}`} className="mb-1.5 text-[var(--muted)]">
-          <span className="text-[var(--warn)]">warning</span> {d.loc.line} {d.message}
-        </div>
-      ))}
+      )}
     </div>
   );
 }

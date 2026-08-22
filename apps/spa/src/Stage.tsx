@@ -199,7 +199,7 @@ export function Stage({
       className={`relative min-w-0 flex-1 bg-[var(--canvas)] ${
         fill
           ? "overflow-hidden"
-          : "overflow-auto [background-image:radial-gradient(var(--dot)_1px,transparent_1px)] [background-size:20px_20px]"
+          : "overflow-auto [background-image:radial-gradient(var(--dot)_1px,transparent_1px)] [background-size:22px_22px]"
       } ${className ?? ""}`}
     >
       {children}
