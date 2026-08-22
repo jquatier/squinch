@@ -434,12 +434,67 @@ pre code { background: none; padding: 0; font-size: inherit; }
   .hero-brand:hover .sqs-posts { opacity: 0.4; }
   .hero-brand:hover .sqs-nodes { opacity: 1; }
 }
+.hero-brand .name-row { display: flex; align-items: baseline; gap: 12px; }
 .hero-brand .name {
   font-size: 40px;
   font-weight: 600;
   letter-spacing: -0.045em;
   line-height: 1;
   color: var(--fg);
+}
+/* The release stage, said once, in the mono chip voice the rest of the
+   system uses for facts — beside the wordmark so it is read with the name
+   and never mistaken for a feature. The README's status badge says the same
+   word; change them together. */
+.hero-brand .release-chip {
+  position: relative;
+  align-self: center;
+  overflow: hidden; /* clips the sparkle sweep below to the chip's own corners */
+  font: 500 10.5px/1.2 var(--font-mono);
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--warn);
+  background: color-mix(in srgb, var(--warn) 10%, transparent);
+  border: 1px solid color-mix(in srgb, var(--warn) 35%, transparent);
+  border-radius: 5px;
+  padding: 4px 8px;
+  cursor: help;
+  /* Held off until the mark itself has finished assembling (its last plane
+     lands around 1.4s in) so the chip reads as a second, separate beat
+     rather than one more thing arriving in the initial flurry. `backwards`
+     keeps it invisible for the whole delay instead of flashing at 0%. The
+     overshoot easing is what makes it a little pop rather than a fade. */
+  animation: chip-pop 420ms cubic-bezier(0.34, 1.56, 0.64, 1) 1.6s backwards;
+}
+@keyframes chip-pop {
+  from { opacity: 0; transform: scale(0.7); }
+  to { opacity: 1; transform: scale(1); }
+}
+/* One glint sliding across right after the chip finishes wiping in — the
+   "new thing, worth a glance" cue. A pseudo-element rather than a second
+   animation on the chip itself, so the sweep can leave the text and border
+   alone and only pass over as a highlight. */
+.hero-brand .release-chip::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  opacity: 0;
+  background: linear-gradient(
+    115deg,
+    transparent 30%,
+    color-mix(in srgb, var(--warn) 30%, white) 50%,
+    transparent 70%
+  );
+  animation: chip-sparkle 700ms ease-out 2.05s backwards;
+}
+@keyframes chip-sparkle {
+  0% { transform: translateX(-140%); opacity: 0; }
+  15% { opacity: 0.9; }
+  100% { transform: translateX(140%); opacity: 0; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .hero-brand .release-chip { animation: none; }
+  .hero-brand .release-chip::after { display: none; }
 }
 
 /* The headline is an h2 on purpose: the lockup above is the page's one h1
