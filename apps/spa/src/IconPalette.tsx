@@ -30,7 +30,10 @@ function Thumb({ pack, id }: { pack: string; id: string }) {
   const manifest = packInfo(pack);
   const icon = manifest?.icons[manifest.aliases?.[id] ?? id];
   if (!icon) return <span className="h-5 w-5 shrink-0" />;
-  const src = `${pack}-icons/${icon.file}`;
+  // anchored on BASE_URL, not the document: the playground lives at
+  // /playground/, and a document-relative URL asked for
+  // /playground/aws-icons/… — which the SPA fallback answered with HTML
+  const src = `${import.meta.env.BASE_URL}${pack}-icons/${icon.file}`;
 
   if (!manifest?.monochrome)
     return <img src={src} alt="" className="h-5 w-5 shrink-0 rounded-[3px]" />;
