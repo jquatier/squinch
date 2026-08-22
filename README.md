@@ -20,6 +20,13 @@
 > *squinch (n.) — the corner arch that lets a round dome sit on a square room; the
 > piece of architecture that makes mismatched structures fit together.*
 
+<p align="center">
+  <a href="https://squinch.cc/">squinch.cc</a> ·
+  <a href="https://squinch.cc/playground/">Playground</a> ·
+  <a href="https://squinch.cc/lookbook/">Lookbook</a> ·
+  <a href="https://squinch.cc/install/">Install</a>
+</p>
+
 **Your coding agent already knows the architecture — now it can draw it.**
 Describe the system in a paragraph: a DSL that LLMs write fluently and humans
 control precisely, real layout and edge-routing control, cloud icon packs,
@@ -528,8 +535,9 @@ symbols, and a preview pane that re-renders as you type.
 
 The **playground** is the app in the zoom animation above: click a system to
 dive into it, walk a flow one hop at a time, ⌘K to search 1,302 icons, and
-full-screen the declared views as a presentation deck. Run it locally with
-`pnpm --filter @squinch/spa dev`.
+full-screen the declared views as a presentation deck. It lives at
+[squinch.cc/playground](https://squinch.cc/playground/) — nothing you draw
+leaves your browser — or run it locally with `pnpm --filter @squinch/spa dev`.
 
 And that zooming travels. `render -o diagram.html` writes **one self-contained
 file** carrying every view, both palettes and the viewer itself — click into a

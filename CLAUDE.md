@@ -1,8 +1,8 @@
 # CLAUDE.md
 
 Squinch — architecture diagrams as code. LLM-first authoring, human layout control,
-deterministic rendering. Pre-alpha, pre-launch: the engine, CLI, playground and
-extension all ship (see §Current phase).
+deterministic rendering. Pre-alpha, launching at https://squinch.cc: the
+engine, CLI, playground and extension all ship (see §Where things stand).
 
 ## Constitution (read before designing anything)
 
