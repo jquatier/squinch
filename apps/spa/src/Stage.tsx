@@ -11,7 +11,13 @@
 // layer (absolutely positioned clone of the previous SVG, pinned where it was,
 // purely decorative). Transforms are applied imperatively — React re-rendering
 // mid-animation would restart the transition.
-import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
+import {
+  useCallback,
+  useEffect,
+  useLayoutEffect,
+  useRef,
+  useState,
+} from "react";
 
 export type { Box } from "@squinch/core/browser";
 import { type Box, DIVE, diveTransforms } from "@squinch/core/browser";
@@ -35,7 +41,12 @@ export interface Intent {
 const boxOf = (el: Element, host: HTMLElement): Box => {
   const a = el.getBoundingClientRect();
   const b = host.getBoundingClientRect();
-  return { x: a.left - b.left + host.scrollLeft, y: a.top - b.top + host.scrollTop, w: a.width, h: a.height };
+  return {
+    x: a.left - b.left + host.scrollLeft,
+    y: a.top - b.top + host.scrollTop,
+    w: a.width,
+    h: a.height,
+  };
 };
 
 export interface StageProps {
@@ -62,7 +73,17 @@ export interface StageProps {
 }
 
 export function Stage({
-  svg, stale, animate, intent, fit, zoom, fill, onPick, onBlank, children, className,
+  svg,
+  stale,
+  animate,
+  intent,
+  fit,
+  zoom,
+  fill,
+  onPick,
+  onBlank,
+  children,
+  className,
 }: StageProps) {
   const scroller = useRef<HTMLDivElement>(null);
   const liveRef = useRef<HTMLDivElement>(null);
@@ -70,7 +91,12 @@ export function Stage({
   // The sizing rules are frozen alongside the artwork: the ghost has to sit at
   // exactly the size the live layer had, and the user can change fit or zoom
   // mid-flight.
-  const [ghost, setGhost] = useState<{ svg: string; box: Box; cls: string; scale: number } | null>(null);
+  const [ghost, setGhost] = useState<{
+    svg: string;
+    box: Box;
+    cls: string;
+    scale: number;
+  } | null>(null);
   /** armed at trigger time, consumed when a *different* SVG arrives */
   const armed = useRef<{ intent: Intent; svg: string } | null>(null);
   const timers = useRef<number[]>([]);
@@ -128,11 +154,17 @@ export function Stage({
     const a = armed.current;
     const live = liveRef.current;
     const host = scroller.current;
-    if (!a || !svg || svg === a.svg || !live || !host || !ghostRef.current) return;
+    if (!a || !svg || svg === a.svg || !live || !host || !ghostRef.current)
+      return;
     armed.current = null;
     cancel();
 
-    const view: Box = { x: host.scrollLeft, y: host.scrollTop, w: host.clientWidth, h: host.clientHeight };
+    const view: Box = {
+      x: host.scrollLeft,
+      y: host.scrollTop,
+      w: host.clientWidth,
+      h: host.clientHeight,
+    };
     const ghostBox = { ...(ghost?.box ?? view) };
     const liveBox = boxOf(live, host);
 
@@ -142,7 +174,9 @@ export function Stage({
     let anchor = a.intent.rect;
     if (!anchor && a.intent.path) {
       const from = a.intent.dir === "in" ? ghostRef.current : live;
-      const el = from.querySelector(`[data-path="${CSS.escape(a.intent.path)}"]`);
+      const el = from.querySelector(
+        `[data-path="${CSS.escape(a.intent.path)}"]`,
+      );
       if (el) anchor = boxOf(el, host);
     }
 
@@ -151,7 +185,11 @@ export function Stage({
     // constants rather than its own copy. A missing anchor means the two views
     // sit at the same altitude: a change of lens, not of depth, so it cuts.
     const { ms, ease, gOrigin, lOrigin, gEnd, lStart } = diveTransforms({
-      view, ghostBox, liveBox, anchor, dir: a.intent.dir,
+      view,
+      ghostBox,
+      liveBox,
+      anchor,
+      dir: a.intent.dir,
     });
 
     const g = ghostRef.current;
@@ -171,8 +209,7 @@ export function Stage({
     g.style.transition = `transform ${ms}ms ${ease}, opacity ${Math.round(ms * 0.55)}ms ${ease}`;
     g.style.transform = gEnd;
     g.style.opacity = "0";
-    live.style.transition =
-      `transform ${ms}ms ${ease}, opacity ${Math.round(ms * 0.6)}ms ${ease} ${Math.round(ms * 0.25)}ms`;
+    live.style.transition = `transform ${ms}ms ${ease}, opacity ${Math.round(ms * 0.6)}ms ${ease} ${Math.round(ms * 0.25)}ms`;
     live.style.transform = "none";
     live.style.opacity = "1";
 
@@ -185,7 +222,8 @@ export function Stage({
     (e: React.MouseEvent) => {
       const el = (e.target as Element).closest?.("[data-path]");
       const path = el?.getAttribute("data-path");
-      if (path && scroller.current) return onPick(path, boxOf(el!, scroller.current));
+      if (path && scroller.current)
+        return onPick(path, boxOf(el!, scroller.current));
       // Clicking a diagram element that leads nowhere does nothing — only true
       // backdrop climbs back out.
       if (!path) onBlank?.();
@@ -194,55 +232,74 @@ export function Stage({
   );
 
   return (
-    <section
-      ref={scroller}
-      className={`relative min-w-0 flex-1 bg-[var(--canvas)] ${
-        fill
-          ? "overflow-hidden"
-          : "overflow-auto [background-image:radial-gradient(var(--dot)_1px,transparent_1px)] [background-size:22px_22px]"
-      } ${className ?? ""}`}
-    >
-      {children}
-      {ghost && (
+    // Two layers, on purpose: the outer box is the positioning context for the
+    // overlay pills (`children`) and never scrolls; the inner section is the
+    // scroller. With one element doing both jobs, `absolute` overlays are laid
+    // out against the scrolled content, so a diagram taller than the viewport
+    // carried the altitude hint and zoom controls off the bottom with it.
+    <div className={`relative min-w-0 flex-1 ${className ?? ""}`}>
+      <section
+        ref={scroller}
+        className={`absolute inset-0 bg-[var(--canvas)] ${
+          fill
+            ? "overflow-hidden"
+            : "overflow-auto [background-image:radial-gradient(var(--dot)_1px,transparent_1px)] [background-size:22px_22px]"
+        }`}
+      >
+        {ghost && (
+          <div
+            ref={ghostRef}
+            aria-hidden
+            className="pointer-events-none absolute z-[1] will-change-transform"
+            style={{
+              left: ghost.box.x,
+              top: ghost.box.y,
+              width: ghost.box.w,
+              height: ghost.box.h,
+            }}
+          >
+            <div
+              className={ghost.cls}
+              style={
+                ghost.scale === 1
+                  ? undefined
+                  : {
+                      transform: `scale(${ghost.scale})`,
+                      transformOrigin: "top left",
+                    }
+              }
+              dangerouslySetInnerHTML={{ __html: isolateIds(ghost.svg) }}
+            />
+          </div>
+        )}
         <div
-          ref={ghostRef}
-          aria-hidden
-          className="pointer-events-none absolute z-[1] will-change-transform"
-          style={{ left: ghost.box.x, top: ghost.box.y, width: ghost.box.w, height: ghost.box.h }}
+          className={`flex items-center justify-center ${fill ? "h-full p-[4vmin]" : "min-h-full p-10"} ${
+            onBlank ? "cursor-zoom-out" : ""
+          }`}
+          onClick={click}
         >
           <div
-            className={ghost.cls}
+            className={fill ? "h-full w-full" : ""}
             style={
-              ghost.scale === 1
+              fill || fit
                 ? undefined
-                : { transform: `scale(${ghost.scale})`, transformOrigin: "top left" }
+                : { transform: `scale(${zoom})`, transformOrigin: "center" }
             }
-            dangerouslySetInnerHTML={{ __html: isolateIds(ghost.svg) }}
-          />
+          >
+            {svg ? (
+              <div
+                ref={liveRef}
+                className={`${stale ? "opacity-60" : ""} ${artCls}`}
+                dangerouslySetInnerHTML={{ __html: svg }}
+              />
+            ) : (
+              <p className="text-[13px] text-[var(--muted)]">Rendering…</p>
+            )}
+          </div>
         </div>
-      )}
-      <div
-        className={`flex items-center justify-center ${fill ? "h-full p-[4vmin]" : "min-h-full p-10"} ${
-          onBlank ? "cursor-zoom-out" : ""
-        }`}
-        onClick={click}
-      >
-        <div
-          className={fill ? "h-full w-full" : ""}
-          style={fill || fit ? undefined : { transform: `scale(${zoom})`, transformOrigin: "center" }}
-        >
-          {svg ? (
-            <div
-              ref={liveRef}
-              className={`${stale ? "opacity-60" : ""} ${artCls}`}
-              dangerouslySetInnerHTML={{ __html: svg }}
-            />
-          ) : (
-            <p className="text-[13px] text-[var(--muted)]">Rendering…</p>
-          )}
-        </div>
-      </div>
-    </section>
+      </section>
+      {children}
+    </div>
   );
 }
 
@@ -250,7 +307,9 @@ export function Stage({
  *  get to override. */
 export function useReducedMotion(): boolean {
   const [reduced, setReduced] = useState(
-    () => typeof matchMedia === "function" && matchMedia("(prefers-reduced-motion: reduce)").matches,
+    () =>
+      typeof matchMedia === "function" &&
+      matchMedia("(prefers-reduced-motion: reduce)").matches,
   );
   useEffect(() => {
     const mq = matchMedia("(prefers-reduced-motion: reduce)");
