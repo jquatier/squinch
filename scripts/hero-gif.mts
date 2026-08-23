@@ -12,7 +12,7 @@
 // Generated, never screen-recorded — the frames are the real renderer's output,
 // so the GIF cannot drift from what the tool actually draws, and it can be
 // regenerated after any visual change. It has already earned that twice: once
-// when the wordmark moved, and once when system cards took the brand gradient.
+// when the wordmark moved (it has since left), and once when system cards took the brand gradient.
 //
 //   npx tsx scripts/hero-gif.mts
 //
@@ -48,18 +48,13 @@ const W = 900, H = 620, PAD = 28;
  *  than they are tall, so height is the binding constraint and every pixel of
  *  vertical padding shrinks the diagram. */
 const PAD_V = 14;
-/** Gap above the wordmark, and below it. */
-const LOGO_GAP = 8, LOGO_BOTTOM = 16;
-/** Displayed width of the mark; its height follows from the asset. Sized so
- *  the mark stands ~64px tall: the old wide lockup was 132 across but only
- *  ~53 tall, and mark-stack.svg is portrait, so carrying the width over would
- *  have tripled the reserved footer band and squeezed the diagram. */
-const LOGO_W = 56;
-/** A reserved strip along the bottom for the wordmark. Without it the diagram
- *  fills the full height and the landscape's bottom row collides with the
- *  logo — the artwork is centred, so there is no corner it reliably avoids.
- *  Sized from the logo once it is measured, so the gap below it matches the
- *  gap to its right exactly. */
+/** Gap between the diagram and the bottom strip, and below the strip. */
+const FOOT_GAP = 8, FOOT_BOTTOM = 16;
+/** A reserved strip along the bottom for the view toolbar. Without it the
+ *  diagram fills the full height and the landscape's bottom row collides with
+ *  the chips — the artwork is centred, so there is no corner it reliably
+ *  avoids. (The wordmark used to share this strip; it went — the GIF sits on
+ *  pages that already carry the mark, and the band was sized for it.) */
 let FOOT = 0;
 let STAGE_H = H;
 const FPS = 20;
@@ -181,8 +176,7 @@ const BIG = { w: W * 3, h: H * 3 };
 /** Supersampling. resvg rasterizes glyphs with grayscale AA and no hinting, so
  *  15px and 11px type at 1:1 comes out ragged — the diagram's own SVGs never
  *  show this because a reader zooms them, but a GIF is pixels forever. Drawing
- *  at 2× and letting lanczos resolve it down is the same trick the logo above
- *  already uses, and it costs ~330ms a frame against ~85ms.
+ *  at 2× and letting lanczos resolve it down costs ~330ms a frame against ~85ms.
  *
  *  Only the raster step scales: every coordinate in this file stays in CSS
  *  pixels, so nothing else has to know. */
@@ -192,24 +186,11 @@ const SS = 2;
  *  from the theme's tokens so the animation matches the diagram it wraps and
  *  follows any future change to the palette. */
 let T = themes.light;
-/** The wordmark, pre-scaled and base64'd once per theme. Embedding the
- *  1440px original into all 116 frames would mean resvg downscaling it 116
- *  times and ~490 KB of base64 per frame on disk. */
-let MARK = { href: "", w: 0, h: 0 };
-
-/** Bottom-right of the *visible* crop, not the padded canvas. */
-const watermark = () =>
-  MARK.href
-    ? `<image href="${MARK.href}" x="${(W - PAD - MARK.w).toFixed(1)}" ` +
-      `y="${(H - LOGO_BOTTOM - MARK.h).toFixed(1)}" ` +
-      `width="${MARK.w}" height="${MARK.h}" opacity="0.9"/>`
-    : "";
-
 /** Baseline of the bottom strip's chrome — the toolbar hangs off it. The
  *  breadcrumb that used to sit here is gone: the toolbar names every view and
  *  its chips are the click targets, so a second navigation affordance in the
  *  same strip was one more thing to read for no new capability. */
-const STRIP = { y: H - LOGO_BOTTOM - 6 };
+const STRIP = { y: H - FOOT_BOTTOM - 6 };
 
 /** The SPA's view picker, transplanted to the bottom strip: every declared
  *  view as a chip, the active one on a raised plate — the same affordance the
@@ -291,7 +272,7 @@ const frame = (body: string, crumbs: string[]) =>
   // reaches the bottom strip so the order is invisible for the boards, but
   // the pointer rides inside `body` and has to land ON the chips, not under
   // them — the first cut had it sliding beneath the bar it was clicking.
-  `${toolbar(crumbs[crumbs.length - 1])}${body}${watermark()}</svg>`;
+  `${toolbar(crumbs[crumbs.length - 1])}${body}</svg>`;
 
 const build = async (theme: string) => {
   T = (themes as Record<string, typeof themes.light>)[theme];
@@ -301,26 +282,10 @@ const build = async (theme: string) => {
   rmSync(tmp, { recursive: true, force: true });
   mkdirSync(tmp, { recursive: true });
 
-  // The mark comes from the vector, one asset for both themes: mark-stack.svg
-  // is drawn to read on either ground and carries real transparency, so there
-  // is no flat background to remove. This replaced a pair of PNG exports that
-  // had to be colour-keyed (light on #FDFDFD, dark on #000000) to fake an
-  // alpha channel — a step that only worked because nothing inside the mark
-  // was pure white or pure black.
-  // 2x the display size, so resvg has pixels to sample down from.
-  const raw = svgToPng(readFileSync(join(root, "docs/assets/mark-stack.svg"), "utf8"), {
-    width: LOGO_W * 2,
-  });
-  // PNG IHDR: width and height are big-endian u32 at bytes 16 and 20
-  const lw = raw.readUInt32BE(16), lh = raw.readUInt32BE(20);
-  MARK = {
-    href: `data:image/png;base64,${raw.toString("base64")}`,
-    w: LOGO_W,
-    h: Math.round((lh / lw) * LOGO_W),
-  };
-  // the band is only as tall as the logo needs — anything more reads as a hole
-  // between the diagram and the mark
-  FOOT = LOGO_GAP + MARK.h + LOGO_BOTTOM;
+  // the band is only as tall as the toolbar needs — anything more reads as a
+  // hole between the diagram and the chips. The bar's top edge is where
+  // toolbar() puts it: STRIP.y - 8 - CHIP_H / 2 - 3.
+  FOOT = H - (STRIP.y - 8 - CHIP_H / 2 - 3) + FOOT_GAP;
   STAGE_H = H - FOOT;
   // every declared view, in declaration order — what the SPA's picker shows
   const declared = buildModel(readSource()).model.views.filter((v: any) => !v.auto).map((v: any) => v.name);
