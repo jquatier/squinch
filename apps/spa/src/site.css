@@ -781,12 +781,11 @@ pre code { background: none; padding: 0; font-size: inherit; }
 }
 @media (max-width: 720px) {
   .site-header, .site-foot { padding-inline: 24px; }
-  /* four links + the wordmark on one line: tighter gaps and type, and the
-     home link drops its label (the mark still says where home is) so GitHub
-     never wraps to a second row */
-  .site-header { gap: 10px; }
-  .site-header nav { column-gap: 14px; font-size: 12.5px; flex-wrap: nowrap; }
-  .site-header .home { font-size: 0; gap: 0; }
+  /* the wordmark and all four links on one line: tighter gaps and type is
+     enough — 390px holds it with room to spare */
+  .site-header { gap: 8px; }
+  .site-header .home { font-size: 13px; gap: 7px; }
+  .site-header nav { column-gap: 12px; font-size: 12px; flex-wrap: nowrap; }
   .wrap, .band { padding-inline: 24px; }
   /* a shade over .hero-copy's 20px gap: optically the band above the lockup
      reads smaller than the same number below it, so it gets a little more */
