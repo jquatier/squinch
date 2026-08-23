@@ -492,17 +492,18 @@ export function App() {
               </span>
             </div>
           )}
-          <div className="absolute bottom-3.5 left-4 z-10 flex items-center gap-2.5">
-            {views.length > 1 && (
-              <div className="pg-pill flex items-center gap-[9px] rounded-[9px] px-3 py-[7px]">
-                <span className="pg-mono text-[10px] font-medium uppercase tracking-[0.08em] text-[var(--text-3)]">
-                  Altitude
-                </span>
-                <span className="text-[12.5px] text-[var(--muted)]">click a system to open its internals</span>
-              </div>
-            )}
-            <span className="text-[11px] text-[var(--text-3)]">nothing you draw ever leaves your browser</span>
-          </div>
+          {/* Kept small: it is a hint, not a control, and the canvas is what
+              the space is for. The privacy line that used to sit beside it
+              lives in the diagnostics footer now, in the slot a problem's
+              location takes when there is one. */}
+          {views.length > 1 && (
+            <div className="pg-pill absolute bottom-3.5 left-4 z-10 flex items-center gap-[7px] rounded-[7px] px-2.5 py-[4px]">
+              <span className="pg-mono text-[9px] font-medium uppercase tracking-[0.08em] text-[var(--text-3)]">
+                Altitude
+              </span>
+              <span className="text-[11px] text-[var(--muted)]">click a system to open its internals</span>
+            </div>
+          )}
           <div className="pg-pill absolute bottom-3.5 right-4 z-10 flex items-center gap-0.5 rounded-[9px] p-[3px] text-[12px]">
             <button
               onClick={() => { setFit(true); setZoom(1); }}
@@ -679,10 +680,12 @@ function Diagnostics({
           />
           {count ? `${count} ${count === 1 ? "problem" : "problems"}` : "No problems"}
         </span>
-        {first && (
+        {first ? (
           <span className="pg-mono ml-auto text-[11.5px] tabular-nums text-[var(--text-3)]">
             {first.loc.line}{"col" in first.loc ? `:${first.loc.col}` : ""}
           </span>
+        ) : (
+          <span className="ml-auto text-[11px] text-[var(--text-3)]">nothing you draw ever leaves your browser</span>
         )}
       </div>
       {count > 0 && (
