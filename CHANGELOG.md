@@ -6,4 +6,6 @@ history too. Sections are drafted by `pnpm release` from the commits since the
 previous tag, then edited by a human before anything is written; the release
 workflow lifts the matching section verbatim into the GitHub Release notes.
 
-No releases yet.
+## 0.1.0 — 2026-08-23
+
+Initial release.
