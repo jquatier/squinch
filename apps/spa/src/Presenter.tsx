@@ -162,18 +162,18 @@ export function Presenter({
         }`}
       >
         <div className="flex items-end justify-between gap-6 px-6 pb-4 text-[12px]">
+          {/* No view title here: the diagram carries its own, and a second
+              copy in the corner was a label on a label. What stays is state
+              the picture cannot show — where a flow walk is — and the hint. */}
           <div className="min-w-0">
-            <div className="flex items-baseline gap-2">
-              <span className="truncate font-medium">{current?.title ?? current?.name ?? ""}</span>
-              {flow && (
-                <span className="shrink-0 text-[11px] text-[var(--muted)]">
-                  {/* a view named after the flow it narrates shouldn't say it twice */}
-                  {flow.label !== (current?.title ?? current?.name) && `${flow.label} · `}
-                  step <span className="tabular-nums text-[var(--fg)]">{flowStep}</span>
-                  <span className="tabular-nums">/{flow.steps}</span>
-                </span>
-              )}
-            </div>
+            {flow && (
+              <div className="text-[11px] text-[var(--muted)]">
+                {/* a view named after the flow it narrates shouldn't say it twice */}
+                {flow.label !== (current?.title ?? current?.name) && `${flow.label} · `}
+                step <span className="tabular-nums text-[var(--fg)]">{flowStep}</span>
+                <span className="tabular-nums">/{flow.steps}</span>
+              </div>
+            )}
             {hint && <div className="mt-0.5 truncate text-[11px] text-[var(--muted)]">{HINT}</div>}
           </div>
           <div className="pointer-events-auto flex shrink-0 items-center gap-3 text-[var(--muted)]">
