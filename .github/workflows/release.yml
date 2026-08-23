@@ -5,8 +5,11 @@
 # publishes the GitHub Release with the CHANGELOG section as its notes, and
 # then publishes to npm. npm goes last on purpose: the GitHub Release is the
 # fallback artifact, so a registry problem reddens the run without costing
-# anyone the VSIX. Needs an NPM_TOKEN repository secret with publish rights
-# for `squinch` and the @squinch scope.
+# anyone the VSIX. npm authenticates by trusted publishing (OIDC, configured
+# per package on npmjs.com against this repo and workflow file); NPM_TOKEN is
+# the fallback for a package not yet wired up, and the first publish of a new
+# package is done by hand, since npm only configures trust on a package that
+# exists.
 #
 # Two ways it fails on purpose: the tag not matching the workspace version
 # (someone tagged by hand), and the CHANGELOG missing this version's section
@@ -20,7 +23,8 @@ on:
     tags: ["v*"]
 
 permissions:
-  contents: write # create the release; nothing else
+  contents: write # create the release
+  id-token: write # npm trusted publishing: pnpm mints an OIDC token instead of using a secret
 
 jobs:
   release:
