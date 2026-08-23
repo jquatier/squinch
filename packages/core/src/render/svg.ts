@@ -813,15 +813,9 @@ function legend(p: Positioned, rc: RC, y: number, L: string[], colors: RenderOpt
         `<text x="${x + 12}" y="${cy - 4}" text-anchor="middle" font-size="${rc.fx(9)}" fill="${t.muted}">×n</text>`,
       label: "aggregated",
     });
-  // The two affordances the restyle added, each earned the same way as the
-  // rest: a diagram with no container never explains diving, and one with no
-  // actor never explains the filled tile.
-  if (p.nodes.some((n) => n.kind === "card"))
-    items.push({
-      sample: (x, cy) =>
-        `<rect x="${x + 5}" y="${cy - 5}" width="14" height="10" rx="2" fill="url(#${ACCENT_GRAD})"/>`,
-      label: "dive in",
-    });
+  // Earned the same way as the rest: a diagram with no actor never explains
+  // the filled tile. (Cards used to earn a gradient "dive in" swatch; the
+  // chevron on the card already says it, and the swatch read as a colour key.)
   if (p.nodes.some((n) => n.kind === "person"))
     items.push({
       sample: (x, cy) =>
@@ -857,7 +851,7 @@ function legend(p: Positioned, rc: RC, y: number, L: string[], colors: RenderOpt
     });
   // The view's `color #tag hue` statements, in declaration order, one per tag
   // (a restated tag keeps its last hue, which is the one that was drawn). A
-  // solid swatch — the "dive in" entry's shape — because the hue lands on
+  // solid swatch — the actor entry's shape — because the hue lands on
   // spines and strokes, not on a box; an outlined sample read as one more
   // kind of frame beside the zone and context entries. Element-level
   // `color:` earns nothing: a hue name is not a label.

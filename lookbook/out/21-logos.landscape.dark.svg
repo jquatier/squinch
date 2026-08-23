@@ -123,8 +123,6 @@
 <text x="129" y="559" font-size="11" fill="#9C9B94">async</text>
 <line x1="184" y1="555" x2="208" y2="555" stroke="#8D8C84" stroke-width="1.5"/><text x="196" y="551" text-anchor="middle" font-size="9" fill="#9C9B94">×n</text>
 <text x="216" y="559" font-size="11" fill="#9C9B94">aggregated</text>
-<rect x="305" y="550" width="14" height="10" rx="2" fill="url(#sq-accent)"/>
-<text x="332" y="559" font-size="11" fill="#9C9B94">dive in</text>
-<rect x="395" y="550" width="14" height="10" rx="2" fill="#2F2F34" stroke="#3B3B40" stroke-width="1"/>
-<text x="422" y="559" font-size="11" fill="#9C9B94">actor</text>
+<rect x="305" y="550" width="14" height="10" rx="2" fill="#2F2F34" stroke="#3B3B40" stroke-width="1"/>
+<text x="332" y="559" font-size="11" fill="#9C9B94">actor</text>
 </svg>
