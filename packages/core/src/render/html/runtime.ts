@@ -36,10 +36,14 @@ function boot() {
   let step = 0;
   let presenting = false;
   // The reader's own preference wins over the author's, when the file carries
-  // a palette that matches it — the same rule an adaptive SVG follows.
-  if (data.themes.length > 1 && matchMedia("(prefers-color-scheme: dark)").matches) {
-    const dark = data.themes.find((t) => t.includes("dark"));
-    if (dark) theme = dark;
+  // a palette that matches it — the same rule an adaptive SVG follows. Both
+  // directions: a light-mode reader of a dark-entry file gets light, not just
+  // the reverse (the entry is dark by default now, so one-way promotion would
+  // have made the system setting a no-op for half of readers).
+  if (data.themes.length > 1) {
+    const wantDark = matchMedia("(prefers-color-scheme: dark)").matches;
+    const match = data.themes.find((t) => t.includes("dark") === wantDark);
+    if (match) theme = match;
   }
 
   // The entry view is inline rather than in a <template>, so that a reader
