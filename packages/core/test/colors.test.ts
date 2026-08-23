@@ -187,11 +187,21 @@ view v { scope s\n show flow f }`;
   });
 
   it("an uncoloured diagram is byte-identical to what it was", async () => {
-    // the rings are separate elements emitted only when coloured, and the
-    // zone tints are the same hex values under new names — nothing else moved
+    // leaf/actor spines are separate elements emitted only when coloured, and
+    // the zone tints are the same hex values under new names — nothing moved
     const svg = await svgOf(`${BASE}\nzone z "Z" vpc { contains shop }\nview v { include * }`, "light", "v");
-    expect(svg).not.toMatch(/fill="none" stroke="#[0-9A-F]{6}" stroke-width="1.5"\/><\/g>/);
+    expect(svg).not.toContain("sq-clip-");
     expect(svg).toContain(`stroke="${themes.light.hueBlue}" stroke-width="1.5" stroke-dasharray="8 5"`);
+  });
+
+  it("a coloured leaf and person wear the card's spine, clipped to their own radius", async () => {
+    const src = `pack aws\nu = person "U" { color: pink }\nx = aws/lambda "X" { color: teal }\nview v { include * }`;
+    const svg = await svgOf(src, "light", "v");
+    // leaf radius 4, actor radius 8 — each gets its own clip, and a 3px bar
+    expect(svg).toMatch(/<clipPath id="sq-clip-4-\d+-64">/);
+    expect(svg).toMatch(/<clipPath id="sq-clip-8-\d+-56">/);
+    expect(svg).toContain(`<rect x="0" y="0" width="3" height="64" fill="${hueOf(themes.light, "teal")}"/>`);
+    expect(svg).toContain(`<rect x="0" y="0" width="3" height="56" fill="${hueOf(themes.light, "pink")}"/>`);
   });
 
   it("the legend lists the view's tag colours by tag, and nothing for element colours", async () => {

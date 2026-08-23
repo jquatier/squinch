@@ -71,7 +71,7 @@ stripe = logos/stripe     "Stripe" external      // trailing keywords: external,
 create = aws/lambda "Create Handler" {           // optional attribute block
   description: "Validates and persists new orders"
   tags:   #pci #critical            // …or positionally: `create = aws/lambda "X" #pci`
-  color:  amber                     // a ring on the icon plate — see §Colour
+  color:  amber                     // a spine down its left edge — see §Colour
 }
 ```
 
@@ -86,8 +86,8 @@ already the element's own mark:
 
 | on | paints |
 | --- | --- |
-| a leaf (or `person`) | a ring round its icon plate (the artwork is never recoloured) |
-| a `system`/`container` | the card's spine; the frame's stroke once expanded |
+| a leaf (or `person`) | a 3px spine down its left edge — the card's, brought down; the artwork is never recoloured. Uncoloured leaves and actors carry no spine |
+| a `system`/`container` | the card's spine (a hue instead of the brand ramp); the frame's stroke once expanded |
 | an edge | stroke, arrowhead and `comet` dot |
 | a zone | the boundary and its chip, over the kind's default tint |
 

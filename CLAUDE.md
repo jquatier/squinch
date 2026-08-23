@@ -200,11 +200,12 @@ blue violet pink gray accent`, never hex — `HUES` in `model/types.ts`, one
 designed light/dark pair per theme token `hue*`), accepted on leaves, containers,
 edges and zones, plus the view lens `color #tag hue` which wins over an element's
 own and earns a legend entry. It paints only what is already the element's mark
-— plate ring, card spine, frame stroke, edge + head, zone outline — so shape and
-pattern stay the encoding (DESIGN §6). Zones' old role names (`account`,
-`network`, …) are gone; kinds still tint by default and the error for a legacy
-name writes the replacement line. Rings are separate elements emitted only when
-coloured, which is what keeps every uncoloured render byte-identical.
+— a spine on leaves, people and cards, frame stroke, edge + head, zone outline —
+so shape and pattern stay the encoding (DESIGN §6). Zones' old role names
+(`account`, `network`, …) are gone; kinds still tint by default and the error
+for a legacy name writes the replacement line. Leaf and actor spines are
+separate elements emitted only when coloured, which is what keeps every
+uncoloured render byte-identical.
 Deliberately *not* built, with reasons recorded: `route … around`/`via`
 (`docs/notes/routing-hints.md` — ELK already avoids nodes) and `grid` (rows and
 cols compose to the same thing).

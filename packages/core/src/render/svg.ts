@@ -471,15 +471,15 @@ function leaf(n: PNode, rc: RC, opts: RenderOpts, dimmed: boolean, L: string[]) 
   if (ctx) L.push(box(rc, n.x, n.y, n.w, n.h, R_NODE, t.surface, t.border, 1.5, ` stroke-dasharray="4 3"`));
   else L.push(surfaceRect(rc, n.x, n.y, n.w, n.h, R_NODE));
   if (n.external) L.push(hatched(rc, n.x, n.y, n.w, n.h, R_NODE));
+  // `color:` on a leaf is the card's spine, brought down: one treatment for
+  // every node kind, so a coloured leaf and a coloured card read as one rule.
+  // A separate element, only when coloured — every uncoloured render stays
+  // byte-identical, and the adaptive merge sees the same geometry in both
+  // themes with only the fill moving. Context leaves are scenery and stay
+  // muted. The artwork on the plate is never touched.
+  if (n.color && !ctx) L.push(spine(n, R_NODE, hueOf(t, n.color), rc));
   const px = n.x + PAD, py = n.y + PAD;
   L.push(iconTile(n.icon, px, py, rc, ctx));
-  // `color:` on a leaf is a ring round the icon plate — the artwork itself is
-  // never recoloured. A separate element, only when coloured: every existing
-  // render stays byte-identical, and the adaptive merge sees the same
-  // geometry in both themes with only the stroke value moving. Context leaves
-  // are scenery and stay muted.
-  if (n.color && !ctx)
-    L.push(`<rect x="${px}" y="${py}" width="${PLATE}" height="${PLATE}" rx="6" fill="none" stroke="${hueOf(t, n.color)}" stroke-width="1.5"/>`);
   if (n.badge) L.push(badgeMarkup(n.badge, px, py, rc));
   const maxLabel = n.w - PAD - PLATE - PAD - PAD;
   const withDesc = opts.showDescriptions && n.description;
@@ -507,13 +507,12 @@ function person(n: PNode, rc: RC, opts: RenderOpts, dimmed: boolean, L: string[]
     `fill="url(#${rc.actorGrad})" filter="url(#${rc.shadow})"/>`,
   );
   if (n.external) L.push(hatched(rc, n.x, n.y, n.w, n.h, R_CARD));
+  // the same spine a coloured leaf or card wears (separate, only when coloured)
+  if (n.color) L.push(spine(n, R_CARD, hueOf(t, n.color), rc));
   // A disc, not a plate: round is the oldest shorthand for a person, and it
   // keeps the actor legible where the icon is a generic silhouette.
   const r = 17, cx = n.x + PAD + r, cy = n.y + Math.round(n.h / 2);
   L.push(`<circle cx="${cx}" cy="${cy}" r="${r}" fill="${t.plate}"/>`);
-  // the leaf's plate ring, on the disc (same rules: separate, only when coloured)
-  if (n.color)
-    L.push(`<circle cx="${cx}" cy="${cy}" r="${r}" fill="none" stroke="${hueOf(t, n.color)}" stroke-width="1.5"/>`);
   // The mark goes on the disc bare — `iconPlate` would draw the monochrome
   // branch's own rounded square inside it, and a square plate centred in a
   // circle reads as a mistake rather than as an avatar. Colour-pack artwork
@@ -534,6 +533,19 @@ function person(n: PNode, rc: RC, opts: RenderOpts, dimmed: boolean, L: string[]
       `<text x="${tx}" y="${cy + 15}" font-size="${rc.fx(11)}" fill="${t.muted}">${esc(fit(n.description!, maxLabel, rc.fx(11), "400", rc.fam))}</text>`,
     );
   L.push(`</g>`);
+}
+
+/** The 3px bar down a node's left edge, clipped to its own radius so it turns
+ *  the corner. Cards carry one always (the brand ramp, or a hue); leaves and
+ *  actors carry one only when `color:` says so — the shared shape is what
+ *  makes a coloured leaf and a coloured card read as one rule. */
+function spine(n: PNode, rx: number, fill: string, rc: RC): string {
+  const clipId = `sq-clip-${rx}-${n.w}-${n.h}`;
+  const clip = def(rc, clipId,
+    `<clipPath id="${clipId}"><rect x="0" y="0" width="${n.w}" height="${n.h}" rx="${rx}"/></clipPath>`);
+  return clip +
+    `<g transform="translate(${n.x},${n.y})" clip-path="url(#${clipId})">` +
+    `<rect x="0" y="0" width="3" height="${n.h}" fill="${fill}"/></g>`;
 }
 
 /** Two outline rects behind a container, offset back and down: "there is more

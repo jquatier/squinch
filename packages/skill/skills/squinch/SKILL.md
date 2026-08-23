@@ -140,8 +140,8 @@ mirror -> replica "sync" {
 
 Colour — `color:` takes one of nine hues, `red | amber | green | teal | blue |
 violet | pink | gray | accent`, never hex (each is a designed light/dark pair,
-and a literal cannot be right on both). It goes on anything: a leaf gets a ring
-round its icon plate, a `system` its card spine, an edge its stroke and head, a
+and a literal cannot be right on both). It goes on anything: a leaf, a person
+or a `system` gets a spine down its left edge, an edge its stroke and head, a
 zone its outline. Use it to say *these belong together* or *this is the path*
 without dimming everything else the way `highlight` does. The stronger form is
 the view statement `color #tag red`, which colours every visible thing carrying

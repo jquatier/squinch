@@ -36,8 +36,8 @@
 </g>
 <g data-path="pay.charge" data-kind="leaf">
 <rect x="213" y="294" width="160" height="64" rx="4" fill="url(#sq-surface)" stroke="#EAE9E5" stroke-width="1" filter="url(#sq-shadow)"/>
+<clipPath id="sq-clip-4-160-64"><rect x="0" y="0" width="160" height="64" rx="4"/></clipPath><g transform="translate(213,294)" clip-path="url(#sq-clip-4-160-64)"><rect x="0" y="0" width="3" height="64" fill="#3F8A5C"/></g>
 <rect x="225" y="306" width="40" height="40" rx="6" fill="#EFEFEC"/><clipPath id="clip-sq-aws-lambda-232-313-26"><rect x="232" y="313" width="26" height="26" rx="3"/></clipPath><g clip-path="url(#clip-sq-aws-lambda-232-313-26)"><use href="#sq-aws-lambda" x="232" y="313" width="26" height="26"/></g>
-<rect x="225" y="306" width="40" height="40" rx="6" fill="none" stroke="#3F8A5C" stroke-width="1.5"/>
 <text x="277" y="331" font-size="13" font-weight="500" fill="#1C1C1A">Charge</text>
 </g>
 <g data-path="pay.ledger" data-kind="leaf">

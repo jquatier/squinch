@@ -34,7 +34,7 @@ export interface SNode {
   description?: string;
   tags: string[];
   attrs: Record<string, string>;
-  /** `color:` — a ring on the icon plate (DESIGN §3). Validated copy of `attrs.color`. */
+  /** `color:` — the node's spine, as a card's (DESIGN §3). Validated copy of `attrs.color`. */
   color?: Hue;
   loc: Loc;
   file?: string;

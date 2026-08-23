@@ -66,8 +66,8 @@
 </g>
 <g data-path="user" data-kind="person">
 <rect x="72" y="32" width="160" height="56" rx="8" fill="url(#sq-actor)" filter="url(#sq-shadow)"/>
+<clipPath id="sq-clip-8-160-56"><rect x="0" y="0" width="160" height="56" rx="8"/></clipPath><g transform="translate(72,32)" clip-path="url(#sq-clip-8-160-56)"><rect x="0" y="0" width="3" height="56" fill="#B04A8A"/></g>
 <circle cx="101" cy="60" r="17" fill="#EFEFEC"/>
-<circle cx="101" cy="60" r="17" fill="none" stroke="#B04A8A" stroke-width="1.5"/>
 <g color="#6F6E69"><use href="#sq-builtin-person" x="91" y="50" width="20" height="20"/></g>
 <text x="130" y="65" font-size="13" font-weight="500" fill="#1C1C1A">Shopper</text>
 </g>

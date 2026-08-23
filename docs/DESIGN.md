@@ -246,7 +246,7 @@ Every theme is the full token set of §2 — never a palette swap on top of ligh
   *and* keep their pattern. Colour is reinforcement; shape and pattern are the
   encoding. That rule is what made a dedicated high-contrast theme redundant.
   An author's `color:` (SPEC §3) lives inside the same rule: it paints the part
-  of an element that is already its mark — a plate ring, a card spine, an edge
+  of an element that is already its mark — a node's spine, an edge
   stroke, a zone outline — and never replaces a shape or a pattern, so a
   coloured diagram read in greyscale still says everything it said in colour,
   minus the emphasis.
