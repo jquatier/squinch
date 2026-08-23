@@ -685,6 +685,19 @@ export function buildProject(input: ProjectFile[]): BuildResult {
     }
   }
 
+  // A dashed sync edge in a model with (default-dashed) async edges wears the
+  // async convention: same pattern, and the same stroke once `color:` is on
+  // both. `dotted` is the sanctioned alternative, so the fix is one word.
+  if (model.edges.some((e) => e.arrow === "~>" && e.attrs.style !== "dotted"))
+    for (const e of model.edges)
+      if (e.arrow !== "~>" && e.attrs.style === "dashed")
+        diagnostics.push({
+          severity: "warning",
+          message: "a dashed sync edge is indistinguishable from an async one — dashes are the async convention",
+          fix: "use `style: dotted`, or `~>` if the call really is asynchronous",
+          loc: e.loc, file: e.file,
+        });
+
   // duplicate edges (same endpoints + label) merge with a warning
   const seen = new Map<string, SEdge>();
   model.edges = model.edges.filter((e) => {

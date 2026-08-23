@@ -26,6 +26,17 @@ describe("legend + titleblock", () => {
     expect(off.model.views.find((x) => x.name === "s")!.legend).toBe(false);
   });
 
+  it("a restyled sync edge earns no entry, and async samples its own pattern", async () => {
+    const base = `pack aws\nsystem s "S" {\n a = aws/lambda "A"\n b = aws/lambda "B"\n c = aws/lambda "C"\n`;
+    const dotted = await render(`${base} a -> b { style: dotted }\n b ~> c { style: dotted }\n}\nview s { legend auto }`, { theme: "light" });
+    expect(dotted.svg).toContain(">sync</text>");
+    expect(dotted.svg).toContain(">async</text>");
+    expect(dotted.svg).not.toContain(">dotted</text>");
+    expect(dotted.svg).not.toContain(">dashed</text>");
+    // the async sample: dotted, because every async edge here is
+    expect(dotted.svg).toMatch(/stroke-dasharray="2 3"\/>(?:(?!<line)[\s\S])*?>async<\/text>/);
+  });
+
   it("legend shows only earned entries", async () => {
     const r = await render(`${BASE}\nview s {\n legend auto\n}`, { theme: "light" });
     expect(r.ok).toBe(true);

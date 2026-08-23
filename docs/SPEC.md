@@ -260,7 +260,12 @@ Rules: an edge may appear anywhere its two endpoints are both in scope; duplicat
 **`style:`** — `solid | dashed | dotted`. Sync edges default to solid, async to
 dashed; the pattern is a presentation attribute, so it survives PNG export.
 `style: solid` on a `~>` edge is a check-time error — the dash *is* the async
-convention; `dotted` is the sanctioned alternative.
+convention; `dotted` is the sanctioned alternative. The other direction is a
+warning: `style: dashed` on a sync edge, in a model that has dashed async
+edges, wears that convention (and is the same stroke once both carry a
+`color:`). Restyled edges earn no legend entry — the legend carries meanings,
+and a style name beside its own pattern says nothing; tag the edge and colour
+the tag in the view to key it.
 
 **`animate:`** — `false | flow | reverse | slow | fast | packets | pulse | comet`, one
 value per edge. Async edges default to `flow` (dashes drift toward the target);
@@ -311,8 +316,8 @@ view shop {
                                 // one tag per line, repeat for more
   show descriptions             // render descriptions inline (off by default)
   show flow checkout            // ①②③ badges along a declared flow
-  legend auto                   // auto | off — legend of the edge styles
-                                // and kinds this view actually uses
+  legend auto                   // auto | off — key of what this view earned:
+                                // sync/async, boundaries, flow, tag colours
   titleblock {                  // the header's meta chip, under the title
     subtitle: "Landscape view"  // a line under the diagram's name
     version:  "2026-07"         // version | commit | date are reserved: their

@@ -784,28 +784,39 @@ const zoneColor = (z: { kind: ZoneKind; color?: Hue }, t: Theme) =>
 function legend(p: Positioned, rc: RC, y: number, L: string[], colors: RenderOpts["colors"] = []): { h: number; w: number } {
   const { t } = rc;
   const items: { sample: (x: number, cy: number) => string; label: string }[] = [];
-  if (p.edges.some((e) => !e.async))
+  // Each wire entry samples the colour its edges were actually drawn in when
+  // they all agree (one `color:` across the board, or none), and the kind's
+  // theme default when they don't — a violet "async" swatch over red async
+  // edges would be a lie, and a grey one over mixed colours is the honest
+  // "several" sample.
+  const drawn = (e: PEdge) => (e.color ? hueOf(t, e.color) : e.async ? t.asyncEdge : t.edge);
+  const agreed = (es: PEdge[], fallback: string) => {
+    const cols = new Set(es.map(drawn));
+    return cols.size === 1 ? [...cols][0] : fallback;
+  };
+  const syncs = p.edges.filter((e) => !e.async);
+  if (syncs.length) {
+    const col = agreed(syncs, t.edge);
     items.push({
-      sample: (x, cy) => `<line x1="${x}" y1="${cy}" x2="${x + 24}" y2="${cy}" stroke="${t.edge}" stroke-width="1.5"/>`,
+      sample: (x, cy) => `<line x1="${x}" y1="${cy}" x2="${x + 24}" y2="${cy}" stroke="${col}" stroke-width="1.5"/>`,
       label: "sync",
     });
-  if (p.edges.some((e) => e.async))
+  }
+  // The async sample follows the pattern the view's async edges actually use
+  // (`dotted` is the sanctioned alternative); mixed patterns sample the default.
+  const asyncs = p.edges.filter((e) => e.async);
+  if (asyncs.length) {
+    const dots = asyncs.every((e) => e.style === "dotted");
+    const col = agreed(asyncs, t.asyncEdge);
     items.push({
-      sample: (x, cy) => `<line x1="${x}" y1="${cy}" x2="${x + 24}" y2="${cy}" stroke="${t.asyncEdge}" stroke-width="1.5" stroke-dasharray="6 5"/>`,
+      sample: (x, cy) => `<line x1="${x}" y1="${cy}" x2="${x + 24}" y2="${cy}" stroke="${col}" stroke-width="1.5" stroke-dasharray="${dots ? "2 3" : "6 5"}"/>`,
       label: "async",
     });
-  // Declared stroke styles on sync edges, in style-list order, deduped — the
-  // async item above already explains dashes on async wires, so only sync
-  // edges earn these. Same shape as the zone-kind items below.
-  const stylesPresent = (["dashed", "dotted"] as const).filter((st) =>
-    p.edges.some((e) => !e.async && e.style === st),
-  );
-  for (const st of stylesPresent)
-    items.push({
-      sample: (x, cy) =>
-        `<line x1="${x}" y1="${cy}" x2="${x + 24}" y2="${cy}" stroke="${t.edge}" stroke-width="1.5" stroke-dasharray="${st === "dashed" ? "6 5" : "2 3"}"/>`,
-      label: st,
-    });
+  }
+  // A restyled sync edge (`style: dashed | dotted`) earns nothing: the legend
+  // carries meanings, and a style name beside its own pattern is a tautology —
+  // the same reason an element-level `color:` earns no swatch. An author who
+  // wants it keyed tags the edge and colours the tag in the view.
   if (p.edges.some((e) => e.count > 1))
     items.push({
       sample: (x, cy) =>

@@ -1,7 +1,8 @@
 // How an edge is drawn and how it moves: `style: solid | dashed | dotted` and
 // `animate: flow | reverse | slow | fast | packets | pulse | comet`, one hub
 // with each spoke showing one thing. Dash travel needs a pattern, so a sync
-// edge animates by declaring `style: dashed` first; `pulse` breathes and works
+// edge animates by declaring `style: dotted` first (dashed warns beside `~>`
+// edges — it is their convention); `pulse` breathes and works
 // on solid lines. `comet` is the exception: it rides a dot along the route
 // rather than moving the stroke, so it needs no pattern and is the way to show
 // motion on a plain synchronous call.
@@ -25,7 +26,7 @@ system estate "Edge styles" {
   trace   = aws/lambda "traced call"
 
   hub -> plain  "sync, solid"
-  hub -> dashed "style: dashed" { style: dashed }
+  hub -> dashed "style: dashed (warns)" { style: dashed }
   hub -> dotted "style: dotted" { style: dotted }
   hub ~> flow   "async default"
   hub ~> rev    "reverse" { animate: reverse }
@@ -34,8 +35,8 @@ system estate "Edge styles" {
   hub ~> pkts   "packets" { animate: packets }
   hub -> beat   "pulse" { animate: pulse }
   hub -> trace  "comet" { animate: comet }
-  hub -> combo  "dashed + flow" {
-    style:   dashed
+  hub -> combo  "dotted + flow" {
+    style:   dotted
     animate: flow
   }
 }

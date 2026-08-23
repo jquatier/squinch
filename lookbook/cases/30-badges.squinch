@@ -25,7 +25,7 @@ system lakehouse "Customer 360" {
   bi = logos/looker "dashboards" external
 
   events ~> ingest "stream"
-  landing -> ingest "backfill" { style: dashed }
+  landing -> ingest "backfill" { style: dotted }
   ingest -> bronze "append"
   bronze -> silver "merge"
   job -> silver "orchestrates" { style: dotted }

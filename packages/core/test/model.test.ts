@@ -8,6 +8,17 @@ const pkg = join(dirname(fileURLToPath(import.meta.url)), "..");
 const canonical = readFileSync(join(pkg, "examples/orders.squinch"), "utf8");
 
 describe("grammar + model builder", () => {
+  it("warns when a dashed sync edge wears the async convention", () => {
+    const src = `pack aws\nsystem s "S" {\n a = aws/lambda "A"\n b = aws/lambda "B"\n c = aws/lambda "C"\n a -> b { style: dashed }\n b ~> c\n}`;
+    const msgs = buildModel(src).diagnostics.map((d) => d.message);
+    expect(msgs).toContainEqual(expect.stringContaining("indistinguishable from an async one"));
+    // dotted is the sanctioned alternative; and without async edges there is nothing to collide with
+    expect(buildModel(src.replace("dashed", "dotted")).diagnostics.map((d) => d.message))
+      .not.toContainEqual(expect.stringContaining("indistinguishable"));
+    expect(buildModel(src.replace(" b ~> c\n", "")).diagnostics.map((d) => d.message))
+      .not.toContainEqual(expect.stringContaining("indistinguishable"));
+  });
+
   it("builds the canonical example", () => {
     const r = buildModel(canonical);
     expect(r.ok).toBe(true);

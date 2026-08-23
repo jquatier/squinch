@@ -278,4 +278,12 @@ describe("color: the diff", () => {
     expect(view.structural).toBe(0);
     expect(view.cosmetic).toBe(1);
   });
+
+  it("the legend's wire samples take a hue only when every edge of that kind agrees", async () => {
+    const base = `pack aws\nsystem s "S" {\n a = aws/lambda "A"\n b = aws/lambda "B"\n c = aws/lambda "C"\n`;
+    const all = await render(`${base} a ~> b { color: red }\n b ~> c { color: red }\n}\nview s { legend auto }`, { theme: "light" });
+    expect(all.svg).toMatch(new RegExp(`stroke="${themes.light.hueRed}" stroke-width="1.5" stroke-dasharray="6 5"/>(?:(?!<line)[\\s\\S])*?>async</text>`));
+    const mixed = await render(`${base} a ~> b { color: red }\n b ~> c\n}\nview s { legend auto }`, { theme: "light" });
+    expect(mixed.svg).toMatch(new RegExp(`stroke="${themes.light.asyncEdge}" stroke-width="1.5" stroke-dasharray="6 5"/>(?:(?!<line)[\\s\\S])*?>async</text>`));
+  });
 });

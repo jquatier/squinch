@@ -124,8 +124,8 @@ off under `prefers-reduced-motion`). Opt out with `{ animate: false }`, or pick
 a variant: `reverse` (acks flowing back), `slow`/`fast` (cadence), `packets`
 (discrete messages), `pulse` (a heartbeat — works on solid sync edges too),
 `comet` (a dot rides the route — the only motion a plain solid edge can take).
-Sync edges take `style: dashed | dotted`, and a dashed sync edge may also
-animate. One `animate:` value per edge, and don't decorate every edge — motion
+Sync edges take `style: dotted` (`dashed` warns next to `~>` edges — dashes
+are the async convention), and a dotted sync edge may also animate. One `animate:` value per edge, and don't decorate every edge — motion
 is for the hops where cadence or direction *means* something.
 
 ```squinch
