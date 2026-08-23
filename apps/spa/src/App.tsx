@@ -47,7 +47,9 @@ export function App() {
   const [preview, setPreview] = useState<Preview>({ diagnostics: [], ok: true, views: [] });
   const [lastGood, setLastGood] = useState<string>();
   const [copied, setCopied] = useState<string>();
-  const [editorOpen, setEditorOpen] = useState(true);
+  // Phones open on the canvas: the editor is a 520px desktop pane, and on a
+  // 390px screen it was the only thing you saw. It is one tap away.
+  const [editorOpen, setEditorOpen] = useState(() => !matchMedia("(max-width: 767px)").matches);
   const [paletteOpen, setPaletteOpen] = useState(false);
   const [creditsOpen, setCreditsOpen] = useState(false);
   const editorApi = useRef<EditorApi | null>(null);
@@ -324,7 +326,7 @@ export function App() {
       {/* offscreen, not decorative — the editor UI has no visible page title,
           so this is the only thing giving the document an <h1> at all */}
       <h1 className="sr-only">Squinch — playground</h1>
-      <header className="flex flex-none items-center gap-3.5 border-b border-[var(--line)] bg-[var(--pane)] px-4 py-2.5">
+      <header className="flex flex-none items-center gap-3.5 border-b border-[var(--line)] bg-[var(--pane)] px-4 py-2.5 max-md:gap-2 max-md:px-3">
         <a
           className="flex items-center gap-2 text-[13.5px] font-semibold tracking-[-0.02em] text-[var(--fg)]"
           href={import.meta.env.BASE_URL}
@@ -333,7 +335,7 @@ export function App() {
           <img src={markUrl} width={19} height={19} alt="" />
           squinch
         </a>
-        <span className="pg-chip">playground</span>
+        <span className="pg-chip max-md:!hidden">playground</span>
 
         {/* one control for which example you're on: the arrows live inside it
             rather than flanking a bare select */}
@@ -372,7 +374,7 @@ export function App() {
               every change (the effect above), so there is never an unsaved
               state to show */}
           <span
-            className="pg-mono flex items-center gap-1.5 pl-1 text-[11px] font-medium text-[var(--text-3)]"
+            className="pg-mono flex items-center gap-1.5 pl-1 text-[11px] font-medium text-[var(--text-3)] max-md:hidden"
             title="Your source is kept in this browser's local storage"
           >
             <span className="h-1.5 w-1.5 rounded-full bg-[var(--ok)]" />
@@ -382,7 +384,9 @@ export function App() {
 
         <div className="flex-1" />
 
-        <div className="pg-seg" role="group" aria-label="Theme">
+        {/* phones follow the OS palette — the seg is a desktop luxury, and it
+            is the ~90px that kept Share and Export off a 390px screen */}
+        <div className="pg-seg max-md:!hidden" role="group" aria-label="Theme">
           {THEME_CYCLE.map((t) => (
             <button
               key={t}
@@ -395,7 +399,7 @@ export function App() {
           ))}
         </div>
 
-        <div className="flex items-center gap-1.5">
+        <div className="flex items-center gap-1.5 max-md:!hidden">
           <button onClick={() => setPaletteOpen(true)} className="pg-btn" title="⌘K — search pack icons, insert at cursor">
             Icons<span className="pg-kbd">⌘K</span>
           </button>
@@ -420,9 +424,9 @@ export function App() {
         </div>
       </header>
 
-      <main className="flex min-h-0 flex-1">
+      <main className="flex min-h-0 flex-1 max-md:flex-col">
         {editorOpen && (
-          <section className="flex w-[520px] min-w-0 flex-none flex-col border-r border-[var(--line)] bg-[var(--pane)]">
+          <section className="flex w-[520px] min-w-0 flex-none flex-col border-r border-[var(--line)] bg-[var(--pane)] max-md:h-[46%] max-md:w-full max-md:border-b max-md:border-r-0">
             <div className="pg-mono flex flex-none items-center gap-2.5 border-b border-[var(--line)] px-3.5 py-2 text-[11.5px]">
               <span className="font-medium text-[var(--fg)]">{fileName}</span>
               <span className="text-[11px] text-[var(--text-mono-dim)]">{lineCount} lines</span>
@@ -465,7 +469,7 @@ export function App() {
               collided and read as two selectors. Clicking the backdrop still
               climbs one altitude, and Present keeps its own trail. */}
           {views.length > 1 && (
-            <nav className="pg-pill absolute left-1/2 top-3.5 z-10 flex max-w-[calc(100%-24rem)] -translate-x-1/2 items-center gap-0.5 overflow-x-auto rounded-[9px] p-[3px]">
+            <nav className="pg-pill absolute left-1/2 top-3.5 z-10 flex max-w-[calc(100%-24rem)] -translate-x-1/2 items-center gap-0.5 overflow-x-auto rounded-[9px] p-[3px] max-md:left-auto max-md:right-3 max-md:max-w-[55%] max-md:translate-x-0">
               {views.map((v) => (
                 <button
                   key={v.name}
@@ -485,7 +489,7 @@ export function App() {
             </nav>
           )}
           {renderMs !== undefined && (
-            <div className="pg-pill absolute right-4 top-3.5 z-10 flex items-center gap-2 px-[11px] py-1.5">
+            <div className="pg-pill absolute right-4 top-3.5 z-10 flex items-center gap-2 px-[11px] py-1.5 max-md:hidden">
               <span className="h-1.5 w-1.5 rounded-full [background:var(--grad-dot)]" />
               <span className="pg-mono text-[11.5px] font-medium tabular-nums text-[var(--muted)]">
                 rendered in {renderMs} ms
@@ -497,7 +501,7 @@ export function App() {
               lives in the diagnostics footer now, in the slot a problem's
               location takes when there is one. */}
           {views.length > 1 && (
-            <div className="pg-pill absolute bottom-3.5 left-4 z-10 flex items-center gap-[7px] rounded-[7px] px-2.5 py-[4px]">
+            <div className="pg-pill absolute bottom-3.5 left-4 z-10 flex items-center gap-[7px] rounded-[7px] px-2.5 py-[4px] max-md:hidden">
               <span className="pg-mono text-[9px] font-medium uppercase tracking-[0.08em] text-[var(--text-3)]">
                 Altitude
               </span>

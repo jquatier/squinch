@@ -138,3 +138,10 @@ body {
   padding: 3px 7px;
 }
 .pg-mono { font-family: var(--font-mono); }
+
+/* Phone-width header: the example picker is the one elastic control, so it is
+   the one that gives — everything after it (theme, Share, Export) must stay
+   on screen. */
+@media (max-width: 767px) {
+  .pg-group select { max-width: 12.5rem; }
+}
