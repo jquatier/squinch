@@ -1,7 +1,7 @@
 {
   "$schema": "https://agent-plugins.org/schemas/1.0.0/plugin.schema.json",
   "name": "squinch",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Turns your coding agent into an architecture diagrammer: describe a system in plain language and it writes, checks and renders the diagram — AWS, Azure and Kubernetes estates, zoomable system landscapes, numbered request flows — with real vendor icons, exported as SVG, PNG or interactive HTML. Requires the squinch CLI (npx squinch).",
   "author": { "name": "Jacob Quatier", "url": "https://github.com/jquatier" },
   "homepage": "https://squinch.cc/",

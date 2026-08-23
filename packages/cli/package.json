@@ -1,6 +1,6 @@
 {
   "name": "squinch",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Architecture diagrams as code — check, render, diff and watch .squinch projects from the command line.",
   "keywords": [
     "architecture",
