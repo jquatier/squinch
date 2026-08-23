@@ -6,6 +6,13 @@ on:
     branches: ["**"]
   pull_request:
 
+# Read-only token for every job. The repo default is already read-only; this
+# keeps it true in the file rather than in a setting. Every action below is
+# pinned to a commit SHA with its tag alongside — a tag can be moved, a SHA
+# cannot — so a compromised upstream release cannot reach this workflow.
+permissions:
+  contents: read
+
 jobs:
   build:
     strategy:
@@ -17,12 +24,12 @@ jobs:
       # node24 entry point. The floating @v4 tags are still node20, which the
       # runner now force-upgrades while warning — it works, but on someone
       # else's schedule rather than ours.
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
       # Before setup-node, which needs pnpm on PATH to locate the store it
       # caches. Reads the version from `packageManager` in package.json
       # (pnpm@11.5.2) — and pnpm 11 is what action-setup v6 added support for.
-      - uses: pnpm/action-setup@v6
-      - uses: actions/setup-node@v7
+      - uses: pnpm/action-setup@0977fd99725f1db4007ccb2928dbb4e90d06cc86 # v6
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7
         with:
           node-version: 22
           cache: pnpm
@@ -87,9 +94,9 @@ jobs:
         # go through cmd.exe, so the portable build script is genuinely tested.
         shell: bash
     steps:
-      - uses: actions/checkout@v7
-      - uses: pnpm/action-setup@v6
-      - uses: actions/setup-node@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+      - uses: pnpm/action-setup@0977fd99725f1db4007ccb2928dbb4e90d06cc86 # v6
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7
         with:
           node-version: 22
           cache: pnpm
@@ -136,16 +143,16 @@ jobs:
   e2e:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v7
-      - uses: pnpm/action-setup@v6
-      - uses: actions/setup-node@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+      - uses: pnpm/action-setup@0977fd99725f1db4007ccb2928dbb4e90d06cc86 # v6
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7
         with:
           node-version: 22
           cache: pnpm
       - run: pnpm install --frozen-lockfile
       - run: pnpm -r build
       - name: cache playwright browsers
-        uses: actions/cache@v4
+        uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4
         id: pw-cache
         with:
           path: ~/.cache/ms-playwright
