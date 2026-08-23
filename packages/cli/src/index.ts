@@ -49,7 +49,7 @@ Diff options
 
 Render options
   --view <name>     view to render (default: first)
-  --theme <name>    ${Object.keys(themes).join(" | ")} (default: view's theme)
+  --theme <name>    ${Object.keys(themes).join(" | ")} (default: the view's, else dark)
   --adaptive        one SVG carrying both palettes, switched by the reader's
                     prefers-color-scheme (svg only)
   -o <file>         output path (default: stdout; .png rasterizes,

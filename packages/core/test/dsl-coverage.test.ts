@@ -241,11 +241,11 @@ describe("declaration forms that nothing else exercises", () => {
       expect(r.ok).toBe(true);
       return r.svg!;
     };
-    const plain = await bare(`system s "S" { a = aws/lambda "A" }\n`);
-    const declared = await bare(`theme dark\nsystem s "S" { a = aws/lambda "A" }\n`);
+    const plain = await bare(`system s "S" { a = aws/lambda "A" }\n`); // the default: dark
+    const declared = await bare(`theme light\nsystem s "S" { a = aws/lambda "A" }\n`);
     expect(declared).not.toBe(plain);
-    // …and asking for light explicitly gets light back, whatever the file says
-    expect(await svgOf(`theme dark\nsystem s "S" { a = aws/lambda "A" }\n`)).toBe(plain);
+    // …and asking for dark explicitly gets dark back, whatever the file says
+    expect(await render(`theme light\nsystem s "S" { a = aws/lambda "A" }\n`, { theme: "dark" }).then((r) => r.svg)).toBe(plain);
   });
 
   it("a bad theme name is caught by `check`, not left for `render`", () => {

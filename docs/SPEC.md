@@ -510,7 +510,7 @@ records why, so the case does not get reopened from memory.
 pack aws                     // resolved via squinch.lock → @squinch/pack-aws@x.y.z or vendored copy
 pack corp from "./icons"     // local: directory with pack.json + svgs
 
-theme dark                   // file-level default; views override
+theme light                  // file-level default; views override. Unset: dark
 expose api, db               // [v2] this file's public surface for importers
 ```
 
@@ -519,9 +519,10 @@ Missing pack/icon never fails a render: placeholder box + warning diagnostic.
 Themes come in pairs that can share one file. `light`/`dark` draw the same
 geometry — a pair must share a font, because type metrics drive layout — so a
 render can carry both palettes and let `prefers-color-scheme` choose (`squinch
-render --adaptive`). `dark` is the counterpart, not a base: an adaptive file is
-a light render carrying a dark override, so `--adaptive --theme dark` is a
-check error naming the themes that do pair.
+render --adaptive`). A plain render defaults to `dark`; an adaptive one
+defaults to `light`, because `dark` is the counterpart, not a base: an
+adaptive file is a light render carrying a dark override, so `--adaptive
+--theme dark` is a check error naming the themes that do pair.
 
 ## 8. Grammar sketch (informal EBNF)
 

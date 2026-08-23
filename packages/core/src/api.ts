@@ -222,7 +222,11 @@ export async function renderProject(
     };
   }
 
-  const themeName = opts.theme ?? view.theme ?? built.model.fileTheme ?? "light";
+  // Dark is the default render. The one exception is an adaptive render with
+  // no theme named anywhere: an adaptive file is a light render carrying a
+  // dark override (the media query is `prefers-color-scheme: dark`), so its
+  // base has to be light — naming `dark` for it is still the error below.
+  const themeName = opts.theme ?? view.theme ?? built.model.fileTheme ?? (opts.adaptive ? "light" : "dark");
   const theme: Theme | undefined = themes[themeName];
   const diagnostics = [...built.diagnostics];
   if (!theme)

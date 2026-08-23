@@ -17,7 +17,7 @@ Work like a compiler user, not an artist:
 ```bash
 squinch check diagram.squinch --format json   # parse + lint; machine-readable
 squinch render diagram.squinch -o out.svg     # deterministic SVG (light theme)
-squinch render diagram.squinch --view NAME --theme dark -o out.svg   # themes: light | dark
+squinch render diagram.squinch --view NAME --theme light -o out.svg  # themes: dark (default) | light
 squinch render diagram.squinch -o out.png --scale 2   # PNG for slides/docs (--width also works)
 squinch icons search <term>                   # find icon ids, e.g. "queue", "kafka"
 squinch diff --format json                    # what changed in the architecture

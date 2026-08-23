@@ -114,8 +114,11 @@ export async function exportHTML(
   // A document has one palette at a time and a button to change it, so the
   // theme is the document's rather than each view's — a per-view `theme` is
   // deliberately overridden here, the way `--theme` overrides it elsewhere.
-  const base = opts.themes?.[0] ?? built.model.fileTheme ?? "light";
-  const palette = opts.themes ?? [base, themes[base]?.pairsWith].filter(Boolean) as string[];
+  const base = opts.themes?.[0] ?? built.model.fileTheme ?? "dark";
+  // the counterpart pairs in either direction: light names dark, and dark is
+  // found by being named — so a dark entry still bundles light for the toggle
+  const mate = themes[base]?.pairsWith ?? Object.values(themes).find((t) => t.pairsWith === base)?.name;
+  const palette = opts.themes ?? ([base, mate].filter(Boolean) as string[]);
   for (const name of palette)
     if (!themes[name])
       return {

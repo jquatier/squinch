@@ -61,9 +61,9 @@ describe("interactive HTML export", () => {
     // every view, including the auto one `ops` gets — a card that zooms in the
     // playground has to zoom here, which is the whole point of the artifact
     expect(r.manifest.views).toEqual(["landscape", "web", "api", "story", "ops"]);
-    // the default pair: the project's theme and its `pairsWith` counterpart, so
-    // the file follows the reader's OS without a click
-    expect(r.manifest.themes).toEqual(["light", "dark"]);
+    // the default pair: the project's theme (dark, unset) and its counterpart,
+    // so the toggle has somewhere to go
+    expect(r.manifest.themes).toEqual(["dark", "light"]);
     // Two hops, not four: `story` includes the systems as cards, so the
     // shopper→cdn→gw steps lift and aggregate into one. `flow.steps` counts
     // what renders *at this altitude*, which is the whole point of it.
@@ -75,9 +75,9 @@ describe("interactive HTML export", () => {
     // `flow.steps` counts hops that render *at this altitude*, which is exactly
     // what a presenter can walk to
     const withSteps = await exportHTML(files);
-    expect(withSteps.html).toContain('data-key="story|light|1"');
-    expect(withSteps.html).toContain('data-key="story|light|2"');
-    expect(withSteps.html).not.toContain('data-key="story|light|3"');
+    expect(withSteps.html).toContain('data-key="story|dark|1"');
+    expect(withSteps.html).toContain('data-key="story|dark|2"');
+    expect(withSteps.html).not.toContain('data-key="story|dark|3"');
     expect(withSteps.html).toContain('"flows":{"story":2}');
 
     const without = await exportHTML(files, { flowSteps: false });
