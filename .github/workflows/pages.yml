@@ -26,9 +26,9 @@ jobs:
     if: ${{ !github.event.repository.private }}
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: pnpm/action-setup@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@v7
+      - uses: pnpm/action-setup@v6
+      - uses: actions/setup-node@v7
         with:
           node-version: 22
           cache: pnpm
@@ -39,8 +39,11 @@ jobs:
           # First public run auto-enables Pages (source: GitHub Actions), so
           # going public needs no settings visit before this deploys.
           enablement: true
+      # `...` pulls in the SPA's workspace dependencies: the site imports
+      # @squinch/core's dist/, which only core's own build writes. The first
+      # public run built the SPA alone and failed to resolve it.
       - name: Build the playground
-        run: pnpm --filter @squinch/spa build
+        run: pnpm --filter "@squinch/spa..." build
         env:
           # "/<repo>" from Pages config, "" on a custom domain — either way
           # the trailing slash makes it a valid Vite base.
