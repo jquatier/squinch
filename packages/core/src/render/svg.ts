@@ -840,26 +840,33 @@ function legend(p: Positioned, rc: RC, y: number, L: string[], colors: RenderOpt
         `<text x="${x + 12}" y="${cy + 3}" text-anchor="middle" font-size="${rc.fx(9)}" font-weight="500" fill="${t.beadText}">1</text>`,
       label: `flow: ${p.flow.label}`,
     });
-  // zone kinds present in this render, in kind-list order, deduped
-  const kindsPresent = [...new Set((p.zones ?? []).map((z) => z.kind))];
-  for (const kind of kindsPresent) {
-    const col = hueOf(t, ZONE_TINT[kind]);
+  // Zone entries, keyed on (kind, the colour the boundary was actually drawn
+  // in) — in zone order, deduped. It used to sample the kind's default tint,
+  // which lied the moment a zone said `color:`; an account zone drawn gray
+  // earns a gray swatch, and two account zones in two colours earn two.
+  const zoneKeys = new Map<string, { kind: ZoneKind; col: string }>();
+  for (const z of p.zones ?? []) {
+    const col = zoneColor(z, t);
+    zoneKeys.set(`${z.kind}|${col}`, { kind: z.kind, col });
+  }
+  for (const { kind, col } of zoneKeys.values())
     items.push({
       sample: (x, cy) =>
         `<rect x="${x + 2}" y="${cy - 7}" width="20" height="14" rx="2" fill="none" stroke="${col}" stroke-width="1" stroke-dasharray="4 3"/>`,
       label: kind,
     });
-  }
   // The view's `color #tag hue` statements, in declaration order, one per tag
-  // (a restated tag keeps its last hue, which is the one that was drawn).
-  // Element-level `color:` earns nothing: a hue name is not a label, and the
-  // element it sits on already says what it means.
+  // (a restated tag keeps its last hue, which is the one that was drawn). A
+  // solid swatch — the "dive in" entry's shape — because the hue lands on
+  // spines and strokes, not on a box; an outlined sample read as one more
+  // kind of frame beside the zone and context entries. Element-level
+  // `color:` earns nothing: a hue name is not a label.
   const byTag = new Map<string, Hue>();
   for (const c of colors) byTag.set(c.tag, c.hue);
   for (const [tag, hue] of byTag)
     items.push({
       sample: (x, cy) =>
-        `<rect x="${x + 2}" y="${cy - 7}" width="20" height="14" rx="2" fill="none" stroke="${hueOf(t, hue)}" stroke-width="1.5"/>`,
+        `<rect x="${x + 5}" y="${cy - 5}" width="14" height="10" rx="2" fill="${hueOf(t, hue)}"/>`,
       label: `#${tag}`,
     });
   if (!items.length) return { h: 0, w: 0 };

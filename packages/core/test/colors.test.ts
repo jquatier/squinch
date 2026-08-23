@@ -207,13 +207,28 @@ view v { scope s\n show flow f }`;
   it("the legend lists the view's tag colours by tag, and nothing for element colours", async () => {
     const tagged = await svgOf(`${BASE}\nview v { include *\n legend auto\n color #money teal }`, "light", "v");
     expect(tagged).toContain(">#money</text>");
-    expect(tagged).toContain(`stroke="${hueOf(themes.light, "teal")}" stroke-width="1.5"/>`);
+    // a solid swatch, the "dive in" entry's shape — not an outlined box
+    expect(tagged).toContain(`width="14" height="10" rx="2" fill="${hueOf(themes.light, "teal")}"/>`);
     const element = await svgOf(
       `${BASE.replace("tags: #money", "tags: #money\n  color: teal")}\nview v { include *\n legend auto }`,
       "light", "v",
     );
     expect(element).not.toContain(">#money</text>");
     expect(element).not.toContain(">teal</text>");
+  });
+
+  it("the legend's zone swatch is the colour the boundary was drawn in", async () => {
+    // an account zone overridden to gray earns a gray swatch, not the kind's
+    // default red; two account zones in two colours earn two entries
+    const one = await svgOf(`${BASE}\nzone z "Z" account { contains shop\n color: gray }\nview v { include *\n legend auto }`, "light", "v");
+    const swatch = (svg: string) => [...svg.matchAll(/width="20" height="14" rx="2" fill="none" stroke="(#[0-9A-F]{6})" stroke-width="1" stroke-dasharray="4 3"/g)].map((m) => m[1]);
+    expect(swatch(one)).toEqual([hueOf(themes.light, "gray")]);
+    const two = await svgOf(
+      `${BASE}\nzone a "A" account { contains shop }\nzone b "B" account { contains pay\n color: teal }\nview v { include *\n legend auto }`,
+      "light", "v",
+    );
+    expect(swatch(two)).toEqual([hueOf(themes.light, "red"), hueOf(themes.light, "teal")]);
+    expect(two.match(/>account<\/text>/g)).toHaveLength(2);
   });
 
   it("survives the adaptive merge with every site coloured", async () => {
