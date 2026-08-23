@@ -10,7 +10,7 @@ const ELK = ELKModule as unknown as { new (): { layout(graph: unknown): Promise<
 import { fit, measure, wrapText, type FontFamily } from "../metrics.js";
 import { resolveView } from "../view/resolve.js";
 import type { VNode, VEdge } from "../view/resolve.js";
-import type { SModel, SView, Side, Diagnostic, RelPos, ZoneColor, ZoneKind, ZoneLabelPos } from "../model/types.js";
+import type { SModel, SView, Side, Diagnostic, Hue, RelPos, ZoneKind, ZoneLabelPos } from "../model/types.js";
 import type { ThemeFont } from "../themes/index.js";
 
 const LEAF_TIERS = [120, 160, 200, 240];
@@ -96,6 +96,7 @@ export interface PNode extends VNode {
 export interface PPort { edge: string; node: string; side: Side; x: number; y: number }
 export interface PFrame {
   path: string; label: string; x: number; y: number; w: number; h: number;
+  color?: Hue;
   /** Frame-chain nesting depth, outermost = 0. Counts *frames* only — a frame
    *  inside a zone is still depth 0 — because the renderer keys the recessed
    *  fill off it (depth 0 only; docs/notes/full-detail.md). */
@@ -105,7 +106,7 @@ export interface PZone {
   id: string; label: string; kind: ZoneKind;
   icon?: { pack: string; id: string };
   labelPos: ZoneLabelPos;
-  color?: ZoneColor;
+  color?: Hue;
   /** mono chip segment — a CIDR, an account id (SPEC §zones) */
   detail?: string;
   x: number; y: number; w: number; h: number;
@@ -118,6 +119,7 @@ export interface PEdge {
   style?: "dashed" | "dotted";
   count: number;
   tags: string[];
+  color?: Hue;
   heads: "one" | "both" | "none";
   points: { x: number; y: number }[];
   /** Label space reserved by ELK at layout time (cross-rank edges). The pill
@@ -235,7 +237,7 @@ export async function layoutView(
   interface LZone {
     id: string; label: string; kind: ZoneKind;
     icon?: { pack: string; id: string }; labelPos: ZoneLabelPos;
-    color?: ZoneColor;
+    color?: Hue;
     detail?: string;
     set: Set<string>;
   }
@@ -717,6 +719,7 @@ export async function layoutView(
   };
 
   const frameLabels = new Map(graph.frames.map((f) => [f.path, f.label]));
+  const frameColors = new Map(graph.frames.map((f) => [f.path, f.color]));
   // Child frames recurse through entityElk (defined below — mutual recursion
   // is safe here because nothing invokes either until the ELK graph is built),
   // so an `expand *` ladder reaches ELK as real nested compounds rather than
@@ -960,6 +963,7 @@ export async function layoutView(
       for (let p = frameParent.get(c.id); p; p = frameParent.get(p)) fd++;
       frames.push({
         path: c.id, label: frameLabels.get(c.id)!, x, y, w: q(c.width), h: q(c.height), depth: fd,
+        color: frameColors.get(c.id),
       });
       containerOffset.set(c.id, { x, y });
       for (const child of c.children ?? []) walk(child, x, y, depth + 1);
@@ -1012,7 +1016,7 @@ export async function layoutView(
         const labelRect = lab
           ? { x: q(lab.x + off.x), y: q(lab.y + off.y), w: q(lab.width), h: q(lab.height) }
           : undefined;
-        return [e.id, { id: e.id, from: m.from, to: m.to, label: m.label, async: m.async, animate: m.animate, style: m.style, count: m.count, tags: m.tags, heads: m.heads, points: pts, labelRect }];
+        return [e.id, { id: e.id, from: m.from, to: m.to, label: m.label, async: m.async, animate: m.animate, style: m.style, count: m.count, tags: m.tags, color: m.color, heads: m.heads, points: pts, labelRect }];
       }),
   );
 
@@ -1131,7 +1135,7 @@ export async function layoutView(
       if (lo > hi) return NaN; // no shared band — shelf territory
       return Math.min(Math.max(raw, lo), hi);
     };
-    const carry = { label: e.label, async: e.async, animate: e.animate, style: e.style, count: e.count, tags: e.tags, heads: e.heads };
+    const carry = { label: e.label, async: e.async, animate: e.animate, style: e.style, count: e.count, tags: e.tags, color: e.color, heads: e.heads };
     // The router owns coplanar geometry, so it reserves and reports
     // label space the same way ELK does for cross-rank edges — labelRect is
     // where the pill draws, no search. Straight runs got their gutter widened

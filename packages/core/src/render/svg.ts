@@ -10,7 +10,8 @@ import type { Theme } from "../themes/index.js";
 // strip the renderer fills and the room the card reserves are one number.
 import { pillDims, NOTE_GUTTER, SHELF_H } from "../layout/layout.js";
 import type { Positioned, PEdge, PNode, PZone } from "../layout/layout.js";
-import type { EdgeAnimate, SNote, ZoneColor, ZoneKind } from "../model/types.js";
+import type { EdgeAnimate, Hue, SNote, ZoneKind } from "../model/types.js";
+import { hueOf } from "../themes/index.js";
 
 const PLATE = 40;
 const PAD = 12;
@@ -30,6 +31,10 @@ const DIM = "0.35";
 
 export interface RenderOpts {
   highlight?: string[];
+  /** The view's `color #tag hue` statements — already applied to the graph by
+   *  resolution; the renderer only needs them for the legend, where a tag is
+   *  the one label a hue can honestly carry. */
+  colors?: { tag: string; hue: Hue }[];
   notes?: SNote[];
   showDescriptions?: boolean;
   /** `legend auto` — a key of the styles this render actually uses. */
@@ -404,11 +409,12 @@ function head(
  * documented in SKILL.md, so a diagram could state something the picture then
  * contradicted.
  */
-function arrow(e: PEdge, t: Theme, lines: Positioned["lines"], accent = false, cls = ""): string {
+function arrow(e: PEdge, t: Theme, lines: Positioned["lines"], col: string, cls = ""): string {
   if (e.heads === "none") return "";
   const n = e.points.length;
-  // the head has to travel with the line, or a highlighted hop ends in a grey point
-  const col = accent ? t.accent : e.async ? t.asyncEdge : t.edge;
+  // `col` is the stroke's own colour, passed in rather than re-derived: the
+  // head has to travel with the line, or a highlighted (or hued) hop ends in
+  // a grey point
   // `straight` draws first point to last and discards the route in between, so
   // the head has to take its direction from what is actually drawn. Reading the
   // route's final segment instead pointed the head along a leg the reader never
@@ -467,6 +473,13 @@ function leaf(n: PNode, rc: RC, opts: RenderOpts, dimmed: boolean, L: string[]) 
   if (n.external) L.push(hatched(rc, n.x, n.y, n.w, n.h, R_NODE));
   const px = n.x + PAD, py = n.y + PAD;
   L.push(iconTile(n.icon, px, py, rc, ctx));
+  // `color:` on a leaf is a ring round the icon plate — the artwork itself is
+  // never recoloured. A separate element, only when coloured: every existing
+  // render stays byte-identical, and the adaptive merge sees the same
+  // geometry in both themes with only the stroke value moving. Context leaves
+  // are scenery and stay muted.
+  if (n.color && !ctx)
+    L.push(`<rect x="${px}" y="${py}" width="${PLATE}" height="${PLATE}" rx="6" fill="none" stroke="${hueOf(t, n.color)}" stroke-width="1.5"/>`);
   if (n.badge) L.push(badgeMarkup(n.badge, px, py, rc));
   const maxLabel = n.w - PAD - PLATE - PAD - PAD;
   const withDesc = opts.showDescriptions && n.description;
@@ -498,6 +511,9 @@ function person(n: PNode, rc: RC, opts: RenderOpts, dimmed: boolean, L: string[]
   // keeps the actor legible where the icon is a generic silhouette.
   const r = 17, cx = n.x + PAD + r, cy = n.y + Math.round(n.h / 2);
   L.push(`<circle cx="${cx}" cy="${cy}" r="${r}" fill="${t.plate}"/>`);
+  // the leaf's plate ring, on the disc (same rules: separate, only when coloured)
+  if (n.color)
+    L.push(`<circle cx="${cx}" cy="${cy}" r="${r}" fill="none" stroke="${hueOf(t, n.color)}" stroke-width="1.5"/>`);
   // The mark goes on the disc bare — `iconPlate` would draw the monochrome
   // branch's own rounded square inside it, and a square plate centred in a
   // circle reads as a mistake rather than as an avatar. Colour-pack artwork
@@ -552,13 +568,16 @@ function card(n: PNode, rc: RC, dimmed: boolean, L: string[]) {
   // radius so it turns the corner instead of squaring it off. Containers only
   // — a leaf has no inside, so it gets none of the affordances that imply one.
   // A context card keeps a muted one: the spine is what separates subject from
-  // scenery, and colour is the cheapest way to say which is which.
+  // scenery, and colour is the cheapest way to say which is which. An authored
+  // `color:` takes the spine over as a solid hue — same element, same shape,
+  // so the card reads the same and only its colour says something new.
   const clipId = `sq-cardclip-${n.w}-${n.h}`;
   L.push(def(rc, clipId,
     `<clipPath id="${clipId}"><rect x="0" y="0" width="${n.w}" height="${n.h}" rx="${R_CARD}"/></clipPath>`));
   const inCard = (markup: string) =>
     `<g transform="translate(${n.x},${n.y})" clip-path="url(#${clipId})">${markup}</g>`;
-  L.push(inCard(`<rect x="0" y="0" width="3" height="${n.h}" fill="${ctx ? t.muted : `url(#${ACCENT_GRAD})`}"/>`));
+  const spine = ctx ? t.muted : n.color ? hueOf(t, n.color) : `url(#${ACCENT_GRAD})`;
+  L.push(inCard(`<rect x="0" y="0" width="3" height="${n.h}" fill="${spine}"/>`));
   // The shelf: what is inside, along the bottom. It continues the card's own
   // surface (the gradient's lower tone) under a hairline, so it reads as one
   // object with a divided base rather than a card sitting on a bar. Drawn only
@@ -732,36 +751,25 @@ function notes(
   return ext;
 }
 
-// zone-kind → tint token (DESIGN §5: kind-tinted, low opacity)
-const ZONE_TINT: Record<ZoneKind, (t: Theme) => string> = {
-  account: (th) => th.zoneAccount,
-  region: (th) => th.zoneNeutral,
-  vpc: (th) => th.zoneNetwork,
-  subnet: (th) => th.zoneNetwork,
-  network: (th) => th.zoneNetwork,
-  cloud: (th) => th.zoneCloud,
-  onprem: (th) => th.zoneNeutral,
-  custom: (th) => th.zoneNeutral,
+// zone-kind → default hue (DESIGN §5: kind-tinted). The four hues here are the
+// former zone tint tokens, verbatim, so no zone ever rendered changes a byte.
+const ZONE_TINT: Record<ZoneKind, Hue> = {
+  account: "red",
+  region: "gray",
+  vpc: "blue",
+  subnet: "blue",
+  network: "blue",
+  cloud: "violet",
+  onprem: "gray",
+  custom: "gray",
 };
 
-// explicit `color:` roles a zone may choose instead of its kind default —
-// still theme tokens, never hex in the DSL
-const ZONE_COLOR_ROLE: Record<ZoneColor, (t: Theme) => string> = {
-  account: (th) => th.zoneAccount,
-  network: (th) => th.zoneNetwork,
-  cloud: (th) => th.zoneCloud,
-  neutral: (th) => th.zoneNeutral,
-  ink: (th) => th.ink,
-  muted: (th) => th.muted,
-  accent: (th) => th.accent,
-};
-
-const zoneColor = (z: { kind: ZoneKind; color?: ZoneColor }, t: Theme) =>
-  z.color ? ZONE_COLOR_ROLE[z.color](t) : ZONE_TINT[z.kind](t);
+const zoneColor = (z: { kind: ZoneKind; color?: Hue }, t: Theme) =>
+  hueOf(t, z.color ?? ZONE_TINT[z.kind]);
 
 /** Legend of what's actually in the picture — never a fixed key (DESIGN:
  *  quiet structure; only earned entries). Returns markup + band height. */
-function legend(p: Positioned, rc: RC, y: number, L: string[]): { h: number; w: number } {
+function legend(p: Positioned, rc: RC, y: number, L: string[], colors: RenderOpts["colors"] = []): { h: number; w: number } {
   const { t } = rc;
   const items: { sample: (x: number, cy: number) => string; label: string }[] = [];
   if (p.edges.some((e) => !e.async))
@@ -823,13 +831,25 @@ function legend(p: Positioned, rc: RC, y: number, L: string[]): { h: number; w: 
   // zone kinds present in this render, in kind-list order, deduped
   const kindsPresent = [...new Set((p.zones ?? []).map((z) => z.kind))];
   for (const kind of kindsPresent) {
-    const col = ZONE_TINT[kind](t);
+    const col = hueOf(t, ZONE_TINT[kind]);
     items.push({
       sample: (x, cy) =>
         `<rect x="${x + 2}" y="${cy - 7}" width="20" height="14" rx="2" fill="none" stroke="${col}" stroke-width="1" stroke-dasharray="4 3"/>`,
       label: kind,
     });
   }
+  // The view's `color #tag hue` statements, in declaration order, one per tag
+  // (a restated tag keeps its last hue, which is the one that was drawn).
+  // Element-level `color:` earns nothing: a hue name is not a label, and the
+  // element it sits on already says what it means.
+  const byTag = new Map<string, Hue>();
+  for (const c of colors) byTag.set(c.tag, c.hue);
+  for (const [tag, hue] of byTag)
+    items.push({
+      sample: (x, cy) =>
+        `<rect x="${x + 2}" y="${cy - 7}" width="20" height="14" rx="2" fill="none" stroke="${hueOf(t, hue)}" stroke-width="1.5"/>`,
+      label: `#${tag}`,
+    });
   if (!items.length) return { h: 0, w: 0 };
   const cy = y + 12;
   let x = 16;
@@ -1289,7 +1309,7 @@ export function renderSVG(p: Positioned, t: Theme, opts: RenderOpts = {}): strin
     // frames, and the determinism contract keeps those byte-identical
     const depthAttr = f.depth > 0 ? ` data-depth="${f.depth}"` : "";
     body.push(
-      `<rect data-path="${esc(f.path)}" data-kind="frame"${depthAttr} x="${f.x}" y="${f.y}" width="${f.w}" height="${f.h}" rx="8" fill="${fill}" stroke="${t.border}" stroke-width="1"/>`,
+      `<rect data-path="${esc(f.path)}" data-kind="frame"${depthAttr} x="${f.x}" y="${f.y}" width="${f.w}" height="${f.h}" rx="8" fill="${fill}" stroke="${f.color ? hueOf(t, f.color) : t.border}" stroke-width="1"/>`,
     );
     body.push(
       `<text x="${f.x + 14}" y="${f.y + 24}" font-size="${rc.fx(13)}" font-weight="500" fill="${t.muted}">${esc(f.label)}</text>`,
@@ -1302,7 +1322,9 @@ export function renderSVG(p: Positioned, t: Theme, opts: RenderOpts = {}): strin
     // the hop being narrated right now: accent-coloured and heavier, so the
     // eye lands on it without having to hunt for the badge
     const current = step !== undefined && stepsOf(e).includes(step);
-    const col = current ? t.accent : e.async ? t.asyncEdge : t.edge;
+    // the narrated hop outranks an authored hue: while a flow is being walked,
+    // "where we are" is the one thing colour has to say
+    const col = current ? t.accent : e.color ? hueOf(t, e.color) : e.async ? t.asyncEdge : t.edge;
     const weight = current ? 2.5 : 1.5;
     // The pattern is a presentation attribute, never CSS: resvg ignores
     // stylesheets, so the static dashes are what a PNG export shows. `packets`
@@ -1354,7 +1376,7 @@ export function renderSVG(p: Positioned, t: Theme, opts: RenderOpts = {}): strin
     }
     // pulse breathes the whole edge, arrowhead included; travel animations
     // stay off the head — a drifting chevron reads as the head detaching
-    body.push(arrow(e, t, p.lines, current, e.animate === "pulse" ? anim : ""));
+    body.push(arrow(e, t, p.lines, col, e.animate === "pulse" ? anim : ""));
     body.push(`</g>`);
   }
 
@@ -1453,7 +1475,7 @@ export function renderSVG(p: Positioned, t: Theme, opts: RenderOpts = {}): strin
   let bandH = 0;
   if (opts.legend) {
     const bandY = headerH + contentH;
-    const lg = opts.legend ? legend(p, rc, bandY + 5, chrome) : { h: 0, w: 0 };
+    const lg = opts.legend ? legend(p, rc, bandY + 5, chrome, opts.colors) : { h: 0, w: 0 };
     // +.02em over seven characters is ~1.5px the metrics table cannot see;
     // reserve it so the mark never sits closer to the edge than intended
     const markW = Math.ceil(measure(wordmark, rc.fx(10.5), "500", rc.fam)) + 2;

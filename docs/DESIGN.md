@@ -72,6 +72,12 @@
   reference roles, never hex (already a SPEC rule). One role is deliberately
   not theme-relative: the brand ramp `#C441FE → #15B6FF`, identical in both
   themes as the logo is.
+- **Author hues**: the eight `hue*` tokens are the whole vocabulary an author's
+  `color:` can reach (plus `accent`, the ninth word), each designed as a pair —
+  darker and more saturated on paper, lifted on the dark canvas — and spaced so
+  no two collapse at 1.5px. Four of them are the zone tints the kinds default
+  to; the other four were set beside them. They are a palette, not a
+  picker: adding a hue is a design decision against both canvases.
 
 ## 3. Node anatomy
 
@@ -186,7 +192,8 @@ it gets none of the marks that imply one.
   recession must say "opened" once rather than encode depth as darkness
   (docs/notes/full-detail.md).
 - **Zones** (deployment boundaries): a dashed outline, radius `8`, in the kind's
-  colour — and **no fill, ever**. A tint compounds where zones nest, so a subnet
+  hue (`account` red, the network kinds blue, `cloud` violet, the rest gray —
+  or the author's `color:`) — and **no fill, ever**. A tint compounds where zones nest, so a subnet
   inside a VPC read darker than either and the boundary's weight encoded depth
   rather than kind.
 - **Zone chips** straddle their boundary's border and are built from one hue at
@@ -238,6 +245,11 @@ Every theme is the full token set of §2 — never a palette swap on top of ligh
   dashed, zones are dashed and kind-tinted, boundary crossings change colour
   *and* keep their pattern. Colour is reinforcement; shape and pattern are the
   encoding. That rule is what made a dedicated high-contrast theme redundant.
+  An author's `color:` (SPEC §3) lives inside the same rule: it paints the part
+  of an element that is already its mark — a plate ring, a card spine, an edge
+  stroke, a zone outline — and never replaces a shape or a pattern, so a
+  coloured diagram read in greyscale still says everything it said in colour,
+  minus the emphasis.
 - Retired with the docs/design restyle (2026-08): `sketch` / `sketch-dark`
   (rough.js + hand-lettered Caveat) and `contrast` (WCAG-first). The restyle's
   card anatomy — gradient ramps, contact shadows, stacked sheets, the segmented

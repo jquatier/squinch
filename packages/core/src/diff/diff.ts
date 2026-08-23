@@ -91,6 +91,11 @@ export function diffModels(before: SModel, after: SModel): DiffResult {
         kind: "changed", weight: "structural", subject: a.kind, id: path,
         detail: `${path} tags`, before: bTags || "(none)", after: aTags || "(none)",
       });
+    if ((b.color ?? "") !== (a.color ?? ""))
+      add({
+        kind: "changed", weight: "cosmetic", subject: a.kind, id: path,
+        detail: `${path} color`, before: b.color ?? "(default)", after: a.color ?? "(default)",
+      });
   }
 
   // ── nodes ────────────────────────────────────────────────────────────────
@@ -163,6 +168,11 @@ export function diffModels(before: SModel, after: SModel): DiffResult {
         detail: `${path} description`,
         before: b.description ?? "(none)", after: a.description ?? "(none)",
       });
+    if ((b.color ?? "") !== (a.color ?? ""))
+      add({
+        kind: "changed", weight: "cosmetic", subject: "node", id: path,
+        detail: `${path} color`, before: b.color ?? "(default)", after: a.color ?? "(default)",
+      });
   }
 
   // ── edges ────────────────────────────────────────────────────────────────
@@ -200,7 +210,7 @@ export function diffModels(before: SModel, after: SModel): DiffResult {
       // Styling attrs are cosmetic by definition, but invisible changes make a
       // reviewer distrust the diff — a PR that switches an edge to `packets`
       // should say so.
-      for (const key of ["animate", "style"] as const)
+      for (const key of ["animate", "style", "color"] as const)
         if ((b.attrs[key] ?? "") !== (a.attrs[key] ?? ""))
           add({
             kind: "changed", weight: "cosmetic", subject: "edge", id: edgeId(a),
@@ -298,6 +308,7 @@ export function diffModels(before: SModel, after: SModel): DiffResult {
   const presentation = (v: SView) =>
     JSON.stringify({
       title: v.title, theme: v.theme, highlight: [...v.highlight].sort(),
+      colors: (v.colors ?? []).map((c) => [c.tag, c.hue]),
       showDescriptions: v.showDescriptions, showFlow: v.showFlow,
       legend: v.legend, titleblock: v.titleblock,
       notes: v.notes.map((n) => ({ anchor: n.anchor, text: n.text, style: n.style })),

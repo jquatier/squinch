@@ -95,8 +95,8 @@ View { kw<"view"> Path ViewBody }
 ViewBody { "{" list<viewStmt> "}" }
 viewStmt {
   TitleStmt | ThemeStmt | ScopeStmt | OnlyStmt | IncludeStmt | ExcludeStmt |
-  DetailStmt | ExpandStmt | ContextStmt | HighlightStmt | ShowStmt | NoteStmt |
-  LegendStmt | TitleBlockStmt | LayoutBlock
+  DetailStmt | ExpandStmt | ContextStmt | HighlightStmt | ColorStmt | ShowStmt |
+  NoteStmt | LegendStmt | TitleBlockStmt | LayoutBlock
 }
 TitleStmt { kw<"title"> String }
 ThemeStmt { kw<"theme"> Ident }
@@ -108,6 +108,10 @@ ExcludeStmt { kw<"exclude"> TargetList }
 ExpandStmt { kw<"expand"> (Star | Path) }
 ContextStmt { kw<"context"> (kw<"auto"> | kw<"off">) }
 HighlightStmt { kw<"highlight"> Tag (","? Tag)* }
+// one tag per statement, by design: `color #pci red` reads as a sentence, and
+// a second colour is a second line. (`color:` inside an attr block is an
+// ordinary Attr — different production, no collision.)
+ColorStmt { kw<"color"> Tag Ident }
 ShowStmt { kw<"show"> (kw<"descriptions"> | kw<"flow"> Ident) }
 LegendStmt { kw<"legend"> (kw<"auto"> | kw<"off">) }
 TitleBlockStmt { kw<"titleblock"> AttrBlock }

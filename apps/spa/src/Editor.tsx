@@ -21,7 +21,7 @@ const squinchLanguage = LRLanguage.define({
       styleTags({
         "pack system container view person layout": t.definitionKeyword,
         "rows cols place align route from to direction lines density": t.keyword,
-        "scope only include exclude detail expand context highlight show note title theme": t.keyword,
+        "scope only include exclude detail expand context highlight color show note title theme": t.keyword,
         "right-of left-of above below north south east west": t.atom,
         String: t.string,
         Number: t.number,

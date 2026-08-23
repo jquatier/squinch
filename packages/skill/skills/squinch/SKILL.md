@@ -91,6 +91,7 @@ system shop "Order Service" {         // systems/containers nest arbitrarily
   api -> create, get, search          // fan-out
   db ~> sync "DynamoDB stream"        // async edge (dashed); label optional
   api -> create { tags: #hot-path }   // edges take tags and attrs too
+  api -> db { color: amber }          // a hue on the stroke + head — see Colour
   a <-> b                             // bidirectional;  a -- b  undirected
 }
 
@@ -137,16 +138,28 @@ mirror -> replica "sync" {
 }
 ```
 
+Colour — `color:` takes one of nine hues, `red | amber | green | teal | blue |
+violet | pink | gray | accent`, never hex (each is a designed light/dark pair,
+and a literal cannot be right on both). It goes on anything: a leaf gets a ring
+round its icon plate, a `system` its card spine, an edge its stroke and head, a
+zone its outline. Use it to say *these belong together* or *this is the path*
+without dimming everything else the way `highlight` does. The stronger form is
+the view statement `color #tag red`, which colours every visible thing carrying
+the tag, one tag per line — it wins over an element's own `color:`, and with
+`legend auto` each coloured tag earns a legend entry. Colour is annotation:
+async stays dashed, context stays muted, so a greyscale print loses only the
+emphasis.
+
 Zones mark deployment boundaries: `zone id "Label" kind { contains a, b.c }`,
 kinds `account | region | vpc | subnet | network | cloud | onprem | custom`.
 Optional attrs: `icon:` — **any** pack icon (`azure/vnet`, `logos/docker`; AWS
 ships purpose-made group marks like `aws/vpc`, `aws/region`,
 `aws/private-subnet`, `aws/corporate-data-center`) — `label: top-right`
 (corners: top-left default, top-right, bottom-left, bottom-right), and
-`color: ink` (theme roles only — account, network, cloud, neutral, ink, muted,
-accent; never hex). A zone's `kind` already picks its colour, so two nested
-zones of related kinds come out nearly the same shade — set `color:` on the
-inner one to tell them apart. `detail: "10.0.0.0/16"` adds a second, monospaced
+`color: teal` (the nine hues above; never hex). A zone's `kind` already picks
+its tint — `account` red, the network kinds blue, `cloud` violet, the rest
+gray — so two nested zones of related kinds come out nearly the same shade:
+set `color:` on the inner one to tell them apart. `detail: "10.0.0.0/16"` adds a second, monospaced
 segment to the chip for the boundary's hard fact — a CIDR, an account id, a
 region. It is dropped rather than truncated on a boundary too narrow for both,
 since a clipped CIDR is a different network, not a shortened label.
@@ -189,6 +202,8 @@ view shop {                 // name matching a system = that system's view
   detail ledger.post        // draw an outside node itself, not its system card
   highlight #pci            // spotlight matches, dim the rest — this still
                             // shows EVERYTHING; "only the PCI parts" is `only`
+  color #pci red            // colour everything tagged #pci, dim nothing —
+                            // one tag per line; wins over an element's own color:
   show descriptions         // inline description lines under labels — clipped
                             // to card width with an ellipsis and nothing warns
                             // you, so keep them to ~4 words
@@ -352,6 +367,9 @@ view shop {
 | "`expand *` opened nothing — no containers are visible here" warning | The model (or this scope) has no containers to open — drop the line |
 | Show **only** one concern (an auditor's view: "only the PCI parts") | `only #pci`. Anything outside the scope that the survivors still talk to stays as a muted context card — that boundary crossing is usually the point of the view; `context off` drops those too |
 | Emphasise one concern while keeping its context | `highlight #pci` — spotlights matches, dims the rest, shows everything |
+| Tell two groups apart, or mark one path, without dimming anything | `color #team-a teal` in the view (tags inherit through containers), or `{ color: red }` on the element. Nine hues, never hex |
+| "color #x: nothing visible here is tagged #x" warning | Same cause as the `highlight` row: the tag is misspelled, or its carriers are not in this view — check `tags:` and the view's `include`/`only` |
+| "`x` is tagged #a (red) and #b (blue) — #b wins" warning | Two `color` lines landed on one element. Give both tags the same hue, or narrow one of them |
 | Narrow a view with `include #tag` | It does not narrow. `include` **adds**; an include that changes nothing warns and points at `only` |
 | Show one specific node from another system, not its whole card | `detail ledger.post` |
 | A neighbour system clutters a zoomed view | `exclude thatSystem` or `context off` |

@@ -31,7 +31,7 @@ test("each content page serves, styled, with its own title", async ({ page }) =>
   // tell them apart and survives a copy tweak to the second
   for (const [path, title, h1] of [
     ["/install/", "Install — Squinch", "Four ways in."],
-    ["/lookbook/", "Lookbook — Squinch", "Thirty-five systems,"],
+    ["/lookbook/", "Lookbook — Squinch", "systems, drawn properly."],
   ] as const) {
     await page.goto(path);
     await expect(page).toHaveTitle(title);

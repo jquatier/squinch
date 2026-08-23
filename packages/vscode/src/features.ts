@@ -2,7 +2,7 @@
 // (src/server.ts) is a thin protocol shell around these — everything that can
 // be wrong lives here, where vitest can reach it without a running editor.
 import {
-  buildProject, renderProject, allPackNames, iconIds, iconMeta, iconTitle, packExists,
+  buildProject, renderProject, allPackNames, iconIds, iconMeta, iconTitle, packExists, HUES,
   type Diagnostic as CoreDiagnostic,
 } from "@squinch/core";
 
@@ -133,7 +133,7 @@ export function blockStack(src: string, offset: number): BlockKind[] {
 const TOP_KEYWORDS = ["pack", "person", "system", "container", "zone", "flow", "view", "theme"];
 const VIEW_KEYWORDS = [
   "title", "theme", "scope", "only", "include", "exclude", "detail", "expand", "context",
-  "highlight", "show", "legend", "titleblock", "note", "layout",
+  "highlight", "color", "show", "legend", "titleblock", "note", "layout",
 ];
 const LAYOUT_KEYWORDS = ["direction", "density", "lines", "rows", "cols", "place", "align", "route"];
 const ZONE_KEYWORDS = ["contains", "icon", "label", "color"];
@@ -188,7 +188,14 @@ export function completionsAt(src: string, offset: number): Completion[] {
     return [...star, ...pathCompletions(src, partial).filter((c) => c.detail === "container" || c.detail?.startsWith("container"))];
   }
 
-  // 5. keywords by block
+  // 5. a hue, after `color:` on any element or `color #tag` in a view — the
+  // one closed value list the attr grammar has, so it is worth completing
+  const hueAt = /\bcolor(?::|\s+#[\w-]+)\s+([a-z]*)$/.exec(line);
+  if (hueAt)
+    return HUES.filter((h) => h.startsWith(hueAt[1]))
+      .map((h) => ({ label: h, kind: "value" as const, detail: "hue", insert: h.slice(hueAt[1].length) }));
+
+  // 6. keywords by block
   const partial = /([a-zA-Z][\w-]*)?$/.exec(line)?.[1] ?? "";
   const pool =
     here === "layout" ? LAYOUT_KEYWORDS :

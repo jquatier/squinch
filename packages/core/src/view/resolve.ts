@@ -3,7 +3,7 @@
 // include → exclude (exclude wins last) → edges/notes derive from what survived.
 // `scope` is the view's *where*; `only` is its *which*. They are separate axes
 // because a tag is a cross-cutting concern and can never be a place.
-import type { Diagnostic, EdgeAnimate, SEdge, SModel, SView } from "../model/types.js";
+import type { Diagnostic, EdgeAnimate, Hue, SEdge, SModel, SView } from "../model/types.js";
 
 export interface VNode {
   path: string;
@@ -33,6 +33,9 @@ export interface VNode {
   external?: boolean;
   description?: string;
   frame?: string; // parent frame path when inside an expanded container
+  /** Effective hue: the view's `color #tag` if one matches, else the element's
+   *  own `color:`. Context cards ignore it — scenery stays muted. */
+  color?: Hue;
 }
 
 export interface VFrame {
@@ -41,6 +44,8 @@ export interface VFrame {
   /** Immediate enclosing frame — same field, same meaning as `VNode.frame`.
    *  Only `expand *` produces it: explicit expands never nest (SPEC §5). */
   frame?: string;
+  /** Same resolution as `VNode.color`; drawn as the frame's stroke. */
+  color?: Hue;
 }
 
 export interface VEdge {
@@ -59,6 +64,9 @@ export interface VEdge {
   /** Effective tags. An aggregate carries the union of what it merged, so a
    *  lens over a tag still finds the trunk that hides a tagged edge inside it. */
   tags: string[];
+  /** Effective hue (view `color #tag` over the edge's own `color:`). A trunk
+   *  keeps one only when every member agrees, like `animate`/`style`. */
+  color?: Hue;
   /** Which ends get an arrowhead: `->`/`~>` one, `<->` both, `--` none. The
    *  view graph used to reduce every arrow to `async: boolean`, so two of the
    *  four kinds the grammar accepts drew as a plain one-way arrow. */
@@ -159,7 +167,7 @@ export function resolveView(model: SModel, view: SView): ViewGraph {
         opened.push(path);
         return;
       }
-      frames.push({ path, label: c.label ?? c.name, frame: parent });
+      frames.push({ path, label: c.label ?? c.name, frame: parent, color: c.color });
       for (const child of c.children) {
         frameOf.set(child, path);
         open(child, path);
@@ -191,7 +199,7 @@ export function resolveView(model: SModel, view: SView): ViewGraph {
       const i = visible.indexOf(ex);
       const c = model.containers.get(ex);
       if (i >= 0 && c) {
-        frames.push({ path: ex, label: c.label ?? c.name });
+        frames.push({ path: ex, label: c.label ?? c.name, color: c.color });
         for (const child of c.children) frameOf.set(child, ex);
         visible.splice(i, 1, ...c.children);
       } else if (!c && model.nodes.has(ex)) {
@@ -436,7 +444,7 @@ export function resolveView(model: SModel, view: SView): ViewGraph {
       edges.push({
         id: e.id, from: f, to: t, label: e.label, async: e.arrow === "~>",
         animate: animateOf(e), style: styleOf(e), count: 1,
-        tags: e.tags, heads: headsOf(e.arrow),
+        tags: e.tags, color: e.color, heads: headsOf(e.arrow),
       });
       continue;
     }
@@ -454,7 +462,7 @@ export function resolveView(model: SModel, view: SView): ViewGraph {
       edges[slot] = {
         id: e.id, from: g.from, to: g.to, label: e.label, async: e.arrow === "~>",
         animate: animateOf(e), style: styleOf(e), count: 1,
-        tags: e.tags, heads: headsOf(e.arrow),
+        tags: e.tags, color: e.color, heads: headsOf(e.arrow),
       };
     } else {
       // A trunk only claims styling every member agrees on (same rule as
@@ -472,6 +480,7 @@ export function resolveView(model: SModel, view: SView): ViewGraph {
         style: g.edges.every((e) => styleOf(e) === agreedStyle) ? agreedStyle : undefined,
         count: g.edges.length,
         tags: [...new Set(g.edges.flatMap((e) => e.tags))],
+        color: g.edges.every((e) => e.color === g.edges[0].color) ? g.edges[0].color : undefined,
         // A trunk only claims a shape every member agrees on; a mixed bundle
         // falls back to the plain arrow rather than asserting something false.
         heads: g.edges.every((e) => e.arrow === "<->") ? "both"
@@ -549,6 +558,7 @@ export function resolveView(model: SModel, view: SView): ViewGraph {
         tags: effectiveTags(path),
         external: container.kinds.includes("external") || undefined,
         frame: frameOf.get(path),
+        color: container.color,
       };
     }
     const n = model.nodes.get(path)!;
@@ -569,8 +579,48 @@ export function resolveView(model: SModel, view: SView): ViewGraph {
       external: n.kinds.includes("external") || undefined,
       description: n.description,
       frame: frameOf.get(path),
+      color: n.color,
     };
   });
+
+  // ── view colour lens (`color #tag hue`) ───────────────────────────────────
+  // A lens over the model, so it wins over an element's own `color:`; among
+  // statements, declaration order and the last one wins — but two different
+  // hues landing on one element is almost always two tags that were meant to
+  // be disjoint, so it is said once per element rather than resolved silently.
+  // tolerant of a hand-built SView with no `colors` (tests, older callers)
+  const colorStmts = view.colors ?? [];
+  const viewHue = (tags: string[], subject: string): Hue | undefined => {
+    const hits = colorStmts.filter((c) => tags.includes(c.tag));
+    if (!hits.length) return undefined;
+    const hues = new Set(hits.map((h) => h.hue));
+    if (hues.size > 1) {
+      const last = hits[hits.length - 1];
+      const other = hits.find((h) => h.hue !== last.hue)!;
+      diagnostics.push({
+        severity: "warning",
+        message: `${subject} is tagged #${other.tag} (${other.hue}) and #${last.tag} (${last.hue}) — #${last.tag} wins`,
+        fix: `give both tags the same hue, or narrow one of them`,
+        loc: last.loc,
+      });
+    }
+    return hits[hits.length - 1].hue;
+  };
+  if (colorStmts.length) {
+    for (const n of nodes) n.color = viewHue(n.tags, `\`${n.path}\``) ?? n.color;
+    for (const e of finalEdges) e.color = viewHue(e.tags, `${e.from} → ${e.to}`) ?? e.color;
+    for (const f of frames) f.color = viewHue(effectiveTags(f.path), `\`${f.path}\``) ?? f.color;
+    for (const c of colorStmts)
+      if (!nodes.some((n) => n.tags.includes(c.tag))
+          && !finalEdges.some((e) => e.tags.includes(c.tag))
+          && !frames.some((f) => effectiveTags(f.path).includes(c.tag)))
+        diagnostics.push({
+          severity: "warning",
+          message: `color #${c.tag}: nothing visible here is tagged #${c.tag}`,
+          fix: `nothing would take the colour — check the tag, or the view's \`include\`/\`only\``,
+          loc: c.loc,
+        });
+  }
 
   // ── flow badges (SPEC §Flows): map each step onto the edge that renders
   // it at this altitude — steps whose endpoints lift into the same card

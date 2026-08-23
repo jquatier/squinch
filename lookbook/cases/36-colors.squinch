@@ -1,0 +1,61 @@
+// `color:` — one hue vocabulary on everything. Nine words (red, amber, green,
+// teal, blue, violet, pink, gray, accent), never hex, each a designed pair so
+// the same source reads right on both canvases. A leaf takes a ring round its
+// icon plate, a system its card spine, an edge its stroke and head, a zone its
+// outline. The `lens` view colours by tag instead — `color #money red` — which
+// overrides an element's own colour and earns a legend entry per tag. Hue is
+// annotation: async is still dashed, context still muted.
+pack aws
+
+user = person "Shopper" { color: pink }
+
+system web "Storefront" {
+  tags: #edge
+  cdn = aws/cloudfront "CDN"
+  app = aws/lambda "App" { color: amber }
+  cdn -> app
+}
+
+system pay "Payments" {
+  tags: #money
+  api = aws/api-gateway "Pay API"
+  charge = aws/lambda "Charge" { color: green }
+  ledger = aws/dynamodb "Ledger" datastore
+  api -> charge
+  charge -> ledger "posts" { color: violet }
+}
+
+system risk "Risk" {
+  color: teal
+  score = aws/sagemaker "Scoring"
+}
+
+user -> web.cdn "browses"
+web.app -> pay.api "checkout" { color: red }
+pay.charge ~> risk.score "events" { color: blue }
+
+zone prod "prod account" account {
+  contains web, pay, risk
+  color: gray
+}
+
+// every site coloured by hand
+view landscape {
+  title "Every site, coloured"
+  include *
+  legend auto
+}
+
+// the same model through a tag lens: the money path, and the edge tier
+view lens {
+  title "Coloured by tag"
+  include *
+  color #money red
+  color #edge blue
+  legend auto
+}
+
+// inside a system: plate rings, and the edge that keeps its hue
+view pay {
+  scope pay
+}

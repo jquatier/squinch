@@ -9,8 +9,9 @@ const ROLES: (keyof Theme)[] = [
   "plateText", "accent", "beadText", "warnTint", "surfaceAlt",
   "surfaceHi", "surfaceLo", "shelfLine", "plate", "actorLo",
   "sheetFill", "sheetBorder", "faint", "dim",
-  "zoneAccount", "zoneNetwork", "zoneCloud", "zoneNeutral",
+  "hueRed", "hueAmber", "hueGreen", "hueTeal", "hueBlue", "hueViolet", "huePink", "hueGray",
 ];
+const HUE_ROLES = ROLES.filter((r) => String(r).startsWith("hue"));
 
 /** WCAG relative luminance + contrast ratio. */
 const lum = (hex: string) => {
@@ -56,5 +57,29 @@ describe("themes", () => {
   it("dark is designed, not inverted — its canvas is near-black, not grey", () => {
     expect(lum(themes.dark.canvas)).toBeLessThan(0.02);
     expect(ratio(themes.dark.ink, themes.dark.canvas)).toBeGreaterThanOrEqual(7);
+  });
+
+  it("every author hue reads as a 1.5px stroke on its own canvas", () => {
+    // 3:1 is the floor for graphical objects (WCAG 1.4.11); the hues are
+    // strokes, rings and spines, never text, so AA for text would be the
+    // wrong bar and would rule out the lifted dark set.
+    for (const [name, t] of Object.entries(themes))
+      for (const role of HUE_ROLES)
+        expect(ratio(String(t[role]), t.canvas), `${name}.${String(role)} on canvas`).toBeGreaterThanOrEqual(3);
+  });
+
+  it("the eight hues stay apart from each other in both themes", () => {
+    // Two hues that collapse to near-identical strokes make `color:` lie:
+    // a reader sees one group where the author drew two. Perceptual distance
+    // is approximated by RGB distance — crude, but it catches a copy-paste.
+    const dist = (a: string, b: string) =>
+      Math.hypot(...[1, 3, 5].map((i) => parseInt(a.slice(i, i + 2), 16) - parseInt(b.slice(i, i + 2), 16)));
+    for (const [name, t] of Object.entries(themes))
+      for (let i = 0; i < HUE_ROLES.length; i++)
+        for (let j = i + 1; j < HUE_ROLES.length; j++)
+          expect(
+            dist(String(t[HUE_ROLES[i]]), String(t[HUE_ROLES[j]])),
+            `${name}: ${String(HUE_ROLES[i])} vs ${String(HUE_ROLES[j])}`,
+          ).toBeGreaterThan(40);
   });
 });

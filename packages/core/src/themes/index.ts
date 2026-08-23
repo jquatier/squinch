@@ -1,5 +1,7 @@
 // Theme tokens — the DESIGN.md §2 color-role contract (v1 subset).
 // Dark is designed, not inverted (DESIGN §6).
+import type { Hue } from "../model/types.js";
+
 export interface ThemeFont {
   /** CSS font-family stack; first entry is the embedded face's family name. */
   css: string;
@@ -64,12 +66,26 @@ export interface Theme {
    *  themes with the same font can pair: type metrics drive layout, so a
    *  cross-font pair would draw two different diagrams. */
   pairsWith?: string;
-  /** zone boundary tints by kind group (DESIGN §5: kind-tinted, low opacity) */
-  zoneAccount: string;
-  zoneNetwork: string;
-  zoneCloud: string;
-  zoneNeutral: string;
+  /** The eight author hues (SPEC `color:`), one designed pair per theme —
+   *  darker and more saturated on paper, lifted on the dark canvas. Also the
+   *  zone kind tints (DESIGN §5: account→red, network→blue, cloud→violet,
+   *  the rest→gray). 6-digit hex only: the zone chip concatenates an alpha
+   *  byte onto these. */
+  hueRed: string;
+  hueAmber: string;
+  hueGreen: string;
+  hueTeal: string;
+  hueBlue: string;
+  hueViolet: string;
+  huePink: string;
+  hueGray: string;
 }
+
+/** The one place a hue name becomes a colour. `accent` is the brand token
+ *  rather than a ninth pair, so it stays whatever the theme says it is. */
+export const hueOf = (t: Theme, h: Hue): string =>
+  h === "accent" ? t.accent : t[`hue${h[0].toUpperCase()}${h.slice(1)}` as HueToken];
+type HueToken = "hueRed" | "hueAmber" | "hueGreen" | "hueTeal" | "hueBlue" | "hueViolet" | "huePink" | "hueGray";
 
 const inter: ThemeFont = {
   css: "SquinchInter, Inter, system-ui, sans-serif",
@@ -81,10 +97,16 @@ export const light: Theme = {
   name: "light",
   font: inter,
   pairsWith: "dark",
-  zoneAccount: "#B5544C",
-  zoneNetwork: "#3A6EA8",
-  zoneCloud: "#6B5FC9",
-  zoneNeutral: "#7A776E",
+  // red/blue/violet/gray are the former zone tints, verbatim, so every zone
+  // ever rendered is byte-identical; the other four were designed beside them
+  hueRed: "#B5544C",
+  hueAmber: "#A06B12",
+  hueGreen: "#3F8A5C",
+  hueTeal: "#1F8A80",
+  hueBlue: "#3A6EA8",
+  hueViolet: "#6B5FC9",
+  huePink: "#B04A8A",
+  hueGray: "#7A776E",
   canvas: "#F7F7F5",
   surface: "#FFFFFF",
   border: "#EAE9E5",
@@ -114,10 +136,14 @@ export const light: Theme = {
 export const dark: Theme = {
   name: "dark",
   font: inter,
-  zoneAccount: "#D08078",
-  zoneNetwork: "#6E9CD0",
-  zoneCloud: "#9C93E8",
-  zoneNeutral: "#8F8C82",
+  hueRed: "#D08078",
+  hueAmber: "#D9B168",
+  hueGreen: "#6FC29A",
+  hueTeal: "#4AC4B8",
+  hueBlue: "#6E9CD0",
+  hueViolet: "#9C93E8",
+  huePink: "#D685BB",
+  hueGray: "#8F8C82",
   canvas: "#161618",
   surface: "#212124",
   border: "#3B3B40",

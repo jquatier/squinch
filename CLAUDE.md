@@ -195,7 +195,17 @@ icon plate at render time (SPEC §nodes, DESIGN §3). It exists because vendors 
 Databricks publish no redistributable icons, so a pack for them cannot legally
 exist; composing a `sys/*` concept with a CC0 `logos/*` mark ships nothing new and
 gives that whole platform a vocabulary. The mark is drawn from the pack manifest's
-own brand colour on a quiet plate — never recoloured, never baked into an asset. Deliberately *not* built, with reasons recorded: `route … around`/`via`
+own brand colour on a quiet plate — never recoloured, never baked into an asset. `color:` (2026-08) is the one colour vocabulary: nine words (`red amber green teal
+blue violet pink gray accent`, never hex — `HUES` in `model/types.ts`, one
+designed light/dark pair per theme token `hue*`), accepted on leaves, containers,
+edges and zones, plus the view lens `color #tag hue` which wins over an element's
+own and earns a legend entry. It paints only what is already the element's mark
+— plate ring, card spine, frame stroke, edge + head, zone outline — so shape and
+pattern stay the encoding (DESIGN §6). Zones' old role names (`account`,
+`network`, …) are gone; kinds still tint by default and the error for a legacy
+name writes the replacement line. Rings are separate elements emitted only when
+coloured, which is what keeps every uncoloured render byte-identical.
+Deliberately *not* built, with reasons recorded: `route … around`/`via`
 (`docs/notes/routing-hints.md` — ELK already avoids nodes) and `grid` (rows and
 cols compose to the same thing).
 `expand *` is the one deliberate depth ladder (2026-08): it opens every visible

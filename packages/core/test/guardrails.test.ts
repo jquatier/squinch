@@ -60,6 +60,10 @@ describe("half-typed input never crashes the builder", () => {
     ["rank group, comma then nothing", `a = box "A"\nview v { layout { rows [a, } }`],
     ["align, comma then nothing", `a = box "A"\nb = box "B"\nview v { layout { align a, } }`],
     ["highlight, comma then nothing", `a = box "A"\nview v { highlight #x, }`],
+    // the colour statement and attr: tag not typed, hue not typed, value not typed
+    ["`color` with no tag", `a = box "A"\nview v { include *\n color }`],
+    ["`color` tag, hue not typed", `a = box "A"\nview v { include *\n color #x }`],
+    ["node color, value not yet written", `system s "S" {\n a = box "A" {\n  color:\n }\n}`],
   ];
 
   for (const [label, src] of HALF_TYPED)

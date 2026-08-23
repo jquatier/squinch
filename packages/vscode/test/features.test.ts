@@ -123,6 +123,19 @@ describe("completion", () => {
     const { src, offset } = at(SRC + "zo|");
     expect(completionsAt(src, offset).map((i) => i.label)).toContain("zone");
   });
+
+  it("completes the nine hues after `color:` and after `color #tag`", () => {
+    const attr = at(SRC.replace("  include *", "  include *\n  color #pci r|"));
+    expect(completionsAt(attr.src, attr.offset).map((i) => i.label)).toEqual(["red"]);
+    const all = at(SRC.replace("  include *", "  include *\n  color #pci |"));
+    expect(completionsAt(all.src, all.offset).map((i) => i.label)).toEqual([
+      "red", "amber", "green", "teal", "blue", "violet", "pink", "gray", "accent",
+    ]);
+    const onNode = at(SRC + "x = box \"X\" { color: vi|");
+    expect(completionsAt(onNode.src, onNode.offset).map((i) => i.label)).toEqual(["violet"]);
+    const verb = at(SRC.replace("  include *", "  col|"));
+    expect(completionsAt(verb.src, verb.offset).map((i) => i.label)).toContain("color");
+  });
 });
 
 describe("hover", () => {

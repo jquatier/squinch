@@ -182,7 +182,7 @@ const html = `<!doctype html>
 
     <div class="wrap lb sub-hero lb">
       <span class="eyebrow">Lookbook</span>
-      <h1>Thirty-five systems,<br /><span class="grad-text">drawn properly.</span></h1>
+      <h1>${cases.length} systems,<br /><span class="grad-text">drawn properly.</span></h1>
       <p>
         Fan-outs and dense meshes, deployment boundaries, numbered request
         flows, legends and titleblocks — the shapes real systems take, and how

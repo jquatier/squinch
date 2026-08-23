@@ -11,9 +11,9 @@ import { suggest } from "./suggest.js";
 import { normalizeFiles } from "./source.js";
 import { themes } from "../themes/index.js";
 import type {
-  ArrowKind, BuildResult, Diagnostic, Loc, RelPos, SContainer, SEdge, SModel, SNode, SNote, SView, Side, SFlow, SZone, ZoneColor, ZoneKind, ZoneLabelPos,
+  ArrowKind, BuildResult, Diagnostic, Hue, Loc, RelPos, SContainer, SEdge, SModel, SNode, SNote, SView, Side, SFlow, SZone, ZoneKind, ZoneLabelPos,
 } from "./types.js";
-import { ZONE_KINDS, ZONE_COLORS, EDGE_STYLES, EDGE_ANIMATE } from "./types.js";
+import { ZONE_KINDS, HUES, EDGE_STYLES, EDGE_ANIMATE } from "./types.js";
 
 export interface ProjectFile {
   name: string;
@@ -113,6 +113,24 @@ export function buildProject(input: ProjectFile[]): BuildResult {
     const s = suggest(name, Object.keys(themes));
     error(ctx, at, `unknown theme \`${name}\``,
       s ? `did you mean \`${s}\`?` : `themes: ${Object.keys(themes).join(" | ")}`);
+  };
+
+  /**
+   * `color:` takes one of the nine hue words and nothing else. Hex is refused
+   * with its own message rather than a did-you-mean: it is not a typo, it is
+   * the one thing the vocabulary exists to keep out (a literal cannot be right
+   * on both canvases, and the adaptive merge swaps tokens, not values).
+   */
+  const checkHue = (ctx: Ctx, at: SyntaxNode, value: string): Hue | undefined => {
+    if ((HUES as readonly string[]).includes(value)) return value as Hue;
+    if (/^(#|rgb|hsl)/i.test(value))
+      error(ctx, at, `\`color\` takes a hue, never hex`, `one of: ${HUES.join(" | ")}`);
+    else {
+      const s = suggest(value, [...HUES]);
+      error(ctx, at, `unknown color \`${value}\``,
+        s ? `did you mean \`${s}\`?` : `one of: ${HUES.join(" | ")}`);
+    }
+    return undefined;
   };
 
   const attrsOf = (ctx: Ctx, block: SyntaxNode | null) => {
@@ -398,6 +416,7 @@ export function buildProject(input: ProjectFile[]): BuildResult {
         description: meta.description,
         tags: [...new Set([...headTags, ...meta.tags])],
         attrs: meta.attrs,
+        color: meta.attrs["color"] ? checkHue(ctx, decl, meta.attrs["color"]) : undefined,
         loc: ctx.loc(decl),
         file: ctx.name,
       });
@@ -414,6 +433,7 @@ export function buildProject(input: ProjectFile[]): BuildResult {
         Object.assign(c.attrs, meta.attrs);
         if (meta.description) c.attrs["description"] = meta.description;
         c.tags.push(...meta.tags);
+        if (meta.attrs["color"]) c.color = checkHue(ctx, body, meta.attrs["color"]);
         // `glyph:` used to be the one icon reference nobody checked: the view
         // layer splits it on `/` and shrugs, so a typo drew a `?` plate, exited
         // 0, and left you to notice by eye. Same two errors as a zone `icon:`.
@@ -612,9 +632,10 @@ export function buildProject(input: ProjectFile[]): BuildResult {
     // with no checking, so `animate: banana` rendered as ordinary flow and
     // `animte: false` was a silent no-op — exactly the dropped-hint class the
     // check contract forbids. Values follow the zone-colour pattern; keys get
-    // a warning because SPEC names attrs (`description`, `color`) that parse
-    // ahead of being wired.
+    // a warning because SPEC names an attr (`description`) that parses ahead
+    // of being wired.
     const EDGE_ATTR_KEYS = ["description", "animate", "style", "color"];
+    const color = meta.attrs.color ? checkHue(ctx, node, meta.attrs.color) : undefined;
     for (const key of Object.keys(meta.attrs)) {
       if (EDGE_ATTR_KEYS.includes(key)) continue;
       const sug = suggest(key, EDGE_ATTR_KEYS);
@@ -658,6 +679,7 @@ export function buildProject(input: ProjectFile[]): BuildResult {
         attrs: meta.attrs,
         // trailing `#tag`s merge with any in the attr block, same as a node's
         tags: [...new Set([...node.getChildren("Tag").map((t) => ctx.text(t).slice(1)), ...meta.tags])],
+        color,
         loc: ctx.loc(node), file: ctx.name,
       });
     }
@@ -873,14 +895,20 @@ export function buildProject(input: ProjectFile[]): BuildResult {
           s ? `did you mean \`${p}/${s}\`?` : `run \`squinch icons search ${i}\``);
       } else icon = { pack: p, id: i };
     }
-    let color: ZoneColor | undefined;
+    // Zones took theme *roles* before the hue vocabulary existed (`account`,
+    // `network`, …). Those words now describe what a zone IS, and the kind
+    // already tints it; saying so beats a Levenshtein guess that would map
+    // `account` to nothing useful.
+    const LEGACY_ROLE: Record<string, Hue> = {
+      account: "red", network: "blue", cloud: "violet", neutral: "gray", ink: "gray", muted: "gray",
+    };
+    let color: Hue | undefined;
     if (zAttrs.attrs.color) {
-      if ((ZONE_COLORS as readonly string[]).includes(zAttrs.attrs.color)) color = zAttrs.attrs.color as ZoneColor;
-      else {
-        const s = suggest(zAttrs.attrs.color, [...ZONE_COLORS]);
-        error(ctx, z, `unknown zone color \`${zAttrs.attrs.color}\` — theme roles only, never hex`,
-          s ? `did you mean \`${s}\`?` : `one of: ${ZONE_COLORS.join(", ")}`);
-      }
+      const v = zAttrs.attrs.color;
+      if (v in LEGACY_ROLE)
+        error(ctx, z, `\`${v}\` is not a color — zones are tinted by kind`,
+          `to override the tint, use a hue: \`color: ${LEGACY_ROLE[v]}\` (one of: ${HUES.join(" | ")})`);
+      else color = checkHue(ctx, z, v);
     }
     const LABEL_POS: ZoneLabelPos[] = ["top-left", "top-right", "bottom-left", "bottom-right"];
     let labelPos: ZoneLabelPos = "top-left";
@@ -909,7 +937,7 @@ export function buildProject(input: ProjectFile[]): BuildResult {
     const view: SView = {
       name,
       only: [], include: [], includeStar: false, exclude: [], expand: [], expandStar: false, detail: [],
-      context: "auto", highlight: [], showDescriptions: false, legend: false, notes: [],
+      context: "auto", highlight: [], colors: [], showDescriptions: false, legend: false, notes: [],
       layout: { place: [], routes: [], align: [], channels: [] },
       loc: ctx.loc(v), file: ctx.name,
     };
@@ -996,6 +1024,21 @@ export function buildProject(input: ProjectFile[]): BuildResult {
     if (ctxStmt) view.context = ctxStmt.getChild("off") ? "off" : "auto";
     for (const h of body.getChildren("HighlightStmt"))
       view.highlight.push(...h.getChildren("Tag").map((t) => ctx.text(t).slice(1)));
+    for (const c of body.getChildren("ColorStmt")) {
+      // `color #x` with the hue not yet typed is the editor's state on most
+      // keystrokes — skip, never throw
+      const tagNode = c.getChild("Tag");
+      const hueNode = c.getChildren("Ident").pop();
+      if (!tagNode || !hueNode) continue;
+      const hue = checkHue(ctx, c, ctx.text(hueNode));
+      if (!hue) continue;
+      const tag = ctx.text(tagNode).slice(1);
+      const prior = view.colors.find((x) => x.tag === tag);
+      if (prior && prior.hue !== hue)
+        warn(ctx, c, `color #${tag} is stated twice with different hues — the last wins`,
+          `keep one \`color #${tag}\` line`);
+      view.colors.push({ tag, hue, loc: ctx.loc(c) });
+    }
     for (const show of body.getChildren("ShowStmt")) {
       const flowKw = show.getChild("flow");
       if (!flowKw) { view.showDescriptions = true; continue; }
@@ -1236,7 +1279,7 @@ export function buildProject(input: ProjectFile[]): BuildResult {
       scope: path,
       auto: true,
       only: [], include: [], includeStar: false, exclude: [], expand: [], expandStar: false, detail: [],
-      context: "auto", highlight: [], showDescriptions: false, legend: false, notes: [],
+      context: "auto", highlight: [], colors: [], showDescriptions: false, legend: false, notes: [],
       layout: { place: [], routes: [], align: [], channels: [] },
       loc: model.containers.get(path)!.loc,
       file: model.containers.get(path)!.file,

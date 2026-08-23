@@ -71,8 +71,31 @@ stripe = logos/stripe     "Stripe" external      // trailing keywords: external,
 create = aws/lambda "Create Handler" {           // optional attribute block
   description: "Validates and persists new orders"
   tags:   #pci #critical            // …or positionally: `create = aws/lambda "X" #pci`
+  color:  amber                     // a ring on the icon plate — see §Colour
 }
 ```
+
+### Colour
+
+`color:` takes one of nine words — `red | amber | green | teal | blue | violet |
+pink | gray | accent` — and nothing else. Never hex: a literal cannot be right
+on both canvases, and the adaptive render swaps theme tokens rather than
+values, so each hue is a designed light/dark pair in the theme (DESIGN §2). The
+same vocabulary works on every element, and paints the part of it that is
+already the element's own mark:
+
+| on | paints |
+| --- | --- |
+| a leaf (or `person`) | a ring round its icon plate (the artwork is never recoloured) |
+| a `system`/`container` | the card's spine; the frame's stroke once expanded |
+| an edge | stroke, arrowhead and `comet` dot |
+| a zone | the boundary and its chip, over the kind's default tint |
+
+Hue is annotation, not encoding: async is still dashed, context still muted, a
+boundary still a dashed frame — a reader who cannot tell red from green loses
+emphasis, never meaning (DESIGN §6). A view can also colour by tag —
+`color #pci red` — which overrides an element's own `color:` (§5). Label pills
+stay neutral. `squinch diff` reports colour changes as cosmetic.
 
 Nothing in a titleblock is derived — not the commit, not the date. A render is
 a pure function of its source (SPEC §determinism), so a field that read the
@@ -148,9 +171,9 @@ zone vpc_a "VPC A" vpc {
   icon:  aws/vpc                      // optional icon, drawn as a flush chip tab
   label: top-right                    // chip corner: top-left (default) |
                                       //   top-right | bottom-left | bottom-right
-  color: ink                          // e.g. match a dark provider mark; roles:
-                                      //   account | network | cloud | neutral |
-                                      //   ink | muted | accent — never hex
+  color: teal                         // override the kind's tint with a hue (§3
+                                      //   Colour): red | amber | green | teal |
+                                      //   blue | violet | pink | gray | accent
   detail: "10.0.0.0/16"               // optional second chip segment, set in
 }                                     //   mono: a CIDR, an account id, a region
 ```
@@ -162,7 +185,9 @@ for both, the segment is dropped rather than ellipsized, because a clipped
 
 Zone kinds (`account | region | vpc | subnet | network | cloud | onprem | custom`)
 drive the frame styling —
-the classic dashed boundary with a corner label. The frame is an outline only,
+the classic dashed boundary with a corner label, tinted by kind: `account`
+red, `vpc`/`subnet`/`network` blue, `cloud` violet, the rest gray. `color:`
+overrides that tint with any hue. The frame is an outline only,
 never a tint: a fill compounds where zones nest, so a subnet inside a VPC would
 read darker than either, and the boundary's weight would encode depth rather
 than kind. Constraint: within any single view,
@@ -225,7 +250,7 @@ get -> db "query" {                 // edge attribute block
   tags:    #hot-path
   animate: false
   style:   dotted                   // dotted | dashed | solid
-  color:   muted                    // theme token, never hex in diagrams
+  color:   amber                    // stroke + head, one of the nine hues (§3)
 }
 ```
 
@@ -282,6 +307,8 @@ view shop {
 
   highlight #pci                // spotlight matching elements, dim the rest;
                                 // SPA renders tag chips for interactive toggling
+  color #pci red                // colour everything carrying the tag (§3 Colour);
+                                // one tag per line, repeat for more
   show descriptions             // render descriptions inline (off by default)
   show flow checkout            // ①②③ badges along a declared flow
   legend auto                   // auto | off — legend of the edge styles
@@ -321,6 +348,12 @@ too. Themes style them as callouts.
   top-level card standing in for its branch. This was once a second, silent
   meaning of `include`; separating it is what made `only` expressible, because a
   verb that also controls altitude cannot be redefined to control membership.
+- `color #tag <hue>` is a lens, so it wins over an element's own `color:`;
+  tags inherit through containers exactly as for `highlight`. Two statements
+  landing on one element with different hues is a warning (the later one
+  wins), and a tag nothing visible carries is a warning, as with `highlight`.
+  With `legend auto`, each tag coloured this way earns a legend entry labelled
+  `#tag`; element-level colours earn none — a hue name is not a label.
 
 ### Visibility resolution (what's shown at each level)
 
@@ -390,7 +423,7 @@ re-anchors them deterministically:
    In SPA/VSCode, hover/click lists the constituent relations with jump-links to the
    view where each is native.
 4. Aggregates keep styling only on unanimous agreement: when every constituent
-   shares the same arrow kind, `animate` and `style`, the trunk carries them;
+   shares the same arrow kind, `animate`, `style` and `color`, the trunk carries them;
    any disagreement renders style-neutral (solid, medium), and the styling
    reappears at the altitude where those edges are native. (An all-`~>` bundle
    has always kept its dashes and drift; this codifies that.)
@@ -520,6 +553,7 @@ viewstmt    = "title" string | "theme" ident | "scope" path
             | "detail" path | "expand" ( "*" | path )
             | "context" ( "auto" | "off" )
             | "highlight" tag { tag }
+            | "color" tag ident
             | "show" ( "descriptions" | "flow" ident )
             | "legend" ( "auto" | "off" ) | "titleblock" attrs
             | "note" anchor string [ attrs ]
@@ -750,6 +784,7 @@ view orders.pci-review {
   scope orders
   title "PCI Surface"
   highlight #pci                 // create + db glow; everything else dims
+  color #pci red                 // …and wear red, so the lens survives a print
   show descriptions
   note right-of db "Encrypted at rest (KMS); see ADR-31"
   note top-right "Audit scope: Q3 2026" { style: warning }

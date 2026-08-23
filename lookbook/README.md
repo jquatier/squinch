@@ -411,3 +411,27 @@ Source: [`cases/35-rows-cols.squinch`](cases/35-rows-cols.squinch)
 | light | dark |
 |---|---|
 | ![](out/35-rows-cols.quad.light.svg) | ![](out/35-rows-cols.quad.dark.svg) |
+
+## Colors
+
+`color:` — one hue vocabulary on everything. Nine words (red, amber, green, teal, blue, violet, pink, gray, accent), never hex, each a designed pair so the same source reads right on both canvases. A leaf takes a ring round its icon plate, a system its card spine, an edge its stroke and head, a zone its outline. The `lens` view colours by tag instead — `color #money red` — which overrides an element's own colour and earns a legend entry per tag. Hue is annotation: async is still dashed, context still muted.
+
+Source: [`cases/36-colors.squinch`](cases/36-colors.squinch)
+
+**`landscape`**
+
+| light | dark |
+|---|---|
+| ![](out/36-colors.landscape.light.svg) | ![](out/36-colors.landscape.dark.svg) |
+
+**`lens`**
+
+| light | dark |
+|---|---|
+| ![](out/36-colors.lens.light.svg) | ![](out/36-colors.lens.dark.svg) |
+
+**`pay`**
+
+| light | dark |
+|---|---|
+| ![](out/36-colors.pay.light.svg) | ![](out/36-colors.pay.dark.svg) |

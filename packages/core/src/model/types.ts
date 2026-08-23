@@ -13,6 +13,18 @@ export interface Diagnostic {
   file?: string; // set when built via buildProject
 }
 
+/** The one colour vocabulary (SPEC §3/§4/§Zones/§5): eight designed hues,
+ *  each a light/dark pair in the theme, plus the brand `accent`. The same nine
+ *  words apply to leaves, containers, edges, zones and a view's `color #tag`
+ *  statement — never hex, because a literal cannot be right on both canvases
+ *  and the adaptive merge swaps tokens, not values. Hue is annotation: shape
+ *  and pattern stay the encoding (DESIGN §6), so a reader who cannot tell red
+ *  from green loses emphasis, never meaning. */
+export const HUES = [
+  "red", "amber", "green", "teal", "blue", "violet", "pink", "gray", "accent",
+] as const;
+export type Hue = (typeof HUES)[number];
+
 export interface SNode {
   path: string; // full dotted path — the stable identity
   name: string; // last segment
@@ -22,6 +34,8 @@ export interface SNode {
   description?: string;
   tags: string[];
   attrs: Record<string, string>;
+  /** `color:` — a ring on the icon plate (DESIGN §3). Validated copy of `attrs.color`. */
+  color?: Hue;
   loc: Loc;
   file?: string;
 }
@@ -38,6 +52,8 @@ export interface SContainer {
   children: string[]; // child paths, declaration order
   attrs: Record<string, string>;
   tags: string[];
+  /** `color:` — the card's spine, or the frame's stroke once expanded. */
+  color?: Hue;
   loc: Loc;
   file?: string;
 }
@@ -65,6 +81,9 @@ export interface SEdge {
   label?: string;
   attrs: Record<string, string>;
   tags: string[];
+  /** `color:` — stroke, head and comet. Survives lifting only when every
+   *  aggregated member agrees, like `style`/`animate`. */
+  color?: Hue;
   loc: Loc;
   file?: string;
 }
@@ -104,6 +123,10 @@ export interface SView {
   detail: string[];
   context: "auto" | "off";
   highlight: string[]; // tag names, no '#'
+  /** `color #tag <hue>` — colour everything visible that carries the tag.
+   *  A lens, so it overrides an element's own `color:`; declaration order,
+   *  last wins when two match one element (and that is a warning). */
+  colors: { tag: string; hue: Hue; loc: Loc }[];
   showDescriptions: boolean;
   showFlow?: string; // flow id — render ①②③ badges on that flow's edges
   legend: boolean; // `legend auto` — key of the styles actually used (off by default)
@@ -138,13 +161,6 @@ export type ZoneKind = (typeof ZONE_KINDS)[number];
 
 export type ZoneLabelPos = "top-left" | "top-right" | "bottom-left" | "bottom-right";
 
-// zone outline colors are THEME ROLES, never hex (SPEC: diagrams reference
-// roles) — four kind-group tints plus the general-purpose inks
-export const ZONE_COLORS = [
-  "account", "network", "cloud", "neutral", "ink", "muted", "accent",
-] as const;
-export type ZoneColor = (typeof ZONE_COLORS)[number];
-
 export interface SZone {
   id: string;
   label?: string;
@@ -152,7 +168,8 @@ export interface SZone {
   members: string[]; // resolved node/container paths, declaration order
   icon?: { pack: string; id: string }; // optional chip icon (flush tab)
   labelPos: ZoneLabelPos; // which border corner the chip straddles
-  color?: ZoneColor; // outline/tint override; default derives from kind
+  /** outline/chip tint override; the default derives from `kind` (DESIGN §5) */
+  color?: Hue;
   /** A second, monospaced chip segment for the boundary's hard fact — a CIDR
    *  block, an account number, a region. Free text: the engine never parses
    *  it, it just sets it in mono so digits line up between diagrams. */

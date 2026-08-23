@@ -204,7 +204,7 @@ describe("SKILL.md — diagnostic coverage", () => {
    *  exact substitution. A cookbook row would only restate the message. */
   const SELF_EXPLANATORY = new Set([
     "unknown icon", "unknown id", "unknown pack", "unknown view", "unknown theme",
-    "unknown flow", "unknown zone kind", "unknown zone color", "unknown zone label position",
+    "unknown flow", "unknown zone kind", "unknown color", "unknown zone label position",
     "unknown density", "unknown lines style", "duplicate id", "duplicate flow",
     "duplicate zone", "duplicate edge", "syntax error near", "ambiguous flow step",
     "contradictory place hints", "flow", "theme", "zone", "zones", "exclude #",
@@ -213,7 +213,12 @@ describe("SKILL.md — diagnostic coverage", () => {
     // the themes that pair, the `detail` to write — so a cookbook row would
     // only restate it. The ones that needed a technique got one instead.
     "has no members", "has no steps", "listed twice in zone",
-    "theme roles only, never hex", "is a zone, not a node",
+    "is a zone, not a node",
+    // `color:` (2026-08): the hex refusal lists the hues, the legacy-role
+    // message writes the replacement line out, and the two warnings name the
+    // tag to drop — nothing a cookbook row could add.
+    "color` takes a hue, never hex", "is not a color — zones are tinted by kind",
+    "is stated twice with different hues — the last wins",
     "has no dark counterpart to pair with", "has no visible members in view",
     "is included, but", "is already here as a context card", "edges match `route",
     "nothing is tagged #", "it sits inside an expanded container",

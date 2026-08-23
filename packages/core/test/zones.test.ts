@@ -1,7 +1,7 @@
 // Zones (SPEC §Zones): cross-cutting deployment boundaries — a separate
 // hierarchy from ownership, rendered as dashed kind-tinted frames.
 import { describe, it, expect } from "vitest";
-import { buildModel, buildProject, render } from "../src/index.js";
+import { buildModel, buildProject, render, themes } from "../src/index.js";
 import { layoutView } from "../src/layout/layout.js";
 import { validateSVG } from "../src/render/validate.js";
 
@@ -255,7 +255,7 @@ view landscape { include * }
     expect(Math.abs(chipY + 3 - (zoneBottom - 10))).toBeLessThanOrEqual(1); // halo y = chip y - 3
   });
 
-  it("zone color is a theme role — override works, hex is rejected", async () => {
+  it("zone color is a hue — override works, hex is rejected, old roles point at the hue", async () => {
     const src = BASE + `
 zone z "Custom" custom {
   contains core
@@ -267,9 +267,17 @@ view landscape { include * }
     expect(r.ok).toBe(true);
     // light theme accent
     expect(r.svg!.match(/<g data-kind="zone"[^>]*>.*?stroke="#5A57C9"/s)).toBeTruthy();
+    const teal = await render(src.replace("color: accent", "color: teal"), { view: "landscape", theme: "light" });
+    expect(teal.svg!.match(new RegExp(`<g data-kind="zone"[^>]*>.*?stroke="${themes.light.hueTeal}"`, "s"))).toBeTruthy();
     const bad = buildModel(BASE + `zone z "Z" cloud { contains core\n color: "#ff0000" }\n`);
     expect(bad.ok).toBe(false);
-    expect(bad.diagnostics[0].message).toContain("theme roles only, never hex");
+    expect(bad.diagnostics[0].message).toContain("takes a hue, never hex");
+    // the pre-hue role names: zones are tinted by kind, and the fix says which
+    // hue that role used to mean
+    const legacy = buildModel(BASE + `zone z "Z" cloud { contains core\n color: network }\n`);
+    expect(legacy.ok).toBe(false);
+    expect(legacy.diagnostics[0].message).toContain("zones are tinted by kind");
+    expect(legacy.diagnostics[0].fix).toContain("color: blue");
   });
 
   it("bad zone icon and label position get did-you-means", () => {
