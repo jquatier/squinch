@@ -379,7 +379,11 @@ pre code { background: none; padding: 0; font-size: inherit; }
   align-items: center;
   gap: 16px;
 }
-.hero-brand .sqs-mark { display: block; height: 128px; width: auto; }
+/* `overflow: visible`: an inline <svg> clips to its viewBox by default, and
+   WebKit on iOS keeps painting a transitioning plane against the clip it
+   computed in the folded pose — the S came back with its top cut off after a
+   scroll round-trip. Every plane rests inside the box, so this costs nothing. */
+.hero-brand .sqs-mark { display: block; height: 128px; width: auto; overflow: visible; }
 
 /* The mark assembles on arrival, and folds back up under the pointer.
    The planes start collapsed at the middle one's altitude and separate into
