@@ -99,8 +99,6 @@
 <text x="48" y="843" font-size="11" fill="#6F6E69">sync</text>
 <line x1="97" y1="839" x2="121" y2="839" stroke="#5A57C9" stroke-width="1.5" stroke-dasharray="6 5"/>
 <text x="129" y="843" font-size="11" fill="#6F6E69">async</text>
-<rect x="189" y="834" width="14" height="10" rx="2" fill="#EFEFEC" stroke="#EAE9E5" stroke-width="1"/>
-<text x="216" y="843" font-size="11" fill="#6F6E69">actor</text>
-<rect x="269" y="832" width="20" height="14" rx="2" fill="none" stroke="#3A6EA8" stroke-width="1" stroke-dasharray="4 3"/>
-<text x="299" y="843" font-size="11" fill="#6F6E69">network</text>
+<rect x="186" y="832" width="20" height="14" rx="2" fill="none" stroke="#3A6EA8" stroke-width="1" stroke-dasharray="4 3"/>
+<text x="216" y="843" font-size="11" fill="#6F6E69">network</text>
 </svg>

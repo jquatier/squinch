@@ -207,7 +207,7 @@ view v { scope s\n show flow f }`;
   it("the legend lists the view's tag colours by tag, and nothing for element colours", async () => {
     const tagged = await svgOf(`${BASE}\nview v { include *\n legend auto\n color #money teal }`, "light", "v");
     expect(tagged).toContain(">#money</text>");
-    // a solid swatch, the actor entry's shape — not an outlined box
+    // a solid swatch, a solid swatch — not an outlined box
     expect(tagged).toContain(`width="14" height="10" rx="2" fill="${hueOf(themes.light, "teal")}"/>`);
     const element = await svgOf(
       `${BASE.replace("tags: #money", "tags: #money\n  color: teal")}\nview v { include *\n legend auto }`,

@@ -68,6 +68,4 @@
 <text x="48" y="507" font-size="11" fill="#6F6E69">sync</text>
 <line x1="97" y1="503" x2="121" y2="503" stroke="#57564F" stroke-width="1.5"/><text x="109" y="499" text-anchor="middle" font-size="9" fill="#6F6E69">×n</text>
 <text x="129" y="507" font-size="11" fill="#6F6E69">aggregated</text>
-<rect x="218" y="498" width="14" height="10" rx="2" fill="#EFEFEC" stroke="#EAE9E5" stroke-width="1"/>
-<text x="245" y="507" font-size="11" fill="#6F6E69">actor</text>
 </svg>
