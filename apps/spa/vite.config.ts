@@ -42,15 +42,39 @@ const inlineMark = (): Plugin => ({
   },
 });
 
-// The playground is fully static: no server, no telemetry, sources never leave
-// the browser (share links carry them in the URL fragment).
+/** GA4, injected at build time into the three site documents — one snippet in
+ *  three checked-in heads would be three chances to drift. The playground is
+ *  deliberately excluded: its pitch is that nothing you draw leaves the
+ *  browser, and the strictest reading of that is no analytics at all. Dev and
+ *  e2e builds are untouched (`apply: "build"` + the env guard would still
+ *  count localhost pageviews, so it is keyed to the Pages deploy's BASE_PATH
+ *  being set or a plain production build). */
+const GA_ID = "G-WNNSX9K9PC";
+const analytics = (): Plugin => ({
+  name: "squinch-analytics",
+  apply: "build",
+  transformIndexHtml: {
+    order: "post",
+    handler: (html, ctx) => {
+      if (ctx.path.includes("playground")) return html;
+      const snippet =
+        `    <script async src="https://www.googletagmanager.com/gtag/js?id=${GA_ID}"></script>\n` +
+        `    <script>window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments)}gtag("js",new Date());gtag("config","${GA_ID}");</script>\n`;
+      return html.replace("</head>", `${snippet}  </head>`);
+    },
+  },
+});
+
+// The playground is fully static: no server, and sources never leave the
+// browser (share links carry them in the URL fragment; the site pages carry
+// GA4 pageviews, the playground carries none).
 export default defineConfig({
   // GitHub Pages serves project sites under /<repo>/, so the deploy workflow
   // passes BASE_PATH from actions/configure-pages. Local dev and the e2e
   // build stay at "/". Runtime pack fetches are already relative
   // (src/squinch.ts), so only the bundle URLs need this.
   base: process.env.BASE_PATH || "/",
-  plugins: [react(), tailwind(), inlineMark()],
+  plugins: [react(), tailwind(), inlineMark(), analytics()],
   // AWS icons are served as static files and fetched on demand per diagram.
   publicDir: resolve(__dirname, "public"),
   server: { port: 5180, strictPort: true },
