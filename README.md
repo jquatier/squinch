@@ -122,23 +122,23 @@ drift — see [examples/microservices](examples/microservices) for the source.
 
 ## Install
 
-The CLI is one package, and the first render is two commands:
+The agent skill is the front door — one command, then ask your agent for a
+diagram:
 
 ```bash
-npm i -g squinch          # or run everything through npx squinch <cmd>
-
-squinch init my-diagrams
-squinch render my-diagrams --sync
+npx squinch skill
 ```
 
-macOS, Linux and Windows, on Node ≥ 22.
+That writes `.agents/skills/` in your project (plus `.claude/skills/` when it
+detects Claude Code); `--global` does the same under your home directory, and
+`--print` emits SKILL.md for any other harness. macOS, Linux and Windows, on
+Node ≥ 22.
 
 The other surfaces, each its own one-liner:
 
-- **The agent skill** — `npx squinch skill` in your project writes
-  `.agents/skills/` (plus `.claude/skills/` when it detects Claude Code);
-  `--global` does the same under your home directory, `--print` emits SKILL.md
-  for any other harness.
+- **The CLI** — `npm i -g squinch` (or run everything through
+  `npx squinch <cmd>`), and the first render is two commands:
+  `squinch init my-diagrams`, then `squinch render my-diagrams --sync`.
 - **The Claude Code plugin** — the same skill without touching your repo:
   `/plugin marketplace add jquatier/squinch`, then
   `/plugin install squinch@squinch`. Updates arrive with the plugin instead
