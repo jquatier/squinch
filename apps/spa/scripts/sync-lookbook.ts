@@ -148,7 +148,7 @@ const html = `<!doctype html>
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>Lookbook — Squinch</title>
+    <title>Lookbook — squinch</title>
     <meta name="description" content="${cases.length} rendered reference cases — dense meshes, deep nesting, zones, flows, themes — every corner of the renderer, each tied to its source." />
     <link rel="canonical" href="https://squinch.cc/lookbook/" />
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
@@ -156,7 +156,7 @@ const html = `<!doctype html>
     <meta name="theme-color" content="#141416" />
     <meta property="og:type" content="website" />
     <meta property="og:site_name" content="Squinch" />
-    <meta property="og:title" content="Lookbook — Squinch" />
+    <meta property="og:title" content="Lookbook — squinch" />
     <meta property="og:description" content="${cases.length} rendered reference cases — dense meshes, deep nesting, zones, flows, themes — every corner of the renderer, each tied to its source." />
     <meta property="og:image" content="https://squinch.cc/og.png" />
     <meta property="og:image:width" content="1200" />
