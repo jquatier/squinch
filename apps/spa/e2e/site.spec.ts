@@ -30,8 +30,8 @@ test("each content page serves, styled, with its own title", async ({ page }) =>
   // the h1s are two-line claims; a substring of the first line is enough to
   // tell them apart and survives a copy tweak to the second
   for (const [path, title, h1] of [
-    ["/install/", "Install — Squinch", "Four ways in."],
-    ["/lookbook/", "Lookbook — Squinch", "systems, drawn properly."],
+    ["/install/", "Install — squinch", "Four ways in."],
+    ["/lookbook/", "Lookbook — squinch", "systems, drawn properly."],
   ] as const) {
     await page.goto(path);
     await expect(page).toHaveTitle(title);
