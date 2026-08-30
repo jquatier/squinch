@@ -35,34 +35,17 @@ service's internals.
 
 ## From description to diagram
 
-<table>
-  <!-- 45/55, not 50/50: the prompt gif is 940x780 and the zoom gif 900x620,
-       and splitting the row in proportion to the aspect ratios is what makes
-       the two render at the same height (GitHub strips CSS, widths survive) -->
-  <tr>
-    <td width="45%" valign="top">
-      <picture>
-        <source media="(prefers-color-scheme: dark)" srcset="docs/assets/prompt-dark.gif">
-        <img src="docs/assets/prompt-light.gif"
-             alt="A paragraph is typed into a prompt box — describing a products API on AWS where shoppers hit CloudFront, then an ALB and a Fargate service inside the prod-main VPC, reading a DynamoDB table and searching an OpenSearch index kept current by a Lambda on the table's stream. A status line reads Thinking, then Using squinch skill, then Finalizing diagram. The box shrinks to a caption and the finished diagram rises underneath it, every element from the sentence drawn with its real vendor icon."
-             width="100%">
-      </picture>
-      <p align="center"><em>One paragraph in, a diagram out — the agent writes
-      the model, Squinch renders it.</em></p>
-    </td>
-    <td width="55%" valign="top">
-      <picture>
-        <source media="(prefers-color-scheme: dark)" srcset="docs/assets/zoom-dark.gif">
-        <img src="docs/assets/zoom-light.gif"
-             alt="On a landscape of five systems, clicking the Catalog Service card opens it into its own internals — API, products table, search index and stream sync, with the product stream animating between table and index — while the gateway and order service stay as muted context. The breadcrumb closes it again, and clicking Account Service opens that one the same way. Finally the view cuts to full detail: all four systems open at once as labelled frames on one page, the cross-service calls routed between them, before the breadcrumb returns to the landscape."
-             width="100%">
-      </picture>
-      <p align="center"><em>Click a system to go inside it, the breadcrumb to
-      come back up — and <code>expand&nbsp;*</code> opens everything on one
-      page.</em></p>
-    </td>
-  </tr>
-</table>
+<p align="center">
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="docs/assets/prompt-dark.gif">
+    <img src="docs/assets/prompt-light.gif"
+         alt="A paragraph is typed into a prompt box — describing a products API on AWS where shoppers hit CloudFront, then an ALB and a Fargate service inside the prod-main VPC, reading a DynamoDB table and searching an OpenSearch index kept current by a Lambda on the table's stream. A status line reads Thinking, then Using squinch skill, then Finalizing diagram. The box shrinks to a caption and the finished diagram rises underneath it, every element from the sentence drawn with its real vendor icon."
+         width="900">
+  </picture>
+  <br>
+  <em>One paragraph in, a diagram out — the agent writes the model, Squinch
+  renders it.</em>
+</p>
 
 Hand your coding agent the bundled
 [skill](packages/skill) and describe the system in a paragraph. It writes the
@@ -74,6 +57,20 @@ request, and living in git beside the code it describes. The diagram above is
 together.
 
 ## Zoom into any system
+
+<p align="center">
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="docs/assets/zoom-dark.gif">
+    <img src="docs/assets/zoom-light.gif"
+         alt="On a landscape of five systems, clicking the Catalog Service card opens it into its own internals — API, products table, search index and stream sync, with the product stream animating between table and index — while the gateway and order service stay as muted context. The breadcrumb closes it again, and clicking Account Service opens that one the same way. Finally the view cuts to full detail: all four systems open at once as labelled frames on one page, the cross-service calls routed between them, before the breadcrumb returns to the landscape."
+         width="900">
+  </picture>
+  <br>
+  <em>Click a system to go inside it, the breadcrumb to come back up. Any
+  system opens — the altitude is a property of the model, not a second
+  diagram. And when you want everything at once, <code>expand&nbsp;*</code>
+  opens all of them on one page.</em>
+</p>
 
 **C4-style zoom, from one model.** The altitudes are derived, never drawn twice:
 a collapsed system is a card previewing what is inside; opening it shows the
