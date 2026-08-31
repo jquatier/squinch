@@ -33,6 +33,18 @@ control precisely, real layout and edge-routing control, cloud icon packs,
 and diagrams you can zoom into — from the whole landscape down to one
 service's internals.
 
+## Quickstart
+
+```bash
+npm i -g squinch     # or npx squinch <cmd>
+squinch skill        # teach your agent the language
+```
+
+Then ask for a diagram in plain language. The agent does the rest — writes
+the model, checks it, fixes what the checker flags, and renders the SVG or
+the interactive HTML you can zoom through. Works with any agent; details and
+the other surfaces are in [Install](#install).
+
 ## From description to diagram
 
 <p align="center">
