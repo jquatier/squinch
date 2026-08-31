@@ -43,10 +43,26 @@
         CLI directly, or the skill dropped straight into your repo — it renders
         the same deterministic SVG.
       </p>
-      <div class="mono-row">
-        <span class="chip">npm i -g squinch</span>
-        <span class="sep">·</span>
-        <span>Node ≥ 22 · macOS / Linux / Windows</span>
+      <div class="quickstart panel">
+        <div class="qs-copy">
+          <div class="quickstart-head">
+            <span class="qs-title">Quickstart</span>
+            <span class="eyebrow accent" style="display: inline">any agent</span>
+          </div>
+          <p class="qs-then">
+            Two commands, then ask for a diagram in plain language — the
+            agent writes the model, checks it, and renders the SVG.
+          </p>
+          <span class="qs-req">Node ≥ 22 · macOS / Linux / Windows</span>
+        </div>
+        <div class="qs-term">
+          <div class="panel-strip" aria-hidden="true">
+            <span class="dot"></span>
+            terminal
+          </div>
+          <pre><code>npm i -g squinch     <span class="c"># or npx squinch &lt;cmd&gt;</span>
+squinch skill        <span class="c"># teach your agent the language</span></code></pre>
+        </div>
       </div>
     </div>
 
@@ -54,8 +70,8 @@
       <nav class="rail" aria-label="Sections">
         <a href="#claude-plugin" class="is-active"><span class="n">01</span>The Claude Code plugin</a>
         <a href="#codex-plugin"><span class="n">02</span>The Codex plugin</a>
-        <a href="#cli"><span class="n">03</span>The CLI</a>
-        <a href="#skill"><span class="n">04</span>The agent skill</a>
+        <a href="#skill"><span class="n">03</span>The agent skill</a>
+        <a href="#cli"><span class="n">04</span>The CLI</a>
         <a href="#vscode"><span class="n">05</span>The VS Code extension</a>
         <a href="#ci"><span class="n">06</span>CI</a>
         <a href="#commands"><span class="n">07</span>The commands</a>
@@ -92,24 +108,9 @@ codex plugin add squinch@squinch</code></pre>
           </div>
         </section>
 
-        <section class="panel method" id="cli" aria-labelledby="cli-h">
-          <div class="card-head">
-            <span class="n">03</span>
-            <h2 id="cli-h">The CLI</h2>
-            <span class="tag">npm</span>
-          </div>
-          <div class="card-body">
-            <p>One package, and the first render is two commands. macOS, Linux and Windows, on Node ≥ 22.</p>
-            <pre><code>npm i -g squinch          # or npx squinch &lt;cmd&gt;
-
-squinch init my-diagrams
-squinch render my-diagrams --sync</code></pre>
-          </div>
-        </section>
-
         <section class="panel method" id="skill" aria-labelledby="skill-h">
           <div class="card-head">
-            <span class="n">04</span>
+            <span class="n">03</span>
             <h2 id="skill-h">The agent skill</h2>
             <span class="tag">Any harness</span>
           </div>
@@ -122,6 +123,21 @@ squinch render my-diagrams --sync</code></pre>
               other harness. Then ask your agent for a diagram in plain language.
             </p>
             <pre><code>npx squinch skill</code></pre>
+          </div>
+        </section>
+
+        <section class="panel method" id="cli" aria-labelledby="cli-h">
+          <div class="card-head">
+            <span class="n">04</span>
+            <h2 id="cli-h">The CLI</h2>
+            <span class="tag">npm</span>
+          </div>
+          <div class="card-body">
+            <p>One package, and the first render is two commands. macOS, Linux and Windows, on Node ≥ 22.</p>
+            <pre><code>npm i -g squinch          # or npx squinch &lt;cmd&gt;
+
+squinch init my-diagrams
+squinch render my-diagrams --sync</code></pre>
           </div>
         </section>
 
