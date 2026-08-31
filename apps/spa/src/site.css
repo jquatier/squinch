@@ -675,6 +675,25 @@ pre code { background: none; padding: 0; font-size: inherit; }
    meant to prove. 240px is the point where the node labels become legible
    without the card outgrowing the row. */
 .pcard-well img { display: block; max-width: 100%; max-height: 240px; width: auto; height: auto; }
+/* the wells open large on click (script at the end of the page) */
+.pcard-well { cursor: zoom-in; transition: background 180ms ease; }
+.pcard-well:hover { background: color-mix(in srgb, var(--fg) 3%, transparent); }
+.pcard-well:focus-visible { outline: 2px solid var(--accent); outline-offset: -2px; }
+
+/* the lightbox: the drawing as large as the viewport allows, on the page's
+   own chrome — cursor says the whole surface closes it */
+.lightbox {
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  background: var(--surface);
+  padding: 18px;
+  max-width: min(92vw, 1400px);
+  max-height: 92vh;
+  cursor: zoom-out;
+}
+.lightbox:focus, .lightbox:focus-visible { outline: none; } /* the dialog takes focus on open; the ring reads as a selection border */
+.lightbox::backdrop { background: rgba(8, 8, 10, 0.72); backdrop-filter: blur(4px); }
+.lightbox img { display: block; max-width: 100%; max-height: calc(92vh - 68px); width: auto; height: auto; margin: 0 auto; }
 
 /* the rest of the feature story, demoted to an index */
 .index { padding-top: 8px; padding-bottom: 44px; }

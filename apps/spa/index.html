@@ -211,6 +211,13 @@
       </div>
     </section>
 
+    <!-- The capability cards' lightbox: one dialog, filled by the script
+         below with whichever drawing was clicked. Native <dialog>, so Esc and
+         the backdrop click are the platform's own. -->
+    <dialog class="lightbox" aria-label="Enlarged diagram">
+      <img src="" alt="" />
+    </dialog>
+
     <footer class="site-foot">
       <span class="foot-meta">
         <a class="foot-version" href="https://github.com/jquatier/squinch/releases" title="The version this site was built from">v<!--version--></a>
@@ -258,6 +265,31 @@
           figs[0].classList.remove("is-on");
           play();
         }
+      }
+    </script>
+    <script>
+      // The capability cards open large on click: the well is a button in all
+      // but name, and the one dialog shows whichever drawing was pressed.
+      // Esc and clicking anywhere close it — both are <dialog>'s own.
+      {
+        const box = document.querySelector(".lightbox");
+        const big = box.querySelector("img");
+        for (const well of document.querySelectorAll(".pcard-well")) {
+          const img = well.querySelector("img");
+          well.setAttribute("role", "button");
+          well.setAttribute("tabindex", "0");
+          well.setAttribute("aria-label", "Enlarge: " + img.alt);
+          const open = () => {
+            big.src = img.src;
+            big.alt = img.alt;
+            box.showModal();
+          };
+          well.addEventListener("click", open);
+          well.addEventListener("keydown", (e) => {
+            if (e.key === "Enter" || e.key === " ") { e.preventDefault(); open(); }
+          });
+        }
+        box.addEventListener("click", () => box.close());
       }
     </script>
     <script>
