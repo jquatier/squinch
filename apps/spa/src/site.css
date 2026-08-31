@@ -683,7 +683,7 @@ pre code { background: none; padding: 0; font-size: inherit; }
 }
 
 /* the lookbook, teased: a strip of five tiles that scrolls sideways */
-.teaser { padding-bottom: 56px; }
+.teaser { padding-bottom: 44px; }
 .teaser-head { display: flex; align-items: baseline; flex-wrap: wrap; gap: 6px 14px; margin-bottom: 14px; }
 .teaser-head h2 { font-size: 19px; font-weight: 600; letter-spacing: -0.02em; }
 .teaser-head > span { color: var(--muted); font-size: 14px; }
@@ -766,6 +766,57 @@ pre code { background: none; padding: 0; font-size: inherit; }
 }
 .shot-center { display: flex; justify-content: center; min-width: min-content; }
 .shot img { display: block; max-width: none; }
+
+/* the typed quotes: every figure occupies the same grid cell, so the stage
+   is as tall as the tallest and the typing never reflows the page. `.is-on`
+   and `.is-typing` are driven by the inline script; with script off or
+   reduced motion the first quote simply shows. 48px each side, measured to
+   the footer. */
+.quotes { padding-block: 0 48px; }
+.quote-stage { display: grid; }
+.quote {
+  grid-area: 1 / 1;
+  margin: 0;
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  opacity: 0;
+  transition: opacity 450ms ease;
+  pointer-events: none;
+}
+.quote.is-on { opacity: 1; }
+.quote blockquote {
+  margin: 0 auto;
+  max-width: 46rem;
+  font-size: 19px;
+  line-height: 1.55;
+  letter-spacing: -0.01em;
+  color: var(--fg);
+}
+/* the caret rides the end of the line only while the line is being written */
+.quote.is-typing blockquote::after {
+  content: "";
+  display: inline-block;
+  width: 2px;
+  height: 1em;
+  margin-left: 2px;
+  vertical-align: text-bottom;
+  background: var(--accent);
+  animation: quote-caret 900ms steps(1) infinite;
+}
+@keyframes quote-caret { 50% { opacity: 0; } }
+/* the attribution arrives once the line is finished being typed */
+.quote figcaption {
+  margin-top: 12px;
+  font: 500 12px/1 var(--font-mono);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--text-3);
+  opacity: 1;
+  transition: opacity 350ms ease;
+}
+.quote.is-typing figcaption { opacity: 0; transition: none; }
 
 /* ── responsive ─────────────────────────────────────────────────────────── */
 

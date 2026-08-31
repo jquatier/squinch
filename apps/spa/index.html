@@ -191,6 +191,26 @@
       </div>
     </section>
 
+    <!-- One quote at a time, typed out character by character; the other
+         figures keep the stage's height at opacity 0, so nothing reflows.
+         Under reduced motion (or with script off) the first quote just shows. -->
+    <section class="band quotes" aria-label="What people say">
+      <div class="quote-stage">
+        <figure class="quote is-on">
+          <blockquote>&ldquo;We should use this for everything&rdquo;</blockquote>
+          <figcaption>Dallas &middot; Software Engineer</figcaption>
+        </figure>
+        <figure class="quote">
+          <blockquote>&ldquo;I can&rsquo;t wait to squinch today&rdquo;</blockquote>
+          <figcaption>Eric &middot; Lead Software Engineer</figcaption>
+        </figure>
+        <figure class="quote">
+          <blockquote>&ldquo;The HTML export is real neato&rdquo;</blockquote>
+          <figcaption>Sean &middot; Principal Software Engineer</figcaption>
+        </figure>
+      </div>
+    </section>
+
     <footer class="site-foot">
       <span class="foot-meta">
         <a class="foot-version" href="https://github.com/jquatier/squinch/releases" title="The version this site was built from">v<!--version--></a>
@@ -200,6 +220,46 @@
       <a class="btn-grad" href="/install/">Install it now</a>
     </footer>
 
+    <script>
+      // The quotes type themselves: the active figure's blockquote fills
+      // character by character behind a caret, the attribution fades in when
+      // the line completes, and after a hold the next quote takes the stage.
+      // The full text lives in the markup, so script-off and reduced-motion
+      // readers simply read the first quote; the script only animates what is
+      // already there. Timings: 32ms a character, 4.5s hold, 450ms fade.
+      if (!matchMedia("(prefers-reduced-motion: reduce)").matches) {
+        const figs = [...document.querySelectorAll(".quote-stage .quote")];
+        if (figs.length > 1) {
+          const full = figs.map((f) => f.querySelector("blockquote").textContent);
+          let at = 0;
+          const play = () => {
+            const fig = figs[at];
+            const bq = fig.querySelector("blockquote");
+            const text = full[at];
+            fig.classList.add("is-on", "is-typing");
+            bq.textContent = "";
+            let i = 0;
+            const tick = setInterval(() => {
+              bq.textContent = text.slice(0, ++i);
+              if (i >= text.length) {
+                clearInterval(tick);
+                fig.classList.remove("is-typing");
+                setTimeout(() => {
+                  fig.classList.remove("is-on");
+                  setTimeout(() => {
+                    bq.textContent = text; // restored for the next cycle's height
+                    at = (at + 1) % figs.length;
+                    play();
+                  }, 450);
+                }, 4500);
+              }
+            }, 32);
+          };
+          figs[0].classList.remove("is-on");
+          play();
+        }
+      }
+    </script>
     <script>
       // The mark folds up the moment it scrolls out of view — the collapsed
       // pose the hover interaction already defines, now also driven by the
