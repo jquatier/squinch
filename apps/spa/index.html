@@ -4,7 +4,7 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>squinch — architecture diagrams as code, built for AI agents</title>
-    <meta name="description" content="A DSL your coding agent already writes fluently — real layout control, 1,302 vendor icons, and diagrams you can zoom into, from landscape to internals." />
+    <meta name="description" content="Architecture diagrams as code, built for AI agents: a DSL your coding agent writes fluently and you control precisely, rendered as deterministic SVG." />
     <link rel="canonical" href="https://squinch.cc/" />
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
@@ -58,8 +58,9 @@
           </h2>
           <p class="tagline">
             Describe the system in a paragraph. Squinch renders it precisely —
-            real layout control, vendor-accurate icons, and diagrams you can
-            zoom into, from the whole landscape down to one service's internals.
+            layout you steer without placing a box, vendor-accurate icons, and
+            diagrams you can zoom into, from the whole landscape down to one
+            service's internals.
             It ships as a skill for the agent you already use — one install and
             it speaks the language.
           </p>
@@ -144,6 +145,47 @@
       </article>
     </section>
 
+    <!-- The trust band: four guarantees, beside the receipt that proves the
+         first one. Every claim here is mechanically enforced — the goldens are
+         byte-compared on all three runners, the metrics table is bundled, the
+         shipped packages make no network call, and the gauntlet solutions are
+         committed and re-scored. Nothing aspirational goes in this band. -->
+    <section class="band proof" aria-labelledby="proof-h">
+      <div class="proof-head">
+        <span class="eyebrow accent">Deterministic, not best-effort</span>
+        <h2 id="proof-h">Diagrams you can commit</h2>
+      </div>
+      <ul class="proof-list">
+        <li>
+          <h3>The same bytes on every machine</h3>
+          <p>One source, one SVG — identical on macOS, Linux and Windows. Your
+             diff shows what you changed, never what your laptop did.</p>
+        </li>
+        <li>
+          <h3>The font ships with the renderer</h3>
+          <p>Text is measured against a bundled metrics table, never against the
+             machine it runs on. Nothing reflows because someone else installed
+             a different font.</p>
+        </li>
+        <li>
+          <h3>No network. No telemetry.</h3>
+          <p>Renders offline and tells nobody. No update pings, no account, no
+             icon fetched at render time.</p>
+        </li>
+        <li>
+          <h3>Rigorously tested, agents included</h3>
+          <p>Independent cold agents get a prose brief, the skill and the CLI —
+             nothing else. Every diagram they write is committed and re-scored
+             by CI.</p>
+        </li>
+      </ul>
+    </section>
+
+    <!-- the second rule, and the same job as the first: the trust band and the
+         index are both two-column hairline lists, so without it they read as
+         one long list with a heading in the middle -->
+    <div class="band glow-rule" aria-hidden="true"><span></span></div>
+
     <section class="band index" aria-labelledby="index-h">
       <div class="index-head">
         <h2 id="index-h">Also included</h2>
@@ -151,7 +193,7 @@
       </div>
       <ul>
         <li>One model, many diagrams <span class="tag">views</span></li>
-        <li>Layout you can overrule <span class="tag">relative hints</span></li>
+        <li>No coordinates, ever <span class="tag">relative hints</span></li>
         <li>Numbered request flows <span class="tag">flow</span></li>
         <li>SVG, PNG or HTML export <span class="tag">3 formats</span></li>
         <li>A real VS Code extension <span class="tag">LSP</span></li>

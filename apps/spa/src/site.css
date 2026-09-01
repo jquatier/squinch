@@ -695,8 +695,28 @@ pre code { background: none; padding: 0; font-size: inherit; }
 .lightbox::backdrop { background: rgba(8, 8, 10, 0.72); backdrop-filter: blur(4px); }
 .lightbox img { display: block; max-width: 100%; max-height: calc(92vh - 68px); width: auto; height: auto; margin: 0 auto; }
 
-/* the rest of the feature story, demoted to an index */
-.index { padding-top: 8px; padding-bottom: 44px; }
+/* the trust band: a head across the column, then the four guarantees two-up.
+   The hairlines carry the structure — the top pair's borders read as one rule
+   under the head, the way .index's rows do. */
+.proof { padding-top: 28px; padding-bottom: 24px; }
+.proof-head { display: flex; flex-direction: column; gap: 10px; margin-bottom: 20px; }
+.proof-head h2 { font-size: 28px; font-weight: 600; letter-spacing: -0.03em; line-height: 1.1; }
+.proof-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  column-gap: 56px;
+}
+.proof-list li { padding: 16px 0 18px; border-top: 1px solid var(--line-soft); }
+.proof-list h3 { margin-bottom: 5px; font-size: 15px; font-weight: 600; letter-spacing: -0.015em; }
+.proof-list p { color: var(--muted); font-size: 14px; line-height: 1.55; }
+
+/* the rest of the feature story, demoted to an index. 24 above, matching the
+   trust band's 24 below, so the rule between them sits on the same 44 a side
+   the first one does. */
+.index { padding-top: 24px; padding-bottom: 44px; }
 .index-head {
   display: flex;
   align-items: baseline;
@@ -902,6 +922,7 @@ pre code { background: none; padding: 0; font-size: inherit; }
   .hero-title { font-size: clamp(32px, 8vw, 46px); }
   .sub-hero h1 { font-size: clamp(30px, 7.5vw, 42px); }
   .promoted { grid-template-columns: 1fr; }
+  .proof-list { grid-template-columns: 1fr; }
   .index ul { grid-template-columns: 1fr; }
   .index li:nth-last-child(-n + 2) { border-bottom: 1px solid var(--line-soft); }
   .index li:last-child { border-bottom: none; }
