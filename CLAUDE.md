@@ -121,7 +121,7 @@ applies two licence-permitted treatments, both recorded in its NOTICE: strip
 Inkscape metadata, and promote `style="fill:…"` CSS into presentation
 attributes — the upstream files carry all their paint in `style`, which the
 sanitizer drops, so without promotion every icon loads unfilled.
-`packages/pack-sys` — 164 curated Lucide icons (ISC): the generic set for what no
+`packages/pack-sys` — 175 curated Lucide icons (ISC): the generic set for what no
 vendor draws (servers, hardware, network gear, data/ML concepts) plus plain
 shapes as a last resort. Also `monochrome: true`. It is the `sys/*` prefix, and like `builtin` it
 resolves with **no `pack` statement** — which is a property of being registered,

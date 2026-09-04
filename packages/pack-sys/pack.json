@@ -37,6 +37,11 @@
       "title": "Asterisk",
       "category": "Shapes"
     },
+    "audio-lines": {
+      "file": "audio-lines.svg",
+      "title": "Audio lines",
+      "category": "Intelligence"
+    },
     "battery": {
       "file": "battery.svg",
       "title": "Battery",
@@ -72,6 +77,11 @@
       "title": "Bot",
       "category": "Intelligence"
     },
+    "bot-message-square": {
+      "file": "bot-message-square.svg",
+      "title": "Bot message square",
+      "category": "Intelligence"
+    },
     "box": {
       "file": "box.svg",
       "title": "Box",
@@ -87,9 +97,19 @@
       "title": "Braces",
       "category": "App"
     },
+    "brain": {
+      "file": "brain.svg",
+      "title": "Brain",
+      "category": "Intelligence"
+    },
     "brain-circuit": {
       "file": "brain-circuit.svg",
       "title": "Brain circuit",
+      "category": "Intelligence"
+    },
+    "brain-cog": {
+      "file": "brain-cog.svg",
+      "title": "Brain cog",
       "category": "Intelligence"
     },
     "briefcase": {
@@ -212,6 +232,11 @@
       "title": "Database backup",
       "category": "Data"
     },
+    "database-search": {
+      "file": "database-search.svg",
+      "title": "Database search",
+      "category": "Intelligence"
+    },
     "database-zap": {
       "file": "database-zap.svg",
       "title": "Database zap",
@@ -277,6 +302,11 @@
       "title": "File json",
       "category": "Data"
     },
+    "file-search": {
+      "file": "file-search.svg",
+      "title": "File search",
+      "category": "Intelligence"
+    },
     "files": {
       "file": "files.svg",
       "title": "Files",
@@ -337,6 +367,11 @@
       "title": "Globe",
       "category": "Network"
     },
+    "gpu": {
+      "file": "gpu.svg",
+      "title": "Gpu",
+      "category": "Intelligence"
+    },
     "graduation-cap": {
       "file": "graduation-cap.svg",
       "title": "Graduation cap",
@@ -391,6 +426,11 @@
       "file": "id-card.svg",
       "title": "Id card",
       "category": "People"
+    },
+    "image": {
+      "file": "image.svg",
+      "title": "Image",
+      "category": "Intelligence"
     },
     "inbox": {
       "file": "inbox.svg",
@@ -481,6 +521,11 @@
       "file": "megaphone.svg",
       "title": "Megaphone",
       "category": "Messaging"
+    },
+    "memory-stick": {
+      "file": "memory-stick.svg",
+      "title": "Memory stick",
+      "category": "Intelligence"
     },
     "merge": {
       "file": "merge.svg",
@@ -617,6 +662,11 @@
       "title": "Scan face",
       "category": "Security"
     },
+    "scan-text": {
+      "file": "scan-text.svg",
+      "title": "Scan text",
+      "category": "Intelligence"
+    },
     "scroll-text": {
       "file": "scroll-text.svg",
       "title": "Scroll text",
@@ -737,6 +787,11 @@
       "title": "Tags",
       "category": "Data"
     },
+    "target": {
+      "file": "target.svg",
+      "title": "Target",
+      "category": "Intelligence"
+    },
     "terminal": {
       "file": "terminal.svg",
       "title": "Terminal",
@@ -829,8 +884,10 @@
     }
   },
   "aliases": {
+    "accelerator": "gpu",
     "agent": "bot",
     "alert": "siren",
+    "assistant": "bot-message-square",
     "audit": "history",
     "blob": "folder",
     "broker": "radio-tower",
@@ -839,6 +896,8 @@
     "catalog": "library-big",
     "cdn": "earth",
     "cert": "shield-check",
+    "chatbot": "bot-message-square",
+    "context": "memory-stick",
     "cron": "clock",
     "cube": "box",
     "db": "database",
@@ -846,20 +905,26 @@
     "disk": "hard-drive",
     "dns": "globe",
     "egress": "log-out",
+    "eval": "target",
+    "evals": "target",
     "experiment": "flask-conical",
+    "fine-tune": "brain-cog",
     "firewall": "shield",
     "fn": "square-function",
     "gear": "cog",
+    "guardrail": "shield-check",
     "host": "server",
     "ingress": "log-in",
     "job": "cog",
     "lambda": "zap",
     "lb": "share-2",
+    "llm": "brain",
     "load-balancer": "share-2",
     "logs": "scroll-text",
     "metrics": "chart-line",
     "model": "brain-circuit",
     "notebook": "notebook-text",
+    "ocr": "scan-text",
     "office": "building-2",
     "onprem": "factory",
     "pc": "monitor",
@@ -868,14 +933,22 @@
     "plant": "factory",
     "pubsub": "radio-tower",
     "rack": "server",
+    "rag": "file-search",
+    "retrieval": "file-search",
     "retry": "refresh-cw",
     "screen": "monitor",
     "secret": "lock-keyhole",
+    "speech": "audio-lines",
     "ssd": "hard-drive",
     "stream": "database-zap",
+    "stt": "audio-lines",
     "team": "users",
     "topic": "radio-tower",
     "trace": "activity",
+    "training": "brain-cog",
+    "tts": "audio-lines",
+    "vector-search": "database-search",
+    "vision": "image",
     "vm": "server"
   }
 }

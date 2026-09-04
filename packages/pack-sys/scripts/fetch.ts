@@ -64,9 +64,15 @@ const CURATED: Record<string, string[]> = {
   // The data/ML vocabulary the cloud packs assume you have: a model, an
   // experiment, a notebook, a catalog. Concept icons — pair with a `logos/*`
   // brand mark when the diagram is about a specific product.
+  // The data/ML half above covers the classics; this row is the AI workload
+  // itself — models, agents, retrieval, the hardware. Every icon is used for
+  // what it draws (a network *chart* and a design-tool vector square were
+  // auditioned for graph store and vector DB, and cut for exactly that).
   Intelligence: [
     "brain-circuit", "bot", "sparkles", "flask-conical", "notebook-text",
-    "graduation-cap",
+    "graduation-cap", "gpu", "brain", "brain-cog", "bot-message-square",
+    "database-search", "file-search", "memory-stick", "target", "scan-text",
+    "audio-lines", "image",
   ],
   People: [
     "user", "users", "user-cog", "contact", "briefcase", "id-card", "handshake",
@@ -114,6 +120,12 @@ const ALIASES: Record<string, string> = {
   model: "brain-circuit", agent: "bot", notebook: "notebook-text",
   catalog: "library-big", experiment: "flask-conical", stream: "database-zap",
   audit: "history",
+  llm: "brain", accelerator: "gpu", training: "brain-cog", "fine-tune": "brain-cog",
+  chatbot: "bot-message-square", assistant: "bot-message-square",
+  "vector-search": "database-search", retrieval: "file-search", rag: "file-search",
+  context: "memory-stick", eval: "target", evals: "target", ocr: "scan-text",
+  speech: "audio-lines", tts: "audio-lines", stt: "audio-lines", vision: "image",
+  guardrail: "shield-check",
 };
 
 interface IconEntry { file: string; title: string; category: string }

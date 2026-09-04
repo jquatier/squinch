@@ -191,7 +191,7 @@ const html = `<!doctype html>
       </p>
       <div class="stat-row">
         <span>${cases.length} cases</span><span class="sep">·</span>
-        <span>1,302 vendor icons</span><span class="sep">·</span>
+        <span>1,313 vendor icons</span><span class="sep">·</span>
         <span>light &amp; dark</span><span class="sep">·</span>
         <span>every one editable in the playground</span>
       </div>
