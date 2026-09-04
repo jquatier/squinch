@@ -1,6 +1,6 @@
 // The reverse shape: many producers all feeding one destination. Written as
 // separate edges rather than a fan-out list, because an edge has one source —
-// this is what several of them arriving at one port looks like.
+// this is what several of them arriving at the same point looks like.
 pack aws
 
 system fanin "Fan-in" {

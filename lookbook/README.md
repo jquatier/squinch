@@ -16,7 +16,7 @@ Source: [`cases/01-minimal.squinch`](cases/01-minimal.squinch)
 
 ## Fan Out
 
-One entry point feeding many handlers. Connections spread evenly along the edge of a node rather than stacking at a single point, so the fan stays readable. Five is enough to show the spread — a dozen only made the case too wide to read in this grid.
+One entry point feeding many handlers, written as one edge with a list of targets. Connections spread evenly along the edge of a node rather than stacking at a single point, so the fan stays readable.
 
 Source: [`cases/02-fan-out.squinch`](cases/02-fan-out.squinch)
 
@@ -26,7 +26,7 @@ Source: [`cases/02-fan-out.squinch`](cases/02-fan-out.squinch)
 
 ## Fan In
 
-The reverse shape: many producers all feeding one destination. Written as separate edges rather than a fan-out list, because an edge has one source — this is what several of them arriving at one port looks like.
+The reverse shape: many producers all feeding one destination. Written as separate edges rather than a fan-out list, because an edge has one source — this is what several of them arriving at the same point looks like.
 
 Source: [`cases/03-fan-in.squinch`](cases/03-fan-in.squinch)
 
@@ -36,7 +36,7 @@ Source: [`cases/03-fan-in.squinch`](cases/03-fan-in.squinch)
 
 ## Deep Chain
 
-A pipeline read left to right. Set `direction right` on a view and the stages run across the page instead of down it. Five stages is what it takes to read as a chain — the eight it had before ran wider than this grid.
+A pipeline read left to right. Set `direction right` on a view and the stages run across the page instead of down it; the same source with no layout block reads top to bottom.
 
 Source: [`cases/04-deep-chain.squinch`](cases/04-deep-chain.squinch)
 
@@ -126,7 +126,7 @@ Source: [`cases/12-lifted-aggregate.squinch`](cases/12-lifted-aggregate.squinch)
 
 ## Descriptions
 
-`show descriptions` adds a line of explanatory text under every label.
+`description:` carries a node's one-line explanation and `show descriptions` puts it under the label. It is a per-view choice, so the same source renders as a bare map or an annotated one.
 
 Source: [`cases/13-descriptions.squinch`](cases/13-descriptions.squinch)
 
@@ -146,7 +146,7 @@ Source: [`cases/14-sidecar-routes.squinch`](cases/14-sidecar-routes.squinch)
 
 ## Densities
 
-The same diagram at all three `density` settings, from compact to spacious.
+The same diagram at all three `density` settings, from compact to spacious. Density scales the gaps only — nodes, icons and type stay the same size, so a compact render fits more on the page without shrinking anything you have to read.
 
 Source: [`cases/15-densities.squinch`](cases/15-densities.squinch)
 
@@ -170,7 +170,7 @@ Source: [`cases/15-densities.squinch`](cases/15-densities.squinch)
 
 ## Legend Titleblock
 
-Footer furniture. `legend auto` explains the line styles the diagram actually uses and nothing else; `titleblock` stamps the drawing. Four keys are reserved and drawn canonically — `subtitle` under the title, `version`, mono `commit` and a dimmed `date` in the meta chip — and every other key (owner, status) appends as its own chip segment. None are ever derived: a render is a pure function of its source, so the commit is what you wrote, not what git says.
+Footer furniture. `legend auto` explains the line styles the diagram actually uses and nothing else; `titleblock` stamps the drawing. Four keys are reserved and drawn canonically — `subtitle` under the title, `version`, mono `commit` and a dimmed `date` in the meta chip — and every other key (owner, status) appends as its own chip segment. Nothing is filled in for you: the commit and the date are what you wrote in the source, not what git or the clock say.
 
 Source: [`cases/16-legend-titleblock.squinch`](cases/16-legend-titleblock.squinch)
 
@@ -310,7 +310,7 @@ Source: [`cases/26-route-label.squinch`](cases/26-route-label.squinch)
 
 ## K8s
 
-The k8s pack: official community icons (the blue heptagons from the kubernetes docs), full-colour artwork like aws/azure — no plate, no tint. Canonical ids are kubectl's short names; the long forms alias to them, and this file deliberately uses both spellings so the case exercises the alias table. A namespace draws as a zone with `icon: k8s/ns`, not as a node.
+The k8s pack: official community icons (the blue heptagons from the kubernetes docs), full-colour artwork like aws/azure — no plate, no tint. Canonical ids are kubectl's short names and the long forms alias to them; both spellings appear here. A namespace draws as a zone with `icon: k8s/ns`, not as a node.
 
 Source: [`cases/27-k8s.squinch`](cases/27-k8s.squinch)
 
@@ -320,7 +320,7 @@ Source: [`cases/27-k8s.squinch`](cases/27-k8s.squinch)
 
 ## Azure
 
-The azure pack: Microsoft's official Architecture Icons — the gradient artwork is drawn raw like aws/k8s, no plate, no tint. Long marketing names alias to what people actually type (`azure/vnet`, `azure/aks`, `azure/cosmos`), and this file leans on those short forms. A virtual network draws as a zone with `icon: azure/vnet` — the chip inset that keeps full-bleed artwork off the pill border is exercised right here.
+The azure pack: Microsoft's official Architecture Icons — the gradient artwork is drawn raw like aws/k8s, no plate, no tint. Long marketing names alias to what people actually type (`azure/vnet`, `azure/aks`, `azure/cosmos`), and this file leans on those short forms. A virtual network draws as a zone with `icon: azure/vnet`, where the artwork is inset so full-bleed gradients never touch the chip's border.
 
 Source: [`cases/28-azure.squinch`](cases/28-azure.squinch)
 
@@ -330,7 +330,9 @@ Source: [`cases/28-azure.squinch`](cases/28-azure.squinch)
 
 ## Edge Styles
 
-How an edge is drawn and how it moves: `style: solid | dashed | dotted` and `animate: flow | reverse | slow | fast | packets | pulse | comet`, one hub with each spoke showing one thing. Dash travel needs a pattern, so a sync edge animates by declaring `style: dotted` first (dashed warns beside `~>` edges — it is their convention); `pulse` breathes and works on solid lines. `comet` is the exception: it rides a dot along the route rather than moving the stroke, so it needs no pattern and is the way to show motion on a plain synchronous call. How an edge *travels* between nodes is the other axis — `lines`, case 25-edge-routing.
+How an edge is drawn and how it moves: `style: solid | dashed | dotted` and `animate: flow | reverse | slow | fast | packets | pulse | comet`, one hub with each spoke showing one thing. Travelling dashes need a pattern to travel, so a synchronous edge animates by declaring `style: dotted` first — dashed is the convention for async edges and asking for it on a sync one warns. `pulse` breathes rather than travels, so it works on a solid line. `comet` is the exception: it rides a dot along the route instead of moving the stroke, which makes it the way to show motion on a plain synchronous call.
+
+How an edge *travels* between nodes is the other axis — `lines`, case 25-edge-routing.
 
 Source: [`cases/29-edge-styles.squinch`](cases/29-edge-styles.squinch)
 
@@ -340,7 +342,7 @@ Source: [`cases/29-edge-styles.squinch`](cases/29-edge-styles.squinch)
 
 ## Badges
 
-`badge:` puts a vendor mark on a node's icon plate. It exists because some platforms don't yet publish an official icon set that may be redistributed — Databricks is the standing example — so for now there is no pack to install. Rather than ship someone's extracted artwork, compose two things we already have a licence to: a generic `sys/*` concept for *what the thing is*, and a CC0 brand mark for *whose it is*. The badge is what makes a wall of grey plates legible: every Databricks-owned box is marked, and the Kafka and S3 nodes keep their own icons, so the platform boundary reads at a glance.
+`badge:` puts a vendor mark on a node's icon plate, for the platforms that publish no icon set anyone may redistribute — Databricks is the standing example, so there is no pack to install. Compose the two halves instead: a generic `sys/*` concept for *what the thing is*, and a CC0 brand mark for *whose it is*. The badge is what makes a wall of grey plates legible — every Databricks-owned box is marked, and the Kafka and S3 nodes keep their own icons, so the platform boundary reads at a glance.
 
 Source: [`cases/30-badges.squinch`](cases/30-badges.squinch)
 
@@ -350,7 +352,7 @@ Source: [`cases/30-badges.squinch`](cases/30-badges.squinch)
 
 ## Full Detail
 
-`expand *` — the one deliberate ladder: every container open to leaf depth on one page. Frames nest to keep containment legible; only the outermost carry the recessed fill (depth would otherwise read as darkness), inner boundaries are the line and the label.
+`expand *` opens every container to leaf depth on one page — the one place the diagram shows everything at once. Frames nest so containment stays legible; only the outermost carries the recessed fill, since stacking it would make depth read as darkness, and inner boundaries are the line and the label.
 
 Source: [`cases/31-full-detail.squinch`](cases/31-full-detail.squinch)
 
@@ -360,7 +362,7 @@ Source: [`cases/31-full-detail.squinch`](cases/31-full-detail.squinch)
 
 ## Coplanar Frames
 
-The row that used to break: expanded systems side by side with calls running between them. Same-rank cross-frame edges route wall-to-wall through reserved gutters — straight when the endpoints share a height, a mid-gutter jog when they don't (coplanar.md, approach #5). Before this, ELK saw the calls and silently re-layered the row into a stack.
+Expanded systems side by side, with calls running between them. Same-rank cross-frame edges route wall-to-wall through the gutters reserved between the frames — straight when the endpoints share a height, a mid-gutter jog when they don't — so a row of open systems stays a row.
 
 Source: [`cases/32-coplanar-frames.squinch`](cases/32-coplanar-frames.squinch)
 
@@ -404,7 +406,7 @@ Source: [`cases/34-view-axes.squinch`](cases/34-view-axes.squinch)
 
 ## Rows Cols
 
-`rows` pins ranks, `cols` pins the cross axis, and together they are the grid the language has no third construct for: `rows [a b] [c]` composed with `cols [a c] [b]` is a 2×2 with one corner empty. This is the reason the once-planned `grid` statement was dropped.
+`rows` pins ranks, `cols` pins the cross axis, and together they are the grid the language has no third construct for: `rows [a b] [c]` composed with `cols [a c] [b]` is a 2×2 with one corner empty.
 
 Source: [`cases/35-rows-cols.squinch`](cases/35-rows-cols.squinch)
 

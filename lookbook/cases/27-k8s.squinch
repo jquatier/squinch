@@ -1,8 +1,7 @@
-// The k8s pack: official community icons (the blue heptagons from the
-// kubernetes docs), full-colour artwork like aws/azure — no plate, no tint.
-// Canonical ids are kubectl's short names; the long forms alias to them, and
-// this file deliberately uses both spellings so the case exercises the alias
-// table. A namespace draws as a zone with `icon: k8s/ns`, not as a node.
+// The k8s pack: official community icons (the blue heptagons from the kubernetes
+// docs), full-colour artwork like aws/azure — no plate, no tint. Canonical ids
+// are kubectl's short names and the long forms alias to them; both spellings
+// appear here. A namespace draws as a zone with `icon: k8s/ns`, not as a node.
 pack k8s
 
 person dev "Developer"

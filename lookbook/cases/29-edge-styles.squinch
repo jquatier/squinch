@@ -1,11 +1,12 @@
 // How an edge is drawn and how it moves: `style: solid | dashed | dotted` and
-// `animate: flow | reverse | slow | fast | packets | pulse | comet`, one hub
-// with each spoke showing one thing. Dash travel needs a pattern, so a sync
-// edge animates by declaring `style: dotted` first (dashed warns beside `~>`
-// edges — it is their convention); `pulse` breathes and works
-// on solid lines. `comet` is the exception: it rides a dot along the route
-// rather than moving the stroke, so it needs no pattern and is the way to show
-// motion on a plain synchronous call.
+// `animate: flow | reverse | slow | fast | packets | pulse | comet`, one hub with
+// each spoke showing one thing. Travelling dashes need a pattern to travel, so a
+// synchronous edge animates by declaring `style: dotted` first — dashed is the
+// convention for async edges and asking for it on a sync one warns. `pulse`
+// breathes rather than travels, so it works on a solid line. `comet` is the
+// exception: it rides a dot along the route instead of moving the stroke, which
+// makes it the way to show motion on a plain synchronous call.
+//
 // How an edge *travels* between nodes is the other axis — `lines`, case
 // 25-edge-routing.
 pack aws

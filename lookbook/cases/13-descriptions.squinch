@@ -1,4 +1,6 @@
-// `show descriptions` adds a line of explanatory text under every label.
+// `description:` carries a node's one-line explanation and `show descriptions`
+// puts it under the label. It is a per-view choice, so the same source renders
+// as a bare map or an annotated one.
 pack aws
 
 system obs "Observability" {

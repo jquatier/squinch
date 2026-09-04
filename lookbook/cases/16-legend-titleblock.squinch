@@ -1,10 +1,9 @@
 // Footer furniture. `legend auto` explains the line styles the diagram actually
-// uses and nothing else; `titleblock` stamps the drawing. Four keys are
-// reserved and drawn canonically — `subtitle` under the title, `version`,
-// mono `commit` and a dimmed `date` in the meta chip — and every other key
-// (owner, status) appends as its own chip segment. None are ever derived:
-// a render is a pure function of its source, so the commit is what you
-// wrote, not what git says.
+// uses and nothing else; `titleblock` stamps the drawing. Four keys are reserved
+// and drawn canonically — `subtitle` under the title, `version`, mono `commit`
+// and a dimmed `date` in the meta chip — and every other key (owner, status)
+// appends as its own chip segment. Nothing is filled in for you: the commit and
+// the date are what you wrote in the source, not what git or the clock say.
 pack aws
 
 person ops "Operator"

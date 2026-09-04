@@ -1,7 +1,6 @@
-// One entry point feeding many handlers. Connections spread evenly along the
-// edge of a node rather than stacking at a single point, so the fan stays
-// readable. Five is enough to show the spread — a dozen only made the case
-// too wide to read in this grid.
+// One entry point feeding many handlers, written as one edge with a list of
+// targets. Connections spread evenly along the edge of a node rather than
+// stacking at a single point, so the fan stays readable.
 pack aws
 
 system fan "Fan-out" {

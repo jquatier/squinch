@@ -1,7 +1,6 @@
-// `rows` pins ranks, `cols` pins the cross axis, and together they are the
-// grid the language has no third construct for: `rows [a b] [c]` composed
-// with `cols [a c] [b]` is a 2×2 with one corner empty. This is the reason
-// the once-planned `grid` statement was dropped.
+// `rows` pins ranks, `cols` pins the cross axis, and together they are the grid
+// the language has no third construct for: `rows [a b] [c]` composed with
+// `cols [a c] [b]` is a 2×2 with one corner empty.
 pack aws
 
 system quad "Quadrants" {

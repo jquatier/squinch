@@ -1,4 +1,7 @@
 // The same diagram at all three `density` settings, from compact to spacious.
+// Density scales the gaps only — nodes, icons and type stay the same size, so a
+// compact render fits more on the page without shrinking anything you have to
+// read.
 pack aws
 
 system svc "Service" {

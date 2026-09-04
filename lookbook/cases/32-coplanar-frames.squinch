@@ -1,8 +1,7 @@
-// The row that used to break: expanded systems side by side with calls
-// running between them. Same-rank cross-frame edges route wall-to-wall
-// through reserved gutters — straight when the endpoints share a height,
-// a mid-gutter jog when they don't (coplanar.md, approach #5). Before this,
-// ELK saw the calls and silently re-layered the row into a stack.
+// Expanded systems side by side, with calls running between them. Same-rank
+// cross-frame edges route wall-to-wall through the gutters reserved between the
+// frames — straight when the endpoints share a height, a mid-gutter jog when
+// they don't — so a row of open systems stays a row.
 pack aws
 
 person customer "Customer"

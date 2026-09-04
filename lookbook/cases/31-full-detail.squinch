@@ -1,7 +1,7 @@
-// `expand *` — the one deliberate ladder: every container open to leaf depth
-// on one page. Frames nest to keep containment legible; only the outermost
-// carry the recessed fill (depth would otherwise read as darkness), inner
-// boundaries are the line and the label.
+// `expand *` opens every container to leaf depth on one page — the one place the
+// diagram shows everything at once. Frames nest so containment stays legible;
+// only the outermost carries the recessed fill, since stacking it would make
+// depth read as darkness, and inner boundaries are the line and the label.
 pack aws
 
 system edge "Edge" {

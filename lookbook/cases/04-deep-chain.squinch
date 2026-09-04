@@ -1,6 +1,6 @@
-// A pipeline read left to right. Set `direction right` on a view and the
-// stages run across the page instead of down it. Five stages is what it takes
-// to read as a chain — the eight it had before ran wider than this grid.
+// A pipeline read left to right. Set `direction right` on a view and the stages
+// run across the page instead of down it; the same source with no layout block
+// reads top to bottom.
 pack aws
 
 system pipe "Pipeline" {
