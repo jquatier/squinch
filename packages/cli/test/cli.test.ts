@@ -48,11 +48,14 @@ describe("squinch cli", () => {
     expect(await main(["skill", dir])).toBe(0);
     const file = join(dir, ".agents", "skills", "squinch", "SKILL.md");
     expect(existsSync(file)).toBe(true);
-    // Byte-equal to the canonical file: this is the freshness gate that fires
-    // locally when someone edits SKILL.md and skips the generator.
+    // Byte-equal to the canonical file once the install-time version stamp is
+    // removed: still the freshness gate that fires locally when someone edits
+    // SKILL.md and skips the generator.
     const canonical = readFileSync(
       new URL("../../skill/skills/squinch/SKILL.md", import.meta.url), "utf8");
-    expect(readFileSync(file, "utf8")).toBe(canonical);
+    const written = readFileSync(file, "utf8");
+    expect(written).toMatch(/<!-- installed by squinch \d+\.\d+\.\d+ /);
+    expect(written.replace(/\n<!-- installed by squinch [^\n]*-->\n/, "")).toBe(canonical);
     // No Claude Code markers in an empty dir, so no .claude/ copy.
     expect(existsSync(join(dir, ".claude"))).toBe(false);
   });

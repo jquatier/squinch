@@ -504,8 +504,18 @@ function cmdInit(dir: string): number {
  * for itself.
  */
 function cmdSkill(positionals: string[], flags: Record<string, string | boolean>): number {
+  // The skill and the CLI ship together — the file written here is the one
+  // bundled into THIS binary — so the copy on disk says which squinch wrote
+  // it. Stamped at install time from the running version (a build-time stamp
+  // could lag a release bump), as a comment right under the frontmatter:
+  // invisible to skill loaders that render markdown, plain to anyone
+  // diagnosing skill/CLI drift. `--print` carries it too.
+  const stamped = SKILL_MD.replace(
+    /^(---\n[\s\S]*?\n---\n)/,
+    `$1\n<!-- installed by squinch ${VERSION} — after upgrading squinch, re-run \`squinch skill\` so this guidance matches the CLI it drives -->\n`,
+  );
   if (flags.print) {
-    console.log(SKILL_MD);
+    console.log(stamped);
     return 0;
   }
   if (flags.global && positionals[0])
@@ -514,7 +524,7 @@ function cmdSkill(positionals: string[], flags: Record<string, string | boolean>
   const install = (dir: string): string => {
     mkdirSync(dir, { recursive: true });
     const file = join(dir, "SKILL.md");
-    writeFileSync(file, SKILL_MD);
+    writeFileSync(file, stamped);
     return file;
   };
 
