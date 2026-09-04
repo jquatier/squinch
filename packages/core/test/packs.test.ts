@@ -65,6 +65,27 @@ describe("searchIcons", () => {
     expect(hits.length).toBeGreaterThan(0);
     expect(hits.every((h) => h.startsWith("azure/"))).toBe(true);
   });
+
+  // Unranked, `rag` answered with eighteen sto*rag*e rows and the exact
+  // alias dead last — the reader gave up before reaching it.
+  it("an exact id or alias outranks every substring hit", () => {
+    expect(searchIcons("rag")[0]).toBe("sys/rag");
+    expect(searchIcons("llm")[0]).toBe("sys/llm");
+    expect(searchIcons("vector search")).toEqual(["sys/vector-search"]);
+  });
+
+  it("falls back to ranked partial matches instead of an empty answer", () => {
+    // no icon carries both words; the closest ones still come back, flagged
+    const { hits, relaxed } = searchIconsDetailed("object storage");
+    expect(relaxed).toBe(true);
+    expect(hits.length).toBeGreaterThan(0);
+    expect(hits.length).toBeLessThanOrEqual(12);
+    expect(hits).toContain("aws/simple-storage-service");
+    // a full match never relaxes
+    expect(searchIconsDetailed("lambda").relaxed).toBe(false);
+    // and pure gibberish still comes back empty rather than inventing hits
+    expect(searchIconsDetailed("zzzz").hits).toEqual([]);
+  });
 });
 
 describe("every installed pack", () => {
@@ -105,7 +126,7 @@ describe("every installed pack", () => {
 });
 import { sanitizeIcon } from "../src/packs/sanitize.js";
 import { iconAsset, hasIcon, iconTitle, packInfo, symbolId } from "../src/packs/registry.js";
-import { searchIcons, render, validateSVG, allPackNames, iconIds } from "../src/index.js";
+import { searchIcons, searchIconsDetailed, render, validateSVG, allPackNames, iconIds } from "../src/index.js";
 
 describe("pack sanitizer", () => {
   const wrap = (inner: string) =>

@@ -19,7 +19,7 @@ squinch check diagram.squinch --format json   # parse + lint; machine-readable
 squinch render diagram.squinch -o out.svg     # deterministic SVG (light theme)
 squinch render diagram.squinch --view NAME --theme light -o out.svg  # themes: dark (default) | light
 squinch render diagram.squinch -o out.png --scale 2   # PNG for slides/docs (--width also works)
-squinch icons search <term>                   # find icon ids, e.g. "queue", "kafka"
+squinch icons search "<term>, <term>, …"      # find icon ids — batch every unknown in one call
 squinch diff --format json                    # what changed in the architecture
 ```
 
@@ -377,7 +377,7 @@ view shop {
 | "zone … cuts through expanded container" | The zone holds *some* children of a container you `expand`ed — contain the whole container, or drop the `expand` in that view |
 | "zone … has no visible members" | Its members are inside collapsed cards at this altitude — `expand` one, scope the view to them, or contain the container itself |
 | Need a VPC / network boundary / cloud-vs-on-prem split | `zone id "Label" vpc { contains a, b }` — kinds: account, region, vpc, subnet, network, cloud, onprem, custom |
-| Icon unknown | `squinch icons search <term>`; the error's `did you mean` is usually right |
+| Icon unknown | Collect every icon you're unsure of and search once: `squinch icons search "queue, vector search, llm"` — commas separate terms, spaces stay a phrase. `no exact match — closest:` rows are ranked next moves. The check error's `did you mean` is usually right |
 | Everything takes a long detour around the canvas | Check whether an edge points *against* the flow. Reversing one back-edge to face the direction traffic actually travels beats any hint |
 | "rank hints on … have no effect" warning | Those nodes are all inside one zone, which lays out as a single block. Order the zones instead, or drop the boundary |
 | "align skipped … outside zone" warning | The snap would have dragged a member out of its own boundary. Align it with something inside the zone |

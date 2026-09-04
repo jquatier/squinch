@@ -205,6 +205,24 @@ describe("squinch cli", () => {
     expect(readFileSync(join(dir, "o.svg"), "utf8")).toContain("<svg");
   });
 
+  it("icons search takes comma-separated queries in one call", async () => {
+    expect(await main(["icons", "search", "queue,", "llm"])).toBe(0);
+    expect(out.join("\n")).toContain("— queue");
+    expect(out.join("\n")).toContain("— llm");
+    expect(out.join("\n")).toContain("aws/simple-queue-service");
+    expect(out.join("\n")).toContain("sys/llm");
+    out = [];
+    // one dud among live queries is not a failure — the sections say which
+    expect(await main(["icons", "search", "lambda,", "zzzz"])).toBe(0);
+    expect(out.join("\n")).toContain("no icons match `zzzz`");
+  });
+
+  it("icons search labels near-misses instead of answering nothing", async () => {
+    expect(await main(["icons", "search", "object", "storage"])).toBe(0);
+    expect(out.join("\n")).toContain("no exact match for `object storage` — closest:");
+    expect(out.join("\n")).toContain("aws/simple-storage-service");
+  });
+
   it("icons search finds ids and reports misses", async () => {
     expect(await main(["icons", "search", "lambda"])).toBe(0);
     expect(out.join()).toContain("aws/lambda");

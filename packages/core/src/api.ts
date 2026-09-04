@@ -71,6 +71,20 @@ export function iconsUsedBy(files: ProjectFile[] | string): { pack: string; id: 
  *  them and a result of only `azure/key-vaults` reads as proof that
  *  `azure/key-vault` doesn't exist) can look them up via `packInfo`. */
 export function searchIcons(query: string, pack?: string): string[] {
+  return searchIconsDetailed(query, pack).hits;
+}
+
+/** The same search, saying how it matched. `relaxed: true` means no icon
+ *  matched every word, so the hits are the closest partial matches instead —
+ *  callers that print for an agent loop label them (`no exact match —
+ *  closest:`), because near-misses answer the question and an empty list
+ *  forces a second pass with different words. Measured before ranking
+ *  existed: `rag` returned eighteen sto*rag*e rows with `sys/rag` dead last,
+ *  and "message queue" / "object storage" returned nothing at all. */
+export function searchIconsDetailed(
+  query: string,
+  pack?: string,
+): { hits: string[]; relaxed: boolean } {
   // Vendors are inconsistent about number — Azure has "Container Registries"
   // and "Data Factories" where everyone searches "container registry" and
   // "data factory" — so both sides are singularized before comparing.
@@ -100,20 +114,55 @@ export function searchIcons(query: string, pack?: string): string[] {
     }
   }
   const words = rawWords.map(stem);
-  const hits: string[] = [];
+  const joined = words.join(" ");
+  // Every icon in scope, scored. Ranking is what keeps the signal above the
+  // substring noise: an id that IS the query outranks a whole-word match,
+  // which outranks a substring hit — `rag` lists `sys/rag` first and the
+  // sto*rag*e rows after, instead of eighteen rows deep. The row model is
+  // unchanged from before ranking existed: aliases are ids too, and an alias
+  // row is dropped only when its canonical also matched (`sqs` still answers
+  // `aws/sqs`, one row per icon either way).
+  type Scored = { hit: string; exact: number; whole: number; matched: number };
+  const scored: Scored[] = [];
   for (const name of allPackNames()) {
     if (packFilter && name !== packFilter) continue;
-    const aliases = packInfo(name)?.aliases ?? {};
     const haystack = (id: string) => norm(`${id} ${iconTitle(name, id) ?? ""}`);
-    const matched = new Set(
-      iconIds(name).filter((id) => words.every((w) => haystack(id).includes(w))),
+    const matchedIds = new Set(
+      iconIds(name).filter((id) => words.some((w) => haystack(id).includes(w)) || !words.length),
     );
-    for (const id of [...matched].sort()) {
-      if (aliases[id] && matched.has(aliases[id])) continue; // canonical covers it
-      hits.push(`${name}/${id}`);
+    for (const id of matchedIds) {
+      const hay = haystack(id);
+      const hayWords = new Set(hay.split(" "));
+      scored.push({
+        hit: `${name}/${id}`,
+        exact: joined && norm(id) === joined ? 1 : 0,
+        whole: words.length && words.every((w) => hayWords.has(w)) ? 1 : 0,
+        matched: words.filter((w) => hay.includes(w)).length,
+      });
     }
   }
-  return hits.sort();
+  // One row per icon: an alias row is dropped only when its canonical is in
+  // the SAME result list. Checking the broader matched set instead deduped
+  // `sys/vector-search` (a full match) against a canonical that had only
+  // matched one word and was not being returned at all.
+  const dedupe = (list: Scored[]) => {
+    const present = new Set(list.map((s) => s.hit));
+    return list.filter((s) => {
+      const name = s.hit.slice(0, s.hit.indexOf("/"));
+      const id = s.hit.slice(s.hit.indexOf("/") + 1);
+      const canonical = (packInfo(name)?.aliases ?? {})[id];
+      return !(canonical && present.has(`${name}/${canonical}`)); // canonical covers it
+    });
+  };
+  const rank = (list: Scored[]) =>
+    dedupe(list)
+      .sort((a, b) => b.exact - a.exact || b.whole - a.whole || b.matched - a.matched || (a.hit < b.hit ? -1 : 1))
+      .map((s) => s.hit);
+  const full = scored.filter((s) => s.matched === words.length);
+  if (full.length || !words.length) return { hits: rank(full), relaxed: false };
+  // Nothing matched every word: fall back to partial matches, best first.
+  // Capped — the point is a next move, not a directory listing.
+  return { hits: rank(scored).slice(0, 12), relaxed: true };
 }
 export type { ProjectFile };
 export type * from "./model/types.js";

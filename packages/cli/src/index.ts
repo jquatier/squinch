@@ -5,7 +5,7 @@ import { join, relative, isAbsolute } from "node:path";
 import { homedir } from "node:os";
 import { createHash } from "node:crypto";
 import {
-  buildProject, renderProject, formatDiagnostics, validateSVG, searchIcons, themes, packInfo,
+  buildProject, renderProject, formatDiagnostics, validateSVG, searchIconsDetailed, themes, packInfo,
   diffProjects, formatDiff, formatDiffMarkdown, exportHTML,
   type Diagnostic,
 } from "@squinch/core";
@@ -31,7 +31,7 @@ const USAGE = `squinch ${VERSION} — architecture diagrams as code
 Usage
   squinch check <path> [--format json]        parse + lint (dir = project)
   squinch render <path> [options]             render SVG
-  squinch icons search <query> [--pack aws]   find icon ids
+  squinch icons search <q>[, <q>…] [--pack aws]  find icon ids, several terms at once
   squinch init [dir]                          scaffold a starter project
   squinch skill [dir] [options]               install the agent skill (SKILL.md)
   squinch watch <path> [options]              re-render on change
@@ -420,27 +420,42 @@ async function cmdIcons(positionals: string[], flags: Record<string, string | bo
     console.error("usage: squinch icons search <query> [--pack aws]");
     return 2;
   }
-  const query = rest.join(" ");
-  const hits = searchIcons(query, str(flags.pack));
-  if (!hits.length) {
-    console.error(`no icons match \`${query}\``);
-    return 1;
+  // Commas separate queries, so an agent settles every unknown icon in ONE
+  // call — `icons search "queue, vector search, llm"` — instead of a round
+  // trip per node. Spaces still mean one phrase (`api gateway`), which is why
+  // the separator could not be the space rest.join already eats.
+  const queries = rest.join(" ").split(",").map((q) => q.trim()).filter(Boolean);
+  if (!queries.length) {
+    console.error("usage: squinch icons search <query>[, <query>…] [--pack aws]");
+    return 2;
   }
   // Name the short forms on the row. Search returns one row per icon, so
   // without this an author who was told to write `azure/key-vault` sees only
   // `azure/key-vaults` and concludes the documented name is wrong.
-  console.log(
-    hits
-      .map((hit) => {
-        const [pack, id] = [hit.slice(0, hit.indexOf("/")), hit.slice(hit.indexOf("/") + 1)];
-        const short = Object.entries(packInfo(pack)?.aliases ?? {})
-          .filter(([, target]) => target === id)
-          .map(([alias]) => `${pack}/${alias}`);
-        return short.length ? `${hit}  (or ${short.join(", ")})` : hit;
-      })
-      .join("\n"),
-  );
-  return 0;
+  const row = (hit: string) => {
+    const [pack, id] = [hit.slice(0, hit.indexOf("/")), hit.slice(hit.indexOf("/") + 1)];
+    const short = Object.entries(packInfo(pack)?.aliases ?? {})
+      .filter(([, target]) => target === id)
+      .map(([alias]) => `${pack}/${alias}`);
+    return short.length ? `${hit}  (or ${short.join(", ")})` : hit;
+  };
+  let misses = 0;
+  const sections: string[] = [];
+  for (const query of queries) {
+    const { hits, relaxed } = searchIconsDetailed(query, str(flags.pack));
+    const head = queries.length > 1 ? [`— ${query}`] : [];
+    if (!hits.length) {
+      misses++;
+      sections.push([...head, `no icons match \`${query}\``].join("\n"));
+      continue;
+    }
+    // Near-misses beat an empty answer: for the agent loop, `closest:` is the
+    // next move, where a bare exit 1 forced a second search with new words.
+    if (relaxed) head.push(`no exact match for \`${query}\` — closest:`);
+    sections.push([...head, ...hits.map(row)].join("\n"));
+  }
+  console.log(sections.join("\n\n"));
+  return misses === queries.length ? 1 : 0;
 }
 
 const STARTER = `pack aws
