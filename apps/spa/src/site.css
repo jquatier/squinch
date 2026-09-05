@@ -515,8 +515,73 @@ pre code { background: none; padding: 0; font-size: inherit; }
    becomes side margins in the gif's own canvas colour — the bars are
    invisible against the artwork's identical background, so the panel just
    reads as a wider stage. */
-.hero-demo { margin: 0; min-width: 0; align-self: stretch; display: flex; flex-direction: column; }
+/* the grid item is now the wrap, so the mascot has something positioned to
+   hang off; .hero-demo keeps stretching to fill it exactly as before */
+.hero-demo-wrap { position: relative; margin: 0; min-width: 0; align-self: stretch; display: flex; flex-direction: column; }
+.hero-demo { margin: 0; flex: 1; min-height: 0; display: flex; flex-direction: column; }
 .hero-demo img { flex: 1; min-height: 0; width: 100%; height: 100%; object-fit: contain; background: #161618; }
+/* signs the demo panel from its corner — small enough to compete with
+   nothing, close enough to read as part of the panel rather than beside it.
+   He's the last thing to land, well after the mark's own entrance (done by
+   ~1400ms) and the panel's typed prompt: pulled in like a whirlpool, growing
+   from his own center rather than sliding in from a direction — no
+   translate at all, just rotation and scale, so he appears to spin himself
+   into existence on the spot rather than arrive from off-panel. Two full
+   turns, fastest at the start and decelerating into the landing. A
+   full-turn multiple (720deg) always lands him upright at exactly 0deg,
+   which is what makes this safe where a partial, held rotation is not:
+   stopped mid-turn a flat, front-facing figure reads as broken, but a
+   completed spin reads as a flourish. `transform-origin: center` is what
+   makes the growth radiate outward from his middle instead of from a
+   corner. */
+.hero-demo-wrap .mascot {
+  position: absolute;
+  right: -22px;
+  bottom: -20px;
+  height: 108px;
+  width: auto;
+  transform-origin: center;
+  filter: drop-shadow(0 10px 12px rgba(0, 0, 0, 0.55));
+  pointer-events: none;
+  animation: mascot-whirl 950ms 4200ms backwards;
+}
+@keyframes mascot-whirl {
+  0% {
+    transform: rotate(0deg) scale(0.1);
+    opacity: 0;
+    animation-timing-function: cubic-bezier(0.55, 0, 0.35, 1);
+  }
+  12% { opacity: 1; }
+  75% {
+    transform: rotate(720deg) scale(1.08);
+    animation-timing-function: ease-out;
+  }
+  100% { transform: rotate(720deg) scale(1); }
+}
+/* the contact shadow: a second, independent element so it can pulse wider
+   right as he lands (75%) and relax — the cue that sells him as landing on
+   the panel's corner rather than fading into place over it. It only grows
+   and fades, never spins — a shadow has no orientation to spiral through. */
+.hero-demo-wrap .mascot-shadow {
+  position: absolute;
+  right: 44px;
+  bottom: -16px;
+  width: 64px;
+  height: 14px;
+  border-radius: 50%;
+  background: radial-gradient(closest-side, rgba(0, 0, 0, 0.5), transparent 75%);
+  pointer-events: none;
+  animation: mascot-shadow 950ms 4200ms backwards;
+}
+@keyframes mascot-shadow {
+  0% { opacity: 0; transform: scaleX(0.3); animation-timing-function: cubic-bezier(0.55, 0, 0.35, 1); }
+  75% { opacity: 0.55; transform: scaleX(1.2); animation-timing-function: ease-out; }
+  100% { opacity: 0.4; transform: scaleX(1); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .hero-demo-wrap .mascot,
+  .hero-demo-wrap .mascot-shadow { animation: none; }
+}
 
 /* Two brand-hue glows drifting over the hero (the dot grid itself lives on
    body so it runs the full page without a seam at the hero's edge).
@@ -843,7 +908,7 @@ pre code { background: none; padding: 0; font-size: inherit; }
 
 @media (max-width: 1024px) {
   .hero { grid-template-columns: 1fr; gap: 40px; padding-top: 56px; }
-  .hero-demo { max-width: 640px; }
+  .hero-demo-wrap { max-width: 640px; }
   .altitudes { grid-template-columns: 1fr; gap: 28px; }
   .promoted { grid-template-columns: repeat(2, 1fr); }
 }

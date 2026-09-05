@@ -70,18 +70,27 @@
             </ul>
           </nav>
         </main>
-        <figure class="hero-demo panel shadowed">
-          <div class="panel-strip" aria-hidden="true">
-            <span class="dot"></span>
-            prompt<span class="arrow">→</span>products.svg
-          </div>
-          <img
-            src="/prompt-dark.gif"
-            width="940"
-            height="780"
-            alt="A paragraph is typed into a prompt box describing a products API on AWS. A status line reads Thinking, then Using squinch skill, then Finalizing diagram, and the finished diagram rises underneath it, every element from the sentence drawn with its real vendor icon."
-          />
-        </figure>
+        <div class="hero-demo-wrap">
+          <figure class="hero-demo panel shadowed">
+            <div class="panel-strip" aria-hidden="true">
+              <span class="dot"></span>
+              prompt<span class="arrow">→</span>products.svg
+            </div>
+            <img
+              src="/prompt-dark.gif"
+              width="940"
+              height="780"
+              alt="A paragraph is typed into a prompt box describing a products API on AWS. A status line reads Thinking, then Using squinch skill, then Finalizing diagram, and the finished diagram rises underneath it, every element from the sentence drawn with its real vendor icon."
+            />
+          </figure>
+          <!-- The mascot signs the demo panel from its corner: a brand touch
+               that competes with nothing, since the panel is the pitch and he
+               only ever overlaps its frame. Decorative, so the alt is empty.
+               The shadow beneath him is a separate element so it can pulse on
+               landing independently of his own rise. -->
+          <span class="mascot-shadow" aria-hidden="true"></span>
+          <img class="mascot" src="/mascot.png" width="241" height="240" loading="lazy" alt="" />
+        </div>
       </div>
     </div>
 

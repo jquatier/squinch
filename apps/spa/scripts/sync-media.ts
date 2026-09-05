@@ -29,6 +29,12 @@ const FILES: [string, string][] = [
   ["prompt-dark.gif", "prompt-dark.gif"],
   ["zoom-light.gif", "zoom-light.gif"],
   ["zoom-dark.gif", "zoom-dark.gif"],
+  // The mascot signs the hero demo panel's corner. mascot.png is the full
+  // drawing (1246px, 1.4MB) and stays in docs/assets as the master; the site
+  // serves mascot-web.png, the same drawing trimmed to its alpha bounds and
+  // resampled to 240px tall — 2x its largest rendered height — and reduced
+  // to a 256-colour palette (~18KB). Regenerate with scripts/mascot-web.mts.
+  ["mascot-web.png", "mascot.png"],
 ];
 for (const [from, to] of FILES) copyFileSync(join(assetsDir, from), join(publicDir, to));
 
