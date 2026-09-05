@@ -945,6 +945,11 @@ pre code { background: none; padding: 0; font-size: inherit; }
   .index li:last-child { border-bottom: none; }
   .cmd-row { grid-template-columns: 1fr; gap: 6px; }
   .site-foot { justify-content: center; text-align: center; }
+  /* smaller on phones: the panel itself has narrowed, so the same 108px
+     figure reads as too large a fraction of it — offsets scale down with him
+     so he still sits over the corner rather than drifting off it */
+  .hero-demo-wrap .mascot { height: 76px; right: -15px; bottom: -14px; }
+  .hero-demo-wrap .mascot-shadow { width: 46px; height: 10px; right: 31px; bottom: -11px; }
 }
 @media (max-width: 480px) {
   .hero-links { grid-template-columns: 1fr; }
