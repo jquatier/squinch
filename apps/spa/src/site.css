@@ -123,6 +123,7 @@ pre code { background: none; padding: 0; font-size: inherit; }
 }
 .btn-ghost:hover { text-decoration: none; background: var(--control); border-color: var(--text-faint); }
 .btn-ghost[href^="https://"]::after { content: "↗" / ""; font-size: 0.85em; opacity: 0.7; }
+.gh-mark { width: 14px; height: 14px; flex: none; fill: currentColor; }
 
 /* A bordered panel: the surface every card, render well and GIF frame share. */
 .panel {
