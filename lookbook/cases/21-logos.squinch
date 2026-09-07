@@ -45,4 +45,7 @@ view landscape {
   title "Modern stack"
   include *
   legend auto
+  layout {
+    rows [dev] [gh app] [ops data stripe]
+  }
 }
