@@ -2,6 +2,8 @@
 // docs), full-colour artwork like aws/azure — no plate, no tint. Canonical ids
 // are kubectl's short names and the long forms alias to them; both spellings
 // appear here. A namespace draws as a zone with `icon: k8s/ns`, not as a node.
+// The two namespaces share a row, and the cross-namespace `reads` call routes
+// through the gutter between them and lands on the service itself.
 pack k8s
 
 person dev "Developer"
@@ -54,4 +56,5 @@ view cluster {
   expand orders
   expand batch
   legend auto
+  layout { rows [dev] [ing api] [batch orders] }
 }

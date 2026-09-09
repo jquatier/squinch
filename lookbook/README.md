@@ -310,7 +310,7 @@ Source: [`cases/26-route-label.squinch`](cases/26-route-label.squinch)
 
 ## K8s
 
-The k8s pack: official community icons (the blue heptagons from the kubernetes docs), full-colour artwork like aws/azure — no plate, no tint. Canonical ids are kubectl's short names and the long forms alias to them; both spellings appear here. A namespace draws as a zone with `icon: k8s/ns`, not as a node.
+The k8s pack: official community icons (the blue heptagons from the kubernetes docs), full-colour artwork like aws/azure — no plate, no tint. Canonical ids are kubectl's short names and the long forms alias to them; both spellings appear here. A namespace draws as a zone with `icon: k8s/ns`, not as a node. The two namespaces share a row, and the cross-namespace `reads` call routes through the gutter between them and lands on the service itself.
 
 Source: [`cases/27-k8s.squinch`](cases/27-k8s.squinch)
 
