@@ -441,9 +441,10 @@ to context cards still lift. Full detail *means* de-aggregated.
 Same-rank edges between the interiors of two units — expanded containers or
 zones, banded side by side by a `rows` line — route **wall-to-wall**: the wire
 leaves one boundary at its leaf's height, crosses the gutter — jogging at
-mid-gutter when the two heights differ — and enters the other's. A leaf inside
-nested zones routes from the outermost boundary (docs/notes/coplanar.md,
-approaches #5 and #6).
+mid-gutter when the two heights differ — and enters the other's. Each end then
+continues straight to the leaf's own edge when the corridor between boundary
+and leaf is empty, and stops at the boundary otherwise; it never turns inside
+a container or zone (docs/notes/coplanar.md, approaches #5 and #6).
 
 ### Zoom navigation
 

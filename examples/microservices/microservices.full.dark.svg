@@ -86,16 +86,16 @@
 <path d="M 939 627 L 945 619 L 933 619 Z" fill="#8D8C84"/>
 </g>
 <g>
-<path d="M 459 659 L 327 659" fill="none" stroke="#8D8C84" stroke-width="1.5"/>
-<path d="M 327 659 L 335 653 L 335 665 Z" fill="#8D8C84"/>
+<path d="M 522 659 L 256 659" fill="none" stroke="#8D8C84" stroke-width="1.5"/>
+<path d="M 256 659 L 264 653 L 264 665 Z" fill="#8D8C84"/>
 </g>
 <g>
-<path d="M 459 885 L 401 885 Q 393 885 393 877 L 393 683 Q 393 675 385 675 L 327 675" fill="none" stroke="#8D8C84" stroke-width="1.5"/>
-<path d="M 327 675 L 335 669 L 335 681 Z" fill="#8D8C84"/>
+<path d="M 475 885 L 401 885 Q 393 885 393 877 L 393 683 Q 393 675 385 675 L 256 675" fill="none" stroke="#8D8C84" stroke-width="1.5"/>
+<path d="M 256 675 L 264 669 L 264 681 Z" fill="#8D8C84"/>
 </g>
 <g>
-<path d="M 728 659 L 843 659" fill="none" stroke="#8D8C84" stroke-width="1.5"/>
-<path d="M 843 659 L 835 665 L 835 653 Z" fill="#8D8C84"/>
+<path d="M 682 659 L 859 659" fill="none" stroke="#8D8C84" stroke-width="1.5"/>
+<path d="M 859 659 L 851 665 L 851 653 Z" fill="#8D8C84"/>
 </g>
 <g data-path="customer" data-kind="person">
 <rect x="445" y="32" width="160" height="56" rx="8" fill="url(#sq-actor)" filter="url(#sq-shadow)"/>

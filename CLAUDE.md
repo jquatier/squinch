@@ -270,8 +270,9 @@ lay out wide — hiding the edge from ELK is the entire co-ranking mechanism,
 and the router's wires carry `coplanar: true` so the invariant sweep can hold
 them to crossing nothing. Approach #6 (2026-09) admitted zones as units on
 the same terms — the old "cannot cross a zone boundary" warning is gone, not
-reworded, because nothing is unroutable any more. Interior routing stays
-deliberately unbuilt.
+reworded, because nothing is unroutable any more — and let each end continue
+past the wall to the leaf itself when the corridor between them is provably
+empty (never turning inside a compound; that interior is still ELK's).
 The hand-built spike harness that proved this is retired, and its canonical
 oracle followed (2026-08): label-space reservation legitimately moves node
 positions, so second-implementation parity stopped being a meaningful claim.

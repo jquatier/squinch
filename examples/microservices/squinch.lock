@@ -1,5 +1,5 @@
 {
-  "version": "0.0.0",
+  "version": "0.2.0",
   "files": {
     "microservices.landscape.light.svg": "2733cc2c955124f0",
     "microservices.landscape.dark.svg": "8b83b37a245c3672",
@@ -13,7 +13,7 @@
     "microservices.orders-pci.dark.svg": "9ffa685b0ae6f5b4",
     "microservices.checkout.light.svg": "4533af4f143e07e0",
     "microservices.checkout.dark.svg": "89b0e7e2d1f04777",
-    "microservices.full.light.svg": "8f6c97df1db04a79",
-    "microservices.full.dark.svg": "016660b22d835432"
+    "microservices.full.light.svg": "e233c37928c12cb2",
+    "microservices.full.dark.svg": "74f433b2e97cdf41"
   }
 }

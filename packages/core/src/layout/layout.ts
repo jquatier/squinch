@@ -1117,18 +1117,47 @@ export async function layoutView(
     const b = routeRect(e.to);
     const blocked = blockedBy(e, a, b);
     const midCross = (n: RRect) => n[cross] + Math.round(n[crossSize] / 2);
-    /** The cross-coordinate the wire wants at an endpoint. A framed leaf pulls
-     *  the wire to its own height so the wall entry sits beside it — clamped
-     *  into the pair's shared cross-overlap band, because frames on one layer
-     *  are top-aligned with unequal sizes and an unclamped anchor could miss
-     *  the other rect entirely. */
-    const wantCross = (p: string, own: RRect, other: RRect): number => {
+    /** The cross-coordinate the wire wants at an endpoint: the interior leaf's
+     *  own height, so the entry sits beside it, clamped into its unit's rect.
+     *  Approach #5 clamped into the pair's *shared* band so a straight run could
+     *  not miss the other rect; the jog handles any pair of heights, and the
+     *  shared clamp is what parked an entry away from a low leaf and stopped
+     *  the corridor below from ever reaching it. */
+    const wantCross = (p: string, own: RRect): number => {
       const leaf = byPath.has(p) ? nodeById.get(p) : undefined;
       const raw = leaf ? midCross(leaf) : midCross(own);
-      const lo = Math.max(own[cross], other[cross]) + 12;
-      const hi = Math.min(own[cross] + own[crossSize], other[cross] + other[crossSize]) - 12;
-      if (lo > hi) return NaN; // no shared band — shelf territory
-      return Math.min(Math.max(raw, lo), hi);
+      return Math.min(Math.max(raw, own[cross] + 12), own[cross] + own[crossSize] - 12);
+    };
+    /** Approach #6: walk a unit-wall entry inward to the leaf's own wall when
+     *  the straight corridor between them is provably empty — no node but the
+     *  leaf, no frame that does not enclose it, ±16 on the cross axis. Zone
+     *  boundaries are not obstacles; ELK's wires cross them too. The port then
+     *  sits on the leaf's face, so parallel wires spread *there* rather than
+     *  converging on one point after the wall. Anything else keeps the wall as
+     *  the end, exactly as approach #5 drew it — the wire never jogs inside a
+     *  compound, that interior is ELK's. */
+    const inward = (p: string, unit: RRect, side: Side, want: number) => {
+      const wallOf = (r: RRect) => (side === highSide ? r[along] + r[alongSize] : r[along]);
+      const atWall = () => {
+        const c = freePort(unit, side, want);
+        return { c, end: pt(wallOf(unit), c), node: unit.path };
+      };
+      const leaf = byPath.has(p) ? nodeById.get(p) : undefined;
+      if (!leaf || leaf.path === unit.path) return atWall();
+      const lo = Math.min(wallOf(unit), wallOf(leaf)), hi = Math.max(wallOf(unit), wallOf(leaf));
+      const clear = (c: number) => {
+        if (c < leaf[cross] + 8 || c > leaf[cross] + leaf[crossSize] - 8) return false;
+        const hit = (r: { x: number; y: number; w: number; h: number }) =>
+          r[along] < hi && r[along] + r[alongSize] > lo && r[cross] - 16 < c && r[cross] + r[crossSize] + 16 > c;
+        return (
+          !nodes.some((n) => n.path !== leaf.path && hit(n)) &&
+          !frames.some((f) => !leaf.path.startsWith(`${f.path}.`) && hit(f))
+        );
+      };
+      if (!clear(want)) return atWall();
+      const c = freePort(leaf, side, want);
+      if (!clear(c)) return atWall();
+      return { c, end: pt(wallOf(leaf), c), node: leaf.path };
     };
     const carry = { label: e.label, async: e.async, animate: e.animate, style: e.style, count: e.count, tags: e.tags, color: e.color, heads: e.heads };
     // The router owns coplanar geometry, so it reserves and reports
@@ -1166,30 +1195,31 @@ export async function layoutView(
       );
       return { id: e.id, from: e.from, to: e.to, ...carry, points: pts, labelRect, coplanar: true as const };
     }
-    const aWant = wantCross(e.from, a, b);
-    const bWant = wantCross(e.to, b, a);
-    if (!blocked && !Number.isNaN(aWant) && !Number.isNaN(bWant)) {
+    if (!blocked) {
       const first = a[along] <= b[along];
       const [aSide, bSide]: [Side, Side] = first ? [highSide, lowSide] : [lowSide, highSide];
-      // freePort spreads parallel wall entries 16 apart; when both entries
-      // stay put and agree, the run is straight — otherwise it jogs at
-      // mid-gutter, which also gives every stub gutter/2 ≥ 24 of clearance
-      const aC = freePort(a, aSide, aWant);
-      const bC = freePort(b, bSide, bWant);
+      // freePort spreads parallel entries 16 apart on whichever face the wire
+      // ends on; when both entries stay put and agree, the run is straight —
+      // otherwise it jogs at mid-gutter, which also gives every stub
+      // gutter/2 ≥ 24 of clearance. The pill always sits on the gutter run,
+      // between the two unit walls, whether or not the ends reached inward.
+      const ia = inward(e.from, a, aSide, wantCross(e.from, a));
+      const ib = inward(e.to, b, bSide, wantCross(e.to, b));
+      const [aC, bC] = [ia.c, ib.c];
       const aWall = first ? a[along] + a[alongSize] : a[along];
       const bWall = first ? b[along] : b[along] + b[alongSize];
       if (aC === bC) {
-        const pts = [pt(aWall, aC), pt(bWall, aC)];
+        const pts = [ia.end, ib.end];
         const labelRect = rectOnRun(Math.min(aWall, bWall), Math.max(aWall, bWall), aC);
         ports.push(
-          { edge: e.id, node: a.path, side: aSide, x: pts[0].x, y: pts[0].y },
-          { edge: e.id, node: b.path, side: bSide, x: pts[1].x, y: pts[1].y },
+          { edge: e.id, node: ia.node, side: aSide, x: pts[0].x, y: pts[0].y },
+          { edge: e.id, node: ib.node, side: bSide, x: pts[1].x, y: pts[1].y },
         );
         return { id: e.id, from: e.from, to: e.to, ...carry, points: pts, labelRect, coplanar: true as const };
       }
       // jog: 4-point Z at mid-gutter — the pill sits on the crossing segment
       const mid = Math.round((Math.min(aWall, bWall) + Math.max(aWall, bWall)) / 2);
-      const pts = [pt(aWall, aC), pt(mid, aC), pt(mid, bC), pt(bWall, bC)];
+      const pts = [ia.end, pt(mid, aC), pt(mid, bC), ib.end];
       const labelRect = e.label
         ? (() => {
             const bw = badgeW(e.id);
@@ -1200,8 +1230,8 @@ export async function layoutView(
           })()
         : undefined;
       ports.push(
-        { edge: e.id, node: a.path, side: aSide, x: pts[0].x, y: pts[0].y },
-        { edge: e.id, node: b.path, side: bSide, x: pts[3].x, y: pts[3].y },
+        { edge: e.id, node: ia.node, side: aSide, x: pts[0].x, y: pts[0].y },
+        { edge: e.id, node: ib.node, side: bSide, x: pts[3].x, y: pts[3].y },
       );
       return { id: e.id, from: e.from, to: e.to, ...carry, points: pts, labelRect, coplanar: true as const };
     }

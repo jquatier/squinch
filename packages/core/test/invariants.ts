@@ -166,6 +166,25 @@ export function checkLayout(p: Positioned, ctx: Ctx = {}): string[] {
     }
   }
 
+  // ── router wires end on something ───────────────────────────────────────
+  // Approach #6 lets a wire continue past a unit wall to its leaf; either way
+  // each end must sit ON a boundary — the endpoint leaf's, an enclosing
+  // frame's, or a zone's — never floating in a gutter or inside a card.
+  const onBoundary = (q: { x: number; y: number }, r: { x: number; y: number; w: number; h: number }) =>
+    ((q.x === r.x || q.x === r.x + r.w) && q.y >= r.y && q.y <= r.y + r.h) ||
+    ((q.y === r.y || q.y === r.y + r.h) && q.x >= r.x && q.x <= r.x + r.w);
+  for (const e of p.edges.filter((x) => x.coplanar)) {
+    for (const [path, q] of [[e.from, e.points[0]], [e.to, e.points[e.points.length - 1]]] as const) {
+      const rects = [
+        ...nodes.filter((n) => n.path === path),
+        ...p.frames.filter((f) => f.path === path || path.startsWith(`${f.path}.`)),
+        ...p.zones,
+      ];
+      if (!rects.some((r) => onBoundary(q, r)))
+        bad.push(`coplanar wire ${e.id} ends at (${q.x},${q.y}), on no boundary of ${path}`);
+    }
+  }
+
   if (ctx.zoneMembers)
     for (const z of p.zones) {
       const members = ctx.zoneMembers.get(z.id) ?? [];

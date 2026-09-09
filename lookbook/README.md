@@ -362,7 +362,7 @@ Source: [`cases/31-full-detail.squinch`](cases/31-full-detail.squinch)
 
 ## Coplanar Frames
 
-Expanded systems side by side, with calls running between them. Same-rank cross-frame edges route wall-to-wall through the gutters reserved between the frames — straight when the endpoints share a height, a mid-gutter jog when they don't — so a row of open systems stays a row.
+Expanded systems side by side, with calls running between them. Same-rank cross-frame edges route through the gutters reserved between the frames — straight when the endpoints share a height, a mid-gutter jog when they don't — and continue to the card itself wherever the way in is clear, so a row of open systems stays a row and two calls into one API land on its own face.
 
 Source: [`cases/32-coplanar-frames.squinch`](cases/32-coplanar-frames.squinch)
 

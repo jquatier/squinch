@@ -711,7 +711,7 @@ gw -> c.m
     return layoutView(built.model, built.model.views.find((x) => x.name === "v")!);
   };
 
-  it("adjacent frames on one declared row: straight wall-to-wall, row holds", async () => {
+  it("adjacent frames on one declared row: straight through the gutter, reaching both leaves, row holds", async () => {
     const { positioned, diagnostics } = await lay(`a.x -> b.p "call"\n`, "rows [gw] [a b c]");
     expect(diagnostics.filter((d) => d.severity === "error" || d.severity === "warning")).toEqual([]);
     const [fa, fb] = [positioned.frames.find((f) => f.path === "a")!, positioned.frames.find((f) => f.path === "b")!];
@@ -719,10 +719,40 @@ gw -> c.m
     expect(fa.y < fb.y + fb.h && fb.y < fa.y + fa.h).toBe(true);
     const e = positioned.edges.find((x) => x.from === "a.x" && x.to === "b.p")!;
     expect(e.points.length).toBe(2); // straight
-    // the run spans the gutter between the two frame walls
-    expect(Math.min(...e.points.map((p) => p.x))).toBe(fa.x + fa.w);
-    expect(Math.max(...e.points.map((p) => p.x))).toBe(fb.x);
-    expect(e.labelRect).toBeTruthy(); // pill reserved on the run
+    // approach #6: the corridor from each wall to its leaf is empty, so the
+    // run ends on the leaves themselves, not the frame walls
+    const [nx, np] = [positioned.nodes.find((n) => n.path === "a.x")!, positioned.nodes.find((n) => n.path === "b.p")!];
+    expect(Math.min(...e.points.map((p) => p.x))).toBe(nx.x + nx.w);
+    expect(Math.max(...e.points.map((p) => p.x))).toBe(np.x);
+    // …while the pill stays on the gutter run, between the two frame walls
+    expect(e.labelRect).toBeTruthy();
+    expect(e.labelRect!.x).toBeGreaterThanOrEqual(fa.x + fa.w);
+    expect(e.labelRect!.x + e.labelRect!.w).toBeLessThanOrEqual(fb.x);
+    // and the ports moved with the ends, onto the leaf faces
+    expect(positioned.ports.filter((p) => p.edge === e.id).map((p) => p.node).sort()).toEqual(["a.x", "b.p"]);
+  });
+
+  it("a blocked corridor stops at the wall; parallel wires into one leaf spread on its face", async () => {
+    // b holds p and q side by side (both fed by gw, no edge between them, so
+    // ELK puts them on one layer, p first by model order): the corridor from
+    // b's west wall to q runs straight through p, so the wire keeps the wall.
+    const blocked = await layZones(
+      `system a "A" { x = box "X" }\nsystem b "B" { p = box "P"; q = box "Q" }\ngw = box "GW"\ngw -> a.x\ngw -> b.p\ngw -> b.q\na.x -> b.q "into q"\n`,
+      "view v {\n expand *\n layout { rows [gw] [a b] }\n}",
+    );
+    const fb = blocked.positioned.frames.find((f) => f.path === "b")!;
+    const [np, nq] = [blocked.positioned.nodes.find((n) => n.path === "b.p")!, blocked.positioned.nodes.find((n) => n.path === "b.q")!];
+    expect(np.x).toBeLessThan(nq.x); // the premise: p sits between the wall and q
+    const eq = blocked.positioned.edges.find((x) => x.from === "a.x" && x.to === "b.q")!;
+    expect(Math.max(...eq.points.map((p) => p.x))).toBe(fb.x);
+    expect(blocked.positioned.ports.find((p) => p.edge === eq.id && p.side === "west")!.node).toBe("b");
+    // two frames both calling a.x: both reach the leaf, on distinct ports
+    const fan = await lay(`b.p -> a.x "one"\nc.m -> a.x "two"\n`, "rows [gw] [b a c]");
+    expect(checkLayout(fan.positioned)).toEqual([]);
+    const ax = fan.positioned.nodes.find((n) => n.path === "a.x")!;
+    const arrivals = fan.positioned.ports.filter((p) => p.node === "a.x" && (p.side === "west" || p.side === "east"));
+    expect(arrivals.length).toBe(2);
+    for (const p of arrivals) expect(p.x === ax.x || p.x === ax.x + ax.w).toBe(true);
   });
 
   it("mismatched heights jog at mid-gutter with stubs ≥ 16", async () => {
@@ -797,10 +827,13 @@ zone z2 "Z2" vpc { contains zb }
     expect(z1.y < z2.y + z2.h && z2.y < z1.y + z1.h).toBe(true);
     const e = positioned.edges.find((x) => x.from === "za" && x.to === "zb")!;
     expect(e.coplanar).toBe(true);
-    expect(e.labelRect).toBeTruthy();
-    // the run spans the gutter between the two zone walls
-    expect(Math.min(...e.points.map((p) => p.x))).toBe(z1.x + z1.w);
-    expect(Math.max(...e.points.map((p) => p.x))).toBe(z2.x);
+    // the run crosses the gutter between the two zone walls and continues to
+    // the leaves (approach #6); the pill stays between the walls
+    const [na, nb] = [positioned.nodes.find((n) => n.path === "za")!, positioned.nodes.find((n) => n.path === "zb")!];
+    expect(Math.min(...e.points.map((p) => p.x))).toBe(na.x + na.w);
+    expect(Math.max(...e.points.map((p) => p.x))).toBe(nb.x);
+    expect(e.labelRect!.x).toBeGreaterThanOrEqual(z1.x + z1.w);
+    expect(e.labelRect!.x + e.labelRect!.w).toBeLessThanOrEqual(z2.x);
   });
 
   it("zone to bare leaf, zone to expanded frame, and a nested zone all route", async () => {
@@ -811,9 +844,12 @@ zone z2 "Z2" vpc { contains zb }
     const nested = await layZones(`a = box "A"\nb = box "B"\nc = box "C"\nw = box "W"\nw -> a\nw -> c\na -> c "out"\nzone outer "Outer" vpc { contains a, b }\nzone inner "Inner" subnet { contains a }\nzone other "Other" vpc { contains c }\n`, "view v {\n layout { rows [w] [a c] }\n}");
     const e = nested.positioned.edges.find((x) => x.from === "a" && x.to === "c")!;
     expect(e.coplanar).toBe(true);
-    // the wire leaves from the *outermost* zone's wall, not the inner one's
+    // the wire leaves the leaf itself and crosses both zone boundaries — zone
+    // rects are not corridor obstacles — with the pill past the outer wall
+    const na = nested.positioned.nodes.find((n) => n.path === "a")!;
     const outer = nested.positioned.zones.find((z) => z.id === "outer")!;
-    expect(Math.min(...e.points.map((p) => p.x))).toBe(outer.x + outer.w);
+    expect(Math.min(...e.points.map((p) => p.x))).toBe(na.x + na.w);
+    expect(e.labelRect!.x).toBeGreaterThanOrEqual(outer.x + outer.w);
   });
 
   it("a zone between the pair sends the wire below the row, and direction right transposes", async () => {
