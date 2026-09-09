@@ -395,6 +395,26 @@ view v {
     expect(pinned.svg).not.toBe(loose.svg);
   });
 
+  it("two zones in one band with an edge between them hold the row, without a warning", async () => {
+    // The old rule sent any same-rank edge touching a zone back to ELK with a
+    // warning whose only advice was to stop asking, and ELK then re-layered
+    // the zones apart — so `rows [batch orders]` on two namespaces silently
+    // stacked them. Zones are router units now (coplanar.md, approach #6).
+    const src = `${SRC}zone z1 "Z1" account { contains a }
+zone z2 "Z2" account { contains b }
+view v {
+  include *
+  layout { rows [a b] [c] }
+}
+`;
+    const built = buildModel(src);
+    const r = await layoutView(built.model, built.model.views.find((v) => v.name === "v")!);
+    expect(r.diagnostics.filter((d) => d.severity === "warning" || d.severity === "error")).toEqual([]);
+    const [z1, z2] = [r.positioned.zones.find((z) => z.id === "z1")!, r.positioned.zones.find((z) => z.id === "z2")!];
+    expect(z1.y < z2.y + z2.h && z2.y < z1.y + z1.h).toBe(true);
+    expect(r.positioned.edges.find((e) => e.from === "a" && e.to === "b")?.coplanar).toBe(true);
+  });
+
   it("still reports a real rank conflict when no zone is involved", async () => {
     const src = `${SRC}view v {
   include *

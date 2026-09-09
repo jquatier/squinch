@@ -54,9 +54,29 @@ foreign wire through them re-opens the stub violations that took a gate cycle
 to close. Wall-to-wall with leaf-height entries gets the read ("orders calls
 catalog, at this row") for a fraction of the machinery; most frame interiors
 are one column wide, so the entry visually sits beside its leaf anyway. No
-revisit trigger while ELK owns interiors. Same-rank **zone** pairs keep the
-warning (a dashed zone boundary is not a wall a wire can enter); the router's
-unit-rect shape accepts zone rects if a real diagram ever needs it.
+revisit trigger while ELK owns interiors.
+
+## Approach #6: zones are units too (2026-09, adopted)
+
+Approach #5 turned same-rank **zone** pairs away with a warning, on the
+grounds that a dashed zone boundary is not a wall a wire can enter. That
+reason did not survive the first real diagram: ELK's own wires enter zones
+constantly (every cross-rank edge into a namespace does), and lookbook
+`27-k8s` — two namespaces, `rows [batch orders]`, one `reads` edge between
+them — silently stacked the zones with a warning whose only advice was to
+stop asking. SPEC §zones had promised `rows` could pin a zone all along.
+
+The fix is the four lines the sentence above predicted: the coplanar filter
+no longer excludes zoned endpoints, `routeRect` resolves a zoned leaf to its
+*outermost* zone's rect, and the zone compound carries the same labelled
+gutter reservation a frame does. The warning is deleted rather than reworded
+— after the change no same-rank pair is unroutable, so there is nothing left
+for it to say. Measured against the whole gallery corpus (162 views): zero
+renders change, because the only edges whose classification moves are the
+ones that used to warn, and none of the shipped diagrams carried one.
+
+What stays the same: a nested zone routes from the outermost boundary, the
+shelf measures over zone rects, and the interior is still ELK's.
 
 ## What this means for the router
 

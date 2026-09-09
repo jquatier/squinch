@@ -496,13 +496,16 @@ export async function layoutView(
   // ── edge classes: inner (same entity) | coplanar (same rank, both bare) |
   //    cross-rank (ELK's) ────────────────────────────────────────────────────
   const inner = (e: VEdge) => entityOf(e.from) === entityOf(e.to) && byPath.get(e.from)?.frame;
-  // The coplanar router handles bare leaves, leaves inside expanded frames,
-  // and expanded frames themselves — a framed endpoint routes wall-to-wall
-  // between the outermost frame rects (docs/notes/coplanar.md, approach #5).
-  // Zone units stay out: a zone lays out as one block and its dashed boundary
-  // is not a wall a wire can enter, so those edges go to ELK with the warning
-  // below. Classifying an edge coplanar (hiding it from ELK) IS the entire
-  // same-rank mechanism — there is no other way to co-layer its units.
+  // The coplanar router handles bare leaves and leaves inside any unit — an
+  // expanded frame or a zone — plus frames named as endpoints. A unit endpoint
+  // routes between the two *outermost* unit rects, then inward to the leaf
+  // when the corridor is clear (docs/notes/coplanar.md, approaches #5 and #6).
+  // Zones used to be turned away on the grounds that a dashed boundary is not
+  // a wall a wire can enter; ELK's own wires enter zones constantly, and the
+  // first real diagram that banded two namespaces on one row (lookbook 27-k8s)
+  // fell apart on that rule. Classifying an edge coplanar (hiding it from ELK)
+  // IS the entire same-rank mechanism — there is no other way to co-layer its
+  // units.
   const framePathSet = new Set(graph.frames.map((f) => f.path));
   const routable = (p: string) => byPath.has(p) || framePathSet.has(p);
   const coplanar = edges.filter(
@@ -510,25 +513,10 @@ export async function layoutView(
       !inner(e) &&
       routable(e.from) &&
       routable(e.to) &&
-      !outerZoneOf(entityOf(e.from)) &&
-      !outerZoneOf(entityOf(e.to)) &&
       unitOf(e.from) !== unitOf(e.to) &&
       rank.get(unitOf(e.from)) === rank.get(unitOf(e.to)),
   );
   const coplanarSet = new Set(coplanar.map((e) => e.id));
-  for (const e of edges) {
-    if (
-      !inner(e) && !coplanarSet.has(e.id) &&
-      unitOf(e.from) !== unitOf(e.to) &&
-      rank.get(unitOf(e.from)) === rank.get(unitOf(e.to))
-    )
-      diagnostics.push({
-        severity: "warning",
-        message: `same-rank edge ${e.from} → ${e.to} involves a zone — the router cannot cross a zone boundary, so the row may not hold`,
-        fix: `give the zone its own band in \`rows\`, or drop one end from the zone`,
-        loc: view.loc,
-      });
-  }
   const elkEdges = edges.filter((e) => !coplanarSet.has(e.id));
 
   const natural = new Map(units.map((p) => [p, 0]));
@@ -828,6 +816,12 @@ export async function layoutView(
       // wrong. DESIGN §2's rule is about numbers chosen from a deliberate
       // scale, not arithmetic for its own sake, and this pair is the scale.
       "elk.padding": "[top=28,left=20,bottom=20,right=20]",
+      // a labelled zone-coplanar edge widens the gutter to its pill, exactly
+      // as entityElk does for frames — a zone is a unit, and the reservation
+      // is keyed by unit
+      ...(coplanarGutter.get(z.id)
+        ? { "elk.spacing.individual": `elk.spacing.nodeNode:${coplanarGutter.get(z.id)}` }
+        : {}),
       "elk.spacing.nodeNode": String(SP[0]),
       "elk.layered.spacing.nodeNodeBetweenLayers": hasElkLabels ? String(LABEL_GAP) : String(SP[1]),
       // see entityElk: ELK does not inherit edge spacing into a compound
@@ -1074,15 +1068,16 @@ export async function layoutView(
   // coplanar edges cannot collide anyway: a second target on the same side is
   // either blocked by the first or overlapping it.
 
-  // Routing rects: a bare leaf routes by its own rect; a framed leaf (or a
-  // frame endpoint) routes wall-to-wall by its *outermost* frame's rect —
-  // the interior stays ELK's on both axes (coplanar.md, approach #5).
+  // Routing rects: a bare leaf routes by its own rect; a leaf inside a unit
+  // (or a frame endpoint) routes by its *outermost* unit's rect — frame or
+  // zone — and the interior stays ELK's on both axes (coplanar.md, #5).
   type RRect = { path: string; x: number; y: number; w: number; h: number };
   const frameByPath = new Map<string, RRect>(frames.map((f) => [f.path, f]));
   const zoneRectById = new Map<string, RRect>(pZones.map((z) => [z.id, { path: z.id, ...z }]));
-  // a frame is its own unit, so try the frame rect first — the leaf branch is
-  // only for endpoints that are genuinely bare nodes
-  const routeRect = (p: string): RRect => frameByPath.get(unitOf(p)) ?? nodeById.get(p)!;
+  // a frame or zone is its own unit, so try those rects first — the leaf
+  // branch is only for endpoints that are genuinely bare nodes
+  const routeRect = (p: string): RRect =>
+    frameByPath.get(unitOf(p)) ?? zoneRectById.get(unitOf(p)) ?? nodeById.get(p)!;
   /** Every unit's rect on a rank — the obstacle set for blockedness. Unlike
    *  the old leaf-only scan this sees frames and zones too, so a coplanar
    *  wire no longer threads straight through a boundary it never noticed. */

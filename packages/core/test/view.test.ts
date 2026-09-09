@@ -5,6 +5,7 @@ import { join, dirname } from "node:path";
 import { buildModel } from "../src/model/build.js";
 import { resolveView } from "../src/view/resolve.js";
 import { render, validateSVG } from "../src/index.js";
+import { checkLayout } from "./invariants.js";
 
 const pkg = join(dirname(fileURLToPath(import.meta.url)), "..");
 const src = readFileSync(join(pkg, "examples/landscape.squinch"), "utf8");
@@ -766,8 +767,10 @@ gw -> c.m
     expect(e.points.length).toBeGreaterThanOrEqual(2);
   });
 
-  it("zone-involved same-rank edges keep the warning, now with a fix", async () => {
-    const src = `za = box "ZA"
+  // Zones are units too (approach #6). They used to be turned away with a
+  // warning whose only advice was to stop asking; the first real diagram that
+  // banded two namespaces on one row (lookbook 27-k8s) fell apart on it.
+  const ZONES = `za = box "ZA"
 zb = box "ZB"
 w = box "W"
 w -> za
@@ -775,15 +778,53 @@ w -> zb
 za -> zb "cross"
 zone z1 "Z1" vpc { contains za }
 zone z2 "Z2" vpc { contains zb }
-view v {
-  layout { rows [w] [za zb] }
-}`;
+`;
+  const layZones = async (src: string, view: string) => {
     const { layoutView } = await import("../src/layout/layout.js");
-    const built = buildModel(src);
+    const built = buildModel(`${src}${view}`);
+    expect(built.diagnostics.filter((d) => d.severity === "error")).toEqual([]);
     const r = await layoutView(built.model, built.model.views.find((x) => x.name === "v")!);
-    const warn = r.diagnostics.find((d) => d.message.includes("involves a zone"))!;
-    expect(warn.severity).toBe("warning");
-    expect(warn.fix).toContain("rows");
+    const bad = checkLayout(r.positioned, { zoneMembers: new Map(built.model.zones.map((z) => [z.id, z.members])) });
+    expect(bad).toEqual([]);
+    return r;
+  };
+
+  it("a same-rank edge between two zones routes coplanar, and the row holds", async () => {
+    const { positioned, diagnostics } = await layZones(ZONES, "view v {\n layout { rows [w] [za zb] }\n}");
+    expect(diagnostics.filter((d) => d.severity === "error" || d.severity === "warning")).toEqual([]);
+    const [z1, z2] = [positioned.zones.find((z) => z.id === "z1")!, positioned.zones.find((z) => z.id === "z2")!];
+    // the row held: the zones overlap vertically instead of stacking
+    expect(z1.y < z2.y + z2.h && z2.y < z1.y + z1.h).toBe(true);
+    const e = positioned.edges.find((x) => x.from === "za" && x.to === "zb")!;
+    expect(e.coplanar).toBe(true);
+    expect(e.labelRect).toBeTruthy();
+    // the run spans the gutter between the two zone walls
+    expect(Math.min(...e.points.map((p) => p.x))).toBe(z1.x + z1.w);
+    expect(Math.max(...e.points.map((p) => p.x))).toBe(z2.x);
+  });
+
+  it("zone to bare leaf, zone to expanded frame, and a nested zone all route", async () => {
+    const leaf = await layZones(`za = box "ZA"\nb = box "Bare"\nw = box "W"\nw -> za\nw -> b\nza -> b "to leaf"\nzone z1 "Z1" vpc { contains za }\n`, "view v {\n layout { rows [w] [za b] }\n}");
+    expect(leaf.positioned.edges.find((x) => x.from === "za" && x.to === "b")!.coplanar).toBe(true);
+    const frame = await layZones(`za = box "ZA"\nsystem f "F" { x = box "X"; y = box "Y"; x -> y }\nw = box "W"\nw -> za\nw -> f.x\nza -> f.y "to frame leaf"\nzone z1 "Z1" vpc { contains za }\n`, "view v {\n expand f\n layout { rows [w] [za f] }\n}");
+    expect(frame.positioned.edges.find((x) => x.from === "za" && x.to === "f.y")!.coplanar).toBe(true);
+    const nested = await layZones(`a = box "A"\nb = box "B"\nc = box "C"\nw = box "W"\nw -> a\nw -> c\na -> c "out"\nzone outer "Outer" vpc { contains a, b }\nzone inner "Inner" subnet { contains a }\nzone other "Other" vpc { contains c }\n`, "view v {\n layout { rows [w] [a c] }\n}");
+    const e = nested.positioned.edges.find((x) => x.from === "a" && x.to === "c")!;
+    expect(e.coplanar).toBe(true);
+    // the wire leaves from the *outermost* zone's wall, not the inner one's
+    const outer = nested.positioned.zones.find((z) => z.id === "outer")!;
+    expect(Math.min(...e.points.map((p) => p.x))).toBe(outer.x + outer.w);
+  });
+
+  it("a zone between the pair sends the wire below the row, and direction right transposes", async () => {
+    const shelf = await layZones(`za = box "ZA"\nm = box "M"\nzb = box "ZB"\nw = box "W"\nw -> za\nw -> m\nw -> zb\nza -> zb "over"\nzone z1 "Z1" vpc { contains za }\nzone z2 "Z2" vpc { contains zb }\n`, "view v {\n layout { rows [w] [za m zb] }\n}");
+    const e = shelf.positioned.edges.find((x) => x.from === "za" && x.to === "zb")!;
+    const rowBottom = Math.max(...shelf.positioned.zones.map((z) => z.y + z.h));
+    expect(Math.max(...e.points.map((p) => p.y))).toBeGreaterThan(rowBottom);
+    const right = await layZones(ZONES, "view v {\n layout { direction right; rows [w] [za zb] }\n}");
+    const r = right.positioned.edges.find((x) => x.from === "za" && x.to === "zb")!;
+    expect(r.coplanar).toBe(true);
+    expect(new Set(r.points.map((p) => p.x)).size).toBe(1); // vertical run
   });
 
   it("labelled gutters widen to the pill; unlabelled stay at density", async () => {
