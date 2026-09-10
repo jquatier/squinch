@@ -1,6 +1,6 @@
 ---
 name: squinch
-description: Author architecture diagrams as code with the Squinch DSL. Use this whenever the user wants an architecture or system diagram — creating one from prose, editing or reviewing a .squinch file, drawing cloud infrastructure (AWS, Azure, Kubernetes, hybrid estates), documenting services for a README or a design review, or any picture of systems, services and the connections between them — even when they never say "squinch". Write the .squinch model, validate it with `squinch check`, render SVG with `squinch render`, and fix what you see using the layout cookbook below.
+description: Author architecture diagrams as code with the Squinch DSL. Use this whenever the user wants an architecture or system diagram — creating one from prose, editing or reviewing a .squinch file, drawing cloud infrastructure (AWS, Azure, Kubernetes, hybrid estates), documenting services for a README or a design review, or any picture of systems, services and the connections between them — even when they never say "squinch". Write the .squinch model, validate it with `squinch check`, render it with `squinch render` (SVG in both themes plus the interactive HTML by default; PNG only when asked), and fix what you see using the layout cookbook below.
 ---
 
 # Squinch — architecture diagrams as code
@@ -16,15 +16,39 @@ Work like a compiler user, not an artist:
 
 ```bash
 squinch check diagram.squinch --format json   # parse + lint; machine-readable
-squinch render diagram.squinch -o out.svg     # deterministic SVG (light theme)
-squinch render diagram.squinch --view NAME --theme light -o out.svg  # themes: dark (default) | light
-squinch render diagram.squinch -o out.png --scale 2   # PNG for slides/docs (--width also works)
+squinch render diagram.squinch -o out.svg     # deterministic SVG; theme: the view's, else dark
+squinch render diagram.squinch --view NAME --theme light -o out.svg   # themes: light | dark
+squinch render diagram.squinch --sync         # every view × both themes, next to the source
+squinch render diagram.squinch -o out.html    # one interactive file: every view, both themes
+squinch render diagram.squinch -o out.png --scale 2   # PNG, only when asked (--width also works)
 squinch icons search "<term>, <term>, …"      # find icon ids — batch every unknown in one call
 squinch diff --format json                    # what changed in the architecture
 ```
 
 If `squinch` is not on PATH, prefix every command with `npx` — `npx squinch
 check …` — or install it once with `npm i -g squinch`.
+
+### What to hand over
+
+Unless the user names a format or a theme, a finished diagram is **all** of:
+
+```bash
+squinch render diagrams/ --sync              # <name>.<view>.light.svg + .dark.svg per view, + squinch.lock
+squinch render diagrams/ -o diagram.html     # every view, both palettes, click-to-zoom, presentation mode
+```
+
+- **Both themes, always.** Dark is designed, not inverted, and the reader's
+  environment picks — never choose one for them. For a README or a docs site
+  that should follow the reader's colour scheme, `--adaptive -o x.svg` folds
+  the pair into one SVG behind `prefers-color-scheme`.
+- **The HTML is the thing to open.** It is one self-contained file with every
+  view and a theme switch, and it needs no server — point the user at it
+  first. A project with several views is unreadable as a pile of SVGs.
+- **PNG is the exception**, not the default: render one only when the user
+  asks for an image, slides, or a surface that cannot show SVG.
+- `--sync` also writes `squinch.lock` (tool version + a hash per render) so
+  `render --check` can gate CI. For a throwaway diagram that lives nowhere,
+  two explicit `--theme` renders plus the HTML are the lighter recipe.
 
 1. Write the model first, with **no `layout` block at all** — most diagrams
    never need one. Your edges already say what the tiers are, and the engine
@@ -501,8 +525,9 @@ icon, and that contrast is what makes the platform boundary readable.
 ## Quality bar before you call it done
 
 1. `squinch check` exits 0 with no diagnostics.
-2. `squinch render` for **every view** you declared, both `--theme light` and
-   `--theme dark`, succeeds.
+2. **Every view** you declared is rendered in both `--theme light` and
+   `--theme dark`, plus the interactive `.html` — and all of it is handed
+   over, not just checked (see "What to hand over").
 3. Look at the SVG: tiers read top-to-bottom (or left-to-right), no edge takes a
    baffling detour, async flows (`~>`) are dashed, related things sit together.
 4. Labels are short noun phrases; put detail in `description`, not the label.
