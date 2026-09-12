@@ -149,7 +149,7 @@ const html = `<!doctype html>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>Lookbook — squinch</title>
-    <meta name="description" content="${cases.length} rendered reference cases — dense meshes, deep nesting, zones, flows, themes — every corner of the renderer, each tied to its source." />
+    <meta name="description" content="${cases.length} reference renders of Squinch architecture diagrams — dense meshes, deep nesting, zones, flows, both themes — each beside the source that drew it." />
     <link rel="canonical" href="https://squinch.cc/lookbook/" />
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
@@ -157,7 +157,7 @@ const html = `<!doctype html>
     <meta property="og:type" content="website" />
     <meta property="og:site_name" content="Squinch" />
     <meta property="og:title" content="Lookbook — squinch" />
-    <meta property="og:description" content="${cases.length} rendered reference cases — dense meshes, deep nesting, zones, flows, themes — every corner of the renderer, each tied to its source." />
+    <meta property="og:description" content="${cases.length} reference renders of Squinch architecture diagrams — dense meshes, deep nesting, zones, flows, both themes — each beside the source that drew it." />
     <meta property="og:image" content="https://squinch.cc/og.png" />
     <meta property="og:image:width" content="1200" />
     <meta property="og:image:height" content="630" />

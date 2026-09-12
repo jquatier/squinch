@@ -1,18 +1,24 @@
 {
   "name": "squinch",
   "version": "0.3.1",
-  "description": "Architecture diagrams as code — check, render, diff and watch .squinch projects from the command line.",
+  "description": "Architecture diagrams as code for coding agents: install the skill, then check, render, diff and watch .squinch projects — clean, zoomable diagrams with real cloud icons, as deterministic SVG, PNG or interactive HTML.",
   "keywords": [
     "architecture",
+    "architecture-diagrams",
     "diagrams",
     "diagrams-as-code",
+    "c4",
+    "system-design",
     "svg",
     "aws",
     "azure",
     "kubernetes",
     "ai",
     "llm",
-    "agents"
+    "agents",
+    "agent-skill",
+    "claude-code",
+    "codex"
   ],
   "license": "Apache-2.0",
   "repository": {

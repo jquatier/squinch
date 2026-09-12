@@ -3,16 +3,16 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>squinch — architecture diagrams as code, built for AI agents</title>
-    <meta name="description" content="Architecture diagrams as code, built for AI agents: a DSL your coding agent writes fluently and you control precisely, rendered as deterministic SVG." />
+    <title>squinch — architecture diagrams, drawn by your coding agent</title>
+    <meta name="description" content="A skill for coding agents that draws clean, professional architecture diagrams as code: real cloud icons, zoomable from the landscape down to one service, exported as SVG, PNG or interactive HTML." />
     <link rel="canonical" href="https://squinch.cc/" />
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
     <meta name="theme-color" content="#141416" />
     <meta property="og:type" content="website" />
     <meta property="og:site_name" content="Squinch" />
-    <meta property="og:title" content="squinch — architecture diagrams as code, built for AI agents" />
-    <meta property="og:description" content="Architecture diagrams as code, built for AI agents: a DSL your coding agent writes fluently and you control precisely, rendered as deterministic SVG." />
+    <meta property="og:title" content="squinch — architecture diagrams, drawn by your coding agent" />
+    <meta property="og:description" content="A skill for coding agents that draws clean, professional architecture diagrams as code: real cloud icons, zoomable from the landscape down to one service, exported as SVG, PNG or interactive HTML." />
     <meta property="og:image" content="https://squinch.cc/og.png" />
     <meta property="og:image:width" content="1200" />
     <meta property="og:image:height" content="630" />
@@ -24,9 +24,22 @@
         "@context": "https://schema.org",
         "@type": "SoftwareApplication",
         "name": "Squinch",
-        "description": "Architecture diagrams as code, built for AI agents: a DSL your coding agent writes fluently and you control precisely, rendered as deterministic SVG.",
+        "description": "A skill for coding agents that draws clean, professional architecture diagrams as code: real cloud icons, zoomable from the landscape down to one service, exported as SVG, PNG or interactive HTML.",
         "applicationCategory": "DeveloperApplication",
+        "applicationSubCategory": "Architecture diagrams as code",
         "operatingSystem": "macOS, Linux, Windows",
+        "offers": { "@type": "Offer", "price": "0", "priceCurrency": "USD" },
+        "featureList": [
+          "An agent skill: describe a system in prose and your coding agent writes, checks and renders the diagram",
+          "Zoom into any system: C4-style altitudes derived from one model, from the landscape down to one service",
+          "1,313 real vendor icons for AWS, Azure, Kubernetes and product logos",
+          "Relative layout hints only, never pixel coordinates",
+          "Deterministic SVG, byte-identical across macOS, Linux and Windows",
+          "SVG, PNG and self-contained interactive HTML export",
+          "VS Code extension with live preview and diagnostics",
+          "GitHub Actions for stale-diagram checks and architecture diffs on pull requests"
+        ],
+        "keywords": "architecture diagrams, diagrams as code, agent skill, Claude Code, Codex, C4, AWS, Azure, Kubernetes, SVG",
         "license": "https://www.apache.org/licenses/LICENSE-2.0",
         "url": "https://squinch.cc/",
         "sameAs": ["https://github.com/jquatier/squinch"]
@@ -54,10 +67,10 @@
             <span class="grad-text">Now it can draw it.</span>
           </h2>
           <p class="tagline">
-            Describe the system in a paragraph. Squinch renders it precisely —
-            layout you steer without placing a box, vendor-accurate icons, and
-            diagrams you can zoom into, from the whole landscape down to one
-            service's internals.
+            Describe the system in a paragraph. Squinch turns it into a clean,
+            professional diagram — layout you steer without placing a box,
+            vendor-accurate icons, and altitudes you can zoom through, from the
+            whole landscape down to one service's internals.
             It ships as a skill for the agent you already use — one install and
             it speaks the language.
           </p>
@@ -201,7 +214,7 @@
         <li>One model, many diagrams <span class="tag">views</span></li>
         <li>No coordinates, ever <span class="tag">relative hints</span></li>
         <li>Numbered request flows <span class="tag">flow</span></li>
-        <li>SVG, PNG or HTML export <span class="tag">3 formats</span></li>
+        <li>SVG, PNG or interactive HTML export <span class="tag">3 formats</span></li>
         <li>A real VS Code extension <span class="tag">LSP</span></li>
         <li>Reviewable in a pull request <span class="tag">squinch diff</span></li>
         <li>Generated in CI <span class="tag">GitHub Action</span></li>

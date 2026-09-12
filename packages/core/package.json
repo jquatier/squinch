@@ -1,18 +1,24 @@
 {
   "name": "@squinch/core",
   "version": "0.3.1",
-  "description": "The Squinch engine: parse, model, layout and deterministic SVG rendering for architecture diagrams as code.",
+  "description": "The Squinch engine: parse, model, layout and deterministic rendering for architecture diagrams as code, exported as SVG, PNG or interactive HTML — the engine behind the agent skill, the CLI and the playground.",
   "keywords": [
     "architecture",
+    "architecture-diagrams",
     "diagrams",
     "diagrams-as-code",
+    "c4",
+    "system-design",
     "svg",
     "aws",
     "azure",
     "kubernetes",
     "ai",
     "llm",
-    "agents"
+    "agents",
+    "agent-skill",
+    "claude-code",
+    "codex"
   ],
   "license": "Apache-2.0",
   "repository": {

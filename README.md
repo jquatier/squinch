@@ -28,10 +28,11 @@
 </p>
 
 **Your coding agent already knows the architecture — now it can draw it.**
-Describe the system in a paragraph: a DSL that LLMs write fluently and humans
-control precisely, real layout and edge-routing control, cloud icon packs,
-and diagrams you can zoom into — from the whole landscape down to one
-service's internals.
+Squinch is a skill for coding agents: describe the system in a paragraph and
+the agent writes a small, readable model that renders as a clean, professional
+diagram — real cloud icons, layout you steer without placing a box, and
+altitudes you can zoom through, from the whole landscape down to one service's
+internals.
 
 ## Quickstart
 
@@ -41,8 +42,8 @@ squinch skill        # teach your agent the language
 ```
 
 Then ask for a diagram in plain language. The agent does the rest — writes
-the model, checks it, fixes what the checker flags, and renders the SVG or
-the interactive HTML you can zoom through. Works with any agent; details and
+the model, checks it, fixes what the checker flags, and renders it as SVG,
+PNG or the interactive HTML you can zoom through. Works with any agent; details and
 the other surfaces are in [Install](#install).
 
 ## From description to diagram
@@ -62,8 +63,9 @@ the other surfaces are in [Install](#install).
 Hand your coding agent the bundled
 [skill](packages/skill) and describe the system in a paragraph. It writes the
 `.squinch` model, `squinch check` tells it what is wrong in terms it can act on,
-and `squinch render` produces the SVG — deterministic, reviewable in a pull
-request, and living in git beside the code it describes. The diagram above is
+and `squinch render` produces the diagram as SVG, PNG or interactive HTML —
+deterministic, reviewable in a pull request, and living in git beside the code
+it describes. The diagram above is
 [examples/products-api](examples/products-api); its source is
 [further down this page](#from-source-to-diagram), and CI holds the two
 together.
