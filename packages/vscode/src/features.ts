@@ -136,9 +136,9 @@ const VIEW_KEYWORDS = [
   "highlight", "color", "show", "legend", "titleblock", "note", "layout",
 ];
 const LAYOUT_KEYWORDS = ["direction", "density", "lines", "rows", "cols", "place", "align", "route", "channel"];
-/** A container's own `layout { }` arranges its interior: rows/cols/place only
- *  (SPEC §3) — the rest of the layout vocabulary describes a view. */
-const CONTAINER_LAYOUT_KEYWORDS = ["rows", "cols", "place"];
+/** A container's own `layout { }` arranges its interior: rows/cols/place and
+ *  its direction (SPEC §3) — the rest of the layout vocabulary describes a view. */
+const CONTAINER_LAYOUT_KEYWORDS = ["rows", "cols", "place", "direction"];
 const CONTAINER_KEYWORDS = ["layout"];
 const ZONE_KEYWORDS = ["contains", "icon", "label", "color"];
 

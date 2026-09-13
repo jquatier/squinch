@@ -437,3 +437,13 @@ Source: [`cases/36-colors.squinch`](cases/36-colors.squinch)
 | light | dark |
 |---|---|
 | ![](out/36-colors.pay.light.svg) | ![](out/36-colors.pay.dark.svg) |
+
+## Container Direction
+
+A system says which way its own interior flows: `direction right` in the pipeline's layout block lays its stages out as a row wherever the system is opened, inside a view that still flows down. The frame is laid out by a call of its own, and the edges crossing its wall enter and leave through the wall on the way to the stage they name — here a batch feed with a note riding it, a numbered flow walked through the row, a same-rank probe from a monitor that stops at the boundary, and the whole thing inside a cloud zone.
+
+Source: [`cases/38-container-direction.squinch`](cases/38-container-direction.squinch)
+
+| light | dark |
+|---|---|
+| ![](out/38-container-direction.load.light.svg) | ![](out/38-container-direction.load.dark.svg) |

@@ -1,0 +1,24 @@
+// the note's jitter case: a skip edge inside the directed row
+system pipe "Pipeline" {
+  layout { direction right }
+  ingest = box "Ingest"
+  clean = box "Clean"
+  enrich = box "Enrich"
+  score = box "Score"
+  publish = box "Publish"
+  ingest -> clean
+  clean -> enrich
+  enrich -> score
+  score -> publish
+  ingest -> score "bypass"
+}
+src = box "Source"
+sink = box "Warehouse"
+src -> pipe.ingest
+pipe.publish -> sink
+view v {
+  expand pipe
+  layout {
+    rows [src] [pipe] [sink]
+  }
+}

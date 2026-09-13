@@ -197,8 +197,8 @@ tag from the next attr key; that one is a check error naming the fix. Both
 spellings build the same model and render byte-identically.
 
 **Container layout blocks** (2026-09): a `layout { }` inside a `system`/`container`
-body arranges its *direct* interior — `rows`/`cols`/`place` (and `direction`, phase 2)
-written by short name — wherever that interior is opened: expanded in any view, or as
+body arranges its *direct* interior — `rows`/`cols`/`place` and `direction`, written
+by short name — wherever that interior is opened: expanded in any view, or as
 the root of a view scoped to it (its auto view included). It was "the most common
 authoring mistake" for a year, refused with a special-case error; cold agents kept
 writing it because that is where the fact lives, and restating one interior in every
@@ -215,6 +215,26 @@ to no hint, silently — via per-frame `semiInteractive` crossing minimisation p
 `elk.position` and interior scaffold edges; `docs/notes/coplanar.md` carries the table
 of ELK levers that do and do not reach inside a compound. A second `rows`/`cols`/
 `direction` line in one block is a check error (it used to be read as `[0]`).
+**Per-container direction** rides the same block: `direction right` in a system's
+`layout { }` makes its expanded frame its *own ELK call* — laid out first, deepest
+first, with its wall ports as external ports on fixed sides; the root call then sees a
+fixed-size leaf with `FIXED_POS` ports (under `INCLUDE_CHILDREN` a compound's own
+direction is ignored outright, coplanar.md attempt 4). Every edge crossing a wall is
+cut into one segment per call at an ELK *hierarchical port*, then stitched back into
+one polyline after layout — the step attempt 4 never tried (approach #7). No directed
+frame means one root segment per edge, one ELK call, and the graph built before this
+existed. Three ELK behaviours shaped the mechanism, all measured and recorded in the
+note: `SEPARATE_CHILDREN` inside the single root call lets the parent drag a port to
+the wrong wall; `forceNodeModelOrder` does the same to a `FIXED_POS` port, so a view
+holding a directed frame swaps it for semi-interactive ordering with explicit
+positions; and a ported compound crashes elkjs when included directly, so the frame
+runs `INCLUDE_CHILDREN` beneath a `SEPARATE_CHILDREN` wrapper. Wall ports are
+registered as ports so the router's free-port probe and the ports-never-stack
+invariant see them; a declared direction equal to the enclosing one is a no-op. A wire
+reaching a nested directed frame's wall runs through the enclosing frame's title strip
+by geometry (widening the padding only moves the letter it crosses), so a frame title a
+final wire crosses is flagged `titleCrossed` and drawn last on a canvas halo — the
+zone-chip rule, and it fixed three shipped views that already had a wire through a title.
 v1.1's DSL is done: zones, flows, tags, channels, cols, align, legend/titleblock,
 plus `only`/`detail` (below) and `badge:` — a vendor mark composited onto a leaf's
 icon plate at render time (SPEC §nodes, DESIGN §3). It exists because vendors like

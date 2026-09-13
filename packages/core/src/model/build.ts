@@ -752,10 +752,15 @@ export function buildProject(input: ProjectFile[]): BuildResult {
         const relposNode = child.getChild("RelPos");
         if (n && tg && relposNode)
           layout.place.push({ node: n, target: tg, relpos: ctx.text(relposNode) as RelPos, loc: ctx.loc(child) });
+      } else if (t === "DirectionStmt") {
+        // the container's interior flows this way wherever it is opened —
+        // as an expanded frame (its own ELK run, layout.ts) or as the root of
+        // a view scoped to it
+        layout.direction = ctx.text(child.lastChild!) as "down" | "right";
       } else if (t.endsWith("Stmt")) {
         const word = ctx.text(child).split(/\s/)[0];
         error(ctx, child, `\`${word}\` describes a view, not a container's interior`,
-          `move it to the view's \`layout { }\`; inside \`${c.name}\` only rows, cols and place apply`);
+          `move it to the view's \`layout { }\`; inside \`${c.name}\` only rows, cols, place and direction apply`);
       }
     }
     hintAgreement(layout, ctx);

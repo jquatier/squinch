@@ -9,7 +9,7 @@ import type { Theme } from "../themes/index.js";
 // SHELF_H is layout's: the shelf is inside the card height it sets, so the
 // strip the renderer fills and the room the card reserves are one number.
 import { pillDims, NOTE_GUTTER, SHELF_H } from "../layout/layout.js";
-import type { Positioned, PEdge, PNode, PZone } from "../layout/layout.js";
+import type { Positioned, PEdge, PNode, PZone, PFrame } from "../layout/layout.js";
 import type { EdgeAnimate, Hue, SNote, ZoneKind } from "../model/types.js";
 import { hueOf } from "../themes/index.js";
 
@@ -1338,10 +1338,23 @@ export function renderSVG(p: Positioned, t: Theme, opts: RenderOpts = {}): strin
     body.push(
       `<rect data-path="${esc(f.path)}" data-kind="frame"${depthAttr} x="${f.x}" y="${f.y}" width="${f.w}" height="${f.h}" rx="8" fill="${fill}" stroke="${f.color ? hueOf(t, f.color) : t.border}" stroke-width="1"/>`,
     );
+    // a title a wire runs through is drawn after the edges instead, on a halo
+    if (f.titleCrossed) continue;
     body.push(
       `<text x="${f.x + 14}" y="${f.y + 24}" font-size="${rc.fx(13)}" font-weight="500" fill="${t.muted}">${esc(f.label)}</text>`,
     );
   }
+  const crossedTitle = (f: PFrame): string => {
+    // the zone-chip halo, for a frame title: a knockout in the frame's own
+    // surface 3px proud of the text, so the wire passes visibly behind it
+    const tw = Math.round(measure(f.label, rc.fx(13), "500", rc.fam));
+    const x = f.x + 14, y = f.y + 24 - 13;
+    return (
+      `<g data-kind="frame-title" data-path="${esc(f.path)}">` +
+      `<rect x="${x - 4}" y="${y - 3}" width="${tw + 8}" height="23" rx="4" fill="${t.surfaceAlt}"/>` +
+      `<text x="${x}" y="${f.y + 24}" font-size="${rc.fx(13)}" font-weight="500" fill="${t.muted}">${esc(f.label)}</text></g>`
+    );
+  };
 
   const hops = hopPoints(p.edges);
   for (const e of p.edges) {
@@ -1417,6 +1430,9 @@ export function renderSVG(p: Positioned, t: Theme, opts: RenderOpts = {}): strin
         `<rect x="${n.x - 3}" y="${n.y - 3}" width="${n.w + 6}" height="${n.h + 6}" rx="${R_NODE + 3}" fill="none" stroke="${t.accent}" stroke-width="1.5" opacity="0.8"/>`,
       );
   }
+
+  // frame titles a wire crossed: after the edges, on their halo
+  for (const f of p.frames) if (f.titleCrossed) body.push(crossedTitle(f));
 
   // labels last, collision-resolved; canvas grows if a pill was pushed below
   const pills = computePills(p, rc, edgeMatches);

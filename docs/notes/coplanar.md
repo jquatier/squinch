@@ -143,3 +143,75 @@ its members (`frameOrder`), which is what keeps every unhinted render byte-ident
 switching a frame to semi-interactive replaces ELK's interior order with declaration
 order, and that must never happen uninvited. Naming a single member is how you rank
 the whole frame from the root, and stays exactly that.
+
+## Approach #7: per-container direction on hierarchical ports (2026-09, adopted)
+
+Attempt 4 in the table above stopped one step short. Under `INCLUDE_CHILDREN` a
+compound's own `elk.direction` is ignored outright (re-measured: byte-identical
+geometry with and without it), and `SEPARATE_CHILDREN` on that compound does give
+it a direction of its own — at the cost that an edge from outside can no longer
+address a member inside, because a run cannot see ports inside another run
+(`UnsupportedGraphException`). Re-targeting the edge at the compound was the
+recorded dead end: it attaches at the compound's centre, over the wrong leaf.
+
+What nobody tried was ELK's own answer, the **hierarchical port**: a `FIXED_SIDE`
+port *on* the compound's wall, the outside edge ending there, and a second edge
+declared *inside* the compound continuing from that port to the leaf. ELK lays the
+interior out on one baseline in the frame's own direction and routes wall → leaf
+itself. The engine cuts every ELK edge into one segment per call it crosses
+(`segments`), the segment in the pair's common container keeping the id, pill and
+notes and the others carrying the invisible spacer; after layout the segments are
+stitched back into one polyline (the join point appears twice, a straight run
+through the wall as three collinear points; both dropped). With no directed frame
+there is exactly one root segment per edge, one ELK call, and the graph built
+before this existed — 165 of 165 corpus views byte-identical.
+
+**Two ELK calls, not one.** The POC put the directed frame inside the single root
+call as a `SEPARATE_CHILDREN` compound, and its probes passed. The first scoped
+view with a `rows` line broke it: whenever the edge's other end lands *earlier* in
+the next layer, the parent run drags the frame's EAST wall port to the west wall
+(measured: `[0, 291]` for a port declared EAST at `[752, 291]`), and the interior
+segment runs straight through the row. No port-constraint mode changes that
+(`FIXED_ORDER`, `FIXED_RATIO`, `FIXED_POS` all measured). So each directed frame is
+laid out first by a call of its own, deepest first — the frame as the one child
+of a padding-less `SEPARATE_CHILDREN` wrapper carrying its direction, the frame
+itself `INCLUDE_CHILDREN` with `FIXED_SIDE` external ports — and the root call is
+handed a fixed-size leaf with `FIXED_POS` ports at the positions that produced.
+Three more measurements fixed the shape of that: a root graph *with* ports crashes
+elkjs 0.12's JSON import (`null.o`), hence the wrapper; a ported compound that is
+itself included in the wrapper crashes the crossing-minimisation comparator when it
+holds a nested compound (`undefined.a`), and run `SEPARATE_CHILDREN` instead it
+drops every edge into that nested compound — `INCLUDE_CHILDREN` beneath a
+`SEPARATE_CHILDREN` wrapper is the one combination that both routes and lands the
+ports. And in the root call `forceNodeModelOrder` moves a `FIXED_POS` port off its
+wall in exactly the target-to-the-left case (no per-node or per-port option
+escapes it), so a view holding a directed frame swaps that option for
+`semiInteractive` crossing minimisation with each root child's `elk.position` set
+from the model order it would have been forced to — the interior pass's lever,
+applied at the root, and only there, only then.
+
+Two rules came out of measurement. **The wall port's side is per edge**: an edge
+into the head of the frame's own interior (a leaf nothing inside feeds) enters on
+the frame's flow side, and one out of its tail leaves on the flow side; anything
+reaching a mid-chain leaf takes the outer side, so the enclosing run routes it as
+it routes every other edge. Outer-only parked the entry at the top-left corner
+with 80px of dead interior (a NORTH port on a RIGHT run becomes a layer of its
+own at the far left); flow-only looped a mid-chain exit up and over the frame.
+**The leaf-side port of an interior segment is on the frame's flow side** too —
+carrying the outer side through made the interior 48px taller and ran the wire
+along the title band.
+
+One thing the layout cannot fix: a directed frame flush-left inside an undirected
+one takes its entry through the enclosing frame's 16px left padding, which is the
+strip the title sits in, so the wire crosses the title. Widening that padding only
+moved the letter (the title moves with the frame); the outer side moved the
+crossing one level in. The title cannot be an ELK obstacle, so it does what zone
+chips do: a frame title any final wire segment crosses is flagged (`PFrame.titleCrossed`)
+and the renderer draws it after the edges on a surface halo. Emitted only when it
+happens, which is what keeps every other render byte-identical — and it turned out
+three shipped views already had a wire through a frame title.
+
+Still open: skip-edge baseline jitter is larger inside a directed frame (46px on
+the probe) than at the root (11px) — ELK node placement on a skip edge, not the
+compound; and a scoped view's own `direction` is the only override, an expanded
+frame's direction is the container's.

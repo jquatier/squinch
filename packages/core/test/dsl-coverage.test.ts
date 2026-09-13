@@ -554,6 +554,16 @@ view v { include *
     expect(above.ops).toBeLessThan(above.zone);
   });
 
+  it("direction: the view knob and a container's own both render distinctly", async () => {
+    const chain = (view: string, block = "") =>
+      `system s "S" {\n a = box "A"; b = box "B"; c = box "C"\n a -> b; b -> c\n ${block}\n}\ng = box "G"\ng -> s.a\nview v { expand s\n ${view} }`;
+    await allDistinct("direction", {
+      none: chain(""),
+      view: chain("layout { direction right }"),
+      container: chain("", "layout { direction right }"),
+    }, "v");
+  });
+
   it("a container's layout block moves a member both ways", async () => {
     // Same bar as the zone rank: a hint that only ever pushes one way is
     // describing the default. ELK's own order for api's two targets is the

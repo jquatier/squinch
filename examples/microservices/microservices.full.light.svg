@@ -24,7 +24,6 @@
 <rect data-path="orders" data-kind="frame" x="459" y="583" width="269" height="490" rx="8" fill="#EFEFEC" stroke="#EAE9E5" stroke-width="1"/>
 <text x="473" y="607" font-size="13" font-weight="500" fill="#6F6E69">Order Service</text>
 <rect data-path="accounts" data-kind="frame" x="843" y="583" width="192" height="210" rx="8" fill="#EFEFEC" stroke="#EAE9E5" stroke-width="1"/>
-<text x="857" y="607" font-size="13" font-weight="500" fill="#6F6E69">Account Service</text>
 <g>
 <path d="M 498 239 L 498 315" fill="none" stroke="#57564F" stroke-width="1.5"/>
 <path d="M 498 315 L 504 307 L 492 307 Z" fill="#57564F"/>
@@ -168,6 +167,7 @@
 <rect x="871" y="725" width="40" height="40" rx="6" fill="#EFEFEC"/><clipPath id="clip-sq-aws-rds-878-732-26"><rect x="878" y="732" width="26" height="26" rx="3"/></clipPath><g clip-path="url(#clip-sq-aws-rds-878-732-26)"><use href="#sq-aws-rds" x="878" y="732" width="26" height="26"/></g>
 <text x="923" y="750" font-size="13" font-weight="500" fill="#1C1C1A">Accounts DB</text>
 </g>
+<g data-kind="frame-title" data-path="accounts"><rect x="853" y="591" width="111" height="23" rx="4" fill="#EFEFEC"/><text x="857" y="607" font-size="13" font-weight="500" fill="#6F6E69">Account Service</text></g>
 <g><rect x="447" y="287" width="41" height="18" rx="2" fill="#FFFFFF" stroke="#EAE9E5" stroke-width="1"/><text x="468" y="300" text-anchor="middle" font-size="11" fill="#6F6E69">origin</text></g>
 <g><rect x="264" y="825" width="47" height="18" rx="2" fill="#FFFFFF" stroke="#EAE9E5" stroke-width="1"/><text x="288" y="838" text-anchor="middle" font-size="11" fill="#6F6E69">search</text></g>
 <g><rect x="48" y="825" width="91" height="18" rx="2" fill="#FFFFFF" stroke="#EAE9E5" stroke-width="1"/><text x="94" y="838" text-anchor="middle" font-size="11" fill="#6F6E69">product stream</text></g>

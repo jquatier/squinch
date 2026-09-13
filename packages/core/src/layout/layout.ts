@@ -97,6 +97,10 @@ export interface PPort { edge: string; node: string; side: Side; x: number; y: n
 export interface PFrame {
   path: string; label: string; x: number; y: number; w: number; h: number;
   color?: Hue;
+  /** A wire runs through the title: the renderer draws the title last, on a
+   *  halo, so it stays legible — the zone-chip rule applied to frame titles.
+   *  Set only when it happens, which keeps every other render byte-identical. */
+  titleCrossed?: boolean;
   /** Frame-chain nesting depth, outermost = 0. Counts *frames* only — a frame
    *  inside a zone is still depth 0 — because the renderer keys the recessed
    *  fill off it (depth 0 only; docs/notes/full-detail.md). */
@@ -794,15 +798,16 @@ export async function layoutView(
   // fits in 288, and its stubs had nowhere to run, which is where two of the
   // five DESIGN §4 violations came from.
   const flowsRight = view.layout.direction === "right";
-  const sidesOf = (e: VEdge): { from: Side; to: Side } => {
+  const sidesIn = (e: VEdge, dir: "down" | "right"): { from: Side; to: Side } => {
     const hint =
       routeExact.get(`${e.from}|${e.to}|${e.label}`) ?? routePair.get(`${e.from}|${e.to}`);
     const forward = rank.get(unitOf(e.from))! <= rank.get(unitOf(e.to))!;
-    const [out, into]: [Side, Side] = flowsRight
+    const [out, into]: [Side, Side] = dir === "right"
       ? forward ? ["east", "west"] : ["west", "east"]
       : forward ? ["south", "north"] : ["north", "south"];
     return { from: hint?.fromSide ?? out, to: hint?.toSide ?? into };
   };
+  const sidesOf = (e: VEdge): { from: Side; to: Side } => sidesIn(e, flowsRight ? "right" : "down");
 
   // Coplanar label reservation, straight case (phase 2). A labelled same-rank
   // pair needs its in-layer gutter to be at least the pill plus breathing room,
@@ -848,12 +853,11 @@ export async function layoutView(
     const n = byPath.get(p)!;
     const { w, h } = sizeOf(n, font);
     const ports = elkEdges.flatMap((e) => {
-      const s = sidesOf(e);
       const out: any[] = [];
       if (e.from === p)
-        out.push({ id: `${e.id}.src`, width: 0, height: 0, layoutOptions: { "elk.port.side": SIDE_UP[s.from] } });
+        out.push({ id: `${e.id}.src`, width: 0, height: 0, layoutOptions: { "elk.port.side": SIDE_UP[leafPortSide.get(`${e.id}.src`)!] } });
       if (e.to === p)
-        out.push({ id: `${e.id}.dst`, width: 0, height: 0, layoutOptions: { "elk.port.side": SIDE_UP[s.to] } });
+        out.push({ id: `${e.id}.dst`, width: 0, height: 0, layoutOptions: { "elk.port.side": SIDE_UP[leafPortSide.get(`${e.id}.dst`)!] } });
       return out;
     });
     const gutter = coplanarGutter.get(p);
@@ -949,9 +953,62 @@ export async function layoutView(
   // the layout of `12-flow-checkout`, which had no pills in it to begin with.
   const hasElkLabels = elkEdges.some((e) => !!e.label) || edgeNotes.length > 0 || layerNotes.length > 0;
 
+  // ── per-container direction (`direction right` in the container's own
+  //    layout block, SPEC §3) ──────────────────────────────────────────────
+  // Under `elk.hierarchyHandling: INCLUDE_CHILDREN` a compound's own
+  // `elk.direction` is ignored outright (re-measured: byte-identical geometry
+  // with and without it — coplanar.md, attempt 4). The frame therefore becomes
+  // its own ELK *call*: laid out first, alone, with its wall ports as external
+  // ports on the sides asked for; the root run then sees it as a fixed-size
+  // leaf with FIXED_POS ports at the positions that call produced. That is
+  // what makes its direction take effect, and what cuts every edge crossing
+  // its wall in two — a run cannot address a port inside another run; the
+  // wall ports are ELK's hierarchical ports and `segments` is the cut
+  // (coplanar.md, approach #7). Not `SEPARATE_CHILDREN` on the compound inside
+  // the one root call: measured, ELK's parent run then ignores the port side
+  // whenever the target lands left of the frame, and drags an EAST port to the
+  // west wall — the interior segment ran straight through the row. A frame
+  // whose declared direction is the one already in effect around it is left
+  // alone: a separate call moves geometry, and a no-op declaration must not.
+  const frameDir = new Map<string, "down" | "right">();
+  {
+    const depth = (f: string) => { let d = 0; for (let p = frameParent.get(f); p; p = frameParent.get(p)) d++; return d; };
+    const enclosing = (f: string): "down" | "right" => {
+      for (let p = frameParent.get(f); p; p = frameParent.get(p)) if (frameDir.has(p)) return frameDir.get(p)!;
+      return flowsRight ? "right" : "down";
+    };
+    for (const f of [...graph.frames].sort((a, b) => depth(a.path) - depth(b.path))) {
+      const d = model.containers.get(f.path)?.layout?.direction;
+      if (d && d !== enclosing(f.path)) frameDir.set(f.path, d);
+    }
+  }
+  /** Pass-1 results, one per directed frame: the ELK output of its own call,
+   *  keyed by frame path. Filled deepest-first before the root call, so a
+   *  nested directed frame is already a fixed leaf when its parent runs. */
+  const laidOut = new Map<string, any>();
+  /** The direction in effect inside a container: its own, else the nearest
+   *  directed ancestor's, else the view's. "root" is the view. */
+  const dirOf = (container: string): "down" | "right" => {
+    for (let f: string | undefined = container; f && f !== "root"; f = frameParent.get(f))
+      if (frameDir.has(f)) return frameDir.get(f)!;
+    return flowsRight ? "right" : "down";
+  };
   const entityElk = (p: string): any =>
-    frameLabels.has(p)
+    !frameLabels.has(p)
+      ? leafChild(p)
+      : laidOut.has(p)
       ? {
+          // a directed frame, already laid out by its own call: a leaf of that
+          // size whose wall ports sit exactly where that call put them
+          id: p,
+          width: laidOut.get(p).width,
+          height: laidOut.get(p).height,
+          layoutOptions: { "elk.portConstraints": "FIXED_POS" },
+          ports: (laidOut.get(p).ports ?? []).map((pt: any) => ({
+            id: pt.id, width: 0, height: 0, x: pt.x, y: pt.y, layoutOptions: pt.layoutOptions,
+          })),
+        }
+      : {
           id: p,
           layoutOptions: {
             // Off the grid on purpose, like the zone padding below: 44 is what
@@ -986,8 +1043,49 @@ export async function layoutView(
       "elk.spacing.edgeLabel": String(LABEL_GAP),
           },
           children: framedChildren(p),
-        }
-      : leafChild(p);
+        };
+  /** A directed frame's own ELK call: the compound, with its wall ports on
+   *  fixed sides and the edge segments that live inside it, as the *one child*
+   *  of a padding-less root that carries the frame's direction. Not the root
+   *  itself — elkjs 0.12 crashes on a root graph with ports (`null.o`, from
+   *  its JSON import) — and the direction goes on that root because an
+   *  included child's own direction is ignored. With nothing beside it in
+   *  the wrapper, nothing can drag a port off its side. */
+  const frameGraph = (p: string): any => {
+    const compound = entityElk(p); // laidOut does not have p yet → the compound form
+    return {
+      id: `${p}#call`,
+      layoutOptions: {
+        ...rootOptions,
+        "elk.direction": frameDir.get(p) === "right" ? "RIGHT" : "DOWN",
+        // The wrapper hands the frame to ELK's recursive engine as a graph of
+        // its own (SEPARATE_CHILDREN): the frame then runs INCLUDE_CHILDREN
+        // with its own direction, which routes edges into its nested frames
+        // and lands its external ports on the sides asked for. Measured, the
+        // alternatives fail: a ported compound *included* in the wrapper
+        // crashes elkjs 0.12 when it holds a nested compound (`undefined.a`),
+        // and a SEPARATE_CHILDREN frame drops every edge into a nested one.
+        "elk.hierarchyHandling": "SEPARATE_CHILDREN",
+        "elk.padding": "[top=0,left=0,bottom=0,right=0]",
+        // model order never reaches inside a compound anyway (coplanar.md,
+        // levers table), and set here it crashes ELK's comparator on the
+        // border-port dummies a ported child creates
+        "elk.layered.considerModelOrder.strategy": "NONE",
+        "elk.layered.crossingMinimization.forceNodeModelOrder": "false",
+      },
+      children: [{
+        ...compound,
+        layoutOptions: {
+          ...compound.layoutOptions,
+          "elk.hierarchyHandling": "INCLUDE_CHILDREN",
+          "elk.direction": frameDir.get(p) === "right" ? "RIGHT" : "DOWN",
+          "elk.portConstraints": "FIXED_SIDE",
+        },
+        ports: framePorts.get(p) ?? [],
+        edges: segments.filter((sg) => sg.container === p).map(segElk),
+      }],
+    };
+  };
 
   // zone compound: child zones (declaration order) then direct entities
   // (resolve order) — both deterministic. Inherits the view's density.
@@ -1048,33 +1146,187 @@ export async function layoutView(
     };
   };
 
+  /** The root graph's own options, minus what a call sets for itself
+   *  (direction, padding, hierarchy): shared with every directed frame's own
+   *  call, so an interior is laid out by the same algorithm and spacings a
+   *  compound would inherit under INCLUDE_CHILDREN. */
+  const rootOptions: Record<string, string> = {
+    "elk.algorithm": "layered",
+    "elk.layered.considerModelOrder.strategy": "NODES_AND_EDGES",
+    "elk.layered.crossingMinimization.forceNodeModelOrder": "true",
+    "elk.edgeRouting": "ORTHOGONAL",
+    "elk.layered.nodePlacement.strategy": "NETWORK_SIMPLEX",
+    "elk.spacing.nodeNode": String(SP[0]),
+    "elk.layered.spacing.nodeNodeBetweenLayers": hasElkLabels ? String(LABEL_GAP) : String(SP[1]),
+    "elk.layered.spacing.edgeNodeBetweenLayers": "24",
+    "elk.spacing.edgeNode": "24",
+    // labels are layout citizens (see the elkEdges map) — repeated in every
+    // bag for the same reason the edge spacing is: ELK does not inherit
+    "elk.edgeLabels.inline": "true",
+    "elk.spacing.edgeLabel": String(LABEL_GAP),
+    "elk.spacing.edgeEdge": "16",
+    // spiked: MEDIAN_LAYER puts the label mid-dogleg, closest to the old
+    // nine-fraction midpoint aesthetic (TAIL hugs the source, HEAD the sink)
+    "elk.layered.edgeLabels.centerLabelPlacementStrategy": "MEDIAN_LAYER",
+  };
+
+  // ── hierarchical edge segments (approach #7) ─────────────────────────────
+  // A directed frame is laid out by its own ELK run (SEPARATE_CHILDREN), and a
+  // run cannot see ports inside another run — ELK throws
+  // UnsupportedGraphException for an edge from `src` to a port on
+  // `pipe.ingest`. ELK's own answer is the hierarchical port: the edge stops at
+  // a port ON the frame, and a second edge, declared inside the frame,
+  // continues from that port to the leaf. Every edge is cut into segments, one
+  // per run it crosses; with no directed frame there is exactly one segment at
+  // root, and the ELK graph is the one built before this existed.
+  type Seg = { id: string; index: number; container: string; sources: string[]; targets: string[]; edge: VEdge };
+  const segments: Seg[] = [];
+  const framePorts = new Map<string, any[]>();
+  const leafPortSide = new Map<string, Side>();
+  const addFramePort = (frame: string, id: string, side: Side) => {
+    if (!framePorts.has(frame)) framePorts.set(frame, []);
+    framePorts.get(frame)!.push({ id, width: 0, height: 0, layoutOptions: { "elk.port.side": SIDE_UP[side] } });
+  };
+  /** Directed frames enclosing an endpoint, outermost first (a frame endpoint
+   *  counts its ancestors only — it is its own wall). */
+  const directedAncestors = (p: string): string[] => {
+    const chain: string[] = [];
+    for (let f = byPath.get(p)?.frame ?? frameParent.get(p); f; f = frameParent.get(f))
+      if (frameDir.has(f)) chain.unshift(f);
+    return chain;
+  };
+  const containerOf = (frame: string): string => frameParent.get(frame) ?? "root";
+  // The leaf-side port of an interior segment is on the frame's own flow side
+  // (WEST into a RIGHT frame). Carrying the outer side through (NORTH) made
+  // the interior run 48px taller and routed the wire along the title band to
+  // reach the leaf's top.
+  // The wall port's side is per edge: an edge into the head of the frame's own
+  // interior — a leaf nothing inside the frame feeds — enters on the frame's
+  // flow side (WEST into a RIGHT row), and an edge out of its tail leaves on
+  // the flow side; anything reaching a mid-chain leaf uses the outer side, so
+  // the root run routes it the way it routes every other edge. Measured:
+  // outer-only parked the entry at the top-left corner with 80px of dead
+  // interior; flow-only looped a mid-chain exit up and over the frame.
+  const inside = (p: string, f: string) => p === f || p.startsWith(`${f}.`);
+  /** The direct child of frame `f` on the way to `p` — a leaf, or the nested
+   *  frame holding it; interior sources/sinks are judged at that grain. */
+  const childUnitIn = (f: string, p: string) => `${f}.${p.slice(f.length + 1).split(".")[0]}`;
+  const isSourceIn = (f: string, p: string) => {
+    const u = childUnitIn(f, p);
+    return !edges.some((x) => inside(x.to, u) && inside(x.from, f) && !inside(x.from, u));
+  };
+  const isSinkIn = (f: string, p: string) => {
+    const u = childUnitIn(f, p);
+    return !edges.some((x) => inside(x.from, u) && inside(x.to, f) && !inside(x.to, u));
+  };
+  const wallSide = (e: VEdge, f: string, end: "from" | "to"): Side => {
+    const flow = sidesIn(e, dirOf(f))[end];
+    const outer = sidesIn(e, dirOf(containerOf(f)))[end];
+    return (end === "to" ? isSourceIn(f, e.to) : isSinkIn(f, e.from)) ? flow : outer;
+  };
+  for (const e of elkEdges) {
+    const cf = directedAncestors(e.from), ct = directedAncestors(e.to);
+    let common = 0;
+    while (common < cf.length && common < ct.length && cf[common] === ct[common]) common++;
+    const container = common ? cf[common - 1] : "root";
+    const fromEnd = frameLabels.has(e.from) || zoneById.has(e.from) ? e.from : `${e.id}.src`;
+    const toEnd = frameLabels.has(e.to) || zoneById.has(e.to) ? e.to : `${e.id}.dst`;
+    const outer = sidesIn(e, dirOf(container));
+    const fromChain = cf.slice(common), toChain = ct.slice(common);
+    let index = 0;
+    const seg = (c: string, sources: string[], targets: string[]) => {
+      const primary = c === container;
+      segments.push({ id: primary ? e.id : `${e.id}~${index}`, index, container: c, sources, targets, edge: e });
+      index++;
+    };
+    // out of the source's directed frames, innermost first
+    let prev = fromEnd;
+    if (fromChain.length) {
+      const inner = fromChain[fromChain.length - 1];
+      leafPortSide.set(`${e.id}.src`, sidesIn(e, dirOf(inner)).from);
+    } else leafPortSide.set(`${e.id}.src`, outer.from);
+    for (let i = fromChain.length - 1; i >= 0; i--) {
+      const f = fromChain[i];
+      const port = `${e.id}.out@${f}`;
+      addFramePort(f, port, wallSide(e, f, "from"));
+      seg(f, [prev], [port]);
+      prev = port;
+    }
+    // the segment in the common container carries the id, label and notes
+    const entryPort = toChain.length ? `${e.id}.in@${toChain[0]}` : toEnd;
+    seg(container, [prev], [entryPort]);
+    for (let i = 0; i < toChain.length; i++) {
+      const f = toChain[i];
+      const port = `${e.id}.in@${f}`;
+      addFramePort(f, port, wallSide(e, f, "to"));
+      const next = i + 1 < toChain.length ? `${e.id}.in@${toChain[i + 1]}` : toEnd;
+      seg(f, [port], [next]);
+    }
+    if (toChain.length) {
+      const inner = toChain[toChain.length - 1];
+      leafPortSide.set(`${e.id}.dst`, sidesIn(e, dirOf(inner)).to);
+    } else leafPortSide.set(`${e.id}.dst`, outer.to);
+  }
+  const segElk = (sg: Seg) => ({
+    id: sg.id,
+    sources: sg.sources,
+    targets: sg.targets,
+    // the primary segment carries the pill and notes; every other segment
+    // carries the invisible spacer, exactly as an unlabelled edge does —
+    // without it the wall-port dummy layer sits 10px from the leaf (measured:
+    // four "enters after 10" stub violations on the nested probe)
+    ...(hasElkLabels
+      ? sg.id === sg.edge.id
+        ? { labels: [labelFor(sg.edge), ...edgeNotes.filter((nt) => nt.edgeId === sg.edge.id)
+            .map((nt) => ({ text: `note:${nt.i}`, width: nt.w, height: nt.h }))] }
+        : { labels: [{ text: " ", width: 2, height: spacerH(true) }] }
+      : {}),
+  });
+
+  // pass 1: every directed frame, deepest first, as its own ELK call
+  {
+    const depth = (f: string) => { let d = 0; for (let q = frameParent.get(f); q; q = frameParent.get(q)) d++; return d; };
+    const directed = [...frameDir.keys()].sort((a, b) => depth(b) - depth(a) || (a < b ? -1 : a > b ? 1 : 0));
+    for (const p of directed) {
+      const g = frameGraph(p);
+      try {
+        laidOut.set(p, (await new ELK().layout(g)).children[0]);
+      } catch (err) {
+        throw new Error(`layout of directed frame \`${p}\` failed inside ELK: ${(err as Error).message}`);
+      }
+    }
+  }
+
   const children = order.map((p) => (zoneById.has(p) ? zoneElk(zoneById.get(p)!) : entityElk(p)));
+  // `forceNodeModelOrder` drags a FIXED_POS port off its wall whenever the
+  // edge's other end lands earlier in the next layer (measured on a directed
+  // frame: an EAST port moved to x=0 with the option on, stayed at the wall
+  // with it off; no per-node or per-port option escapes it). It is a root
+  // option every shipped render depends on, so it is swapped out only when a
+  // directed frame is present, for the lever the interior pass already uses:
+  // semi-interactive crossing minimisation with each root child's position
+  // set from the model order it would have been forced to.
+  const directedPresent = laidOut.size > 0;
+  if (directedPresent)
+    children.forEach((c, i) => {
+      c.layoutOptions = { ...(c.layoutOptions ?? {}), "elk.position": flowsRight ? `(0,${i * 1000})` : `(${i * 1000},0)` };
+    });
   for (const n of layerNotes)
     children.push({ id: n.id, width: n.w, height: n.h, layoutOptions: {} });
 
   const elkGraph = {
     id: "root",
     layoutOptions: {
-      "elk.algorithm": "layered",
+      ...rootOptions,
       "elk.direction": view.layout.direction === "right" ? "RIGHT" : "DOWN",
-      "elk.layered.considerModelOrder.strategy": "NODES_AND_EDGES",
-      "elk.layered.crossingMinimization.forceNodeModelOrder": "true",
-      "elk.edgeRouting": "ORTHOGONAL",
-      "elk.layered.nodePlacement.strategy": "NETWORK_SIMPLEX",
-      "elk.spacing.nodeNode": String(SP[0]),
-      "elk.layered.spacing.nodeNodeBetweenLayers": hasElkLabels ? String(LABEL_GAP) : String(SP[1]),
-      "elk.layered.spacing.edgeNodeBetweenLayers": "24",
-      "elk.spacing.edgeNode": "24",
-      // labels are layout citizens (see the elkEdges map) — repeated in every
-      // bag for the same reason the edge spacing is: ELK does not inherit
-      "elk.edgeLabels.inline": "true",
-      "elk.spacing.edgeLabel": String(LABEL_GAP),
-      "elk.spacing.edgeEdge": "16",
       "elk.padding": "[top=32,left=32,bottom=32,right=32]",
       "elk.hierarchyHandling": "INCLUDE_CHILDREN",
-      // spiked: MEDIAN_LAYER puts the label mid-dogleg, closest to the old
-      // nine-fraction midpoint aesthetic (TAIL hugs the source, HEAD the sink)
-      "elk.layered.edgeLabels.centerLabelPlacementStrategy": "MEDIAN_LAYER",
+      ...(directedPresent
+        ? {
+            "elk.layered.crossingMinimization.forceNodeModelOrder": "false",
+            "elk.layered.crossingMinimization.semiInteractive": "true",
+          }
+        : {}),
     },
     children,
     edges: [
@@ -1082,10 +1334,10 @@ export async function layoutView(
       // has none, so attach to the compound itself — otherwise ELK is handed a
       // port id that does not exist and throws a raw JsonImportException,
       // which is exactly the un-actionable failure CLAUDE.md forbids.
-      ...elkEdges.map((e) => ({
-        id: e.id,
-        sources: [frameLabels.has(e.from) || zoneById.has(e.from) ? e.from : `${e.id}.src`],
-        targets: [frameLabels.has(e.to) || zoneById.has(e.to) ? e.to : `${e.id}.dst`],
+      ...segments.filter((sg) => sg.container === "root").map((sg) => ({
+        id: sg.id,
+        sources: sg.sources,
+        targets: sg.targets,
         // Label space is reserved by the layout, not scavenged after it — but
         // an inline label dummy costs a whole extra layer at full spacing
         // (spiked: 56 → 130 for one 18px label), which read as giant gaps at
@@ -1095,8 +1347,8 @@ export async function layoutView(
         // gaps come out at exactly the density spacing, and the pill lands
         // centred on its own wire, which is where pills always sat. The label
         // no longer costs anything; it just cannot be collided with.
-        ...(hasElkLabels
-          ? { labels: [labelFor(e), ...edgeNotes.filter((n) => n.edgeId === e.id)
+        ...(hasElkLabels && sg.id === sg.edge.id
+          ? { labels: [labelFor(sg.edge), ...edgeNotes.filter((n) => n.edgeId === sg.edge.id)
               .map((n) => ({ text: `note:${n.i}`, width: n.w, height: n.h }))] }
           : {}),
       })),
@@ -1112,7 +1364,12 @@ export async function layoutView(
     ],
   };
 
-  const out: any = await new ELK().layout(elkGraph as any);
+  let out: any;
+  try {
+    out = await new ELK().layout(elkGraph as any);
+  } catch (err) {
+    throw new Error(`layout of view \`${view.name}\` failed inside ELK: ${(err as Error).message}`);
+  }
   const q = Math.round;
 
   // recursive extraction: compound (zone/frame) children carry parent-relative
@@ -1147,8 +1404,21 @@ export async function layoutView(
         path: c.id, label: frameLabels.get(c.id)!, x, y, w: q(c.width), h: q(c.height), depth: fd,
         color: frameColors.get(c.id),
       });
+      // a directed frame's wall ports are ports like any leaf's: the router's
+      // free-port probe and the ports-never-stack invariant must see them
+      for (const p of c.ports ?? [])
+        ports.push({
+          edge: p.id.replace(/\.(out|in)@.*$/, ""),
+          node: c.id,
+          side: SIDE_DOWN[p.layoutOptions?.["elk.port.side"] ?? "SOUTH"],
+          x: q(x + p.x),
+          y: q(y + p.y),
+        });
       containerOffset.set(c.id, { x, y });
-      for (const child of c.children ?? []) walk(child, x, y, depth + 1);
+      // a directed frame came back as a leaf: its interior is the output of
+      // its own call, in the frame's coordinate system
+      const interior = laidOut.get(c.id)?.children ?? c.children ?? [];
+      for (const child of interior) walk(child, x, y, depth + 1);
       return;
     }
     nodes.push({
@@ -1181,8 +1451,16 @@ export async function layoutView(
   }
   const nodeById = new Map(nodes.map((n) => [n.path, n]));
 
+  // a directed frame's segments come back inside the frame's own `edges`
+  const allOutEdges: any[] = [];
+  const gatherEdges = (c: any, home: string) => {
+    for (const e of c.edges ?? []) allOutEdges.push({ ...e, container: e.container ?? home });
+    for (const ch of c.children ?? []) gatherEdges(ch, ch.id);
+  };
+  gatherEdges(out, "root");
+  for (const [p, o] of laidOut) gatherEdges(o, p);
   const elkPositioned = new Map<string, PEdge>(
-    out.edges
+    allOutEdges
       .filter((e: any) => !e.id.startsWith("scaffold.") && !e.id.startsWith("noteedge."))
       .map((e: any) => {
         const s = e.sections[0];
@@ -1190,7 +1468,7 @@ export async function layoutView(
         const pts = [s.startPoint, ...(s.bendPoints ?? []), s.endPoint].map(
           (p: any) => ({ x: q(p.x + off.x), y: q(p.y + off.y) }),
         );
-        const m = edges.find((me) => me.id === e.id)!;
+        const m = edges.find((me) => me.id === e.id.replace(/~\d+$/, ""))!;
         const noteLabels = (e.labels ?? []).filter((l: any) => String(l.text).startsWith("note:"));
         for (const l of noteLabels)
           noteBoxes.set(+String(l.text).slice(5), { x: q(l.x + off.x), y: q(l.y + off.y), w: q(l.width), h: q(l.height) });
@@ -1201,6 +1479,28 @@ export async function layoutView(
         return [e.id, { id: e.id, from: m.from, to: m.to, label: m.label, async: m.async, animate: m.animate, style: m.style, count: m.count, tags: m.tags, color: m.color, heads: m.heads, points: pts, labelRect }];
       }),
   );
+
+  // stitch each cut edge back into one polyline — segments meet at the
+  // wall port, so the join point appears twice and a straight run through the
+  // wall appears as three collinear points; both are dropped
+  for (const e of edges) {
+    const segs = segments.filter((sg) => sg.edge.id === e.id);
+    if (segs.length <= 1) continue;
+    const primary = elkPositioned.get(e.id);
+    if (!primary) continue;
+    const raw = segs.sort((a, b) => a.index - b.index)
+      .flatMap((sg) => elkPositioned.get(sg.id)?.points ?? []);
+    const pts: { x: number; y: number }[] = [];
+    for (const pnt of raw) {
+      const last = pts[pts.length - 1];
+      if (last && last.x === pnt.x && last.y === pnt.y) continue;
+      const prev = pts[pts.length - 2];
+      if (last && prev && ((prev.x === last.x && last.x === pnt.x) || (prev.y === last.y && last.y === pnt.y))) pts.pop();
+      pts.push(pnt);
+    }
+    elkPositioned.set(e.id, { ...primary, points: pts });
+    for (const sg of segs) if (sg.id !== e.id) elkPositioned.delete(sg.id);
+  }
 
   // ── coplanar router (ours): adjacent → straight; blocked → side-band ─────
   // Blocked edges of one rank share the band beside it, but never a lane when
@@ -2056,6 +2356,32 @@ export async function layoutView(
         : undefined,
     });
   }
+  }
+
+  // A frame title is text in the frame's padding, and a wire can legitimately
+  // run through that padding — a directed frame's wall port sits at the wall,
+  // and the enclosing run reaches it through the 16px strip the title lives in
+  // (measured on the nested direction probe: through the "D" of "Data
+  // Platform"; widening the padding only moved the letter). The title cannot
+  // be an ELK obstacle, so it does what zone chips do: it is drawn last, on a
+  // canvas halo, whenever a final wire segment crosses its rect.
+  {
+    const titleRect = (f: PFrame) => ({
+      x: f.x + 14, y: f.y + 24 - 13,
+      w: Math.round(measure(f.label, fx(13), "500", font.metrics)), h: 17,
+    });
+    const hit = (r: { x: number; y: number; w: number; h: number }, e: PEdge) => {
+      for (let i = 0; i < e.points.length - 1; i++) {
+        const a = e.points[i], b = e.points[i + 1];
+        const seg = { x: Math.min(a.x, b.x), y: Math.min(a.y, b.y), w: Math.abs(b.x - a.x), h: Math.abs(b.y - a.y) };
+        if (seg.x < r.x + r.w && seg.x + seg.w > r.x && seg.y < r.y + r.h && seg.y + seg.h > r.y) return true;
+      }
+      return false;
+    };
+    for (const f of frames) {
+      const r = titleRect(f);
+      if (pEdges.some((e) => hit(r, e))) f.titleCrossed = true;
+    }
   }
 
   return {

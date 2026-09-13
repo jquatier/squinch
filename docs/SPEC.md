@@ -508,6 +508,16 @@ layout {
 }
 ```
 
+`direction` is also the one Tier-0 knob a container's own block takes (§3): a
+pipeline that reads left to right inside a view that flows down says `direction
+right` in its own `layout { }`, and that holds wherever the container is opened.
+An expanded container with its own direction is laid out as its own run; edges
+crossing its wall enter and leave through the wall and continue to the leaf
+(docs/notes/coplanar.md, approach #7). A wire that runs through a frame's title
+strip on the way in is drawn behind the title, which sits on a halo — the
+zone-chip rule, applied to frame titles. A direction equal to the one already in
+effect around the container is a no-op.
+
 ### Tier 1 — placement hints (where 90% of tuning happens)
 
 ```squinch
@@ -679,7 +689,7 @@ order-service.squinch:44:3   `rows` lists `files` twice
   a node can hold only one rank position; remove one occurrence
 
 order-service.squinch:18:5   `lines` describes a view, not a container's interior
-  move it to the view's `layout { }`; inside `shop` only rows, cols and place apply
+  move it to the view's `layout { }`; inside `shop` only rows, cols, place and direction apply
 
 order-service.squinch:19:11  `workers.sync` is inside `workers`, not a direct member of `shop`
   arrange it in `workers`'s own layout block: `container workers { … layout { rows [sync] } }`

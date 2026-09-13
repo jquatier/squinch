@@ -1,0 +1,32 @@
+// expand * with a nested frame that wants its own direction: the outer
+// platform lays out down (view default), the pipeline inside it goes right,
+// and a stage of that pipeline is itself a container laid out down.
+system platform "Data Platform" {
+  system pipe "Pipeline" {
+    layout { direction right }
+    ingest = box "Ingest"
+    system clean "Clean" {
+      layout { direction down }
+      dedupe = box "Dedupe"
+      validate = box "Validate"
+      dedupe -> validate
+    }
+    enrich = box "Enrich"
+    publish = box "Publish"
+    ingest -> clean.dedupe
+    clean.validate -> enrich
+    enrich -> publish
+  }
+  catalog = box "Catalog"
+  pipe.enrich -> catalog "lookup"
+}
+src = box "Source"
+sink = box "Warehouse"
+src -> platform.pipe.ingest "raw"
+platform.pipe.publish -> sink
+view v {
+  expand *
+  layout {
+    rows [src] [platform] [sink]
+  }
+}

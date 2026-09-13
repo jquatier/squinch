@@ -1,0 +1,25 @@
+// Corpus fixture for per-container direction (SPEC §3): the interior flows
+// right inside a view that flows down; the outside edges enter and leave
+// through the frame wall and continue to the leaf on ELK hierarchical ports.
+system pipe "Pipeline" {
+  layout { direction right }
+  ingest = box "Ingest"
+  clean = box "Clean"
+  enrich = box "Enrich"
+  score = box "Score"
+  publish = box "Publish"
+  ingest -> clean
+  clean -> enrich
+  enrich -> score
+  score -> publish
+}
+src = box "Source"
+sink = box "Warehouse"
+src -> pipe.ingest
+pipe.publish -> sink
+view v {
+  expand pipe
+  layout {
+    rows [src] [pipe] [sink]
+  }
+}

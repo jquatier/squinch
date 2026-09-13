@@ -143,8 +143,8 @@ Rules that matter:
   empty. Write `partner = box "Partner System" external` instead.
 - A `layout { }` block goes inside a `view` (arranging the view) **or inside a
   `system`** (arranging that system's own interior — `rows`, `cols`, `place`
-  only, written by short name; see Layout hints). `highlight`, `note` and
-  `expand` belong to a view alone.
+  and `direction`, written by short name; see Layout hints). `highlight`,
+  `note` and `expand` belong to a view alone.
 
 Edge motion — `~>` edges animate on their own (dashes drift toward the target,
 off under `prefers-reduced-motion`). Opt out with `{ animate: false }`, or pick
@@ -360,6 +360,11 @@ system checkout "Checkout" {
   api -> svc; svc ~> bus; svc -> cache; svc -> db
   layout { rows [api] [svc] [bus cache] [db] }   // short names, inside
 }
+system pipeline "Pipeline" {
+  ingest = aws/lambda "Ingest"; enrich = aws/lambda "Enrich"; publish = aws/lambda "Publish"
+  ingest -> enrich; enrich -> publish
+  layout { direction right }                     // this interior reads left to right
+}
 view detail {
   expand checkout
   expand shipping
@@ -367,6 +372,10 @@ view detail {
 }
 ```
 
+  `direction right` in a system's block lays that system's interior out left
+  to right wherever it is opened, inside a view that still flows down — the
+  way to draw a pipeline as a row. It is a property of the system, not of the
+  view: there is no per-view override for an expanded frame.
   A view may still name interior paths (`rows [gw] [checkout.api]`); when its
   hints relate two or more of a system's members they replace that system's
   block in that view, whole — bands are never merged. Naming one member only
@@ -422,6 +431,7 @@ view detail {
 | Everything open on one page, no clicking into containers | `view full { expand * }` — every container becomes a nested frame, every edge shows natively |
 | A full-detail view came out tall — want it wide | Add `layout { rows … }` banding the expanded systems side by side; calls between them route through the gutters and land on the cards |
 | An expanded system's insides are in the wrong order or tier | Give the system its own `layout { rows … }` in short names — it follows the system into every view. Or name the interior paths in the view's `rows` (`[app.api] [app.db app.cache]`), which replaces the system's block for that view |
+| A pipeline inside a system should read left to right while the view flows down | `layout { direction right }` inside that system — its interior becomes a row wherever it is opened; the view keeps its own direction |
 | "`a` and `b` are asked to share a row inside `s`, but the edge between them cannot be routed there" warning | Same-rank edges route between systems, not inside one. Put `b` in the row below `a`, or collapse `s` in this view |
 | "hint conflict: `a` → `b` runs upward inside `s`" error | The system's bands contradict its own arrows, same rule as the view's `rows`: put `b` in a row below `a`, or drop one of them from that block |
 | "`expand *` already opens every container — the explicit `expand` lines are redundant" warning | Drop the explicit `expand x` lines; the star covers them |

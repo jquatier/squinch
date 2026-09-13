@@ -214,8 +214,9 @@ describe("grammar + model builder", () => {
     expect(of("rows [x] [inner]")).toEqual([]);
     expect(of("rows [a] [x]")[0]).toContain("`a` is outside `s`");
     expect(of("place inner.y below x")[0]).toContain("`inner.y` is inside `inner`, not a direct member of `s`");
-    expect(of("direction right")[0]).toContain("`direction` describes a view, not a container's interior");
+    expect(of("direction right")).toEqual([]); // the interior's own flow (SPEC §3)
     expect(of("lines curved")[0]).toContain("`lines` describes a view");
+    expect(of("density compact")[0]).toContain("`density` describes a view");
     expect(of("rows [x] [inner]\n  rows [inner] [x]")[0]).toContain("`rows` appears twice in this block");
     expect(of("rows [x inner]\n  place x below inner")[0]).toContain("is placed `below s.inner`, but `rows` puts it somewhere else");
     // two blocks in one container

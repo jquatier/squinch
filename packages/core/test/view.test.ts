@@ -1107,3 +1107,130 @@ gw -> app.api
     expect(err.loc.line).toBe(blockLine);
   });
 });
+
+
+describe("per-container direction (coplanar.md approach #7)", () => {
+  // `direction right` in a container's own layout block: the frame becomes
+  // its own ELK run, and every edge crossing its wall is cut at a hierarchical
+  // wall port and stitched back into one polyline. With no directed frame the
+  // ELK graph is byte-for-byte the one built before this existed.
+  const PIPE = (dir: string, extra = "") => `system pipe "Pipeline" {
+  ingest = box "Ingest"; clean = box "Clean"; enrich = box "Enrich"; publish = box "Publish"
+  ingest -> clean; clean -> enrich; enrich -> publish
+  ${extra}
+  layout { direction ${dir} }
+}
+src = box "Source"
+sink = box "Warehouse"
+src -> pipe.ingest "raw"
+pipe.publish -> sink
+`;
+  const lay = async (src: string, view: string) => {
+    const { layoutView } = await import("../src/layout/layout.js");
+    const built = buildModel(src);
+    expect(built.diagnostics.filter((d) => d.severity === "error")).toEqual([]);
+    const r = await layoutView(built.model, built.model.views.find((x) => x.name === view)!);
+    expect(r.diagnostics.filter((d) => d.severity === "error" || d.severity === "warning")).toEqual([]);
+    expect(checkLayout(r.positioned, { zoneMembers: new Map(built.model.zones.map((z) => [z.id, z.members])) })).toEqual([]);
+    return r.positioned;
+  };
+  const node = (p: Awaited<ReturnType<typeof lay>>, path: string) => p.nodes.find((n) => n.path === path)!;
+
+  it("the interior lays out on one baseline, left to right, inside a view that flows down", async () => {
+    const p = await lay(`${PIPE("right")}view v { expand pipe\n layout { rows [src] [pipe] [sink] } }\n`, "v");
+    const ys = ["ingest", "clean", "enrich", "publish"].map((n) => node(p, `pipe.${n}`).y);
+    expect(new Set(ys).size).toBe(1);
+    const xs = ["ingest", "clean", "enrich", "publish"].map((n) => node(p, `pipe.${n}`).x);
+    expect([...xs].sort((a, b) => a - b)).toEqual(xs);
+    // the frame is wider than tall, the view still flows down around it
+    const frame = p.frames.find((f) => f.path === "pipe")!;
+    expect(frame.w).toBeGreaterThan(frame.h);
+    expect(node(p, "src").y).toBeLessThan(frame.y);
+    expect(node(p, "sink").y).toBeGreaterThan(frame.y + frame.h);
+  });
+
+  it("outside edges cross the wall and reach the leaf as one polyline, with a wall port the ports registry sees", async () => {
+    const p = await lay(`${PIPE("right")}view v { expand pipe\n layout { rows [src] [pipe] [sink] } }\n`, "v");
+    const raw = p.edges.find((e) => e.from === "src" && e.to === "pipe.ingest")!;
+    const ingest = node(p, "pipe.ingest");
+    const end = raw.points[raw.points.length - 1];
+    // the arrow ends on the leaf's own wall, not the frame's
+    expect(end.x === ingest.x || end.y === ingest.y).toBe(true);
+    expect(raw.labelRect).toBeTruthy();
+    // no segment ids leak out
+    expect(p.edges.every((e) => !/~\d+$/.test(e.id))).toBe(true);
+    // the wall port is a port like any other
+    expect(p.ports.some((pt) => pt.node === "pipe" && pt.edge === raw.id)).toBe(true);
+  });
+
+  it("a declared direction equal to the enclosing one is a no-op, byte for byte", async () => {
+    const a = await lay(`${PIPE("down")}view v { expand pipe }\n`, "v");
+    const b = await lay(`${PIPE("down").replace("  layout { direction down }\n", "")}view v { expand pipe }\n`, "v");
+    expect(JSON.stringify(a)).toBe(JSON.stringify(b));
+  });
+
+  it("nests: right inside down inside down, and a wire through a title is drawn on a halo", async () => {
+    const src = `system platform "Data Platform" {
+  system pipe "Pipeline" {
+    ingest = box "Ingest"
+    system clean "Clean" { dedupe = box "Dedupe"; validate = box "Validate"; dedupe -> validate
+      layout { direction down } }
+    enrich = box "Enrich"; publish = box "Publish"
+    ingest -> clean.dedupe; clean.validate -> enrich; enrich -> publish
+    layout { direction right }
+  }
+  catalog = box "Catalog"
+  pipe.enrich -> catalog "lookup"
+}
+src = box "Source"
+sink = box "Warehouse"
+src -> platform.pipe.ingest "raw"
+platform.pipe.publish -> sink
+view v { expand *\n layout { rows [src] [platform] [sink] } }
+`;
+    const p = await lay(src, "v");
+    const row = ["ingest", "clean", "enrich", "publish"].map((n) =>
+      n === "clean" ? p.frames.find((f) => f.path === "platform.pipe.clean")!.x : node(p, `platform.pipe.${n}`).x);
+    expect([...row].sort((a, b) => a - b)).toEqual(row);
+    expect(node(p, "platform.pipe.clean.dedupe").y).toBeLessThan(node(p, "platform.pipe.clean.validate").y);
+    // the raw wire reaches ingest through the enclosing frame's title strip;
+    // the title is flagged so the renderer draws it last, on a halo
+    expect(p.frames.find((f) => f.path === "platform")!.titleCrossed).toBe(true);
+    const svg = (await render(src, { view: "v", theme: "dark" })).svg!;
+    expect(validateSVG(svg).ok).toBe(true);
+    expect((svg.match(/data-kind="frame-title"/g) ?? []).length).toBe(1);
+  });
+
+  it("a skip edge, a coplanar edge into the frame, a flow and an edge note all survive the cut", async () => {
+    const src = `${PIPE("right", 'ingest -> enrich "bypass"')}mon = box "Monitor"
+mon -> pipe.clean "probes"
+zone cloud "Cloud" cloud { contains pipe }
+flow load "Load" { src -> pipe.ingest -> pipe.clean -> pipe.enrich -> pipe.publish -> sink }
+view v { expand pipe
+  show flow load
+  note on src -> pipe.ingest "batches hourly"
+  layout { rows [src] [pipe mon] [sink] } }
+`;
+    const p = await lay(src, "v");
+    expect(p.edges.find((e) => e.from === "mon")!.coplanar).toBe(true);
+    expect(p.badges.length).toBeGreaterThan(0);
+    expect(p.notes?.length).toBe(1);
+    const svg = (await render(src, { view: "v", theme: "dark" })).svg!;
+    expect(validateSVG(svg).ok).toBe(true);
+  });
+
+  it("a scoped view of a directed container flows its way, and notes on its leaves place", async () => {
+    const src = `${PIPE("right")}view pipe { scope pipe\n note above ingest "first"\n note below publish "last" }\n`;
+    const p = await lay(src, "pipe");
+    const ys = ["ingest", "clean", "enrich", "publish"].map((n) => node(p, `pipe.${n}`).y);
+    expect(new Set(ys).size).toBe(1);
+    expect(p.notes?.length).toBe(2);
+  });
+
+  it("renders deterministically", async () => {
+    const src = `${PIPE("right")}view v { expand pipe\n layout { rows [src] [pipe] [sink] } }\n`;
+    const a = (await render(src, { view: "v", theme: "dark" })).svg;
+    const b = (await render(src, { view: "v", theme: "dark" })).svg;
+    expect(a).toBe(b);
+  });
+});
