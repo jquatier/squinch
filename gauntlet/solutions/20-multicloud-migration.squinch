@@ -2,28 +2,33 @@ pack azure
 pack logos
 
 // On-premises infrastructure
-pg_db = logos/postgres "PostgreSQL" datastore
-rabbit = logos/rabbitmq "RabbitMQ"
+pg_onprem   = logos/postgres  "PostgreSQL Database" datastore
+rmq_onprem  = logos/rabbitmq  "RabbitMQ Broker"
 
 // Azure infrastructure
-aks = azure/aks "AKS Cluster"
-azure_sql = azure/sql "Azure SQL" datastore
-sync = box "Sync Job"
+aks         = azure/aks       "AKS Cluster"
+sql_azure   = azure/sql       "Azure SQL Database" datastore
 
-// Migration flow
-pg_db ~> sync "nightly copy"
-sync ~> azure_sql
+// Sync job
+sync_job    = box             "Nightly Sync Job"
 
-// Deployment zones
+// Connections
+sync_job ~> sql_azure "copies data"
+sync_job -> pg_onprem "reads from"
+
+// Deployment boundaries
 zone onprem "On-Premises" onprem {
-  contains pg_db, rabbit
+  contains pg_onprem, rmq_onprem
 }
 
 zone cloud "Azure" cloud {
-  contains aks, azure_sql, sync
+  contains aks, sql_azure, sync_job
 }
 
-view default {
+view landscape {
   title "Multi-Cloud Migration"
   include *
+  layout {
+    rows [onprem cloud]
+  }
 }

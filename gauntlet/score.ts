@@ -24,7 +24,7 @@ import { readFileSync, existsSync } from "node:fs";
 import { join, dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import {
-  buildProject, renderProject, validateSVG, formatDiagnostics, themes,
+  buildProject, renderProject, validateSVG, formatDiagnostics, themes, layoutView,
 } from "../packages/core/dist/index.js";
 import { svgToPng } from "../packages/cli/src/raster.js";
 
@@ -58,6 +58,27 @@ interface Expect {
   /** a view must carry a titleblock */
   requireTitleblock?: boolean;
   icons?: string[][];
+  /** Geometry, read off a laid-out view — a "does the picture say so" test
+   *  that is construct-agnostic: however the author got there (a container's
+   *  own layout block, interior paths in a view's rows, `wrap`, a
+   *  hand-written fold), the arrangement asked for is what is checked. Nodes
+   *  are named by a case-insensitive label pattern, never by id, since ids
+   *  are the agent's to choose. */
+  layout?: {
+    /** which declared view; default: the one drawing the most nodes */
+    view?: string;
+    /** check every declared view, not just one — "this arrangement holds
+     *  wherever the system is opened" */
+    allViews?: boolean;
+    /** a's bottom edge sits above b's top edge */
+    above?: [string, string][];
+    /** a and b share a row (vertical overlap), a to the left of b */
+    beside?: [string, string][];
+    /** every listed node on one row, left to right in that order */
+    row?: string[][];
+    /** the view's width ÷ height must fall in this band */
+    aspect?: { min?: number; max?: number };
+  };
 }
 interface Prompt { id: string; prompt: string; expect: Expect }
 
@@ -260,6 +281,58 @@ for (const p of prompts) {
   for (const anyOf of e.icons ?? [])
     if (!anyOf.some((id) => iconIdsUsed.has(id)))
       problems.push(`missing icon: ${anyOf.join(" | ")}`);
+
+  if (e.layout) {
+    const L = e.layout;
+    const declared = m.views.filter((v) => !v.auto);
+    // a flat project has no views at all; the renderer draws it through an
+    // implicit "everything" view (api.ts), and so does this check
+    const implicit = {
+      name: "default", scope: undefined,
+      only: [], include: [], includeStar: false, exclude: [], expand: [], expandStar: false, detail: [],
+      context: "auto", highlight: [], colors: [], showDescriptions: false, legend: false, notes: [],
+      layout: { place: [], routes: [], align: [], channels: [] },
+      loc: { from: 0, to: 0, line: 1, col: 1 },
+    } as unknown as (typeof m.views)[number];
+    const laid: { name: string; P: Awaited<ReturnType<typeof layoutView>>["positioned"] }[] = [];
+    const candidates = L.view
+      ? m.views.filter((v) => v.name === L.view)
+      : declared.length ? declared : m.views.length ? [m.views[0]] : [implicit];
+    if (L.view && !candidates.length) problems.push(`no view named \`${L.view}\``);
+    for (const v of candidates) laid.push({ name: v.name, P: (await layoutView(m, v)).positioned });
+    const targets = L.allViews
+      ? laid
+      : laid.length ? [laid.reduce((a, b) => (b.P.nodes.length > a.P.nodes.length ? b : a))] : [];
+    for (const { name, P } of targets) {
+      const find = (pat: string) => {
+        const re = new RegExp(pat, "i");
+        const hit = P.nodes.find((n) => re.test(n.label));
+        if (!hit) problems.push(`no node in \`${name}\` labelled like /${pat}/i`);
+        return hit;
+      };
+      const label = (n: { label: string }) => `\`${n.label}\``;
+      const beside = (a: string, b: string) => {
+        const A = find(a), B = find(b);
+        if (!A || !B) return;
+        const overlap = A.y < B.y + B.h && B.y < A.y + A.h;
+        if (!overlap || A.x + A.w > B.x)
+          problems.push(`${label(A)} is not beside-and-left-of ${label(B)} in \`${name}\``);
+      };
+      for (const [a, b] of L.above ?? []) {
+        const A = find(a), B = find(b);
+        if (A && B && !(A.y + A.h <= B.y)) problems.push(`${label(A)} is not above ${label(B)} in \`${name}\``);
+      }
+      for (const [a, b] of L.beside ?? []) beside(a, b);
+      for (const row of L.row ?? []) for (let i = 0; i + 1 < row.length; i++) beside(row[i], row[i + 1]);
+      if (L.aspect) {
+        const ratio = P.width / P.height;
+        if (L.aspect.min !== undefined && ratio < L.aspect.min)
+          problems.push(`\`${name}\` is ${P.width}×${P.height} — taller than the ${L.aspect.min}:1 asked for`);
+        if (L.aspect.max !== undefined && ratio > L.aspect.max)
+          problems.push(`\`${name}\` is ${P.width}×${P.height} — wider than the ${L.aspect.max}:1 asked for`);
+      }
+    }
+  }
 
   results.push({ id: p.id, pass: problems.length === 0, problems });
   if (problems.length) {

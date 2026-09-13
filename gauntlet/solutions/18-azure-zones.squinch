@@ -1,17 +1,14 @@
 pack azure
 
-// Components
-gw  = azure/app-gateway     "Application Gateway"
-aks = azure/aks             "AKS Cluster"
-acr = azure/acr             "Container Registry"
-sql = azure/sql             "Azure SQL Database" datastore
+gw  = azure/app-gateway "Application Gateway"
+aks = azure/aks         "AKS Cluster"
+acr = azure/acr         "Container Registry"
+sql = azure/sql         "Azure SQL Database" datastore
 
-// Connections
-gw -> aks "routes traffic"
+gw -> aks
 aks -> acr "pulls images"
-aks -> sql "queries"
+aks -> sql
 
-// Boundaries
 zone subscription "Azure Subscription" account {
   contains gw, aks, acr, sql
 }
@@ -22,9 +19,4 @@ zone vnet "Virtual Network" network {
 
 zone subnet "Private Subnet" subnet {
   contains aks, acr
-}
-
-view default {
-  title "Azure Estate Network Boundaries"
-  include *
 }

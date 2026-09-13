@@ -1,4 +1,4 @@
-// Approval chain with policy engine and audit log on same row
+// Approval chain system
 
 request  = box "Request Service"
 policy   = box "Policy Engine"
@@ -12,6 +12,6 @@ approver -> audit
 view main {
   title "Approval Chain"
   layout {
-    rows [request] [policy audit approver]
+    rows [request] [policy audit]
   }
 }

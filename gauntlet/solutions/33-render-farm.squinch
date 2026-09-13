@@ -1,0 +1,37 @@
+pack aws
+
+dispatcher = aws/ec2 "Dispatcher"
+
+w1  = aws/ec2 "Worker 1"
+w2  = aws/ec2 "Worker 2"
+w3  = aws/ec2 "Worker 3"
+w4  = aws/ec2 "Worker 4"
+w5  = aws/ec2 "Worker 5"
+w6  = aws/ec2 "Worker 6"
+w7  = aws/ec2 "Worker 7"
+w8  = aws/ec2 "Worker 8"
+w9  = aws/ec2 "Worker 9"
+w10 = aws/ec2 "Worker 10"
+w11 = aws/ec2 "Worker 11"
+w12 = aws/ec2 "Worker 12"
+
+dispatcher -> w1  "frame"
+dispatcher -> w2  "frame"
+dispatcher -> w3  "frame"
+dispatcher -> w4  "frame"
+dispatcher -> w5  "frame"
+dispatcher -> w6  "frame"
+dispatcher -> w7  "frame"
+dispatcher -> w8  "frame"
+dispatcher -> w9  "frame"
+dispatcher -> w10 "frame"
+dispatcher -> w11 "frame"
+dispatcher -> w12 "frame"
+
+view landscape {
+  title "Render Farm"
+  include *
+  layout {
+    wrap 4
+  }
+}

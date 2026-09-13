@@ -1,20 +1,16 @@
 pack aws
 
-person user "User"
+system pipeline "Image Processing Pipeline" {
+  description: "Serverless image analysis"
 
-bucket = aws/s3 "Image Uploads" datastore
-process = aws/lambda "Image Processor"
-rekognition = aws/rekognition "Rekognition"
-metadata = aws/dynamodb "Metadata Store" datastore
-notify = aws/sns "Notification Topic"
+  uploads = aws/s3 "Uploads Bucket" datastore
+  process = aws/lambda "Process Images"
+  rekognition = aws/rekognition "Rekognition"
+  metadata = aws/dynamodb "Metadata" datastore
+  notifications = aws/sns "Notifications"
 
-user -> bucket "uploads image"
-bucket ~> process "S3 event"
-process -> rekognition "analyze image"
-process -> metadata "write metadata"
-process ~> notify "publish notification"
-
-view default {
-  title "Image Processing Pipeline"
-  include *
+  uploads ~> process "upload event"
+  process -> rekognition "analyze image"
+  process -> metadata "write metadata"
+  process ~> notifications "notify subscribers"
 }

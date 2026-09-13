@@ -214,7 +214,13 @@ export async function layoutView(
   // the auto view rather than an overlay on it).
   {
     const own = view.scope ? model.containers.get(view.scope)?.layout : undefined;
-    const viewHints = !!(view.layout.rows || view.layout.cols || view.layout.place.length || view.layout.direction);
+    // `wrap` is a rows line the engine writes, so it counts as the view's own
+    // bands here: round 23's 32-nightly-batch-slide wrote `direction right`
+    // in the container and `wrap 5` in its scoped view, inherited the
+    // direction, and got the fold transposed into three columns.
+    const viewHints = !!(
+      view.layout.rows || view.layout.cols || view.layout.place.length || view.layout.direction || view.layout.wrap
+    );
     if (own && !viewHints)
       view = {
         ...view,
@@ -1215,7 +1221,30 @@ export async function layoutView(
           "elk.hierarchyHandling": "INCLUDE_CHILDREN",
           "elk.direction": frameDir.get(p) === "right" ? "RIGHT" : "DOWN",
           "elk.portConstraints": "FIXED_SIDE",
+          ...(frameOrder.has(p) ? {} : { "elk.layered.crossingMinimization.semiInteractive": "true" }),
         },
+        // The flow-through path stays straight and a dead-end branch yields.
+        // ELK centres a stage between its successors, so a pipeline with one
+        // side lookup steps off its row (gauntlet round 23, 30-platform-
+        // pipeline); `priority.straightness` does nothing to that (measured).
+        // What does: in-layer order — a stage whose unit goes on somewhere
+        // sorts before one that is the end of the line, and the chain hugs
+        // the row while the dead end hangs beside it. The author's own
+        // interior hints, when present, replace this (frameOrder).
+        children: frameOrder.has(p)
+          ? compound.children
+          : (() => {
+              const unitOfChild = (c: any) => c.id as string;
+              const continues = (u: string) => edges.some((x) => childUnitIn(p, x.from) === u && inside(x.from, p));
+              const ranked = [...compound.children].sort(
+                (c1, c2) => Number(!continues(unitOfChild(c1))) - Number(!continues(unitOfChild(c2))),
+              );
+              const down = frameDir.get(p) !== "right";
+              return ranked.map((c, i) => ({
+                ...c,
+                layoutOptions: { ...(c.layoutOptions ?? {}), "elk.position": down ? `(${i * 1000},0)` : `(0,${i * 1000})` },
+              }));
+            })(),
         ports: framePorts.get(p) ?? [],
         edges: segments.filter((sg) => sg.container === p).map(segElk),
       }],

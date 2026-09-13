@@ -1,34 +1,38 @@
-// Market data flow architecture
+// Market data system
 
-exchange = sys/radio-tower "Exchange" external
-clearing = sys/building-2 "Clearing House" external
+exchange = box "Exchange" external
 
-feed_handler = sys/webhook "Feed Handler"
-normaliser = sys/cog "Normaliser"
-pricing_engine = sys/cpu "Pricing Engine"
-trading_ui = sys/app-window "Trading UI"
-batch_recon = sys/clock "Nightly Reconciliation" {
-  description: "Batch job"
+system market "Market Data Platform" {
+  feed    = sys/webhook    "Feed Handler"
+  norm    = sys/workflow   "Normalizer"
+  pricing = sys/server     "Pricing Engine"
+
+  feed ~> norm "price stream" { animate: packets }
+  norm ~> pricing "ticks" { animate: packets }
 }
-risk_service = sys/shield-check "Risk Service"
 
-// Continuous price stream
-exchange ~> feed_handler "price stream" { animate: packets }
-feed_handler ~> normaliser "raw ticks"
-normaliser ~> pricing_engine "normalised ticks"
-pricing_engine ~> trading_ui "price updates" { animate: packets }
+ui = sys/app-window "Trading UI"
 
-// Nightly batch reconciliation
-batch_recon -> clearing "reconcile fills" { color: amber }
+clearing = box "Clearing House" external
+batch = sys/cron "Overnight Batch"
 
-// Health poll
-risk_service -> pricing_engine "health check" { animate: pulse }
+risk = sys/shield "Risk Service"
+
+// Continuous data flow
+exchange ~> market.feed "price stream" { animate: packets }
+market.pricing ~> ui "subscribe" { animate: packets }
+
+// Nightly reconciliation
+batch -> clearing "reconcile fills" { color: amber }
+
+// Periodic health polling
+risk -> market.pricing "health poll" { animate: pulse, color: teal }
 
 view landscape {
-  title "Market Data Architecture"
+  title "Market Data Flow"
   layout {
-    rows [exchange] [feed_handler] [normaliser] [pricing_engine trading_ui risk_service]
-    place batch_recon left-of pricing_engine
-    place clearing left-of batch_recon
+    rows [exchange] [market risk] [batch ui] [clearing]
+    place risk right-of market
+    place batch left-of ui
   }
 }

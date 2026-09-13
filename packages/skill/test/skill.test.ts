@@ -264,6 +264,8 @@ describe("SKILL.md — diagnostic coverage", () => {
     "appears twice in this block — one",
     // `wrap` (2026-09): the fix lines write the alternative out in full
     "both assign bands in this view", "the band width must be a whole number of at least 2",
+    // round 23: the fix writes the joined line
+    "bands must sit on one line — the statement ends at newline",
     // The expand family (flexibility sweep, 2026-08): each fix writes the
     // corrected view out in full — the `scope`+`expand` pair to split off, the
     // `detail` to use instead, the line to drop — so a cookbook row would only

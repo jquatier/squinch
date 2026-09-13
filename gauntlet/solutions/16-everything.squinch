@@ -2,30 +2,32 @@ pack aws
 
 person customer "Customer"
 
-storefront = aws/cloudfront "Storefront"
+cdn = aws/cloudfront "CloudFront CDN"
+storefront = box "Storefront"
 
 gw = aws/api-gateway "API Gateway"
 
 system catalog "Catalog Service" {
-  description: "Product catalog and search"
+  description: "Product catalog"
   icon: aws/lambda
 
-  lambda = aws/lambda "Catalog Handler"
-  db = aws/dynamodb "Catalog DB" datastore
+  svc = aws/lambda "Catalog Handler"
+  db = aws/dynamodb "Products Table" datastore
 
-  lambda -> db
+  svc -> db
 }
 
 system orders "Orders Service" {
-  description: "Order processing and management"
+  description: "Order processing"
   icon: aws/lambda
-  tags: #orders
+  tags: #core
 
-  lambda = aws/lambda "Orders Handler"
-  db = aws/dynamodb "Orders DB" datastore
+  svc = aws/lambda "Orders Handler"
+  db = aws/dynamodb "Orders Table" datastore
+  bus = aws/eventbridge "Order Events"
 
-  lambda -> db
-  lambda ~> bus "order events"
+  svc -> db
+  svc ~> bus "publishes"
 }
 
 system payments "Payments Service" {
@@ -33,35 +35,49 @@ system payments "Payments Service" {
   icon: aws/lambda
   tags: #sensitive
 
-  lambda = aws/lambda "Payments Handler" #sensitive
-  db = aws/dynamodb "Payments DB" datastore #sensitive
+  svc = aws/lambda "Payment Handler" {
+    tags: #sensitive
+  }
+  db = aws/dynamodb "Payments Table" datastore {
+    tags: #sensitive
+  }
 
-  lambda -> db
+  svc -> db
+
+  layout {
+    rows [svc] [db]
+  }
 }
 
-bus = aws/eventbridge "EventBridge"
 fulfillment = aws/lambda "Fulfillment Worker"
 
-customer -> storefront "browse and shop"
+customer -> cdn "browses"
+cdn -> storefront
 storefront -> gw "API calls"
-gw -> catalog.lambda "get products"
-gw -> orders.lambda "place order" #sensitive
-gw -> payments.lambda "process payment" #sensitive
+gw -> catalog.svc "catalog requests"
+gw -> orders.svc "order requests"
+gw -> payments.svc "payment requests" {
+  tags: #sensitive
+}
+orders.bus ~> fulfillment "consumes"
 
-bus ~> fulfillment "order placed"
-
-zone prod_vpc "Production VPC" vpc {
-  contains gw, catalog, orders, payments, bus, fulfillment
+zone vpc "VPC prod" vpc {
+  contains gw, catalog, orders, payments, fulfillment
 }
 
 view landscape {
   title "Order Platform Landscape"
   include *
-  color #sensitive amber
+  color #sensitive red
+  legend auto
+
+  layout {
+    rows [customer] [cdn] [storefront] [vpc]
+  }
 }
 
 view orders {
   title "Orders Service Detail"
   scope orders
-  color #sensitive amber
+  show descriptions
 }

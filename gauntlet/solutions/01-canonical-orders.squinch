@@ -1,36 +1,27 @@
 pack aws
 
-person user "User"
+system api "Order API" {
+  description: "Lambda-based order service"
 
-system api "API Service" {
   gw     = aws/api-gateway "API Gateway"
   create = aws/lambda      "Create Handler"
   get    = aws/lambda      "Get Handler"
   search = aws/lambda      "Search Handler"
-  sync   = aws/lambda      "Index Sync" {
-    description: "Updates search index"
-  }
+  sync   = aws/lambda      "Search Sync"
 
   db     = aws/dynamodb    "Orders Table" datastore
-  files  = aws/s3          "File Storage" datastore
+  files  = aws/s3          "Order Files" datastore
   idx    = aws/opensearch  "Search Index" datastore
 
-  gw -> create
-  gw -> get
-  gw -> search
-
+  gw -> create, get, search
   create -> db
   create -> files
   get -> db
-  get -> files
   search -> idx
-
   db ~> sync "DynamoDB stream"
   sync -> idx
 
   layout {
-    rows [gw] [create get search] [db files sync] [idx]
+    rows [gw] [create get search] [db sync files idx]
   }
 }
-
-user -> api.gw "API requests"

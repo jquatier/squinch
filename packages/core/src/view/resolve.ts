@@ -209,6 +209,17 @@ export function resolveView(model: SModel, view: SView): ViewGraph {
           fix: `drop the line; a leaf is already drawn at full depth`,
           loc: view.loc,
         });
+      } else if (c && ex === view.scope) {
+        // the view is named after the container, so it *is* that container's
+        // own view (SPEC §5) — its members are already the picture. Round 23
+        // (and this author, twice) wrote `view platform { expand platform }`
+        // meaning "the landscape with platform opened up".
+        diagnostics.push({
+          severity: "warning",
+          message: `expand \`${ex}\` inside \`${ex}\`'s own view — this view stands inside \`${ex}\` already, so nothing opens`,
+          fix: `a view named \`${ex}\` is that container's own view (SPEC §5). To show \`${ex}\` opened up among its neighbours, name the view something else — \`view overview { expand ${ex} }\``,
+          loc: view.loc,
+        });
       } else if (c) {
         diagnostics.push({
           severity: "warning",

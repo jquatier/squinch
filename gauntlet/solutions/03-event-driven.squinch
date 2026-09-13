@@ -1,24 +1,33 @@
 pack aws
 
-// Event-driven architecture with EventBridge routing to multiple consumers
+// Event source
+orders = aws/api-gateway "Order API"
 
+// Event bus
 bus = aws/eventbridge "Order Events"
-notifier = aws/lambda "Email Notifier"
-email = aws/sns "Email Topic"
-analytics = aws/lambda "Analytics Writer"
+
+// Email notification path
+emailHandler = aws/lambda "Email Notifier"
+notifications = aws/sns "Email Topic"
+
+// Analytics path
+analyticsHandler = aws/lambda "Analytics Writer"
 lake = aws/s3 "Data Lake" datastore
+
+// Dead-letter queue for failed events
 dlq = aws/sqs "Dead Letter Queue"
 
-bus ~> notifier "order created"
-bus ~> analytics "order events"
-notifier ~> email "send notification"
-analytics ~> lake "store events"
-notifier ~> dlq "failed"
-analytics ~> dlq "failed"
+// Event flows
+orders ~> bus "order events"
+bus ~> emailHandler
+emailHandler ~> notifications
+bus ~> analyticsHandler
+analyticsHandler ~> lake
+bus ~> dlq "failed events"
 
 view main {
   title "Event-Driven Order Processing"
   layout {
-    rows [bus] [notifier analytics] [email lake dlq]
+    rows [orders] [bus] [emailHandler analyticsHandler] [notifications lake dlq]
   }
 }

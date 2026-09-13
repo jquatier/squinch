@@ -227,6 +227,25 @@ export function buildProject(input: ProjectFile[]): BuildResult {
             diagnostics.splice(i, 1);
         }
       }
+      // `rows`/`cols` bands continued on the next line. Statements end at
+      // newline, so the second line's `[…]` is garbage to the parser, and the
+      // bare syntax error said nothing about why. Three of thirty-three
+      // round-23 agents (and this author) wrote it — long band lists invite
+      // wrapping.
+      for (const m of f.src.matchAll(/^([ \t]*(?:rows|cols)\b[^\n]*\])[ \t]*\n(?:[ \t]*\n)*([ \t]*)\[/gm)) {
+        if (strings.some(([a2, b2]) => m.index! >= a2 && m.index! < b2)) continue;
+        const word = /rows|cols/.exec(m[1])![0];
+        const at = m.index! + m[0].length - 1;
+        error(ctx, ctx.loc({ from: at, to: at + 1 } as SyntaxNode),
+          `\`${word}\` bands must sit on one line — the statement ends at newline`,
+          `join the lines: \`${word} [a] [b c] [d]\`, however long it gets`);
+        for (let i = diagnostics.length - 1; i >= 0; i--) {
+          const d = diagnostics[i];
+          if (d.file === ctx.name && d.message.startsWith("syntax error near")
+              && d.loc.from >= m.index! && d.loc.from <= at + 1)
+            diagnostics.splice(i, 1);
+        }
+      }
       // Fan-in. `a -> b, c` fans out, so `x, y -> z` is the guess the mirror
       // image invites — but an edge has one source, and the comma list on the
       // left parses as garbage.

@@ -1,38 +1,39 @@
-// Ingestion estate - wide layout for presentation
+pack aws
 
-// Six collectors feed one normaliser
-c1 = sys/server "Collector 1"
-c2 = sys/server "Collector 2"
-c3 = sys/server "Collector 3"
-c4 = sys/server "Collector 4"
-c5 = sys/server "Collector 5"
-c6 = sys/server "Collector 6"
+system ingestion "Ingestion Estate" {
+  c1 = aws/lambda "Collector 1"
+  c2 = aws/lambda "Collector 2"
+  c3 = aws/lambda "Collector 3"
+  c4 = aws/lambda "Collector 4"
+  c5 = aws/lambda "Collector 5"
+  c6 = aws/lambda "Collector 6"
 
-normaliser = sys/workflow "Normaliser"
+  normaliser = aws/lambda "Normaliser"
 
-warehouse = sys/database "Warehouse" datastore
-search    = sys/search   "Search Index" datastore
-alerting  = sys/siren    "Alerting"
+  warehouse = aws/redshift "Data Warehouse" datastore
+  search = aws/opensearch "Search Index" datastore
+  alerts = aws/sns "Alerting Service"
 
-// All collectors feed normaliser
-c1 -> normaliser
-c2 -> normaliser
-c3 -> normaliser
-c4 -> normaliser
-c5 -> normaliser
-c6 -> normaliser
+  c1 ~> normaliser
+  c2 ~> normaliser
+  c3 ~> normaliser
+  c4 ~> normaliser
+  c5 ~> normaliser
+  c6 ~> normaliser
 
-// Normaliser fans out to three targets
-normaliser -> warehouse
-normaliser -> search
-normaliser -> alerting
+  normaliser ~> warehouse
+  normaliser ~> search
+  normaliser ~> alerts
 
-view main {
-  title "Ingestion Estate"
   layout {
     direction right
+    rows [warehouse search] [alerts]
+  }
+}
+
+view ingestion {
+  title "Ingestion Estate"
+  layout {
     density compact
-    rows [c1 c2 c3 c4 c5 c6] [normaliser] [warehouse alerting] [search]
-    cols [warehouse search]
   }
 }

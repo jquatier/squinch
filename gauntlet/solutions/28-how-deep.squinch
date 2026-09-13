@@ -2,16 +2,16 @@ pack aws
 
 person customer "Customer"
 
-system orders "Order Service" {
-  description: "Handles checkout and order processing"
+system orders "Orders Service" {
+  description: "Manages order lifecycle"
   icon: aws/api-gateway
 
-  api = aws/api-gateway "API Gateway"
-  create = aws/lambda "Create Order"
-  get = aws/lambda "Get Order"
-  update = aws/lambda "Update Order"
-  db = aws/dynamodb "Orders Table" datastore
-  events = aws/eventbridge "Event Bus"
+  api = aws/api-gateway "Orders API"
+  create = aws/lambda "Create Handler"
+  get = aws/lambda "Get Handler"
+  update = aws/lambda "Update Handler"
+  db = aws/dynamodb "Orders DB" datastore
+  queue = aws/sqs "Order Events"
 
   api -> create
   api -> get
@@ -19,50 +19,44 @@ system orders "Order Service" {
   create -> db
   get -> db
   update -> db
-  create ~> events "order.created"
-  update ~> events "order.updated"
-}
+  create ~> queue "order.created"
+  update ~> queue "order.updated"
 
-system inventory "Inventory Service" {
-  description: "Tracks product availability"
-  icon: aws/lambda
-
-  api = aws/api-gateway "API"
-  reserve = aws/lambda "Reserve Stock"
-  release = aws/lambda "Release Stock"
-  db = aws/dynamodb "Inventory" datastore
-
-  api -> reserve
-  api -> release
-  reserve -> db
-  release -> db
-}
-
-system notifications "Notification Service" {
-  description: "Sends order updates to customers"
-  icon: aws/sns
-
-  handler = aws/lambda "Event Handler"
-  email = aws/sns "Email Topic"
-  sms = aws/sns "SMS Topic"
-
-  handler ~> email
-  handler ~> sms
-}
-
-customer -> orders.api "places order"
-orders.events ~> inventory.api "reserve stock"
-orders.events ~> notifications.handler "notify customer"
-
-view landscape {
-  title "Order Platform"
-  include *
   layout {
-    rows [customer] [orders] [inventory notifications]
+    rows [api] [create get update] [db queue]
   }
 }
 
+system inventory "Inventory Service" {
+  description: "Tracks stock levels"
+  icon: aws/lambda
+
+  handler = aws/lambda "Inventory Handler"
+  db = aws/dynamodb "Inventory DB" datastore
+
+  handler -> db
+}
+
+system notifications "Notifications Service" {
+  description: "Sends customer notifications"
+  icon: aws/sns
+
+  handler = aws/lambda "Notification Handler"
+  sns = aws/sns "Email/SMS"
+
+  handler -> sns
+}
+
+customer -> orders.api "places order"
+orders.queue ~> inventory.handler "stock check"
+orders.queue ~> notifications.handler "notify customer"
+
+view landscape {
+  title "Order Platform Overview"
+  include *
+}
+
 view orders {
-  title "Order Service Detail"
+  title "Orders Service Detail"
   scope orders
 }

@@ -228,6 +228,15 @@ describe("grammar + model builder", () => {
     expect(named.model.nodes.has("s.layout")).toBe(true);
   });
 
+  it("expand inside a container's own view says so, and how to get the landscape instead", async () => {
+    const { resolveView } = await import("../src/view/resolve.js");
+    const r = buildModel(`system platform "P" {\n a = box "A"\n}\nview platform { expand platform }\n`);
+    const v = r.model.views.find((x) => x.name === "platform")!;
+    const w = resolveView(r.model, v).diagnostics.find((d) => d.message.includes("inside `platform`'s own view"))!;
+    expect(w.severity).toBe("warning");
+    expect(w.fix).toContain("view overview { expand platform }");
+  });
+
   it("a container's block that runs against its own edges is a check error, whether or not a view opens it", () => {
     // Round 22: the block's rows contradicted the container's own edges, the
     // one declared view kept the container collapsed (block dormant), check
@@ -241,6 +250,15 @@ describe("grammar + model builder", () => {
     expect(errs[0].loc.line).toBe(7);
     // the same block with the bands the edges allow is clean
     expect(buildModel(src.replace("rows [api] [db] [monitor]", "rows [monitor] [api] [db]")).diagnostics.filter((d) => d.severity === "error")).toEqual([]);
+  });
+
+  it("rows bands continued on the next line get one error naming the fix, not syntax debris", () => {
+    // round 23: three of thirty-three agents wrapped a long rows line
+    const r = buildModel(`a = box "A"\nb = box "B"\nc = box "C"\na -> b\nb -> c\nview v { include *\n  layout {\n    rows [a] [b]\n         [c]\n  }\n}\n`);
+    const errs = r.diagnostics.filter((d) => d.severity === "error");
+    expect(errs.map((e) => e.message)).toContainEqual(expect.stringContaining("`rows` bands must sit on one line"));
+    expect(errs.find((e) => e.message.includes("bands must sit"))!.loc.line).toBe(9);
+    expect(errs.filter((e) => e.message.startsWith("syntax error near")).length).toBe(0);
   });
 
   it("a second rows, cols or direction line in a view's layout block is an error, not a silent drop", () => {

@@ -1,0 +1,45 @@
+pack aws
+
+person shopper "Shopper"
+cdn = aws/cloudfront "CDN"
+
+system checkout "Checkout" {
+  description: "Order and payment processing"
+
+  api = aws/api-gateway "Checkout API"
+  svc = aws/lambda "Order Service"
+  cache = aws/elasticache "Session Cache" datastore
+  queue = aws/sqs "Order Events"
+  worker = aws/lambda "Payment Worker"
+  db = aws/dynamodb "Orders" datastore
+
+  api -> svc
+  svc -> cache
+  svc -> db
+  svc ~> queue "emits events"
+  queue ~> worker
+  worker -> db
+
+  layout {
+    rows [api] [svc] [cache queue] [worker] [db]
+    place cache left-of queue
+  }
+}
+
+fulfillment = box "Fulfillment" external
+
+shopper -> cdn
+cdn -> checkout.api
+checkout.svc ~> fulfillment "ships order"
+
+view landscape {
+  title "System Landscape"
+  expand checkout
+  layout {
+    rows [cdn] [checkout fulfillment]
+  }
+}
+
+view checkout {
+  title "Checkout Detail"
+}

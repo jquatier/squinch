@@ -328,7 +328,11 @@ view steps { include *
 
 - `rows` is the workhorse: one bracket group per horizontal band, listed top to
   bottom; order inside a bracket is left to right. Unlisted nodes place
-  themselves — only list a node when you care where it lands.
+  themselves — only list a node when you care where it lands. Do **not** use
+  it to fold a long chain or a wide fan-out into several bands by hand: the
+  edges that skip a band detour around it and the fold reads worse than the
+  wide version. That is what `wrap N` is for — it folds the chain as a
+  serpentine, or the fan-out onto a bus, and routes the fold cleanly.
 - **Every edge must point down your bands** — check each band against your
   arrows before you write it. The bands are a claim about direction, and a node
   pointing back *up* the list is a check error, not a nudge. This bites on
@@ -438,6 +442,7 @@ view detail {
 | "`wrap 5` has no effect — this view is not a single chain or a single fan-out (…)" warning | `wrap` folds exactly one chain (a → b → c …) or one source fanning out to leaves. Write the bands by hand: `rows [a b] [c d]` |
 | "`a` and `b` are asked to share a row inside `s`, but the edge between them cannot be routed there" warning | Same-rank edges route between systems, not inside one. Put `b` in the row below `a`, or collapse `s` in this view |
 | "hint conflict: `a` → `b` runs upward inside `s`" error | The system's bands contradict its own arrows, same rule as the view's `rows`: put `b` in a row below `a`, or drop one of them from that block |
+| "expand `x` inside `x`'s own view — this view stands inside `x` already" warning | A view named after a container *is* that container's own view: you are already inside it. To draw `x` opened up among its neighbours, name the view something else: `view overview { expand x }` |
 | "`expand *` already opens every container — the explicit `expand` lines are redundant" warning | Drop the explicit `expand x` lines; the star covers them |
 | "`expand *` opened nothing — no containers are visible here" warning | The model (or this scope) has no containers to open — drop the line |
 | Show **only** one concern (an auditor's view: "only the PCI parts") | `only #pci`. Anything outside the scope that the survivors still talk to stays as a muted context card — that boundary crossing is usually the point of the view; `context off` drops those too |

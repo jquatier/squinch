@@ -2,32 +2,30 @@ pack azure
 
 person shopper "Shopper"
 
-system orders "Order System" {
-  apim = azure/api-management "API Management"
-  create_fn = azure/functions "Create Order"
-  cosmos = azure/cosmos "Orders DB" datastore
-  bus = azure/service-bus "Order Events"
-  fulfil_fn = azure/functions "Fulfil Order"
+apim = azure/api-management "API Management"
+create_fn = azure/functions "Create Order Function"
+db = azure/cosmos "Orders DB" datastore
+bus = azure/service-bus "Order Events"
+fulfil_fn = azure/functions "Fulfilment Function"
 
+shopper -> apim "places order"
+apim -> create_fn
+create_fn -> db "write order"
+create_fn ~> bus "publish OrderCreated"
+bus ~> fulfil_fn "process fulfilment"
+
+flow order "Order Flow" {
+  shopper -> apim
   apim -> create_fn
-  create_fn -> cosmos
+  create_fn -> db
   create_fn ~> bus
   bus ~> fulfil_fn
-
-  layout {
-    rows [apim] [create_fn] [cosmos bus] [fulfil_fn]
-  }
-}
-
-shopper -> orders.apim "place order"
-
-flow order_flow "Order Flow" {
-  shopper -> orders.apim -> orders.create_fn -> orders.cosmos
-  orders.create_fn ~> orders.bus ~> orders.fulfil_fn
 }
 
 view main {
   title "Azure Order Flow"
-  expand orders
-  show flow order_flow
+  show flow order
+  layout {
+    rows [shopper] [apim] [create_fn] [db bus] [fulfil_fn]
+  }
 }

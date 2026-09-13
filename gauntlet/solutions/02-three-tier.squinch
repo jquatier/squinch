@@ -3,16 +3,11 @@ pack aws
 person user "User"
 
 alb   = aws/elastic-load-balancing "Application Load Balancer"
-app   = aws/fargate                "Web Service"
-cache = aws/elasticache            "Cache" datastore
+app   = aws/fargate                "Web Application"
+cache = aws/elasticache            "Session Cache" datastore
 db    = aws/aurora                 "Database" datastore
 
-user -> alb "requests"
-alb  -> app
-app  -> cache
-app  -> db
-
-view default {
-  title "Three-Tier Web Application"
-  include *
-}
+user -> alb "HTTP requests"
+alb -> app
+app -> cache "session data"
+app -> db "queries"

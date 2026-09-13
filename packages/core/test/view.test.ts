@@ -1163,6 +1163,33 @@ pipe.publish -> sink
     expect(p.ports.some((pt) => pt.node === "pipe" && pt.edge === raw.id)).toBe(true);
   });
 
+  it("a side branch hangs off the row; the flow-through path stays straight", async () => {
+    // Gauntlet round 23, 30-platform-pipeline: ELK centres a stage between its
+    // two successors, so a pipeline with one dead-end lookup stepped off its
+    // row. priority.straightness does nothing (measured); in-layer order does —
+    // the stage whose unit goes on somewhere sorts first.
+    const src = `system pipe "Pipeline" {
+  extract = box "Extract"; validate = box "Validate"; enrich = box "Enrich"; publish = box "Publish"
+  catalog = box "Catalog"
+  extract -> validate; validate -> enrich; enrich -> catalog "lookup"; enrich -> publish
+  layout { direction right }
+}
+src = box "Source"
+sink = box "Warehouse"
+src -> pipe.extract
+pipe.publish -> sink
+view v { expand pipe\n layout { rows [src] [pipe] [sink] } }
+`;
+    const p = await lay(src, "v");
+    const row = ["extract", "validate", "enrich", "publish"].map((n) => node(p, `pipe.${n}`));
+    for (let i = 0; i + 1 < row.length; i++) {
+      const a = row[i], b = row[i + 1];
+      expect(a.y < b.y + b.h && b.y < a.y + a.h, `${a.label} shares a row with ${b.label}`).toBe(true);
+      expect(a.x + a.w).toBeLessThanOrEqual(b.x);
+    }
+    expect(node(p, "pipe.catalog").y).toBeGreaterThan(node(p, "pipe.enrich").y + node(p, "pipe.enrich").h - 1);
+  });
+
   it("a declared direction equal to the enclosing one is a no-op, byte for byte", async () => {
     const a = await lay(`${PIPE("down")}view v { expand pipe }\n`, "v");
     const b = await lay(`${PIPE("down").replace("  layout { direction down }\n", "")}view v { expand pipe }\n`, "v");

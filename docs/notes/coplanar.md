@@ -215,3 +215,16 @@ Still open: skip-edge baseline jitter is larger inside a directed frame (46px on
 the probe) than at the root (11px) — ELK node placement on a skip edge, not the
 compound; and a scoped view's own `direction` is the only override, an expanded
 frame's direction is the container's.
+
+**Flow-through first (round 23).** A pipeline with one side lookup stepped off
+its row: ELK centres a stage between its two successors, and the cold agent's
+correct `direction right` drew Publish a row below Enrich. Measured on a
+five-node fork in a plain RIGHT graph: `priority.straightness` on the
+flow-through edge changes nothing under NETWORK_SIMPLEX, BRANDES_KOEPF or
+LINEAR_SEGMENTS, and neither node nor edge declaration order moves which
+successor the fork aligns with — ELK puts the dead end on top every time. What
+does move it is in-layer order under `semiInteractive`: a child whose unit goes
+on somewhere (another stage, or out through the wall) sorts before one that is
+the end of the line, and the chain hugs the row while the dead end hangs beside
+it. Applied only in a directed frame's own call, and only when the author gave
+no interior hints of their own.

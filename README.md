@@ -412,7 +412,7 @@ agent needs — `npx squinch skill` installs it for every skills-compatible agen
 (or paste it into whatever your harness calls context), then ask for a diagram
 in plain language; [the package README](packages/skill/) has the details.
 
-The **gauntlet** is the acceptance test: twenty-nine natural-language
+The **gauntlet** is the acceptance test: thirty-three natural-language
 architecture prompts, each solved *cold* by a fresh agent given only SKILL.md
 and the CLI —
 no examples, no human layout fixes, no coaching. A deterministic scorer checks
@@ -424,10 +424,10 @@ sandbox holding nothing but SKILL.md, its prompt and a `squinch` binary, with
 this repository unreachable from inside — no examples, no docs, no engine
 source, and no previous answers to copy. Every prompt is re-run from scratch as
 the language grows, and the bar rises with it — the corpus has gone
-10 → 16 → 20 → 29 prompts as zones, flows, tag lenses, channels, more packs
+10 → 16 → 20 → 29 → 33 prompts as zones, flows, tag lenses, channels, more packs
 and the positional-tag grammar landed.
 
-The current round scores **29/29** with zero human layout fixes. Every round is
+The current round scores **33/33** with zero human layout fixes. Every round is
 written up in [gauntlet/README.md](gauntlet/README.md) — what was asked, how it
 was run, and what came back.
 

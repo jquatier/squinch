@@ -5,7 +5,7 @@ person customer "Customer"
 gw = aws/api-gateway "API Gateway"
 
 system catalog "Catalog Service" {
-  description: "Product browsing and search"
+  description: "Product catalog and search"
 
   api = aws/lambda "Catalog API"
   db = aws/dynamodb "Catalog DB" datastore
@@ -31,7 +31,7 @@ system identity "Identity Service" {
   api -> db
 }
 
-customer -> gw "browse, order, login"
+customer -> gw "browses and shops"
 gw -> catalog.api
 gw -> checkout.api
 gw -> identity.api
@@ -43,5 +43,4 @@ view landscape {
 
 view checkout {
   title "Checkout Service Detail"
-  scope checkout
 }

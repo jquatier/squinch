@@ -1,11 +1,11 @@
 # The gauntlet (end-to-end acceptance)
 
-Twenty-nine natural-language architecture prompts. An agent, armed with only
+Thirty-three natural-language architecture prompts. An agent, armed with only
 [`packages/skill/skills/squinch/SKILL.md`](../packages/skill/skills/squinch/SKILL.md) and the `squinch` CLI,
 must produce a clean diagram for each. **v1 ships at ≥ 16/20 with zero human
 layout fixes** (the original ≥ 8/10 bar, at the current prompt count).
 
-> **Current standing: 29/29 on the deep scorer, 22 of 29 clean on the first
+> **Current standing: 33/33 on the deep scorer, 19 of 33 clean on the first
 > `check`.** The
 > solutions those agents wrote are committed in `solutions/` and re-scored by CI
 > on every push, so the claim is inspectable rather than asserted.
@@ -65,48 +65,54 @@ nothing.
 
 ## Latest round
 
-**Round 22 — 29/29 on the deep scorer; 17 of 29 never saw a diagnostic, 9 of
-29 made a single `check` call** (2026-09-13, Sonnet). Run to validate the
-layout v1.2 work before its release: a container's own `layout { }` block,
-hints reaching inside expanded containers, per-container `direction`, and
-`wrap`.
+**Round 23 — 33/33 on the deep scorer; 19 of 33 clean on the first `check`**
+(2026-09-13, Sonnet). Run to validate the layout v1.2 work before its release
+— a container's own `layout { }` block, hints reaching inside expanded
+containers, per-container `direction` and `wrap` — with four new prompts
+written to call for those shapes in plain language (30–33) and a scorer that
+reads the answer off the laid-out picture: nodes above, beside and in a row by
+label, and the view's aspect ratio, however the author got there. Round 22,
+the day before on the same twenty-nine, found two things the release could
+not ship with, both fixed in its commit: a container block contradicting its
+own edges passed `check` when no declared view opened the container, and the
+interactive export refused a flat model nine agents wrote. Neither recurred.
 
-**Seven of twenty-nine cold agents put a `layout { rows … }` inside a system
-unprompted, and every one of those seven rendered clean.** That was the bet the
-container block was built on — it had been "the most common authoring mistake"
-for a year — and it paid on the first round it was legal. One more agent named
-interior paths in the view's `rows` instead, which now works too. Nobody
-reached for `wrap` or a container `direction`: the prompts do not ask for the
-shapes they serve, and 26-wide-ingestion, the one prompt where `wrap` would
-have helped, got a `cols` warning instead — the cookbook row exists, but agents
-open the cookbook on a symptom, and a wide diagram is not a diagnostic.
+**The new constructs are what cold agents reach for.** Twelve of thirty-three
+put a `layout { }` inside a system, three of them with `direction right`, two
+with `place`, one with `cols`; one more named interior paths in a view's
+`rows`. The pipeline prompt got `direction right` in the container's block on
+the first try; the checkout prompt got a container block whose tiers held in
+both of its views; the batch-job prompt got `wrap 5`; the render-farm prompt
+got `wrap 4` — after the four-prompt dry run had produced a hand-written
+`rows` fold with the detouring edges `wrap` exists to avoid, and one sentence
+in the `rows` bullet fixed that.
 
-**The two findings, both fixed in this commit:**
+**Three findings, all fixed in this commit:**
 
-- *A container block that contradicts its own edges passed `check`.* 15's
-  agent wrote bands running against the interior's arrows; the one declared
-  view kept the container collapsed, so the block was dormant and `check` said
-  OK — then the HTML export laid out the container's auto view, where the
-  block is the root layout, and failed on the conflict. The claim a block makes
-  is about the interior's edges, so it is now checked at build time, once,
-  with every edge resolved, wherever the block sits.
-- *The interactive export refused a flat model.* Nine agents wrote top-level
-  components with no `view` and no container — a model the SVG path renders
-  through an implicit view — checked it clean, then hit "nothing to export"
-  from the `.html` handover the skill now asks for by default, with a fix that
-  named an option (`views: "all"`) that could not help since there was nothing
-  to include. 10's agent tried it anyway and failed again. The export now
-  bundles the implicit view under the CLI's `default` label, as the SVG path
-  always has.
+- *A pipeline with a side lookup stepped off its row.* The agent's `direction
+  right` was correct, and ELK centred Enrich between Publish and Catalog.
+  `priority.straightness` does nothing to that (measured, three placers);
+  in-layer order does — inside a directed frame a stage whose unit goes on
+  somewhere now sorts before a dead end, so the chain hugs the row and the
+  lookup hangs beside it (coplanar.md).
+- *`wrap` under an inherited direction folded the wrong way.* 32 wrote
+  `direction right` in the container and `wrap 5` in its scoped view; the
+  view inherited the direction and the fold came out as three columns.
+  `wrap` is a `rows` line the engine writes, so it now counts as the view's
+  own hint and replaces the container's block like one.
+- *Three agents wrapped a long `rows` line onto a second line* and got bare
+  syntax errors. The statement ends at newline; the continuation now gets one
+  error saying so, with the fix, and the syntax debris is dropped.
 
-The single-call count (9, against 22 in round 21) is the export finding
-wearing a different hat: those nine flat models each cost a second `check`
-after the fix, and most of the rest were agents re-checking after the render.
-The class that used to dominate — rank conflicts on feedback edges — is down
-to four, and `unknown icon` (four, all `sys/barcode` in one file) and `expand`
-naming something that is not a direct child (three) make up the remainder. 13's
-agent wrote `channel` inside a system's block, met the new "describes a view,
-not a container's interior" error, and moved it in one edit.
+Also seen: three agents put a view-only statement (`channel`, `density`,
+`wrap`) in a container's block and were told so in one edit; one agent (and
+this author, twice) wrote `view platform { expand platform }` meaning "the
+landscape with platform opened" and got "not among the scope's direct
+children" — that case now says it is the container's own view and names the
+spelling that draws the landscape. The single-call count is up from 9 in
+round 22 because no export failed; rank conflicts on feedback edges (four)
+remain the largest class that survives the skill.
 
-The corpus in `solutions/` is this round's twenty-nine answers, cold-authored
-and deep-scored.
+The corpus in `solutions/` is this round's thirty-three answers (28
+re-authored per protocol after under-delivering — one system where three were
+asked for), cold-authored and deep-scored.

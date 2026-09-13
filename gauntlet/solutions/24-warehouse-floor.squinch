@@ -1,50 +1,51 @@
-// Warehouse automation system
-pack logos
+// Warehouse floor automation diagram
 
-person supervisor "Shift Supervisor"
+pack sys
 
-// Packing benches with scanners
+// Human actors
+supervisor = person "Shift Supervisor"
+
+// Packing bench scanners
 scanner1 = sys/smartphone "Scanner 1"
 scanner2 = sys/smartphone "Scanner 2"
 scanner3 = sys/smartphone "Scanner 3"
 
 // Local controller
 controller = sys/server "Local Controller" {
-  description: "Automation controller"
+  description: "Aggregates scans, drives automation"
 }
 
-// Physical automation equipment
+// Automation equipment
 sorter  = sys/workflow "Conveyor Sorter"
-printer = sys/printer "Label Printer"
+printer = sys/printer  "Label Printer"
 
-// Status display
+// Monitoring
 board = sys/monitor "Status Board"
 
-// External ERP system
+// Enterprise system
 erp = sys/database "ERP System" external {
-  description: "Enterprise resource planning"
+  description: "Syncs every minute"
 }
 
-// Data flows from scanners to controller
-scanner1 -> controller "scan data"
-scanner2 -> controller "scan data"
-scanner3 -> controller "scan data"
+// Connections
+scanner1 -> controller "scan events"
+scanner2 -> controller "scan events"
+scanner3 -> controller "scan events"
 
-// Controller drives equipment
-controller -> sorter "routing"
-controller -> printer "print job"
+controller -> sorter "sort commands"
+controller -> printer "print jobs"
 
-// Supervisor monitors status
+controller ~> erp "sync batch" {
+  description: "Once per minute"
+}
+
 controller -> board "status updates"
-supervisor -> board "monitors"
+supervisor -> board
 
-// Periodic sync to ERP (async - it happens in the background on a schedule)
-controller ~> erp "sync (1/min)"
-
-view warehouse {
+// Layout
+view default {
   title "Warehouse Floor Automation"
   layout {
-    rows [scanner1 scanner2 scanner3] [controller] [sorter printer board] [erp]
-    place supervisor left-of board
+    rows [scanner1 scanner2 scanner3] [controller] [sorter printer] [erp board supervisor]
   }
 }

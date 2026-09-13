@@ -60,7 +60,7 @@ commit as the change that earned the cost.
   improvements, never drift. The checklist is DESIGN.md §9: no near-misses, no
   label collisions, no port pile-ups.
 - **Benchmarks** in CI against the budgets above.
-- **The agent gauntlet** as the end-to-end acceptance suite — twenty-nine
+- **The agent gauntlet** as the end-to-end acceptance suite — thirty-three
   natural-language prompts answered by cold agents with only the skill and the
   CLI. It is **maintainer-only and never runs in CI**: a round spends real
   money on live agents. What CI runs on every push is the free half, the

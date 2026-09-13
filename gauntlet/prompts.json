@@ -500,5 +500,103 @@
       "requireExternal": true,
       "requirePerson": true
     }
+  },
+  {
+    "id": "30-platform-pipeline",
+    "prompt": "Our data platform is one box on the landscape, and inside it lives the ingestion pipeline: Extract, Validate, Enrich and Publish, in that order, each handing off to the next. Events reach Extract from a Kinesis stream that sits outside the platform, and Publish writes to a Redshift warehouse that also sits outside it. There is also a Catalog service inside the platform that Enrich looks things up in. Show the platform opened up, with the pipeline's four stages reading left to right as one row, while the rest of the page keeps flowing top to bottom: the stream at the top, the warehouse at the bottom.",
+    "expect": {
+      "minSystems": 1,
+      "layout": {
+        "row": [
+          [
+            "extract",
+            "validate",
+            "enrich",
+            "publish"
+          ]
+        ],
+        "above": [
+          [
+            "kinesis|stream|events",
+            "extract"
+          ],
+          [
+            "publish",
+            "redshift|warehouse"
+          ]
+        ]
+      }
+    }
+  },
+  {
+    "id": "31-checkout-tiers",
+    "prompt": "Draw our Checkout system and how it is put together inside. At the top is the Checkout API; under it the Order Service; below that, side by side, the Session Cache on the left and the Order Events queue on the right; the queue feeds a Payment Worker that sits under it; and at the very bottom the Orders table, which both the service and the worker write to. Shoppers reach the API through a CDN. I want two pictures: the landscape with Checkout opened up beside a collapsed Fulfillment system it talks to, and Checkout on its own. That top-to-bottom arrangement is how the team thinks about Checkout, so it has to hold in both pictures.",
+    "expect": {
+      "minSystems": 1,
+      "minNodes": 8,
+      "minViews": 2,
+      "layout": {
+        "allViews": true,
+        "above": [
+          [
+            "checkout api",
+            "order service"
+          ],
+          [
+            "order service",
+            "session cache"
+          ],
+          [
+            "order service",
+            "order events"
+          ],
+          [
+            "order events",
+            "payment worker"
+          ],
+          [
+            "payment worker",
+            "orders table|orders db|^orders$"
+          ]
+        ],
+        "beside": [
+          [
+            "session cache",
+            "order events"
+          ]
+        ]
+      }
+    }
+  },
+  {
+    "id": "32-nightly-batch-slide",
+    "prompt": "Our nightly batch job is fourteen steps that run strictly one after another: Extract, Validate, Dedupe, Normalize, Enrich, Score, Aggregate, Partition, Compress, Encrypt, Upload, Catalog, Verify, Notify. Every step is a Lambda. This is going on a slide, so it needs to be landscape, roughly 16:9 — not a tall strip down the page and not a mile-wide ribbon.",
+    "expect": {
+      "minNodes": 14,
+      "layout": {
+        "aspect": {
+          "min": 1.2,
+          "max": 3.5
+        }
+      }
+    }
+  },
+  {
+    "id": "33-render-farm",
+    "prompt": "One dispatcher hands frames out to twelve render workers, all identical EC2 machines, one connection to each. Twelve boxes in a single line runs right off the page, so keep the picture no more than about three times as wide as it is tall, with the dispatcher on top of the workers.",
+    "expect": {
+      "minNodes": 13,
+      "layout": {
+        "aspect": {
+          "max": 4
+        },
+        "above": [
+          [
+            "dispatcher",
+            "worker 1|worker-1|worker1"
+          ]
+        ]
+      }
+    }
   }
 ]

@@ -1,17 +1,13 @@
 pack aws
 
 person admin "Administrator"
-erp = sys/server "Legacy ERP" external
-sync = aws/lambda "Sync Worker"
-db = aws/rds "Database" datastore
-dashboard = sys/app-window "Admin Dashboard"
 
-admin -> dashboard "uses"
-erp ~> sync "feeds data"
-sync -> db "writes"
-dashboard -> db "reads"
+erp    = sys/server "Legacy ERP" external
+worker = aws/lambda "Sync Worker"
+db     = aws/rds "Admin DB" datastore
+app    = sys/app-window "Admin Dashboard"
 
-view default {
-  title "Hybrid Legacy Integration"
-  include *
-}
+erp ~> worker "data feed"
+worker -> db
+db -> app
+admin -> app "manages"

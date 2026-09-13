@@ -1,32 +1,22 @@
 pack aws
 
-// On-premises components
-person operator "Operators"
-erp = sys/database "Legacy ERP" external
+person operator "Operator"
+erp    = sys/database "ERP System" { description: "Legacy Oracle-style ERP" }
+ingest = aws/lambda   "Ingestion Lambda"
+aurora = aws/aurora   "Aurora Database" datastore
 
-// AWS components
-ingest = aws/lambda "Ingestion Lambda"
-db = aws/aurora "Aurora Database" datastore
-
-// Connections
-operator -> erp
+operator -> erp "manages data"
 erp ~> ingest "feeds data"
-ingest -> db
+ingest -> aurora "writes"
 
-// Boundaries
-zone onprem "On-Premises Data Centre" onprem {
+zone onprem "On-Premises Data Center" onprem {
   contains operator, erp
 }
 
-zone aws_cloud "AWS Cloud" cloud {
-  contains ingest, db
+zone cloud_aws "AWS Cloud" cloud {
+  contains ingest, aurora
 }
 
 zone vpc "VPC" vpc {
-  contains db
-}
-
-view landscape {
-  title "Hybrid Estate"
-  include *
+  contains aurora
 }
