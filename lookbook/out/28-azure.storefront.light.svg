@@ -19,7 +19,7 @@
 <g transform="translate(0, 46)">
 <g data-kind="zone" data-zone="vnet_shop" data-zone-kind="network"><rect x="32" y="229" width="664" height="515" rx="8" fill="none" stroke="#3A6EA8" stroke-width="1.5" stroke-dasharray="8 5"/></g>
 <rect data-path="shop" data-kind="frame" x="52" y="262" width="624" height="462" rx="8" fill="#EFEFEC" stroke="#EAE9E5" stroke-width="1"/>
-<text x="66" y="286" font-size="13" font-weight="500" fill="#6F6E69">storefront</text>
+<rect x="64" y="271" width="24" height="24" rx="5" fill="#EFEFEC" stroke="#EAE9E5" stroke-width="1"/><clipPath id="clip-sq-azure-kubernetes-services-68-275-16"><rect x="68" y="275" width="16" height="16" rx="2"/></clipPath><g clip-path="url(#clip-sq-azure-kubernetes-services-68-275-16)"><use href="#sq-azure-kubernetes-services" x="68" y="275" width="16" height="16"/></g><text x="96" y="288" font-size="13" font-weight="500" fill="#1C1C1A">storefront</text>
 <g>
 <path d="M 196 370 L 196 396 Q 196 404 204 404 L 340 404 Q 348 404 348 412 L 348 456" fill="none" stroke="#57564F" stroke-width="1.5"/>
 <path d="M 348 456 L 354 448 L 342 448 Z" fill="#57564F"/>
@@ -29,11 +29,11 @@
 <path d="M 560 456 L 566 448 L 554 448 Z" fill="#57564F"/>
 </g>
 <g>
-<path class="sq-flow" d="M 156 370 L 156 456" fill="none" stroke="#5A57C9" stroke-width="1.5" stroke-dasharray="6 5"/>
+<path class="sq-flow" d="M 156 370 L 156 456" fill="none" stroke="#5A57C9" stroke-width="1.5" stroke-dasharray="4 7" stroke-linecap="round"/>
 <path d="M 162 448 L 156 456 L 150 448" fill="none" stroke="#5A57C9" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
 </g>
 <g>
-<path class="sq-flow" d="M 156 520 L 156 542" fill="none" stroke="#5A57C9" stroke-width="1.5" stroke-dasharray="6 5"/>
+<path class="sq-flow" d="M 156 520 L 156 542" fill="none" stroke="#5A57C9" stroke-width="1.5" stroke-dasharray="4 7" stroke-linecap="round"/>
 <path d="M 162 534 L 156 542 L 150 534" fill="none" stroke="#5A57C9" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
 </g>
 <g>
@@ -97,7 +97,7 @@
 <text x="18" y="32" font-size="19" font-weight="600" letter-spacing="-.01em" fill="#1C1C1A">Storefront on Azure</text>
 <line x1="16" y1="839" x2="40" y2="839" stroke="#57564F" stroke-width="1.5"/>
 <text x="48" y="843" font-size="11" fill="#6F6E69">sync</text>
-<line x1="97" y1="839" x2="121" y2="839" stroke="#5A57C9" stroke-width="1.5" stroke-dasharray="6 5"/>
+<line x1="97" y1="839" x2="121" y2="839" stroke="#5A57C9" stroke-width="1.5" stroke-dasharray="4 7" stroke-linecap="round"/>
 <text x="129" y="843" font-size="11" fill="#6F6E69">async</text>
 <rect x="186" y="832" width="20" height="14" rx="2" fill="none" stroke="#3A6EA8" stroke-width="1" stroke-dasharray="4 3"/>
 <text x="216" y="843" font-size="11" fill="#6F6E69">network</text>

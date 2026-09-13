@@ -21,7 +21,7 @@
 </defs>
 <g transform="translate(0, 46)">
 <g>
-<path class="sq-flow" d="M 135 96 L 135 172" fill="none" stroke="#5A57C9" stroke-width="1.5" stroke-dasharray="6 5"/>
+<path class="sq-flow" d="M 135 96 L 135 172" fill="none" stroke="#5A57C9" stroke-width="1.5" stroke-dasharray="4 7" stroke-linecap="round"/>
 <path d="M 141 164 L 135 172 L 129 164" fill="none" stroke="#5A57C9" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
 </g>
 <g>

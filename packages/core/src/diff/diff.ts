@@ -185,6 +185,12 @@ export function diffModels(before: SModel, after: SModel): DiffResult {
         detail: `${path} description`,
         before: b.description ?? "(none)", after: a.description ?? "(none)",
       });
+    if ((b.subtitle ?? "") !== (a.subtitle ?? ""))
+      add({
+        kind: "changed", weight: "cosmetic", subject: "node", id: path,
+        detail: `${path} subtitle`,
+        before: b.subtitle ?? "(none)", after: a.subtitle ?? "(none)",
+      });
     if ((b.color ?? "") !== (a.color ?? ""))
       add({
         kind: "changed", weight: "cosmetic", subject: "node", id: path,

@@ -7,8 +7,8 @@ system web "Storefront" {
   description: "Customer-facing web experience"
   glyph: sys/app-window
 
-  cdn = aws/cloudfront "CDN"
-  app = aws/amplify    "Next.js App"
+  cdn = aws/cloudfront "CDN"         { subtitle: "CloudFront" }
+  app = aws/amplify    "Next.js App" { subtitle: "Amplify · Next.js 15" }
   cdn -> app
 }
 
@@ -16,12 +16,13 @@ system orders "Order Service" {
   glyph: sys/code
   tags: #core
 
-  api = aws/api-gateway "API Gateway"
+  api = aws/api-gateway "API Gateway" { subtitle: "REST" }
   container handlers "API Handlers" {
-    create = aws/lambda "Create" { tags: #pci }
-    get    = aws/lambda "Get"
+    create = aws/lambda "Create" { subtitle: "Lambda · Node 20", tags: #pci }
+    get    = aws/lambda "Get"    { subtitle: "Lambda · Node 20" }
   }
   db = aws/dynamodb "Orders Table" {
+    subtitle: "DynamoDB"
     description: "Single-table design"
     tags: #pci
   }

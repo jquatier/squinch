@@ -41,7 +41,7 @@
 <path d="M 826 284 L 832 276 L 820 276 Z" fill="#8D8C84"/>
 </g>
 <g>
-<path class="sq-flow" d="M 192 316 L 317 316" fill="none" stroke="#8B88E8" stroke-width="1.5" stroke-dasharray="6 5"/>
+<path class="sq-flow" d="M 192 316 L 317 316" fill="none" stroke="#8B88E8" stroke-width="1.5" stroke-dasharray="4 7" stroke-linecap="round"/>
 <path d="M 309 322 L 317 316 L 309 310" fill="none" stroke="#8B88E8" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
 </g>
 <g>

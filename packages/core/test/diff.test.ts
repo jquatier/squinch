@@ -68,6 +68,15 @@ describe("diff — structure", () => {
   });
 });
 
+describe("diff — subtitle", () => {
+  it("a subtitle change is cosmetic", () => {
+    const d = diff(BASE, BASE.replace(`api = aws/lambda "API"\n  db`, `api = aws/lambda "API" { subtitle: "Node 20" }\n  db`));
+    expect(d.structural).toBe(0);
+    expect(d.cosmetic).toBe(1);
+    expect(d.changes[0].detail).toBe("orders.api subtitle");
+  });
+});
+
 describe("diff — zones, flows, views", () => {
   const withZone = BASE + `zone vpc1 "VPC" vpc {\n  contains orders\n}\n`;
 

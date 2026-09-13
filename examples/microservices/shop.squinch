@@ -12,23 +12,23 @@ system web "Storefront" {
   description: "React SPA on S3 behind CloudFront"
   glyph: sys/app-window
 
-  cdn    = aws/cloudfront "CloudFront"
-  bucket = aws/s3         "React SPA"
+  cdn    = aws/cloudfront "CloudFront" { subtitle: "CDN · edge cache" }
+  bucket = aws/s3         "React SPA"  { subtitle: "S3 static site" }
   cdn -> bucket "origin"
 }
 
 // The edge gateway is a single component, so it lives at the top level.
-gw = aws/api-gateway "Edge Gateway"
+gw = aws/api-gateway "Edge Gateway" { subtitle: "API Gateway · REST" }
 
 system catalog "Catalog Service" {
   description: "Products, browse and search"
   glyph: sys/search
   tags: #public
 
-  api  = aws/lambda     "Catalog API"
-  db   = aws/dynamodb   "Products"
-  idx  = aws/opensearch "Product Index"
-  sync = aws/lambda     "Index Sync"
+  api  = aws/lambda     "Catalog API"   { subtitle: "Lambda · Node 20" }
+  db   = aws/dynamodb   "Products"      { subtitle: "DynamoDB" }
+  idx  = aws/opensearch "Product Index" { subtitle: "OpenSearch" }
+  sync = aws/lambda     "Index Sync"    { subtitle: "Lambda · stream consumer" }
 
   api -> db
   api -> idx  "search"
@@ -41,10 +41,10 @@ system orders "Order Service" {
   glyph: sys/code
   tags: #pci
 
-  api    = aws/lambda   "Orders API"
-  db     = aws/dynamodb "Orders"
-  queue  = aws/sqs      "Fulfillment Queue"
-  worker = aws/lambda   "Fulfillment Worker"
+  api    = aws/lambda   "Orders API"         { subtitle: "Lambda · Node 20" }
+  db     = aws/dynamodb "Orders"             { subtitle: "DynamoDB" }
+  queue  = aws/sqs      "Fulfillment Queue"  { subtitle: "SQS FIFO" }
+  worker = aws/lambda   "Fulfillment Worker" { subtitle: "Lambda · batch 10" }
 
   api -> db
   api ~> queue "enqueue"
@@ -57,8 +57,8 @@ system accounts "Account Service" {
   glyph: sys/lock
   tags: #pci
 
-  api = aws/lambda "Accounts API"
-  db  = aws/rds    "Accounts DB"
+  api = aws/lambda "Accounts API" { subtitle: "Lambda · Node 20" }
+  db  = aws/rds    "Accounts DB"  { subtitle: "RDS Postgres 16" }
   api -> db
 }
 

@@ -26,7 +26,7 @@
 <path d="M 293 194 L 299 186 L 287 186 Z" fill="#D08078"/>
 </g>
 <g>
-<path class="sq-flow" d="M 320 358 L 320 434" fill="none" stroke="#6E9CD0" stroke-width="1.5" stroke-dasharray="6 5"/>
+<path class="sq-flow" d="M 320 358 L 320 434" fill="none" stroke="#6E9CD0" stroke-width="1.5" stroke-dasharray="4 7" stroke-linecap="round"/>
 <path d="M 326 426 L 320 434 L 314 426" fill="none" stroke="#6E9CD0" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
 </g>
 <g data-path="pay.api" data-kind="leaf">

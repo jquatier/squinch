@@ -20,7 +20,7 @@
 <path d="M 117 362 L 123 354 L 111 354 Z" fill="#8D8C84"/>
 </g>
 <g>
-<path class="sq-flow" d="M 171 286 L 171 330 Q 171 338 179 338 L 277 338 Q 285 338 285 346 L 285 362" fill="none" stroke="#8B88E8" stroke-width="1.5" stroke-dasharray="6 5"/>
+<path class="sq-flow" d="M 171 286 L 171 330 Q 171 338 179 338 L 277 338 Q 285 338 285 346 L 285 362" fill="none" stroke="#8B88E8" stroke-width="1.5" stroke-dasharray="4 7" stroke-linecap="round"/>
 <path d="M 291 354 L 285 362 L 279 354" fill="none" stroke="#8B88E8" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
 </g>
 <g data-path="svc.api" data-kind="leaf">

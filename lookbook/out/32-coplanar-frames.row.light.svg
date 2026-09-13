@@ -12,17 +12,16 @@
 <symbol id="sq-builtin-person" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="3.75"/><path d="M5 20c0-4.1 3.1-6.5 7-6.5s7 2.4 7 6.5"/></g></symbol>
 </defs>
 <rect data-path="catalog" data-kind="frame" x="32" y="269" width="192" height="210" rx="8" fill="#EFEFEC" stroke="#EAE9E5" stroke-width="1"/>
-<text x="46" y="293" font-size="13" font-weight="500" fill="#6F6E69">Catalog</text>
+<rect x="44" y="278" width="24" height="24" rx="5" fill="#EFEFEC" stroke="#EAE9E5" stroke-width="1"/><clipPath id="clip-sq-aws-lambda-48-282-16"><rect x="48" y="282" width="16" height="16" rx="2"/></clipPath><g clip-path="url(#clip-sq-aws-lambda-48-282-16)"><use href="#sq-aws-lambda" x="48" y="282" width="16" height="16"/></g><text x="76" y="295" font-size="13" font-weight="500" fill="#1C1C1A">Catalog</text>
 <rect data-path="orders" data-kind="frame" x="356" y="269" width="192" height="312" rx="8" fill="#EFEFEC" stroke="#EAE9E5" stroke-width="1"/>
-<text x="370" y="293" font-size="13" font-weight="500" fill="#6F6E69">Orders</text>
+<rect x="368" y="278" width="24" height="24" rx="5" fill="#EFEFEC" stroke="#EAE9E5" stroke-width="1"/><clipPath id="clip-sq-aws-lambda-372-282-16"><rect x="372" y="282" width="16" height="16" rx="2"/></clipPath><g clip-path="url(#clip-sq-aws-lambda-372-282-16)"><use href="#sq-aws-lambda" x="372" y="282" width="16" height="16"/></g><text x="400" y="295" font-size="13" font-weight="500" fill="#1C1C1A">Orders</text>
 <rect data-path="accounts" data-kind="frame" x="663" y="269" width="192" height="124" rx="8" fill="#EFEFEC" stroke="#EAE9E5" stroke-width="1"/>
-<text x="677" y="293" font-size="13" font-weight="500" fill="#6F6E69">Accounts</text>
 <g>
 <path d="M 128 377 L 128 399" fill="none" stroke="#57564F" stroke-width="1.5"/>
 <path d="M 128 399 L 134 391 L 122 391 Z" fill="#57564F"/>
 </g>
 <g>
-<path class="sq-flow" d="M 452 377 L 452 415" fill="none" stroke="#5A57C9" stroke-width="1.5" stroke-dasharray="6 5"/>
+<path class="sq-flow" d="M 452 377 L 452 415" fill="none" stroke="#5A57C9" stroke-width="1.5" stroke-dasharray="4 7" stroke-linecap="round"/>
 <path d="M 458 407 L 452 415 L 446 407" fill="none" stroke="#5A57C9" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
 </g>
 <g>
@@ -98,6 +97,7 @@
 <rect x="691" y="325" width="40" height="40" rx="6" fill="#EFEFEC"/><clipPath id="clip-sq-aws-lambda-698-332-26"><rect x="698" y="332" width="26" height="26" rx="3"/></clipPath><g clip-path="url(#clip-sq-aws-lambda-698-332-26)"><use href="#sq-aws-lambda" x="698" y="332" width="26" height="26"/></g>
 <text x="743" y="350" font-size="13" font-weight="500" fill="#1C1C1A">Accounts API</text>
 </g>
+<g data-kind="frame-title" data-path="accounts"><rect x="671" y="275" width="99" height="30" rx="4" fill="#EFEFEC"/><rect x="675" y="278" width="24" height="24" rx="5" fill="#EFEFEC" stroke="#EAE9E5" stroke-width="1"/><clipPath id="clip-sq-aws-lambda-679-282-16"><rect x="679" y="282" width="16" height="16" rx="2"/></clipPath><g clip-path="url(#clip-sq-aws-lambda-679-282-16)"><use href="#sq-aws-lambda" x="679" y="282" width="16" height="16"/></g><text x="707" y="295" font-size="13" font-weight="500" fill="#1C1C1A">Accounts</text></g>
 <g><rect x="385" y="387" width="57" height="18" rx="2" fill="#FFFFFF" stroke="#EAE9E5" stroke-width="1"/><text x="414" y="400" text-anchor="middle" font-size="11" fill="#6F6E69">enqueue</text></g>
 <g><rect x="67" y="236" width="51" height="18" rx="2" fill="#FFFFFF" stroke="#EAE9E5" stroke-width="1"/><text x="93" y="249" text-anchor="middle" font-size="11" fill="#6F6E69">browse</text></g>
 <g><rect x="382" y="236" width="60" height="18" rx="2" fill="#FFFFFF" stroke="#EAE9E5" stroke-width="1"/><text x="412" y="249" text-anchor="middle" font-size="11" fill="#6F6E69">checkout</text></g>

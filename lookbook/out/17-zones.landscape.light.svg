@@ -23,7 +23,7 @@
 <g data-kind="zone" data-zone="cloud" data-zone-kind="cloud"><rect x="70" y="230" width="387" height="369" rx="8" fill="none" stroke="#6B5FC9" stroke-width="1.5" stroke-dasharray="8 5"/></g>
 <g data-kind="zone" data-zone="vpc1" data-zone-kind="vpc"><rect x="90" y="435" width="320" height="144" rx="8" fill="none" stroke="#3A6EA8" stroke-width="1.5" stroke-dasharray="8 5"/></g>
 <g>
-<path class="sq-flow" d="M 340 124 L 340 165 Q 340 173 332 173 L 305 173 Q 297 173 297 181 L 297 217 Q 297 225 297 233 L 297 258" fill="none" stroke="#5A57C9" stroke-width="1.5" stroke-dasharray="6 5"/>
+<path class="sq-flow" d="M 340 124 L 340 165 Q 340 173 332 173 L 305 173 Q 297 173 297 181 L 297 217 Q 297 225 297 233 L 297 258" fill="none" stroke="#5A57C9" stroke-width="1.5" stroke-dasharray="4 7" stroke-linecap="round"/>
 <path d="M 303 250 L 297 258 L 291 250" fill="none" stroke="#5A57C9" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
 </g>
 <g>
@@ -85,7 +85,7 @@
 <text x="18" y="32" font-size="19" font-weight="600" letter-spacing="-.01em" fill="#1C1C1A">Hybrid Estate</text>
 <line x1="16" y1="694" x2="40" y2="694" stroke="#57564F" stroke-width="1.5"/>
 <text x="48" y="698" font-size="11" fill="#6F6E69">sync</text>
-<line x1="97" y1="694" x2="121" y2="694" stroke="#5A57C9" stroke-width="1.5" stroke-dasharray="6 5"/>
+<line x1="97" y1="694" x2="121" y2="694" stroke="#5A57C9" stroke-width="1.5" stroke-dasharray="4 7" stroke-linecap="round"/>
 <text x="129" y="698" font-size="11" fill="#6F6E69">async</text>
 <rect x="186" y="687" width="20" height="14" rx="2" fill="none" stroke="#7A776E" stroke-width="1" stroke-dasharray="4 3"/>
 <text x="216" y="698" font-size="11" fill="#6F6E69">onprem</text>

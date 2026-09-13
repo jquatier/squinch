@@ -68,13 +68,21 @@ frames are border + label.
   author asked for everything and got it; `scope x` + `expand *` is the remedy
   and SKILL.md says so. Revisit if gauntlet rounds show agents shipping
   unreadable full views without noticing.
-- **Frame header chrome** (icon, kind chip on frames): the full page is *made
-  of* frames, so any header addition multiplies into DESIGN §8's "container
-  soup". A frame hides nothing, so its label is a caption, not a summary.
-  Revisit if the lookbook's `31-full-detail` stops reading at 3+ depths; the
-  recorded fallback is a one-notch label-size step at depth ≥ 1.
+- **Frame header chrome**: decided since — see below.
 - **Partial ladders** (`expand a.*`, depth limits): no named use case. The
   nested-expand error keeps pointing at scoped views and `expand *`.
+
+## Decided since
+
+- **Frame header chrome** (2026-09): built, narrowly. The concern recorded
+  above was that the full page is *made of* frames, so any header addition
+  multiplies into DESIGN §8's "container soup". Measured against the
+  microservices full view (four frames, fourteen leaves) the answer was to
+  keep it to one thing: the container's own mark on a 24px chip beside its
+  name in ink — the face its collapsed card has, so a dive keeps what was
+  clicked. No tagline, no kind chip, no second line. The recorded fallback
+  (a one-notch label-size step at depth ≥ 1) is still the next lever if
+  `31-full-detail` stops reading at 3+ depths.
 
 ## Perf
 

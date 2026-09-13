@@ -19,11 +19,11 @@
 <path d="M 131 301 L 137 293 L 125 293 Z" fill="#8D8C84"/>
 </g>
 <g opacity="0.35">
-<path class="sq-flow" d="M 359 96 L 359 199" fill="none" stroke="#8B88E8" stroke-width="1.5" stroke-dasharray="6 5"/>
+<path class="sq-flow" d="M 359 96 L 359 199" fill="none" stroke="#8B88E8" stroke-width="1.5" stroke-dasharray="4 7" stroke-linecap="round"/>
 <path d="M 365 191 L 359 199 L 353 191" fill="none" stroke="#8B88E8" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
 </g>
 <g opacity="0.35">
-<path class="sq-flow" d="M 359 263 L 359 301" fill="none" stroke="#8B88E8" stroke-width="1.5" stroke-dasharray="6 5"/>
+<path class="sq-flow" d="M 359 263 L 359 301" fill="none" stroke="#8B88E8" stroke-width="1.5" stroke-dasharray="4 7" stroke-linecap="round"/>
 <path d="M 365 293 L 359 301 L 353 293" fill="none" stroke="#8B88E8" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
 </g>
 <g>

@@ -105,6 +105,8 @@ export interface PFrame {
    *  inside a zone is still depth 0 — because the renderer keys the recessed
    *  fill off it (depth 0 only; docs/notes/full-detail.md). */
   depth: number;
+  /** The container's mark for the header chip (VFrame.icon). */
+  icon?: { pack: string; id: string };
 }
 export interface PZone {
   id: string; label: string; kind: ZoneKind;
@@ -194,7 +196,13 @@ function sizeOf(n: VNode, font: Pick<ThemeFont, "metrics" | "scale">): { w: numb
     ) + PAD + GLYPH_CHIP + PAD;
     return { w: CARD_TIERS.find((t) => t >= need) ?? CARD_TIERS[CARD_TIERS.length - 1], h: CARD_H };
   }
-  const need = PAD + PLATE + PAD + measure(n.label, fx(13), "500", fam) + PAD;
+  // A subtitle widens the tier the way a card's tagline does: the smallest
+  // tier leaves 44px of text room, which would clip nearly every one. The
+  // check-time length lint is what keeps this from costing diagram width.
+  const need = PAD + PLATE + PAD + Math.max(
+    measure(n.label, fx(13), "500", fam),
+    measure(n.subtitle ?? "", fx(11), "400", fam),
+  ) + PAD;
   const w = LEAF_TIERS.find((t) => t >= need) ?? LEAF_TIERS[LEAF_TIERS.length - 1];
   // An actor is shorter than a service: no description line, and its round
   // avatar reads at 34 where a service plate reads at 40.
@@ -1031,6 +1039,7 @@ export async function layoutView(
 
   const frameLabels = new Map(graph.frames.map((f) => [f.path, f.label]));
   const frameColors = new Map(graph.frames.map((f) => [f.path, f.color]));
+  const frameIcons = new Map(graph.frames.map((f) => [f.path, f.icon]));
   // Child frames recurse through entityElk (defined below — mutual recursion
   // is safe here because nothing invokes either until the ELK graph is built),
   // so an `expand *` ladder reaches ELK as real nested compounds rather than
@@ -1576,7 +1585,7 @@ export async function layoutView(
       for (let p = frameParent.get(c.id); p; p = frameParent.get(p)) fd++;
       frames.push({
         path: c.id, label: frameLabels.get(c.id)!, x, y, w: q(c.width), h: q(c.height), depth: fd,
-        color: frameColors.get(c.id),
+        color: frameColors.get(c.id), icon: frameIcons.get(c.id),
       });
       // a directed frame's wall ports are ports like any leaf's: the router's
       // free-port probe and the ports-never-stack invariant must see them
@@ -2629,9 +2638,12 @@ export async function layoutView(
   // be an ELK obstacle, so it does what zone chips do: it is drawn last, on a
   // canvas halo, whenever a final wire segment crosses its rect.
   {
+    // the header's geometry, mirrored from the renderer's `frameHeader`: a
+    // 24px chip at (12, 9) then the title 8 past it, or the bare title at (14, 24)
     const titleRect = (f: PFrame) => ({
-      x: f.x + 14, y: f.y + 24 - 13,
-      w: Math.round(measure(f.label, fx(13), "500", font.metrics)), h: 17,
+      x: f.icon ? f.x + 12 : f.x + 14, y: f.icon ? f.y + 9 : f.y + 24 - 13,
+      w: (f.icon ? 24 + 8 : 0) + Math.round(measure(f.label, fx(13), "500", font.metrics)),
+      h: f.icon ? 24 : 17,
     });
     const hit = (r: { x: number; y: number; w: number; h: number }, e: PEdge) => {
       for (let i = 0; i < e.points.length - 1; i++) {

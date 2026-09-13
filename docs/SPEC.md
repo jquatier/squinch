@@ -71,6 +71,7 @@ stripe = logos/stripe     "Stripe" external      // trailing keywords: external,
 
 create = aws/lambda "Create Handler" {           // optional attribute block
   description: "Validates and persists new orders"
+  subtitle: "Lambda · Node 20"      // a few words under the label, always drawn
   tags:   #pci #critical            // …or positionally: `create = aws/lambda "X" #pci`
   color:  amber                     // a spine down its left edge — see §Colour
 }
@@ -106,6 +107,15 @@ working tree or the clock would make two renders of one file disagree.
 Descriptions render as the card tagline, in hover cards, and inline via a view's
 `show descriptions` toggle. Container tags are inherited by everything inside
 (tag `shop` with `#pci` and all its children match `#pci`).
+
+`subtitle` is a leaf's own second line — a few words on what it runs on, who
+owns it or where it lives — drawn always, a step quieter than a description.
+Leaves only: a `person` has no line under its name and a card's is its
+`description`, so the check warns on both rather than drawing nothing. Under
+a view's `show descriptions` the description takes the slot. Keep it short:
+past 24 characters the check warns, and a leaf widens to fit what it holds.
+Any other key on a leaf warns as unknown, with a did-you-mean — `tech:` and
+`technology:` point at `subtitle:`.
 
 - `external` is drawn (hatched surface, DESIGN §3) and may sit on a whole
   `system`/`container` as well as a node. `person` and `datastore` are
@@ -616,6 +626,7 @@ interior    = "layout" "{" { "rows" rank { rank } | "cols" rank { rank }
                            | "place" path relpos path
                            | "direction" ("down"|"right") } "}" ;   (* §3 *)
 node        = ident "=" iconref [ label ] { kind | tag | attrs }
+                          (* leaf attrs: description, subtitle, tags, color, badge *)
             | ("person") ident [ label ] ;
 iconref     = ident "/" ident | "box" ;
 kind        = "external" | "datastore" ;   (* `person` comes from the
@@ -672,8 +683,8 @@ parsing, CodeMirror highlighting, and LSP autocomplete.
 
 `squinch diff` compares two *models*, never two renderings, and splits what it
 finds into **structural** (topology: who talks to whom, zone membership, flow
-steps, what a view hides) and **cosmetic** (labels, descriptions, layout hints,
-presentation). Reviewers should never have to squint to tell a re-ordered row
+steps, what a view hides) and **cosmetic** (labels, descriptions, subtitles,
+layout hints, presentation). Reviewers should never have to squint to tell a re-ordered row
 from a new path into the payment vault.
 
 ```bash

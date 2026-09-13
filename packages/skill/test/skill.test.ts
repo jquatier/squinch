@@ -228,6 +228,8 @@ describe("SKILL.md — diagnostic coverage", () => {
     // animate: pulse"). SKILL.md teaches the vocabulary itself in the rules
     // block; the diagnostics finish the loop on their own.
     "unknown edge style", "unknown animate value", "unknown edge attribute",
+    // node attr keys (2026-09): same shape, same did-you-mean
+    "unknown node attribute",
     "needs a visible pattern to travel, and this edge is solid",
     // Newly visible once the extractor stopped reading template literals only:
     // a diagnostic written as a plain string was invisible to this gate for as

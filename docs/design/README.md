@@ -33,7 +33,7 @@ Recreate the values below in those files' existing patterns; don't copy HTML/CSS
 
 ### Edges
 - Sync edges: solid line, 1.5px stroke, `#57564F` light / `#9C9B94` dark, round caps/joins, arrow marker.
-- Async edges: dashed, `6 5` dasharray, `#7C74D9` light / `#968EE8` dark.
+- Async edges: dashed, `#7C74D9` light / `#968EE8` dark. Pattern as shipped: `4 7` with round caps (beads) — the 2026-09 node/edge pass superseded the `6 5` butt-cap dashes this handoff specified.
 - Boundary-crossing edges: solid, `#B5544C` light / `#D08078` dark (the one deliberate warm/red accent in the palette, reserved exclusively for this meaning).
 - **Do not** draw a perpendicular tick/hop mark where an edge crosses into a zone outline — this was tried and explicitly removed for looking wrong. Edges should cross zone boundaries with no interruption mark.
 - Flow beads: numbered circles (19px, `#5A57C9` fill, white text) sequence a specific flow (e.g. "checkout") across multiple edges. Only number edges that are part of the highlighted sequence — partial numbering across a diagram is fine and intentional, it scopes the sequence rather than covering every edge.

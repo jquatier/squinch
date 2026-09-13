@@ -32,6 +32,10 @@ export interface SNode {
   icon?: { pack: string; id: string };
   kinds: ("external" | "datastore" | "person")[];
   description?: string;
+  /** `subtitle:` — a leaf's short second line, always drawn (DESIGN §3). Lifted
+   *  out of `attrs` like `description`; a person or container never carries
+   *  one (check warns). */
+  subtitle?: string;
   tags: string[];
   attrs: Record<string, string>;
   /** `color:` — the node's spine, as a card's (DESIGN §3). Validated copy of `attrs.color`. */

@@ -160,7 +160,9 @@ pay.api -> ledger.post
 
   it("expand inlines children in a frame; edges de-aggregate", async () => {
     const g = resolveView(model, view("orders-detail"));
-    expect(g.frames).toEqual([{ path: "orders.handlers", label: "API Handlers" }]);
+    // a frame carries its container's mark for the header chip — the first
+    // leaf's icon here, since `handlers` never named one
+    expect(g.frames).toEqual([{ path: "orders.handlers", label: "API Handlers", icon: { pack: "aws", id: "lambda" } }]);
     const create = g.nodes.find((n) => n.path === "orders.handlers.create")!;
     expect(create.frame).toBe("orders.handlers");
     // internals visible → api edges are native again, no ×2 aggregate
@@ -385,6 +387,41 @@ view v { scope s }`;
   });
 });
 
+describe("frame headers echo the card (2026-09)", () => {
+  const doc = (attrs: string) => `pack aws
+system svc "Service" {${attrs}
+  api = aws/lambda "API"
+  db = aws/dynamodb "DB"
+  api -> db
+}
+view v {
+  expand svc
+}`;
+
+  it("the frame takes the card's icon rule: authored icon: wins, else the first leaf's", () => {
+    const first = buildModel(doc(""));
+    expect(resolveView(first.model, first.model.views[0]).frames[0].icon).toEqual({ pack: "aws", id: "lambda" });
+    const authored = buildModel(doc(`\n  icon: aws/api-gateway`));
+    expect(resolveView(authored.model, authored.model.views[0]).frames[0].icon).toEqual({ pack: "aws", id: "api-gateway" });
+  });
+
+  it("draws a 24px chip and the title in ink, and registers an authored icon no leaf uses", async () => {
+    const r = await render(doc(`\n  icon: aws/api-gateway`), { view: "v", theme: "light" });
+    expect(r.ok, JSON.stringify(r.diagnostics)).toBe(true);
+    const svg = r.svg!;
+    expect(validateSVG(svg).ok).toBe(true);
+    // the symbol exists even though no node draws that icon
+    expect(svg).toContain(`<symbol id="sq-aws-api-gateway"`);
+    // chip then title, in the frame's padding: chip at (12, 9), title 8 past it
+    const frame = /<rect data-path="svc" data-kind="frame" x="(\d+)" y="(\d+)"/.exec(svg)!;
+    const fx = Number(frame[1]), fy = Number(frame[2]);
+    expect(svg).toContain(`<rect x="${fx + 12}" y="${fy + 9}" width="24" height="24" rx="5"`);
+    expect(svg).toMatch(new RegExp(`<text x="${fx + 44}" y="${fy + 26}" font-size="13" font-weight="500" fill="#1C1C1A">Service</text>`));
+    // the chip carries no data-path: the frame's rect is the dive anchor
+    expect((svg.match(/data-path="svc"/g) ?? []).length).toBe(1);
+  });
+});
+
 describe("expanded frames as edge endpoints (flexibility sweep, 2026-08)", () => {
   const doc = (viewBody: string) => `client = box "Client"
 system svc "Service" {
@@ -403,7 +440,7 @@ view v {${viewBody}
     const built = buildModel(doc("\n  scope svc\n  expand workers\n  detail client"));
     expect(built.ok, JSON.stringify(built.diagnostics)).toBe(true);
     const g = resolveView(built.model, built.model.views.find((v) => v.name === "v")!);
-    expect(g.frames).toEqual([{ path: "svc.workers", label: "Workers" }]);
+    expect(g.frames).toEqual([{ path: "svc.workers", label: "Workers", icon: { pack: "builtin", id: "box" } }]);
     expect(g.edges.map((e) => `${e.from}>${e.to}`).sort()).toEqual([
       "client>svc.workers",
       "svc.workers>svc.db",
@@ -522,7 +559,7 @@ view v {
     expect(err.fix).toContain("scope east");
     expect(err.fix).toContain("expand *"); // …and the whole-ladder spelling
     // the outer frame still renders sanely: one frame, inner container a card
-    expect(g.frames).toEqual([{ path: "east", label: "East" }]);
+    expect(g.frames).toEqual([{ path: "east", label: "East", icon: { pack: "builtin", id: "box" } }]);
     expect(g.nodes.find((n) => n.path === "east.app")?.kind).toBe("card");
   });
 

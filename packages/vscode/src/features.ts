@@ -252,9 +252,10 @@ export function hoverAt(src: string, offset: number): { markdown: string; range:
   if (!hit) return undefined;
   const label = "label" in hit ? hit.label : undefined;
   const desc = "description" in hit ? hit.description : hit.attrs?.["description"];
+  const subtitle = "subtitle" in hit ? hit.subtitle : undefined;
   const tags = hit.tags?.length ? `\n\ntags: ${hit.tags.map((t) => `#${t}`).join(" ")}` : "";
   return {
-    markdown: `**${label ?? hit.name}**\n\n\`${hit.path}\`${desc ? `\n\n${desc}` : ""}${tags}`,
+    markdown: `**${label ?? hit.name}**${subtitle ? ` — ${subtitle}` : ""}\n\n\`${hit.path}\`${desc ? `\n\n${desc}` : ""}${tags}`,
     range,
   };
 }

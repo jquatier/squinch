@@ -32,6 +32,10 @@ export interface VNode {
    *  thing itself, so a container carries it for its whole card. */
   external?: boolean;
   description?: string;
+  /** A leaf's own second line, always drawn — under `show descriptions` the
+   *  description takes the slot instead (DESIGN §3). Leaves only: a person has
+   *  no line under its name, and a card's is its tagline. */
+  subtitle?: string;
   frame?: string; // parent frame path when inside an expanded container
   /** Effective hue: the view's `color #tag` if one matches, else the element's
    *  own `color:`. Context cards ignore it — scenery stays muted. */
@@ -46,6 +50,10 @@ export interface VFrame {
   frame?: string;
   /** Same resolution as `VNode.color`; drawn as the frame's stroke. */
   color?: Hue;
+  /** The container's own mark, by the collapsed card's rule (`containerIcon`):
+   *  drawn on the frame's header chip so a dive keeps the face that was
+   *  clicked. Absent only when nothing inside has an icon either. */
+  icon?: { pack: string; id: string };
 }
 
 export interface VEdge {
@@ -149,6 +157,26 @@ export function resolveView(model: SModel, view: SView): ViewGraph {
   // ambiguous, so the depth an author wants piecemeal is a deeper view.
   const frames: VFrame[] = [];
   const frameOf = new Map<string, string>(); // child path → frame path
+  const leafDescendants = (path: string): string[] => {
+    const c = model.containers.get(path);
+    if (!c) return [path];
+    return c.children.flatMap(leafDescendants);
+  };
+  const leafIcons = (path: string) =>
+    leafDescendants(path)
+      .map((l) => model.nodes.get(l)?.icon)
+      .filter((i): i is NonNullable<typeof i> => !!i);
+  // The container's own mark — on its collapsed card, and in its frame's
+  // header once opened. Authored `icon:` wins; otherwise the first leaf icon
+  // stands in, so a system that never named one still gets a plate instead of
+  // a bare label — the same icon the preview strip leads with, which is what
+  // a reader already associates with that card.
+  const containerIcon = (path: string): { pack: string; id: string } | undefined => {
+    const iconRef = model.containers.get(path)?.attrs["icon"];
+    return iconRef?.includes("/")
+      ? { pack: iconRef.split("/")[0], id: iconRef.split("/")[1] }
+      : leafIcons(path)[0];
+  };
   if (view.expandStar) {
     if (view.expand.length)
       diagnostics.push({
@@ -167,7 +195,7 @@ export function resolveView(model: SModel, view: SView): ViewGraph {
         opened.push(path);
         return;
       }
-      frames.push({ path, label: c.label ?? c.name, frame: parent, color: c.color });
+      frames.push({ path, label: c.label ?? c.name, frame: parent, color: c.color, icon: containerIcon(path) });
       for (const child of c.children) {
         frameOf.set(child, path);
         open(child, path);
@@ -199,7 +227,7 @@ export function resolveView(model: SModel, view: SView): ViewGraph {
       const i = visible.indexOf(ex);
       const c = model.containers.get(ex);
       if (i >= 0 && c) {
-        frames.push({ path: ex, label: c.label ?? c.name, color: c.color });
+        frames.push({ path: ex, label: c.label ?? c.name, color: c.color, icon: containerIcon(ex) });
         for (const child of c.children) frameOf.set(child, ex);
         visible.splice(i, 1, ...c.children);
       } else if (!c && model.nodes.has(ex)) {
@@ -526,34 +554,19 @@ export function resolveView(model: SModel, view: SView): ViewGraph {
   const finalEdges = scopeEdges.filter((e) => drawable.has(e.from) && drawable.has(e.to));
 
   // ── 6. materialize nodes ──────────────────────────────────────────────────
-  const leafDescendants = (path: string): string[] => {
-    const c = model.containers.get(path);
-    if (!c) return [path];
-    return c.children.flatMap(leafDescendants);
-  };
-
   const nodes: VNode[] = visible.map((path) => {
     const isContext = contextSet.has(path);
     const container = model.containers.get(path);
     if (container) {
       const leaves = leafDescendants(path);
       const previewMode = container.attrs["preview"] ?? "auto";
-      const icons = leaves
-        .map((l) => model.nodes.get(l)?.icon)
-        .filter((i): i is NonNullable<typeof i> => !!i);
+      const icons = leafIcons(path);
       const preview = previewMode === "none" ? [] : icons.slice(0, 3);
       const glyphRef = container.attrs["glyph"];
       const glyph = glyphRef?.includes("/")
         ? { pack: glyphRef.split("/")[0], id: glyphRef.split("/")[1] }
         : undefined;
-      // The card's own mark. Authored `icon:` wins; otherwise the first leaf
-      // icon stands in, so a system that never named one still gets a plate
-      // instead of a bare label — the same icon the preview strip leads with,
-      // which is what a reader already associates with that card.
-      const iconRef = container.attrs["icon"];
-      const icon = iconRef?.includes("/")
-        ? { pack: iconRef.split("/")[0], id: iconRef.split("/")[1] }
-        : icons[0];
+      const icon = containerIcon(path);
       return {
         path,
         kind: isContext ? "context-card" : "card",
@@ -579,9 +592,10 @@ export function resolveView(model: SModel, view: SView): ViewGraph {
     const badge = badgeRef?.includes("/")
       ? { pack: badgeRef.split("/")[0], id: badgeRef.split("/")[1] }
       : undefined;
+    const kind = isContext ? "context-leaf" : n.kinds.includes("person") ? "person" : "leaf";
     return {
       path,
-      kind: isContext ? "context-leaf" : n.kinds.includes("person") ? "person" : "leaf",
+      kind,
       label: n.label,
       icon: n.icon,
       badge,
@@ -589,6 +603,9 @@ export function resolveView(model: SModel, view: SView): ViewGraph {
       tags: effectiveTags(path),
       external: n.kinds.includes("external") || undefined,
       description: n.description,
+      // a context leaf is scenery and drops its subtitle the way a context
+      // card drops its shelf; a person never had one
+      subtitle: kind === "leaf" ? n.subtitle : undefined,
       frame: frameOf.get(path),
       color: n.color,
     };

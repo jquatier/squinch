@@ -89,6 +89,33 @@ describe("arrow kinds", () => {
   });
 });
 
+describe("subtitle (2026-09)", () => {
+  const doc = (attrs: string, view = "") =>
+    `pack aws\nsystem s "S" {\n a = aws/lambda "API" ${attrs}\n b = aws/dynamodb "DB" { description: "single table" }\n a -> b\n}\nview v {\n scope s${view}\n}`;
+
+  it("draws under the label in the faint tone, and description takes the slot under show descriptions", async () => {
+    const [plain, sub, shown] = await allDistinct("subtitle", {
+      plain: doc(""),
+      sub: doc(`{ subtitle: "Lambda · Node 20" }`),
+      shown: doc(`{ subtitle: "Lambda · Node 20", description: "handles orders" }`, "\n show descriptions"),
+    }, "v");
+    expect(plain).not.toContain("Node 20");
+    expect(sub).toMatch(/<text [^>]*font-size="11" fill="#8A8880">Lambda · Node 20<\/text>/);
+    expect(shown).toContain(">handles orders</text>");
+    expect(shown).not.toContain("Node 20");
+  });
+
+  it("widens the tier for a long subtitle, the way a card's tagline does", async () => {
+    const w = async (src: string) => {
+      const { model } = buildProject([{ name: "x.squinch", src }]);
+      const { positioned } = await layoutView(model, model.views[0]);
+      return positioned.nodes.find((n) => n.path === "s.a")!.w;
+    };
+    expect(await w(doc(""))).toBe(120);
+    expect(await w(doc(`{ subtitle: "Lambda · Node 20 · arm64" }`))).toBeGreaterThan(120);
+  });
+});
+
 describe("note anchors", () => {
   const src = (anchor: string) =>
     `system s "S" {\n a = aws/lambda "A"\n b = aws/lambda "B"\n a -> b\n}\n` +

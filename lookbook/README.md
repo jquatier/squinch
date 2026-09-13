@@ -465,3 +465,21 @@ Source: [`cases/39-wrap.squinch`](cases/39-wrap.squinch)
 | light | dark |
 |---|---|
 | ![](out/39-wrap.fan.light.svg) | ![](out/39-wrap.fan.dark.svg) |
+
+## Subtitles
+
+`subtitle:` — a leaf's short second line, always drawn: what it runs on, who owns it, where it lives. A caption, not prose, so it sets a step quieter than a description and the check warns past 24 characters. There is one slot under the label: a view's `show descriptions` puts the description there instead, which is what the second view shows on the same leaves.
+
+Source: [`cases/40-subtitles.squinch`](cases/40-subtitles.squinch)
+
+**`captions`**
+
+| light | dark |
+|---|---|
+| ![](out/40-subtitles.captions.light.svg) | ![](out/40-subtitles.captions.dark.svg) |
+
+**`described`**
+
+| light | dark |
+|---|---|
+| ![](out/40-subtitles.described.light.svg) | ![](out/40-subtitles.described.dark.svg) |

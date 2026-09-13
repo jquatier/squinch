@@ -70,7 +70,7 @@ describe("animate vocabulary + edge styles", () => {
   });
 
   it("drifts a whole number of dash periods, so the loop never jumps", async () => {
-    // The offset serves every pattern one class can carry: dashed 6+5=11 and
+    // The offset serves every pattern one class can carry: dashed 4+7=11 and
     // dotted 2+3=5, so it is their LCM. Shifting five dashed periods looks
     // exactly like shifting one; what it buys is a seamless loop for both.
     const r = await render(SRC, { theme: "light" });
@@ -101,8 +101,20 @@ describe("animate vocabulary + edge styles", () => {
     expect(r.ok, JSON.stringify(r.diagnostics)).toBe(true);
     // the filled sync head carries the class so the whole edge breathes
     expect(r.svg).toMatch(/<path class="sq-pulse" d="M \d+ \d+ L [^"]*Z" fill="/);
-    // the async flow head does not drift
-    expect(r.svg).not.toMatch(/<path class="sq-flow" d="M [^"]*" fill="none" stroke="[^"]*" stroke-width="1.5" stroke-linecap="round" stroke-linejoin/);
+    // the async flow head does not drift: the open chevron is the one path
+    // with a linejoin, and it never carries the class
+    expect(r.svg).toMatch(/<path d="M [^"]*" fill="none" stroke="[^"]*" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"\/>/);
+    expect(r.svg).not.toMatch(/<path class="sq-flow" d="M [^"]*" stroke-linejoin/);
+  });
+
+  it("async dashes are beads: 4 on, 7 off, round caps — sync wires carry neither", async () => {
+    const r = await render(SRC, { theme: "light" });
+    const wires = r.svg!.match(/<path[^>]*stroke-width="1.5"[^>]*\/>/g)!.filter((p) => !p.includes("stroke-linejoin"));
+    const dashed = wires.filter((p) => p.includes("stroke-dasharray"));
+    expect(dashed.length).toBeGreaterThan(0);
+    for (const p of dashed) expect(p).toContain(`stroke-dasharray="4 7" stroke-linecap="round"`);
+    for (const p of wires.filter((p) => !p.includes("stroke-dasharray"))) expect(p).not.toContain("stroke-linecap");
+    // (the legend sample matching the wire is asserted in colors.test.ts)
   });
 
   it("aggregates keep styling only on full agreement", async () => {

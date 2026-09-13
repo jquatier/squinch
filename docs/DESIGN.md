@@ -99,7 +99,12 @@ it gets none of the marks that imply one.
   themes with no per-theme machinery, and it is the same treatment at every
   size — tile, shelf chip, and badge are one drawing routine.
 - **Leaf node**: height `64`, width snapped to tiers. Tile left-aligned at
-  padding `12`, label 13/500, optional description line 11 muted. An optional
+  padding `12`, label 13/500, and under it one optional line at 11: the leaf's
+  own `subtitle:` in `faint` — a caption (runtime, owner, region), always
+  drawn — or, when the view says `show descriptions`, its description in
+  `muted`. One slot, never both: the view asked for the description
+  explicitly, so it wins. A subtitle widens the tier the way a card's tagline
+  does, which is why the check nudges past 24 characters. An optional
   **node badge** (`badge:`) sits on the tile's bottom-right corner: `22×22`,
   radius 5, surface fill + border stroke, holding a `14×14` mark in its own
   brand colour, inset so it clears the card edge by 5.
@@ -152,11 +157,14 @@ it gets none of the marks that imply one.
   — the strongest "drawn by a person who cared" signal there is.
 - **Arrowheads**: filled chevron `8×6`, matched to stroke color; open chevron for
   `~>` async. Small, sharp, consistent — never SVG default markers.
-- **Async dashes** are `6 5`. The drift animation's offset must then be a whole
-  number of dash periods or the pattern jumps each time it loops, so one shared
-  keyframe uses the LCM of the periods it serves (dashed 11, dotted 5 → 55) and
-  the durations are derived from the px/s the vocabulary promises. Adding a
-  pattern means revisiting that number.
+- **Async dashes** are `4 7` with round caps — beads on a string rather than
+  chopped line. Each cap adds half the stroke to a dash, so at 1.5px the beads
+  read as about 5.5 on, 5.5 off; dotted and `packets` keep butt caps, or a 3px
+  gap would close. The drift animation's offset must then be a whole number of
+  dash *periods* (4+7 = 11 — caps do not move the period) or the pattern jumps
+  each time it loops, so one shared keyframe uses the LCM of the periods it
+  serves (dashed 11, dotted 5 → 55) and the durations are derived from the px/s
+  the vocabulary promises. Adding a pattern means revisiting that number.
 - **Edge labels**: pill chips (11px, surface bg, radius 2, 1px border) with a canvas
   halo — a label never sits raw on a line, and never collides with another chip.
   Placement: space is **reserved at layout** — ELK inline labels on cross-rank
@@ -185,7 +193,12 @@ it gets none of the marks that imply one.
 ## 5. Containers, zones, notes, chrome
 
 - **Expanded frames**: a recessed surface behind their children, radius `8`,
-  with the container's name at their top-left. Depth is one step, not a ladder —
+  with a header at their top-left: the container's own mark on a `24` chip
+  (radius 5, the plate tone under a hairline) and its name in ink — the face
+  its collapsed card has, kept when the card is opened, so a dive lands on the
+  thing that was clicked. No tagline and no kind chip: the full page is made
+  of frames, and one small chip is what keeps a header from multiplying into
+  container soup (docs/notes/full-detail.md). Depth is one step, not a ladder —
   except `expand *`, the one deliberate ladder (SPEC §5), where frames do nest.
   Nested frames carry **no fill**, only the 1px border and the label: the zones
   argument applies verbatim — surfaceAlt compounds where frames nest, and the

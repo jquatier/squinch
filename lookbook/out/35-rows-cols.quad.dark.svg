@@ -14,7 +14,7 @@
 <path d="M 240 64 L 232 70 L 232 58 Z" fill="#8D8C84"/>
 </g>
 <g>
-<path class="sq-flow" d="M 112 96 L 112 134" fill="none" stroke="#8B88E8" stroke-width="1.5" stroke-dasharray="6 5"/>
+<path class="sq-flow" d="M 112 96 L 112 134" fill="none" stroke="#8B88E8" stroke-width="1.5" stroke-dasharray="4 7" stroke-linecap="round"/>
 <path d="M 118 126 L 112 134 L 106 126" fill="none" stroke="#8B88E8" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
 </g>
 <g>
@@ -22,7 +22,7 @@
 <path d="M 320 134 L 326 126 L 314 126 Z" fill="#8D8C84"/>
 </g>
 <g>
-<path class="sq-flow" d="M 192 166 L 260 166" fill="none" stroke="#8B88E8" stroke-width="1.5" stroke-dasharray="6 5"/>
+<path class="sq-flow" d="M 192 166 L 260 166" fill="none" stroke="#8B88E8" stroke-width="1.5" stroke-dasharray="4 7" stroke-linecap="round"/>
 <path d="M 252 172 L 260 166 L 252 160" fill="none" stroke="#8B88E8" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
 </g>
 <g data-path="quad.ingress" data-kind="leaf">

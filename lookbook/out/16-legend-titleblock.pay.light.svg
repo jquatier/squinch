@@ -14,11 +14,11 @@
 </defs>
 <g transform="translate(0, 74)">
 <g>
-<path class="sq-flow" d="M 132 198 L 132 284" fill="none" stroke="#5A57C9" stroke-width="1.5" stroke-dasharray="6 5"/>
+<path class="sq-flow" d="M 132 198 L 132 284" fill="none" stroke="#5A57C9" stroke-width="1.5" stroke-dasharray="4 7" stroke-linecap="round"/>
 <path d="M 138 276 L 132 284 L 126 276" fill="none" stroke="#5A57C9" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
 </g>
 <g>
-<path class="sq-flow" d="M 132 348 L 132 397 Q 132 400 135 400 L 136 400 Q 139 400 139 403 L 139 424" fill="none" stroke="#5A57C9" stroke-width="1.5" stroke-dasharray="6 5"/>
+<path class="sq-flow" d="M 132 348 L 132 397 Q 132 400 135 400 L 136 400 Q 139 400 139 403 L 139 424" fill="none" stroke="#5A57C9" stroke-width="1.5" stroke-dasharray="4 7" stroke-linecap="round"/>
 <path d="M 145 416 L 139 424 L 133 416" fill="none" stroke="#5A57C9" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
 </g>
 <g>
@@ -82,7 +82,7 @@
 <g transform="translate(18,46)"><rect x="0" y="0" width="61" height="20" rx="3" fill="#FFFFFF"/><g clip-path="url(#sq-meta-61)"><text x="7" y="14" font-size="11" font-weight="500" fill="#6F6E69">2026-07</text></g><rect x="0" y="0" width="61" height="20" rx="3" fill="none" stroke="#EAE9E5" stroke-width="1"/></g>
 <line x1="16" y1="791" x2="40" y2="791" stroke="#57564F" stroke-width="1.5"/>
 <text x="48" y="795" font-size="11" fill="#6F6E69">sync</text>
-<line x1="97" y1="791" x2="121" y2="791" stroke="#5A57C9" stroke-width="1.5" stroke-dasharray="6 5"/>
+<line x1="97" y1="791" x2="121" y2="791" stroke="#5A57C9" stroke-width="1.5" stroke-dasharray="4 7" stroke-linecap="round"/>
 <text x="129" y="795" font-size="11" fill="#6F6E69">async</text>
 <rect x="186" y="784" width="20" height="14" rx="2" fill="#FFFFFF" stroke="#EAE9E5" stroke-width="1.5" stroke-dasharray="4 3"/>
 <text x="216" y="795" font-size="11" fill="#6F6E69">context</text>

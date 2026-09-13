@@ -19,7 +19,7 @@
 <path d="M 262 134 L 268 126 L 256 126 Z" fill="#57564F"/><path d="M 262 96 L 256 104 L 268 104 Z" fill="#57564F"/>
 </g>
 <g>
-<path class="sq-flow" d="M 450 96 L 450 134" fill="none" stroke="#5A57C9" stroke-width="1.5" stroke-dasharray="6 5"/>
+<path class="sq-flow" d="M 450 96 L 450 134" fill="none" stroke="#5A57C9" stroke-width="1.5" stroke-dasharray="4 7" stroke-linecap="round"/>
 <path d="M 456 126 L 450 134 L 444 126" fill="none" stroke="#5A57C9" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
 </g>
 <g>
@@ -75,6 +75,6 @@
 <text x="18" y="32" font-size="19" font-weight="600" letter-spacing="-.01em" fill="#1C1C1A">Arrow kinds</text>
 <line x1="16" y1="293" x2="40" y2="293" stroke="#57564F" stroke-width="1.5"/>
 <text x="48" y="297" font-size="11" fill="#6F6E69">sync</text>
-<line x1="97" y1="293" x2="121" y2="293" stroke="#5A57C9" stroke-width="1.5" stroke-dasharray="6 5"/>
+<line x1="97" y1="293" x2="121" y2="293" stroke="#5A57C9" stroke-width="1.5" stroke-dasharray="4 7" stroke-linecap="round"/>
 <text x="129" y="297" font-size="11" fill="#6F6E69">async</text>
 </svg>

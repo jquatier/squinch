@@ -9,7 +9,7 @@
 <g transform="translate(0, 46)">
 <g data-kind="zone" data-zone="cloud" data-zone-kind="cloud"><rect x="143" y="204" width="588" height="172" rx="8" fill="none" stroke="#6B5FC9" stroke-width="1.5" stroke-dasharray="8 5"/></g>
 <rect data-path="pipe" data-kind="frame" x="187" y="232" width="500" height="124" rx="8" fill="#EFEFEC" stroke="#EAE9E5" stroke-width="1"/>
-<text x="201" y="256" font-size="13" font-weight="500" fill="#6F6E69">Pipeline</text>
+<rect x="199" y="241" width="24" height="24" rx="5" fill="#EFEFEC" stroke="#EAE9E5" stroke-width="1"/><rect x="203" y="245" width="16" height="16" rx="2" fill="#6F6E69"/><g color="#FFFFFF" fill="#FFFFFF"><use href="#sq-builtin-box" x="206" y="248" width="10" height="10"/></g><text x="231" y="258" font-size="13" font-weight="500" fill="#1C1C1A">Pipeline</text>
 <g>
 <path d="M 335 308 L 357 308" fill="none" stroke="#57564F" stroke-width="1.5"/>
 <path d="M 357 308 L 349 314 L 349 302 Z" fill="#57564F"/>

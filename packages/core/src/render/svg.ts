@@ -27,6 +27,14 @@ const COMET_PX_S = 150;
 const COMET_MIN_S = 0.4;
 const R_NODE = 4;
 const R_EDGE = 8;
+/** The dashed pattern: 4 on, 7 off, round caps. Each cap adds half the stroke
+ *  to a dash's visible length, so at 1.5px the beads read as ~5.5 on ~5.5 off
+ *  — a string of beads with a clear gap, rather than chopped line. The
+ *  geometric period (11) is what the drift keyframe cares about, and it is
+ *  unchanged from the `6 5` this replaced. Dotted and `packets` keep butt
+ *  caps: round ones would close a 3px gap entirely. */
+const DASHED = "4 7";
+const DASHED_CAPS = ' stroke-linecap="round"';
 const DIM = "0.35";
 
 export interface RenderOpts {
@@ -491,14 +499,19 @@ function leaf(n: PNode, rc: RC, opts: RenderOpts, dimmed: boolean, L: string[]) 
   L.push(iconTile(n.icon, px, py, rc, ctx));
   if (n.badge) L.push(badgeMarkup(n.badge, px, py, rc));
   const maxLabel = n.w - PAD - PLATE - PAD - PAD;
-  const withDesc = opts.showDescriptions && n.description;
-  const labelY = withDesc ? n.y + n.h / 2 - 1 : n.y + n.h / 2 + 5;
+  // The second line. A description the view asked to show wins — the view
+  // said so explicitly, and a leaf has room for one line under its label.
+  // Otherwise the leaf's own `subtitle:`, always on, a step quieter than a
+  // description: it is a caption (runtime, owner, region), not prose.
+  const desc = opts.showDescriptions && n.description ? n.description : undefined;
+  const second = desc ?? n.subtitle;
+  const labelY = second ? n.y + n.h / 2 - 1 : n.y + n.h / 2 + 5;
   L.push(
     `<text x="${px + PLATE + PAD}" y="${labelY}" font-size="${rc.fx(13)}" font-weight="500" fill="${ctx ? t.muted : t.ink}">${esc(fit(n.label, maxLabel, rc.fx(13), "500", rc.fam))}</text>`,
   );
-  if (withDesc)
+  if (second)
     L.push(
-      `<text x="${px + PLATE + PAD}" y="${n.y + n.h / 2 + 15}" font-size="${rc.fx(11)}" fill="${t.muted}">${esc(fit(n.description!, maxLabel, rc.fx(11), "400", rc.fam))}</text>`,
+      `<text x="${px + PLATE + PAD}" y="${n.y + n.h / 2 + 15}" font-size="${rc.fx(11)}" fill="${desc ? t.muted : t.faint}">${esc(fit(second, maxLabel, rc.fx(11), "400", rc.fam))}</text>`,
     );
   L.push(`</g>`);
 }
@@ -818,7 +831,7 @@ function legend(p: Positioned, rc: RC, y: number, L: string[], colors: RenderOpt
     const dots = asyncs.every((e) => e.style === "dotted");
     const col = agreed(asyncs, t.asyncEdge);
     items.push({
-      sample: (x, cy) => `<line x1="${x}" y1="${cy}" x2="${x + 24}" y2="${cy}" stroke="${col}" stroke-width="1.5" stroke-dasharray="${dots ? "2 3" : "6 5"}"/>`,
+      sample: (x, cy) => `<line x1="${x}" y1="${cy}" x2="${x + 24}" y2="${cy}" stroke="${col}" stroke-width="1.5" stroke-dasharray="${dots ? "2 3" : DASHED}"${dots ? "" : DASHED_CAPS}/>`,
       label: "async",
     });
   }
@@ -1146,6 +1159,8 @@ function iconDefs(p: Positioned, rc: RC): string {
     for (const prev of n.preview) note(prev);
   }
   for (const z of p.zones ?? []) note(z.icon);
+  // an authored `icon:` no leaf uses would otherwise draw a blank <use>
+  for (const f of p.frames) note(f.icon);
   const symbols: string[] = [];
   for (const key of [...used.keys()].sort()) {
     const { pack, id } = used.get(key)!;
@@ -1325,6 +1340,43 @@ export function renderSVG(p: Positioned, t: Theme, opts: RenderOpts = {}): strin
   };
   for (const z of [...(p.zones ?? [])].sort((a, b) => a.depth - b.depth)) body.push(zoneMarkup(z));
 
+  // The frame's header: the container's own mark on a 24px chip, then its
+  // name in ink — the identity its collapsed card has, kept when the card is
+  // opened, so a dive lands on the face that was clicked. No tagline, no kind
+  // chip: the full page is made of frames, and one small chip is what keeps
+  // the header from multiplying into container soup (docs/notes/full-detail.md).
+  // A container with no icon anywhere keeps the bare title. One routine for
+  // the plain and the haloed (wire-crossed) case, so the geometry lives here
+  // once; layout's `titleRect` mirrors it for the crossing test.
+  const FRAME_CHIP = 24;
+  const frameHeader = (f: PFrame, halo: boolean): string => {
+    const cx = f.x + 12, cy = f.y + 9;
+    const tx = f.icon ? cx + FRAME_CHIP + 8 : f.x + 14;
+    const ty = f.icon ? f.y + 26 : f.y + 24;
+    const out: string[] = [];
+    if (halo) {
+      // the zone-chip halo: a knockout in the frame's own surface 3px proud
+      // of the header, so the wire passes visibly behind it
+      const tw = Math.round(measure(f.label, rc.fx(13), "500", rc.fam));
+      const hx = f.icon ? cx - 4 : tx - 4, hy = f.icon ? cy - 3 : ty - 16;
+      out.push(
+        `<rect x="${hx}" y="${hy}" width="${tx + tw + 4 - hx}" height="${f.icon ? FRAME_CHIP + 6 : 23}" rx="4" fill="${t.surfaceAlt}"/>`,
+      );
+    }
+    if (f.icon) {
+      out.push(
+        `<rect x="${cx}" y="${cy}" width="${FRAME_CHIP}" height="${FRAME_CHIP}" rx="5" fill="${t.plate}" stroke="${t.border}" stroke-width="1"/>`,
+      );
+      out.push(iconPlate(f.icon, cx + 4, cy + 4, 16, rc));
+    }
+    out.push(
+      `<text x="${tx}" y="${ty}" font-size="${rc.fx(13)}" font-weight="500" fill="${t.ink}">${esc(f.label)}</text>`,
+    );
+    // no data-path on the chip: the HTML runtime gives every `[data-path]` a
+    // zoom cursor, and the frame's rect is the one that should carry it
+    return halo ? `<g data-kind="frame-title" data-path="${esc(f.path)}">${out.join("")}</g>` : out.join("");
+  };
+
   // container frames first — recessed surface behind everything (DESIGN §5),
   // outermost first so an `expand *` ladder paints parent-then-child. No fill
   // past depth 0, deliberately: surfaceAlt compounds where frames nest, and
@@ -1340,21 +1392,9 @@ export function renderSVG(p: Positioned, t: Theme, opts: RenderOpts = {}): strin
     );
     // a title a wire runs through is drawn after the edges instead, on a halo
     if (f.titleCrossed) continue;
-    body.push(
-      `<text x="${f.x + 14}" y="${f.y + 24}" font-size="${rc.fx(13)}" font-weight="500" fill="${t.muted}">${esc(f.label)}</text>`,
-    );
+    body.push(frameHeader(f, false));
   }
-  const crossedTitle = (f: PFrame): string => {
-    // the zone-chip halo, for a frame title: a knockout in the frame's own
-    // surface 3px proud of the text, so the wire passes visibly behind it
-    const tw = Math.round(measure(f.label, rc.fx(13), "500", rc.fam));
-    const x = f.x + 14, y = f.y + 24 - 13;
-    return (
-      `<g data-kind="frame-title" data-path="${esc(f.path)}">` +
-      `<rect x="${x - 4}" y="${y - 3}" width="${tw + 8}" height="23" rx="4" fill="${t.surfaceAlt}"/>` +
-      `<text x="${x}" y="${f.y + 24}" font-size="${rc.fx(13)}" font-weight="500" fill="${t.muted}">${esc(f.label)}</text></g>`
-    );
-  };
+  const crossedTitle = (f: PFrame): string => frameHeader(f, true);
 
   const hops = hopPoints(p.edges);
   for (const e of p.edges) {
@@ -1372,9 +1412,9 @@ export function renderSVG(p: Positioned, t: Theme, opts: RenderOpts = {}): strin
     // (async edges resolve to `dashed` by default, so their output here is
     // byte-identical to when this line only knew about `e.async`).
     const pattern = e.animate === "packets" ? "3 15"
-      : e.style === "dashed" ? "6 5"
+      : e.style === "dashed" ? DASHED
       : e.style === "dotted" ? "2 3" : undefined;
-    const dash = pattern ? ` stroke-dasharray="${pattern}"` : "";
+    const dash = pattern ? ` stroke-dasharray="${pattern}"${pattern === DASHED ? DASHED_CAPS : ""}` : "";
     // Animation: dashes drift at constant px/s (shared keyframes with a fixed
     // dash period, so long edges never "flow faster"); CSS only, and
     // prefers-reduced-motion turns it all off. One class per animate value.
@@ -1567,7 +1607,7 @@ export function renderSVG(p: Positioned, t: Theme, opts: RenderOpts = {}): strin
     // visibly jumps each time the animation loops. One class carries every
     // pattern (a dashed edge and a dotted one can both be `animate: flow`), so
     // the offset is the least common multiple of the periods it has to serve:
-    // dashed 6+5=11 and dotted 2+3=5 → 55. Shifting by five dashed periods
+    // dashed 4+7=11 and dotted 2+3=5 → 55. Shifting by five dashed periods
     // looks exactly like shifting by one, so the longer cycle is invisible;
     // what it buys is a seamless loop for both patterns from one keyframe.
     // Durations are then derived from the speed the vocabulary promises rather

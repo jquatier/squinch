@@ -40,6 +40,7 @@ function textsInModel(model: SModel): [string, string, Loc, string | undefined][
   for (const n of model.nodes.values()) {
     out.push([`label \`${n.name}\``, n.label, n.loc, n.file]);
     if (n.description) out.push([`description of \`${n.name}\``, n.description, n.loc, n.file]);
+    if (n.subtitle) out.push([`subtitle of \`${n.name}\``, n.subtitle, n.loc, n.file]);
   }
   for (const c of model.containers.values()) {
     if (c.label) out.push([`label \`${c.name}\``, c.label, c.loc, c.file]);
@@ -387,6 +388,23 @@ export function buildProject(input: ProjectFile[]): BuildResult {
         } else icon = { pack: p, id: i };
       }
       const meta = attrsOf(ctx, decl.getChild("AttrBlock"));
+      // `subtitle:` is the leaf's own field, like `description`, not a bag entry
+      const subtitle = meta.attrs["subtitle"];
+      delete meta.attrs["subtitle"];
+      // Attr keys, like the edge list at EDGE_ATTR_KEYS: a key nobody reads is
+      // a silent no-op, which the check contract forbids. A warning, and the
+      // key stays in `attrs` (hover cards still show it). The did-you-mean
+      // carries the C4 prior — an agent that has written `technology` under a
+      // container's name a thousand times reaches for it here first, and
+      // levenshtein cannot get from there to `subtitle`.
+      const NODE_ATTR_KEYS = ["description", "subtitle", "tags", "color", "badge"];
+      const SUBTITLE_ALIASES = ["tech", "technology", "stack", "caption", "tagline", "sub"];
+      for (const key of Object.keys(meta.attrs)) {
+        if (NODE_ATTR_KEYS.includes(key)) continue;
+        const sug = SUBTITLE_ALIASES.includes(key) ? "subtitle" : suggest(key, NODE_ATTR_KEYS);
+        warn(ctx, decl, `unknown node attribute \`${key}\``,
+          sug ? `did you mean \`${sug}\`?` : `one of: ${NODE_ATTR_KEYS.join(", ")}`);
+      }
       // `badge:` is an icon reference like `glyph:` and gets the same two
       // errors — an unchecked ref would draw a blank plate, exit 0, and leave
       // the typo to be noticed by eye. The value is in practice a `logos/*`
@@ -413,6 +431,11 @@ export function buildProject(input: ProjectFile[]): BuildResult {
         icon = { pack: "builtin", id: "person" };
         if (!kinds.includes("person")) kinds.push("person");
       }
+      // An actor tile has a name and nothing under it (DESIGN §3); a subtitle
+      // written there would vanish, and the check contract says so instead.
+      if (subtitle !== undefined && kinds.includes("person"))
+        warn(ctx, decl, "`subtitle` is a leaf attribute",
+          "a person has no subtitle line; put it in `description:`");
       const labelNode = decl.getChild("String");
       // `#tag` written in kind position (grammar: NodeDecl). Merged with any
       // block `tags:` and de-duped, so both spellings compose on one node.
@@ -422,6 +445,7 @@ export function buildProject(input: ProjectFile[]): BuildResult {
         label: labelNode ? ctx.str(labelNode) : name,
         icon, kinds,
         description: meta.description,
+        subtitle: kinds.includes("person") ? undefined : subtitle,
         tags: [...new Set([...headTags, ...meta.tags])],
         attrs: meta.attrs,
         color: meta.attrs["color"] ? checkHue(ctx, decl, meta.attrs["color"]) : undefined,
@@ -439,6 +463,11 @@ export function buildProject(input: ProjectFile[]): BuildResult {
       const meta = attrsOf(ctx, body);
       const c = model.containers.get(parentPath);
       if (c) {
+        // a card's line under the name is its description, and a frame's
+        // header carries none — so this would draw nothing, silently
+        if (meta.attrs["subtitle"] !== undefined)
+          warn(ctx, body, "`subtitle` is a leaf attribute",
+            "on a container the line under the name is `description:`");
         Object.assign(c.attrs, meta.attrs);
         if (meta.description) c.attrs["description"] = meta.description;
         c.tags.push(...meta.tags);
@@ -898,6 +927,19 @@ export function buildProject(input: ProjectFile[]): BuildResult {
       { name: n.file ?? "input" } as Ctx, n.loc,
       `label is ${label.length} characters — it will be cut off`,
       "labels wrap to two lines then ellipsize: shorten it and put the detail in `description:`",
+    );
+  }
+  // The same nudge for a subtitle. It is one line, never wrapped, ellipsized
+  // past the widest leaf tier — and it widens the tier to fit, so a long one
+  // costs the whole diagram width. The field exists to be short: a runtime,
+  // an owner, a region. 24 is what the top tier holds at 11px with room over.
+  const SUBTITLE_MAX = 24;
+  for (const n of model.nodes.values()) {
+    if (!n.subtitle || n.subtitle.length <= SUBTITLE_MAX) continue;
+    warn(
+      { name: n.file ?? "input" } as Ctx, n.loc,
+      `subtitle is ${n.subtitle.length} characters — it will be cut off`,
+      "keep it to a few words; put the rest in `description:`",
     );
   }
 

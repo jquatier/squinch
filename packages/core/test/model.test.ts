@@ -19,6 +19,53 @@ describe("grammar + model builder", () => {
       .not.toContainEqual(expect.stringContaining("indistinguishable"));
   });
 
+  describe("`subtitle:` — a leaf's short second line (2026-09)", () => {
+    const leaf = (attrs: string) =>
+      buildModel(`pack aws\nsystem s "S" {\n a = aws/lambda "A" ${attrs}\n}`);
+
+    it("is the node's own field, not a bag entry", () => {
+      const r = leaf(`{ subtitle: "Lambda · Node 20" }`);
+      expect(r.diagnostics).toEqual([]);
+      expect(r.model.nodes.get("s.a")!.subtitle).toBe("Lambda · Node 20");
+      expect(r.model.nodes.get("s.a")!.attrs).toEqual({});
+    });
+
+    it("an unknown node attribute warns, keeps the key, and the C4 names point at subtitle", () => {
+      for (const key of ["tech", "technology", "caption"]) {
+        const r = leaf(`{ ${key}: "Lambda" }`);
+        expect(r.ok).toBe(true);
+        const w = r.diagnostics.find((d) => d.message.includes("unknown node attribute"))!;
+        expect(w.severity).toBe("warning");
+        expect(w.message).toBe(`unknown node attribute \`${key}\``);
+        expect(w.fix).toBe("did you mean `subtitle`?");
+        expect(r.model.nodes.get("s.a")!.attrs[key]).toBe("Lambda"); // kept for hover cards
+      }
+      expect(leaf(`{ subtitel: "x" }`).diagnostics[0].fix).toBe("did you mean `subtitle`?");
+      expect(leaf(`{ owner: team }`).diagnostics[0].fix).toContain("one of: description, subtitle");
+    });
+
+    it("is refused on a container and on a person, naming the field that does that job", () => {
+      const c = buildModel(`pack aws\nsystem s "S" {\n subtitle: "x"\n a = aws/lambda "A"\n}`);
+      expect(c.ok).toBe(true);
+      const cw = c.diagnostics.find((d) => d.message.includes("leaf attribute"))!;
+      expect(cw.fix).toContain("description:");
+      const p = buildModel(`pack aws\nu = person "User" { subtitle: "x" }\n`);
+      const pw = p.diagnostics.find((d) => d.message.includes("leaf attribute"))!;
+      expect(pw.message).toBe("`subtitle` is a leaf attribute");
+      expect(p.model.nodes.get("u")!.subtitle).toBeUndefined();
+    });
+
+    it("warns past 24 characters — it is one line, and it widens the card", () => {
+      const of = (s: string) => leaf(`{ subtitle: "${s}" }`).diagnostics.filter((d) => d.message.includes("cut off"));
+      expect(of("x".repeat(24))).toEqual([]);
+      const long = of("x".repeat(25));
+      expect(long.length).toBe(1);
+      expect(long[0].severity).toBe("warning");
+      expect(long[0].message).toBe("subtitle is 25 characters — it will be cut off");
+      expect(long[0].fix).toContain("description:");
+    });
+  });
+
   it("builds the canonical example", () => {
     const r = buildModel(canonical);
     expect(r.ok).toBe(true);

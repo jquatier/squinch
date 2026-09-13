@@ -94,6 +94,8 @@ system shop "Order Service" {         // systems/containers nest arbitrarily
   api    = aws/api-gateway "API Gateway"        // id = pack/icon "Label"
   create = aws/lambda      "Create Handler" {
     description: "Validates and persists"
+    subtitle: "Lambda · Node 20"      // a few words under the label, always
+                                      // drawn: runtime, owner, region
     tags: #pci
   }
   db     = aws/dynamodb    "Orders Table" datastore #pci
@@ -427,6 +429,8 @@ view detail {
 | Several things all write to one store, crossing each other | `channel a, b, c -> db` — they merge into one trunk |
 | "`x` connects to itself — a self-edge is not drawn" warning | Squinch draws connections between things, not loops on one thing. Put it on the node: `note right-of x "retries"`, or fold it into the label |
 | "label is N characters — it will be cut off" warning | Labels wrap to two lines and then ellipsize, so the reader loses the tail. Keep it a short noun phrase and move the detail into `description:` |
+| "subtitle is N characters — it will be cut off" warning | A subtitle is one line and widens the card to fit it. Keep it to a few words — runtime, owner, region — and move the rest into `description:` |
+| "`subtitle` is a leaf attribute" warning | Only a leaf draws a line under its name. On a system or container that line is `description:` (it shows on the collapsed card); a `person` has none |
 | "view `v` has nothing to draw" warning | Everything got filtered out. Check `scope` (a leaf has no insides — scope a system, not a node), then `include`/`only`/`exclude`. An empty `system x { }` does this too: make it a node instead |
 | "highlight #x: nothing visible here is tagged #x" warning | Everything would dim and nothing stand out. The tag is misspelled, or the things carrying it are not in this view — check the tag against your `tags:`, and the view's `include`/`only` |
 | "channel into `x`" warning — including "has no room for a trunk" | The trunk needs the whole picture: every member edge visible in this view, at least two of them, and the sources sitting *above* the target. Check `rows`, and that nothing is `exclude`d |
@@ -553,8 +557,11 @@ Don't reach for a lookalike from another vendor and don't invent an id. Draw the
 *concept* from `sys/*` and mark it with the vendor's mark from `logos/*`:
 
 ```squinch
-wh = sys/database "SQL warehouse" { badge: logos/databricks }
+wh = sys/database "SQL warehouse" { badge: logos/databricks, subtitle: "Databricks SQL" }
 ```
+
+The `subtitle:` is optional; it names the product where the mark alone only
+names the vendor.
 
 Databricks, worked out — every base below is a real `sys/` id or alias:
 
@@ -584,7 +591,9 @@ icon, and that contrast is what makes the platform boundary readable.
    over, not just checked (see "What to hand over").
 3. Look at the SVG: tiers read top-to-bottom (or left-to-right), no edge takes a
    baffling detour, async flows (`~>`) are dashed, related things sit together.
-4. Labels are short noun phrases; put detail in `description`, not the label.
+4. Labels are short noun phrases. A `subtitle:` of a few words says what a
+   leaf runs on or who owns it; anything longer goes in `description`, never
+   the label.
 5. Model semantics honestly: request/response is `->`; anything that queues,
    buffers or fans out is `~>`. If the prose says stream, queue, topic, event,
    publishes, emits, feeds, notifies or subscribes — Kinesis, Kafka, SQS, SNS,

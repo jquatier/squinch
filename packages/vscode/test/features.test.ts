@@ -168,6 +168,12 @@ describe("hover", () => {
     expect(h.markdown).toContain("shop.db");
   });
 
+  it("shows a leaf's subtitle beside its label", () => {
+    const src = SRC.replace(`api = aws/api-gateway "API"`, `api = aws/api-gateway "API" { subtitle: "REST · v2" }`);
+    const off = src.indexOf("  api =") + 3;
+    expect(hoverAt(src, off)!.markdown).toContain("**API** — REST · v2");
+  });
+
   it("returns nothing for whitespace", () => {
     expect(hoverAt(SRC, SRC.indexOf("\n\n") + 1)).toBeUndefined();
   });
