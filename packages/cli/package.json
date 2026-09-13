@@ -1,6 +1,6 @@
 {
   "name": "squinch",
-  "version": "0.3.1",
+  "version": "0.4.0",
   "description": "Architecture diagrams as code for coding agents: install the skill, then check, render, diff and watch .squinch projects — clean, zoomable diagrams with real cloud icons, as deterministic SVG, PNG or interactive HTML.",
   "keywords": [
     "architecture",
