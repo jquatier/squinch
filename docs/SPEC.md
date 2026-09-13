@@ -505,8 +505,21 @@ layout {
   direction down          // down | right (default down)
   lines orthogonal        // orthogonal | curved | straight (default orthogonal, rounded)
   density comfortable     // compact | comfortable | spacious
+  wrap 5                  // fold a chain or a fan-out into bands of at most 5
 }
 ```
+
+`wrap N` is aspect-ratio control for the two shapes that have none: a single
+chain folds into a serpentine (bands alternate direction, so the hop between
+bands is one short vertical), and a single source fanning out to leaves folds
+its targets into bands under it, the band-skipping edges drawn as one bus —
+a spine down the first band's middle gap, one trunk per band, a drop into each
+target — or down a lane beside the widest band when the spine has no clear
+run. It is a `rows` line the engine writes, so `wrap` beside `rows` or `cols`
+is an error, and on any other graph — a diamond, a second source, an expanded
+container, a zone, or a fold that would leave one band — it warns and writes
+the `rows` line to use by hand instead (docs/notes/wrap.md records what was
+tried and why a hand-written fold cannot be fixed by routing alone).
 
 `direction` is also the one Tier-0 knob a container's own block takes (§3): a
 pipeline that reads left to right inside a view that flows down says `direction
@@ -631,6 +644,7 @@ corner      = "top-left" | "top-right" | "bottom-left" | "bottom-right" ;
 tag         = "#" ident ;
 targets     = ( path | tag ) { "," ( path | tag ) } ;
 layoutstmt  = "direction" ("down"|"right") | "lines" ident | "density" ident
+            | "wrap" number
             | "rows" rank { rank } | "cols" rank { rank }
             | "place" path relpos path | "align" path [","] path { [","] path }
             | "route" path arrow path { routemod }
@@ -696,6 +710,9 @@ order-service.squinch:19:11  `workers.sync` is inside `workers`, not a direct me
 
 order-service.squinch:21:5   `rows` appears twice in this block — one `rows` line assigns every band
   merge the bands into one line
+
+order-service.squinch:23:5   `wrap 5` and `rows` both assign bands in this view
+  keep one: `wrap` folds the chain or fan-out for you; `rows`/`cols` spell the bands by hand
 ```
 
 Lint (non-fatal): duplicate edges, labels over ~40 chars, view filters that match

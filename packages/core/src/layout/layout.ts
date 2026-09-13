@@ -136,6 +136,9 @@ export interface PEdge {
    *  frame interior legitimately (it routes them around what it knows); ours
    *  must not cross anything, and the invariant sweep holds us to it. */
   coplanar?: true;
+  /** Which of the router's shapes drew it, when it was not a same-rank wire:
+   *  `bus` is a folded fan-out's spine-trunk-drop (docs/notes/wrap.md). */
+  via?: "bus";
 }
 export interface Positioned {
   name: string;
@@ -357,8 +360,99 @@ export async function layoutView(
   // Context cards arrive *above* the scope's first row, so unhinted nodes may
   // take negative ranks and the whole grid is normalized afterwards. Declared
   // rows are relative to each other — context must never push them down.
+  // ── wrap (Tier 0, PoC): synthesize `rows` for a chain or a fan-out ───────
+  // A fold is a rank assignment, so it is written as the rows the author could
+  // have typed and flows through everything rows already have: scaffold lower
+  // bounds, the coplanar router within a band, the conflict checks. It lives
+  // here rather than in the model because the shape test needs the *view's*
+  // graph (after scope/only/expand), which the model never sees. Two shapes,
+  // precisely: one linear chain, or one source whose targets are all leaves
+  // with no other edges. Anything else warns — a knob that silently does
+  // nothing is the defect routing-hints.md records reverting `around` for.
+  //
+  // The chain folds as a serpentine (band 2 runs right→left): the hop between
+  // bands is then a one-column vertical, and the reversed arrows say which way
+  // the band reads. The fan folds its targets into bands under the source; the
+  // edges into band ≥2 are hidden from ELK (as coplanar edges are) and drawn
+  // as a bus by `busEdges` below, because ELK's own answer to a rank-skipping
+  // fan is to place the far band *outside* the near one and detour around it.
+  type Wrap = { kind: "chain" | "fan"; source?: string; bands: string[][]; col: Map<string, number> };
+  let wrap: Wrap | undefined;
+  if (view.layout.wrap) {
+    const n = view.layout.wrap.n;
+    const paths = graph.nodes.map((nd) => nd.path);
+    const outs = new Map<string, string[]>(), ins = new Map<string, string[]>();
+    for (const e of edges) {
+      outs.set(e.from, [...(outs.get(e.from) ?? []), e.to]);
+      ins.set(e.to, [...(ins.get(e.to) ?? []), e.from]);
+    }
+    const deg = (m: Map<string, string[]>, p: string) => m.get(p)?.length ?? 0;
+    const heads = paths.filter((p) => deg(ins, p) === 0);
+    let why: string | undefined;
+    if (graph.frames.length || zones.length) why = "it holds expanded containers or zones";
+    else if (edges.length !== paths.length - 1 || heads.length !== 1) why = "its edges do not form one chain or one fan";
+    else {
+      const head = heads[0];
+      const isChain = paths.every((p) => deg(outs, p) <= 1 && deg(ins, p) <= 1);
+      const isFan = deg(outs, head) === paths.length - 1 &&
+        paths.every((p) => p === head || (deg(ins, p) === 1 && deg(outs, p) === 0));
+      if (isChain) {
+        const order: string[] = [];
+        for (let p: string | undefined = head; p && !order.includes(p); p = outs.get(p)?.[0]) order.push(p);
+        const col = new Map<string, number>();
+        const bands: string[][] = [];
+        for (let i = 0; i * n < order.length; i++) {
+          const slice = order.slice(i * n, (i + 1) * n);
+          slice.forEach((p, k) => col.set(p, i % 2 ? n - 1 - k : k));
+          bands.push([...slice].sort((a, b) => col.get(a)! - col.get(b)!));
+        }
+        wrap = { kind: "chain", bands, col };
+      } else if (isFan) {
+        const targets = paths.filter((p) => p !== head); // declaration order
+        const col = new Map<string, number>([[head, 0]]);
+        const bands: string[][] = [[head]];
+        for (let i = 0; i * n < targets.length; i++) {
+          const slice = targets.slice(i * n, (i + 1) * n);
+          slice.forEach((p, k) => col.set(p, k));
+          bands.push(slice);
+        }
+        wrap = { kind: "fan", source: head, bands, col };
+      } else why = "its edges do not form one chain or one fan";
+      // a fold that leaves one band (or a fan with one target band) is no fold
+      if (wrap && wrap.bands.length < (wrap.kind === "fan" ? 3 : 2)) {
+        why = wrap.kind === "fan"
+          ? `its ${paths.length - 1} targets already fit in one band of ${n}`
+          : `its ${paths.length} nodes already fit in one band of ${n}`;
+        wrap = undefined;
+      }
+    }
+    if (!wrap)
+      diagnostics.push({
+        severity: "warning",
+        message: `\`wrap ${n}\` has no effect — this view is not a single chain or a single fan-out (${why})`,
+        fix: "wrap folds one chain (a → b → c …) or one source fanning out to leaves; " +
+          "for any other shape write the bands by hand: `rows [a b] [c d]`",
+        loc: view.layout.wrap.loc,
+      });
+  }
+  const rowsHint = view.layout.rows ?? wrap?.bands;
+  /** Column-mate in the previous band: the scaffold feeder for a folded node,
+   *  so bands line up as a grid instead of every unhinted member hanging off
+   *  the first node of the rank above. */
+  const wrapFeeder = new Map<string, string>();
+  if (wrap)
+    wrap.bands.forEach((band, i) => {
+      if (i === 0) return;
+      for (const p of band) {
+        const mate = wrap!.bands[i - 1].find((q) => wrap!.col.get(q) === wrap!.col.get(p));
+        if (mate) wrapFeeder.set(p, mate);
+      }
+    });
+  const wrapBand = new Map<string, number>();
+  wrap?.bands.forEach((band, i) => band.forEach((p) => wrapBand.set(p, i)));
+
   const declared = new Map<string, number>();
-  view.layout.rows?.forEach((row, i) =>
+  rowsHint?.forEach((row, i) =>
     row.forEach((p) => unitSet.has(unitOf(p)) && declared.set(unitOf(p), i)),
   );
   // `place`'s direction word decides whether the node changes band or just its
@@ -445,7 +539,7 @@ export async function layoutView(
     // internally. Warning on the single-member case told people a hint they
     // could see working had no effect.
     const bandsPerZone = new Map<string, Map<number, Set<string>>>();
-    (view.layout.rows ?? []).forEach((row, i) =>
+    (rowsHint ?? []).forEach((row, i) =>
       row.forEach((p) => {
         const zone = unitOf(p);
         if (zone === entityOf(p) || !zoneIds.has(zone)) return;
@@ -485,7 +579,7 @@ export async function layoutView(
 
   // model order over units: rows first, placed after targets, rest in resolve order
   const order: string[] = [];
-  for (const p of (view.layout.rows ?? []).flat().map(unitOf))
+  for (const p of (rowsHint ?? []).flat().map(unitOf))
     if (unitSet.has(p) && !order.includes(p)) order.push(p);
   // Everything else in resolve order *before* `place` runs, so a placed node
   // can be moved next to its target even when neither is in a `rows` band.
@@ -681,7 +775,14 @@ export async function layoutView(
       rank.get(unitOf(e.from)) === rank.get(unitOf(e.to)),
   );
   const coplanarSet = new Set(coplanar.map((e) => e.id));
-  const elkEdges = edges.filter((e) => !coplanarSet.has(e.id));
+  // A folded fan's edges into band ≥2 skip a rank. Hidden from ELK exactly as
+  // coplanar edges are — the targets then have no ELK edge, and the column-mate
+  // scaffold is what ranks them — and drawn as a bus after ELK has finished.
+  const bus = wrap?.kind === "fan"
+    ? edges.filter((e) => e.from === wrap!.source && (wrapBand.get(e.to) ?? 0) >= 2)
+    : [];
+  const busSet = new Set(bus.map((e) => e.id));
+  const elkEdges = edges.filter((e) => !coplanarSet.has(e.id) && !busSet.has(e.id));
 
   const natural = new Map(units.map((p) => [p, 0]));
   for (let i = 0; i < units.length; i++)
@@ -749,7 +850,7 @@ export async function layoutView(
     const want = rank.get(p)!;
     const nat = natural.get(p)!;
     if (nat < want) {
-      const feeder = order.find((f) => rank.get(f)! === want - 1);
+      const feeder = wrapFeeder.get(p) ?? order.find((f) => rank.get(f)! === want - 1);
       if (feeder) scaffold.push({ id: `scaffold.${p}`, from: feeder, to: p });
     }
   }
@@ -849,6 +950,9 @@ export async function layoutView(
     coplanarGutter.set(left, Math.max(coplanarGutter.get(left) ?? 0, need));
   }
 
+  /** ELK port ids that carry no edge (a bus spine's reserved slot): kept out
+   *  of the ports registry by id, never by naming convention. */
+  const reservedPorts = new Set<string>();
   const leafChild = (p: string) => {
     const n = byPath.get(p)!;
     const { w, h } = sizeOf(n, font);
@@ -860,11 +964,42 @@ export async function layoutView(
         out.push({ id: `${e.id}.dst`, width: 0, height: 0, layoutOptions: { "elk.port.side": SIDE_UP[leafPortSide.get(`${e.id}.dst`)!] } });
       return out;
     });
+    // A folded fan's bus leaves the source's band-side face beside ELK's own
+    // fan stubs, and nothing reserves it room there: a bus wire squeezed
+    // between two stubs 23 apart is 11 from each. So hand ELK a port for it
+    // and pin the order — an unconnected port under FIXED_SIDE sorts to the
+    // end of the face (measured), so the source goes FIXED_ORDER with an
+    // index per port: band 1's targets in column order with the bus slot in
+    // the middle gap. ELK's index runs clockwise from the top-left, which is
+    // right→left along a south face and top→bottom down an east one.
+    const busSource = wrap?.kind === "fan" && p === wrap.source && bus.length > 0;
+    let portOrder: Record<string, string> = {};
+    if (busSource) {
+      const n1 = wrap!.bands[1].length;
+      const busSlot = Math.ceil(n1 / 2); // the gap right of column busSlot-1
+      const slots = n1 + 1;
+      const indexOf = (slot: number) => String(flowsRight ? slot : slots - 1 - slot);
+      for (const port of ports) {
+        const e = elkEdges.find((x) => `${x.id}.src` === port.id);
+        const col = e ? wrap!.col.get(e.to) : undefined;
+        if (col === undefined) continue;
+        port.layoutOptions["elk.port.index"] = indexOf(col + (col >= busSlot ? 1 : 0));
+      }
+      // a reserved slot on the source's face for the bus spine — an ELK port
+      // no edge uses, so the harvest below must know it by id, not by shape
+      reservedPorts.add(`${p}.bus`);
+      ports.push({
+        id: `${p}.bus`, width: 0, height: 0,
+        layoutOptions: { "elk.port.side": flowsRight ? "EAST" : "SOUTH", "elk.port.index": indexOf(busSlot) },
+      });
+      portOrder = { "elk.portConstraints": "FIXED_ORDER" };
+    }
     const gutter = coplanarGutter.get(p);
     return {
       id: p, width: w, height: h, ports,
       layoutOptions: {
         "elk.portConstraints": "FIXED_SIDE",
+        ...portOrder,
         ...(gutter ? { "elk.spacing.individual": `elk.spacing.nodeNode:${gutter}` } : {}),
         ...interiorSlot(p),
       },
@@ -1319,6 +1454,14 @@ export async function layoutView(
     layoutOptions: {
       ...rootOptions,
       "elk.direction": view.layout.direction === "right" ? "RIGHT" : "DOWN",
+      // A folded fan wants every band centred under its source — that is what
+      // puts band 1's middle gap under the source's face for the bus spine.
+      // NETWORK_SIMPLEX parks a 6-way source over the third target (any
+      // position between the two median targets costs the same), and SIMPLE
+      // placement centres each layer on the widest. Fans only: a folded
+      // chain's short last band must stay column-aligned, which the
+      // column-mate scaffolds give under NETWORK_SIMPLEX and SIMPLE undoes.
+      ...(wrap?.kind === "fan" ? { "elk.layered.nodePlacement.strategy": "SIMPLE" } : {}),
       "elk.padding": "[top=32,left=32,bottom=32,right=32]",
       "elk.hierarchyHandling": "INCLUDE_CHILDREN",
       ...(directedPresent
@@ -1378,6 +1521,8 @@ export async function layoutView(
   const frames: PFrame[] = [];
   const pZones: PZone[] = [];
   const ports: PPort[] = [];
+  /** Where ELK put the folded fan's reserved bus port on its source. */
+  let busPort: { x: number; y: number } | undefined;
   // ELK reports each edge in the coordinate system of its `container` node —
   // for edges living fully inside an expanded frame, that's the frame, so we
   // need every compound's absolute origin to translate them.
@@ -1432,6 +1577,7 @@ export async function layoutView(
     });
     for (const p of c.ports ?? []) {
       if (p.id.startsWith("scaffold.")) continue;
+      if (reservedPorts.has(p.id)) { busPort = { x: q(x + p.x), y: q(y + p.y) }; continue; }
       ports.push({
         edge: p.id.replace(/\.(src|dst)$/, ""),
         node: c.id,
@@ -1757,7 +1903,95 @@ export async function layoutView(
     };
   });
 
-  const coplanarById = new Map(coplanarEdges.map((e) => [e.id, e]));
+  // ── bus router (PoC, `wrap` on a fan-out): one spine, one trunk per band ─
+  // The source's edges into every band past the first share a spine that
+  // drops through band 1's middle gap (even N has one exactly under a centred
+  // source; odd N, or a gap ELK did not leave clear, falls back to a lane
+  // outside the widest band), a trunk in the gutter above each band, and a
+  // drop into each target. Same geometry `channel` draws, mirrored: there the
+  // sources merge into a target, here one source spreads to a band. The wires
+  // carry `coplanar: true` so the invariant sweep holds them to crossing
+  // nothing — the flag names the router, not the rank relation.
+  const busEdges: PEdge[] = [];
+  if (wrap?.kind === "fan" && bus.length) {
+    const g = nodeById.get(wrap.source!)!;
+    const entrySide: Side = flowsRight ? "west" : "north";
+    const rectsOf = (i: number) =>
+      wrap!.bands[i].map((p) => nodeById.get(p)!).sort((a, b) => a[along] - b[along]);
+    const b1 = rectsOf(1);
+    const li = Math.ceil(b1.length / 2) - 1; // even N: the middle gap; odd N: right of the middle card
+    const gapMid = Math.round((b1[li][along] + b1[li][alongSize] + b1[li + 1][along]) / 2);
+    const lastBand = Math.max(...bus.map((e) => wrapBand.get(e.to)!));
+    const trunkOf = new Map<number, number>();
+    for (let i = 2; i <= lastBand; i++) {
+      const above = Math.max(...rectsOf(i - 1).map((r) => r[cross] + r[crossSize]));
+      const below = Math.min(...rectsOf(i).map((r) => r[cross]));
+      trunkOf.set(i, Math.round((above + below) / 2));
+    }
+    const deepest = trunkOf.get(lastBand)!;
+    // The spine shares the source's face with ELK's own fan stubs, and nothing
+    // reserved it there — so "inside" is a proven property, not a hope: sit
+    // midway between the two ELK ports that straddle the gap (the fan's stubs
+    // then split around it), inside the gap, on the face, ≥12 from every
+    // port, through a corridor with no node in it, and crossed by no ELK
+    // segment. Anything less takes the outside lane.
+    const facePorts = ports.filter((p) => p.node === g.path && p.side === bandSide).map((p) => p[along]).sort((a, b) => a - b);
+    const leftPort = facePorts.filter((c) => c < gapMid).at(-1);
+    const rightPort = facePorts.find((c) => c > gapMid);
+    const straddle = leftPort !== undefined && rightPort !== undefined ? Math.round((leftPort + rightPort) / 2) : gapMid;
+    // prefer the port ELK reserved when it landed in the gap; the straddle
+    // midpoint is the fallback for when ELK parked it at an end of the face
+    const reserved = busPort?.[along];
+    const spine = reserved !== undefined && Math.abs(reserved - gapMid) <= Math.abs(straddle - gapMid) ? reserved : straddle;
+    const inGap = spine >= b1[li][along] + b1[li][alongSize] + 8 && spine <= b1[li + 1][along] - 8;
+    const onFace = spine >= g[along] + 8 && spine <= g[along] + g[alongSize] - 8;
+    const portClear = facePorts.every((c) => Math.abs(c - spine) >= 12);
+    const corridorClear = !nodes.some((r) =>
+      r.path !== g.path &&
+      r[along] - 16 < spine && r[along] + r[alongSize] + 16 > spine &&
+      r[cross] < deepest && r[cross] + r[crossSize] > g[cross] + g[crossSize]);
+    const crossed = [...elkPositioned.values()].some((e) =>
+      e.points.some((p, i) => {
+        if (!i) return false;
+        const q = e.points[i - 1];
+        if (p[cross] !== q[cross]) return false; // only runs across the spine can cross it
+        const lo = Math.min(p[along], q[along]), hi = Math.max(p[along], q[along]);
+        return lo < spine && hi > spine && p[cross] > g[cross] + g[crossSize] && p[cross] < deepest;
+      }));
+    const inside = inGap && onFace && portClear && corridorClear && !crossed;
+    // outside lane: past the widest band, at gutter distance
+    const lane = Math.max(...nodes.map((r) => r[along] + r[alongSize])) + 48;
+    const start = inside
+      ? pt(spine, g[cross] + g[crossSize])
+      : pt(g[along] + g[alongSize], freePort(g, highSide, g[cross] + Math.round(g[crossSize] / 2)));
+    const spineAlong = inside ? spine : lane;
+    for (const e of bus) {
+      const t = nodeById.get(e.to)!;
+      const trunk = trunkOf.get(wrapBand.get(e.to)!)!;
+      const tc = t[along] + Math.round(t[alongSize] / 2);
+      const pts = inside
+        ? tc === spineAlong
+          ? [start, pt(tc, t[cross])]
+          : [start, pt(spineAlong, trunk), pt(tc, trunk), pt(tc, t[cross])]
+        : [start, pt(spineAlong, flowsRight ? start.x : start.y), pt(spineAlong, trunk), pt(tc, trunk), pt(tc, t[cross])];
+      const carry = { label: e.label, async: e.async, animate: e.animate, style: e.style, count: e.count, tags: e.tags, color: e.color, heads: e.heads };
+      const labelRect = e.label
+        ? (() => {
+            const bw = badgeW(e.id);
+            const w = pillDims(e.label!, font).w + (bw ? bw + BADGE_GAP : 0);
+            const r = pt(tc - Math.round(w / 2), trunk - 9);
+            return { x: r.x, y: r.y, ...(flowsRight ? { w: 18, h: w } : { w, h: 18 }) };
+          })()
+        : undefined;
+      ports.push(
+        { edge: e.id, node: g.path, side: inside ? bandSide : highSide, x: start.x, y: start.y },
+        { edge: e.id, node: t.path, side: entrySide, x: pts[pts.length - 1].x, y: pts[pts.length - 1].y },
+      );
+      busEdges.push({ id: e.id, from: e.from, to: e.to, ...carry, points: pts, labelRect, coplanar: true as const, via: "bus" as const });
+    }
+  }
+
+  const coplanarById = new Map([...coplanarEdges, ...busEdges].map((e) => [e.id, e]));
   const pEdges: PEdge[] = edges.map((e) => elkPositioned.get(e.id) ?? coplanarById.get(e.id)!);
 
   // ── annotation pass: chips and badges are layout citizens ────────────────

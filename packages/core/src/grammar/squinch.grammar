@@ -127,9 +127,11 @@ Star { "*" }
 LayoutBlock { kw<"layout"> "{" list<layoutStmt> "}" }
 layoutStmt {
   DirectionStmt | LinesStmt | DensityStmt |
-  RowsStmt | ColsStmt | PlaceStmt | AlignStmt | RouteStmt | ChannelStmt
+  RowsStmt | ColsStmt | PlaceStmt | AlignStmt | RouteStmt | ChannelStmt | WrapStmt
 }
 DirectionStmt { kw<"direction"> (kw<"down"> | kw<"right">) }
+// wrap N — fold a chain or a fan-out into bands of N (synthesized `rows`)
+WrapStmt { kw<"wrap"> Number }
 LinesStmt { kw<"lines"> Ident }
 DensityStmt { kw<"density"> Ident }
 RowsStmt { kw<"rows"> Rank+ }

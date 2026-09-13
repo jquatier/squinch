@@ -171,6 +171,7 @@ LAYOUT}
     ["cols", "layout { cols [a] [b] }"],
     ["channels", "layout { channel a, b -> c }"],
     ["rows", "layout { rows [a] [b] }"],
+    ["wrap", "layout { wrap 2 }"],
   ] as const)
     it(`sees a change in \`${field}\``, () => {
       const d = diff(withStmt(""), withStmt(stmt));

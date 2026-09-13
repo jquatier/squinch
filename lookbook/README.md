@@ -447,3 +447,21 @@ Source: [`cases/38-container-direction.squinch`](cases/38-container-direction.sq
 | light | dark |
 |---|---|
 | ![](out/38-container-direction.load.light.svg) | ![](out/38-container-direction.load.dark.svg) |
+
+## Wrap
+
+`wrap N` is the one aspect-ratio knob: it folds the two shapes that have no control of their own. A single chain becomes a serpentine — bands alternate direction, so the hop between them is one short vertical and a short last band right-aligns under its column-mates. A single source fanning out folds its targets into bands under it, and the band-skipping edges are drawn as one bus: a spine down the first band's middle gap, a trunk per band, a drop into each target. Anything else warns and names the `rows` line to write.
+
+Source: [`cases/39-wrap.squinch`](cases/39-wrap.squinch)
+
+**`chain`**
+
+| light | dark |
+|---|---|
+| ![](out/39-wrap.chain.light.svg) | ![](out/39-wrap.chain.dark.svg) |
+
+**`fan`**
+
+| light | dark |
+|---|---|
+| ![](out/39-wrap.fan.light.svg) | ![](out/39-wrap.fan.dark.svg) |

@@ -331,6 +331,7 @@ export function diffModels(before: SModel, after: SModel): DiffResult {
       notes: v.notes.map((n) => ({ anchor: n.anchor, text: n.text, style: n.style })),
       layout: {
         direction: v.layout.direction,
+        wrap: v.layout.wrap?.n,
         density: v.layout.density,
         lines: v.layout.lines,
         rows: v.layout.rows,

@@ -479,7 +479,7 @@ describe("the grammar's keywords reach every editor surface", () => {
     ["packages/vscode/src/features.ts", readFileSync(join(root, "packages/vscode/src/features.ts"), "utf8")],
     ["apps/spa/src/Editor.tsx", readFileSync(join(root, "apps/spa/src/Editor.tsx"), "utf8")],
   ];
-  const LAYOUT_STATEMENTS = ["direction", "lines", "density", "rows", "cols", "place", "align", "route", "channel"];
+  const LAYOUT_STATEMENTS = ["direction", "lines", "density", "rows", "cols", "place", "align", "route", "channel", "wrap"];
   it("every layout statement is highlighted and completed everywhere", () => {
     expect(keywords).toEqual(expect.arrayContaining(LAYOUT_STATEMENTS));
     for (const [name, src] of surfaces)

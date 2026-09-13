@@ -322,6 +322,8 @@ view shop {
     route api -> db "write" from south    // label disambiguates parallels
   }
 }
+view steps { include *
+  layout { wrap 5 } }                     // a long chain or a wide fan-out, folded
 ```
 
 - `rows` is the workhorse: one bracket group per horizontal band, listed top to
@@ -432,6 +434,8 @@ view detail {
 | A full-detail view came out tall — want it wide | Add `layout { rows … }` banding the expanded systems side by side; calls between them route through the gutters and land on the cards |
 | An expanded system's insides are in the wrong order or tier | Give the system its own `layout { rows … }` in short names — it follows the system into every view. Or name the interior paths in the view's `rows` (`[app.api] [app.db app.cache]`), which replaces the system's block for that view |
 | A pipeline inside a system should read left to right while the view flows down | `layout { direction right }` inside that system — its interior becomes a row wherever it is opened; the view keeps its own direction |
+| A long chain renders as a tall strip, or a wide fan-out runs off the page | `layout { wrap 5 }` — folds one chain into a serpentine, or one source's fan-out into bands under it (the skipping edges become a bus). Two shapes only; anything else warns and names the `rows` line to write instead. Never beside `rows`/`cols` |
+| "`wrap 5` has no effect — this view is not a single chain or a single fan-out (…)" warning | `wrap` folds exactly one chain (a → b → c …) or one source fanning out to leaves. Write the bands by hand: `rows [a b] [c d]` |
 | "`a` and `b` are asked to share a row inside `s`, but the edge between them cannot be routed there" warning | Same-rank edges route between systems, not inside one. Put `b` in the row below `a`, or collapse `s` in this view |
 | "hint conflict: `a` → `b` runs upward inside `s`" error | The system's bands contradict its own arrows, same rule as the view's `rows`: put `b` in a row below `a`, or drop one of them from that block |
 | "`expand *` already opens every container — the explicit `expand` lines are redundant" warning | Drop the explicit `expand x` lines; the star covers them |

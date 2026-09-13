@@ -262,6 +262,8 @@ describe("SKILL.md — diagnostic coverage", () => {
     "a container's layout block only arranges its own members",
     "is inside", ", not a direct member of", "already has a `layout` block",
     "appears twice in this block — one",
+    // `wrap` (2026-09): the fix lines write the alternative out in full
+    "both assign bands in this view", "the band width must be a whole number of at least 2",
     // The expand family (flexibility sweep, 2026-08): each fix writes the
     // corrected view out in full — the `scope`+`expand` pair to split off, the
     // `detail` to use instead, the line to drop — so a cookbook row would only

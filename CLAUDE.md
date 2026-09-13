@@ -235,6 +235,17 @@ reaching a nested directed frame's wall runs through the enclosing frame's title
 by geometry (widening the padding only moves the letter it crosses), so a frame title a
 final wire crosses is flagged `titleCrossed` and drawn last on a canvas halo — the
 zone-chip rule, and it fixed three shipped views that already had a wire through a title.
+**`wrap N`** (2026-09) is the one aspect-ratio knob: a Tier-0 statement that folds a
+single chain into a serpentine or a single-source fan-out into bands under its
+source, as synthesized `rows` (so it is exclusive with `rows`/`cols`, and every
+other graph shape warns with the hand-written line to use). The fan's band-skipping
+edges are hidden from ELK exactly as coplanar edges are — the engine's own
+co-ranking trick — and drawn afterwards as a bus (spine, trunks, drops) by the
+router, which is why a hand-written `rows` fold cannot be fixed by routing alone:
+ELK's long-edge dummies push the second band outward and no option moves them.
+`docs/notes/wrap.md` records the measured negatives (hub-in-the-middle, SIMPLE
+placement on chains, left-to-right with a return wire). Fan views alone use SIMPLE
+node placement and a FIXED_ORDER source face with a reserved spine slot.
 v1.1's DSL is done: zones, flows, tags, channels, cols, align, legend/titleblock,
 plus `only`/`detail` (below) and `badge:` — a vendor mark composited onto a leaf's
 icon plate at render time (SPEC §nodes, DESIGN §3). It exists because vendors like

@@ -282,8 +282,12 @@ export function checkLayout(p: Positioned, ctx: Ctx = {}): string[] {
   // into one entry port is exactly what the feature does, so a trunk target is
   // exempt rather than a false positive.
   const seen = new Map<string, string>();
+  const busSources = new Set(p.edges.filter((e) => e.via === "bus").map((e) => e.from));
   for (const pt of p.ports) {
-    if (ctx.channelTargets?.has(pt.node)) continue;
+    // a folded fan-out's source shares one port with every bus edge, as a
+    // channel target shares one with every trunk member — and the layout
+    // says so itself (`via: "bus"`), so no caller has to know
+    if (ctx.channelTargets?.has(pt.node) || busSources.has(pt.node)) continue;
     const key = `${pt.node}|${pt.side}|${pt.x},${pt.y}`;
     const prev = seen.get(key);
     if (prev) bad.push(`ports for ${prev} and ${pt.edge} stack at ${pt.node} ${pt.side} (${pt.x},${pt.y})`);

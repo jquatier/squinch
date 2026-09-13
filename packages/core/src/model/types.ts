@@ -150,6 +150,10 @@ export interface SView {
     density?: "compact" | "comfortable" | "spacious";
     lines?: "orthogonal" | "curved" | "straight";
     rows?: string[][]; // resolved paths — horizontal bands, top to bottom
+    /** `wrap N` — fold the view's chain or fan-out into bands of N nodes.
+     *  Synthesized into ranks at layout time (it needs the *view's* graph,
+     *  which the model does not have); a graph that is neither shape warns. */
+    wrap?: { n: number; loc: Loc };
     /** vertical bands, left to right: members share an axis exactly */
     cols?: string[][];
     place: { node: string; relpos: RelPos; target: string; loc: Loc }[];

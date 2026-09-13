@@ -610,8 +610,8 @@ export function buildProject(input: ProjectFile[]): BuildResult {
    *  block used to be read as `[0]` and silently dropped. */
   const secondStatement = (ctx: Ctx, at: SyntaxNode, type: string) => {
     const word = ctx.text(at).split(/\s/)[0];
-    error(ctx, at, `\`${word}\` appears twice in this block — one \`${word}\` line ${type === "DirectionStmt" ? "sets the direction" : "assigns every band"}`,
-      type === "DirectionStmt" ? "keep one" : "merge the bands into one line");
+    error(ctx, at, `\`${word}\` appears twice in this block — one \`${word}\` line ${type === "DirectionStmt" ? "sets the direction" : type === "WrapStmt" ? "sets the band width" : "assigns every band"}`,
+      type === "RowsStmt" || type === "ColsStmt" ? "merge the bands into one line" : "keep one");
   };
   const kindOf = (path: string) => model.containers.get(path)?.kind ?? "system";
   /** The band-vs-`place` agreement rules (SPEC §6: contradictions are errors,
@@ -1249,7 +1249,7 @@ export function buildProject(input: ProjectFile[]): BuildResult {
     }
 
     for (const lb of body.getChildren("LayoutBlock")) {
-      for (const t of ["DirectionStmt", "RowsStmt", "ColsStmt"])
+      for (const t of ["DirectionStmt", "RowsStmt", "ColsStmt", "WrapStmt"])
         for (const extra of lb.getChildren(t).slice(1)) secondStatement(ctx, extra, t);
       const dir = lb.getChildren("DirectionStmt")[0];
       if (dir) view.layout.direction = ctx.text(dir.lastChild!) as "down" | "right";
@@ -1260,6 +1260,15 @@ export function buildProject(input: ProjectFile[]): BuildResult {
         if (val === "compact" || val === "comfortable" || val === "spacious")
           view.layout.density = val;
         else error(ctx, den, `unknown density \`${val}\``, "use compact | comfortable | spacious");
+      }
+      const wrapStmt = lb.getChildren("WrapStmt")[0];
+      const wrapNum = wrapStmt?.getChild("Number");
+      if (wrapNum) {
+        const n = Number(ctx.text(wrapNum));
+        if (!Number.isInteger(n) || n < 2)
+          error(ctx, wrapStmt, `\`wrap ${ctx.text(wrapNum)}\` — the band width must be a whole number of at least 2`,
+            "wrap 5 puts up to five nodes in each band");
+        else view.layout.wrap = { n, loc: ctx.loc(wrapStmt) };
       }
       const lin = lb.getChildren("LinesStmt")[0];
       const linIdent = lin?.getChild("Ident");
@@ -1365,6 +1374,15 @@ export function buildProject(input: ProjectFile[]): BuildResult {
       }
     }
 
+    // `wrap` *is* a rows statement, written by the engine; two rank
+    // assignments for one view is the same contradiction as two `rows` lines.
+    if (view.layout.wrap && (view.layout.rows || view.layout.cols))
+      diagnostics.push({
+        severity: "error",
+        message: `\`wrap ${view.layout.wrap.n}\` and \`${view.layout.rows ? "rows" : "cols"}\` both assign bands in this view`,
+        fix: "keep one: `wrap` folds the chain or fan-out for you; `rows`/`cols` spell the bands by hand",
+        loc: view.layout.wrap.loc, file: ctx.name,
+      });
     hintAgreement(view.layout, ctx);
     if (model.views.some((other) => other.name === view.name))
       error(ctx, view.loc, `duplicate view \`${view.name}\``,

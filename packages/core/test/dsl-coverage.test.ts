@@ -554,6 +554,12 @@ view v { include *
     expect(above.ops).toBeLessThan(above.zone);
   });
 
+  it("wrap: each band width folds a chain differently, and none at all is distinct", async () => {
+    const chain = (view: string) =>
+      `a = box "A"; b = box "B"; c = box "C"; d = box "D"; e = box "E"; f = box "F"\na -> b; b -> c; c -> d; d -> e; e -> f\nview v { include *\n ${view} }`;
+    await allDistinct("wrap", { none: chain(""), two: chain("layout { wrap 2 }"), three: chain("layout { wrap 3 }") }, "v");
+  });
+
   it("direction: the view knob and a container's own both render distinctly", async () => {
     const chain = (view: string, block = "") =>
       `system s "S" {\n a = box "A"; b = box "B"; c = box "C"\n a -> b; b -> c\n ${block}\n}\ng = box "G"\ng -> s.a\nview v { expand s\n ${view} }`;

@@ -1,0 +1,69 @@
+// `wrap N` is the one aspect-ratio knob: it folds the two shapes that have no
+// control of their own. A single chain becomes a serpentine — bands alternate
+// direction, so the hop between them is one short vertical and a short last
+// band right-aligns under its column-mates. A single source fanning out folds
+// its targets into bands under it, and the band-skipping edges are drawn as
+// one bus: a spine down the first band's middle gap, a trunk per band, a drop
+// into each target. Anything else warns and names the `rows` line to write.
+pack aws
+
+system etl "Nightly ETL" {
+  s1 = aws/lambda "Extract"
+  s2 = aws/lambda "Validate"
+  s3 = aws/lambda "Dedupe"
+  s4 = aws/lambda "Normalize"
+  s5 = aws/lambda "Enrich"
+  s6 = aws/lambda "Score"
+  s7 = aws/lambda "Aggregate"
+  s8 = aws/lambda "Partition"
+  s9 = aws/lambda "Compress"
+  s10 = aws/lambda "Encrypt"
+  s11 = aws/lambda "Upload"
+  s12 = aws/lambda "Catalog"
+  s13 = aws/lambda "Verify"
+  s14 = aws/lambda "Notify"
+  s15 = aws/lambda "Archive"
+  s1 -> s2
+  s2 -> s3
+  s3 -> s4
+  s4 -> s5
+  s5 -> s6
+  s6 -> s7
+  s7 -> s8
+  s8 -> s9
+  s9 -> s10
+  s10 -> s11
+  s11 -> s12
+  s12 -> s13
+  s13 -> s14
+  s14 -> s15
+}
+
+system fleet "Render Fleet" {
+  gw = aws/api-gateway "Dispatcher"
+  w1 = aws/ec2 "Worker 1"
+  w2 = aws/ec2 "Worker 2"
+  w3 = aws/ec2 "Worker 3"
+  w4 = aws/ec2 "Worker 4"
+  w5 = aws/ec2 "Worker 5"
+  w6 = aws/ec2 "Worker 6"
+  w7 = aws/ec2 "Worker 7"
+  w8 = aws/ec2 "Worker 8"
+  w9 = aws/ec2 "Worker 9"
+  w10 = aws/ec2 "Worker 10"
+  w11 = aws/ec2 "Worker 11"
+  w12 = aws/ec2 "Worker 12"
+  gw -> w1, w2, w3, w4, w5, w6, w7, w8, w9, w10, w11, w12
+}
+
+view chain {
+  title "Fifteen steps, five to a band"
+  scope etl
+  layout { wrap 5 }
+}
+
+view fan {
+  title "Twelve workers, six to a band"
+  scope fleet
+  layout { wrap 6 }
+}
