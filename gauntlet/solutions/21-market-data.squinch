@@ -1,62 +1,34 @@
-pack aws
-pack logos
+// Market data flow architecture
 
-// Actors
-trader = person "Trader"
+exchange = sys/radio-tower "Exchange" external
+clearing = sys/building-2 "Clearing House" external
 
-// External systems
-exchange = box "Exchange" external
-clearing = box "Clearing House" external
-
-// Core components
-feed_handler = aws/kinesis "Feed Handler" {
-  description: "Ingests price stream"
+feed_handler = sys/webhook "Feed Handler"
+normaliser = sys/cog "Normaliser"
+pricing_engine = sys/cpu "Pricing Engine"
+trading_ui = sys/app-window "Trading UI"
+batch_recon = sys/clock "Nightly Reconciliation" {
+  description: "Batch job"
 }
+risk_service = sys/shield-check "Risk Service"
 
-normalizer = aws/lambda "Normalizer" {
-  description: "Standardizes ticks"
-}
-
-pricing_engine = sys/server "Pricing Engine" {
-  description: "Real-time pricing"
-}
-
-trading_ui = sys/app-window "Trading UI" {
-  description: "Trader interface"
-}
-
-risk_service = sys/shield "Risk Service" {
-  description: "Health monitoring"
-}
-
-batch = aws/batch "Reconciliation Job" {
-  description: "Overnight fill reconciliation"
-}
-
-// Continuous price stream path
+// Continuous price stream
 exchange ~> feed_handler "price stream" { animate: packets }
-feed_handler ~> normalizer "raw ticks" { animate: fast }
-normalizer ~> pricing_engine "normalized ticks" { animate: fast }
+feed_handler ~> normaliser "raw ticks"
+normaliser ~> pricing_engine "normalised ticks"
 pricing_engine ~> trading_ui "price updates" { animate: packets }
 
-// Trader interaction
-trader -> trading_ui "views prices"
-
 // Nightly batch reconciliation
-batch -> clearing "fetch fills" { animate: comet }
+batch_recon -> clearing "reconcile fills" { color: amber }
 
-// Risk service polling
+// Health poll
 risk_service -> pricing_engine "health check" { animate: pulse }
 
 view landscape {
-  title "Market Data Pipeline"
+  title "Market Data Architecture"
   layout {
-    direction down
-    rows [exchange] [feed_handler, normalizer] [pricing_engine, risk_service] [trading_ui, batch] [clearing]
-    place risk_service right-of pricing_engine
-    place batch right-of trading_ui
-  }
-  titleblock {
-    version: "2026-08"
+    rows [exchange] [feed_handler] [normaliser] [pricing_engine trading_ui risk_service]
+    place batch_recon left-of pricing_engine
+    place clearing left-of batch_recon
   }
 }

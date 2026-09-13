@@ -1,5 +1,6 @@
-// Wide ingestion pipeline — six collectors feeding one normaliser
+// Ingestion estate - wide layout for presentation
 
+// Six collectors feed one normaliser
 c1 = sys/server "Collector 1"
 c2 = sys/server "Collector 2"
 c3 = sys/server "Collector 3"
@@ -8,26 +9,30 @@ c5 = sys/server "Collector 5"
 c6 = sys/server "Collector 6"
 
 normaliser = sys/workflow "Normaliser"
-warehouse  = sys/database "Warehouse" datastore
-search     = sys/search "Search Index" datastore
-alerts     = sys/siren "Alerting"
 
-c1 ~> normaliser
-c2 ~> normaliser
-c3 ~> normaliser
-c4 ~> normaliser
-c5 ~> normaliser
-c6 ~> normaliser
+warehouse = sys/database "Warehouse" datastore
+search    = sys/search   "Search Index" datastore
+alerting  = sys/siren    "Alerting"
 
-normaliser ~> warehouse
-normaliser ~> search
-normaliser ~> alerts
+// All collectors feed normaliser
+c1 -> normaliser
+c2 -> normaliser
+c3 -> normaliser
+c4 -> normaliser
+c5 -> normaliser
+c6 -> normaliser
 
-view ingestion {
-  title "Ingestion Pipeline"
+// Normaliser fans out to three targets
+normaliser -> warehouse
+normaliser -> search
+normaliser -> alerting
+
+view main {
+  title "Ingestion Estate"
   layout {
     direction right
     density compact
-    rows [c1 c2 c3 c4 c5 c6] [normaliser] [warehouse search alerts]
+    rows [c1 c2 c3 c4 c5 c6] [normaliser] [warehouse alerting] [search]
+    cols [warehouse search]
   }
 }

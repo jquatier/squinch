@@ -1,14 +1,18 @@
-// Three-tier web application architecture
 pack aws
 
 person user "User"
 
 alb   = aws/elastic-load-balancing "Application Load Balancer"
 app   = aws/fargate                "Web Service"
-db    = aws/aurora                 "Database" datastore
 cache = aws/elasticache            "Cache" datastore
+db    = aws/aurora                 "Database" datastore
 
 user -> alb "requests"
 alb  -> app
-app  -> db   "queries"
-app  -> cache "reads/writes"
+app  -> cache
+app  -> db
+
+view default {
+  title "Three-Tier Web Application"
+  include *
+}

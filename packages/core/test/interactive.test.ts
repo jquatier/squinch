@@ -71,6 +71,22 @@ describe("interactive HTML export", () => {
     expect(r.manifest.renders).toBe(5 * 2 + 2 * 2);
   });
 
+  it("exports a flat project — no view, no container — as its implicit default view", async () => {
+    // Round 22: nine cold agents checked a flat model clean and had this export
+    // refuse it. The SVG path renders such a file through an implicit view;
+    // so does this, under the CLI's `default` label.
+    const { exportHTML } = await import("../src/render/html.js");
+    const r = await exportHTML([{ name: "flat.squinch", src: `a = box "A"\nb = box "B"\na -> b\n` }]);
+    expect(r.diagnostics.filter((d) => d.severity === "error")).toEqual([]);
+    expect(r.ok).toBe(true);
+    expect(r.manifest.views).toEqual(["default"]);
+    expect(r.manifest.renders).toBe(2); // one view, both palettes
+    // `--views declared` on the same file still has nothing, and says how to get the implicit one
+    const none = await exportHTML([{ name: "flat.squinch", src: `a = box "A"\nb = box "B"\na -> b\n` }], { views: "declared" });
+    expect(none.ok).toBe(false);
+    expect(none.diagnostics[0].fix).toContain("--views declared");
+  });
+
   it("bakes one frame per hop, and can be told not to", async () => {
     // `flow.steps` counts hops that render *at this altitude*, which is exactly
     // what a presenter can walk to
@@ -226,8 +242,10 @@ describe("interactive HTML export", () => {
     expect(declared.html!.length).toBeLessThan(all.html!.length);
   });
 
-  it("says so when there is nothing to export", async () => {
-    const r = await exportHTML([{ name: "x.squinch", src: `a = box "A"\n` }]);
+  it("says so when there is nothing to export — only under `--views declared` now", async () => {
+    // a flat file exports through its implicit view (above); asking for the
+    // declared views alone is the one way to have nothing
+    const r = await exportHTML([{ name: "x.squinch", src: `a = box "A"\n` }], { views: "declared" });
     expect(r.ok).toBe(false);
     expect(r.diagnostics.some((d) => d.message.includes("declares no views"))).toBe(true);
   });

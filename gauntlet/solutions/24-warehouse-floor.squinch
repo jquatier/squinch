@@ -1,66 +1,50 @@
-// Warehouse automation system - on-premises physical infrastructure
+// Warehouse automation system
 pack logos
 
-supervisor = person "Shift Supervisor"
+person supervisor "Shift Supervisor"
 
-system warehouse "Warehouse Floor" {
-  description: "Physical automation on-site"
-  glyph: sys/warehouse
+// Packing benches with scanners
+scanner1 = sys/smartphone "Scanner 1"
+scanner2 = sys/smartphone "Scanner 2"
+scanner3 = sys/smartphone "Scanner 3"
 
-  bench1 = sys/smartphone "Scanner Bench 1"
-  bench2 = sys/smartphone "Scanner Bench 2"
-  bench3 = sys/smartphone "Scanner Bench 3"
-
-  controller = sys/server "Local Controller" {
-    description: "Drives sorter and printer"
-  }
-
-  sorter = sys/workflow "Conveyor Sorter" {
-    description: "Routes packages"
-  }
-
-  printer = sys/printer "Label Printer"
-
-  board = sys/monitor "Status Board" {
-    description: "Live floor status"
-  }
-
-  bench1 -> controller "scanned items"
-  bench2 -> controller "scanned items"
-  bench3 -> controller "scanned items"
-
-  controller -> sorter "routing instructions"
-  controller -> printer "print labels"
-  controller -> board "status updates"
+// Local controller
+controller = sys/server "Local Controller" {
+  description: "Automation controller"
 }
 
-erp = box "ERP System" external {
+// Physical automation equipment
+sorter  = sys/workflow "Conveyor Sorter"
+printer = sys/printer "Label Printer"
+
+// Status display
+board = sys/monitor "Status Board"
+
+// External ERP system
+erp = sys/database "ERP System" external {
   description: "Enterprise resource planning"
 }
 
-supervisor -> warehouse.board "monitors floor"
-warehouse.controller ~> erp "sync once per minute"
+// Data flows from scanners to controller
+scanner1 -> controller "scan data"
+scanner2 -> controller "scan data"
+scanner3 -> controller "scan data"
 
-view landscape {
-  title "Warehouse Automation"
-  include *
-  show descriptions
-  legend auto
-  titleblock {
-    version: "2026-08"
-  }
-  layout {
-    direction down
-    density comfortable
-    rows [supervisor] [warehouse.board] [warehouse.controller] [erp]
-  }
-}
+// Controller drives equipment
+controller -> sorter "routing"
+controller -> printer "print job"
+
+// Supervisor monitors status
+controller -> board "status updates"
+supervisor -> board "monitors"
+
+// Periodic sync to ERP (async - it happens in the background on a schedule)
+controller ~> erp "sync (1/min)"
 
 view warehouse {
-  show descriptions
+  title "Warehouse Floor Automation"
   layout {
-    direction down
-    density comfortable
-    rows [bench1 bench2 bench3] [controller] [sorter printer] [board]
+    rows [scanner1 scanner2 scanner3] [controller] [sorter printer board] [erp]
+    place supervisor left-of board
   }
 }

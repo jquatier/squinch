@@ -923,6 +923,35 @@ export function buildProject(input: ProjectFile[]): BuildResult {
     );
   }
 
+  // ── a container's block against its own edges (SPEC §3) ──────────────────
+  // The block's bands are a claim about the interior's edge direction, and the
+  // claim is checkable here, with every edge resolved — not only when some
+  // declared view happens to open the container. Round 22 found the gap: a
+  // block whose rows ran against its own edges passed `check` (the one
+  // declared view kept the container collapsed, so the block was dormant) and
+  // then failed the HTML export through the container's auto view, where the
+  // block is the root layout. Same words as the layout-time check, so the
+  // cookbook row that explains one explains both.
+  for (const c of model.containers.values()) {
+    const rows = c.layout?.rows;
+    if (!rows) continue;
+    const band = new Map<string, number>();
+    rows.forEach((row, i) => row.forEach((m) => band.set(m, i)));
+    const memberOf = (p: string) =>
+      p.startsWith(`${c.path}.`) ? `${c.path}.${p.slice(c.path.length + 1).split(".")[0]}` : undefined;
+    for (const e of model.edges) {
+      const a = memberOf(e.from), b = memberOf(e.to);
+      if (!a || !b || a === b || !band.has(a) || !band.has(b)) continue;
+      if (band.get(a)! > band.get(b)!)
+        diagnostics.push({
+          severity: "error",
+          message: `hint conflict: \`${e.from}\` → \`${e.to}\` runs upward inside \`${c.path}\` — row ${band.get(a)} to row ${band.get(b)}`,
+          fix: `put \`${e.to}\` in a row below \`${e.from}\`, or drop one of them from \`rows\``,
+          loc: c.layout!.loc, file: c.file,
+        });
+    }
+  }
+
   // ── phase C: views ────────────────────────────────────────────────────────
   // flows: chains resolve against the finished namespace AND must walk
   // existing edges — a flow annotates structure, it never creates it

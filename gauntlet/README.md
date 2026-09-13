@@ -65,29 +65,48 @@ nothing.
 
 ## Latest round
 
-**Round 21 — 29/29 on the deep scorer; 22 of 29 clean on the first `check`**
-(2026-08-08). Run to certify the soundness fixes from the DSL evaluation:
-duplicate-view and zone/node-collision errors, tags collecting from `tags:`
-only, positional tags on top-level `person`, and targeted diagnostics for
-fan-in, Allman braces and duplicated attribute keys.
+**Round 22 — 29/29 on the deep scorer; 17 of 29 never saw a diagnostic, 9 of
+29 made a single `check` call** (2026-09-13, Sonnet). Run to validate the
+layout v1.2 work before its release: a container's own `layout { }` block,
+hints reaching inside expanded containers, per-container `direction`, and
+`wrap`.
 
-**None of the seven new diagnostics fired, and that is the honest headline.**
-These corners came from an eighteen-probe evaluation of the language, not from
-gauntlet transcripts — duplicate views, colliding zone ids and fan-in are
-mistakes these twenty-nine prompts don't naturally produce. So the round
-certifies no regression (22/29 sits at the bottom of the 22-25 band, all
-second calls on long-known classes, every one recovered) rather than
-validating the fixes. Validation, if it comes, arrives the day some future
-agent writes `x, y -> z` and gets one clear error instead of a bare syntax
-error plus `unknown id \`x, y\`` debris.
+**Seven of twenty-nine cold agents put a `layout { rows … }` inside a system
+unprompted, and every one of those seven rendered clean.** That was the bet the
+container block was built on — it had been "the most common authoring mistake"
+for a year — and it paid on the first round it was legal. One more agent named
+interior paths in the view's `rows` instead, which now works too. Nobody
+reached for `wrap` or a container `direction`: the prompts do not ask for the
+shapes they serve, and 26-wide-ingestion, the one prompt where `wrap` would
+have helped, got a `cols` warning instead — the cookbook row exists, but agents
+open the cookbook on a symptom, and a wide diagram is not a diagnostic.
 
-21-market-data failed the deep scorer on its stylistic expectation (one
-distinct `animate:` value where the prompt asks for contrast) despite a clean
-check, and was re-run per protocol; the second authoring passed. That
-expectation has now caught three rounds' agents — it is doing its job of
-demanding cadence-as-meaning rather than decoration, and the prompt wording
-stays as the test of whether agents read "make it obvious at a glance" as a
-motion requirement.
+**The two findings, both fixed in this commit:**
 
-The corpus in `solutions/` is this round's twenty-nine answers (21
-re-authored), cold-authored and deep-scored.
+- *A container block that contradicts its own edges passed `check`.* 15's
+  agent wrote bands running against the interior's arrows; the one declared
+  view kept the container collapsed, so the block was dormant and `check` said
+  OK — then the HTML export laid out the container's auto view, where the
+  block is the root layout, and failed on the conflict. The claim a block makes
+  is about the interior's edges, so it is now checked at build time, once,
+  with every edge resolved, wherever the block sits.
+- *The interactive export refused a flat model.* Nine agents wrote top-level
+  components with no `view` and no container — a model the SVG path renders
+  through an implicit view — checked it clean, then hit "nothing to export"
+  from the `.html` handover the skill now asks for by default, with a fix that
+  named an option (`views: "all"`) that could not help since there was nothing
+  to include. 10's agent tried it anyway and failed again. The export now
+  bundles the implicit view under the CLI's `default` label, as the SVG path
+  always has.
+
+The single-call count (9, against 22 in round 21) is the export finding
+wearing a different hat: those nine flat models each cost a second `check`
+after the fix, and most of the rest were agents re-checking after the render.
+The class that used to dominate — rank conflicts on feedback edges — is down
+to four, and `unknown icon` (four, all `sys/barcode` in one file) and `expand`
+naming something that is not a direct child (three) make up the remainder. 13's
+agent wrote `channel` inside a system's block, met the new "describes a view,
+not a container's interior" error, and moved it in one edit.
+
+The corpus in `solutions/` is this round's twenty-nine answers, cold-authored
+and deep-scored.

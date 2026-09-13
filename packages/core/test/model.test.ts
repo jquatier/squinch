@@ -228,6 +228,21 @@ describe("grammar + model builder", () => {
     expect(named.model.nodes.has("s.layout")).toBe(true);
   });
 
+  it("a container's block that runs against its own edges is a check error, whether or not a view opens it", () => {
+    // Round 22: the block's rows contradicted the container's own edges, the
+    // one declared view kept the container collapsed (block dormant), check
+    // passed, and the HTML export failed through the auto view. The claim is
+    // about the interior's edges, so it is checked here, once, with every
+    // edge resolved.
+    const src = `system platform "P" {\n api = box "API"\n db = box "DB"\n monitor = box "Mon"\n api -> db\n monitor -> api\n layout { rows [api] [db] [monitor] }\n}\nuser = box "U"\nuser -> platform.api\nview main { include * }\n`;
+    const r = buildModel(src);
+    const errs = r.diagnostics.filter((d) => d.severity === "error");
+    expect(errs.map((e) => e.message)).toContainEqual(expect.stringContaining("`platform.monitor` → `platform.api` runs upward inside `platform` — row 2 to row 0"));
+    expect(errs[0].loc.line).toBe(7);
+    // the same block with the bands the edges allow is clean
+    expect(buildModel(src.replace("rows [api] [db] [monitor]", "rows [monitor] [api] [db]")).diagnostics.filter((d) => d.severity === "error")).toEqual([]);
+  });
+
   it("a second rows, cols or direction line in a view's layout block is an error, not a silent drop", () => {
     const r = buildModel(`a = box "A"\nb = box "B"\na -> b\nview v { include *\n layout {\n  rows [a] [b]\n  rows [b] [a]\n  direction down\n  direction right\n } }\n`);
     const msgs = r.diagnostics.filter((d) => d.severity === "error").map((d) => `${d.loc.line}: ${d.message}`);

@@ -1,82 +1,39 @@
 // Databricks Lakehouse Architecture
 pack logos
 
-// External data source
-kafka = logos/kafka "Kafka" external
+// External systems
+kafka = logos/kafka "Kafka Order Events"
 
-// Databricks components
-system lakehouse "Databricks Lakehouse" {
-  description: "Unified analytics platform"
-
-  // Ingestion layer
-  loader = sys/workflow "Auto Loader" {
-    description: "Stream ingestion"
-    badge: logos/databricks
-  }
-
-  // Bronze layer - raw data
-  bronze = sys/table "Bronze Orders" datastore {
-    description: "Raw Delta table"
-    badge: logos/databricks
-  }
-
-  // Data processing
-  job = sys/workflow "Nightly Merge Job" {
-    description: "ETL pipeline"
-    badge: logos/databricks
-  }
-
-  // Silver layer - cleansed data
-  silver = sys/table "Silver Customers" datastore {
-    description: "Curated Delta table"
-    badge: logos/databricks
-  }
-
-  // Governance
-  catalog = sys/catalog "Unity Catalog" {
-    description: "Data governance"
-    badge: logos/databricks
-  }
-
-  // Analytics layer
-  warehouse = sys/database "SQL Warehouse" datastore {
-    description: "Query engine"
-    badge: logos/databricks
-  }
-
-  // AI/ML components
-  vector = sys/waypoints "Vector Search Index" {
-    description: "Embeddings index"
-    badge: logos/databricks
-  }
-
-  serving = sys/model "Model Serving" {
-    description: "ML inference endpoint"
-    badge: logos/databricks
-  }
-
-  // Edges - data flow
-  loader ~> bronze "raw data"
-  bronze -> job "read"
-  job -> silver "merge"
-  silver -> catalog "governed by"
-  silver -> warehouse "query"
-  silver -> vector "index"
-  vector -> serving "embeddings"
+// Databricks components (using sys/* with badges per SKILL.md guidance)
+loader = sys/workflow "Auto Loader" { badge: logos/databricks }
+bronze = sys/table "Bronze Delta Table" datastore { badge: logos/databricks }
+job = sys/workflow "Merge Job" {
+  badge: logos/databricks
+  description: "Nightly merge"
 }
+silver = sys/table "Silver Customers Table" datastore { badge: logos/databricks }
+catalog = sys/catalog "Unity Catalog" { badge: logos/databricks }
+warehouse = sys/database "SQL Warehouse" datastore { badge: logos/databricks }
+vector = sys/waypoints "Vector Search Index" { badge: logos/databricks }
+model = sys/model "Model Serving Endpoint" { badge: logos/databricks }
 
-// External connections
-kafka ~> lakehouse.loader "order events"
-
-// Actors
+// Analysts
 analyst = person "Analyst"
-analyst -> lakehouse.warehouse "SQL queries"
 
-view landscape {
-  title "Lakehouse Architecture"
+// Edges - Kafka to bronze is streaming (async), rest are sync/data flows
+kafka ~> loader "stream events"
+loader ~> bronze "write raw"
+bronze -> job "read"
+job -> silver "merge"
+silver -> catalog "governed by"
+catalog -> warehouse
+analyst -> warehouse "queries"
+silver -> vector "indexes"
+vector -> model "feeds"
+
+view main {
+  title "Databricks Lakehouse Architecture"
   layout {
-    rows [kafka] [lakehouse.loader] [lakehouse.bronze] [lakehouse.job] [lakehouse.silver lakehouse.catalog] [lakehouse.warehouse lakehouse.vector] [lakehouse.serving]
-    place lakehouse.catalog right-of lakehouse.silver
-    place lakehouse.vector right-of lakehouse.warehouse
+    rows [kafka] [loader] [bronze] [job] [silver catalog] [warehouse analyst vector] [model]
   }
 }

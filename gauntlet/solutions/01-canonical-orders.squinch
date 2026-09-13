@@ -1,17 +1,23 @@
 pack aws
 
+person user "User"
+
 system api "API Service" {
   gw     = aws/api-gateway "API Gateway"
   create = aws/lambda      "Create Handler"
   get    = aws/lambda      "Get Handler"
   search = aws/lambda      "Search Handler"
-  sync   = aws/lambda      "Sync Handler"
+  sync   = aws/lambda      "Index Sync" {
+    description: "Updates search index"
+  }
 
-  db     = aws/dynamodb    "DynamoDB" datastore
-  files  = aws/s3          "S3" datastore
-  idx    = aws/opensearch  "OpenSearch" datastore
+  db     = aws/dynamodb    "Orders Table" datastore
+  files  = aws/s3          "File Storage" datastore
+  idx    = aws/opensearch  "Search Index" datastore
 
-  gw -> create, get, search
+  gw -> create
+  gw -> get
+  gw -> search
 
   create -> db
   create -> files
@@ -21,10 +27,10 @@ system api "API Service" {
 
   db ~> sync "DynamoDB stream"
   sync -> idx
-}
 
-view api {
   layout {
     rows [gw] [create get search] [db files sync] [idx]
   }
 }
+
+user -> api.gw "API requests"

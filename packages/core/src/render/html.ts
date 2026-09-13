@@ -89,15 +89,25 @@ export async function exportHTML(
   if (!built.ok) return { diagnostics: built.diagnostics, ok: false, manifest: EMPTY };
 
   const all = built.model.views;
-  const list = (opts.views === "declared" ? all.filter((v) => !v.auto) : all).map(
-    (v): NavView => ({ name: v.name, scope: v.scope, title: v.title, auto: v.auto }),
-  );
+  // A flat project — top-level components, no `view`, no container to earn an
+  // auto view — has no views at all, and the SVG path renders it anyway
+  // through the implicit "everything" view (api.ts). This export does the
+  // same, under the `default` label the CLI already uses for that file. Round
+  // 22: nine of twenty-nine cold agents wrote exactly such a model, checked it
+  // clean, and had the export refuse it — with a fix that named an option
+  // (`views: "all"`) that could not help, since there was nothing to include.
+  const implicit = all.length === 0 && opts.views !== "declared";
+  const list: NavView[] = implicit
+    ? [{ name: "default", auto: true }]
+    : (opts.views === "declared" ? all.filter((v) => !v.auto) : all).map(
+        (v): NavView => ({ name: v.name, scope: v.scope, title: v.title, auto: v.auto }),
+      );
   if (!list.length)
     return {
       diagnostics: [...built.diagnostics, {
         severity: "error",
         message: "nothing to export — this project declares no views",
-        fix: "add a `view` block, or pass views: \"all\" to include the automatic ones",
+        fix: "add a `view` block, or drop `--views declared` to export the automatic ones",
         loc: { from: 0, to: 0, line: 1, col: 1 },
       }],
       ok: false,
@@ -144,7 +154,8 @@ export async function exportHTML(
   const diagnostics = [...built.diagnostics];
   const draw = async (view: string, th: string, flowStep?: number) => {
     const r = await renderProject(files, {
-      view, theme: th, embedFonts: false, collectDefs: defs,
+      // the implicit view has no name to ask for; renderProject builds it
+      ...(implicit ? {} : { view }), theme: th, embedFonts: false, collectDefs: defs,
       // the one theme-dependent def (`sq-hatch`) needs a distinct id per
       // palette, or a dark view would draw with the light texture
       defsScope: `-${th}`,

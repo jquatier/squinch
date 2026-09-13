@@ -1,39 +1,39 @@
 pack logos
-pack k8s
 
 person dev "Developer"
 
-system stack "Application Stack" {
+system platform "Application Platform" {
   frontend = logos/nextdotjs "Next.js Frontend"
-  api = logos/nestjs "NestJS API"
-  db = logos/postgres "PostgreSQL" datastore
-  cache = logos/redis "Redis Cache" datastore
-  events = logos/kafka "Kafka Events" datastore
-  monitor = logos/grafana "Grafana"
+  api      = logos/nestjs   "NestJS API"
+  cache    = logos/redis    "Redis Cache" datastore
+  db       = logos/postgres "PostgreSQL" datastore
+  events   = logos/kafka    "Kafka Events" datastore
+  monitor  = logos/grafana  "Grafana Monitoring"
 
-  frontend -> api
-  api -> db
-  api -> cache
-  api ~> events
-  monitor -> api
-  monitor -> db
-}
+  frontend -> api "API calls"
+  api -> cache "cache reads"
+  api -> db "queries"
+  api ~> events "publishes events"
+  monitor -> api "metrics"
+  monitor -> db "metrics"
+  monitor -> cache "metrics"
 
-github = logos/github "GitHub" external
-cluster = logos/kubernetes "Kubernetes" external
-
-dev -> github "push code"
-github ~> cluster "deploy"
-cluster -> stack.frontend
-cluster -> stack.api
-
-view landscape {
-  title "Tech Stack"
-  include *
-}
-
-view stack {
   layout {
     rows [frontend] [api monitor] [cache db events]
+  }
+}
+
+repo = logos/github     "GitHub Repository"
+cluster = logos/kubernetes "Kubernetes Cluster"
+
+dev -> repo "pushes code"
+repo ~> cluster "deploys"
+cluster -> platform "runs"
+
+view landscape {
+  title "Application Stack"
+  include *
+  layout {
+    rows [dev] [repo] [cluster] [platform]
   }
 }

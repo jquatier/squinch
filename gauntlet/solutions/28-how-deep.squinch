@@ -1,18 +1,17 @@
-// Order Platform - high-level view for new engineers
 pack aws
 
 person customer "Customer"
 
-system orders "Orders Service" {
-  description: "Order processing and lifecycle"
-  glyph: sys/code
+system orders "Order Service" {
+  description: "Handles checkout and order processing"
+  icon: aws/api-gateway
 
   api = aws/api-gateway "API Gateway"
-  create = aws/lambda "Create Handler"
-  get = aws/lambda "Get Handler"
-  update = aws/lambda "Update Handler"
+  create = aws/lambda "Create Order"
+  get = aws/lambda "Get Order"
+  update = aws/lambda "Update Order"
   db = aws/dynamodb "Orders Table" datastore
-  stream = aws/kinesis "Event Stream"
+  events = aws/eventbridge "Event Bus"
 
   api -> create
   api -> get
@@ -20,47 +19,50 @@ system orders "Orders Service" {
   create -> db
   get -> db
   update -> db
-  db ~> stream "order events"
+  create ~> events "order.created"
+  update ~> events "order.updated"
 }
 
 system inventory "Inventory Service" {
-  description: "Stock tracking"
-  glyph: sys/database
+  description: "Tracks product availability"
+  icon: aws/lambda
 
-  api = aws/api-gateway "API Gateway"
-  sync = aws/lambda "Stock Sync"
-  reserve = aws/lambda "Reserve Handler"
-  db = aws/dynamodb "Inventory Table" datastore
+  api = aws/api-gateway "API"
+  reserve = aws/lambda "Reserve Stock"
+  release = aws/lambda "Release Stock"
+  db = aws/dynamodb "Inventory" datastore
 
   api -> reserve
-  api -> sync
+  api -> release
   reserve -> db
-  sync -> db
+  release -> db
 }
 
-system notifications "Notifications Service" {
-  description: "Customer notifications"
-  glyph: sys/workflow
+system notifications "Notification Service" {
+  description: "Sends order updates to customers"
+  icon: aws/sns
 
-  processor = aws/lambda "Event Processor"
+  handler = aws/lambda "Event Handler"
   email = aws/sns "Email Topic"
   sms = aws/sns "SMS Topic"
 
-  processor -> email
-  processor -> sms
+  handler ~> email
+  handler ~> sms
 }
 
-customer -> orders.api "place order"
-orders.stream ~> inventory.api "stock updates"
-orders.stream ~> notifications.processor "order events"
-notifications.email ~> customer "order confirmation"
-notifications.sms ~> customer "status updates"
+customer -> orders.api "places order"
+orders.events ~> inventory.api "reserve stock"
+orders.events ~> notifications.handler "notify customer"
 
 view landscape {
-  title "Order Platform Overview"
+  title "Order Platform"
   include *
+  layout {
+    rows [customer] [orders] [inventory notifications]
+  }
 }
 
 view orders {
-  title "Orders Service - Internal Structure"
+  title "Order Service Detail"
+  scope orders
 }

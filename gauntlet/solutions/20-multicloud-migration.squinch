@@ -1,27 +1,29 @@
-// Multicloud migration diagram: on-premises to Azure
 pack azure
 pack logos
 
 // On-premises infrastructure
 pg_db = logos/postgres "PostgreSQL" datastore
-mq = logos/rabbitmq "RabbitMQ"
+rabbit = logos/rabbitmq "RabbitMQ"
 
 // Azure infrastructure
 aks = azure/aks "AKS Cluster"
 azure_sql = azure/sql "Azure SQL" datastore
+sync = box "Sync Job"
 
-// Sync job
-sync = sys/workflow "Nightly Sync"
-
-// Connections
+// Migration flow
 pg_db ~> sync "nightly copy"
 sync ~> azure_sql
 
-// Deployment boundaries
+// Deployment zones
 zone onprem "On-Premises" onprem {
-  contains pg_db, mq
+  contains pg_db, rabbit
 }
 
-zone azure_cloud "Azure" cloud {
-  contains aks, azure_sql
+zone cloud "Azure" cloud {
+  contains aks, azure_sql, sync
+}
+
+view default {
+  title "Multi-Cloud Migration"
+  include *
 }
