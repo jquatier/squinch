@@ -63,6 +63,14 @@ function sortChanges(changes: Change[]): Change[] {
   });
 }
 
+const interior = (c: SContainer) =>
+  JSON.stringify(
+    c.layout && {
+      rows: c.layout.rows, cols: c.layout.cols, direction: c.layout.direction,
+      place: c.layout.place.map((p) => ({ node: p.node, relpos: p.relpos, target: p.target })),
+    },
+  );
+
 export function diffModels(before: SModel, after: SModel): DiffResult {
   const changes: Change[] = [];
   const add = (c: Change) => changes.push(c);
@@ -95,6 +103,15 @@ export function diffModels(before: SModel, after: SModel): DiffResult {
       add({
         kind: "changed", weight: "cosmetic", subject: a.kind, id: path,
         detail: `${path} color`, before: b.color ?? "(default)", after: a.color ?? "(default)",
+      });
+    // A container's own layout block is a hint like a view's: it moves the
+    // picture, never what is in it — cosmetic, so `--fail-on structural` stays
+    // quiet when someone reorders a band. Loc-free for the same reason the
+    // view fingerprint is (below).
+    if (interior(b) !== interior(a))
+      add({
+        kind: "changed", weight: "cosmetic", subject: a.kind, id: path,
+        detail: `${path} layout`,
       });
   }
 

@@ -15,7 +15,8 @@
 1. **Everything expressible without coordinates.** All placement is relative (rows,
    columns, `right-of`, sides). There is no way to write `x: 340` — by design.
 2. **Structure and layout never mix.** The model reads clean; layout lives in `layout`
-   blocks inside views. Deleting every `layout` block always yields a valid render.
+   blocks — a container's block arranges its own interior, a view's block arranges the
+   view. Deleting every `layout` block always yields a valid render.
 3. **Forgiving surface, strict core.** Trailing commas; `//` and
    `#` comments; newline- or comma-separated lists. But unknown identifiers are errors
    (with did-you-mean suggestions) — silent typos make lying diagrams.
@@ -134,6 +135,44 @@ system shop "Order Service" {
 
 Ids resolve lexically: inside `shop`, write `sync` or `workers.sync`; outside, write
 `shop.workers.sync`.
+
+**A container's own layout.** A `layout { }` block inside the body arranges the
+container's *direct* interior, wherever that interior is opened — as an expanded frame
+in any view, and as the root of a view scoped to it (its auto view included):
+
+```squinch
+system checkout "Checkout" {
+  api = aws/api-gateway "Checkout API"
+  svc = aws/lambda "Order Service"
+  bus = aws/sqs "Order Events"
+  cache = aws/elasticache "Session Cache" datastore
+  db  = aws/dynamodb "Orders" datastore
+  api -> svc
+  svc ~> bus
+  svc -> cache
+  svc -> db
+
+  layout {
+    rows [api] [svc] [bus cache] [db]   // written from inside: short names
+  }
+}
+```
+
+It accepts `rows`, `cols`, `place` and `direction` (§6); the other layout statements
+describe a view and are refused with the view named as the fix. Members are the
+container's direct children — a leaf, or a child container ranked as one unit — so a
+deeper path is an error naming the child's own block, and an outside path is an error
+naming the view-level band to write instead. Two blocks in one container is an error.
+The block is dormant while the container is collapsed, and a member a view has filtered
+out drops from its band without comment.
+
+A view's own hints win, per container and all or nothing: when a view's
+`rows`/`cols`/`place` relate two or more of a container's members, they replace that
+container's block in that view; naming a single member only ranks the container from
+outside and leaves the block in charge within. A view scoped to the container replaces
+the block the moment it declares any `rows`, `cols`, `place` or `direction` of its own —
+the same rule that makes `view <path>` the customization of the auto view rather than an
+overlay on it. Bands from two blocks are never merged.
 
 A leaf node takes `badge:` — a second icon reference drawn small on the corner of
 its icon plate:
@@ -455,8 +494,9 @@ SVGs — click-to-zoom works in committed SVGs on GitHub with zero JavaScript.
 
 ## 6. Layout (the three tiers)
 
-All inside `view { layout { ... } }`. Everything optional; auto-layout (ELK, deterministic,
-declaration-order-stable) fills every gap.
+Inside a `layout { ... }` block — a view's, or a container's own (§3, which takes
+`rows`/`cols`/`place`/`direction` only). Everything optional; auto-layout (ELK,
+deterministic, declaration-order-stable) fills every gap.
 
 ### Tier 0 — view-level knobs
 
@@ -480,6 +520,14 @@ layout {
 
 - `rows`/`cols` pin nodes to ranks *and* order within the rank; unlisted nodes are
   auto-placed around them.
+- Hints reach inside expanded containers: `rows [gw] [app.api] [app.db app.cache]`
+  ranks and orders `app`'s members within its frame. The container's own `layout { }`
+  (§3) is the primary spelling for that — it follows the container into every view —
+  and view-level paths are the per-view override. Two members of one container asked to
+  share a row *with an edge between them* is a warning: same-rank edges route between
+  units, not inside a frame, so the engine layers them apart.
+- One `rows` (or `cols`, `direction`) line per block: a second is an error, never a
+  silent winner.
 - A full fixed grid needs no separate construct: `rows` and `cols` pin different
   axes and compose, and a cell is empty simply by nobody occupying it —
   `rows [a b] [c]` + `cols [a c] [b]` is a 2×2 with the bottom-right empty.
@@ -540,7 +588,10 @@ pack        = "pack" ident [ "from" string ] ;
 import      = "import" string "as" ident ;               (* v2, not built *)
 container   = ("system" | "container") ident [ label ] { kind | tag } "{"
                 { ident ":" value      (* card attrs: glyph, preview, owner, ... *)
-                | node | container | edge } "}" ;
+                | node | container | edge | interior } "}" ;
+interior    = "layout" "{" { "rows" rank { rank } | "cols" rank { rank }
+                           | "place" path relpos path
+                           | "direction" ("down"|"right") } "}" ;   (* §3 *)
 node        = ident "=" iconref [ label ] { kind | tag | attrs }
             | ("person") ident [ label ] ;
 iconref     = ident "/" ident | "box" ;
@@ -626,6 +677,15 @@ order-service.squinch:31:3   `place synch right-of db` references unknown id `sy
 
 order-service.squinch:44:3   `rows` lists `files` twice
   a node can hold only one rank position; remove one occurrence
+
+order-service.squinch:18:5   `lines` describes a view, not a container's interior
+  move it to the view's `layout { }`; inside `shop` only rows, cols and place apply
+
+order-service.squinch:19:11  `workers.sync` is inside `workers`, not a direct member of `shop`
+  arrange it in `workers`'s own layout block: `container workers { … layout { rows [sync] } }`
+
+order-service.squinch:21:5   `rows` appears twice in this block — one `rows` line assigns every band
+  merge the bands into one line
 ```
 
 Lint (non-fatal): duplicate edges, labels over ~40 chars, view filters that match

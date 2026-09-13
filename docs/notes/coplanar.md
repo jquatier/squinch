@@ -124,3 +124,22 @@ attaches to an edge — labels, notes, flow badges — the coplanar case needs i
 own answer, and it is the one most likely to be forgotten because most views
 never hit it. The pattern that has worked is to make the router *report the same
 shape* ELK does (`labelRect`) rather than to special-case it downstream.
+
+## Levers inside a compound (2026-09, measured against elkjs 0.12)
+
+Interior hints (`rows`/`cols`/`place` naming leaves inside an expanded frame, and a
+container's own `layout { }`) needed ELK to honour an order *inside* a compound under
+`hierarchyHandling: INCLUDE_CHILDREN`. What was tried, so it is not tried again:
+
+| Lever | Result |
+|---|---|
+| Child model order (the order `framedChildren` hands ELK) | **Not** the in-layer order inside a compound. Four permutations of a compound's children produced identical output; the row followed the feeding node's *port* order. `considerModelOrder`/`forceNodeModelOrder` are read per graph and never inherited into a child graph. |
+| `considerModelOrder` / `forceNodeModelOrder` set on the compound itself | **Crashes** ELK's model-order comparator on the border-port dummies (`Cannot read properties of undefined (reading 'a')`) — every variant, `PREFER_NODES` included; `PREFER_EDGES` survived a toy and crashed on anything with two layers. `crossingMinimization.strategy: NONE` throws `UnsupportedGraphException`. |
+| `crossingMinimization.semiInteractive: true` on the compound + `elk.position` on its children | **Works**: honoured for fans, disconnected leaves, two feeders, two layers at once, `direction right` (transpose the position axis) and nested compounds. One exception: a frame's *entry* layer (members fed only from outside it, via the border-port dummies) ignores positions and follows the compound's child model order instead — so the engine pulls both levers. |
+| Invisible scaffold edge between two interior leaves | A rank lower bound inside the compound, exactly as at the root; no side effects in the corpus. Carries the frame-interior spacer under the label scheme. |
+
+The engine engages these only for a frame that carries a hint relating two or more of
+its members (`frameOrder`), which is what keeps every unhinted render byte-identical —
+switching a frame to semi-interactive replaces ELK's interior order with declaration
+order, and that must never happen uninvited. Naming a single member is how you rank
+the whole frame from the root, and stays exactly that.

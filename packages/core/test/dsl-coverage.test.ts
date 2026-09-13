@@ -554,6 +554,31 @@ view v { include *
     expect(above.ops).toBeLessThan(above.zone);
   });
 
+  it("a container's layout block moves a member both ways", async () => {
+    // Same bar as the zone rank: a hint that only ever pushes one way is
+    // describing the default. ELK's own order for api's two targets is the
+    // premise, and the block must be able to invert it.
+    const src = (block: string) => `system app "App" {
+  api = box "API"; a = box "A"; b = box "B"
+  api -> a; api -> b
+  layout { ${block} }
+}
+view v { expand app }`;
+    const xs = async (block: string) => {
+      const built = buildProject([{ name: "t.squinch", src: src(block) }]);
+      expect(built.diagnostics.filter((d) => d.severity === "error"), block).toEqual([]);
+      const { positioned } = await layoutView(built.model, built.model.views.find((v) => v.name === "v")!, {
+        metrics: "inter" as const, scale: 1,
+      });
+      const x = (p: string) => positioned.nodes.find((n) => n.path === p)!.x;
+      return { a: x("app.a"), b: x("app.b") };
+    };
+    const ab = await xs("rows [api] [a b]");
+    expect(ab.a).toBeLessThan(ab.b);
+    const ba = await xs("rows [api] [b a]");
+    expect(ba.b).toBeLessThan(ba.a);
+  });
+
   it("still refuses an edge that runs up the bands, naming the zone to move", async () => {
     const built = buildProject([{ name: "t.squinch", src: `pack aws
 gw = aws/api-gateway "GW"

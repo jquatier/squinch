@@ -461,3 +461,36 @@ describe(".gitattributes keeps the working tree LF on every platform", () => {
     expect(guessed.map((e) => e.file), "binary by heuristic rather than by rule — add the extension to .gitattributes").toEqual([]);
   });
 });
+
+describe("the grammar's keywords reach every editor surface", () => {
+  // Three keyword lists live outside the grammar — the VS Code TextMate
+  // grammar, the language server's completion pools, and the playground's
+  // CodeMirror style tags — and nothing tied them to `kw<"…">` until `channel`
+  // was found missing from all three, a year after it shipped. Every keyword
+  // the parser accepts must be known to each, or a construct highlights as an
+  // identifier in one editor and completes in another.
+  const grammar = readFileSync(join(pkg, "src", "grammar", "squinch.grammar"), "utf8");
+  const keywords = [...grammar.matchAll(/kw<"([^"]+)">/g)].map((m) => m[1]);
+  // Node kinds, arrow words and values are styled by their own rules or are
+  // not keywords in the editors' sense; the statement vocabulary is the contract.
+  const STYLED_ELSEWHERE = new Set(["box", "system", "container", "view", "person", "pack", "zone", "flow", "theme", "layout"]);
+  const surfaces: [string, string][] = [
+    ["packages/vscode/syntaxes/squinch.tmLanguage.json", readFileSync(join(root, "packages/vscode/syntaxes/squinch.tmLanguage.json"), "utf8")],
+    ["packages/vscode/src/features.ts", readFileSync(join(root, "packages/vscode/src/features.ts"), "utf8")],
+    ["apps/spa/src/Editor.tsx", readFileSync(join(root, "apps/spa/src/Editor.tsx"), "utf8")],
+  ];
+  const LAYOUT_STATEMENTS = ["direction", "lines", "density", "rows", "cols", "place", "align", "route", "channel"];
+  it("every layout statement is highlighted and completed everywhere", () => {
+    expect(keywords).toEqual(expect.arrayContaining(LAYOUT_STATEMENTS));
+    for (const [name, src] of surfaces)
+      for (const k of LAYOUT_STATEMENTS)
+        expect(new RegExp(`\\b${k}\\b`).test(src), `${k} is missing from ${name}`).toBe(true);
+  });
+  it("the TextMate grammar knows every statement keyword", () => {
+    const tm = surfaces[0][1];
+    const match = /"match": "\\\\b\(([^)]*)\)\\\\b"/.exec(tm.split('"keyword"')[1] ?? "")?.[1] ?? "";
+    const known = new Set(match.split("|"));
+    const missing = keywords.filter((k) => !STYLED_ELSEWHERE.has(k) && !known.has(k));
+    expect(missing, `keywords the TextMate grammar does not highlight: ${missing.join(", ")}`).toEqual([]);
+  });
+});

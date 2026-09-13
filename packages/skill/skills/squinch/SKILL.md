@@ -141,8 +141,10 @@ Rules that matter:
   `system partner "Partner System" external { }` gives you a card with nothing
   behind it and a zoom that goes nowhere; `check` warns that the system is
   empty. Write `partner = box "Partner System" external` instead.
-- `layout { }` blocks go inside a `view`, **never** inside a `system` —
-  structure and layout stay separate. Same for `highlight`, `note`, `expand`.
+- A `layout { }` block goes inside a `view` (arranging the view) **or inside a
+  `system`** (arranging that system's own interior — `rows`, `cols`, `place`
+  only, written by short name; see Layout hints). `highlight`, `note` and
+  `expand` belong to a view alone.
 
 Edge motion — `~>` edges animate on their own (dashes drift toward the target,
 off under `prefers-reduced-motion`). Opt out with `{ animate: false }`, or pick
@@ -294,7 +296,7 @@ share a boundary, keep them top-level and group them with a `zone`.
 Zoomed views automatically show outside neighbours as muted **context** cards —
 don't add them yourself; if one appears that you don't want, `context off`.
 
-## Layout hints (in a `layout { }` block inside a view)
+## Layout hints (in a `layout { }` block — a view's, or a system's own)
 
 Hint conflicts are the single biggest source of failed `check` runs in this
 project's history — almost always a `rows` that pins every node, colliding with
@@ -343,6 +345,35 @@ view shop {
   is refused. If you want them beside each other, that is `rows [c1 … c6]`. The
   trap is worst under `direction right`, where a rank *looks* like a column on
   screen: the words name the model, not the picture.
+- **A system's interior is arranged by the system itself.** Give the system
+  its own `layout { }` with `rows`/`cols`/`place` in short names, and that
+  arrangement follows it into every view that opens it — expanded beside its
+  siblings, or standing inside it in the system's own view. Direct members
+  only: a nested container gets its own block. The view then only ranks
+  systems against each other, and never restates an interior:
+
+```squinch
+system checkout "Checkout" {
+  api = aws/api-gateway "API"; svc = aws/lambda "Orders"
+  bus = aws/sqs "Events"; cache = aws/elasticache "Sessions" datastore
+  db = aws/dynamodb "Orders" datastore
+  api -> svc; svc ~> bus; svc -> cache; svc -> db
+  layout { rows [api] [svc] [bus cache] [db] }   // short names, inside
+}
+view detail {
+  expand checkout
+  expand shipping
+  layout { rows [cdn] [checkout shipping] }      // the view ranks the systems
+}
+```
+
+  A view may still name interior paths (`rows [gw] [checkout.api]`); when its
+  hints relate two or more of a system's members they replace that system's
+  block in that view, whole — bands are never merged. Naming one member only
+  ranks the whole system from outside. Two members of one system asked to
+  share a row with an edge between them is a warning: same-rank edges route
+  between systems, not inside one, so put one below the other or collapse the
+  system in that view.
 - **Rank hints don't reach inside a zone.** A zone lays out as a single block —
   `rows`/`cols`/`place` order zones *relative to each other*, and the engine
   arranges the members within. To rank a zone, name **one** member of it (or
@@ -389,7 +420,10 @@ view shop {
 | Diagram too cramped / too airy | `density spacious` / `density compact` |
 | Too many boxes at once | Split into views: a landscape with `include *`, plus per-system views |
 | Everything open on one page, no clicking into containers | `view full { expand * }` — every container becomes a nested frame, every edge shows natively |
-| A full-detail view came out tall — want it wide | Add `layout { rows … }` banding the expanded systems side by side; calls between them route through the gutters |
+| A full-detail view came out tall — want it wide | Add `layout { rows … }` banding the expanded systems side by side; calls between them route through the gutters and land on the cards |
+| An expanded system's insides are in the wrong order or tier | Give the system its own `layout { rows … }` in short names — it follows the system into every view. Or name the interior paths in the view's `rows` (`[app.api] [app.db app.cache]`), which replaces the system's block for that view |
+| "`a` and `b` are asked to share a row inside `s`, but the edge between them cannot be routed there" warning | Same-rank edges route between systems, not inside one. Put `b` in the row below `a`, or collapse `s` in this view |
+| "hint conflict: `a` → `b` runs upward inside `s`" error | The system's bands contradict its own arrows, same rule as the view's `rows`: put `b` in a row below `a`, or drop one of them from that block |
 | "`expand *` already opens every container — the explicit `expand` lines are redundant" warning | Drop the explicit `expand x` lines; the star covers them |
 | "`expand *` opened nothing — no containers are visible here" warning | The model (or this scope) has no containers to open — drop the line |
 | Show **only** one concern (an auditor's view: "only the PCI parts") | `only #pci`. Anything outside the scope that the survivors still talk to stays as a muted context card — that boundary crossing is usually the point of the view; `context off` drops those too |

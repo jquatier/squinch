@@ -264,7 +264,9 @@ that both humans and LLMs can reason about:
 
 Three tiers, in the order you reach for them: auto-layout underneath, relative
 placement on top of it (`rows`, `cols`, `place`, `align`), explicit edge routing
-last (`route`, `channel`). Delete every hint and the diagram still renders well.
+last (`route`, `channel`). A system can carry its own `layout { }` for its interior,
+and that arrangement follows it into every view that opens it. Delete every hint and
+the diagram still renders well.
 
 Hints that contradict each other are **check-time errors, never silently
 dropped** — a dropped hint strands the agent loop, a named conflict gets fixed

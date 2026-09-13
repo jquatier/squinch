@@ -135,7 +135,11 @@ const VIEW_KEYWORDS = [
   "title", "theme", "scope", "only", "include", "exclude", "detail", "expand", "context",
   "highlight", "color", "show", "legend", "titleblock", "note", "layout",
 ];
-const LAYOUT_KEYWORDS = ["direction", "density", "lines", "rows", "cols", "place", "align", "route"];
+const LAYOUT_KEYWORDS = ["direction", "density", "lines", "rows", "cols", "place", "align", "route", "channel"];
+/** A container's own `layout { }` arranges its interior: rows/cols/place only
+ *  (SPEC §3) — the rest of the layout vocabulary describes a view. */
+const CONTAINER_LAYOUT_KEYWORDS = ["rows", "cols", "place"];
+const CONTAINER_KEYWORDS = ["layout"];
 const ZONE_KEYWORDS = ["contains", "icon", "label", "color"];
 
 /** Completions for the cursor position. Order is deterministic. */
@@ -197,11 +201,12 @@ export function completionsAt(src: string, offset: number): Completion[] {
 
   // 6. keywords by block
   const partial = /([a-zA-Z][\w-]*)?$/.exec(line)?.[1] ?? "";
+  const outer = stack[stack.length - 2];
   const pool =
-    here === "layout" ? LAYOUT_KEYWORDS :
+    here === "layout" ? (outer === "system" || outer === "container" ? CONTAINER_LAYOUT_KEYWORDS : LAYOUT_KEYWORDS) :
     here === "view" ? VIEW_KEYWORDS :
     here === "zone" ? ZONE_KEYWORDS :
-    here === "system" || here === "container" ? [] :
+    here === "system" || here === "container" ? CONTAINER_KEYWORDS :
     here === "file" ? TOP_KEYWORDS : [];
   return pool
     .filter((k) => k.startsWith(partial))

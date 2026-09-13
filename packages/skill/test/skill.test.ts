@@ -254,8 +254,14 @@ describe("SKILL.md — diagnostic coverage", () => {
     "has the same id as a",
     "the `{` must sit on the declaration's own line — statements end at newline", "comma splits the tag list — tags separate with spaces",
     "has a space in its value, so it needs quotes",
-    "layout hints live in views, not systems", "layout` block inside",
     "layout` block at the top level — layout hints live inside a view",
+    // A container's own layout block (2026-09): each refusal writes the line
+    // to move or the block to write it in, and the SKILL section above the
+    // cookbook teaches the construct itself.
+    "describes a view, not a container's interior", "is outside",
+    "a container's layout block only arranges its own members",
+    "is inside", ", not a direct member of", "already has a `layout` block",
+    "appears twice in this block — one",
     // The expand family (flexibility sweep, 2026-08): each fix writes the
     // corrected view out in full — the `scope`+`expand` pair to split off, the
     // `detail` to use instead, the line to drop — so a cookbook row would only

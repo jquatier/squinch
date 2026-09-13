@@ -83,6 +83,13 @@ describe("block context", () => {
     expect(blockStack(top.src, top.offset).pop()).toBe("file");
   });
 
+  it("sees a layout block nested in a system as both", () => {
+    const src = `system s "S" {\n  x = box "X"\n  layout {\n    |\n  }\n}\n`;
+    const p = at(src);
+    const stack = blockStack(p.src, p.offset);
+    expect(stack.slice(-2)).toEqual(["system", "layout"]);
+  });
+
   it("ignores braces inside strings and comments", () => {
     const src = `system s "a { b" {\n  // } not a close\n  x = box "X"\n`;
     expect(blockStack(src, src.length).pop()).toBe("system");
@@ -110,6 +117,16 @@ describe("completion", () => {
     const { src, offset } = at(SRC.replace(`  api -> db "writes"`, "  api -> |"));
     const labels = completionsAt(src, offset).map((i) => i.label);
     expect(labels).toContain("shop.db");
+  });
+
+  it("inside a system's layout block offers only the interior vocabulary, and a system offers `layout`", () => {
+    const inner = at(`system s "S" {\n  x = box "X"\n  layout {\n    |\n  }\n}\n`);
+    const labels = completionsAt(inner.src, inner.offset).map((i) => i.label);
+    expect(labels).toEqual(expect.arrayContaining(["rows", "cols", "place"]));
+    expect(labels).not.toContain("lines");
+    expect(labels).not.toContain("route");
+    const body = at(`system s "S" {\n  x = box "X"\n  la|\n}\n`);
+    expect(completionsAt(body.src, body.offset).map((i) => i.label)).toContain("layout");
   });
 
   it("offers layout keywords inside a layout block, view keywords inside a view", () => {

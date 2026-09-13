@@ -192,17 +192,46 @@ describe("grammar + model builder", () => {
     expect(d?.fix).toContain("include *");
   });
 
-  it("layout block inside a system: diagnostics, not a crash", () => {
-    // the exact shape two independent agents crashed on (null .from in phase B)
+  it("layout block inside a system: the container's own interior layout", () => {
+    // The exact shape two independent agents crashed on (null .from in phase
+    // B), then the most common authoring mistake for a year — refused with
+    // "layout hints live in views, not systems". Cold agents kept writing it
+    // because it is where the fact belongs (SPEC §3): the block resolves from
+    // inside the container and becomes its interior layout.
     const r = buildModel(
       `pack aws\nsystem pipeline "P" {\n bucket = aws/s3 "B"\n handler = aws/lambda "H"\n bucket ~> handler "created"\n\n layout {\n  rows [bucket] [handler]\n }\n}\n`,
     );
-    expect(r.ok).toBe(false);
-    const hint = r.diagnostics.find((d) => d.message.includes("layout hints live in views"));
-    expect(hint?.fix).toContain("view pipeline { layout");
-    // cascading syntax errors collapse to one per line
-    const lines = r.diagnostics.filter((d) => d.message.startsWith("syntax error")).map((d) => d.loc.line);
-    expect(new Set(lines).size).toBe(lines.length);
+    expect(r.ok).toBe(true);
+    expect(r.diagnostics).toEqual([]);
+    expect(r.model.containers.get("pipeline")?.layout?.rows).toEqual([["pipeline.bucket"], ["pipeline.handler"]]);
+  });
+
+  it("a container's layout block refuses what describes a view, and paths that are not its direct members", () => {
+    const of = (block: string) =>
+      buildModel(
+        `a = box "A"\nsystem s "S" {\n x = box "X"\n container inner "I" { y = box "Y" }\n x -> inner.y\n layout { ${block} }\n}\nview v { include * }\n`,
+      ).diagnostics.filter((d) => d.severity === "error").map((d) => d.message);
+    expect(of("rows [x] [inner]")).toEqual([]);
+    expect(of("rows [a] [x]")[0]).toContain("`a` is outside `s`");
+    expect(of("place inner.y below x")[0]).toContain("`inner.y` is inside `inner`, not a direct member of `s`");
+    expect(of("direction right")[0]).toContain("`direction` describes a view, not a container's interior");
+    expect(of("lines curved")[0]).toContain("`lines` describes a view");
+    expect(of("rows [x] [inner]\n  rows [inner] [x]")[0]).toContain("`rows` appears twice in this block");
+    expect(of("rows [x inner]\n  place x below inner")[0]).toContain("is placed `below s.inner`, but `rows` puts it somewhere else");
+    // two blocks in one container
+    const two = buildModel(`system s "S" {\n x = box "X"\n layout { rows [x] }\n layout { rows [x] }\n}\n`);
+    expect(two.diagnostics.map((d) => d.message)).toContainEqual(expect.stringContaining("`s` already has a `layout` block"));
+    // `layout` stays a legal id (kw<> is @extend): a node named layout parses
+    const named = buildModel(`system s "S" {\n layout = box "L"\n x = box "X"\n layout -> x\n}\n`);
+    expect(named.diagnostics.filter((d) => d.severity === "error")).toEqual([]);
+    expect(named.model.nodes.has("s.layout")).toBe(true);
+  });
+
+  it("a second rows, cols or direction line in a view's layout block is an error, not a silent drop", () => {
+    const r = buildModel(`a = box "A"\nb = box "B"\na -> b\nview v { include *\n layout {\n  rows [a] [b]\n  rows [b] [a]\n  direction down\n  direction right\n } }\n`);
+    const msgs = r.diagnostics.filter((d) => d.severity === "error").map((d) => `${d.loc.line}: ${d.message}`);
+    expect(msgs).toContainEqual(expect.stringContaining("7: `rows` appears twice in this block"));
+    expect(msgs).toContainEqual(expect.stringContaining("9: `direction` appears twice in this block"));
   });
 
   describe("glyph: is a real icon reference", () => {

@@ -181,6 +181,9 @@ export function buildProject(input: ProjectFile[]): BuildResult {
 
   // ── phase A: declarations, per file ───────────────────────────────────────
   const rawEdges: { node: SyntaxNode; scope: string; ctx: Ctx }[] = [];
+  /** `layout { }` blocks found inside container bodies, resolved after every
+   *  node is declared — exactly as edges are. */
+  const rawLayouts: { node: SyntaxNode; scope: string; ctx: Ctx }[] = [];
   const rawViews: { node: SyntaxNode; ctx: Ctx }[] = [];
   const rawZones: { node: SyntaxNode; ctx: Ctx }[] = [];
   const rawFlows: { node: SyntaxNode; ctx: Ctx }[] = [];
@@ -208,21 +211,7 @@ export function buildProject(input: ProjectFile[]): BuildResult {
         }
       },
     });
-    // The most common authoring mistake: a `layout { }` block inside a
-    // system/container. It only manifests as cascading syntax errors, so name
-    // it explicitly with the fix.
     if (sawSyntaxError) {
-      for (const c of tree.topNode.getChildren("Container")) {
-        const bodyText = f.src.slice(c.from, c.to);
-        const m = /^[ \t]*layout[ \t]*\{/m.exec(bodyText);
-        if (!m) continue;
-        const identNode = c.getChild("Ident");
-        const sys = identNode ? ctx.text(identNode) : "NAME";
-        const from = c.from + m.index + (m[0].length - m[0].trimStart().length);
-        error(ctx, ctx.loc({ from, to: from + "layout".length } as SyntaxNode),
-          `\`layout\` block inside \`${sys}\` — layout hints live in views, not systems`,
-          `move it below the system: view ${sys} { layout { … } }`);
-      }
       // An opening brace on its own line. The C#/Java habit; statements end
       // at newline, so `system s "S"` terminates and the lone `{` is noise.
       for (const m of f.src.matchAll(/^([ \t]*(?:system|container|zone|view|flow)\b[^{\n]*?)[ \t]*\n[ \t]*\{/gm)) {
@@ -321,7 +310,7 @@ export function buildProject(input: ProjectFile[]): BuildResult {
       // The same mistake one level out: a `layout` block at the top of the
       // file, belonging to no view. It fell through to a bare syntax error
       // pointing at whatever preceded it, which names neither the problem nor
-      // the fix. `layout` is only ever legal inside a `view`.
+      // the fix. `layout` is legal inside a `view` or a container body, never at the top level.
       const containers = tree.topNode.getChildren("Container");
       const views = tree.topNode.getChildren("View");
       for (const m of f.src.matchAll(/^[ \t]*layout[ \t]*\{/gm)) {
@@ -427,6 +416,7 @@ export function buildProject(input: ProjectFile[]): BuildResult {
       for (const decl of body.getChildren("NodeDecl")) declareNode(decl, parentPath);
       for (const sub of body.getChildren("Container")) walkContainerDecl(sub, parentPath);
       for (const e of body.getChildren("EdgeStmt")) rawEdges.push({ node: e, scope: parentPath, ctx });
+      for (const lb of body.getChildren("LayoutBlock")) rawLayouts.push({ node: lb, scope: parentPath, ctx });
       const meta = attrsOf(ctx, body);
       const c = model.containers.get(parentPath);
       if (c) {
@@ -614,6 +604,162 @@ export function buildProject(input: ProjectFile[]): BuildResult {
       : sug;
     error(ctx, at, `unknown id \`${ref}\``, shown ? `did you mean \`${shown}\`?` : undefined);
     return undefined;
+  }
+
+  /** SPEC §6: one `rows` line assigns every band. A second one in the same
+   *  block used to be read as `[0]` and silently dropped. */
+  const secondStatement = (ctx: Ctx, at: SyntaxNode, type: string) => {
+    const word = ctx.text(at).split(/\s/)[0];
+    error(ctx, at, `\`${word}\` appears twice in this block — one \`${word}\` line ${type === "DirectionStmt" ? "sets the direction" : "assigns every band"}`,
+      type === "DirectionStmt" ? "keep one" : "merge the bands into one line");
+  };
+  const kindOf = (path: string) => model.containers.get(path)?.kind ?? "system";
+  /** The band-vs-`place` agreement rules (SPEC §6: contradictions are errors,
+   *  never silent), shared by a view's layout block and a container's. */
+  const hintAgreement = (
+    layout: { rows?: string[][]; cols?: string[][]; place: SView["layout"]["place"] },
+    ctx: Ctx,
+  ) => {
+  // hint-conflict checks (SPEC §6: contradictions are errors, never silent)
+  for (const pl of layout.place) {
+    const opposite = layout.place.find(
+      (o) => o !== pl && o.node === pl.target && o.target === pl.node,
+    );
+    if (opposite)
+      diagnostics.push({
+        severity: "error",
+        message: `contradictory place hints: \`${pl.node}\` vs \`${pl.target}\` reference each other`,
+        fix: "remove one of the two place statements",
+        loc: pl.loc, file: ctx.name,
+      });
+    // A node in a band already has a position, so a `place` on it is a second
+    // opinion — but a second opinion is only a *conflict* when it disagrees.
+    //
+    // This check has been wrong twice, in opposite directions. It first read
+    // `(rows && relpos === "right-of") || relpos === "left-of"`, which bound
+    // the wrong way and listed only the horizontal directions, so `place x
+    // above y` on a banded node sailed through with one hint silently
+    // ignored. Widening it to "in a band at all" then went too far the other
+    // way: four of twenty cold agents wrote `rows [db bus]` alongside `place
+    // bus right-of db` and were refused, though the two say the same thing.
+    // Restating a band's own order is how people reinforce intent, not how
+    // they contradict it, and no amount of documentation stopped them — the
+    // rate held across two rounds of skill fixes, because they were right.
+    const bands = layout.rows
+      ? { kind: "rows" as const, at: layout.rows }
+      : layout.cols
+        ? { kind: "cols" as const, at: layout.cols }
+        : undefined;
+    const where = (n: string) => {
+      const b = bands?.at.findIndex((band) => band.includes(n)) ?? -1;
+      return b < 0 ? undefined : { band: b, pos: bands!.at[b].indexOf(n) };
+    };
+    const node = where(pl.node);
+    if (bands && node) {
+      // In `rows`, bands run top to bottom and members left to right; in
+      // `cols` it is the transpose. So one axis is the band index and the
+      // other the position within it, and which is which flips with `kind`.
+      const target = where(pl.target);
+      const along = bands.kind === "rows" ? ["right-of", "left-of"] : ["below", "above"];
+      const agrees =
+        target &&
+        (along.includes(pl.relpos)
+          ? // same band, and immediately beside — `place` means adjacent
+            node.band === target.band &&
+            node.pos === target.pos + (pl.relpos === "right-of" || pl.relpos === "below" ? 1 : -1)
+          : // the perpendicular axis: the neighbouring band, on the right side
+            node.pos === target.pos &&
+            node.band ===
+              target.band + (pl.relpos === "below" || pl.relpos === "right-of" ? 1 : -1));
+      if (!agrees)
+        diagnostics.push({
+          severity: "error",
+          message: !target
+            ? `\`${pl.node}\` is listed in \`${bands.kind}\` but is placed relative to \`${pl.target}\`, which is not`
+            : `\`${pl.node}\` is placed \`${pl.relpos} ${pl.target}\`, but \`${bands.kind}\` puts it somewhere else`,
+          fix: !target
+            ? `add \`${pl.target}\` to ${bands.kind} too, or drop \`${pl.node}\` from ${bands.kind}`
+            : `${bands.kind} already positions both; make them agree, or drop \`${pl.node}\` from ${bands.kind}`,
+          loc: pl.loc, file: ctx.name,
+        });
+    }
+  }
+  };
+
+  // ── container-scoped layout blocks (SPEC §3) ─────────────────────────────
+  // Paths resolve from inside the container, so members are written by their
+  // short name, and only direct children qualify — the block says how *this*
+  // interior lays out, not where the container sits and not how a child's
+  // interior does. Resolved after every node is declared, exactly as edges are.
+  for (const { node: lb, scope, ctx } of rawLayouts) {
+    const c = model.containers.get(scope);
+    if (!c) continue;
+    if (c.layout) {
+      error(ctx, lb, `\`${c.name}\` already has a \`layout\` block`, "merge the two blocks into one");
+      continue;
+    }
+    const layout: NonNullable<SContainer["layout"]> = { place: [], loc: ctx.loc(lb) };
+    /** A member of *this* interior: resolved from inside the container, and a
+     *  direct child of it. Deeper paths belong to the child container's own
+     *  block; outside paths belong to a view — each error names where. */
+    const inside = (ref: string, at: SyntaxNode): string | undefined => {
+      const r = resolve(ref, scope, at, ctx);
+      if (!r) return undefined;
+      if (!r.startsWith(`${scope}.`)) {
+        error(ctx, at, `\`${ref}\` is outside \`${c.name}\` — a container's layout block only arranges its own members`,
+          `rank \`${c.name}\` against \`${ref}\` in the view's layout instead: \`rows [${ref}] [${c.name}]\``);
+        return undefined;
+      }
+      const rel = r.slice(scope.length + 1);
+      if (rel.includes(".")) {
+        const child = rel.slice(0, rel.indexOf("."));
+        error(ctx, at, `\`${ref}\` is inside \`${child}\`, not a direct member of \`${c.name}\``,
+          `arrange it in \`${child}\`'s own layout block: \`${kindOf(`${scope}.${child}`)} ${child} { … layout { rows [${rel.slice(rel.indexOf(".") + 1)}] } }\``);
+        return undefined;
+      }
+      return r;
+    };
+    const seenStmt = new Set<string>();
+    for (let child = lb.firstChild; child; child = child.nextSibling) {
+      const t = child.type.name;
+      if (t === "RowsStmt" || t === "ColsStmt" || t === "DirectionStmt") {
+        if (seenStmt.has(t)) { secondStatement(ctx, child, t); continue; }
+        seenStmt.add(t);
+      }
+      if (t === "RowsStmt" || t === "ColsStmt") {
+        const bands: string[][] = [];
+        const placed = new Set<string>();
+        for (const rank of child.getChildren("Rank")) {
+          const band: string[] = [];
+          for (const pathNode of rank.getChildren("Path")) {
+            const r = inside(ctx.text(pathNode), pathNode);
+            if (!r) continue;
+            if (placed.has(r)) {
+              error(ctx, pathNode, `\`${ctx.text(pathNode)}\` appears in \`${t === "RowsStmt" ? "rows" : "cols"}\` twice`,
+                "a node can hold only one rank position; remove one occurrence");
+              continue;
+            }
+            placed.add(r);
+            band.push(r);
+          }
+          bands.push(band);
+        }
+        if (t === "RowsStmt") layout.rows = bands; else layout.cols = bands;
+      } else if (t === "PlaceStmt") {
+        const [a, b] = child.getChildren("Path");
+        const n = a && inside(ctx.text(a), a);
+        const tg = b && inside(ctx.text(b), b);
+        const relposNode = child.getChild("RelPos");
+        if (n && tg && relposNode)
+          layout.place.push({ node: n, target: tg, relpos: ctx.text(relposNode) as RelPos, loc: ctx.loc(child) });
+      } else if (t.endsWith("Stmt")) {
+        const word = ctx.text(child).split(/\s/)[0];
+        error(ctx, child, `\`${word}\` describes a view, not a container's interior`,
+          `move it to the view's \`layout { }\`; inside \`${c.name}\` only rows, cols and place apply`);
+      }
+    }
+    hintAgreement(layout, ctx);
+    c.layout = layout;
   }
 
   let edgeN = 0;
@@ -1098,6 +1244,8 @@ export function buildProject(input: ProjectFile[]): BuildResult {
     }
 
     for (const lb of body.getChildren("LayoutBlock")) {
+      for (const t of ["DirectionStmt", "RowsStmt", "ColsStmt"])
+        for (const extra of lb.getChildren(t).slice(1)) secondStatement(ctx, extra, t);
       const dir = lb.getChildren("DirectionStmt")[0];
       if (dir) view.layout.direction = ctx.text(dir.lastChild!) as "down" | "right";
       const den = lb.getChildren("DensityStmt")[0];
@@ -1212,70 +1360,7 @@ export function buildProject(input: ProjectFile[]): BuildResult {
       }
     }
 
-    // hint-conflict checks (SPEC §6: contradictions are errors, never silent)
-    for (const pl of view.layout.place) {
-      const opposite = view.layout.place.find(
-        (o) => o !== pl && o.node === pl.target && o.target === pl.node,
-      );
-      if (opposite)
-        diagnostics.push({
-          severity: "error",
-          message: `contradictory place hints: \`${pl.node}\` vs \`${pl.target}\` reference each other`,
-          fix: "remove one of the two place statements",
-          loc: pl.loc, file: ctx.name,
-        });
-      // A node in a band already has a position, so a `place` on it is a second
-      // opinion — but a second opinion is only a *conflict* when it disagrees.
-      //
-      // This check has been wrong twice, in opposite directions. It first read
-      // `(rows && relpos === "right-of") || relpos === "left-of"`, which bound
-      // the wrong way and listed only the horizontal directions, so `place x
-      // above y` on a banded node sailed through with one hint silently
-      // ignored. Widening it to "in a band at all" then went too far the other
-      // way: four of twenty cold agents wrote `rows [db bus]` alongside `place
-      // bus right-of db` and were refused, though the two say the same thing.
-      // Restating a band's own order is how people reinforce intent, not how
-      // they contradict it, and no amount of documentation stopped them — the
-      // rate held across two rounds of skill fixes, because they were right.
-      const bands = view.layout.rows
-        ? { kind: "rows" as const, at: view.layout.rows }
-        : view.layout.cols
-          ? { kind: "cols" as const, at: view.layout.cols }
-          : undefined;
-      const where = (n: string) => {
-        const b = bands?.at.findIndex((band) => band.includes(n)) ?? -1;
-        return b < 0 ? undefined : { band: b, pos: bands!.at[b].indexOf(n) };
-      };
-      const node = where(pl.node);
-      if (bands && node) {
-        // In `rows`, bands run top to bottom and members left to right; in
-        // `cols` it is the transpose. So one axis is the band index and the
-        // other the position within it, and which is which flips with `kind`.
-        const target = where(pl.target);
-        const along = bands.kind === "rows" ? ["right-of", "left-of"] : ["below", "above"];
-        const agrees =
-          target &&
-          (along.includes(pl.relpos)
-            ? // same band, and immediately beside — `place` means adjacent
-              node.band === target.band &&
-              node.pos === target.pos + (pl.relpos === "right-of" || pl.relpos === "below" ? 1 : -1)
-            : // the perpendicular axis: the neighbouring band, on the right side
-              node.pos === target.pos &&
-              node.band ===
-                target.band + (pl.relpos === "below" || pl.relpos === "right-of" ? 1 : -1));
-        if (!agrees)
-          diagnostics.push({
-            severity: "error",
-            message: !target
-              ? `\`${pl.node}\` is listed in \`${bands.kind}\` but is placed relative to \`${pl.target}\`, which is not`
-              : `\`${pl.node}\` is placed \`${pl.relpos} ${pl.target}\`, but \`${bands.kind}\` puts it somewhere else`,
-            fix: !target
-              ? `add \`${pl.target}\` to ${bands.kind} too, or drop \`${pl.node}\` from ${bands.kind}`
-              : `${bands.kind} already positions both; make them agree, or drop \`${pl.node}\` from ${bands.kind}`,
-            loc: pl.loc, file: ctx.name,
-          });
-      }
-    }
+    hintAgreement(view.layout, ctx);
     if (model.views.some((other) => other.name === view.name))
       error(ctx, view.loc, `duplicate view \`${view.name}\``,
         `\`render --view ${view.name}\` would pick one of them silently — rename or merge`);

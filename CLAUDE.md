@@ -196,6 +196,25 @@ Commas stay *required* in a path list, and stay wrong inside a tag value —
 tag from the next attr key; that one is a check error naming the fix. Both
 spellings build the same model and render byte-identically.
 
+**Container layout blocks** (2026-09): a `layout { }` inside a `system`/`container`
+body arranges its *direct* interior — `rows`/`cols`/`place` (and `direction`, phase 2)
+written by short name — wherever that interior is opened: expanded in any view, or as
+the root of a view scoped to it (its auto view included). It was "the most common
+authoring mistake" for a year, refused with a special-case error; cold agents kept
+writing it because that is where the fact lives, and restating one interior in every
+view that opens it was a DRY violation the language created. Rules that are not
+negotiable: direct children only (a deeper path names the child's own block, an
+outside path names the view-level band); the view's own hints replace the block **per
+container, all or nothing** — never merged — when they relate two or more of its
+members, or, for a scoped view, when it declares any hint at all (SPEC §5's "declaring
+`view <path>` *is* the customization" rule); a collapsed container's block is dormant
+with no warning; diagnostics point at the block, not the view; the semantic diff
+classes it cosmetic like a view's. View-level hints naming leaves inside an expanded
+frame (`rows [gw] [app.api]`) now take effect too — they used to render byte-identical
+to no hint, silently — via per-frame `semiInteractive` crossing minimisation plus
+`elk.position` and interior scaffold edges; `docs/notes/coplanar.md` carries the table
+of ELK levers that do and do not reach inside a compound. A second `rows`/`cols`/
+`direction` line in one block is a check error (it used to be read as `[0]`).
 v1.1's DSL is done: zones, flows, tags, channels, cols, align, legend/titleblock,
 plus `only`/`detail` (below) and `badge:` — a vendor mark composited onto a leaf's
 icon plate at render time (SPEC §nodes, DESIGN §3). It exists because vendors like

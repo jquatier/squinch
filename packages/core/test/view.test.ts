@@ -894,3 +894,216 @@ zone z2 "Z2" vpc { contains zb }
     validateSVG(one);
   });
 });
+
+describe("interior hints: rows/place/cols naming leaves inside an expanded frame", () => {
+  // Before this, a hint naming a leaf inside an expanded frame projected onto
+  // the frame and stopped: `rows [gw] [app.api] [app.q app.db]` rendered
+  // byte-identical to no hint at all, with nothing said. Each probe below
+  // asks for an order or rank ELK would not have produced on its own.
+  const APP = `system app "App" { api = box "API"; cache = box "Cache"; db = box "DB"; q = box "Queue"; api -> db; api -> cache; api -> q }
+gw = box "Gateway"
+gw -> app.api
+`;
+  const layIn = async (src: string, hints: string, expand = "expand app") => {
+    const { layoutView } = await import("../src/layout/layout.js");
+    const built = buildModel(`${src}view v {\n ${expand}\n layout {\n ${hints}\n }\n}`);
+    expect(built.diagnostics.filter((d) => d.severity === "error")).toEqual([]);
+    const r = await layoutView(built.model, built.model.views.find((x) => x.name === "v")!);
+    expect(checkLayout(r.positioned, { zoneMembers: new Map(built.model.zones.map((z) => [z.id, z.members])) })).toEqual([]);
+    return r;
+  };
+  const at = (p: Awaited<ReturnType<typeof layIn>>, path: string) => p.positioned.nodes.find((n) => n.path === path)!;
+  const clean = (p: Awaited<ReturnType<typeof layIn>>) =>
+    expect(p.diagnostics.filter((d) => d.severity === "error" || d.severity === "warning")).toEqual([]);
+
+  it("unhinted: ELK's own order is the premise (q db cache), so the probes below are discriminating", async () => {
+    const r = await layIn(APP, "");
+    expect(at(r, "app.q").x).toBeLessThan(at(r, "app.db").x);
+    expect(at(r, "app.db").x).toBeLessThan(at(r, "app.cache").x);
+  });
+
+  it("rows orders a frame's row left to right", async () => {
+    const r = await layIn(APP, "rows [gw] [app.api] [app.cache app.q app.db]");
+    clean(r);
+    expect(at(r, "app.cache").x).toBeLessThan(at(r, "app.q").x);
+    expect(at(r, "app.q").x).toBeLessThan(at(r, "app.db").x);
+    expect(at(r, "app.cache").y).toBe(at(r, "app.db").y);
+  });
+
+  it("place left-of / right-of moves a member beside its target within the row", async () => {
+    const r = await layIn(APP, "place app.cache left-of app.q");
+    clean(r);
+    const [db, cache, q] = [at(r, "app.db"), at(r, "app.cache"), at(r, "app.q")];
+    expect(cache.x).toBeLessThan(q.x);
+    expect(db.x).toBeLessThan(cache.x); // cache is *immediately* left of q
+    expect(cache.y).toBe(q.y);
+  });
+
+  it("rows ranks inside the frame: a band below another lands on a lower layer", async () => {
+    const r = await layIn(APP, "rows [gw] [app.api] [app.db] [app.cache app.q]");
+    clean(r);
+    expect(at(r, "app.db").y).toBeLessThan(at(r, "app.cache").y);
+    expect(at(r, "app.cache").y).toBe(at(r, "app.q").y);
+    expect(at(r, "app.cache").x).toBeLessThan(at(r, "app.q").x);
+  });
+
+  it("place below pins a member under its target", async () => {
+    const r = await layIn(APP, "place app.q below app.db");
+    clean(r);
+    expect(at(r, "app.q").y).toBeGreaterThan(at(r, "app.db").y);
+  });
+
+  it("direction right transposes the in-layer axis", async () => {
+    const r = await layIn(APP, "direction right\n rows [gw] [app.api] [app.cache app.q app.db]");
+    clean(r);
+    expect(at(r, "app.cache").y).toBeLessThan(at(r, "app.q").y);
+    expect(at(r, "app.q").y).toBeLessThan(at(r, "app.db").y);
+    expect(at(r, "app.cache").x).toBe(at(r, "app.db").x);
+  });
+
+  it("a hint on a deep path orders the nested frame's interior under expand *", async () => {
+    const NESTED = `system app "App" {
+  api = box "API"
+  container data "Data" { db = box "DB"; cache = box "Cache"; q = box "Queue" }
+  api -> data.db; api -> data.cache; api -> data.q
+}
+gw = box "Gateway"
+gw -> app.api
+`;
+    const r = await layIn(NESTED, "rows [gw] [app.api] [app.data.cache app.data.q app.data.db]", "expand *");
+    clean(r);
+    expect(at(r, "app.data.cache").x).toBeLessThan(at(r, "app.data.q").x);
+    expect(at(r, "app.data.q").x).toBeLessThan(at(r, "app.data.db").x);
+  });
+
+  it("a frame's entry row (members fed only from outside) follows the hint too", async () => {
+    const FED = `system app "App" { a = box "A"; b = box "B"; c = box "C" }
+gw = box "Gateway"
+gw -> app.a
+gw -> app.b
+gw -> app.c
+`;
+    const r = await layIn(FED, "rows [gw] [app.c app.a app.b]");
+    clean(r);
+    expect(at(r, "app.c").x).toBeLessThan(at(r, "app.a").x);
+    expect(at(r, "app.a").x).toBeLessThan(at(r, "app.b").x);
+  });
+
+  it("two members on one row with an edge between them warn: the router does not enter a frame", async () => {
+    const EDGE = `system app "App" { api = box "API"; cache = box "Cache"; db = box "DB"; db -> cache "warm"; api -> db }
+gw = box "Gateway"
+gw -> app.api
+`;
+    const r = await layIn(EDGE, "rows [gw] [app.api] [app.db app.cache]");
+    const w = r.diagnostics.find((d) => d.severity === "warning");
+    expect(w?.message).toContain("share a row inside `app`");
+    expect(w?.fix).toContain("collapse `app`");
+  });
+
+  it("an upward interior edge between declared bands is a hint conflict", async () => {
+    // db answers api, so `rows [app.db] [app.api]` asks for an edge that runs
+    // upward inside the frame — the root's conflict check skips same-unit pairs
+    const r = await layIn(`${APP}app.db -> app.api "ack"\n`, "rows [gw] [app.db] [app.api]");
+    const e = r.diagnostics.find((d) => d.severity === "error");
+    expect(e?.message).toContain("runs upward inside `app`");
+    expect(e?.fix).toContain("in a row below");
+  });
+
+  it("align between two members of one frame names the real reason, not a fake same-rank verdict", async () => {
+    const r = await layIn(APP, "align app.api app.db");
+    const w = r.diagnostics.filter((d) => d.severity === "warning");
+    expect(w.length).toBe(1);
+    expect(w[0].message).toContain("does not reach inside `app`");
+    expect(w[0].message).not.toContain("same rank");
+  });
+
+  it("a hint naming only the frame, or only one member, changes nothing", async () => {
+    // one member projects onto the frame at the root, exactly as before; the
+    // interior pass sees a single named member and its order is the declared one
+    const plain = await layIn(APP, "");
+    const one = await layIn(APP, "rows [gw] [app.api]");
+    clean(one);
+    // node *order* moves with the root's own rows handling (gw first), which
+    // predates this; the geometry is what must not
+    const geometry = (r: typeof plain) => r.positioned.nodes.map((n) => [n.path, n.x, n.y] as const).sort((a, b) => a[0].localeCompare(b[0]));
+    expect(geometry(one)).toEqual(geometry(plain));
+  });
+
+  // ── the container's own layout block (SPEC §3) ─────────────────────────
+  const APP_BLOCK = (block: string) => `system app "App" {
+  api = box "API"; cache = box "Cache"; db = box "DB"; q = box "Queue"
+  api -> db; api -> cache; api -> q
+  layout { ${block} }
+}
+gw = box "Gateway"
+gw -> app.api
+`;
+
+  it("a container's layout block orders and ranks its interior wherever the frame is expanded", async () => {
+    const r = await layIn(APP_BLOCK("rows [api] [db] [cache q]"), "");
+    clean(r);
+    expect(at(r, "app.db").y).toBeLessThan(at(r, "app.cache").y);
+    expect(at(r, "app.cache").x).toBeLessThan(at(r, "app.q").x);
+    expect(at(r, "app.cache").y).toBe(at(r, "app.q").y);
+    // and under expand *, where nothing in the view names the interior
+    const star = await layIn(APP_BLOCK("rows [api] [db] [cache q]"), "", "expand *");
+    clean(star);
+    expect(at(star, "app.db").y).toBeLessThan(at(star, "app.cache").y);
+  });
+
+  it("the block is the root layout of a view scoped to the container — its auto view included", async () => {
+    const { layoutView } = await import("../src/layout/layout.js");
+    const built = buildModel(APP_BLOCK("rows [api] [db] [cache q]"));
+    const auto = built.model.views.find((v) => v.name === "app")!;
+    expect(auto.auto).toBe(true);
+    const r = await layoutView(built.model, auto);
+    expect(checkLayout(r.positioned)).toEqual([]);
+    const y = (p: string) => r.positioned.nodes.find((n) => n.path === p)!.y;
+    const x = (p: string) => r.positioned.nodes.find((n) => n.path === p)!.x;
+    expect(y("app.db")).toBeLessThan(y("app.cache"));
+    expect(x("app.cache")).toBeLessThan(x("app.q"));
+    // an explicit scoped view with its own hints replaces the block outright
+    const own = buildModel(`${APP_BLOCK("rows [api] [db] [cache q]")}view app { scope app\n layout { rows [api] [q cache] [db] } }\n`);
+    const r2 = await layoutView(own.model, own.model.views.find((v) => v.name === "app")!);
+    expect(checkLayout(r2.positioned)).toEqual([]);
+    const y2 = (p: string) => r2.positioned.nodes.find((n) => n.path === p)!.y;
+    const x2 = (p: string) => r2.positioned.nodes.find((n) => n.path === p)!.x;
+    expect(y2("app.cache")).toBeLessThan(y2("app.db"));
+    expect(x2("app.q")).toBeLessThan(x2("app.cache"));
+  });
+
+  it("a view's hints relating two members replace the block for that container; one member does not", async () => {
+    // block says cache before q; the view says the opposite and wins whole
+    const two = await layIn(APP_BLOCK("rows [api] [db] [cache q]"), "rows [gw] [app.api] [app.q app.cache]");
+    clean(two);
+    expect(at(two, "app.q").x).toBeLessThan(at(two, "app.cache").x);
+    // and db is no longer ranked above them — the block did not merge in
+    expect(at(two, "app.db").y).toBe(at(two, "app.cache").y);
+    // naming one member ranks the frame from the root and leaves the block in charge inside
+    const one = await layIn(APP_BLOCK("rows [api] [db] [cache q]"), "rows [gw] [app.api]");
+    clean(one);
+    expect(at(one, "app.db").y).toBeLessThan(at(one, "app.cache").y);
+    expect(at(one, "app.cache").x).toBeLessThan(at(one, "app.q").x);
+  });
+
+  it("a collapsed container's block is dormant, and a hidden member drops from its band silently", async () => {
+    const { layoutView } = await import("../src/layout/layout.js");
+    const built = buildModel(`${APP_BLOCK("rows [api] [db] [cache q]")}view v { include * }\nview w { expand app\n exclude app.db }\n`);
+    for (const name of ["v", "w"]) {
+      const r = await layoutView(built.model, built.model.views.find((x) => x.name === name)!);
+      expect(r.diagnostics).toEqual([]);
+      expect(checkLayout(r.positioned)).toEqual([]);
+    }
+  });
+
+  it("an interior conflict raised from the block points at the block, not the view", async () => {
+    const { layoutView } = await import("../src/layout/layout.js");
+    const src = `${APP_BLOCK("rows [db] [api]")}view v { expand app }\n`;
+    const built = buildModel(src);
+    const r = await layoutView(built.model, built.model.views.find((x) => x.name === "v")!);
+    const err = r.diagnostics.find((d) => d.message.includes("runs upward inside `app`"))!;
+    expect(err.severity).toBe("error");
+    const blockLine = src.split("\n").findIndex((l) => l.includes("layout {")) + 1;
+    expect(err.loc.line).toBe(blockLine);
+  });
+});

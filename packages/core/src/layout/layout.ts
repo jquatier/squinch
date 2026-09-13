@@ -199,6 +199,21 @@ export async function layoutView(
   view: SView,
   font: Pick<ThemeFont, "metrics" | "scale"> = INTER,
 ): Promise<{ positioned: Positioned; diagnostics: Diagnostic[] }> {
+  // A view scoped to a container (its auto view, or `scope c`) stands *inside*
+  // it, so the container's own `layout { }` is the root layout there — unless
+  // the view brings any rows/cols/place/direction of its own, in which case
+  // the view's hints replace the block outright (SPEC §6: explicit wins, all
+  // or nothing — the same rule that makes `view <path>` the customization of
+  // the auto view rather than an overlay on it).
+  {
+    const own = view.scope ? model.containers.get(view.scope)?.layout : undefined;
+    const viewHints = !!(view.layout.rows || view.layout.cols || view.layout.place.length || view.layout.direction);
+    if (own && !viewHints)
+      view = {
+        ...view,
+        layout: { ...view.layout, rows: own.rows, cols: own.cols, place: own.place, direction: own.direction },
+      };
+  }
   const graph = resolveView(model, view);
   const diagnostics = [...graph.diagnostics];
   const byPath = new Map(graph.nodes.map((n) => [n.path, n]));
@@ -359,12 +374,18 @@ export async function layoutView(
     .filter(([a, b]) => a !== b);
 
   /** Relax until stable: successors sit below predecessors; unpinned
-   *  predecessors of a pinned node float above it (possibly negative). */
-  const relax = (pins: Map<string, number>): Map<string, number> => {
+   *  predecessors of a pinned node float above it (possibly negative).
+   *  Parameterised over the level's members and edges so an expanded frame's
+   *  interior (below) runs the same pass over its own children. */
+  const relaxOver = (
+    members: string[],
+    pairs: readonly (readonly [string, string])[],
+    pins: Map<string, number>,
+  ): Map<string, number> => {
     const out = new Map(pins);
-    for (let pass = 0; pass < units.length + 2; pass++) {
+    for (let pass = 0; pass < members.length + 2; pass++) {
       let changed = false;
-      for (const [a, b] of crossEdges) {
+      for (const [a, b] of pairs) {
         const ra = out.get(a), rb = out.get(b);
         if (!pins.has(b)) {
           const want = Math.max(rb ?? 0, (ra ?? 0) + 1);
@@ -378,9 +399,10 @@ export async function layoutView(
       }
       if (!changed) break;
     }
-    for (const p of units) if (!out.has(p)) out.set(p, 0);
+    for (const p of members) if (!out.has(p)) out.set(p, 0);
     return out;
   };
+  const relax = (pins: Map<string, number>) => relaxOver(units, crossEdges, pins);
 
   // `place` needs its target's rank — but that only existed for targets pinned
   // by `rows`, so `place x below y` where y wasn't in a rows band was silently
@@ -491,6 +513,144 @@ export async function layoutView(
     const columned = slots.map((i) => order[i])
       .sort((a, b) => colOf.get(a)! - colOf.get(b)! || order.indexOf(a) - order.indexOf(b));
     slots.forEach((slot, i) => { order[slot] = columned[i]; });
+  }
+
+  // ── interior hints: rows/cols/place naming leaves inside an expanded frame ─
+  // Ranking granularity at the root is the unit, so a hint naming a leaf inside
+  // an expanded frame projected onto the frame and stopped there:
+  // `rows [gw] [app.api] [app.q app.db]` rendered byte-identical to no hint at
+  // all, with nothing said. The interior is ELK's, but it takes levers there
+  // too — three, all measured against elkjs 0.12 (docs/notes/coplanar.md will
+  // carry the table): an invisible edge is a rank lower bound inside a
+  // compound exactly as at the root; the compound's *child model order* is
+  // the order of its entry layer (members fed only from outside the frame,
+  // via the border-port dummies); and every layer below the entry follows
+  // `semiInteractive` crossing minimisation with `elk.position` on the
+  // children — child model order is ignored there, and the root's
+  // `forceNodeModelOrder` never reaches a child graph (setting it on the
+  // compound crashes ELK's comparator on the border dummies). So each
+  // expanded frame runs the root's pass over its *direct* members — child
+  // frames then leaves, what `framedChildren` hands ELK — with a hint on a
+  // deeper path projecting to the child frame that holds it, exactly as the
+  // root projects onto the outermost one; the result is both the child order
+  // and the positions. A frame with no hint at its level is left alone, which
+  // is what keeps every unhinted render identical.
+  // What this cannot do is route: an edge between two members declared on one
+  // row stays in ELK's graph (the coplanar router stops at the frame wall,
+  // coplanar.md), so ELK layers them apart — that pair is a warning, not a
+  // silent no-op.
+  const frameOrder = new Map<string, string[]>();
+  const innerScaffold: { id: string; from: string; to: string }[] = [];
+  /** The direct child of `frame` that holds `p` (p itself when it is one). */
+  const memberOf = (frame: string, p: string): string | undefined => {
+    let cur = p;
+    let parent = byPath.get(p)?.frame ?? frameParent.get(p);
+    while (parent !== undefined) {
+      if (parent === frame) return cur;
+      cur = parent;
+      parent = frameParent.get(parent);
+    }
+    return undefined;
+  };
+  for (const f of graph.frames) {
+    const F = f.path;
+    const members = [
+      ...graph.frames.filter((c) => c.frame === F).map((c) => c.path),
+      ...graph.nodes.filter((n) => n.frame === F).map((n) => n.path),
+    ];
+    // Two sources of interior hints, never merged: the view's own hints when
+    // they relate two or more of this frame's members, else the container's
+    // `layout { }` block. All or nothing per container (SPEC §6) — a merge of
+    // bands from two blocks would draw an arrangement neither block asked for.
+    const project = (paths: string[][]) =>
+      paths.map((band) => band.map((p) => memberOf(F, p)).filter((m): m is string => m !== undefined));
+    const viewRows = project(view.layout.rows ?? []);
+    const viewCols = project(view.layout.cols ?? []);
+    const viewPlace = view.layout.place.flatMap((pl) => {
+      const node = memberOf(F, pl.node), target = memberOf(F, pl.target);
+      return node && target && node !== target ? [{ pl, node, target }] : [];
+    });
+    const viewNamed = new Set([...viewRows.flat(), ...viewCols.flat(), ...viewPlace.flatMap((x) => [x.node, x.target])]);
+    const own = viewNamed.size >= 2 ? undefined : model.containers.get(F)?.layout;
+    const hintLoc = own?.loc ?? view.loc;
+    const rowsHere = own ? project(own.rows ?? []) : viewRows;
+    const colsHere = own ? project(own.cols ?? []) : viewCols;
+    const placeHere = (own ? own.place : []).flatMap((pl) => {
+      const node = memberOf(F, pl.node), target = memberOf(F, pl.target);
+      return node && target && node !== target ? [{ pl, node, target }] : [];
+    }).concat(own ? [] : viewPlace);
+    // Engage only when a hint relates two or more of this frame's members.
+    // Naming one member is how you rank the whole frame from the root
+    // (`rows [gw] [app.api]`), and that must keep rendering exactly as it
+    // did — switching the frame to semi-interactive on its account would
+    // replace ELK's interior order with declaration order, uninvited.
+    const named = new Set([...rowsHere.flat(), ...colsHere.flat(), ...placeHere.flatMap((x) => [x.node, x.target])]);
+    if (named.size < 2) continue;
+
+    const pairs = edges.flatMap((e) => {
+      const a = memberOf(F, e.from), b = memberOf(F, e.to);
+      return a && b && a !== b ? [[a, b] as const] : [];
+    });
+    // same rule as the root: a member named from several bands takes the last
+    const pinned = new Map<string, number>();
+    rowsHere.forEach((row, i) => row.forEach((m) => pinned.set(m, i)));
+    const before = relaxOver(members, pairs, pinned);
+    for (const { pl, node, target } of placeHere) {
+      const t = pinned.get(target) ?? before.get(target)!;
+      pinned.set(node, changesBand(pl.relpos) ? t + (towardsStart(pl.relpos) ? -1 : 1) : t);
+    }
+    for (const e of edges) {
+      const a = memberOf(F, e.from), b = memberOf(F, e.to);
+      if (!a || !b || a === b || !pinned.has(a) || !pinned.has(b)) continue;
+      if (pinned.get(a)! > pinned.get(b)!)
+        diagnostics.push({
+          severity: "error",
+          message: `hint conflict: \`${e.from}\` → \`${e.to}\` runs upward inside \`${F}\` — row ${pinned.get(a)} to row ${pinned.get(b)}`,
+          fix: `put \`${e.to}\` in a row below \`${e.from}\`, or drop one of them from \`rows\``,
+          loc: hintLoc,
+        });
+      else if (pinned.get(a) === pinned.get(b))
+        diagnostics.push({
+          severity: "warning",
+          message:
+            `\`${e.from}\` and \`${e.to}\` are asked to share a row inside \`${F}\`, but the edge between them ` +
+            `cannot be routed there — same-rank edges are routed only between units, not inside an expanded container`,
+          fix: `ELK will layer them apart: put \`${e.to}\` in the row below \`${e.from}\`, or collapse \`${F}\` in this view`,
+          loc: hintLoc,
+        });
+    }
+    const rankHere = relaxOver(members, pairs, pinned);
+    const lo = Math.min(...rankHere.values());
+    for (const [k, v] of rankHere) rankHere.set(k, v - lo);
+
+    const orderHere: string[] = [];
+    for (const m of rowsHere.flat()) if (!orderHere.includes(m)) orderHere.push(m);
+    for (const m of members) if (!orderHere.includes(m)) orderHere.push(m);
+    for (const { pl, node, target } of placeHere) {
+      orderHere.splice(orderHere.indexOf(node), 1);
+      const i = orderHere.indexOf(target);
+      orderHere.splice(!changesBand(pl.relpos) && towardsStart(pl.relpos) ? i : i + 1, 0, node);
+    }
+    if (colsHere.some((c) => c.length)) {
+      const colOf = new Map<string, number>();
+      colsHere.forEach((col, i) => col.forEach((m) => colOf.set(m, i)));
+      const slots: number[] = [];
+      orderHere.forEach((m, i) => { if (colOf.has(m)) slots.push(i); });
+      const columned = slots.map((i) => orderHere[i])
+        .sort((a, b) => colOf.get(a)! - colOf.get(b)! || orderHere.indexOf(a) - orderHere.indexOf(b));
+      slots.forEach((slot, i) => { orderHere[slot] = columned[i]; });
+    }
+    frameOrder.set(F, orderHere);
+
+    const naturalHere = new Map(members.map((m) => [m, 0]));
+    for (let i = 0; i < members.length; i++)
+      for (const [a, b] of pairs) naturalHere.set(b, Math.max(naturalHere.get(b)!, naturalHere.get(a)! + 1));
+    for (const m of orderHere) {
+      const want = rankHere.get(m)!;
+      if (naturalHere.get(m)! >= want) continue;
+      const feeder = orderHere.find((x) => rankHere.get(x)! === want - 1);
+      if (feeder) innerScaffold.push({ id: `scaffold.${m}`, from: feeder, to: m });
+    }
   }
 
   // ── edge classes: inner (same entity) | coplanar (same rank, both bare) |
@@ -702,8 +862,26 @@ export async function layoutView(
       layoutOptions: {
         "elk.portConstraints": "FIXED_SIDE",
         ...(gutter ? { "elk.spacing.individual": `elk.spacing.nodeNode:${gutter}` } : {}),
+        ...interiorSlot(p),
       },
     };
+  };
+  // The in-layer lever inside a compound, below its entry layer. Model order
+  // is not it there: under INCLUDE_CHILDREN the model-order options are read
+  // per graph and never inherited, so a child graph runs plain barycenter
+  // crossing minimisation (a fed row follows the feeding node's port order),
+  // and setting them on the compound crashes ELK's comparator on the
+  // border-port dummies (measured, elkjs 0.12). What ELK does take, per
+  // compound, is `semiInteractive` crossing minimisation with `elk.position`
+  // on the children — the order of the positions is the order of the layer.
+  // Only frames that carry an interior hint switch it on, so every other
+  // compound is laid out exactly as before.
+  const interiorSlot = (p: string): Record<string, string> => {
+    const parent = byPath.get(p)?.frame ?? frameParent.get(p);
+    const slots = parent ? frameOrder.get(parent) : undefined;
+    if (!slots) return {};
+    const i = slots.indexOf(p);
+    return { "elk.position": downward ? `(${i * 1000},0)` : `(0,${i * 1000})` };
   };
 
   const frameLabels = new Map(graph.frames.map((f) => [f.path, f.label]));
@@ -712,10 +890,14 @@ export async function layoutView(
   // is safe here because nothing invokes either until the ELK graph is built),
   // so an `expand *` ladder reaches ELK as real nested compounds rather than
   // the childless 0×0 leaves the one-level rule used to guard against.
-  const framedChildren = (framePath: string): any[] => [
-    ...graph.frames.filter((f) => f.frame === framePath).map((f) => entityElk(f.path)),
-    ...graph.nodes.filter((n) => n.frame === framePath).map((n) => leafChild(n.path)),
-  ];
+  // Model order is ELK's in-layer order, so a frame with interior hints hands
+  // its children over in the order the hints asked for (`frameOrder`, above);
+  // every other frame keeps child frames then leaves, in declaration order.
+  const framedChildren = (framePath: string): any[] =>
+    (frameOrder.get(framePath) ?? [
+      ...graph.frames.filter((f) => f.frame === framePath).map((f) => f.path),
+      ...graph.nodes.filter((n) => n.frame === framePath).map((n) => n.path),
+    ]).map((p) => (frameLabels.has(p) ? entityElk(p) : leafChild(p)));
 
   const density = view.layout.density ?? "comfortable";
   // On the 8px grid (DESIGN §2), and the ladder is now regular: each step is
@@ -783,6 +965,10 @@ export async function layoutView(
             ...(coplanarGutter.get(p)
               ? { "elk.spacing.individual": `elk.spacing.nodeNode:${coplanarGutter.get(p)}` }
               : {}),
+            // interior hints: the children carry `elk.position` (see
+            // interiorSlot) and this is what makes ELK read them
+            ...(frameOrder.has(p) ? { "elk.layered.crossingMinimization.semiInteractive": "true" } : {}),
+            ...interiorSlot(p),
             "elk.spacing.nodeNode": "32",
             "elk.layered.spacing.nodeNodeBetweenLayers": hasElkLabels ? String(LABEL_GAP) : "40",
             // Edge spacing has to be repeated on every compound. ELK does not
@@ -915,6 +1101,8 @@ export async function layoutView(
           : {}),
       })),
       ...scaffold.map((s) => ({ id: s.id, sources: [s.from], targets: [s.to], ...(hasElkLabels ? { labels: [{ text: " ", width: 2, height: spacerH(false) }] } : {}) })),
+      // interior scaffolds live in a frame, so their spacer is the frame's
+      ...innerScaffold.map((s) => ({ id: s.id, sources: [s.from], targets: [s.to], ...(hasElkLabels ? { labels: [{ text: " ", width: 2, height: spacerH(true) }] } : {}) })),
       ...layerNotes.map((n) => ({
         id: `noteedge.${n.i}`,
         sources: [n.above ? n.id : n.anchor],
@@ -1531,8 +1719,14 @@ export async function layoutView(
       // result was six near-identical warnings, none of which named the fix.
       // One mistake, one diagnostic, and it says which construct to reach for.
       const members = group.nodes.map((q) => nodeByPath.get(q)).filter(Boolean) as PNode[];
+      // `rank` is the *unit's* rank, so two leaves inside one expanded frame
+      // always share it whatever ELK layered them on — the "same rank" verdict
+      // below was a lie for them, and its fix (`rows [a b]`) would have put
+      // side by side two nodes that may well sit one above the other. Framed
+      // members fall through to the loop, which names the real reason.
       if (members.length === group.nodes.length && members.length > 1
-          && members.every((m) => m.rank === members[0].rank)) {
+          && members.every((m) => m.rank === members[0].rank)
+          && !members.some((m) => m.frame)) {
         const list = group.nodes.join(" ");
         diagnostics.push({
           severity: "warning",
@@ -1548,10 +1742,17 @@ export async function layoutView(
         const d = target - centre(n);
         if (d === 0) continue;
         if (byPath.get(path)?.frame) {
+          // Two fixes for two situations: aligning across the frame wall means
+          // "align the frame", but aligning two members of one frame means the
+          // snap simply does not reach inside yet — `rows` orders them there.
+          const within = byPath.get(path)!.frame === anchor.frame;
           diagnostics.push({
             severity: "warning",
-            message: `${group.from} skipped \`${path}\` — it sits inside an expanded container`,
-            fix: `align the container itself, or drop the expand in this view`,
+            message: `${group.from} skipped \`${path}\` — it sits inside an expanded container` +
+              (within ? `, and ${group.from} does not reach inside \`${entityOf(path)}\`` : ""),
+            fix: within
+              ? `\`rows\` and \`place\` order members inside an expanded container; or drop the expand in this view`
+              : `align the container itself, or drop the expand in this view`,
             loc: group.loc,
           });
           continue;

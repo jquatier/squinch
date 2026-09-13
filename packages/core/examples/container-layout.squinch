@@ -1,0 +1,70 @@
+// Corpus fixture, not a lookbook case: the interior-hints engine path under
+// every invariant, on every push. A system carries its own `layout { }` — rows
+// written from inside it, by short name — arranging its direct members wherever
+// that interior is opened: expanded beside a sibling in `detail`, or standing
+// inside it in the scoped `checkout` view. The view only ranks the two systems
+// against each other; the quote call between the two services crosses the gutter
+// and lands on the card. The result looks ordinary, which is the point.
+pack aws
+
+person shopper "Shopper"
+cdn = aws/cloudfront "CDN"
+
+system checkout "Checkout" {
+  api    = aws/api-gateway "Checkout API"
+  svc    = aws/lambda "Order Service"
+  pay    = aws/lambda "Payment Worker"
+  cache  = aws/elasticache "Session Cache" datastore
+  db     = aws/dynamodb "Orders" datastore
+  bus    = aws/sqs "Order Events"
+
+  api -> svc
+  svc -> cache "session"
+  svc -> db "writes"
+  svc ~> bus "order placed"
+  bus ~> pay
+  pay -> db "marks paid"
+
+  layout {
+    rows [api] [svc] [bus cache] [pay] [db]
+  }
+}
+
+system shipping "Shipping" {
+  api      = aws/api-gateway "Shipping API"
+  svc      = aws/lambda "Rate Service"
+  adapter  = aws/lambda "Carrier Adapter"
+  rates    = aws/dynamodb "Rate Cache" datastore
+
+  api -> svc
+  svc -> rates "cached rates"
+  svc -> adapter "live quote"
+
+  layout {
+    rows [api] [svc] [rates adapter]
+  }
+}
+
+ledger   = aws/rds "Ledger" datastore
+carriers = box "Carrier APIs" external
+
+shopper -> cdn
+cdn -> checkout.api
+cdn -> shipping.api
+checkout.svc -> shipping.svc "quote"
+checkout.pay -> ledger "posts"
+shipping.adapter -> carriers "rates"
+
+view detail {
+  title "Checkout and Shipping — inside both systems"
+  expand checkout
+  expand shipping
+  layout {
+    rows [shopper] [cdn] [checkout shipping] [ledger carriers]
+  }
+}
+
+view checkout {
+  title "Checkout — its own view, its own layout"
+  scope checkout
+}

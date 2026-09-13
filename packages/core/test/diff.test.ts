@@ -176,6 +176,17 @@ LAYOUT}
       const d = diff(withStmt(""), withStmt(stmt));
       expect(d.same, `adding \`${stmt}\` reported no change`).toBe(false);
     });
+
+  it("a container's own layout block is a cosmetic change, like a view's", () => {
+    const sys = (block: string) => `system s "S" {\n a = box "A"\n b = box "B"\n a -> b\n ${block}\n}\n`;
+    const d = diff(sys(""), sys("layout { rows [b] [a] }"));
+    expect(d.same).toBe(false);
+    expect(d.structural).toBe(0);
+    expect(d.changes.some((c) => c.detail === "s layout" && c.weight === "cosmetic")).toBe(true);
+    // reordering a band is a change; restating the same bands is not
+    expect(diff(sys("layout { rows [a] [b] }"), sys("layout { rows [a] [b] }")).same).toBe(true);
+    expect(diff(sys("layout { rows [a] [b] }"), sys("layout { rows [b] [a] }")).same).toBe(false);
+  });
 });
 
 describe("diff — formatting", () => {

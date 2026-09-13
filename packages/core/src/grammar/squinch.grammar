@@ -51,7 +51,7 @@ ZoneDecl { kw<"zone"> Ident String? ZoneKind? ZoneBody }
 ZoneKind { Ident }
 ZoneBody { "{" list<ContainsStmt | Attr> "}" }
 ContainsStmt { kw<"contains"> PathList }
-ContainerBody { "{" list<NodeDecl | Container | EdgeStmt | Attr> "}" }
+ContainerBody { "{" list<NodeDecl | Container | EdgeStmt | Attr | LayoutBlock> "}" }
 
 // Kind and attr block in either order. The model builder reads them with
 // getChildren/getChild and never cared about the sequence; only the grammar

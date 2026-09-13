@@ -54,6 +54,19 @@ export interface SContainer {
   tags: string[];
   /** `color:` — the card's spine, or the frame's stroke once expanded. */
   color?: Hue;
+  /** The container's own `layout { }` (SPEC §3): how its direct interior lays
+   *  out wherever that interior is opened — as an expanded frame in any view,
+   *  and as the root of a view scoped to it. Paths are resolved, absolute, and
+   *  direct children only. Accepts rows / cols / place / direction; the other
+   *  layout statements describe a view and are refused here. A view's own
+   *  hints replace this block for that container, all or nothing (SPEC §6). */
+  layout?: {
+    rows?: string[][];
+    cols?: string[][];
+    place: { node: string; relpos: RelPos; target: string; loc: Loc }[];
+    direction?: "down" | "right";
+    loc: Loc;
+  };
   loc: Loc;
   file?: string;
 }
