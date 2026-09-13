@@ -82,12 +82,15 @@ function ease(t: number): number {
   return ((ay * u + by) * u + cy) * u;
 }
 
-/** The renderer animates async edges with a CSS keyframe — 10px of dashoffset
- *  every 0.9s, `.sq-flow` in the emitted <style>. resvg rasterizes statically
- *  and would freeze every dash mid-stride, so the clip has to advance the phase
- *  itself: same period, same direction, sampled at this frame's wall time. The
- *  first cut of this GIF simply lost the stream animation to that. */
-const FLOW_PERIOD = 0.9, FLOW_DASH = 10;
+/** The renderer animates async edges with a CSS keyframe — `.sq-flow` in the
+ *  emitted <style>, 55px of dashoffset every 4.95s, i.e. 11.11 px/s. resvg
+ *  rasterizes statically and would freeze every dash mid-stride, so the clip
+ *  has to advance the phase itself: same speed, same direction, sampled at
+ *  this frame's wall time. The loop here is one dash period (4 on + 7 off =
+ *  11px) at that speed, so the wrap lands exactly one period on and is
+ *  invisible; the 10px/0.9s this used to carry jumped a pixel every wrap. The
+ *  first cut of this GIF simply lost the stream animation to all of this. */
+const FLOW_DASH = 11, FLOW_PERIOD = FLOW_DASH / 11.11;
 const flowAt = (frameIndex: number, svg: string) => {
   const off = -FLOW_DASH * (((frameIndex / FPS) / FLOW_PERIOD) % 1);
   return svg.replace(/class="sq-flow"/g, `class="sq-flow" stroke-dashoffset="${off.toFixed(3)}"`);

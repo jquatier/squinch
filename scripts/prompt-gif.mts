@@ -125,10 +125,11 @@ function ease(t: number): number {
 }
 
 /** The renderer animates async edges with a CSS keyframe, and resvg would
- *  freeze every dash mid-stride. Advance the phase per frame, same period and
- *  direction as the stylesheet — `db ~> indexer` is on screen for the whole
- *  hold, and a stopped stream reads as a broken picture. */
-const FLOW_PERIOD = 0.9, FLOW_DASH = 10;
+ *  freeze every dash mid-stride. Advance the phase per frame at the
+ *  stylesheet's speed (11.11 px/s), looping over one dash period (4 on + 7
+ *  off = 11px) so the wrap is invisible — `db ~> indexer` is on screen for
+ *  the whole hold, and a stopped stream reads as a broken picture. */
+const FLOW_DASH = 11, FLOW_PERIOD = FLOW_DASH / 11.11;
 const flowAt = (i: number, svg: string) =>
   svg.replace(
     /class="sq-flow"/g,
