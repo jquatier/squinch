@@ -5,9 +5,15 @@
 //
 // The extension, the CLI and the engine are one product cut three ways — the
 // extension is mostly the same code behind a different view — so a reader
-// comparing "which squinch is this?" across a VSIX, an npm package and a
-// squinch.lock should get one answer. Independent versions would make those
-// three numbers drift immediately and mean nothing to anyone.
+// comparing "which squinch is this?" across a VSIX, an npm package and the
+// `data-squinch` stamp on a rendered SVG should get one answer. Independent
+// versions would make those three numbers drift immediately and mean nothing
+// to anyone.
+//
+// The committed example renders carry the stamp too, and this script does not
+// touch them: a render is tool output, not a manifest, and its stamp records
+// the version that last drew it — which stays true after a bump. `render
+// --check` ignores the stamp, so nothing goes stale here.
 //
 // The root package.json holds the truth; every workspace member follows. A
 // guardrail test asserts they agree, so a hand-edit to one manifest fails the

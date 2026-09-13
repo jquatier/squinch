@@ -1,9 +1,8 @@
 // squinch CLI — check / render / icons / init / skill / watch.
 // Exit codes: 0 ok, 1 diagnostics-or-stale, 2 usage error.
-import { readFileSync, writeFileSync, mkdirSync, existsSync } from "node:fs";
+import { readFileSync, writeFileSync, mkdirSync, existsSync, rmSync } from "node:fs";
 import { join, relative, isAbsolute } from "node:path";
 import { homedir } from "node:os";
-import { createHash } from "node:crypto";
 import {
   buildProject, renderProject, formatDiagnostics, validateSVG, searchIconsDetailed, themes, packInfo,
   diffProjects, formatDiff, formatDiffMarkdown, exportHTML,
@@ -18,11 +17,12 @@ import { watchPaths } from "./watch.js";
 import { createRequire } from "node:module";
 
 /** Read from our own manifest, never retyped. The determinism contract pins
- *  output to a *tool version*, and `squinch.lock` records it — a literal here
- *  would keep claiming 0.0.0 through every release, so a reader could not tell
- *  which renderer produced their SVGs, which is the one thing the lockfile
- *  exists to answer. `src/` and `dist/` both sit one level under the package
- *  root, so this resolves the same whether run through tsx or from the build. */
+ *  output to a *tool version*, and every SVG this CLI writes carries it as
+ *  `data-squinch` — a literal here would stamp 0.0.0 through every release, so
+ *  a reader of a stale render could not tell which squinch drew it, which is
+ *  the one thing the stamp exists to answer. `src/` and `dist/` both sit one
+ *  level under the package root, so this resolves the same whether run
+ *  through tsx or from the build. */
 const VERSION: string = createRequire(import.meta.url)("../package.json").version;
 const THEMES = ["light", "dark"] as const;
 
@@ -67,8 +67,8 @@ Render options
   --width <px>      png only: exact output width (height follows)
   --background <c>  png only: flatten onto a colour. Every theme paints its own
                     canvas, so this only shows through where one does not
-  --sync            write every view × theme next to the source, refresh
-                    squinch.lock, and print a README <picture> snippet
+  --sync            write every view × theme next to the source, each stamped
+                    with this version, and print a README <picture> snippet
   --check           verify committed SVGs match the source (CI gate)
 `;
 
@@ -147,10 +147,6 @@ function display(file: string): string {
   return toPosix(rel.startsWith("..") || isAbsolute(rel) ? file : rel);
 }
 
-function hash(s: string): string {
-  return createHash("sha256").update(s).digest("hex").slice(0, 16);
-}
-
 /**
  * Views to render. Containers all get an auto view (so the SPA can zoom
  * anywhere), but `--sync` commits only what the author declared — otherwise
@@ -199,7 +195,7 @@ async function renderOne(
   adaptive = false,
 ): Promise<string> {
   const r = await renderProject(input.files, {
-    ...(view ? { view } : {}), ...(theme ? { theme } : {}), adaptive,
+    ...(view ? { view } : {}), ...(theme ? { theme } : {}), adaptive, toolVersion: VERSION,
   });
   if (!r.ok) {
     reportDiagnostics(r.diagnostics, false);
@@ -256,12 +252,10 @@ async function cmdRender(path: string, flags: Record<string, string | boolean>):
     const stale: string[] = [];
     const crlfOnDisk: string[] = [];
     const written: string[] = [];
-    const lock: Record<string, string> = {};
     for (const { label, view } of views)
       for (const t of THEMES) {
         const svg = await renderOne(input, view, t);
         const file = join(input.dir, outName(input.base, label, t));
-        lock[outName(input.base, label, t)] = hash(svg);
         if (flags.check) {
           // Compare content, not bytes-on-disk. Squinch only ever writes LF
           // (asserted per-golden and across the corpus in core), so normalizing
@@ -271,8 +265,16 @@ async function cmdRender(path: string, flags: Record<string, string | boolean>):
           // stale, `--sync` rewrites them as LF, git cleans that back to the
           // identical blob, the commit is empty, and the next checkout is CRLF
           // again. The advisory below keeps the byte claim visible instead.
+          //
+          // The version stamp is stripped from both sides too. It describes
+          // the render — which squinch last drew this file — and is not an
+          // input to the question `--check` answers, which is whether the
+          // committed *picture* is what the source produces. A render from an
+          // older squinch that draws the same picture is in sync; one that
+          // predates the stamp is in sync; a bump changes nothing here.
           const onDisk = existsSync(file) ? readFileSync(file, "utf8") : undefined;
-          if (onDisk === undefined || onDisk.replace(/\r\n/g, "\n") !== svg) stale.push(display(file));
+          if (onDisk === undefined || unstamp(onDisk.replace(/\r\n/g, "\n")) !== unstamp(svg))
+            stale.push(display(file));
           else if (onDisk.includes("\r")) crlfOnDisk.push(display(file));
         } else {
           writeFileSync(file, svg);
@@ -301,10 +303,7 @@ async function cmdRender(path: string, flags: Record<string, string | boolean>):
       return 0;
     }
 
-    writeFileSync(
-      join(input.dir, "squinch.lock"),
-      JSON.stringify({ version: VERSION, files: lock }, null, 2) + "\n",
-    );
+    removeLegacyLock(input.dir);
     console.error(written.map((f) => `wrote ${f}`).join("\n"));
     console.log(`\n<!-- README snippet -->`);
     for (const { label } of views)
@@ -353,6 +352,7 @@ async function cmdRender(path: string, flags: Record<string, string | boolean>):
       ...(themesFlag ? { themes: themesFlag.split(",").map((t) => t.trim()) } : {}),
       ...(viewsFlag ? { views: viewsFlag as "declared" | "all" } : {}),
       ...(flags["no-flow-steps"] ? { flowSteps: false } : {}),
+      toolVersion: VERSION,
     });
     if (!r.ok || !r.html) {
       reportDiagnostics(r.diagnostics, false);
@@ -405,6 +405,35 @@ async function cmdRender(path: string, flags: Record<string, string | boolean>):
     console.error(`wrote ${out}`);
   } else console.log(svg.trimEnd());
   return 0;
+}
+
+/** A render without its version stamp (`data-squinch` on the root <svg>,
+ *  appended last by the renderer) — what `--check` compares. */
+const unstamp = (svg: string) => svg.replace(/^(<svg\b[^>]*?)\sdata-squinch="[^"]*"/, "$1");
+
+/** `--sync` used to write `squinch.lock` (tool version + a hash per render)
+ *  beside the source. Nothing ever read it — `--check` re-renders and
+ *  compares content — so it drifted unnoticed, and the version now travels in
+ *  each SVG instead. Left behind, the file asserts a version forever, so
+ *  `--sync` removes it: it is squinch-owned on the same footing as the
+ *  SKILL.md that `squinch skill` overwrites. Only the shape this CLI wrote is
+ *  touched, only on `--sync` (a CI gate must not write to the checkout), and
+ *  `existsSync` makes it idempotent under `watch`. */
+function removeLegacyLock(dir: string): void {
+  const file = join(dir, "squinch.lock");
+  if (!existsSync(file)) return;
+  let ours = false;
+  try {
+    const j = JSON.parse(readFileSync(file, "utf8"));
+    ours = typeof j?.version === "string" && typeof j?.files === "object" && j.files !== null;
+  } catch {
+    /* not JSON — not ours */
+  }
+  if (!ours) return;
+  rmSync(file);
+  console.error(
+    `removed ${display(file)} — nothing reads it any more; the tool version now travels in each SVG (data-squinch)`,
+  );
 }
 
 /** The root <svg width="…">, which the renderer always emits in px. */

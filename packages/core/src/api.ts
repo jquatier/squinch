@@ -201,6 +201,8 @@ export async function render(
      *  — for embedding somewhere you do not control the background. Requires a
      *  theme with a `pairsWith` counterpart. */
     adaptive?: boolean;
+    /** Stamp the root with `data-squinch` — see `RenderOpts.toolVersion`. */
+    toolVersion?: string;
   } = {},
 ): Promise<RenderResult> {
   return renderProject([{ name: "input", src }], opts);
@@ -223,6 +225,8 @@ export async function renderProject(
      *  and therefore one set of defs. */
     collectDefs?: Map<string, string>;
     defsScope?: string;
+    /** Stamp the root with `data-squinch` — see `RenderOpts.toolVersion`. */
+    toolVersion?: string;
   } = {},
 ): Promise<RenderResult> {
   // Normalized here as well as inside buildProject: this is a public entry
@@ -316,6 +320,7 @@ export async function renderProject(
       flowStep: opts.flowStep,
       collectDefs: opts.collectDefs,
       defsScope: opts.defsScope,
+      toolVersion: opts.toolVersion,
     });
 
   let svg = draw(theme);

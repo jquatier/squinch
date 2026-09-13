@@ -28,7 +28,7 @@
 
 ```squinch
 // order-service.squinch
-pack aws                          // icon packs used (versions pinned in squinch.lock)
+pack aws                          // icon packs used
 pack corp from "./icons/corp"     // local in-repo pack
 
 import "../payments/payments.squinch" as pay   // [v2] federation
@@ -508,7 +508,7 @@ records why, so the case does not get reopened from memory.
 ## 7. Packs, themes, exposure
 
 ```squinch
-pack aws                     // resolved via squinch.lock → @squinch/pack-aws@x.y.z or vendored copy
+pack aws                     // resolved from the registered packs (@squinch/pack-aws or a vendored copy)
 pack corp from "./icons"     // local: directory with pack.json + svgs
 
 theme light                  // file-level default; views override. Unset: dark
@@ -771,7 +771,7 @@ view overview {
 }                            // click-through opens the payments team's own views
 ```
 
-Version pinning lives in `squinch.lock`; CI warns when an import's exposed surface changes.
+Version pinning for imports is unspecified in v0; CI warns when an import's exposed surface changes.
 
 ### 10.5 Tags, highlight & notes
 

@@ -86,6 +86,18 @@ describe("interactive HTML export", () => {
     expect(without.html!.length).toBeLessThan(withSteps.html!.length);
   });
 
+  it("carries the version stamp once, on <html>, never on a body", async () => {
+    // fourteen copies of one fact is what the shared-defs design exists to
+    // avoid, and a body lifted out of this file is not a `render -o` artifact
+    const { html } = await exportHTML(files, { toolVersion: "1.2.3" });
+    expect(html).toMatch(/^<!doctype html>\n<html [^>]*\sdata-squinch="1\.2\.3">/);
+    expect([...html!.matchAll(/data-squinch=/g)]).toHaveLength(1);
+    for (const svg of svgsIn(html!)) expect(svg).not.toContain("data-squinch");
+
+    const plain = await exportHTML(files);
+    expect(plain.html).not.toContain("data-squinch");
+  });
+
   it("is byte-identical across builds", async () => {
     // determinism is a non-negotiable, and this artifact carries a generated JS
     // bundle — the one place it could leak in

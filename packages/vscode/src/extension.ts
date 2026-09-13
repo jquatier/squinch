@@ -111,7 +111,11 @@ class Preview {
     const views = viewIndex(src);
     const view = this.view && views.some((v) => v.name === this.view) ? this.view : views[0]?.name;
 
-    const result = await renderProject([{ name, src }], { view, theme });
+    // The extension's own manifest version, which the workspace guardrail
+    // pins to the engine's — so the preview's stamp is the one the CLI writes.
+    const result = await renderProject([{ name, src }], {
+      view, theme, toolVersion: this.context.extension.packageJSON.version,
+    });
     this.panel.title = `Preview — ${name}`;
     this.panel.webview.html = result.ok
       ? this.html(result.svg!, views.map((v) => v.name), view)

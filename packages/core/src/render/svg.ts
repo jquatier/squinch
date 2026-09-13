@@ -76,6 +76,15 @@ export interface RenderOpts {
    *  pick one. Applied by the emitter to both definition and reference, so
    *  nothing downstream rewrites strings. */
   defsScope?: string;
+  /** Stamp the root `<svg>` with `data-squinch="<toolVersion>"` — the one
+   *  fact a diagram needs to carry once it leaves the repo, because output is
+   *  deterministic *per tool version* and a reader of a stale render has no
+   *  other way to learn which squinch drew it. Hosts pass their own manifest
+   *  version (the CLI, the playground, the extension); core never reads one —
+   *  it is isomorphic and has no manifest to read. Omitted, nothing is
+   *  emitted and the output is byte-identical to before the option existed,
+   *  which is what keeps the goldens and every fixture snapshot unstamped. */
+  toolVersion?: string;
 }
 
 /** The accent bar down a live system card carries the brand ramp off the
@@ -1523,8 +1532,12 @@ export function renderSVG(p: Positioned, t: Theme, opts: RenderOpts = {}): strin
   height = Math.max(height, 64);
 
   const L: string[] = [];
+  // The stamp goes last: three scripts read `width="…" height="…"` as an
+  // adjacent pair off this tag, and everything else reads through `<svg[^>]*`.
+  // Appending leaves the unstamped prefix byte-identical.
+  const stamp = opts.toolVersion ? ` data-squinch="${esc(opts.toolVersion)}"` : "";
   L.push(
-    `<svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${height}" viewBox="0 0 ${width} ${height}" font-family="${t.font.css}">`,
+    `<svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${height}" viewBox="0 0 ${width} ${height}" font-family="${t.font.css}"${stamp}>`,
   );
   if (opts.embedFonts !== false) L.push(fontDefs(t, rc.faces));
   {

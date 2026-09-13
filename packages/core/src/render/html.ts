@@ -10,7 +10,8 @@
 // THE EXCEPTION, STATED. CLAUDE.md's rule is that an exported *SVG* never
 // contains JS. That still holds without qualification, including for the SVGs
 // in here: each one is what `render -o x.svg` produces (minus the defs this
-// document shares), and the script is their sibling, never their content. The
+// document shares, and minus the version stamp, which the document carries
+// once on `<html>`), and the script is their sibling, never their content. The
 // entry view is inline rather than in a <template>, so a reader whose browser
 // or wiki sanitizer drops the script still gets a correct static diagram.
 //
@@ -49,6 +50,11 @@ export interface HTMLExportOpts {
    *  walk the story. Default true; only views that declare a flow cost
    *  anything, and a frame is the same 3–9 KB as any other body. */
   flowSteps?: boolean;
+  /** Stamp the document with `data-squinch="<toolVersion>"` — once, on
+   *  `<html>`, never on the inline bodies. Fourteen copies of one fact is what
+   *  the shared-defs design exists to avoid, and a body lifted out of this
+   *  file is not a `render -o` artifact anyway. See `RenderOpts.toolVersion`. */
+  toolVersion?: string;
 }
 
 export interface HTMLExportResult {
@@ -183,6 +189,7 @@ export async function exportHTML(
     bodies,
     views: list,
     flows,
+    toolVersion: opts.toolVersion,
   });
 
   return {
@@ -209,6 +216,7 @@ function document(a: {
   bodies: Map<string, string>;
   views: NavView[];
   flows: Record<string, number>;
+  toolVersion?: string;
 }): string {
   // chrome colours come from the same theme tokens the diagram draws with, so
   // the frame around a dark diagram is dark (DESIGN §10)
@@ -220,7 +228,10 @@ function document(a: {
 
   const L: string[] = [];
   L.push("<!doctype html>");
-  L.push(`<html lang="en" data-theme="${attr(a.palette[0].name)}">`);
+  // The runtime only ever writes `dataset.theme` here, so the stamp survives
+  // every palette switch.
+  const stamp = a.toolVersion ? ` data-squinch="${attr(a.toolVersion)}"` : "";
+  L.push(`<html lang="en" data-theme="${attr(a.palette[0].name)}"${stamp}>`);
   L.push("<head>");
   L.push('<meta charset="utf-8">');
   L.push('<meta name="viewport" content="width=device-width,initial-scale=1">');

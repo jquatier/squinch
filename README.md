@@ -434,17 +434,20 @@ was run, and what came back.
 The same source, packs, and theme always produce **byte-identical SVG** — text is
 measured from a bundled metrics table, never from the environment, and CI
 byte-compares the goldens on macOS, Linux and Windows, so the guarantee holds
-across platforms and not just across runs. That makes a lockfile workflow
-possible:
+across platforms and not just across runs. That makes committed renders a
+workflow rather than a liability:
 
 ```bash
-squinch render diagrams/ --sync    # write SVGs for every view × theme, refresh squinch.lock
+squinch render diagrams/ --sync    # write SVGs for every view × theme, each stamped with the version that drew it
 squinch render diagrams/ --check   # CI gate: fail if a committed SVG is stale
 ```
 
 Commit the source *and* the render. Reviewers see the picture in the diff; CI makes
-sure it never drifts from the source. (Add `.github/actions/squinch-check` to your
-workflow to enforce it.)
+sure it never drifts from the source. Every SVG names the squinch that drew it
+(`data-squinch` on the root), so a stale render always says which version to
+compare against; `--check` compares the picture and ignores the stamp, so a tool
+upgrade only fails it when the picture actually changed. (Add
+`.github/actions/squinch-check` to your workflow to enforce it.)
 
 And when the picture changes, `squinch diff` says what changed in the
 architecture's own vocabulary, not in path data:

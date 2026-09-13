@@ -74,6 +74,11 @@ export default defineConfig({
   // build stay at "/". Runtime pack fetches are already relative
   // (src/squinch.ts), so only the bundle URLs need this.
   base: process.env.BASE_PATH || "/",
+  // The version the playground stamps on every export (`data-squinch`, see
+  // docs/notes/version-stamp.md). Core never reads a manifest, so the host
+  // hands it over; `<!--version-->` above only reaches the HTML, never the
+  // bundle. Declared for tsc in src/globals.d.ts.
+  define: { __SQUINCH_VERSION__: JSON.stringify(VERSION) },
   plugins: [react(), tailwind(), inlineMark(), analytics()],
   // AWS icons are served as static files and fetched on demand per diagram.
   publicDir: resolve(__dirname, "public"),

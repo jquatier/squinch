@@ -249,6 +249,7 @@ export function App() {
       await ensureRenderable(source);
       const r = await exportHTML([{ name: "diagram.squinch", src: source }], {
         ...(activeView ? { view: activeView } : {}),
+        toolVersion: __SQUINCH_VERSION__,
       });
       if (!r.ok || !r.html) return flash("Could not build the interactive export");
       save(URL.createObjectURL(new Blob([r.html], { type: "text/html" })), "html", "interactive");

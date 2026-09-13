@@ -23,7 +23,14 @@ engine, CLI, playground and extension all ship (see §Where things stand).
   **across platforms, not just across runs** — CI byte-compares the goldens on
   macOS, Linux and Windows. No `Date.now`/`Math.random` in the render path;
   emitted SVG always uses LF; exported SVG never contains JS (animations are CSS
-  keyframes at constant px/s).
+  keyframes at constant px/s). The tool version travels *in* the SVG: hosts
+  stamp `data-squinch` on the root by passing `toolVersion` (CLI, playground,
+  extension); core never reads its own version; goldens and the lookbook stay
+  unstamped because nothing hands them one. The stamp describes the render and
+  is not a gate input — `render --check` strips it from both sides and compares
+  the picture, so a version bump makes nothing stale
+  (`docs/notes/version-stamp.md`). There is no lockfile — `squinch.lock` was
+  write-only and drifted for two releases, and `--sync` deletes one it finds.
 - **LF is an *input* invariant too.** A `.squinch` file checked out on Windows
   arrives CRLF, and source text reaches the SVG verbatim through labels,
   descriptions and titleblock values. (The first victim was the sketch theme,
@@ -148,7 +155,7 @@ Deliberately absent: GCP. Google grants permission to *use* its Cloud icons in
 diagrams but publishes no redistribution grant, so we don't ship them.
 `packages/cli` — the `squinch` binary,
 thin wrapper over core: arg parsing, project loading (file *or* directory), and the
-lockfile model (`--sync`/`--check`). `packages/vscode` — the editor extension:
+sync/check model (`--sync` writes stamped renders, `--check` re-renders and compares). `packages/vscode` — the editor extension:
 `src/features.ts` is every piece of editor intelligence as pure functions (unit
 tested), `src/server.ts` a thin LSP shell over it, `src/extension.ts` the client
 plus preview webview; `test/server.test.ts` drives the *bundled* server over real
@@ -168,7 +175,7 @@ committed SVGs that CI verifies.
 
 Everything planned for v1 and v1.1 ships: the engine (grammar → model →
 visibility/lifting → layout → themed SVG), the CLI (check/render/diff/icons/
-init/watch + lockfile model + Actions), the SPA playground, the VS Code
+init/watch + sync/check model + Actions), the SPA playground, the VS Code
 extension + language server, five icon packs, and the light/dark pair. The acceptance
 bar — an agent producing clean diagrams from prose using only the skill + CLI —
 is certified at **29/29
@@ -287,9 +294,10 @@ The architecture it certified is still enforced by the corpus invariant sweep.
 - `node scripts/version.mjs [x.y.z]` — print, or set, the **one** version the
   whole workspace shares (root `package.json` is the truth; a guardrail asserts
   every member matches). The engine, CLI and extension are one product cut
-  three ways, so a VSIX, an npm package and a `squinch.lock` must all answer
-  "which squinch is this?" the same way. Not named `version` in the scripts
-  block on purpose — that collides with npm's own lifecycle hook.
+  three ways, so a VSIX, an npm package and the `data-squinch` stamp on a
+  render must all answer "which squinch is this?" the same way. Not named
+  `version` in the scripts block on purpose — that collides with npm's own
+  lifecycle hook.
 - Pre-commit hook (husky; `.husky/pre-commit`, wired by the root `prepare`
   script on `pnpm install`): when their sources are staged, regenerates
   `apps/spa/src/examples.ts`, `runtime.generated.ts` and
@@ -310,8 +318,10 @@ The architecture it certified is still enforced by the corpus invariant sweep.
   `render -o x.png` rasterizes via resvg (`src/raster.ts`); rebuild the CLI
   (`pnpm --filter squinch build`) before testing the binary — `bin/` runs `dist/`.
 - `node packages/cli/bin/squinch.js render examples/orders --check` — dogfood gate;
-  after any intentional renderer change, re-run `--sync` on both example projects
-  and commit the SVGs, or CI fails.
+  after any intentional renderer change, re-run `--sync` on every example
+  project and commit the SVGs, or CI fails. A version bump is not a renderer
+  change: `--check` ignores the stamp, so the committed renders keep saying
+  which version last drew them until a picture actually changes.
 - `cd packages/core && npm run grammar` — regenerate Lezer parser from
   `src/grammar/squinch.grammar`.
 - `pnpm --filter @squinch/core bench` — PLAN §2 budgets, plus drift against

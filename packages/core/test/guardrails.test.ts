@@ -216,7 +216,7 @@ describe("the workspace ships one version", () => {
   // The engine, the CLI and the extension are one product cut three ways — the
   // extension is largely the same code behind a different view — so "which
   // squinch is this?" must have one answer whether you are looking at a VSIX,
-  // an npm package or the version recorded in a squinch.lock. Independent
+  // an npm package or the `data-squinch` stamp on a rendered SVG. Independent
   // numbers would drift on the first bump and stop meaning anything.
   //
   // The root package.json is the truth; `node scripts/version.mjs <x.y.z>`
@@ -248,6 +248,24 @@ describe("the workspace ships one version", () => {
     const adrift = members.filter((m) => version(m) !== expected).map((m) => `${m} (${version(m)})`);
     expect(adrift, `version drift from the root's ${expected} — run \`node scripts/version.mjs ${expected}\``)
       .toEqual([]);
+  });
+
+  it("core never learns its own version", () => {
+    // The stamp is a render *option*: hosts pass their manifest version and
+    // core writes it. Core is isomorphic and has no manifest to read; the day
+    // it starts, the browser build and the goldens are the first casualties.
+    const offenders = tsFiles(join(pkg, "src"))
+      .filter((f) => readFileSync(f, "utf8").includes("package.json"))
+      .map((f) => f.replace(root + "/", ""));
+    expect(offenders).toEqual([]);
+  });
+
+  it("no golden carries a version stamp", () => {
+    // Goldens are rendered by core directly, with no version passed. A stamp
+    // here would mean every release reblesses eight files for nothing.
+    const dir = join(pkg, "test", "golden");
+    const stamped = readdirSync(dir).filter((f) => readFileSync(join(dir, f), "utf8").includes("data-squinch"));
+    expect(stamped).toEqual([]);
   });
 
   it("only the intended packages are publishable, and they are publish-ready", () => {

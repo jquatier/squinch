@@ -65,6 +65,7 @@ export async function compile(
     theme: opts.theme,
     flowStep: opts.flowStep,
     adaptive: opts.adaptive,
+    toolVersion: __SQUINCH_VERSION__,
   });
   return { ...result, views };
 }

@@ -124,7 +124,7 @@ and most of `Stage.tsx` disappears:
   resolve to a view (`.sq-zoom`, recomputed on every swap, since whether a path
   is a target depends on which views the file carries *and* which one you are
   in). A card that cannot be entered no longer invites the click.
-- **Not part of `--sync`.** That is the committed-artifact + lockfile model; this
+- **Not part of `--sync`.** That is the committed-artifact model; this
   is a share artifact, ~150–230 KB per project, and byte-gating it in CI before
   the format has settled would freeze it early.
 - **One body per (view × palette × flow hop).** A `show flow` view bakes one

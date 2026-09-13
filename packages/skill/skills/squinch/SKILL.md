@@ -33,7 +33,7 @@ check …` — or install it once with `npm i -g squinch`.
 Unless the user names a format or a theme, a finished diagram is **all** of:
 
 ```bash
-squinch render diagrams/ --sync              # <name>.<view>.light.svg + .dark.svg per view, + squinch.lock
+squinch render diagrams/ --sync              # <name>.<view>.light.svg + .dark.svg per view
 squinch render diagrams/ -o diagram.html     # every view, both palettes, click-to-zoom, presentation mode
 ```
 
@@ -46,9 +46,10 @@ squinch render diagrams/ -o diagram.html     # every view, both palettes, click-
   first. A project with several views is unreadable as a pile of SVGs.
 - **PNG is the exception**, not the default: render one only when the user
   asks for an image, slides, or a surface that cannot show SVG.
-- `--sync` also writes `squinch.lock` (tool version + a hash per render) so
-  `render --check` can gate CI. For a throwaway diagram that lives nowhere,
-  two explicit `--theme` renders plus the HTML are the lighter recipe.
+- Every render carries the tool version that drew it (`data-squinch` on the
+  root `<svg>`), and `render --check` re-renders and compares, so committed
+  SVGs can gate CI. For a throwaway diagram that lives nowhere, two explicit
+  `--theme` renders plus the HTML are the lighter recipe.
 
 1. Write the model first, with **no `layout` block at all** — most diagrams
    never need one. Your edges already say what the tiers are, and the engine

@@ -184,7 +184,7 @@ writeFileSync(
 );
 cpSync(join(root, "packages/core/fonts"), join(fontPkg, "fonts"), { recursive: true });
 
-// version: index.ts answers `--version` and stamps squinch.lock from
+// version: index.ts answers `--version` and stamps every SVG it renders from
 // `../package.json` relative to its own module URL. In the repo that is
 // packages/cli/package.json; in the bundle it is one level above squinch.mjs,
 // so it has to be planted or the CLI dies at startup with MODULE_NOT_FOUND —

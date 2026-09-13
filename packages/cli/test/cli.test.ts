@@ -166,18 +166,49 @@ describe("squinch cli", () => {
     expect(readFileSync(target, "utf8")).toContain("<svg");
   });
 
-  it("--sync writes both themes, a lockfile, and a picture snippet", async () => {
+  it("--sync writes both themes, stamped, and a picture snippet — no lockfile", async () => {
     const f = join(dir, "d.squinch");
     writeFileSync(f, GOOD);
     expect(await main(["render", f, "--sync"])).toBe(0);
     const files = readdirSync(dir).sort();
     expect(files).toContain("d.app.light.svg");
     expect(files).toContain("d.app.dark.svg");
-    expect(files).toContain("squinch.lock");
+    expect(files).not.toContain("squinch.lock");
     expect(out.join("\n")).toContain("prefers-color-scheme: dark");
-    const lock = JSON.parse(readFileSync(join(dir, "squinch.lock"), "utf8"));
-    expect(Object.keys(lock.files)).toHaveLength(2);
-    expect(lock.version).toBeDefined(); // determinism is per tool version
+    // determinism is per tool version, and the version travels in the render
+    const manifest = JSON.parse(readFileSync(new URL("../package.json", import.meta.url), "utf8"));
+    for (const svg of ["d.app.light.svg", "d.app.dark.svg"])
+      expect(readFileSync(join(dir, svg), "utf8")).toMatch(
+        new RegExp(`^<svg[^>]*\\sdata-squinch="${manifest.version.replace(/\./g, "\\.")}">`),
+      );
+  });
+
+  it("--sync removes the lockfile an older squinch left behind, and says so", async () => {
+    // nothing reads it, and left behind it asserts a version forever
+    const f = join(dir, "d.squinch");
+    writeFileSync(f, GOOD);
+    writeFileSync(join(dir, "squinch.lock"), JSON.stringify({ version: "0.2.0", files: { "d.app.light.svg": "abc" } }));
+    expect(await main(["render", f, "--sync"])).toBe(0);
+    expect(existsSync(join(dir, "squinch.lock"))).toBe(false);
+    expect(err.join("\n")).toContain("removed");
+    expect(err.join("\n")).toContain("data-squinch");
+    // idempotent — watch re-runs the sync branch on every change
+    err = [];
+    expect(await main(["render", f, "--sync"])).toBe(0);
+    expect(err.join("\n")).not.toContain("removed");
+  });
+
+  it("--sync leaves a squinch.lock it did not write alone", async () => {
+    const f = join(dir, "d.squinch");
+    writeFileSync(f, GOOD);
+    writeFileSync(join(dir, "squinch.lock"), "not ours\n");
+    expect(await main(["render", f, "--sync"])).toBe(0);
+    expect(readFileSync(join(dir, "squinch.lock"), "utf8")).toBe("not ours\n");
+    expect(err.join("\n")).not.toContain("removed");
+    // --check never writes to the checkout, so it never removes one either
+    writeFileSync(join(dir, "squinch.lock"), JSON.stringify({ version: "0.2.0", files: {} }));
+    expect(await main(["render", f, "--check"])).toBe(0);
+    expect(existsSync(join(dir, "squinch.lock"))).toBe(true);
   });
 
   it("--check passes when in sync and fails when stale", async () => {
@@ -190,6 +221,32 @@ describe("squinch cli", () => {
     err = [];
     expect(await main(["render", f, "--check"])).toBe(1);
     expect(err.join("\n")).toContain("--sync");
+  });
+
+  it("--check compares the picture, not the version that drew it", async () => {
+    // the stamp describes the render; it is not an input to "is this stale?".
+    // A file drawn by an older squinch — or one from before the stamp existed
+    // — that shows the same picture is in sync, and a version bump changes
+    // nothing here
+    const f = join(dir, "d.squinch");
+    writeFileSync(f, GOOD);
+    await main(["render", f, "--sync"]);
+    const manifest = JSON.parse(readFileSync(new URL("../package.json", import.meta.url), "utf8"));
+    const light = join(dir, "d.app.light.svg");
+    const svg = readFileSync(light, "utf8");
+    expect(svg).toContain(`data-squinch="${manifest.version}"`);
+
+    writeFileSync(light, svg.replace(`data-squinch="${manifest.version}"`, 'data-squinch="0.0.1"'));
+    expect(await main(["render", f, "--check"])).toBe(0);
+
+    writeFileSync(light, svg.replace(` data-squinch="${manifest.version}"`, ""));
+    expect(await main(["render", f, "--check"])).toBe(0);
+
+    // …but the picture still has to match
+    writeFileSync(light, svg.replace(` data-squinch="${manifest.version}"`, "").replace("</svg>", "<!-- x --></svg>"));
+    err = [];
+    expect(await main(["render", f, "--check"])).toBe(1);
+    expect(err.join("\n")).toContain("stale");
   });
 
   it("--check fails when the committed SVG is missing entirely", async () => {
@@ -487,6 +544,9 @@ describe("round-3 gauntlet findings", () => {
     expect(html).toContain('data-key="inner|light"');
     expect(html).toContain('id="sq-data"');
     expect(html.match(/<script/g)).toHaveLength(2);
+    // the version stamp: once, on <html>, never on a body
+    expect(html.match(/data-squinch=/g)).toHaveLength(1);
+    expect(html).toMatch(/<html [^>]*data-squinch="/);
   });
 
   it("refuses --adaptive for html, and says why", async () => {
@@ -646,10 +706,10 @@ describe("watchPaths survives an atomic save", () => {
 });
 
 describe("the reported version is the real one", () => {
-  // `squinch.lock` records the tool version, and the determinism contract pins
-  // output per version — so a literal in the source would keep claiming
-  // whatever it said at the time through every release, and a reader could not
-  // tell which renderer produced their SVGs.
+  // Every rendered SVG carries the tool version as `data-squinch`, and the
+  // determinism contract pins output per version — so a literal in the source
+  // would keep claiming whatever it said at the time through every release,
+  // and a reader could not tell which renderer produced their SVGs.
   const manifest = JSON.parse(
     readFileSync(new URL("../package.json", import.meta.url), "utf8"),
   ) as { version: string };
@@ -659,12 +719,12 @@ describe("the reported version is the real one", () => {
     expect(out.join("\n").trim()).toBe(manifest.version);
   });
 
-  it("the lockfile records it too", async () => {
+  it("every rendered SVG records it", async () => {
     const f = join(dir, "v.squinch");
     writeFileSync(f, GOOD);
-    expect(await main(["render", f, "--sync"])).toBe(0);
-    const lock = JSON.parse(readFileSync(join(dir, "squinch.lock"), "utf8")) as { version: string };
-    expect(lock.version).toBe(manifest.version);
+    const target = join(dir, "v.svg");
+    expect(await main(["render", f, "-o", target])).toBe(0);
+    expect(readFileSync(target, "utf8")).toContain(`data-squinch="${manifest.version}"`);
   });
 
   it("is read from the manifest, not retyped", () => {

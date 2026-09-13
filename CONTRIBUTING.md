@@ -85,7 +85,7 @@ commit the result in the same change:
 | Committed file | Regenerate with |
 | --- | --- |
 | `lookbook/out/*.svg`, `lookbook/README.md` | `npx tsx lookbook/build.ts` |
-| `examples/**/*.svg`, `squinch.lock` | `node packages/cli/bin/squinch.js render examples/<project> --sync` |
+| `examples/**/*.svg` | `node packages/cli/bin/squinch.js render examples/<project> --sync` |
 | `apps/spa/src/examples.ts` | `pnpm --filter @squinch/spa sync-examples` |
 | `packages/core/src/render/html/runtime.generated.ts` | `cd packages/core && npx tsx scripts/gen-html-runtime.ts` |
 | `packages/core/src/grammar/parser.js` | `cd packages/core && npm run grammar` |
@@ -102,8 +102,9 @@ one drifts. Never hand-edit a `version` field:
 node scripts/version.mjs 0.1.0
 ```
 
-The CLI reports it (`squinch --version`) and writes it into `squinch.lock`, and
-the extension's VSIX carries it, so all three agree by construction.
+The CLI reports it (`squinch --version`) and stamps it on every SVG it renders
+(`data-squinch` on the root), and the extension's VSIX carries it, so all three
+agree by construction.
 
 ### Golden SVGs
 
