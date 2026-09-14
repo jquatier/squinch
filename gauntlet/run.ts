@@ -214,12 +214,16 @@ writeFileSync(
     die(`@resvg/resvg-js not resolvable (${(err as Error).message.split("\n")[0]})`);
   }
   plant(wrapper, "@resvg/resvg-js");
-  const native = `@resvg/resvg-js-${process.platform}-${process.arch}`;
-  try {
-    plant(dirname(createRequire(join(wrapper, "package.json")).resolve(`${native}/package.json`)), native);
-  } catch (err) {
-    die(`${native} not resolvable (${(err as Error).message.split("\n")[0]})`);
-  }
+  // Linux builds carry a libc suffix the platform/arch pair does not
+  // (`linux-x64-gnu`, `linux-x64-musl`); macOS ones do not. Try the bare name
+  // first, then the suffixed ones, and plant whichever the wrapper resolves.
+  const base = `@resvg/resvg-js-${process.platform}-${process.arch}`;
+  const wrapperRequire = createRequire(join(wrapper, "package.json"));
+  const native = [base, `${base}-gnu`, `${base}-musl`].find((pkg) => {
+    try { wrapperRequire.resolve(`${pkg}/package.json`); return true; } catch { return false; }
+  });
+  if (!native) die(`${base} (or its -gnu/-musl variant) not resolvable from ${wrapper}`);
+  plant(dirname(wrapperRequire.resolve(`${native}/package.json`)), native);
 }
 
 // Smoke test. esbuild silently producing a subtly different CLI is the
