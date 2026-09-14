@@ -32,9 +32,8 @@ export interface VNode {
    *  thing itself, so a container carries it for its whole card. */
   external?: boolean;
   description?: string;
-  /** A leaf's own second line, always drawn — under `show descriptions` the
-   *  description takes the slot instead (DESIGN §3). Leaves only: a person has
-   *  no line under its name, and a card's is its tagline. */
+  /** A leaf's own second line, always drawn (DESIGN §3). Leaves only: a
+   *  person has no line under its name, and a card's is its tagline. */
   subtitle?: string;
   frame?: string; // parent frame path when inside an expanded container
   /** Effective hue: the view's `color #tag` if one matches, else the element's

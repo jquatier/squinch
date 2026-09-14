@@ -122,7 +122,6 @@ view orders-pci {
   scope orders
   title "Order Service — PCI surface"
   highlight #pci
-  show descriptions
   note below db "Card tokens only; PAN never stored"
   note top-right "Audit scope: Q3" { style: warning }
 }

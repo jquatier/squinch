@@ -44,7 +44,6 @@ export interface RenderOpts {
    *  the one label a hue can honestly carry. */
   colors?: { tag: string; hue: Hue }[];
   notes?: SNote[];
-  showDescriptions?: boolean;
   /** `legend auto` — a key of the styles this render actually uses. */
   legend?: boolean;
   /** drafting-style corner block (bottom-right), free-form key/values */
@@ -478,7 +477,7 @@ function surfaceRect(
   );
 }
 
-function leaf(n: PNode, rc: RC, opts: RenderOpts, dimmed: boolean, L: string[]) {
+function leaf(n: PNode, rc: RC, dimmed: boolean, L: string[]) {
   const { t } = rc;
   const op = dimmed ? ` opacity="${DIM}"` : "";
   const ctx = n.kind === "context-leaf";
@@ -499,19 +498,18 @@ function leaf(n: PNode, rc: RC, opts: RenderOpts, dimmed: boolean, L: string[]) 
   L.push(iconTile(n.icon, px, py, rc, ctx));
   if (n.badge) L.push(badgeMarkup(n.badge, px, py, rc));
   const maxLabel = n.w - PAD - PLATE - PAD - PAD;
-  // The second line. A description the view asked to show wins — the view
-  // said so explicitly, and a leaf has room for one line under its label.
-  // Otherwise the leaf's own `subtitle:`, always on, a step quieter than a
-  // description: it is a caption (runtime, owner, region), not prose.
-  const desc = opts.showDescriptions && n.description ? n.description : undefined;
-  const second = desc ?? n.subtitle;
+  // The second line is the leaf's own `subtitle:` — a caption (runtime,
+  // owner, region), a step quieter than the label. A description never draws
+  // here: it is prose, and one line at 11px held thirty characters of it
+  // before the ellipsis. It stays the card's tagline and the hover card's text.
+  const second = n.subtitle;
   const labelY = second ? n.y + n.h / 2 - 1 : n.y + n.h / 2 + 5;
   L.push(
     `<text x="${px + PLATE + PAD}" y="${labelY}" font-size="${rc.fx(13)}" font-weight="500" fill="${ctx ? t.muted : t.ink}">${esc(fit(n.label, maxLabel, rc.fx(13), "500", rc.fam))}</text>`,
   );
   if (second)
     L.push(
-      `<text x="${px + PLATE + PAD}" y="${n.y + n.h / 2 + 15}" font-size="${rc.fx(11)}" fill="${desc ? t.muted : t.faint}">${esc(fit(second, maxLabel, rc.fx(11), "400", rc.fam))}</text>`,
+      `<text x="${px + PLATE + PAD}" y="${n.y + n.h / 2 + 15}" font-size="${rc.fx(11)}" fill="${t.faint}">${esc(fit(second, maxLabel, rc.fx(11), "400", rc.fam))}</text>`,
     );
   L.push(`</g>`);
 }
@@ -520,7 +518,7 @@ function leaf(n: PNode, rc: RC, opts: RenderOpts, dimmed: boolean, L: string[]) 
  *  starts the story separates from the services by shape before the icon is
  *  read. No border, a round avatar, and a caption where a service carries its
  *  description. */
-function person(n: PNode, rc: RC, opts: RenderOpts, dimmed: boolean, L: string[]) {
+function person(n: PNode, rc: RC, dimmed: boolean, L: string[]) {
   const { t } = rc;
   const op = dimmed ? ` opacity="${DIM}"` : "";
   L.push(`<g data-path="${esc(n.path)}" data-kind="${n.kind}"${op}>`);
@@ -546,14 +544,10 @@ function person(n: PNode, rc: RC, opts: RenderOpts, dimmed: boolean, L: string[]
     );
   const tx = n.x + PAD + r * 2 + PAD;
   const maxLabel = n.w - (tx - n.x) - PAD;
-  const withDesc = opts.showDescriptions && n.description;
+  // a name and nothing under it: an actor tile carries no caption line
   L.push(
-    `<text x="${tx}" y="${withDesc ? cy - 1 : cy + 5}" font-size="${rc.fx(13)}" font-weight="500" fill="${t.ink}">${esc(fit(n.label, maxLabel, rc.fx(13), "500", rc.fam))}</text>`,
+    `<text x="${tx}" y="${cy + 5}" font-size="${rc.fx(13)}" font-weight="500" fill="${t.ink}">${esc(fit(n.label, maxLabel, rc.fx(13), "500", rc.fam))}</text>`,
   );
-  if (withDesc)
-    L.push(
-      `<text x="${tx}" y="${cy + 15}" font-size="${rc.fx(11)}" fill="${t.muted}">${esc(fit(n.description!, maxLabel, rc.fx(11), "400", rc.fam))}</text>`,
-    );
   L.push(`</g>`);
 }
 
@@ -1463,8 +1457,8 @@ export function renderSVG(p: Positioned, t: Theme, opts: RenderOpts = {}): strin
   for (const n of p.nodes) {
     const dimmed = !nodeMatches(n);
     if (n.kind === "card" || n.kind === "context-card") card(n, rc, dimmed, body);
-    else if (n.kind === "person") person(n, rc, opts, dimmed, body);
-    else leaf(n, rc, opts, dimmed, body);
+    else if (n.kind === "person") person(n, rc, dimmed, body);
+    else leaf(n, rc, dimmed, body);
     if (!dimmed && hl.length > 0)
       body.push(
         `<rect x="${n.x - 3}" y="${n.y - 3}" width="${n.w + 6}" height="${n.h + 6}" rx="${R_NODE + 3}" fill="none" stroke="${t.accent}" stroke-width="1.5" opacity="0.8"/>`,

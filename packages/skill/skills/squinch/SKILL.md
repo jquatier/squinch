@@ -233,9 +233,6 @@ view shop {                 // name matching a system = that system's view
                             // shows EVERYTHING; "only the PCI parts" is `only`
   color #pci red            // colour everything tagged #pci, dim nothing —
                             // one tag per line; wins over an element's own color:
-  show descriptions         // inline description lines under labels — clipped
-                            // to card width with an ellipsis and nothing warns
-                            // you, so keep them to ~4 words
   note right-of db "Single-table design; see ADR-42"
   note top-right "Audit scope: Q3" { style: warning }
   context off               // drop the muted neighbour cards this view earned
@@ -430,6 +427,7 @@ view detail {
 | "`x` connects to itself — a self-edge is not drawn" warning | Squinch draws connections between things, not loops on one thing. Put it on the node: `note right-of x "retries"`, or fold it into the label |
 | "label is N characters — it will be cut off" warning | Labels wrap to two lines and then ellipsize, so the reader loses the tail. Keep it a short noun phrase and move the detail into `description:` |
 | "subtitle is N characters — it will be cut off" warning | A subtitle is one line and widens the card to fit it. Keep it to a few words — runtime, owner, region — and move the rest into `description:` |
+| "`show descriptions` no longer draws anything" warning | Descriptions are prose: they show as a system's card tagline and in hover, never inside a leaf. Drop the line, and give the leaves a short `subtitle:` — runtime, owner, region — for the line under the label |
 | "`subtitle` is a leaf attribute" warning | Only a leaf draws a line under its name. On a system or container that line is `description:` (it shows on the collapsed card); a `person` has none |
 | "view `v` has nothing to draw" warning | Everything got filtered out. Check `scope` (a leaf has no insides — scope a system, not a node), then `include`/`only`/`exclude`. An empty `system x { }` does this too: make it a node instead |
 | "highlight #x: nothing visible here is tagged #x" warning | Everything would dim and nothing stand out. The tag is misspelled, or the things carrying it are not in this view — check the tag against your `tags:`, and the view's `include`/`only` |

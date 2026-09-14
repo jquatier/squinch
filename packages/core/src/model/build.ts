@@ -1191,7 +1191,7 @@ export function buildProject(input: ProjectFile[]): BuildResult {
     const view: SView = {
       name,
       only: [], include: [], includeStar: false, exclude: [], expand: [], expandStar: false, detail: [],
-      context: "auto", highlight: [], colors: [], showDescriptions: false, legend: false, notes: [],
+      context: "auto", highlight: [], colors: [], legend: false, notes: [],
       layout: { place: [], routes: [], align: [], channels: [] },
       loc: ctx.loc(v), file: ctx.name,
     };
@@ -1295,7 +1295,17 @@ export function buildProject(input: ProjectFile[]): BuildResult {
     }
     for (const show of body.getChildren("ShowStmt")) {
       const flowKw = show.getChild("flow");
-      if (!flowKw) { view.showDescriptions = true; continue; }
+      if (!flowKw) {
+        // Retired (2026-09): a description is prose, and a leaf's one line
+        // under its label held about thirty characters of it before the
+        // ellipsis — "Single-table d…" told the reader less than the subtitle
+        // it displaced. Descriptions keep their real jobs (card tagline,
+        // hover); the caption slot belongs to `subtitle:`. The statement
+        // still parses so the fix can be named, and never draws.
+        warn(ctx, show, "`show descriptions` no longer draws anything",
+          "descriptions are prose — they stay on a card's tagline and in hover; a leaf's short second line is `subtitle:`");
+        continue;
+      }
       const idNode = show.getChildren("Ident").pop();
       if (!idNode) continue;
       const flowId = ctx.text(idNode);
@@ -1490,7 +1500,7 @@ export function buildProject(input: ProjectFile[]): BuildResult {
       scope: path,
       auto: true,
       only: [], include: [], includeStar: false, exclude: [], expand: [], expandStar: false, detail: [],
-      context: "auto", highlight: [], colors: [], showDescriptions: false, legend: false, notes: [],
+      context: "auto", highlight: [], colors: [], legend: false, notes: [],
       layout: { place: [], routes: [], align: [], channels: [] },
       loc: model.containers.get(path)!.loc,
       file: model.containers.get(path)!.file,

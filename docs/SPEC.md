@@ -104,15 +104,16 @@ a pure function of its source (SPEC §determinism), so a field that read the
 working tree or the clock would make two renders of one file disagree.
 
 `description` and `tags` are available on **every** node, container, and edge.
-Descriptions render as the card tagline, in hover cards, and inline via a view's
-`show descriptions` toggle. Container tags are inherited by everything inside
-(tag `shop` with `#pci` and all its children match `#pci`).
+A description is prose: it renders as a container's card tagline and in hover
+cards, and never inside a leaf — one line at 11px held about thirty characters
+of it, so the old `show descriptions` view toggle is retired and warns.
+Container tags are inherited by everything inside (tag `shop` with `#pci` and
+all its children match `#pci`).
 
 `subtitle` is a leaf's own second line — a few words on what it runs on, who
 owns it or where it lives — drawn always, a step quieter than a description.
 Leaves only: a `person` has no line under its name and a card's is its
-`description`, so the check warns on both rather than drawing nothing. Under
-a view's `show descriptions` the description takes the slot. Keep it short:
+`description`, so the check warns on both rather than drawing nothing. Keep it short:
 past 24 characters the check warns, and a leaf widens to fit what it holds.
 Any other key on a leaf warns as unknown, with a did-you-mean — `tech:` and
 `technology:` point at `subtitle:`.
@@ -363,7 +364,6 @@ view shop {
                                 // SPA renders tag chips for interactive toggling
   color #pci red                // colour everything carrying the tag (§3 Colour);
                                 // one tag per line, repeat for more
-  show descriptions             // render descriptions inline (off by default)
   show flow checkout            // ①②③ badges along a declared flow
   legend auto                   // auto | off — key of what this view earned:
                                 // sync/async, boundaries, flow, tag colours
@@ -646,7 +646,7 @@ viewstmt    = "title" string | "theme" ident | "scope" path
             | "context" ( "auto" | "off" )
             | "highlight" tag { tag }
             | "color" tag ident
-            | "show" ( "descriptions" | "flow" ident )
+            | "show" "flow" ident
             | "legend" ( "auto" | "off" ) | "titleblock" attrs
             | "note" anchor string [ attrs ]
             | "layout" "{" { layoutstmt } "}" ;
@@ -890,7 +890,6 @@ view orders.pci-review {
   title "PCI Surface"
   highlight #pci                 // create + db glow; everything else dims
   color #pci red                 // …and wear red, so the lens survives a print
-  show descriptions
   note right-of db "Encrypted at rest (KMS); see ADR-31"
   note top-right "Audit scope: Q3 2026" { style: warning }
 }

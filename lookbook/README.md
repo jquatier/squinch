@@ -126,9 +126,17 @@ Source: [`cases/12-lifted-aggregate.squinch`](cases/12-lifted-aggregate.squinch)
 
 ## Descriptions
 
-`description:` carries a node's one-line explanation and `show descriptions` puts it under the label. It is a per-view choice, so the same source renders as a bare map or an annotated one.
+`description:` is prose — a sentence about what a thing does. It shows as a system's tagline on its collapsed card, in hover cards and in `squinch diff`; it never draws inside a leaf, which has room for a caption, not a sentence. That caption is `subtitle:`. The landscape shows the taglines; the scoped view shows the same leaves with their subtitles.
 
 Source: [`cases/13-descriptions.squinch`](cases/13-descriptions.squinch)
+
+**`landscape`**
+
+| light | dark |
+|---|---|
+| ![](out/13-descriptions.landscape.light.svg) | ![](out/13-descriptions.landscape.dark.svg) |
+
+**`obs`**
 
 | light | dark |
 |---|---|
@@ -468,18 +476,10 @@ Source: [`cases/39-wrap.squinch`](cases/39-wrap.squinch)
 
 ## Subtitles
 
-`subtitle:` — a leaf's short second line, always drawn: what it runs on, who owns it, where it lives. A caption, not prose, so it sets a step quieter than a description and the check warns past 24 characters. There is one slot under the label: a view's `show descriptions` puts the description there instead, which is what the second view shows on the same leaves.
+`subtitle:` — a leaf's short second line, always drawn: what it runs on, who owns it, where it lives. A caption, not prose, so it sets a step quieter than a label and the check warns past 24 characters. A `description:` on the same leaf never draws inside it — that is prose, for the hover card — so the two never compete for the line.
 
 Source: [`cases/40-subtitles.squinch`](cases/40-subtitles.squinch)
-
-**`captions`**
 
 | light | dark |
 |---|---|
 | ![](out/40-subtitles.captions.light.svg) | ![](out/40-subtitles.captions.dark.svg) |
-
-**`described`**
-
-| light | dark |
-|---|---|
-| ![](out/40-subtitles.described.light.svg) | ![](out/40-subtitles.described.dark.svg) |

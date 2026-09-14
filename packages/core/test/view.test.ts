@@ -139,7 +139,7 @@ pay.api -> ledger.post
     const g = resolveView(m, {
       name: "s", scope: "s",
       only: [], include: [], includeStar: false, exclude: [], expand: [], detail: [],
-      context: "auto", highlight: [], showDescriptions: false, notes: [],
+      context: "auto", highlight: [], notes: [],
       layout: { place: [], routes: [] },
       loc: { from: 0, to: 0, line: 1, col: 1 },
     } as any);

@@ -47,7 +47,6 @@ analyst -> lakehouse.wh "SQL queries"
 view main {
   title "Databricks Lakehouse Architecture"
   expand lakehouse
-  show descriptions
   titleblock {
     subtitle: "Medallion architecture"
     version: "2026-09"

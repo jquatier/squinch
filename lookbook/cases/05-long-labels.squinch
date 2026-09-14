@@ -17,5 +17,4 @@ system verbose "Enterprise Integration Middleware Platform" {
 }
 
 view verbose {
-  show descriptions
 }

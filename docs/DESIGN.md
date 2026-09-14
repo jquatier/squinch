@@ -101,10 +101,10 @@ it gets none of the marks that imply one.
 - **Leaf node**: height `64`, width snapped to tiers. Tile left-aligned at
   padding `12`, label 13/500, and under it one optional line at 11: the leaf's
   own `subtitle:` in `faint` — a caption (runtime, owner, region), always
-  drawn — or, when the view says `show descriptions`, its description in
-  `muted`. One slot, never both: the view asked for the description
-  explicitly, so it wins. A subtitle widens the tier the way a card's tagline
-  does, which is why the check nudges past 24 characters. An optional
+  drawn. A description never draws here: it is prose, and one line held about
+  thirty characters of it before the ellipsis, so it stays the card's tagline
+  and the hover card's text. A subtitle widens the tier the way a card's
+  tagline does, which is why the check nudges past 24 characters. An optional
   **node badge** (`badge:`) sits on the tile's bottom-right corner: `22×22`,
   radius 5, surface fill + border stroke, holding a `14×14` mark in its own
   brand colour, inset so it clears the card edge by 5.

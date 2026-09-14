@@ -93,16 +93,24 @@ describe("subtitle (2026-09)", () => {
   const doc = (attrs: string, view = "") =>
     `pack aws\nsystem s "S" {\n a = aws/lambda "API" ${attrs}\n b = aws/dynamodb "DB" { description: "single table" }\n a -> b\n}\nview v {\n scope s${view}\n}`;
 
-  it("draws under the label in the faint tone, and description takes the slot under show descriptions", async () => {
-    const [plain, sub, shown] = await allDistinct("subtitle", {
+  it("draws under the label in the faint tone; a description never draws inside a leaf", async () => {
+    const [plain, sub] = await allDistinct("subtitle", {
       plain: doc(""),
-      sub: doc(`{ subtitle: "Lambda · Node 20" }`),
-      shown: doc(`{ subtitle: "Lambda · Node 20", description: "handles orders" }`, "\n show descriptions"),
+      sub: doc(`{ subtitle: "Lambda · Node 20", description: "handles orders" }`),
     }, "v");
     expect(plain).not.toContain("Node 20");
     expect(sub).toMatch(/<text [^>]*font-size="11" fill="#8A8880">Lambda · Node 20<\/text>/);
-    expect(shown).toContain(">handles orders</text>");
-    expect(shown).not.toContain("Node 20");
+    expect(sub).not.toContain("handles orders");
+  });
+
+  it("`show descriptions` is retired: it warns, names subtitle:, and draws nothing", async () => {
+    const r = await render(doc(`{ subtitle: "Lambda · Node 20", description: "handles orders" }`, "\n show descriptions"), { theme: "light", view: "v" });
+    expect(r.ok).toBe(true);
+    const w = r.diagnostics.find((d) => d.message.includes("no longer draws"))!;
+    expect(w.severity).toBe("warning");
+    expect(w.fix).toContain("subtitle:");
+    expect(r.svg).toContain("Node 20");
+    expect(r.svg).not.toContain("handles orders");
   });
 
   it("widens the tier for a long subtitle, the way a card's tagline does", async () => {

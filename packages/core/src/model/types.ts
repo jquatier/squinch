@@ -144,7 +144,6 @@ export interface SView {
    *  A lens, so it overrides an element's own `color:`; declaration order,
    *  last wins when two match one element (and that is a warning). */
   colors: { tag: string; hue: Hue; loc: Loc }[];
-  showDescriptions: boolean;
   showFlow?: string; // flow id — render ①②③ badges on that flow's edges
   legend: boolean; // `legend auto` — key of the styles actually used (off by default)
   titleblock?: Record<string, string>; // drafting corner block key/values

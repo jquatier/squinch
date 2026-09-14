@@ -46,7 +46,6 @@ view orders-pci {
   scope orders
   title "PCI Surface"
   highlight #pci
-  show descriptions
   note right-of db "Encrypted at rest (KMS); see ADR-31"
   note top-right "Audit scope: Q3 2026" { style: warning }
 }

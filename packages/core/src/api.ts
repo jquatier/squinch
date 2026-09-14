@@ -269,7 +269,7 @@ export async function renderProject(
     view = {
       name: first ?? "default", scope: first,
       only: [], include: [], includeStar: false, exclude: [], expand: [], expandStar: false, detail: [],
-      context: "auto", highlight: [], colors: [], showDescriptions: false, legend: false, notes: [],
+      context: "auto", highlight: [], colors: [], legend: false, notes: [],
       layout: { place: [], routes: [], align: [], channels: [] },
       loc: { from: 0, to: 0, line: 1, col: 1 },
     };
@@ -312,7 +312,6 @@ export async function renderProject(
       highlight: view.highlight,
       colors: view.colors,
       notes: view.notes,
-      showDescriptions: view.showDescriptions,
       legend: view.legend,
       titleblock: view.titleblock,
       title: view.title,

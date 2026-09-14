@@ -79,5 +79,4 @@ view landscape {
 view orders {
   title "Orders Service Detail"
   scope orders
-  show descriptions
 }

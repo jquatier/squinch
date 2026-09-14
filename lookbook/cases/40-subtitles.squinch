@@ -1,8 +1,8 @@
 // `subtitle:` — a leaf's short second line, always drawn: what it runs on, who
 // owns it, where it lives. A caption, not prose, so it sets a step quieter than
-// a description and the check warns past 24 characters. There is one slot
-// under the label: a view's `show descriptions` puts the description there
-// instead, which is what the second view shows on the same leaves.
+// a label and the check warns past 24 characters. A `description:` on the same
+// leaf never draws inside it — that is prose, for the hover card — so the two
+// never compete for the line.
 pack aws
 
 system shop "Storefront" {
@@ -20,10 +20,4 @@ ops -> shop.app "deploys"
 view captions {
   title "Subtitles"
   scope shop
-}
-
-view described {
-  title "Descriptions win"
-  scope shop
-  show descriptions
 }

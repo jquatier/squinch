@@ -24,8 +24,7 @@
 <g data-path="verbose.orch" data-kind="leaf">
 <rect x="156" y="134" width="240" height="64" rx="4" fill="url(#sq-surface)" stroke="#3B3B40" stroke-width="1" filter="url(#sq-shadow)"/>
 <rect x="168" y="146" width="40" height="40" rx="6" fill="#2F2F34"/><clipPath id="clip-sq-aws-step-functions-175-153-26"><rect x="175" y="153" width="26" height="26" rx="3"/></clipPath><g clip-path="url(#clip-sq-aws-step-functions-175-153-26)"><use href="#sq-aws-step-functions" x="175" y="153" width="26" height="26"/></g>
-<text x="220" y="165" font-size="13" font-weight="500" fill="#EDEDEA">Long-Running Regulator…</text>
-<text x="220" y="181" font-size="11" fill="#9C9B94">Coordinates seventeen legac…</text>
+<text x="220" y="171" font-size="13" font-weight="500" fill="#EDEDEA">Long-Running Regulator…</text>
 </g>
 <g data-path="verbose.db" data-kind="leaf">
 <rect x="156" y="236" width="240" height="64" rx="4" fill="url(#sq-surface)" stroke="#3B3B40" stroke-width="1" filter="url(#sq-shadow)"/>

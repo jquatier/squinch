@@ -332,7 +332,7 @@ export function diffModels(before: SModel, after: SModel): DiffResult {
     JSON.stringify({
       title: v.title, theme: v.theme, highlight: [...v.highlight].sort(),
       colors: (v.colors ?? []).map((c) => [c.tag, c.hue]),
-      showDescriptions: v.showDescriptions, showFlow: v.showFlow,
+      showFlow: v.showFlow,
       legend: v.legend, titleblock: v.titleblock,
       notes: v.notes.map((n) => ({ anchor: n.anchor, text: n.text, style: n.style })),
       layout: {

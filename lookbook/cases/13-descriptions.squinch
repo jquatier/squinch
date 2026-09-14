@@ -1,19 +1,26 @@
-// `description:` carries a node's one-line explanation and `show descriptions`
-// puts it under the label. It is a per-view choice, so the same source renders
-// as a bare map or an annotated one.
+// `description:` is prose — a sentence about what a thing does. It shows as a
+// system's tagline on its collapsed card, in hover cards and in `squinch diff`;
+// it never draws inside a leaf, which has room for a caption, not a sentence.
+// That caption is `subtitle:`. The landscape shows the taglines; the scoped
+// view shows the same leaves with their subtitles.
 pack aws
 
 system obs "Observability" {
+  description: "Metrics and SLO burn alarms"
   agent = aws/lambda "Collector" {
+    subtitle: "Lambda · every 60s"
     description: "Scrapes and batches metrics"
   }
   stream = aws/kinesis "Firehose" {
+    subtitle: "Kinesis Firehose"
     description: "Buffered delivery stream"
   }
   store = aws/s3 "Metrics Lake" datastore {
+    subtitle: "S3 · daily partitions"
     description: "Partitioned by day and service"
   }
   alarm = aws/lambda "Alerter" {
+    subtitle: "Lambda · hourly"
     description: "Evaluates SLO burn rates"
   }
 
@@ -22,6 +29,19 @@ system obs "Observability" {
   store ~> alarm "hourly scan"
 }
 
+system pager "On-call" {
+  description: "Pages the team that owns the burning SLO"
+  route = aws/sns "Escalation" { subtitle: "SNS topic" }
+}
+
+obs.alarm ~> pager.route "pages"
+
+view landscape {
+  title "Descriptions as taglines"
+  include *
+}
+
 view obs {
-  show descriptions
+  title "Subtitles on the leaves"
+  scope obs
 }
