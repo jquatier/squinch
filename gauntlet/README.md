@@ -5,7 +5,7 @@ Thirty-three natural-language architecture prompts. An agent, armed with only
 must produce a clean diagram for each. **v1 ships at ≥ 16/20 with zero human
 layout fixes** (the original ≥ 8/10 bar, at the current prompt count).
 
-> **Current standing: 33/33 on the deep scorer, 19 of 33 clean on the first
+> **Current standing: 33/33 on the deep scorer, 24 of 33 clean on the first
 > `check`.** The
 > solutions those agents wrote are committed in `solutions/` and re-scored by CI
 > on every push, so the claim is inspectable rather than asserted.
@@ -65,54 +65,46 @@ nothing.
 
 ## Latest round
 
-**Round 23 — 33/33 on the deep scorer; 19 of 33 clean on the first `check`**
-(2026-09-13, Sonnet). Run to validate the layout v1.2 work before its release
-— a container's own `layout { }` block, hints reaching inside expanded
-containers, per-container `direction` and `wrap` — with four new prompts
-written to call for those shapes in plain language (30–33) and a scorer that
-reads the answer off the laid-out picture: nodes above, beside and in a row by
-label, and the view's aspect ratio, however the author got there. Round 22,
-the day before on the same twenty-nine, found two things the release could
-not ship with, both fixed in its commit: a container block contradicting its
-own edges passed `check` when no declared view opened the container, and the
-interactive export refused a flat model nine agents wrote. Neither recurred.
+**Round 24 — 33/33 on the deep scorer; 24 of 33 clean on the first `check`**
+(2026-09-14, Sonnet). Run to validate the node-and-edge pass before it
+ships: `subtitle:` on leaves, frame headers that echo the card, beaded async
+dashes, attribute-key checks on every block, and the retirement of `show
+descriptions`. First round run on Linux — it died at the bundling step until
+the resvg lookup learned that the native package carries a libc suffix there.
 
-**The new constructs are what cold agents reach for.** Twelve of thirty-three
-put a `layout { }` inside a system, three of them with `direction right`, two
-with `place`, one with `cols`; one more named interior paths in a view's
-`rows`. The pipeline prompt got `direction right` in the container's block on
-the first try; the checkout prompt got a container block whose tiers held in
-both of its views; the batch-job prompt got `wrap 5`; the render-farm prompt
-got `wrap 4` — after the four-prompt dry run had produced a hand-written
-`rows` fold with the detouring edges `wrap` exists to avoid, and one sentence
-in the `rows` bullet fixed that.
+**The new field is what cold agents reach for.** Fourteen of thirty-three
+wrote `subtitle:` unprompted, forty-six of them, all captions of the shape
+the skill shows (`Lambda`, `Ingest & normalize`, `Runs nightly`); none wrote
+`show descriptions`, and no solution tripped an attribute-key warning.
+Nineteen put a `layout { }` inside a container.
 
 **Three findings, all fixed in this commit:**
 
-- *A pipeline with a side lookup stepped off its row.* The agent's `direction
-  right` was correct, and ELK centred Enrich between Publish and Catalog.
-  `priority.straightness` does nothing to that (measured, three placers);
-  in-layer order does — inside a directed frame a stage whose unit goes on
-  somewhere now sorts before a dead end, so the chain hugs the row and the
-  lookup hangs beside it (coplanar.md).
-- *`wrap` under an inherited direction folded the wrong way.* 32 wrote
-  `direction right` in the container and `wrap 5` in its scoped view; the
-  view inherited the direction and the fold came out as three columns.
-  `wrap` is a `rows` line the engine writes, so it now counts as the view's
-  own hint and replaces the container's block like one.
-- *Three agents wrapped a long `rows` line onto a second line* and got bare
-  syntax errors. The statement ends at newline; the continuation now gets one
-  error saying so, with the fix, and the syntax debris is dropped.
+- *Two agents chained edges.* `extract -> validate -> dedupe`, the way a
+  `flow` chains, and got a bare syntax error. The check now names the
+  statement, writes the hops out one per line, says a flow is where hops
+  chain, and drops the syntax debris — the rows-continuation treatment from
+  round 23, again.
+- *Two agents in a row answered "I care most about orders" with one
+  landscape and pointed at the auto view.* The HTML export carries auto views,
+  so their reasoning held for the file they said to open first; `render
+  --sync` does not, so the SVGs they promised never existed, and the scorer
+  wants a declared, narrower view. One sentence in the views section says to
+  declare a view for the part the ask singles out; the third agent did.
+- *The outside-sandbox detector flagged a tool result.* It scanned every
+  transcript line, and the CLI's own usage text — printed back to the agent
+  after it ran `squinch` with no arguments — matched. It scans the inputs of
+  tool calls now and nothing else; the flagged prompt was discarded and
+  re-run anyway, per protocol.
 
-Also seen: three agents put a view-only statement (`channel`, `density`,
-`wrap`) in a container's block and were told so in one edit; one agent (and
-this author, twice) wrote `view platform { expand platform }` meaning "the
-landscape with platform opened" and got "not among the scope's direct
-children" — that case now says it is the container's own view and names the
-spelling that draws the landscape. The single-call count is up from 9 in
-round 22 because no export failed; rank conflicts on feedback edges (four)
-remain the largest class that survives the skill.
+Also seen: one agent put `channel` in a container's block and was told so in
+one edit; one iterated three times on `align` collision warnings it had
+introduced itself; one hit the rank-hint warning; four re-ran `check` after
+voluntary edits with a clean first call, which the single-call count charges
+against them. Rank conflicts on feedback edges remain the class that survives
+the skill.
 
-The corpus in `solutions/` is this round's thirty-three answers (28
-re-authored per protocol after under-delivering — one system where three were
-asked for), cold-authored and deep-scored.
+The corpus in `solutions/` is this round's thirty-three answers,
+cold-authored and deep-scored. Two were re-authored per protocol after
+under-delivering — one legacy system without `external`, one market-data
+path with a single animation kind — and one after the skill edit above.

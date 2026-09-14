@@ -179,8 +179,9 @@ init/watch + sync/check model + Actions), the SPA playground, the VS Code
 extension + language server, five icon packs, and the light/dark pair. The acceptance
 bar — an agent producing clean diagrams from prose using only the skill + CLI —
 is certified at **33/33
-by independent cold agents**, most recently at **19/33 clean on the first
-`check`** (round 23, which added four prompts for the layout v1.2 constructs). Positional tags work on nodes, container heads and
+by independent cold agents**, most recently at **24/33 clean on the first
+`check`** (round 24, which validated `subtitle:`, frame headers and the beaded
+dashes; fourteen agents wrote the new field unprompted). Positional tags work on nodes, container heads and
 edges; a comma is optional wherever whitespace already separates. `gauntlet/README.md` writes up the latest round only: every round's
 findings land as a code or docs change in the same commit, so the fixes are the
 record. The number is never the point — a round that scores full marks and
