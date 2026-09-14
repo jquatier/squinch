@@ -1,35 +1,39 @@
 pack aws
 
-// External components
-stream = aws/kinesis "Event Stream"
+stream    = aws/kinesis  "Event Stream"
 warehouse = aws/redshift "Data Warehouse" datastore
 
-// Data platform with internal pipeline
 system platform "Data Platform" {
-  description: "Ingestion and transformation pipeline"
+  description: "Ingestion pipeline"
 
-  extract = aws/lambda "Extract"
+  extract  = aws/lambda "Extract"
   validate = aws/lambda "Validate"
-  enrich = aws/lambda "Enrich"
-  publish = aws/lambda "Publish"
-  catalog = aws/glue "Catalog" datastore
+  enrich   = aws/lambda "Enrich"
+  publish  = aws/lambda "Publish"
+  catalog  = sys/catalog "Catalog"
 
-  extract -> validate
+  extract  -> validate
   validate -> enrich
-  enrich -> publish
-  enrich -> catalog
+  enrich   -> publish
+  enrich   -> catalog
 
   layout {
     direction right
+    place catalog below enrich
   }
 }
 
-// Connections
-stream ~> platform.extract
-platform.publish -> warehouse
+stream          ~> platform.extract "events"
+platform.publish -> warehouse       "writes"
 
-view detail {
-  title "Data Platform Pipeline"
+view landscape {
+  title "Data Platform Landscape"
+  include *
+}
+
+view pipeline {
+  title "Ingestion Pipeline"
+  include *
   expand platform
   layout {
     rows [stream] [platform] [warehouse]

@@ -1,48 +1,40 @@
 pack logos
-pack k8s
 
 person dev "Developer"
 
-system app "Application Stack" {
-  frontend = logos/nextdotjs "Next.js Frontend"
-  api      = logos/nestjs    "NestJS API"
-  db       = logos/postgres  "PostgreSQL" datastore
-  cache    = logos/redis     "Redis" datastore
-  events   = logos/kafka     "Kafka"
-  monitor  = logos/grafana   "Grafana"
+github = logos/github "GitHub"
 
-  frontend -> api "API requests"
-  api -> db "queries"
-  api -> cache "caching"
-  api ~> events "publishes events"
-  api -> monitor "metrics"
-  frontend -> monitor "metrics"
-  db -> monitor "metrics"
+system stack "App Stack" {
+  icon: logos/kubernetes
+
+  fe   = logos/nextdotjs "Frontend" { subtitle: "Next.js" }
+  api  = logos/nestjs    "API"      { subtitle: "NestJS" }
+  db   = logos/postgres  "Database" datastore { subtitle: "PostgreSQL" }
+  cache = logos/redis    "Cache"    datastore { subtitle: "Redis" }
+  bus  = logos/kafka     "Events"   datastore { subtitle: "Kafka" }
+  mon  = logos/grafana   "Monitoring" { subtitle: "Grafana" }
+
+  fe -> api
+  api -> db
+  api -> cache
+  api ~> bus "publishes events"
+
+  fe    -> mon "metrics"
+  api   -> mon "metrics"
+  db    -> mon "metrics"
+  cache -> mon "metrics"
+  bus   -> mon "metrics"
+
+  layout {
+    rows [fe] [api] [db cache bus] [mon]
+  }
 }
 
-system cicd "CI/CD" {
-  repo = logos/github "GitHub"
-  cluster = logos/kubernetes "Kubernetes"
-
-  repo -> cluster "deploys"
-}
-
-dev -> cicd.repo "pushes code"
-cicd.cluster -> app.frontend "hosts"
-cicd.cluster -> app.api "hosts"
+dev -> github "push"
+github -> stack "deploys"
 
 view landscape {
-  title "Technology Stack"
+  title "System Landscape"
   include *
-  layout {
-    rows [dev] [cicd] [app]
-  }
 }
 
-view detail {
-  title "Stack Detail"
-  expand app
-  layout {
-    rows [dev] [cicd.repo cicd.cluster] [app.frontend] [app.api] [app.cache app.events] [app.db] [app.monitor]
-  }
-}

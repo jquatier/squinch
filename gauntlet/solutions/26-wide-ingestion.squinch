@@ -1,39 +1,34 @@
-pack aws
+c1 = sys/inbox "Collector 1"
+c2 = sys/inbox "Collector 2"
+c3 = sys/inbox "Collector 3"
+c4 = sys/inbox "Collector 4"
+c5 = sys/inbox "Collector 5"
+c6 = sys/inbox "Collector 6"
 
-system ingestion "Ingestion Estate" {
-  c1 = aws/lambda "Collector 1"
-  c2 = aws/lambda "Collector 2"
-  c3 = aws/lambda "Collector 3"
-  c4 = aws/lambda "Collector 4"
-  c5 = aws/lambda "Collector 5"
-  c6 = aws/lambda "Collector 6"
+norm = sys/funnel "Normaliser"
 
-  normaliser = aws/lambda "Normaliser"
+wh    = sys/warehouse       "Warehouse"    datastore
+idx   = sys/database-search "Search Index" datastore
+alert = sys/alert           "Alerting Service"
 
-  warehouse = aws/redshift "Data Warehouse" datastore
-  search = aws/opensearch "Search Index" datastore
-  alerts = aws/sns "Alerting Service"
+c1 ~> norm
+c2 ~> norm
+c3 ~> norm
+c4 ~> norm
+c5 ~> norm
+c6 ~> norm
 
-  c1 ~> normaliser
-  c2 ~> normaliser
-  c3 ~> normaliser
-  c4 ~> normaliser
-  c5 ~> normaliser
-  c6 ~> normaliser
+norm ~> wh
+norm ~> idx
+norm ~> alert
 
-  normaliser ~> warehouse
-  normaliser ~> search
-  normaliser ~> alerts
-
-  layout {
-    direction right
-    rows [warehouse search] [alerts]
-  }
-}
-
-view ingestion {
+view landscape {
   title "Ingestion Estate"
+  include *
   layout {
     density compact
+    rows [c1 c2 c3 c4 c5 c6] [norm] [wh alert] [idx]
+    cols [wh idx]
+    channel c1, c2, c3, c4, c5, c6 -> norm
   }
 }

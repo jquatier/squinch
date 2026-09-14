@@ -3,11 +3,11 @@ pack azure
 gw  = azure/app-gateway "Application Gateway"
 aks = azure/aks         "AKS Cluster"
 acr = azure/acr         "Container Registry"
-sql = azure/sql         "Azure SQL Database" datastore
+sql = azure/sql         "Azure SQL" datastore
 
-gw -> aks
+gw  -> aks "routes traffic"
 aks -> acr "pulls images"
-aks -> sql
+aks -> sql "reads/writes"
 
 zone subscription "Azure Subscription" account {
   contains gw, aks, acr, sql

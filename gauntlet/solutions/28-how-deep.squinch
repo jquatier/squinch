@@ -2,61 +2,55 @@ pack aws
 
 person customer "Customer"
 
-system orders "Orders Service" {
-  description: "Manages order lifecycle"
-  icon: aws/api-gateway
+system orders "Order Service" {
+  description: "Owns the order lifecycle"
+  domain: "orders"
 
-  api = aws/api-gateway "Orders API"
-  create = aws/lambda "Create Handler"
-  get = aws/lambda "Get Handler"
-  update = aws/lambda "Update Handler"
-  db = aws/dynamodb "Orders DB" datastore
-  queue = aws/sqs "Order Events"
+  api = aws/api-gateway "API Gateway"
+  handler = aws/lambda "Order Handler" {
+    subtitle: "Lambda · Node 20"
+  }
+  db = aws/dynamodb "Orders Table" datastore
+  events = aws/eventbridge "Order Events"
 
-  api -> create
-  api -> get
-  api -> update
-  create -> db
-  get -> db
-  update -> db
-  create ~> queue "order.created"
-  update ~> queue "order.updated"
+  api -> handler
+  handler -> db
+  handler ~> events "order placed"
 
   layout {
-    rows [api] [create get update] [db queue]
+    rows [api] [handler] [db events]
   }
 }
 
 system inventory "Inventory Service" {
   description: "Tracks stock levels"
-  icon: aws/lambda
+  domain: "inventory"
 
-  handler = aws/lambda "Inventory Handler"
-  db = aws/dynamodb "Inventory DB" datastore
+  api = aws/api-gateway "API Gateway"
+  handler = aws/lambda "Stock Handler"
+  db = aws/dynamodb "Inventory Table" datastore
 
+  api -> handler
   handler -> db
 }
 
-system notifications "Notifications Service" {
-  description: "Sends customer notifications"
-  icon: aws/sns
+system notifications "Notification Service" {
+  description: "Notifies customers of order updates"
+  domain: "notifications"
 
-  handler = aws/lambda "Notification Handler"
-  sns = aws/sns "Email/SMS"
+  queue = aws/sqs "Notify Queue"
+  worker = aws/lambda "Notify Worker"
+  log = aws/dynamodb "Notification Log" datastore
 
-  handler -> sns
+  queue ~> worker
+  worker -> log
 }
 
 customer -> orders.api "places order"
-orders.queue ~> inventory.handler "stock check"
-orders.queue ~> notifications.handler "notify customer"
+orders.events ~> inventory.handler "order placed"
+orders.events ~> notifications.queue "order placed"
 
 view landscape {
-  title "Order Platform Overview"
+  title "Order Platform"
   include *
-}
-
-view orders {
-  title "Orders Service Detail"
-  scope orders
 }

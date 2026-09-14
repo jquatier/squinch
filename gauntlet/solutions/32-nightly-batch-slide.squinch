@@ -1,20 +1,20 @@
 pack aws
 
-system pipeline "Nightly Batch Pipeline" {
-  extract    = aws/lambda "Extract"
-  validate   = aws/lambda "Validate"
-  dedupe     = aws/lambda "Dedupe"
-  normalize  = aws/lambda "Normalize"
-  enrich     = aws/lambda "Enrich"
-  score      = aws/lambda "Score"
-  aggregate  = aws/lambda "Aggregate"
-  partition  = aws/lambda "Partition"
-  compress   = aws/lambda "Compress"
-  encrypt    = aws/lambda "Encrypt"
-  upload     = aws/lambda "Upload"
-  catalog    = aws/lambda "Catalog"
-  verify     = aws/lambda "Verify"
-  notify     = aws/lambda "Notify"
+system batch "Nightly Batch Job" {
+  extract   = aws/lambda "Extract"
+  validate  = aws/lambda "Validate"
+  dedupe    = aws/lambda "Dedupe"
+  normalize = aws/lambda "Normalize"
+  enrich    = aws/lambda "Enrich"
+  score     = aws/lambda "Score"
+  aggregate = aws/lambda "Aggregate"
+  partition = aws/lambda "Partition"
+  compress  = aws/lambda "Compress"
+  encrypt   = aws/lambda "Encrypt"
+  upload    = aws/lambda "Upload"
+  catalog   = aws/lambda "Catalog"
+  verify    = aws/lambda "Verify"
+  notify    = aws/lambda "Notify"
 
   extract -> validate
   validate -> dedupe
@@ -29,16 +29,8 @@ system pipeline "Nightly Batch Pipeline" {
   upload -> catalog
   catalog -> verify
   verify -> notify
-
-  layout {
-    direction right
-  }
 }
 
-view pipeline {
-  title "Nightly Batch Pipeline"
-  scope pipeline
-  layout {
-    wrap 5
-  }
+view batch {
+  layout { wrap 4 }
 }

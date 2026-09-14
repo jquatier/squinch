@@ -1,46 +1,38 @@
 pack aws
 
-person customer "Customer"
-
 gw = aws/api-gateway "API Gateway"
 
 system catalog "Catalog Service" {
-  description: "Product catalog and search"
-
-  api = aws/lambda "Catalog API"
-  db = aws/dynamodb "Catalog DB" datastore
-
+  description: "Product listings and search"
+  api = aws/lambda   "Catalog API" { subtitle: "Lambda · Node 20" }
+  db  = aws/dynamodb "Catalog Table" datastore
   api -> db
 }
 
 system checkout "Checkout Service" {
-  description: "Shopping cart and order processing"
-
-  api = aws/lambda "Checkout API"
-  db = aws/dynamodb "Orders DB" datastore
-
+  description: "Cart, pricing and order placement"
+  api = aws/lambda   "Checkout API" { subtitle: "Lambda · Node 20" }
+  db  = aws/dynamodb "Orders Table" datastore
   api -> db
 }
 
 system identity "Identity Service" {
-  description: "Authentication and user management"
-
-  api = aws/lambda "Identity API"
-  db = aws/dynamodb "Users DB" datastore
-
+  description: "Authentication and user accounts"
+  api = aws/lambda   "Identity API" { subtitle: "Lambda · Node 20" }
+  db  = aws/dynamodb "Users Table" datastore
   api -> db
 }
 
-customer -> gw "browses and shops"
 gw -> catalog.api
 gw -> checkout.api
 gw -> identity.api
 
 view landscape {
-  title "Microservices Architecture"
+  title "System Landscape"
   include *
 }
 
 view checkout {
-  title "Checkout Service Detail"
+  title "Checkout Service"
+  scope checkout
 }

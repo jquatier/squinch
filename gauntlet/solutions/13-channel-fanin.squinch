@@ -1,7 +1,7 @@
 pack aws
 
-system api "API Service" {
-  gw     = aws/api-gateway "API Gateway"
+system shop "Order Service" {
+  api    = aws/api-gateway "API Gateway"
   create = aws/lambda      "Create Handler"
   read   = aws/lambda      "Read Handler"
   update = aws/lambda      "Update Handler"
@@ -9,25 +9,19 @@ system api "API Service" {
   search = aws/lambda      "Search Handler"
   db     = aws/dynamodb    "Orders Table" datastore
 
-  gw -> create
-  gw -> read
-  gw -> update
-  gw -> delete
-  gw -> search
-
+  api -> create, read, update, delete, search
   create -> db
-  read   -> db
+  read -> db
   update -> db
   delete -> db
   search -> db
 
   layout {
-    rows [gw] [create read update delete search] [db]
+    rows [api] [create read update delete search] [db]
   }
 }
 
-view api {
-  title "API Service with Channel Fan-in"
+view shop {
   layout {
     channel create, read, update, delete, search -> db
   }

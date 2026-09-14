@@ -1,27 +1,29 @@
 pack aws
-pack logos
 
-// Payments architecture for design review
-gw = aws/api-gateway "API Gateway"
-auth = sys/lock "Auth Service"
-ledger = logos/postgres "Ledger" datastore
-settlement = sys/workflow "Settlement Worker"
+system payments "Payments" {
+  description: "Payments platform"
+
+  gw         = aws/api-gateway "API Gateway"
+  auth       = aws/lambda      "Auth Service"
+  ledger     = logos/postgres  "Ledger" datastore { subtitle: "Postgres" }
+  settlement = aws/lambda      "Settlement Worker"
+
+  gw -> auth "authenticate"
+  gw -> ledger "post transaction"
+  ledger ~> settlement "nightly batch" { animate: slow }
+}
+
 bank = box "Bank" external
 
-// Flow: API gateway authenticates, writes to ledger, settlement batches overnight
-gw -> auth "authenticate"
-gw -> ledger "record transaction"
-ledger ~> settlement "nightly batch"
-settlement -> bank "settle"
+payments.settlement ~> bank "settlement file" { animate: slow }
 
-view main {
+view payments {
   title "Payments Architecture"
+  scope payments
   titleblock {
+    subtitle: "Design review"
     version: "2.1"
-    owner: "payments team"
-    subtitle: "Q1 2026"
-  }
-  layout {
-    rows [gw auth] [ledger] [settlement] [bank]
+    date: "Q3 2026"
+    owner: payments-team
   }
 }

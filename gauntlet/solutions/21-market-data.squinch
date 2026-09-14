@@ -1,38 +1,26 @@
-// Market data system
+exchange = sys/globe       "Exchange" external
+feed     = sys/route       "Feed Handler"
+pricing  = sys/cog         "Pricing Engine"
+ui       = sys/app-window  "Trading UI"
+risk     = sys/activity    "Risk Service"
+recon    = sys/repeat      "Overnight Reconciliation"
+clearing = sys/building-2  "Clearing House" external
 
-exchange = box "Exchange" external
-
-system market "Market Data Platform" {
-  feed    = sys/webhook    "Feed Handler"
-  norm    = sys/workflow   "Normalizer"
-  pricing = sys/server     "Pricing Engine"
-
-  feed ~> norm "price stream" { animate: packets }
-  norm ~> pricing "ticks" { animate: packets }
-}
-
-ui = sys/app-window "Trading UI"
-
-clearing = box "Clearing House" external
-batch = sys/cron "Overnight Batch"
-
-risk = sys/shield "Risk Service"
-
-// Continuous data flow
-exchange ~> market.feed "price stream" { animate: packets }
-market.pricing ~> ui "subscribe" { animate: packets }
-
-// Nightly reconciliation
-batch -> clearing "reconcile fills" { color: amber }
-
-// Periodic health polling
-risk -> market.pricing "health poll" { animate: pulse, color: teal }
+exchange ~> feed    "price stream"    { tags: #continuous }
+feed     ~> pricing "normalized ticks" { tags: #continuous }
+pricing  ~> ui       "price updates"  { tags: #continuous }
+risk     -> pricing "health check"    { tags: #poll, animate: pulse }
+recon    ~> clearing "reconciles fills" { tags: #nightly, animate: slow }
 
 view landscape {
-  title "Market Data Flow"
+  title "Market Data Path"
+  include *
+  color #continuous teal
+  color #poll violet
+  color #nightly amber
+  legend auto
+
   layout {
-    rows [exchange] [market risk] [batch ui] [clearing]
-    place risk right-of market
-    place batch left-of ui
+    rows [exchange] [feed] [pricing risk] [ui]
   }
 }

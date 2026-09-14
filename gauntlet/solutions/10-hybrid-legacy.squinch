@@ -2,12 +2,15 @@ pack aws
 
 person admin "Administrator"
 
-erp    = sys/server "Legacy ERP" external
-worker = aws/lambda "Sync Worker"
-db     = aws/rds "Admin DB" datastore
-app    = sys/app-window "Admin Dashboard"
+erp      = sys/server      "Legacy ERP"      external { subtitle: "On-prem, no AWS icon" }
+worker   = aws/lambda      "Sync Worker"
+db       = aws/rds         "Orders DB"       datastore
+dash     = aws/app-runner  "Admin Dashboard"
 
-erp ~> worker "data feed"
-worker -> db
-db -> app
-admin -> app "manages"
+erp ~> worker "sync"
+worker -> db "writes"
+dash -> db "reads"
+admin -> dash "manages"
+
+zone dc    "Corporate Data Center" onprem { contains erp; icon: aws/corporate-data-center }
+zone cloud "AWS Cloud"             cloud  { contains worker, db, dash }

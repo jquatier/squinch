@@ -1,33 +1,36 @@
 pack aws
 
-// Event source
-orders = aws/api-gateway "Order API"
+order_svc = aws/lambda "Order Service" {
+  subtitle: "Emits order events"
+}
 
-// Event bus
-bus = aws/eventbridge "Order Events"
+bus = aws/eventbridge "Event Bus"
 
-// Email notification path
-emailHandler = aws/lambda "Email Notifier"
-notifications = aws/sns "Email Topic"
+system notifier "Email Notifier" {
+  fn    = aws/lambda "Notify Handler"
+  topic = aws/sns    "Order Emails"
 
-// Analytics path
-analyticsHandler = aws/lambda "Analytics Writer"
-lake = aws/s3 "Data Lake" datastore
+  fn ~> topic "send email"
+}
 
-// Dead-letter queue for failed events
-dlq = aws/sqs "Dead Letter Queue"
+system analytics "Analytics Writer" {
+  fn   = aws/lambda "Analytics Handler"
+  lake = aws/s3     "Data Lake" datastore
 
-// Event flows
-orders ~> bus "order events"
-bus ~> emailHandler
-emailHandler ~> notifications
-bus ~> analyticsHandler
-analyticsHandler ~> lake
-bus ~> dlq "failed events"
+  fn -> lake "write records"
+}
 
-view main {
+dlq = aws/sqs "Dead Letter Queue" datastore
+
+order_svc ~> bus "order events"
+bus ~> notifier.fn "order events"
+bus ~> analytics.fn "order events"
+bus ~> dlq "failed events" { color: amber }
+
+view landscape {
   title "Event-Driven Order Processing"
+  include *
   layout {
-    rows [orders] [bus] [emailHandler analyticsHandler] [notifications lake dlq]
+    rows [order_svc] [bus] [notifier analytics dlq]
   }
 }

@@ -1,51 +1,33 @@
-// Warehouse floor automation diagram
-
-pack sys
-
-// Human actors
 supervisor = person "Shift Supervisor"
 
-// Packing bench scanners
-scanner1 = sys/smartphone "Scanner 1"
-scanner2 = sys/smartphone "Scanner 2"
-scanner3 = sys/smartphone "Scanner 3"
+scanner1 = sys/scan "Bench 1 Scanner"
+scanner2 = sys/scan "Bench 2 Scanner"
+scanner3 = sys/scan "Bench 3 Scanner"
 
-// Local controller
-controller = sys/server "Local Controller" {
-  description: "Aggregates scans, drives automation"
+controller = sys/cpu "Line Controller" {
+  description: "Local controller on the packing line"
 }
+sorter  = sys/route   "Conveyor Sorter"
+printer = sys/printer "Label Printer"
+board   = sys/monitor "Status Board"
 
-// Automation equipment
-sorter  = sys/workflow "Conveyor Sorter"
-printer = sys/printer  "Label Printer"
+erp = box "ERP" external
 
-// Monitoring
-board = sys/monitor "Status Board"
+scanner1 -> controller
+scanner2 -> controller
+scanner3 -> controller
 
-// Enterprise system
-erp = sys/database "ERP System" external {
-  description: "Syncs every minute"
-}
+controller -> sorter
+controller -> printer
+controller -> board "status"
 
-// Connections
-scanner1 -> controller "scan events"
-scanner2 -> controller "scan events"
-scanner3 -> controller "scan events"
+controller ~> erp "sync" { animate: slow }
 
-controller -> sorter "sort commands"
-controller -> printer "print jobs"
+supervisor -> board "watches"
 
-controller ~> erp "sync batch" {
-  description: "Once per minute"
-}
-
-controller -> board "status updates"
-supervisor -> board
-
-// Layout
 view default {
-  title "Warehouse Floor Automation"
   layout {
-    rows [scanner1 scanner2 scanner3] [controller] [sorter printer] [erp board supervisor]
+    rows [scanner1 scanner2 scanner3] [controller supervisor] [sorter printer erp board]
+    align supervisor board
   }
 }

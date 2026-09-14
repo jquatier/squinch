@@ -1,17 +1,16 @@
-// Approval chain system
+request  = sys/webhook       "Request Service"
+policy   = sys/shield-check  "Policy Engine"
+approver = sys/clipboard-list "Approver Service"
+audit    = sys/archive       "Audit Log" datastore
 
-request  = box "Request Service"
-policy   = box "Policy Engine"
-approver = box "Approver Service"
-audit    = box "Audit Log" datastore
+request -> policy "submits request"
+policy -> approver "requests approval"
+approver -> audit "writes decision"
 
-request -> policy
-policy -> approver
-approver -> audit
-
-view main {
+view landscape {
   title "Approval Chain"
+  include *
   layout {
-    rows [request] [policy audit]
+    rows [request] [policy approver audit]
   }
 }

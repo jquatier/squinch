@@ -1,16 +1,26 @@
 pack aws
 
+person uploader   "Uploader"
+person subscriber "Subscriber"
+
 system pipeline "Image Processing Pipeline" {
-  description: "Serverless image analysis"
+  description: "Serverless image pipeline"
 
-  uploads = aws/s3 "Uploads Bucket" datastore
-  process = aws/lambda "Process Images"
-  rekognition = aws/rekognition "Rekognition"
-  metadata = aws/dynamodb "Metadata" datastore
-  notifications = aws/sns "Notifications"
+  bucket = aws/s3         "Image Uploads"   datastore
+  fn     = aws/lambda     "Image Processor"
+  vision = aws/rekognition "Label Detection"
+  db     = aws/dynamodb   "Image Metadata"  datastore
+  topic  = aws/sns        "Notifications"
 
-  uploads ~> process "upload event"
-  process -> rekognition "analyze image"
-  process -> metadata "write metadata"
-  process ~> notifications "notify subscribers"
+  bucket ~> fn     "object created"
+  fn     -> vision "detect labels"
+  fn     -> db     "write metadata"
+  fn     ~> topic  "publish"
+
+  layout {
+    rows [bucket] [fn] [vision db] [topic]
+  }
 }
+
+uploader -> pipeline.bucket "uploads image"
+pipeline.topic ~> subscriber "notifies"
