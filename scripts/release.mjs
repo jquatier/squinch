@@ -29,7 +29,10 @@ const noEdit = args.includes("--no-edit");
 // honest spelling of "I already know what the notes should say".
 const notesAt = args.indexOf("--notes");
 const givenNotes = notesAt !== -1 ? args[notesAt + 1] : undefined;
-const givenVersion = args.find((a, i) => !a.startsWith("--") && i !== notesAt + 1);
+// The value after --notes is not the version; with no --notes there is nothing
+// to skip (notesAt + 1 would be 0 — the first argument — which is where the
+// version usually sits).
+const givenVersion = args.find((a, i) => !a.startsWith("--") && (notesAt === -1 || i !== notesAt + 1));
 
 // stderr piped, not inherited: the no-tags-yet probe (`git describe`) fails
 // by design on a fresh repo, and its "fatal:" would leak into our output.
