@@ -247,6 +247,25 @@ export function buildProject(input: ProjectFile[]): BuildResult {
             diagnostics.splice(i, 1);
         }
       }
+      // Chains. A `flow` chains hops (`a -> b -> c`), and two round-24 agents
+      // wrote a pipeline the same way as edges; the second arrow is garbage to
+      // the parser and the bare syntax error said nothing about why.
+      for (const m of f.src.matchAll(/^[ \t]*([\w.]+)[ \t]*(->|~>|<->|--)[ \t]*([\w.]+)((?:[ \t]*(?:->|~>|<->|--)[ \t]*[\w.]+)+)/gm)) {
+        if (strings.some(([a2, b2]) => m.index! >= a2 && m.index! < b2)) continue;
+        if ([...tree.topNode.getChildren("Flow")].some((n) => m.index! >= n.from && m.index! < n.to)) continue;
+        const hops = [m[1], m[3], ...[...m[4].matchAll(/[\w.]+/g)].map((x) => x[0])];
+        const arrows = [m[2], ...[...m[4].matchAll(/->|~>|<->|--/g)].map((x) => x[0])];
+        const lines = hops.slice(0, -1).map((h, i) => `\`${h} ${arrows[i]} ${hops[i + 1]}\``);
+        error(ctx, ctx.loc({ from: m.index!, to: m.index! + m[0].length } as SyntaxNode),
+          `edges do not chain — \`${m[0].trim()}\` is one statement per hop`,
+          `write ${lines.join(", ")} on their own lines; a \`flow\` is where hops chain`);
+        for (let i = diagnostics.length - 1; i >= 0; i--) {
+          const d = diagnostics[i];
+          if (d.file === ctx.name && d.message.startsWith("syntax error near")
+              && d.loc.from >= m.index! && d.loc.from <= m.index! + m[0].length)
+            diagnostics.splice(i, 1);
+        }
+      }
       // Fan-in. `a -> b, c` fans out, so `x, y -> z` is the guess the mirror
       // image invites — but an edge has one source, and the comma list on the
       // left parses as garbage.

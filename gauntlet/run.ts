@@ -271,6 +271,16 @@ mkdirSync(join(runDir, "transcripts"), { recursive: true });
 
 /** Paths that would mean the agent looked outside its box. */
 const ESCAPES = [/\/Users\//, /~\//, /\.\.\//, /github\/squinch/];
+/** The serialized inputs of every tool call on one stream-json line — an
+ *  assistant turn's `tool_use` blocks — and nothing else on it. */
+function toolInputs(line: string): string[] {
+  try {
+    const j = JSON.parse(line);
+    if (j?.type !== "assistant") return [];
+    const blocks: any[] = j.message?.content ?? [];
+    return blocks.filter((b) => b?.type === "tool_use").map((b) => JSON.stringify(b.input ?? {}));
+  } catch { return []; }
+}
 
 /**
  * The child's environment, built from an allowlist rather than inherited.
@@ -383,7 +393,11 @@ child.on("exit", (code) => {
       for (const line of lines) {
         if (!line.trim()) continue;
         appendFileSync(transcript, `${line}\n`);
-        if (ESCAPES.some((re) => re.test(line))) escapes++;
+        // Tool *inputs* only. A tool result carries whatever the tool printed
+        // — the CLI's own usage text tripped this once — and that is not the
+        // agent reaching outside the box.
+        for (const input of toolInputs(line))
+          if (ESCAPES.some((re) => re.test(input))) escapes++;
         // A permission denial is a harness fault wearing an agent's clothes:
         // the run looks like "the agent never validated its work" when in fact
         // the tool was refused. Counted so it can never be read as a skill

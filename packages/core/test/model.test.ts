@@ -495,6 +495,23 @@ describe("commas as optional separators", () => {
   });
 });
 
+describe("a chained edge (round 24)", () => {
+  // Two agents wrote a pipeline as `extract -> validate -> dedupe`, the way a
+  // flow chains, and got a bare syntax error.
+  it("names the hops to write, and drops the syntax debris", () => {
+    const r = buildModel(`pack aws\na = aws/lambda "A"\nb = aws/lambda "B"\nc = aws/lambda "C"\na -> b ~> c\n`);
+    const errs = r.diagnostics.filter((d) => d.severity === "error");
+    expect(errs.length).toBe(1);
+    expect(errs[0].message).toBe("edges do not chain — `a -> b ~> c` is one statement per hop");
+    expect(errs[0].fix).toBe("write `a -> b`, `b ~> c` on their own lines; a `flow` is where hops chain");
+  });
+
+  it("leaves a flow's chain alone", () => {
+    const r = buildModel(`pack aws\na = aws/lambda "A"\nb = aws/lambda "B"\nc = aws/lambda "C"\na -> b\nb -> c\nflow f "F" {\n  a -> b -> c\n}\n`);
+    expect(r.diagnostics.filter((d) => d.severity === "error")).toEqual([]);
+  });
+});
+
 describe("an unquoted attribute value with a space", () => {
   // Round 15: `owner: team-orders` parses, so a cold agent wrote
   // `owner: payments team` and got a bare syntax error pointing at the brace.
