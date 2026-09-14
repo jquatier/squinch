@@ -1,0 +1,9 @@
+{
+  "includeCoAuthoredBy": false,
+  "env": {
+    "GIT_AUTHOR_NAME": "JQ",
+    "GIT_AUTHOR_EMAIL": "jquatier@gmail.com",
+    "GIT_COMMITTER_NAME": "JQ",
+    "GIT_COMMITTER_EMAIL": "jquatier@gmail.com"
+  }
+}
