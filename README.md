@@ -205,18 +205,20 @@ pack aws
 
 person shopper "Shopper"
 
-cdn = aws/cloudfront "CloudFront"
+cdn = aws/cloudfront "CloudFront" { subtitle: "edge cache" }
 
-alb = aws/elb     "Application Load Balancer"
+alb = aws/elb     "Application Load Balancer" { subtitle: "internet-facing" }
 app = aws/fargate "Products API" {
+  subtitle: "Fargate · ECS"
   description: "ECS on Fargate, private subnets across two AZs"
 }
 
 db      = aws/dynamodb   "Products Table" datastore {
+  subtitle: "DynamoDB · on-demand"
   description: "Single-table design, on-demand capacity"
 }
-indexer = aws/lambda     "Stream Indexer"
-search  = aws/opensearch "Search Index" datastore
+indexer = aws/lambda     "Stream Indexer" { subtitle: "Lambda · Node 20" }
+search  = aws/opensearch "Search Index" datastore { subtitle: "OpenSearch 2.x" }
 
 shopper -> cdn "api.example.com"
 cdn -> alb "/products/*"
