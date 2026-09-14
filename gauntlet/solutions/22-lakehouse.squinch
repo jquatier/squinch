@@ -1,45 +1,32 @@
 pack logos
 
-person analyst "Analyst"
-kafka = logos/kafka "Order Events" datastore
+analyst = person "Analyst"
+kafka   = logos/kafka "Order Events"
 
-system lakehouse "Databricks Lakehouse" {
-  description: "Databricks-managed platform"
-  icon: logos/databricks
-  domain: "data platform"
+autoloader = sys/stream        "Auto Loader"          { badge: logos/databricks, subtitle: "Auto Loader" }
+bronze     = sys/table         "Bronze Orders"  datastore { badge: logos/databricks, subtitle: "Delta table" }
+merge      = sys/workflow      "Nightly Merge"        { badge: logos/databricks, subtitle: "Workflows job" }
+silver     = sys/table         "Silver Customers" datastore { badge: logos/databricks, subtitle: "Delta table" }
+uc         = sys/catalog       "Unity Catalog"        { badge: logos/databricks, subtitle: "Governance" }
+warehouse  = sys/database      "SQL Warehouse"  datastore { badge: logos/databricks, subtitle: "Databricks SQL" }
+vindex     = sys/vector-search "Vector Search Index"  { badge: logos/databricks }
+model      = sys/model         "Model Serving Endpoint" { badge: logos/databricks }
 
-  autoloader   = sys/stream    "Auto Loader" {
-    subtitle: "Databricks Auto Loader"
-    badge: logos/databricks
-  }
-  bronze       = sys/table     "Bronze Table" datastore {
-    subtitle: "Bronze Delta table"
-    badge: logos/databricks
-  }
-  merge_job    = sys/workflow  "Nightly Merge Job" {
-    subtitle: "Databricks Workflow"
-    badge: logos/databricks
-  }
-  silver       = sys/table     "Customers Table" datastore {
-    subtitle: "Silver Delta table"
-    badge: logos/databricks
-  }
-  catalog      = sys/catalog   "Unity Catalog" { badge: logos/databricks }
-  warehouse    = sys/database  "SQL Warehouse" {
-    subtitle: "Databricks SQL"
-    badge: logos/databricks
-  }
-  vector_index = sys/waypoints "Vector Search Index" { badge: logos/databricks }
-  model_serving = sys/model    "Model Serving Endpoint" { badge: logos/databricks }
+kafka      ~> autoloader "order events"
+autoloader ~> bronze     "ingest"
+bronze     -> merge
+merge      -> silver     "merge"
+uc         -> silver     "governs"
+silver     -> warehouse
+analyst    -> warehouse  "queries"
+silver     -> vindex
+vindex     -> model      "feeds"
 
-  autoloader -> bronze "writes"
-  merge_job -> bronze "reads"
-  merge_job -> silver "merges"
-  catalog -- silver "governs"
-  warehouse -> silver "reads"
-  silver ~> vector_index "sync embeddings"
-  vector_index -> model_serving "serves"
+zone lakehouse "Databricks Lakehouse" cloud {
+  contains autoloader, bronze, merge, silver, uc, warehouse, vindex, model
 }
 
-kafka ~> lakehouse.autoloader "order events"
-analyst -> lakehouse.warehouse "queries"
+view landscape {
+  title "Databricks Lakehouse"
+  include *
+}

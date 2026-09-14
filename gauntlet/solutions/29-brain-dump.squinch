@@ -1,35 +1,32 @@
 pack aws
+pack logos
 
-person customer "Customer"
-person data_team "Data Team"
+person customer   "Customer"
+person data_team  "Data Team"
 
 mobile = sys/smartphone "Mobile App"
-web    = sys/browser    "Website"
-stripe = logos/stripe   "Stripe" external
+web    = sys/app-window "Website"
+gw     = aws/api-gateway "Gateway"
 
-system platform "Platform" {
-  gw         = aws/api-gateway "Gateway"
-  account    = sys/server      "Account Service"
-  billing    = sys/server      "Billing Service"
-  db         = logos/postgres  "Postgres" datastore
-  billing_db = sys/database    "Billing DB" datastore
-  export     = aws/s3          "Data Export" datastore
+account = sys/server "Account Service"
+billing = sys/server "Billing Service"
 
-  gw -> account
-  gw -> billing
-  account -> db
-  account ~> export "nightly export"
-  billing -> billing_db
+db         = logos/postgres "Postgres" datastore
+billing_db = sys/database   "Billing Database" datastore
+stripe     = logos/stripe   "Stripe" external
+export     = aws/s3         "Data Export" datastore
 
-  layout { rows [gw] [account billing] [db billing_db export] }
-}
-
-customer -> mobile "uses"
-customer -> web "uses"
-mobile -> platform.gw
-web -> platform.gw
-platform.billing -> stripe "charge"
-platform.export -> data_team "reads"
+customer -> mobile "browses"
+customer -> web "browses"
+mobile -> gw
+web -> gw
+gw -> account
+gw -> billing
+account -> db "writes"
+account ~> export "nightly export"
+billing -> billing_db "writes"
+billing -> stripe "charges"
+export -> data_team "delivered to"
 
 view landscape {
   title "Platform Overview"

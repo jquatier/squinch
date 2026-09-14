@@ -1,29 +1,29 @@
 pack aws
 
-system payments "Payments" {
-  description: "Payments platform"
+system payments "Payments Platform" {
+  description: "Payments architecture"
+  domain: "payments"
 
-  gw         = aws/api-gateway "API Gateway"
-  auth       = aws/lambda      "Auth Service"
-  ledger     = logos/postgres  "Ledger" datastore { subtitle: "Postgres" }
-  settlement = aws/lambda      "Settlement Worker"
+  gw         = aws/api-gateway  "API Gateway"
+  auth       = sys/lock-keyhole "Auth Service"
+  ledger     = logos/postgres   "Ledger" datastore { subtitle: "Postgres" }
+  settlement = aws/batch        "Settlement Worker" { subtitle: "Nightly batch" }
 
   gw -> auth "authenticate"
-  gw -> ledger "post transaction"
-  ledger ~> settlement "nightly batch" { animate: slow }
+  gw -> ledger "record transaction"
+  ledger ~> settlement "nightly ledger export"
 }
 
 bank = box "Bank" external
 
-payments.settlement ~> bank "settlement file" { animate: slow }
+payments.settlement ~> bank "overnight settlement batch"
 
 view payments {
-  title "Payments Architecture"
   scope payments
+  title "Payments Architecture"
   titleblock {
-    subtitle: "Design review"
     version: "2.1"
     date: "Q3 2026"
-    owner: payments-team
+    owner: team-payments
   }
 }

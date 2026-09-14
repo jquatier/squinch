@@ -2,17 +2,21 @@ pack aws
 
 person analyst "Analyst"
 
-system pipeline "Clickstream Data Pipeline" {
-  stream    = aws/kinesis "Clickstream Stream"
-  transform = aws/lambda  "Transformer" { subtitle: "Lambda" }
-  lake      = aws/s3      "Data Lake" datastore
-  catalog   = aws/glue    "Data Catalog"
-  athena    = aws/athena  "Athena"
+system pipeline "Clickstream Pipeline" {
+  description: "Ingest, transform, catalog and query clickstream events"
 
-  stream ~> transform "clickstream events"
-  transform -> lake "writes"
-  lake -> catalog "catalogs"
-  catalog -> athena "schema"
+  kinesis     = aws/kinesis "Clickstream Stream"
+  transformer = aws/lambda  "Transformer" {
+    subtitle: "Lambda"
+  }
+  lake        = aws/s3      "Data Lake" datastore
+  glue        = aws/glue    "Data Catalog"
+  athena      = aws/athena  "Query Engine"
+
+  kinesis     ~> transformer "clickstream events"
+  transformer -> lake        "writes records"
+  lake        -> glue        "crawls & catalogs"
+  glue        -> athena      "table metadata"
 }
 
-analyst -> pipeline.athena "queries"
+analyst -> pipeline.athena "runs SQL queries"

@@ -1,42 +1,34 @@
 pack k8s
 pack logos
 
-system cluster "Kubernetes Cluster" {
-  icon: logos/kubernetes
+ingress = k8s/ing "Ingress" { badge: logos/nginx, subtitle: "NGINX" }
 
-  ingress    = k8s/ing    "NGINX Ingress" { subtitle: "Ingress Controller" }
+web_svc    = k8s/svc "Web Service"
+api_svc    = k8s/svc "API Service"
+worker_svc = k8s/svc "Worker Service"
 
-  web_svc    = k8s/svc    "Web Service"
-  web        = k8s/deploy "Web"
+web    = k8s/deploy "Web"
+api    = k8s/deploy "API"
+worker = k8s/deploy "Worker"
 
-  api_svc    = k8s/svc    "API Service"
-  api        = k8s/deploy "API"
+db    = k8s/sts "Postgres" datastore { badge: logos/postgres }
+cache = logos/redis "Redis" datastore
 
-  worker_svc = k8s/svc    "Worker Service"
-  worker     = k8s/deploy "Worker"
-
-  pg    = k8s/sts   "Postgres" datastore { badge: logos/postgres, subtitle: "StatefulSet" }
-  cache = logos/redis "Redis" datastore { subtitle: "Cache" }
-
-  prune = k8s/cronjob "Prune Old Records" { subtitle: "Nightly" }
-
-  ingress -> web_svc, api_svc, worker_svc
-
-  web_svc -> web
-  api_svc -> api
-  worker_svc -> worker
-
-  api -> pg "reads/writes"
-  api -> cache "cache"
-
-  prune -> pg "prunes old records"
-
-  layout {
-    rows [ingress] [web_svc api_svc worker_svc] [web api worker prune] [pg cache]
-  }
+prune = k8s/cronjob "Prune Job" {
+  subtitle: "Nightly"
+  description: "Prunes old records"
 }
 
-view landscape {
-  title "Kubernetes Platform"
-  expand cluster
+ingress -> web_svc, api_svc, worker_svc
+web_svc    -> web
+api_svc    -> api
+worker_svc -> worker
+
+api -> db
+api -> cache
+prune -> db "prunes old records"
+
+zone cluster "Kubernetes Cluster" custom {
+  icon: logos/kubernetes
+  contains ingress, web_svc, api_svc, worker_svc, web, api, worker, db, cache, prune
 }

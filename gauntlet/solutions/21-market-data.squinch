@@ -1,16 +1,18 @@
-exchange = sys/globe       "Exchange" external
-feed     = sys/route       "Feed Handler"
-pricing  = sys/cog         "Pricing Engine"
-ui       = sys/app-window  "Trading UI"
-risk     = sys/activity    "Risk Service"
-recon    = sys/repeat      "Overnight Reconciliation"
-clearing = sys/building-2  "Clearing House" external
+exchange       = sys/building-2  "Exchange" external
+feed_handler   = sys/radio-tower "Feed Handler" {
+  description: "Ingests and normalises the price stream"
+}
+pricing_engine = sys/gauge       "Pricing Engine"
+trading_ui     = sys/app-window  "Trading UI"
+risk_service   = sys/shield-check "Risk Service"
+recon          = sys/repeat      "Overnight Reconciliation"
+clearing_house = sys/building-2  "Clearing House" external
 
-exchange ~> feed    "price stream"    { tags: #continuous }
-feed     ~> pricing "normalized ticks" { tags: #continuous }
-pricing  ~> ui       "price updates"  { tags: #continuous }
-risk     -> pricing "health check"    { tags: #poll, animate: pulse }
-recon    ~> clearing "reconciles fills" { tags: #nightly, animate: slow }
+exchange       ~> feed_handler   "price stream"    { tags: #continuous }
+feed_handler   ~> pricing_engine "ticks"            { tags: #continuous }
+pricing_engine ~> trading_ui     "price updates"    { tags: #continuous }
+risk_service   -> pricing_engine "health check"     { tags: #poll, animate: pulse }
+recon          ~> clearing_house "reconcile fills"  { tags: #nightly, animate: slow }
 
 view landscape {
   title "Market Data Path"
@@ -19,8 +21,4 @@ view landscape {
   color #poll violet
   color #nightly amber
   legend auto
-
-  layout {
-    rows [exchange] [feed] [pricing risk] [ui]
-  }
 }

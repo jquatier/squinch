@@ -1,16 +1,36 @@
 pack aws
 
-person admin "Administrator"
+person admins "Administrators"
 
-erp      = sys/server      "Legacy ERP"      external { subtitle: "On-prem, no AWS icon" }
-worker   = aws/lambda      "Sync Worker"
-db       = aws/rds         "Orders DB"       datastore
-dash     = aws/app-runner  "Admin Dashboard"
+erp = sys/server "Legacy ERP" external {
+  description: "On-premises order management system"
+  subtitle: "On-prem"
+}
 
-erp ~> worker "sync"
+worker = aws/lambda "Sync Worker" {
+  description: "Polls and syncs ERP records"
+}
+
+db = aws/rds "Orders DB" datastore
+
+dashboard = aws/app-runner "Admin Dashboard" {
+  description: "New web app for administering orders"
+}
+
+erp ~> worker "sync feed"
 worker -> db "writes"
-dash -> db "reads"
-admin -> dash "manages"
+dashboard -> db "reads/writes"
+admins -> dashboard "manages orders"
 
-zone dc    "Corporate Data Center" onprem { contains erp; icon: aws/corporate-data-center }
-zone cloud "AWS Cloud"             cloud  { contains worker, db, dash }
+zone onprem_dc "On-Premises" onprem {
+  contains erp
+}
+
+zone cloud_env "AWS Cloud" cloud {
+  contains worker, db, dashboard
+}
+
+view landscape {
+  title "Hybrid Legacy Integration"
+  include *
+}

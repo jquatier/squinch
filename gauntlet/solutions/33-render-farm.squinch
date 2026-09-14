@@ -1,26 +1,26 @@
 pack aws
 
-dispatcher = aws/ec2 "Dispatcher" { subtitle: "Frame dispatcher" }
+dispatcher = aws/ec2 "Dispatcher"
 
-w1  = aws/ec2 "Worker 1"  { subtitle: "Render worker" }
-w2  = aws/ec2 "Worker 2"  { subtitle: "Render worker" }
-w3  = aws/ec2 "Worker 3"  { subtitle: "Render worker" }
-w4  = aws/ec2 "Worker 4"  { subtitle: "Render worker" }
-w5  = aws/ec2 "Worker 5"  { subtitle: "Render worker" }
-w6  = aws/ec2 "Worker 6"  { subtitle: "Render worker" }
-w7  = aws/ec2 "Worker 7"  { subtitle: "Render worker" }
-w8  = aws/ec2 "Worker 8"  { subtitle: "Render worker" }
-w9  = aws/ec2 "Worker 9"  { subtitle: "Render worker" }
-w10 = aws/ec2 "Worker 10" { subtitle: "Render worker" }
-w11 = aws/ec2 "Worker 11" { subtitle: "Render worker" }
-w12 = aws/ec2 "Worker 12" { subtitle: "Render worker" }
+w1  = aws/ec2 "Render Worker 1"
+w2  = aws/ec2 "Render Worker 2"
+w3  = aws/ec2 "Render Worker 3"
+w4  = aws/ec2 "Render Worker 4"
+w5  = aws/ec2 "Render Worker 5"
+w6  = aws/ec2 "Render Worker 6"
+w7  = aws/ec2 "Render Worker 7"
+w8  = aws/ec2 "Render Worker 8"
+w9  = aws/ec2 "Render Worker 9"
+w10 = aws/ec2 "Render Worker 10"
+w11 = aws/ec2 "Render Worker 11"
+w12 = aws/ec2 "Render Worker 12"
 
-dispatcher -> w1, w2, w3, w4, w5, w6, w7, w8, w9, w10, w11, w12 "frame"
+dispatcher -> w1, w2, w3, w4, w5, w6, w7, w8, w9, w10, w11, w12
 
 view landscape {
   title "Render Farm"
   include *
   layout {
-    wrap 4
+    wrap 5
   }
 }

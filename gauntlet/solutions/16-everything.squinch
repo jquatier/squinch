@@ -3,40 +3,42 @@ pack aws
 person customer "Customer"
 
 storefront = aws/cloudfront "Storefront"
-gateway    = aws/api-gateway "API Gateway"
+gw         = aws/api-gateway "API Gateway"
 
 system catalog "Catalog Service" {
-  fn = aws/lambda   "Catalog Handler"
-  db = aws/dynamodb "Catalog Table" datastore
-  fn -> db
+  api = aws/lambda   "Catalog Handler"
+  db  = aws/dynamodb "Catalog Table" datastore
+  api -> db
 }
 
 system orders "Order Service" {
-  fn = aws/lambda   "Order Handler"
-  db = aws/dynamodb "Orders Table" datastore
-  fn -> db
+  api = aws/lambda   "Orders Handler"
+  db  = aws/dynamodb "Orders Table" datastore
+  api -> db
 }
 
-system payments "Payment Service" {
+system payments "Payments Service" {
   tags: #sensitive
-  fn = aws/lambda   "Payment Handler"
-  db = aws/dynamodb "Payments Table" datastore
-  fn -> db
+
+  api = aws/lambda   "Payments Handler"
+  db  = aws/dynamodb "Payments Table" datastore
+  api -> db
 }
 
-events      = aws/eventbridge "Order Events"
-fulfilment  = aws/lambda      "Fulfilment Worker"
+bus    = aws/eventbridge "Order Events"
+fulfil = aws/lambda      "Fulfilment Worker"
 
-customer          -> storefront   "browses"
-storefront        -> gateway      "API calls"
-gateway           -> catalog.fn
-gateway           -> orders.fn
-gateway           -> payments.fn { tags: #sensitive }
-orders.fn         ~> events       "order placed"
-events            ~> fulfilment   "order events"
+customer  -> storefront "browses"
+storefront -> gw "requests"
+gw -> catalog.api
+gw -> orders.api
+gw -> payments.api { tags: #sensitive }
+
+orders.api ~> bus "order placed"
+bus         ~> fulfil "consume"
 
 zone prod_vpc "Production VPC" vpc {
-  contains gateway, catalog, orders, payments, events, fulfilment
+  contains gw, catalog, orders, payments, bus, fulfil
 }
 
 view landscape {
@@ -47,7 +49,5 @@ view landscape {
 }
 
 view orders {
-  scope orders
-  title "Order Service"
-  legend auto
+  title "Order Service — Detail"
 }

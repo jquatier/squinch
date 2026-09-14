@@ -1,26 +1,35 @@
 pack aws
 
-system shop "Checkout" {
-  api    = aws/api-gateway "API Gateway"
-  cart   = aws/lambda      "Cart Handler"
-  pay    = aws/lambda      "Payment Handler"
-  db     = aws/dynamodb    "Orders Table" datastore
-  queue  = aws/sqs         "Fulfilment Queue"
-  worker = aws/lambda      "Fulfilment Worker"
+customer = person "Customer"
+
+system checkout "Checkout" {
+  api     = aws/api-gateway "API Gateway"
+  cart    = aws/lambda      "Cart Handler"
+  pay     = aws/lambda      "Payment Handler"
+  db      = aws/dynamodb    "Orders Table" datastore
+  queue   = aws/sqs         "Fulfilment Queue" datastore
+  worker  = aws/lambda      "Fulfilment Worker"
 
   api -> cart
   cart -> pay
   pay -> db
   pay ~> queue
   queue ~> worker
+
+  layout {
+    rows [api] [cart] [pay] [db queue] [worker]
+  }
 }
 
-flow checkout "Checkout" {
-  api -> cart -> pay -> db
-  pay ~> queue ~> worker
+customer -> checkout.api "places order"
+
+flow checkout_flow "Checkout" {
+  checkout.api -> checkout.cart -> checkout.pay -> checkout.db
+  checkout.pay ~> checkout.queue ~> checkout.worker
 }
 
-view shop {
-  show flow checkout
+view checkout {
+  title "Checkout Flow"
+  show flow checkout_flow
   legend auto
 }

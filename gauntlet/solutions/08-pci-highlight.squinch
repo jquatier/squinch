@@ -3,39 +3,34 @@ pack aws
 person customer "Customer"
 
 system payments "Payments Service" {
-  description: "Card capture, tokenization and settlement"
-
-  api        = aws/lambda   "API" {
+  api       = aws/lambda   "API" {
     subtitle: "Lambda"
     tags: #pci
   }
-  tokenizer  = aws/lambda   "Tokenizer" {
+  tokenizer = aws/lambda   "Tokenizer" {
     subtitle: "Lambda"
     tags: #pci
   }
-  vault      = aws/dynamodb "Card Vault" datastore {
-    subtitle: "DynamoDB"
+  vault     = aws/dynamodb "Card Vault" datastore {
     tags: #pci
   }
-  queue      = aws/sqs      "Settlement Queue" {
-    subtitle: "SQS"
-  }
-  settlement = aws/lambda   "Settlement Worker" {
+  queue     = aws/sqs      "Settlement Queue"
+  worker    = aws/lambda   "Settlement Worker" {
     subtitle: "Lambda"
   }
 
-  api -> tokenizer "tokenize card"
-  tokenizer -> vault "store token"
-  api ~> queue "enqueue settlement"
-  queue ~> settlement "drain"
+  api -> tokenizer
+  tokenizer -> vault
+  api ~> queue "settlement event"
+  queue ~> worker
 }
 
-customer -> payments.api "pay"
+customer -> payments.api "submits payment"
 
 view pci {
   title "PCI Surface"
   scope payments
   highlight #pci
-  note right-of vault "Raw card data is tokenized here; only tokens leave this boundary, which keeps the queue and settlement worker out of PCI scope"
+  note right-of vault "Tokens stored here — raw card data never leaves the API and Tokenizer"
   legend auto
 }

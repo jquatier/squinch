@@ -2,11 +2,12 @@ pack aws
 
 person customer "Customer"
 
-system orders "Orders" {
-  description: "Order placement and lifecycle"
+system orders "Orders Service" {
+  description: "Order lifecycle and checkout"
+  domain: "orders"
 
-  api    = aws/api-gateway "API"
-  svc    = aws/lambda      "Order Service"
+  api    = aws/api-gateway "Orders API"
+  svc    = aws/lambda      "Orders Service" { subtitle: "Lambda · Node 20" }
   db     = aws/dynamodb    "Orders Table" datastore
   events = aws/eventbridge "Order Events"
 
@@ -17,26 +18,28 @@ system orders "Orders" {
   layout { rows [api] [svc] [db events] }
 }
 
-system inventory "Inventory" {
+system inventory "Inventory Service" {
   description: "Stock levels and reservations"
+  domain: "inventory"
 
-  api = aws/api-gateway "API"
+  api = aws/api-gateway "Inventory API"
   svc = aws/lambda      "Inventory Service"
-  db  = aws/dynamodb    "Inventory Table" datastore
+  db  = aws/dynamodb    "Stock Table" datastore
 
   api -> svc
   svc -> db
 }
 
-system notifications "Notifications" {
-  description: "Customer messaging"
+system notifications "Notifications Service" {
+  description: "Customer order updates"
+  domain: "notifications"
 
-  queue = aws/sqs    "Notification Queue"
-  svc   = aws/lambda "Notification Service"
-  email = aws/ses    "Email"
+  queue  = aws/sqs   "Notify Queue"
+  worker = aws/lambda "Notify Worker"
+  email  = aws/ses    "Email"
 
-  queue -> svc
-  svc -> email
+  queue ~> worker
+  worker -> email
 }
 
 customer -> orders.api "places order"
@@ -50,4 +53,5 @@ view landscape {
 
 view orders {
   title "Orders Service"
+  scope orders
 }

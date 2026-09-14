@@ -1,30 +1,35 @@
 pack aws
 
-clients = sys/app-window "Client Apps" external
+person client "Client App"
 
-system inference "Realtime ML Inference" {
-  description: "Online serving and nightly retraining"
+system rt "Realtime Inference" {
+  description: "Serves live predictions"
 
   api      = aws/api-gateway "API Gateway"
-  handler  = aws/lambda      "Inference Handler" { subtitle: "Lambda" }
+  front    = aws/lambda      "Inference Handler" { subtitle: "Lambda" }
+  endpoint = aws/sagemaker   "Inference Endpoint"
   features = aws/dynamodb    "Feature Store" datastore
-  endpoint = aws/sagemaker   "Model Endpoint"
 
-  schedule = aws/eventbridge "Nightly Schedule"
-  retrain  = aws/lambda      "Retrain Job" { subtitle: "Batch" }
-  training = aws/s3          "Training Data" datastore
-
-  api -> handler
-  handler -> endpoint "predict"
-  handler -> features "lookup features"
-
-  schedule ~> retrain "nightly trigger"
-  retrain -> training "read training data"
-  retrain ~> endpoint "deploy retrained model"
-
-  layout {
-    rows [schedule] [api] [retrain handler] [training features endpoint]
-  }
+  api -> front
+  front -> endpoint "predict"
+  front -> features "fetch features"
 }
 
-clients -> inference.api "request"
+system training "Nightly Retraining" {
+  description: "Retrains the model offline"
+
+  scheduler = aws/eventbridge "Nightly Schedule"
+  job       = aws/batch       "Retraining Job"
+  data      = aws/s3          "Training Data" datastore
+
+  scheduler ~> job "trigger"
+  job -> data "read training data"
+}
+
+client -> rt.api "request prediction"
+training.job ~> rt.endpoint "deploy new model"
+
+view landscape {
+  title "ML Inference Platform"
+  include *
+}

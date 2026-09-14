@@ -356,7 +356,8 @@
         ],
         [
           "sql",
-          "sql-database"
+          "sql-database",
+          "azure-sql"
         ],
         [
           "key-vault",

@@ -1,40 +1,42 @@
 pack aws
 
-person customer "Shopper"
-
+person shopper "Shopper"
 cdn = aws/cloudfront "CDN"
-
-system checkout "Checkout" {
-  api    = aws/api-gateway  "Checkout API"
-  order  = aws/lambda       "Order Service"
-  cache  = aws/elasticache  "Session Cache" datastore
-  events = aws/sqs          "Order Events"
-  worker = aws/lambda       "Payment Worker"
-  db     = aws/dynamodb     "Orders Table" datastore
-
-  api -> order
-  order -> cache
-  order ~> events "publishes"
-  events ~> worker
-  order -> db
-  worker -> db
-
-  layout { rows [api] [order] [cache events] [worker] [db] }
-}
-
 fulfillment = box "Fulfillment"
 
-customer -> cdn "browses"
+system checkout "Checkout" {
+  description: "Checkout and order placement"
+
+  api    = aws/api-gateway  "Checkout API"
+  svc    = aws/lambda       "Order Service"
+  cache  = aws/elasticache  "Session Cache" datastore
+  queue  = aws/sqs          "Order Events"
+  worker = aws/lambda       "Payment Worker"
+  db     = aws/dynamodb     "Orders" datastore
+
+  api -> svc
+  svc -> cache
+  svc ~> queue
+  queue ~> worker
+  svc -> db "writes order"
+  worker -> db "writes payment"
+
+  layout {
+    rows [api] [svc] [cache queue] [worker] [db]
+  }
+}
+
+shopper -> cdn "browses"
 cdn -> checkout.api "requests"
-checkout.order -> fulfillment "hands off order"
+checkout.worker -> fulfillment "triggers fulfillment"
 
 view landscape {
   title "System Landscape"
   include *
   expand checkout
-  layout { rows [cdn] [checkout fulfillment] }
 }
 
 view checkout {
   title "Checkout"
+  scope checkout
 }

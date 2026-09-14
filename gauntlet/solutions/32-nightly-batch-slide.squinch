@@ -1,6 +1,8 @@
 pack aws
 
-system batch "Nightly Batch Job" {
+system batch "Nightly Batch" {
+  description: "Fourteen-step nightly pipeline"
+
   extract   = aws/lambda "Extract"
   validate  = aws/lambda "Validate"
   dedupe    = aws/lambda "Dedupe"
@@ -31,6 +33,8 @@ system batch "Nightly Batch Job" {
   verify -> notify
 }
 
-view batch {
+view slide {
+  title "Nightly Batch Pipeline"
+  scope batch
   layout { wrap 4 }
 }

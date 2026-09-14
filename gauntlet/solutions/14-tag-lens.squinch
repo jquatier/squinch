@@ -1,34 +1,23 @@
 pack aws
 
-person customer "Customer"
+api       = aws/lambda   "API Lambda"       { tags: #pci }
+tokenizer = aws/lambda   "Tokenizer Lambda"  { tags: #pci }
+vault     = aws/dynamodb "Card Vault"        datastore { tags: #pci }
+analytics = aws/lambda   "Analytics Lambda"
+wh        = aws/redshift "Redshift Warehouse" datastore
 
-system payments "Payments Platform" {
-  api       = aws/lambda   "API"                 { tags: #pci }
-  tokenizer = aws/lambda   "Tokenizer"            { tags: #pci }
-  vault     = aws/dynamodb "Card Vault" datastore { tags: #pci }
-  analytics = aws/lambda   "Analytics"
-  warehouse = aws/redshift "Analytics Warehouse" datastore
+api -> tokenizer
+tokenizer -> vault
+vault     ~> analytics "stream"
+analytics ~> wh "load"
 
-  api -> tokenizer "tokenize card"
-  tokenizer -> vault "store token"
-  vault ~> analytics "token stream"
-  analytics -> warehouse "load"
-}
-
-customer -> payments.api "pay"
-
-view landscape {
+view full {
   title "Payments Platform"
   include *
 }
 
-view full {
-  title "Full Picture"
-  expand *
-}
-
-view auditor {
-  title "PCI Audit View"
-  scope payments
+view audit {
+  title "Auditor View — PCI Scope"
+  include *
   only #pci
 }

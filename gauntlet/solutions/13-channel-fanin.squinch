@@ -1,6 +1,6 @@
 pack aws
 
-system shop "Order Service" {
+system orders "Order Service" {
   api    = aws/api-gateway "API Gateway"
   create = aws/lambda      "Create Handler"
   read   = aws/lambda      "Read Handler"
@@ -10,8 +10,9 @@ system shop "Order Service" {
   db     = aws/dynamodb    "Orders Table" datastore
 
   api -> create, read, update, delete, search
+
   create -> db
-  read -> db
+  read   -> db
   update -> db
   delete -> db
   search -> db
@@ -21,7 +22,8 @@ system shop "Order Service" {
   }
 }
 
-view shop {
+view orders {
+  scope orders
   layout {
     channel create, read, update, delete, search -> db
   }

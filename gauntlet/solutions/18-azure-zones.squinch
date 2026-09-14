@@ -1,22 +1,22 @@
 pack azure
 
-gw  = azure/app-gateway "Application Gateway"
-aks = azure/aks         "AKS Cluster"
-acr = azure/acr         "Container Registry"
-sql = azure/sql         "Azure SQL" datastore
+appgw = azure/app-gateway "Application Gateway"
+aks   = azure/aks         "AKS Cluster"
+acr   = azure/acr         "Container Registry"
+sql   = azure/sql         "Azure SQL" datastore
 
-gw  -> aks "routes traffic"
+appgw -> aks "routes traffic"
 aks -> acr "pulls images"
 aks -> sql "reads/writes"
 
-zone subscription "Azure Subscription" account {
-  contains gw, aks, acr, sql
+zone subnet "Private Subnet" subnet {
+  contains aks, acr
 }
 
 zone vnet "Virtual Network" network {
   contains aks, acr, sql
 }
 
-zone subnet "Private Subnet" subnet {
-  contains aks, acr
+zone subscription "Azure Subscription" account {
+  contains appgw, aks, acr, sql
 }

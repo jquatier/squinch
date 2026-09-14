@@ -1,15 +1,15 @@
-c1 = sys/inbox "Collector 1"
-c2 = sys/inbox "Collector 2"
-c3 = sys/inbox "Collector 3"
-c4 = sys/inbox "Collector 4"
-c5 = sys/inbox "Collector 5"
-c6 = sys/inbox "Collector 6"
+c1 = sys/webhook "Collector 1"
+c2 = sys/webhook "Collector 2"
+c3 = sys/webhook "Collector 3"
+c4 = sys/webhook "Collector 4"
+c5 = sys/webhook "Collector 5"
+c6 = sys/webhook "Collector 6"
 
-norm = sys/funnel "Normaliser"
+norm = sys/workflow "Normaliser"
 
-wh    = sys/warehouse       "Warehouse"    datastore
-idx   = sys/database-search "Search Index" datastore
-alert = sys/alert           "Alerting Service"
+wh    = sys/warehouse "Warehouse" datastore
+idx   = sys/search    "Search Index" datastore
+alert = sys/siren     "Alerting Service"
 
 c1 ~> norm
 c2 ~> norm
@@ -22,13 +22,12 @@ norm ~> wh
 norm ~> idx
 norm ~> alert
 
-view landscape {
+view ingestion {
   title "Ingestion Estate"
   include *
   layout {
     density compact
-    rows [c1 c2 c3 c4 c5 c6] [norm] [wh alert] [idx]
-    cols [wh idx]
+    rows [c1 c2 c3 c4 c5 c6] [norm] [wh idx alert]
     channel c1, c2, c3, c4, c5, c6 -> norm
   }
 }

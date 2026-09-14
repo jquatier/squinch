@@ -1,20 +1,20 @@
 pack azure
+pack logos
+pack k8s
 
-pg   = logos/postgres  "PostgreSQL" datastore
-mq   = logos/rabbitmq  "RabbitMQ"
+pg = logos/postgres "PostgreSQL" datastore
+mq = logos/rabbitmq "RabbitMQ"
 
-aks  = azure/aks       "AKS Cluster" {
-  subtitle: "New services"
+system aks "AKS Cluster" {
+  icon: azure/aks
+  svc = k8s/deploy "New Services"
 }
-sql  = azure/sql       "Azure SQL" datastore
 
-sync = sys/repeat      "Nightly Sync Job"
+sql = azure/sql "Azure SQL" datastore
 
-pg  ~> sync "nightly export" { animate: slow }
-sync ~> sql "load"            { animate: slow }
-aks  -> sql "queries"
+pg ~> sql "nightly sync" { animate: slow }
 
-zone onprem "On-Premises" onprem {
+zone onprem_dc "On-Premises" onprem {
   contains pg, mq
 }
 
@@ -25,8 +25,5 @@ zone azure_cloud "Azure" cloud {
 view landscape {
   title "Multi-Cloud Migration"
   include *
-  layout {
-    rows [pg mq] [sync] [aks sql]
-  }
   legend auto
 }

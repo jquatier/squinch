@@ -219,10 +219,20 @@ for (const p of prompts) {
     ...[...m.containers.values()].flatMap((c) => c.tags),
     ...m.edges.flatMap((e) => e.tags),
   ]);
-  const iconIdsUsed = new Set(nodes.map((n) => n.icon?.id).filter(Boolean) as string[]);
+  // A container's authored `icon:` is drawn on its card, so an agent that
+  // models "an AKS cluster running the new services" as a system with
+  // `icon: azure/aks` and services inside has used the icon the prompt asked
+  // for — round 25 scored that as missing, and the diagram was the better one.
+  const iconIdsUsed = new Set([
+    ...nodes.map((n) => n.icon?.id),
+    ...[...m.containers.values()].map((c) => c.attrs["icon"]?.split("/")[1]),
+  ].filter(Boolean) as string[]);
 
-  if (e.minNodes && nodes.length < e.minNodes)
-    problems.push(`nodes ${nodes.length} < ${e.minNodes}`);
+  // Every declared entity is drawn as something — a leaf as a node, a
+  // container as a card — so a prompt's "at least N things" counts both.
+  const drawn = nodes.length + m.containers.size;
+  if (e.minNodes && drawn < e.minNodes)
+    problems.push(`nodes ${drawn} < ${e.minNodes}`);
   if (e.minSystems && systems.length < e.minSystems)
     problems.push(`systems ${systems.length} < ${e.minSystems}`);
   if (e.minViews && explicit.length < e.minViews)

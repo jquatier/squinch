@@ -4,21 +4,21 @@ gw = aws/api-gateway "API Gateway"
 
 system catalog "Catalog Service" {
   description: "Product listings and search"
-  api = aws/lambda   "Catalog API" { subtitle: "Lambda · Node 20" }
+  api = aws/lambda   "Catalog API" { subtitle: "Lambda" }
   db  = aws/dynamodb "Catalog Table" datastore
   api -> db
 }
 
 system checkout "Checkout Service" {
-  description: "Cart, pricing and order placement"
-  api = aws/lambda   "Checkout API" { subtitle: "Lambda · Node 20" }
+  description: "Cart and order placement"
+  api = aws/lambda   "Checkout API" { subtitle: "Lambda" }
   db  = aws/dynamodb "Orders Table" datastore
   api -> db
 }
 
 system identity "Identity Service" {
-  description: "Authentication and user accounts"
-  api = aws/lambda   "Identity API" { subtitle: "Lambda · Node 20" }
+  description: "Auth and user accounts"
+  api = aws/lambda   "Identity API" { subtitle: "Lambda" }
   db  = aws/dynamodb "Users Table" datastore
   api -> db
 }

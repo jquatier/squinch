@@ -145,8 +145,9 @@ Rules that matter:
   empty. Write `partner = box "Partner System" external` instead.
 - A `layout { }` block goes inside a `view` (arranging the view) **or inside a
   `system`** (arranging that system's own interior — `rows`, `cols`, `place`
-  and `direction`, written by short name; see Layout hints). `highlight`,
-  `note` and `expand` belong to a view alone.
+  and `direction`, written by short name; see Layout hints). Everything else
+  — `channel`, `align`, `wrap`, `density`, `highlight`, `note`, `expand` —
+  belongs to a view alone.
 
 Edge motion — `~>` edges animate on their own (dashes drift toward the target,
 off under `prefers-reduced-motion`). Opt out with `{ animate: false }`, or pick

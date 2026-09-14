@@ -5,7 +5,7 @@ Thirty-three natural-language architecture prompts. An agent, armed with only
 must produce a clean diagram for each. **v1 ships at ≥ 16/20 with zero human
 layout fixes** (the original ≥ 8/10 bar, at the current prompt count).
 
-> **Current standing: 33/33 on the deep scorer, 24 of 33 clean on the first
+> **Current standing: 33/33 on the deep scorer, 25 of 33 clean on the first
 > `check`.** The
 > solutions those agents wrote are committed in `solutions/` and re-scored by CI
 > on every push, so the claim is inspectable rather than asserted.
@@ -65,46 +65,32 @@ nothing.
 
 ## Latest round
 
-**Round 24 — 33/33 on the deep scorer; 24 of 33 clean on the first `check`**
-(2026-09-14, Sonnet). Run to validate the node-and-edge pass before it
-ships: `subtitle:` on leaves, frame headers that echo the card, beaded async
-dashes, attribute-key checks on every block, and the retirement of `show
-descriptions`. First round run on Linux — it died at the bundling step until
-the resvg lookup learned that the native package carries a libc suffix there.
+**Round 25 — 33/33 on the deep scorer; 25 of 33 clean on the first `check`**
+(2026-09-14, Sonnet). Run straight after round 24's fixes landed, to see them
+hold: no chained edge in the corpus, the "I care most about orders" prompt
+answered with a declared `orders` view on the second call, and no
+outside-sandbox read. `subtitle:` held at fourteen of thirty-three unprompted;
+none wrote `show descriptions`; nothing tripped an attribute-key warning.
 
-**The new field is what cold agents reach for.** Fourteen of thirty-three
-wrote `subtitle:` unprompted, forty-six of them, all captions of the shape
-the skill shows (`Lambda`, `Ingest & normalize`, `Runs nightly`); none wrote
-`show descriptions`, and no solution tripped an attribute-key warning.
-Nineteen put a `layout { }` inside a container.
+**Two scorer gaps, both fixed in this commit — the diagrams were right:**
 
-**Three findings, all fixed in this commit:**
+- *"Azure SQL" drawn with `azure/azure-sql`.* The pack has that icon, titled
+  Azure SQL, beside `sql-database`; the expectation listed only the latter.
+  It accepts both now.
+- *"An AKS cluster running the new services" modelled as a system.* The agent
+  gave it `icon: azure/aks` and put the services inside — the better model —
+  and the scorer counted neither the card's icon nor the card. Container
+  icons count as drawn icons now, and a container counts as a drawn thing
+  for a prompt's "at least N", which is what it is on the page.
 
-- *Two agents chained edges.* `extract -> validate -> dedupe`, the way a
-  `flow` chains, and got a bare syntax error. The check now names the
-  statement, writes the hops out one per line, says a flow is where hops
-  chain, and drops the syntax debris — the rows-continuation treatment from
-  round 23, again.
-- *Two agents in a row answered "I care most about orders" with one
-  landscape and pointed at the auto view.* The HTML export carries auto views,
-  so their reasoning held for the file they said to open first; `render
-  --sync` does not, so the SVGs they promised never existed, and the scorer
-  wants a declared, narrower view. One sentence in the views section says to
-  declare a view for the part the ask singles out; the third agent did.
-- *The outside-sandbox detector flagged a tool result.* It scanned every
-  transcript line, and the CLI's own usage text — printed back to the agent
-  after it ran `squinch` with no arguments — matched. It scans the inputs of
-  tool calls now and nothing else; the flagged prompt was discarded and
-  re-run anyway, per protocol.
+**One skill edit.** Two agents put a view statement in a container's
+`layout { }` (`channel`, `wrap`) and were told so in one edit, as three
+were in round 23; the block-placement rule in the skill now names the
+view-only statements instead of three of them.
 
-Also seen: one agent put `channel` in a container's block and was told so in
-one edit; one iterated three times on `align` collision warnings it had
-introduced itself; one hit the rank-hint warning; four re-ran `check` after
-voluntary edits with a clean first call, which the single-call count charges
-against them. Rank conflicts on feedback edges remain the class that survives
-the skill.
+Also seen: one agent iterated five times on a warehouse floor whose `rows`
+contradicted its own arrows, the rank-conflict class that survives the skill;
+five re-ran `check` after voluntary edits with a clean first call.
 
 The corpus in `solutions/` is this round's thirty-three answers,
-cold-authored and deep-scored. Two were re-authored per protocol after
-under-delivering — one legacy system without `external`, one market-data
-path with a single animation kind — and one after the skill edit above.
+cold-authored and deep-scored, none re-authored.

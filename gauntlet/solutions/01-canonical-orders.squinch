@@ -1,29 +1,31 @@
 pack aws
 
-system orders "Order API" {
-  description: "Lambda-based order API"
+api = aws/api-gateway "API Gateway"
 
-  api     = aws/api-gateway "API Gateway"
-  create  = aws/lambda      "Create Handler"
-  get     = aws/lambda      "Get Handler"
-  search  = aws/lambda      "Search Handler"
-  indexer = aws/lambda      "Index Sync"
+create = aws/lambda "Create Handler" { subtitle: "Lambda" }
+get    = aws/lambda "Get Handler"    { subtitle: "Lambda" }
+search = aws/lambda "Search Handler" { subtitle: "Lambda" }
 
-  db    = aws/dynamodb  "Orders Table"  datastore
-  files = aws/s3        "Files"         datastore
-  idx   = aws/opensearch "Search Index" datastore
+db      = aws/dynamodb   "Orders Table" datastore
+files   = aws/s3         "Attachments"  datastore
+idx     = aws/opensearch "Search Index" datastore
 
-  api -> create, get, search
+indexer = aws/lambda "Stream Indexer" { subtitle: "Lambda" }
 
-  create -> db
-  create -> files
-  get -> db
-  search -> idx
+api -> create, get, search
 
-  db ~> indexer "DynamoDB stream"
-  indexer ~> idx
+create -> db    "create order"
+create -> files "store attachment"
+get    -> db    "read order"
+search -> idx   "query"
 
+db      ~> indexer "DynamoDB stream"
+indexer -> idx      "index order"
+
+view overview {
+  title "Order API"
+  include *
   layout {
-    rows [api] [create get search] [db files] [indexer] [idx]
+    rows [api] [create get search] [db indexer idx files]
   }
 }

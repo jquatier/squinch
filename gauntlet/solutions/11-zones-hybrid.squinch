@@ -1,26 +1,25 @@
 pack aws
 
-person operator "Operator"
-erp = sys/database "Legacy ERP" { subtitle: "Oracle-style, on-prem" }
+person operator "Operators"
 
-ingest = aws/lambda  "Ingestion Lambda"
-db     = aws/aurora  "Aurora Database" datastore
+erp     = sys/database  "ERP System" datastore { subtitle: "Legacy Oracle-style" }
+ingest  = aws/lambda     "Ingestion Lambda"
+aurora  = aws/aurora     "Aurora DB" datastore
 
-operator -> erp "operates"
-erp ~> ingest "feeds"
-ingest -> db "writes"
+operator -> erp "uses"
+erp -> ingest "feeds"
+ingest -> aurora "writes"
 
 zone onprem "On-Premises Data Center" onprem {
   icon: aws/corporate-data-center
   contains operator, erp
 }
 
-zone cloud "AWS Cloud" cloud {
+zone aws_cloud "AWS Cloud" cloud {
   icon: aws/cloud
-  contains ingest, db
+  contains ingest, aurora
 }
 
 zone db_vpc "Database VPC" vpc {
-  icon: aws/vpc
-  contains db
+  contains aurora
 }

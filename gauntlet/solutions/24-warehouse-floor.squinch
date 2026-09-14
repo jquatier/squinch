@@ -1,33 +1,30 @@
-supervisor = person "Shift Supervisor"
-
-scanner1 = sys/scan "Bench 1 Scanner"
-scanner2 = sys/scan "Bench 2 Scanner"
-scanner3 = sys/scan "Bench 3 Scanner"
-
-controller = sys/cpu "Line Controller" {
-  description: "Local controller on the packing line"
-}
+bench1 = sys/scan   "Bench 1 Scanner"
+bench2 = sys/scan   "Bench 2 Scanner"
+bench3 = sys/scan   "Bench 3 Scanner"
+controller = sys/server-cog "Line Controller"
 sorter  = sys/route   "Conveyor Sorter"
 printer = sys/printer "Label Printer"
-board   = sys/monitor "Status Board"
+board   = sys/screen  "Status Board"
+erp     = sys/server  "ERP System" external
+supervisor = person "Shift Supervisor"
 
-erp = box "ERP" external
-
-scanner1 -> controller
-scanner2 -> controller
-scanner3 -> controller
-
-controller -> sorter
-controller -> printer
-controller -> board "status"
-
+bench1 ~> controller "scan"
+bench2 ~> controller "scan"
+bench3 ~> controller "scan"
+controller -> sorter, printer "drives"
+controller ~> board "status feed"
 controller ~> erp "sync" { animate: slow }
-
 supervisor -> board "watches"
 
-view default {
+zone site_net "Site Network" network {
+  contains controller, erp
+}
+
+view landscape {
+  title "Warehouse Floor Automation"
+  include *
   layout {
-    rows [scanner1 scanner2 scanner3] [controller supervisor] [sorter printer erp board]
-    align supervisor board
+    rows [bench1 bench2 bench3] [site_net] [sorter printer board]
+    channel bench1, bench2, bench3 -> controller
   }
 }

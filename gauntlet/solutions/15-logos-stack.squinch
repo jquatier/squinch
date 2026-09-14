@@ -4,37 +4,39 @@ person dev "Developer"
 
 github = logos/github "GitHub"
 
-system stack "App Stack" {
+system k8s "Kubernetes Cluster" {
   icon: logos/kubernetes
 
-  fe   = logos/nextdotjs "Frontend" { subtitle: "Next.js" }
-  api  = logos/nestjs    "API"      { subtitle: "NestJS" }
-  db   = logos/postgres  "Database" datastore { subtitle: "PostgreSQL" }
-  cache = logos/redis    "Cache"    datastore { subtitle: "Redis" }
-  bus  = logos/kafka     "Events"   datastore { subtitle: "Kafka" }
-  mon  = logos/grafana   "Monitoring" { subtitle: "Grafana" }
+  web   = logos/nextdotjs "Frontend" { subtitle: "Next.js" }
+  api   = logos/nestjs    "API"      { subtitle: "NestJS" }
+  db    = logos/postgres  "Database" datastore
+  cache = logos/redis     "Cache" datastore
+  bus   = logos/kafka     "Events" datastore
+  mon   = logos/grafana   "Monitoring"
 
-  fe -> api
+  web -> api
   api -> db
   api -> cache
   api ~> bus "publishes events"
 
-  fe    -> mon "metrics"
-  api   -> mon "metrics"
-  db    -> mon "metrics"
-  cache -> mon "metrics"
-  bus   -> mon "metrics"
+  api ~> mon "metrics"
+  db ~> mon "metrics"
+  cache ~> mon "metrics"
+  bus ~> mon "metrics"
 
   layout {
-    rows [fe] [api] [db cache bus] [mon]
+    rows [web] [api] [cache bus] [db] [mon]
   }
 }
 
-dev -> github "push"
-github -> stack "deploys"
+dev -> github "pushes code"
+github -> k8s "deploys"
 
 view landscape {
-  title "System Landscape"
+  title "Stack Overview"
   include *
 }
 
+view k8s {
+  title "Kubernetes Cluster"
+}
