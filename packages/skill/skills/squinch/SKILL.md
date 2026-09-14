@@ -211,11 +211,10 @@ visible.
 ## Views (altitudes)
 
 Every system automatically gets a zoomable view. Declare views to customize or to
-add lenses — and **declare one for any part the ask singles out** ("I care most
-about orders"): a declared view gets a title, and `render --sync` writes only
-declared views, so an auto view the reader was promised never reaches them as
-SVGs. Two cold agents in a row handed over one landscape and pointed at the
-auto view; declare `view orders { title "…" }` and it is in the hand-over.
+add lenses — and declare one for any part the ask singles out ("I care most
+about orders"): `render --sync` writes only declared views, so an auto view the
+reader was promised never reaches them as SVGs. `view orders { title "…" }` is
+enough.
 
 ```squinch
 view landscape {            // views take no positional label — the title is a
