@@ -66,6 +66,43 @@ describe("grammar + model builder", () => {
     });
   });
 
+  describe("attribute keys are checked on every block (2026-09)", () => {
+    const warnings = (src: string) => {
+      const r = buildModel(src);
+      expect(r.ok, JSON.stringify(r.diagnostics)).toBe(true); // never an error
+      return r.diagnostics.filter((d) => d.severity === "warning");
+    };
+
+    it("container: unknown keys warn, and the ownership words point at domain:", () => {
+      const of = (attr: string) => warnings(`pack aws\nsystem s "S" {\n ${attr}\n a = aws/lambda "A"\n}`);
+      expect(of(`domain: "orders"`)).toEqual([]);
+      const owner = of(`owner: team-orders`)[0];
+      expect(owner.message).toBe("unknown container attribute `owner`");
+      expect(owner.fix).toBe("did you mean `domain`?");
+      expect(of(`glyp: sys/code`)[0].fix).toBe("did you mean `glyph`?");
+      expect(of(`status: live`)[0].fix).toContain("one of: description, icon, glyph, domain");
+    });
+
+    it("zone: unknown keys warn, and a description is named as one", () => {
+      const of = (attr: string) =>
+        warnings(`pack aws\na = aws/lambda "A"\nzone v "VPC" vpc {\n contains a\n ${attr}\n}`);
+      expect(of(`detail: "10.0.0.0/16"`)).toEqual([]);
+      expect(of(`lable: bottom-right`)[0].fix).toBe("did you mean `label`?");
+      const desc = of(`description: "prod network"`)[0];
+      expect(desc.message).toBe("unknown zone attribute `description`");
+      expect(desc.fix).toContain("detail:");
+    });
+
+    it("note: the one attr and its one value", () => {
+      const of = (attrs: string) =>
+        warnings(`pack aws\na = aws/lambda "A"\nview v {\n note top-right "Q3" { ${attrs} }\n}`);
+      expect(of(`style: warning`)).toEqual([]);
+      expect(of(`style: warn`)[0].message).toBe("unknown note style `warn`");
+      expect(of(`style: warn`)[0].fix).toBe("did you mean `warning`?");
+      expect(of(`colour: red`)[0].message).toBe("unknown note attribute `colour`");
+    });
+  });
+
   it("builds the canonical example", () => {
     const r = buildModel(canonical);
     expect(r.ok).toBe(true);

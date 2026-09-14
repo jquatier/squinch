@@ -468,6 +468,18 @@ export function buildProject(input: ProjectFile[]): BuildResult {
         if (meta.attrs["subtitle"] !== undefined)
           warn(ctx, body, "`subtitle` is a leaf attribute",
             "on a container the line under the name is `description:`");
+        // Attr keys, like the leaf and edge lists: a key nobody reads is a
+        // silent no-op. `owner`/`team` are what people write for the shelf's
+        // ownership chip, whose name is `domain:`; edit distance cannot get
+        // there, so the alias map does.
+        const CONTAINER_ATTR_KEYS = ["description", "icon", "glyph", "domain", "preview", "tags", "color"];
+        const DOMAIN_ALIASES = ["owner", "team", "squad"];
+        for (const key of Object.keys(meta.attrs)) {
+          if (CONTAINER_ATTR_KEYS.includes(key) || key === "subtitle") continue;
+          const sug = DOMAIN_ALIASES.includes(key) ? "domain" : suggest(key, CONTAINER_ATTR_KEYS);
+          warn(ctx, body, `unknown container attribute \`${key}\``,
+            sug ? `did you mean \`${sug}\`?` : `one of: ${CONTAINER_ATTR_KEYS.join(", ")}`);
+        }
         Object.assign(c.attrs, meta.attrs);
         if (meta.description) c.attrs["description"] = meta.description;
         c.tags.push(...meta.tags);
@@ -1136,6 +1148,19 @@ export function buildProject(input: ProjectFile[]): BuildResult {
     // optional chip attrs: icon (pack/id, validated like node icons) and
     // label (which border corner the chip straddles)
     const zAttrs = attrsOf(ctx, bodyNode);
+    // Same key check as every other attr block. `description` is the one
+    // attrsOf lifts out of the bag, so it is named here by hand: a zone's
+    // chip holds a label and a mono `detail:`, and prose it would drop.
+    const ZONE_ATTR_KEYS = ["icon", "label", "color", "detail"];
+    for (const key of Object.keys(zAttrs.attrs)) {
+      if (ZONE_ATTR_KEYS.includes(key)) continue;
+      const sug = suggest(key, ZONE_ATTR_KEYS);
+      warn(ctx, z, `unknown zone attribute \`${key}\``,
+        sug ? `did you mean \`${sug}\`?` : `one of: ${ZONE_ATTR_KEYS.join(", ")}`);
+    }
+    if (zAttrs.description !== undefined)
+      warn(ctx, z, "unknown zone attribute `description`",
+        "a zone's chip holds its label and a mono `detail:`; put prose in a `note`");
     let icon: SZone["icon"];
     if (zAttrs.attrs.icon) {
       const [p, i] = zAttrs.attrs.icon.split("/");
@@ -1328,6 +1353,18 @@ export function buildProject(input: ProjectFile[]): BuildResult {
       if (!anchorNode || !textNode) continue;
       const noteText = ctx.str(textNode);
       const meta = attrsOf(ctx, n.getChild("AttrBlock"));
+      // A note takes one attr, with one value. `style: warn` used to draw a
+      // plain note and say nothing — the dropped-hint class the check forbids.
+      for (const key of Object.keys(meta.attrs))
+        if (key !== "style")
+          warn(ctx, n, `unknown note attribute \`${key}\``, "a note takes only `style: warning`");
+      const NOTE_STYLES = ["warning"];
+      if (meta.attrs.style !== undefined && !NOTE_STYLES.includes(meta.attrs.style)) {
+        // `warn` is one edit past the did-you-mean budget, so a prefix reaches it
+        const sug = suggest(meta.attrs.style, NOTE_STYLES) ?? NOTE_STYLES.find((v) => v.startsWith(meta.attrs.style));
+        warn(ctx, n, `unknown note style \`${meta.attrs.style}\``,
+          sug ? `did you mean \`${sug}\`?` : "the one style is `warning`; leave it off for a plain note");
+      }
       let anchor: SNote["anchor"] | undefined;
       const relpos = anchorNode.getChild("RelPos");
       const corner = anchorNode.getChild("Corner");

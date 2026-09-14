@@ -115,8 +115,9 @@ owns it or where it lives — drawn always, a step quieter than a description.
 Leaves only: a `person` has no line under its name and a card's is its
 `description`, so the check warns on both rather than drawing nothing. Keep it short:
 past 24 characters the check warns, and a leaf widens to fit what it holds.
-Any other key on a leaf warns as unknown, with a did-you-mean — `tech:` and
-`technology:` point at `subtitle:`.
+Any other key on a node, container, zone or note warns as unknown, with a
+did-you-mean — `tech:` and `technology:` point at `subtitle:`, `owner:` and
+`team:` at `domain:` — and a note's one attr takes one value, `style: warning`.
 
 - `external` is drawn (hatched surface, DESIGN §3) and may sit on a whole
   `system`/`container` as well as a node. `person` and `datastore` are
@@ -620,7 +621,8 @@ chain       = path { arrow path } ;
 pack        = "pack" ident [ "from" string ] ;
 import      = "import" string "as" ident ;               (* v2, not built *)
 container   = ("system" | "container") ident [ label ] { kind | tag } "{"
-                { ident ":" value      (* card attrs: glyph, preview, owner, ... *)
+                { ident ":" value      (* card attrs: description, icon, glyph,
+                                          domain, preview, tags, color *)
                 | node | container | edge | interior } "}" ;
 interior    = "layout" "{" { "rows" rank { rank } | "cols" rank { rank }
                            | "place" path relpos path
