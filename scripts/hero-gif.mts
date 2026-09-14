@@ -7,9 +7,8 @@
 // to anchor on (docs/notes/zoom-transitions.md) — and the breadcrumb still
 // walks back out.
 //
-// Maintainer-only, macOS/Linux: needs ffmpeg on PATH. Run it as
-//   NODE_OPTIONS=--expose-gc npx tsx scripts/hero-gif.mts
-// — see the collection hint in the frame loop.
+// Maintainer-only, macOS/Linux: needs ffmpeg on PATH. `NODE_OPTIONS=--expose-gc`
+// keeps memory flatter still — see the frame loop.
 //
 // Generated, never screen-recorded — the frames are the real renderer's output,
 // so the GIF cannot drift from what the tool actually draws, and it can be
@@ -455,18 +454,21 @@ const build = async (theme: string) => {
   // Phase is stamped here rather than in the timeline: held frames push the
   // same string N times, and only the output index knows how far the clip has
   // run by the time each one is drawn.
-  frames.forEach((raw, i) => {
-    const svg = flowAt(i, raw);
-    if (process.env.DUMP_SVG) { writeFileSync(join(tmp, `f${String(i).padStart(4,"0")}.svg`), svg); return; }
+  for (let i = 0; i < frames.length; i++) {
+    const svg = flowAt(i, frames[i]);
+    if (process.env.DUMP_SVG) { writeFileSync(join(tmp, `f${String(i).padStart(4,"0")}.svg`), svg); continue; }
     writeFileSync(join(tmp, `f${String(i).padStart(4, "0")}.png`), svgToPng(svg, { width: BIG.w * SS }));
     // Each frame's pixmap (~80 MB at this size) is native memory behind a
-    // small JS wrapper, freed only when V8 collects the wrapper — and this loop
-    // allocates almost nothing on the JS heap, so nothing prompts it to. On a
-    // 16 GB box the run was killed around frame 165. Run with
-    // `NODE_OPTIONS=--expose-gc` and the hint below keeps residency flat.
-    if (i % 8 === 0) (globalThis as { gc?: () => void }).gc?.();
+    // small JS wrapper. It is released by a finalizer, and Node runs native
+    // finalizers on the event loop — so a loop that never yields frees
+    // nothing, however often the collector runs, and on a 16 GB box this was
+    // killed at 12.6 GB resident around frame 160. Yielding a macrotask per
+    // frame lets the finalizers run; the collection hint (a no-op without
+    // `NODE_OPTIONS=--expose-gc`) makes them due sooner.
+    (globalThis as { gc?: () => void }).gc?.();
+    await new Promise<void>((r) => setImmediate(r));
     if (i % 20 === 0) console.log(`  frame ${i + 1}/${frames.length}`);
-  });
+  }
   // DUMP_SVG=1 writes the frame SVGs instead of rasterizing — how the resvg
   // panic above was cornered, and the first thing to reach for if it returns.
   if (process.env.DUMP_SVG) { console.log("dumped SVGs to", tmp); return; }
