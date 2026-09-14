@@ -6,6 +6,17 @@ history too. Sections are drafted by `pnpm release` from the commits since the
 previous tag, then edited by a human before anything is written; the release
 workflow lifts the matching section verbatim into the GitHub Release notes.
 
+## 0.5.0 — 2026-09-14
+
+- `subtitle:` on a leaf — a short second line under the label, always drawn, for what a few words can say: runtime, owner, region. The card's tier widens for it as it does for a container's description; past 24 characters it warns and points at `description:`; `tech:`, `stack:` or `caption:` on a leaf name it as the fix, and on a person or a container the check says where that line comes from instead.
+- Async wires are beaded: `~>` edges and their legend sample draw `4 7` round-capped dashes in place of the `6 5` butt dashes. The drift period is unchanged, so every animation timing stands.
+- An expanded frame's header echoes its collapsed card — the 24px icon chip (the authored `icon:`, else the first leaf's) and the label in ink rather than muted text — so a reader diving into a container lands on the thing they clicked.
+- `show descriptions` is retired: a description is prose, and the line under a leaf belongs to `subtitle:`. The flag now warns and draws nothing; collapsed cards keep their description as the tagline, and people carry their label alone.
+- Unknown attribute keys warn on leaves, containers, zones and notes with a did-you-mean (`owner` → `domain`, `tech` → `subtitle`, a zone `description:` names `detail:`), as do unknown note styles. A chained edge — `a -> b -> c` — is an error naming the two lines to write and the `flow` where hops do chain.
+- Examples: the microservices, storefront and products API projects carry subtitles, and the hero and prompt GIFs are re-recorded with the new anatomy, looping the dash drift over one whole period so the wire no longer jumps at the seam.
+- `pnpm release <version>` reads the version from the command line again; without `--notes` it had fallen through to the prompt.
+- Gauntlet rounds 24 and 25: 33/33 on the deep scorer, 25 of 33 clean on the first `check`; fourteen cold agents wrote `subtitle:` unprompted. The scorer counts containers among the nodes drawn and reads a container's own `icon:`, and the runner resolves resvg's Linux build and scans only tool inputs for sandbox escapes.
+
 ## 0.4.0 — 2026-09-13
 
 - A container carries its own layout: a `layout { }` block inside a `system` or `container` body arranges its direct interior — `rows`, `cols`, `place`, written by short name — wherever that interior is opened, as an expanded frame in any view or as the root of a view scoped to it, its auto view included. A view's own hints replace the block per container, all or nothing; a second `rows`, `cols`, `direction` or `wrap` line in one block is now an error instead of a silent drop; and a block whose bands run against the interior's own edges is a check error whether or not a view opens the container. View-level `rows`/`cols`/`place` naming leaves inside an expanded container take effect too — they used to render byte-identical to no hint at all.
