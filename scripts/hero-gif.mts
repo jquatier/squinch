@@ -7,7 +7,9 @@
 // to anchor on (docs/notes/zoom-transitions.md) — and the breadcrumb still
 // walks back out.
 //
-// Maintainer-only, macOS/Linux: needs ffmpeg on PATH.
+// Maintainer-only, macOS/Linux: needs ffmpeg on PATH. Run it as
+//   NODE_OPTIONS=--expose-gc npx tsx scripts/hero-gif.mts
+// — see the collection hint in the frame loop.
 //
 // Generated, never screen-recorded — the frames are the real renderer's output,
 // so the GIF cannot drift from what the tool actually draws, and it can be
@@ -457,6 +459,12 @@ const build = async (theme: string) => {
     const svg = flowAt(i, raw);
     if (process.env.DUMP_SVG) { writeFileSync(join(tmp, `f${String(i).padStart(4,"0")}.svg`), svg); return; }
     writeFileSync(join(tmp, `f${String(i).padStart(4, "0")}.png`), svgToPng(svg, { width: BIG.w * SS }));
+    // Each frame's pixmap (~80 MB at this size) is native memory behind a
+    // small JS wrapper, freed only when V8 collects the wrapper — and this loop
+    // allocates almost nothing on the JS heap, so nothing prompts it to. On a
+    // 16 GB box the run was killed around frame 165. Run with
+    // `NODE_OPTIONS=--expose-gc` and the hint below keeps residency flat.
+    if (i % 8 === 0) (globalThis as { gc?: () => void }).gc?.();
     if (i % 20 === 0) console.log(`  frame ${i + 1}/${frames.length}`);
   });
   // DUMP_SVG=1 writes the frame SVGs instead of rasterizing — how the resvg
