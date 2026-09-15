@@ -6,6 +6,13 @@ history too. Sections are drafted by `pnpm release` from the commits since the
 previous tag, then edited by a human before anything is written; the release
 workflow lifts the matching section verbatim into the GitHub Release notes.
 
+## 0.6.0 — 2026-09-15
+
+- `squinch` says when a newer version is on npm: after a successful command, one `update:` line on stderr names the version and the upgrade command (`npx squinch@latest skill` when run through npx). The lookup is one registry request a day, cached under `~/.cache/squinch` and never awaited — a slow or offline registry costs nothing and the notice arrives on the next run — and it is off under `CI`, `GITHUB_ACTIONS` or `SQUINCH_NO_UPDATE_CHECK`. It is never gated on a terminal, because the reader is usually an agent; `check --format json` carries it as an `update` field instead of a line. `docs/notes/update-check.md` records the rejected shapes.
+- A skill installed by a different squinch is named: `skill: <file> was installed by squinch 0.5.0, this is 0.6.0 — re-run squinch skill`, one line per `.agents/skills` or `.claude/skills` copy in the project or under `$HOME` whose install stamp differs ("upgrade squinch" when the stamp is the newer one). Offline and deterministic; a copy with no stamp stays silent. The skill's own rule 4 tells the agent both lines are information, not diagnostics, and never to upgrade or reinstall unasked — an upgrade can change render bytes.
+- Core's guardrails now ban `fetch`, `AbortController` and `process.env` beside the clock and the RNG: the CLI's update module is the one place in the product that reads the environment or the network.
+- Lookbook: every case describes the feature it shows rather than the history behind it, and the landing carries a fourth quote.
+
 ## 0.5.0 — 2026-09-14
 
 - `subtitle:` on a leaf — a short second line under the label, always drawn, for what a few words can say: runtime, owner, region. The card's tier widens for it as it does for a container's description; past 24 characters it warns and points at `description:`; `tech:`, `stack:` or `caption:` on a leaf name it as the fix, and on a person or a container the check says where that line comes from instead.
