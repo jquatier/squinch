@@ -153,6 +153,10 @@ The other surfaces, each its own one-liner:
 - **The CLI** — `npm i -g squinch` (or run everything through
   `npx squinch <cmd>`), and the first render is two commands:
   `squinch init my-diagrams`, then `squinch render my-diagrams --sync`.
+  Once a day it asks the npm registry whether a newer version exists and
+  says so on stderr after a successful command (and tells you when the
+  installed skill was written by a different squinch); `SQUINCH_NO_UPDATE_CHECK=1`
+  turns both off, and `CI` already does.
 - **The Claude Code plugin** — the same skill without touching your repo:
   `/plugin marketplace add jquatier/squinch`, then
   `/plugin install squinch@squinch`. Updates arrive with the plugin instead

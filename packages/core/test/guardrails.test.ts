@@ -106,20 +106,35 @@ describe("determinism is structural, not hoped for", () => {
     expect(offenders, `locale-dependent ordering:\n${offenders.join("\n")}`).toEqual([]);
   });
 
-  it("no Date.now or Math.random anywhere in core src", () => {
+  it("no clock, RNG, network or environment reads anywhere in core src", () => {
     // CLAUDE.md non-negotiable: same (source, packs, theme, version) →
-    // byte-identical SVG. Sketch roughness is seeded from hash(source); nothing
-    // else may reach for a clock or an RNG. Currently zero — this pins it.
+    // byte-identical SVG. Nothing in core may reach for a clock or an RNG —
+    // and since the CLI grew an update check (packages/cli/src/update.ts:
+    // registry fetch, env opt-outs, a cache stamped with the time), nothing
+    // here may reach for the network or process.env either: that module is
+    // the CLI's alone. Currently zero — this pins it.
     const offenders: string[] = [];
     for (const f of tsFiles(join(pkg, "src"))) {
       const lines = readFileSync(f, "utf8").split("\n");
       lines.forEach((l, i) => {
         const code = l.replace(/\/\/.*$/, "").replace(/\/\*.*?\*\//g, "");
-        if (/\bDate\.now\b|\bMath\.random\b|new Date\(\s*\)/.test(code))
+        if (/\bDate\.now\b|\bMath\.random\b|new Date\(\s*\)|\bfetch\(|\bAbortController\b|\bprocess\.env\b/.test(code))
           offenders.push(`${f.replace(root + "/", "")}:${i + 1}  ${l.trim()}`);
       });
     }
     expect(offenders, `nondeterminism in the render path:\n${offenders.join("\n")}`).toEqual([]);
+  });
+
+  it("the gauntlet opts every CLI it spawns out of the update check", () => {
+    // The boxed shim tees CLI stderr to the cold agent and HOME passes
+    // through, so a `skill: /Users/…` notice would be echoed, flagged by
+    // ESCAPES, and tell the agent to run `squinch skill`; the faithfulness
+    // probe demands byte-identical `check --format json` between two
+    // binaries, which an `update` field that depends on cache state breaks.
+    const src = readFileSync(join(root, "gauntlet", "run.ts"), "utf8");
+    expect(src.split("SQUINCH_NO_UPDATE_CHECK").length - 1).toBeGreaterThanOrEqual(3);
+    const childEnv = /function childEnv\([\s\S]*?\n}/.exec(src)?.[0] ?? "";
+    expect(childEnv).toContain('SQUINCH_NO_UPDATE_CHECK: "1"');
   });
 });
 

@@ -733,3 +733,103 @@ describe("the reported version is the real one", () => {
     expect(src).not.toMatch(/const VERSION\s*(:\s*string)?\s*=\s*["'`]/);
   });
 });
+
+describe("update notices through the CLI", () => {
+  // The notice is read by an agent in tool output, so it must be the last
+  // thing on stderr, never on stdout (which carries SVG, JSON and the README
+  // snippet), never beside a failure, and a field — not a line — when the
+  // caller asked for JSON. Every dependency is injected: these tests read no
+  // env, no clock and no network.
+  const NOW = 1_800_000_000_000;
+  const update = (over: Record<string, unknown> = {}) => {
+    const cacheDir = join(dir, "cache");
+    mkdirSync(cacheDir, { recursive: true });
+    writeFileSync(join(cacheDir, "update.json"), JSON.stringify({ checkedAt: NOW, latest: "9.9.9" }));
+    return { env: {}, home: join(dir, "home"), cwd: dir, now: () => NOW, fetch: undefined, cacheDir, ...over };
+  };
+  const manifest = JSON.parse(
+    readFileSync(new URL("../package.json", import.meta.url), "utf8"),
+  ) as { version: string };
+  const write = () => {
+    const f = join(dir, "d.squinch");
+    writeFileSync(f, GOOD);
+    return f;
+  };
+
+  it("a clean check ends with the update line on stderr", async () => {
+    expect(await main(["check", write()], { update: update() })).toBe(0);
+    expect(err.at(-1)).toBe(
+      `update: squinch 9.9.9 is available (running ${manifest.version}) — npm i -g squinch@latest, then squinch skill`,
+    );
+    expect(out.join("\n")).not.toContain("update:");
+  });
+
+  it("check --format json carries it as a field and prints no line", async () => {
+    expect(await main(["check", write(), "--format", "json"], { update: update() })).toBe(0);
+    const payload = JSON.parse(out.join("\n"));
+    expect(payload.update).toEqual({
+      name: "squinch",
+      current: manifest.version,
+      latest: "9.9.9",
+      command: "npm i -g squinch@latest, then squinch skill",
+    });
+    expect(err.join("\n")).not.toContain("update:");
+  });
+
+  it("never sits beside a failure", async () => {
+    const f = join(dir, "bad.squinch");
+    writeFileSync(f, `a = box "A"\na -> nope\nview v { include * }\n`);
+    expect(await main(["check", f], { update: update() })).toBe(1);
+    expect(err.join("\n")).not.toContain("update:");
+    out = [];
+    err = [];
+    expect(await main(["check", f, "--format", "json"], { update: update() })).toBe(1);
+    expect(JSON.parse(out.join("\n")).update).toBeUndefined();
+  });
+
+  it("--version keeps stdout to the version alone", async () => {
+    expect(await main(["--version"], { update: update() })).toBe(0);
+    expect(out).toEqual([manifest.version]);
+    expect(err.join("\n")).toContain("update: squinch 9.9.9");
+  });
+
+  it("stdout artifacts stay pure: the SVG pipe and the README snippet", async () => {
+    const f = write();
+    expect(await main(["render", f], { update: update() })).toBe(0);
+    expect(out.join("\n").startsWith("<svg")).toBe(true);
+    expect(out.join("\n")).not.toContain("update:");
+    expect(err.at(-1)).toMatch(/^update: /);
+    out = [];
+    err = [];
+    expect(await main(["render", f, "--sync"], { update: update() })).toBe(0);
+    expect(out.join("\n")).toContain("README snippet");
+    expect(out.join("\n")).not.toContain("update:");
+  });
+
+  it("--help beside a command prints usage and no notice", async () => {
+    expect(await main(["check", "--help"], { update: update() })).toBe(0);
+    expect(err).toEqual([]);
+  });
+
+  it("a skill installed by another squinch is named until `squinch skill` refreshes it", async () => {
+    const proj = join(dir, "proj");
+    mkdirSync(proj);
+    expect(await main(["skill", proj])).toBe(0);
+    const file = join(proj, ".agents", "skills", "squinch", "SKILL.md");
+    writeFileSync(file, readFileSync(file, "utf8").replace(/installed by squinch [^ ]+ /, "installed by squinch 0.1.0 "));
+    err = [];
+    const f = write();
+    expect(await main(["check", f], { update: update({ cwd: join(proj, "diagrams-not-there") }) })).toBe(0);
+    expect(err.join("\n")).toContain(`skill: ${file} was installed by squinch 0.1.0, this is ${manifest.version} — re-run squinch skill`);
+    expect(await main(["skill", proj])).toBe(0);
+    err = [];
+    expect(await main(["check", f], { update: update({ cwd: proj }) })).toBe(0);
+    expect(err.join("\n")).not.toContain("skill:");
+  });
+
+  it("is silent under CI", async () => {
+    expect(await main(["check", write()], { update: update({ env: { CI: "true" } }) })).toBe(0);
+    expect(err.join("\n")).not.toContain("update:");
+    expect(err.at(-1)).toMatch(/^views: /);
+  });
+});

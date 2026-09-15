@@ -14,6 +14,9 @@ import { loadInput, type Input } from "./project.js";
 import { isGitRepo, loadInputAtRef } from "./git.js";
 import { toPosix } from "./paths.js";
 import { watchPaths } from "./watch.js";
+import {
+  collectNotices, defaultDeps, formatNotices, refreshCache, type Notices, type UpdateDeps,
+} from "./update.js";
 import { createRequire } from "node:module";
 
 /** Read from our own manifest, never retyped. The determinism contract pins
@@ -23,7 +26,8 @@ import { createRequire } from "node:module";
  *  the one thing the stamp exists to answer. `src/` and `dist/` both sit one
  *  level under the package root, so this resolves the same whether run
  *  through tsx or from the build. */
-const VERSION: string = createRequire(import.meta.url)("../package.json").version;
+const PKG = createRequire(import.meta.url)("../package.json") as { name: string; version: string };
+const VERSION: string = PKG.version;
 const THEMES = ["light", "dark"] as const;
 
 const USAGE = `squinch ${VERSION} — architecture diagrams as code
@@ -70,6 +74,12 @@ Render options
   --sync            write every view × theme next to the source, each stamped
                     with this version, and print a README <picture> snippet
   --check           verify committed SVGs match the source (CI gate)
+
+Environment
+  SQUINCH_NO_UPDATE_CHECK   skip the once-a-day npm lookup and the skill-version
+                            check (CI and GITHUB_ACTIONS do too)
+  SQUINCH_CACHE_DIR         where update.json lives (default $XDG_CACHE_HOME/squinch,
+                            else ~/.cache/squinch)
 `;
 
 /**
@@ -115,7 +125,12 @@ function cmdDiff(positionals: string[], flags: Record<string, string | boolean>)
 
 interface ViewInfo { name: string; scope?: string; auto?: boolean }
 
-function reportDiagnostics(diags: Diagnostic[], json: boolean, views?: ViewInfo[]): void {
+function reportDiagnostics(
+  diags: Diagnostic[],
+  json: boolean,
+  views?: ViewInfo[],
+  notices: Notices = {},
+): void {
   if (json) {
     const errors = diags.filter((d) => d.severity === "error").length;
     console.log(
@@ -130,6 +145,10 @@ function reportDiagnostics(diags: Diagnostic[], json: boolean, views?: ViewInfo[
           // up copying the file elsewhere and running `--sync` to read the
           // filenames back off disk.
           ...(views ? { views } : {}),
+          // The update / skill notices ride the JSON as fields (the human
+          // format prints them on stderr; the two carry the same facts), and
+          // only on a clean check — a notice never sits beside a real error.
+          ...(errors === 0 ? notices : {}),
         },
         null,
         2,
@@ -210,7 +229,7 @@ async function renderOne(
 const outName = (base: string, view: string, theme: string) =>
   `${base}.${view}.${theme}.svg`;
 
-async function cmdCheck(path: string, json: boolean): Promise<number> {
+async function cmdCheck(path: string, json: boolean, notices: Notices = {}): Promise<number> {
   const input = loadInput(path);
   const built = buildProject(input.files);
   // layout-stage diagnostics too: render every view
@@ -225,7 +244,7 @@ async function cmdCheck(path: string, json: boolean): Promise<number> {
   const views: ViewInfo[] = built.ok
     ? built.model.views.map((v) => ({ name: v.name, scope: v.scope, auto: v.auto }))
     : [];
-  reportDiagnostics(all, json, views);
+  reportDiagnostics(all, json, views, notices);
   const errors = all.filter((d) => d.severity === "error").length;
   const warnings = all.length - errors;
   if (!json) {
@@ -596,7 +615,12 @@ async function cmdWatch(path: string, flags: Record<string, string | boolean>): 
   return new Promise(() => {}); // runs until interrupted
 }
 
-export async function main(argv: string[]): Promise<number> {
+/** `opts.update` lets tests inject the clock, the cache dir, a stub fetch and
+ *  the environment — `cli.ts` passes argv alone. */
+export async function main(
+  argv: string[],
+  opts: { update?: Partial<UpdateDeps> } = {},
+): Promise<number> {
   const { command, positionals, flags } = parseArgs(argv);
   // Version stands alone, and is answered before the usage branch — behind it,
   // `--version` fell into "no command" and printed the whole 40-line USAGE
@@ -604,39 +628,62 @@ export async function main(argv: string[]): Promise<number> {
   // `check -v diagrams/` is somebody reaching for a verbose flag, and printing
   // a version instead of validating would exit 0 on a broken project — the one
   // failure a CI gate must never have.
-  if (!command && (flags.version || flags.v)) {
-    console.log(VERSION);
-    return 0;
-  }
-  if (!command || flags.help || flags.h) {
+  const bareVersion = !command && (flags.version || flags.v);
+  if (!bareVersion && (!command || flags.help || flags.h)) {
     console.log(USAGE);
     return command ? 0 : 2;
   }
+  // Notices come from the cache and a few file reads, before dispatch; the
+  // registry refresh starts now too, so the command's own runtime is its
+  // window (never awaited — see update.ts). `watch` never returns, so it gets
+  // neither. They print last, on stderr, and only when the command succeeded:
+  // a notice beside a real error reads as part of it.
+  const deps: UpdateDeps = { ...defaultDeps(), ...opts.update };
+  const notices = command === "watch" ? {} : collectNotices(PKG, deps);
+  if (command !== "watch") refreshCache(PKG, deps);
+  const json = command === "check" && flags.format === "json";
+  let code: number;
   try {
-    switch (command) {
-      case "check":
-        if (!positionals[0]) throw new Error("usage: squinch check <path>");
-        return await cmdCheck(positionals[0], flags.format === "json");
-      case "render":
-        if (!positionals[0]) throw new Error("usage: squinch render <path>");
-        return await cmdRender(positionals[0], flags);
-      case "icons":
-        return await cmdIcons(positionals, flags);
-      case "init":
-        return cmdInit(positionals[0] ?? ".");
-      case "skill":
-        return cmdSkill(positionals, flags);
-      case "watch":
-        if (!positionals[0]) throw new Error("usage: squinch watch <path>");
-        return await cmdWatch(positionals[0], flags);
-      case "diff":
-        return cmdDiff(positionals, flags);
-      default:
-        console.error(`unknown command \`${command}\`\n\n${USAGE}`);
-        return 2;
-    }
+    code = bareVersion ? cmdVersion() : await dispatch(command!, positionals, flags, notices);
   } catch (e) {
     console.error(`error: ${(e as Error).message}`);
     return 2;
+  }
+  if (code === 0 && !json) for (const line of formatNotices(notices)) console.error(line);
+  return code;
+}
+
+function cmdVersion(): number {
+  console.log(VERSION);
+  return 0;
+}
+
+async function dispatch(
+  command: string,
+  positionals: string[],
+  flags: Record<string, string | boolean>,
+  notices: Notices,
+): Promise<number> {
+  switch (command) {
+    case "check":
+      if (!positionals[0]) throw new Error("usage: squinch check <path>");
+      return await cmdCheck(positionals[0], flags.format === "json", notices);
+    case "render":
+      if (!positionals[0]) throw new Error("usage: squinch render <path>");
+      return await cmdRender(positionals[0], flags);
+    case "icons":
+      return await cmdIcons(positionals, flags);
+    case "init":
+      return cmdInit(positionals[0] ?? ".");
+    case "skill":
+      return cmdSkill(positionals, flags);
+    case "watch":
+      if (!positionals[0]) throw new Error("usage: squinch watch <path>");
+      return await cmdWatch(positionals[0], flags);
+    case "diff":
+      return cmdDiff(positionals, flags);
+    default:
+      console.error(`unknown command \`${command}\`\n\n${USAGE}`);
+      return 2;
   }
 }

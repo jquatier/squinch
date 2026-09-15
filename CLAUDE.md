@@ -155,7 +155,13 @@ Deliberately absent: GCP. Google grants permission to *use* its Cloud icons in
 diagrams but publishes no redistribution grant, so we don't ship them.
 `packages/cli` — the `squinch` binary,
 thin wrapper over core: arg parsing, project loading (file *or* directory), and the
-sync/check model (`--sync` writes stamped renders, `--check` re-renders and compares). `packages/vscode` — the editor extension:
+sync/check model (`--sync` writes stamped renders, `--check` re-renders and compares).
+It is also the one place that reads the clock, the environment and the network:
+`src/update.ts` prints `update:` / `skill:` notices after a successful command
+(a once-a-day registry lookup cached under `~/.cache/squinch`, plus the skill's
+install stamp against the running version) — never TTY-gated because the reader
+is an agent, never on stdout, never beside a failure, off under `CI`;
+`docs/notes/update-check.md` records the rejected alternatives. `packages/vscode` — the editor extension:
 `src/features.ts` is every piece of editor intelligence as pure functions (unit
 tested), `src/server.ts` a thin LSP shell over it, `src/extension.ts` the client
 plus preview webview; `test/server.test.ts` drives the *bundled* server over real

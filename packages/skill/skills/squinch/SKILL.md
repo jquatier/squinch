@@ -62,6 +62,12 @@ squinch render diagrams/ -o diagram.html     # every view, both palettes, click-
    warnings do not, which is exactly why they matter — a warning means the file
    is valid but probably not the diagram you were asked for. Fix warnings
    before you stop.
+4. A stderr line starting `update:` (a newer squinch is on npm) or `skill:`
+   (this SKILL.md was installed by a different squinch) — or the `update` /
+   `skill` fields in `check --format json` — is information, not a diagnostic:
+   exit 0 with no diagnostics is still clean. Mention it to the user once and
+   carry on. Never upgrade squinch or re-run `squinch skill` unasked: an
+   upgrade can change render bytes, and that is the user's call.
 
 ## Language
 

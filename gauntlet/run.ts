@@ -249,6 +249,7 @@ writeFileSync(
     try {
       return execFileSync(process.execPath, [...bin, "check", file, "--format", "json"], {
         encoding: "utf8",
+        env: { ...process.env, SQUINCH_NO_UPDATE_CHECK: "1" }, // an `update` field would differ by cache state
       });
     } catch (err) {
       return String((err as { stdout?: string }).stdout ?? ""); // check exits 1 on errors
@@ -296,7 +297,13 @@ function toolInputs(line: string): string[] {
  * authenticate at all, and it carries no session state.
  */
 function childEnv(box: string): Record<string, string> {
-  const env: Record<string, string> = { PATH: `${join(box, "bin")}:${process.env.PATH}` };
+  // The CLI's update notices are off: the shim tees CLI stderr to the agent,
+  // HOME passes through, and a `skill: /Users/…/SKILL.md` line would be
+  // echoed, counted by ESCAPES, and tell a cold agent to run `squinch skill`.
+  const env: Record<string, string> = {
+    PATH: `${join(box, "bin")}:${process.env.PATH}`,
+    SQUINCH_NO_UPDATE_CHECK: "1",
+  };
   for (const k of ["HOME", "SHELL", "LANG", "LC_ALL", "TERM", "TMPDIR", "USER",
                    "ANTHROPIC_API_KEY", "ANTHROPIC_AUTH_TOKEN"])
     if (process.env[k]) env[k] = process.env[k]!;
@@ -465,6 +472,7 @@ async function runPrompt(p: Prompt): Promise<Result> {
   try {
     const out = execFileSync(process.execPath, [bundle, "check", produced, "--format", "json"], {
       encoding: "utf8",
+      env: { ...process.env, SQUINCH_NO_UPDATE_CHECK: "1" },
     });
     const parsed = JSON.parse(out);
     ok = parsed.ok === true;
