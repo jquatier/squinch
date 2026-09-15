@@ -167,8 +167,9 @@
     <!-- The trust band: four guarantees, beside the receipt that proves the
          first one. Every claim here is mechanically enforced — the goldens are
          byte-compared on all three runners, the metrics table is bundled, the
-         shipped packages make no network call, and the gauntlet solutions are
-         committed and re-scored. Nothing aspirational goes in this band. -->
+         render path makes no network call (core's guardrails ban fetch and
+         process.env outright), and the gauntlet solutions are committed and
+         re-scored. Nothing aspirational goes in this band. -->
     <section class="band proof" aria-labelledby="proof-h">
       <div class="proof-head">
         <span class="eyebrow accent">Deterministic, not best-effort</span>
@@ -187,9 +188,10 @@
              a different font.</p>
         </li>
         <li>
-          <h3>No network. No telemetry.</h3>
-          <p>Renders offline and tells nobody. No update pings, no account, no
-             icon fetched at render time.</p>
+          <h3>Renders offline. No telemetry.</h3>
+          <p>Rendering never touches the network and tells nobody. No account,
+             no icon fetched at render time, nothing about you or your diagrams
+             leaves the machine.</p>
         </li>
         <li>
           <h3>Rigorously tested, agents included</h3>
