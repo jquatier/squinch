@@ -1,10 +1,6 @@
-// `badge:` puts a vendor mark on a node's icon plate, for the platforms that
-// publish no icon set anyone may redistribute — Databricks is the standing
-// example, so there is no pack to install. Compose the two halves instead: a
-// generic `sys/*` concept for *what the thing is*, and a CC0 brand mark for
-// *whose it is*. The badge is what makes a wall of grey plates legible — every
-// Databricks-owned box is marked, and the Kafka and S3 nodes keep their own
-// icons, so the platform boundary reads at a glance.
+// `badge:` composites a vendor mark onto a node's icon plate, for platforms
+// with no icon pack: a `sys/*` icon says what the thing is and a `logos/*`
+// mark says whose it is. Here every Databricks-owned node carries the mark.
 pack aws
 
 system lakehouse "Customer 360" {

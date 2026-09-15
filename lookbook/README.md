@@ -350,7 +350,7 @@ Source: [`cases/29-edge-styles.squinch`](cases/29-edge-styles.squinch)
 
 ## Badges
 
-`badge:` puts a vendor mark on a node's icon plate, for the platforms that publish no icon set anyone may redistribute — Databricks is the standing example, so there is no pack to install. Compose the two halves instead: a generic `sys/*` concept for *what the thing is*, and a CC0 brand mark for *whose it is*. The badge is what makes a wall of grey plates legible — every Databricks-owned box is marked, and the Kafka and S3 nodes keep their own icons, so the platform boundary reads at a glance.
+`badge:` composites a vendor mark onto a node's icon plate, for platforms with no icon pack: a `sys/*` icon says what the thing is and a `logos/*` mark says whose it is. Here every Databricks-owned node carries the mark.
 
 Source: [`cases/30-badges.squinch`](cases/30-badges.squinch)
 
@@ -360,7 +360,7 @@ Source: [`cases/30-badges.squinch`](cases/30-badges.squinch)
 
 ## Full Detail
 
-`expand *` opens every container to leaf depth on one page — the one place the diagram shows everything at once. Frames nest so containment stays legible; only the outermost carries the recessed fill, since stacking it would make depth read as darkness, and inner boundaries are the line and the label.
+`expand *` opens every container to leaf depth in one view. Frames nest; only the outermost carries the recessed fill.
 
 Source: [`cases/31-full-detail.squinch`](cases/31-full-detail.squinch)
 
@@ -370,7 +370,7 @@ Source: [`cases/31-full-detail.squinch`](cases/31-full-detail.squinch)
 
 ## Coplanar Frames
 
-Expanded systems side by side, with calls running between them. Same-rank cross-frame edges route through the gutters reserved between the frames — straight when the endpoints share a height, a mid-gutter jog when they don't — and continue to the card itself wherever the way in is clear, so a row of open systems stays a row and two calls into one API land on its own face.
+Expanded systems side by side, with calls running between them. Same-rank edges route through the gutters between the frames and continue to the card itself where the way in is clear.
 
 Source: [`cases/32-coplanar-frames.squinch`](cases/32-coplanar-frames.squinch)
 
@@ -380,7 +380,7 @@ Source: [`cases/32-coplanar-frames.squinch`](cases/32-coplanar-frames.squinch)
 
 ## Card Shelf
 
-The card shelf, fully loaded. `icon:` picks the card's own mark instead of inheriting the first child's — here a storefront glyph, deliberately not an AWS service, because the card is the *system* and not any one component. `domain:` stamps a chip on the shelf's right; past three children the preview strip truncates to `+N`. The second card declares neither and shows the defaults: first child's icon, no chip.
+The card shelf: `icon:` picks the card's own mark instead of the first child's, `domain:` stamps a chip on the shelf, and past three children the preview strip truncates to `+N`. The second card declares neither and shows the defaults.
 
 Source: [`cases/33-card-shelf.squinch`](cases/33-card-shelf.squinch)
 
@@ -390,7 +390,7 @@ Source: [`cases/33-card-shelf.squinch`](cases/33-card-shelf.squinch)
 
 ## View Axes
 
-The view verbs beyond scope. `only #pci` keeps just the tagged slice — tags cut across systems, so no scope could ever name it. `detail` redraws an outside caller at its real depth instead of as its system's card. And `context off` clears the muted periphery when a view wants nothing but its subject.
+The view verbs beyond scope: `only #pci` keeps just the tagged slice, `detail` draws an outside caller at its real depth instead of as its system's card, and `context off` clears the muted periphery.
 
 Source: [`cases/34-view-axes.squinch`](cases/34-view-axes.squinch)
 
@@ -424,7 +424,7 @@ Source: [`cases/35-rows-cols.squinch`](cases/35-rows-cols.squinch)
 
 ## Colors
 
-`color:` — one hue vocabulary on everything. Nine words (red, amber, green, teal, blue, violet, pink, gray, accent), never hex, each a designed pair so the same source reads right on both canvases. A leaf, a person or a system takes a spine down its left edge, an edge its stroke and head, a zone its outline. The `lens` view colours by tag instead — `color #money red` — which overrides an element's own colour and earns a legend entry per tag. Hue is annotation: async is still dashed, context still muted.
+`color:` — nine hue words (red, amber, green, teal, blue, violet, pink, gray, accent), never hex. A leaf, person or system takes a spine down its left edge, an edge its stroke and head, a zone its outline. The `lens` view colours by tag instead — `color #money red` — and earns a legend entry per tag.
 
 Source: [`cases/36-colors.squinch`](cases/36-colors.squinch)
 
@@ -448,7 +448,7 @@ Source: [`cases/36-colors.squinch`](cases/36-colors.squinch)
 
 ## Container Direction
 
-A system says which way its own interior flows: `direction right` in the pipeline's layout block lays its stages out as a row wherever the system is opened, inside a view that still flows down. The frame is laid out by a call of its own, and the edges crossing its wall enter and leave through the wall on the way to the stage they name — here a batch feed with a note riding it, a numbered flow walked through the row, a same-rank probe from a monitor that stops at the boundary, and the whole thing inside a cloud zone.
+`direction right` in a system's layout block lays its interior out as a row wherever the system is opened, inside a view that still flows down. Edges crossing the frame enter and leave through its wall on the way to the stage they name.
 
 Source: [`cases/38-container-direction.squinch`](cases/38-container-direction.squinch)
 
@@ -458,7 +458,7 @@ Source: [`cases/38-container-direction.squinch`](cases/38-container-direction.sq
 
 ## Wrap
 
-`wrap N` is the one aspect-ratio knob: it folds the two shapes that have no control of their own. A single chain becomes a serpentine — bands alternate direction, so the hop between them is one short vertical and a short last band right-aligns under its column-mates. A single source fanning out folds its targets into bands under it, and the band-skipping edges are drawn as one bus: a spine down the first band's middle gap, a trunk per band, a drop into each target. Anything else warns and names the `rows` line to write.
+`wrap N` folds a diagram to an aspect ratio: a single chain becomes a serpentine, and a single source's fan-out folds into bands under it with the band-skipping edges drawn as one bus. Any other shape warns and names the `rows` line to write.
 
 Source: [`cases/39-wrap.squinch`](cases/39-wrap.squinch)
 
@@ -476,7 +476,7 @@ Source: [`cases/39-wrap.squinch`](cases/39-wrap.squinch)
 
 ## Subtitles
 
-`subtitle:` — a leaf's short second line, always drawn: what it runs on, who owns it, where it lives. A caption, not prose, so it sets a step quieter than a label and the check warns past 24 characters. A `description:` on the same leaf never draws inside it — that is prose, for the hover card — so the two never compete for the line.
+`subtitle:` — a leaf's short second line, always drawn: what it runs on, who owns it, where it lives. The check warns past 24 characters; longer detail belongs in `description:`.
 
 Source: [`cases/40-subtitles.squinch`](cases/40-subtitles.squinch)
 

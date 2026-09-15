@@ -1,8 +1,6 @@
-// The view verbs beyond scope. `only #pci` keeps just the tagged slice — tags
-// cut across systems, so no scope could ever name it. `detail` redraws an
-// outside caller at its real depth instead of as its system's card. And
-// `context off` clears the muted periphery when a view wants nothing but its
-// subject.
+// The view verbs beyond scope: `only #pci` keeps just the tagged slice,
+// `detail` draws an outside caller at its real depth instead of as its
+// system's card, and `context off` clears the muted periphery.
 pack aws
 
 person shopper "Shopper"

@@ -1,10 +1,7 @@
-// `wrap N` is the one aspect-ratio knob: it folds the two shapes that have no
-// control of their own. A single chain becomes a serpentine — bands alternate
-// direction, so the hop between them is one short vertical and a short last
-// band right-aligns under its column-mates. A single source fanning out folds
-// its targets into bands under it, and the band-skipping edges are drawn as
-// one bus: a spine down the first band's middle gap, a trunk per band, a drop
-// into each target. Anything else warns and names the `rows` line to write.
+// `wrap N` folds a diagram to an aspect ratio: a single chain becomes a
+// serpentine, and a single source's fan-out folds into bands under it with
+// the band-skipping edges drawn as one bus. Any other shape warns and names
+// the `rows` line to write.
 pack aws
 
 system etl "Nightly ETL" {

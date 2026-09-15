@@ -1,7 +1,5 @@
-// `expand *` opens every container to leaf depth on one page — the one place the
-// diagram shows everything at once. Frames nest so containment stays legible;
-// only the outermost carries the recessed fill, since stacking it would make
-// depth read as darkness, and inner boundaries are the line and the label.
+// `expand *` opens every container to leaf depth in one view. Frames nest;
+// only the outermost carries the recessed fill.
 pack aws
 
 system edge "Edge" {

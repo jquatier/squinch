@@ -1,8 +1,6 @@
-// `subtitle:` — a leaf's short second line, always drawn: what it runs on, who
-// owns it, where it lives. A caption, not prose, so it sets a step quieter than
-// a label and the check warns past 24 characters. A `description:` on the same
-// leaf never draws inside it — that is prose, for the hover card — so the two
-// never compete for the line.
+// `subtitle:` — a leaf's short second line, always drawn: what it runs on,
+// who owns it, where it lives. The check warns past 24 characters; longer
+// detail belongs in `description:`.
 pack aws
 
 system shop "Storefront" {

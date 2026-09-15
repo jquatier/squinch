@@ -1,9 +1,7 @@
-// The card shelf, fully loaded. `icon:` picks the card's own mark instead of
-// inheriting the first child's — here a storefront glyph, deliberately not an
-// AWS service, because the card is the *system* and not any one component.
-// `domain:` stamps a chip on the shelf's right; past three children the
-// preview strip truncates to `+N`. The second card declares neither and
-// shows the defaults: first child's icon, no chip.
+// The card shelf: `icon:` picks the card's own mark instead of the first
+// child's, `domain:` stamps a chip on the shelf, and past three children the
+// preview strip truncates to `+N`. The second card declares neither and shows
+// the defaults.
 pack aws
 
 system checkout "Checkout" {
