@@ -29,6 +29,15 @@ permissions:
 jobs:
   release:
     runs-on: ubuntu-latest
+    # A release is a deployment to npm: declaring the environment lists every
+    # release in the repo's Deployments panel beside the Pages deploys, each
+    # linking to the version it published, and makes a reviewer gate or an
+    # environment-scoped NPM_TOKEN a settings change rather than a workflow
+    # change. It is also what npm's trusted publishing binds to, should a
+    # publisher be registered for this workflow + environment.
+    environment:
+      name: npm
+      url: https://www.npmjs.com/package/squinch/v/${{ steps.version.outputs.version }}
     steps:
       # The same pinned setup block as ci.yml, same order, same reasons: the
       # action majors are the first with node24 entry points, and pnpm must be
@@ -43,13 +52,16 @@ jobs:
           registry-url: https://registry.npmjs.org
       - run: pnpm install --frozen-lockfile
       # The tag IS the version. Fail before doing any work if they disagree.
-      - run: |
+      # The bare version is exported for the environment URL above.
+      - id: version
+        run: |
           v="v$(node scripts/version.mjs)"
           if [ "$v" != "$GITHUB_REF_NAME" ]; then
             echo "tag $GITHUB_REF_NAME does not match the workspace version $v"
             echo "releases are cut with \`pnpm release\`, which keeps them equal"
             exit 1
           fi
+          echo "version=${v#v}" >> "$GITHUB_OUTPUT"
       - run: pnpm -r build
       - run: pnpm -r typecheck
       - run: pnpm -r test
