@@ -1,9 +1,7 @@
-// The azure pack: Microsoft's official Architecture Icons — the gradient artwork
-// is drawn raw like aws/k8s, no plate, no tint. Long marketing names alias to
-// what people actually type (`azure/vnet`, `azure/aks`, `azure/cosmos`), and
-// this file leans on those short forms. A virtual network draws as a zone with
-// `icon: azure/vnet`, where the artwork is inset so full-bleed gradients never
-// touch the chip's border.
+// The azure pack: Microsoft's official Architecture Icons, drawn full-colour
+// like aws and k8s. Long marketing names alias to the short forms people type
+// (`azure/vnet`, `azure/aks`, `azure/cosmos`). A virtual network draws as a
+// zone with `icon: azure/vnet`.
 pack azure
 
 person user "Customer"

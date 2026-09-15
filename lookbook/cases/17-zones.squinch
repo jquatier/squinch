@@ -1,8 +1,7 @@
 // `zone` draws a deployment boundary — a cloud, a VPC, an on-premises site —
-// around whatever sits inside it. Boundaries cut across the ownership
-// structure, and they nest. `detail:` adds the boundary's hard fact — a CIDR
-// block, an account — as a mono segment on the chip, so digits line up
-// between diagrams.
+// around whatever sits inside it, cutting across the ownership structure, and
+// zones nest. `detail:` adds a hard fact — a CIDR block, an account — as a
+// mono segment on the chip.
 pack aws
 
 person ops "Operators"

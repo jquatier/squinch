@@ -1,7 +1,6 @@
 // `description:` is prose — a sentence about what a thing does. It shows as a
-// system's tagline on its collapsed card, in hover cards and in `squinch diff`;
-// it never draws inside a leaf, which has room for a caption, not a sentence.
-// That caption is `subtitle:`. The landscape shows the taglines; the scoped
+// system's tagline on its collapsed card and never draws inside a leaf, whose
+// second line is `subtitle:`. The landscape shows the taglines; the scoped
 // view shows the same leaves with their subtitles.
 pack aws
 

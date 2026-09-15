@@ -26,7 +26,7 @@ Source: [`cases/02-fan-out.squinch`](cases/02-fan-out.squinch)
 
 ## Fan In
 
-The reverse shape: many producers all feeding one destination. Written as separate edges rather than a fan-out list, because an edge has one source — this is what several of them arriving at the same point looks like.
+The reverse shape: many producers all feeding one destination, written as separate edges. This is what several of them arriving at the same point looks like.
 
 Source: [`cases/03-fan-in.squinch`](cases/03-fan-in.squinch)
 
@@ -126,7 +126,7 @@ Source: [`cases/12-lifted-aggregate.squinch`](cases/12-lifted-aggregate.squinch)
 
 ## Descriptions
 
-`description:` is prose — a sentence about what a thing does. It shows as a system's tagline on its collapsed card, in hover cards and in `squinch diff`; it never draws inside a leaf, which has room for a caption, not a sentence. That caption is `subtitle:`. The landscape shows the taglines; the scoped view shows the same leaves with their subtitles.
+`description:` is prose — a sentence about what a thing does. It shows as a system's tagline on its collapsed card and never draws inside a leaf, whose second line is `subtitle:`. The landscape shows the taglines; the scoped view shows the same leaves with their subtitles.
 
 Source: [`cases/13-descriptions.squinch`](cases/13-descriptions.squinch)
 
@@ -178,7 +178,7 @@ Source: [`cases/15-densities.squinch`](cases/15-densities.squinch)
 
 ## Legend Titleblock
 
-Footer furniture. `legend auto` explains the line styles the diagram actually uses and nothing else; `titleblock` stamps the drawing. Four keys are reserved and drawn canonically — `subtitle` under the title, `version`, mono `commit` and a dimmed `date` in the meta chip — and every other key (owner, status) appends as its own chip segment. Nothing is filled in for you: the commit and the date are what you wrote in the source, not what git or the clock say.
+Footer furniture. `legend auto` explains the line styles the diagram uses; `titleblock` stamps the drawing. Four keys are drawn canonically — `subtitle` under the title, `version`, mono `commit` and a dimmed `date` in the meta chip — and every other key appends as its own chip segment.
 
 Source: [`cases/16-legend-titleblock.squinch`](cases/16-legend-titleblock.squinch)
 
@@ -196,7 +196,7 @@ Source: [`cases/16-legend-titleblock.squinch`](cases/16-legend-titleblock.squinc
 
 ## Zones
 
-`zone` draws a deployment boundary — a cloud, a VPC, an on-premises site — around whatever sits inside it. Boundaries cut across the ownership structure, and they nest. `detail:` adds the boundary's hard fact — a CIDR block, an account — as a mono segment on the chip, so digits line up between diagrams.
+`zone` draws a deployment boundary — a cloud, a VPC, an on-premises site — around whatever sits inside it, cutting across the ownership structure, and zones nest. `detail:` adds a hard fact — a CIDR block, an account — as a mono segment on the chip.
 
 Source: [`cases/17-zones.squinch`](cases/17-zones.squinch)
 
@@ -284,7 +284,7 @@ Source: [`cases/24-arrow-kinds.squinch`](cases/24-arrow-kinds.squinch)
 
 ## Edge Routing
 
-The `lines` setting, three ways over the same diagram: how an edge *travels*. `orthogonal` turns square corners, `curved` rounds them off, and `straight` runs point to point. How an edge is *drawn and moves* is the other axis — `style:` and `animate:`, case 29-edge-styles.
+The `lines` setting, three ways over the same diagram: `orthogonal` turns square corners, `curved` rounds them off, and `straight` runs point to point. How an edge is drawn and moves is `style:` and `animate:`, case 29-edge-styles.
 
 Source: [`cases/25-edge-routing.squinch`](cases/25-edge-routing.squinch)
 
@@ -318,7 +318,7 @@ Source: [`cases/26-route-label.squinch`](cases/26-route-label.squinch)
 
 ## K8s
 
-The k8s pack: official community icons (the blue heptagons from the kubernetes docs), full-colour artwork like aws/azure — no plate, no tint. Canonical ids are kubectl's short names and the long forms alias to them; both spellings appear here. A namespace draws as a zone with `icon: k8s/ns`, not as a node. The two namespaces share a row, and the cross-namespace `reads` call routes through the gutter between them and lands on the service itself.
+The k8s pack: the official community icons, drawn full-colour like aws and azure. Canonical ids are kubectl's short names and the long forms alias to them; both spellings appear here. A namespace draws as a zone with `icon: k8s/ns`, and the two share a row with the cross-namespace call routed between them.
 
 Source: [`cases/27-k8s.squinch`](cases/27-k8s.squinch)
 
@@ -328,7 +328,7 @@ Source: [`cases/27-k8s.squinch`](cases/27-k8s.squinch)
 
 ## Azure
 
-The azure pack: Microsoft's official Architecture Icons — the gradient artwork is drawn raw like aws/k8s, no plate, no tint. Long marketing names alias to what people actually type (`azure/vnet`, `azure/aks`, `azure/cosmos`), and this file leans on those short forms. A virtual network draws as a zone with `icon: azure/vnet`, where the artwork is inset so full-bleed gradients never touch the chip's border.
+The azure pack: Microsoft's official Architecture Icons, drawn full-colour like aws and k8s. Long marketing names alias to the short forms people type (`azure/vnet`, `azure/aks`, `azure/cosmos`). A virtual network draws as a zone with `icon: azure/vnet`.
 
 Source: [`cases/28-azure.squinch`](cases/28-azure.squinch)
 
@@ -338,9 +338,7 @@ Source: [`cases/28-azure.squinch`](cases/28-azure.squinch)
 
 ## Edge Styles
 
-How an edge is drawn and how it moves: `style: solid | dashed | dotted` and `animate: flow | reverse | slow | fast | packets | pulse | comet`, one hub with each spoke showing one thing. Travelling dashes need a pattern to travel, so a synchronous edge animates by declaring `style: dotted` first — dashed is the convention for async edges and asking for it on a sync one warns. `pulse` breathes rather than travels, so it works on a solid line. `comet` is the exception: it rides a dot along the route instead of moving the stroke, which makes it the way to show motion on a plain synchronous call.
-
-How an edge *travels* between nodes is the other axis — `lines`, case 25-edge-routing.
+How an edge is drawn and how it moves: `style: solid | dashed | dotted` and `animate: flow | reverse | slow | fast | packets | pulse | comet`, one hub with each spoke showing one thing. Travelling dashes need a pattern, so a synchronous edge animates with `style: dotted`; `pulse` breathes on a solid line, and `comet` rides a dot along the route. How an edge travels between nodes is `lines`, case 25-edge-routing.
 
 Source: [`cases/29-edge-styles.squinch`](cases/29-edge-styles.squinch)
 
