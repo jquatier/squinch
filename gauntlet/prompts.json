@@ -599,5 +599,23 @@
         ]
       }
     }
+  },
+  {
+    "id": "34-web-many-apis",
+    "prompt": "Diagram this system for me. I went through the repo and here is what is in it.\n\napps/web is a React single-page app. It talks to everything through apps/bff, a Node backend-for-frontend, and the BFF calls these backend services over HTTP, one client module per service:\n\nservices/users (Postgres), services/auth (Redis for sessions), services/profile (Postgres), services/catalog (Postgres), services/search (OpenSearch), services/pricing (Redis), services/reviews (MongoDB), services/recommendations (Redis), services/cart (Redis), services/checkout (Postgres), services/orders (Postgres), services/payments (Postgres, and it calls Stripe), services/shipping (Postgres, calls the carrier's API), services/inventory (Postgres), services/notifications (sends through SendGrid), services/support (Postgres).\n\nBetween services: checkout calls cart, pricing, payments and orders. Orders calls inventory. Search reads from catalog. Recommendations reads from catalog and reviews. Orders and payments publish to Kafka; notifications, shipping and recommendations consume from it.",
+    "expect": {
+      "minSystems": 2,
+      "minViews": 2,
+      "requireNarrowerView": true
+    }
+  },
+  {
+    "id": "35-monorepo",
+    "prompt": "Can you diagram our system? Here is the layout of the monorepo and what I could work out from the code.\n\napps/: storefront (Next.js, customers), admin (React, staff), mobile (React Native, customers). All three go through infra/gateway (Kong).\n\nservices/identity/: accounts-api, sessions-api, mfa-worker; Postgres and Redis.\nservices/catalog/: products-api, media-api (S3), search-api (Elasticsearch), indexer worker that keeps search in step with products.\nservices/commerce/: cart-api (Redis), checkout-api, orders-api (Postgres), payments-api (Postgres, Stripe), tax-api (calls Avalara).\nservices/fulfilment/: warehouse-api (Postgres), shipping-api (calls carrier APIs), returns-api (Postgres), label-worker.\nservices/engagement/: email-worker (SendGrid), push-worker (Firebase), campaigns-api (Postgres).\nservices/analytics/: events-collector, a Snowflake warehouse, a nightly dbt job, Metabase dashboards the staff use.\n\nEverything that happens is published to a Kafka cluster: orders-api, payments-api, returns-api and accounts-api publish; indexer, label-worker, email-worker, push-worker and events-collector consume. checkout-api calls cart-api, tax-api, payments-api and orders-api. orders-api calls warehouse-api. The gateway checks every request with sessions-api.",
+    "expect": {
+      "minSystems": 2,
+      "minViews": 2,
+      "requireNarrowerView": true
+    }
   }
 ]

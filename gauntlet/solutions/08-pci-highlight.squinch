@@ -1,36 +1,44 @@
 pack aws
 
-person customer "Customer"
+system payments "Payment Service" {
+  description: "Card payment processing and settlement"
+  icon: aws/lambda
 
-system payments "Payments Service" {
-  api       = aws/lambda   "API" {
-    subtitle: "Lambda"
-    tags: #pci
-  }
-  tokenizer = aws/lambda   "Tokenizer" {
-    subtitle: "Lambda"
-    tags: #pci
-  }
-  vault     = aws/dynamodb "Card Vault" datastore {
-    tags: #pci
-  }
-  queue     = aws/sqs      "Settlement Queue"
-  worker    = aws/lambda   "Settlement Worker" {
-    subtitle: "Lambda"
+  api = aws/lambda "API Handler" {
+    description: "Receives payment requests"
   }
 
-  api -> tokenizer
-  tokenizer -> vault
-  api ~> queue "settlement event"
-  queue ~> worker
+  tokenizer = aws/lambda "Tokenizer" {
+    description: "Tokenizes card data"
+    tags: #pci
+  }
+
+  vault = aws/dynamodb "Card Vault" datastore {
+    description: "Encrypted card tokens"
+    tags: #pci
+  }
+
+  queue = aws/sqs "Settlement Queue" {
+    description: "Pending settlements"
+  }
+
+  worker = aws/lambda "Settlement Worker" {
+    description: "Processes settlements"
+    tags: #pci
+  }
+
+  api -> tokenizer "card data"
+  tokenizer -> vault "store token"
+  tokenizer ~> queue "settlement request"
+  queue ~> worker "drain"
+  worker -> vault "retrieve token"
 }
 
-customer -> payments.api "submits payment"
-
-view pci {
-  title "PCI Surface"
-  scope payments
+view payments {
+  title "Payment Service Architecture"
   highlight #pci
-  note right-of vault "Tokens stored here — raw card data never leaves the API and Tokenizer"
+  note right-of vault "Card tokens encrypted at rest; PCI DSS scope" {
+    style: warning
+  }
   legend auto
 }

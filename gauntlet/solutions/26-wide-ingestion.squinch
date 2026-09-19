@@ -1,33 +1,41 @@
-c1 = sys/webhook "Collector 1"
-c2 = sys/webhook "Collector 2"
-c3 = sys/webhook "Collector 3"
-c4 = sys/webhook "Collector 4"
-c5 = sys/webhook "Collector 5"
-c6 = sys/webhook "Collector 6"
+// Wide ingestion architecture
 
-norm = sys/workflow "Normaliser"
+pack aws
 
-wh    = sys/warehouse "Warehouse" datastore
-idx   = sys/search    "Search Index" datastore
-alert = sys/siren     "Alerting Service"
+// Six collectors
+c1 = aws/kinesis "Collector 1"
+c2 = aws/kinesis "Collector 2"
+c3 = aws/kinesis "Collector 3"
+c4 = aws/kinesis "Collector 4"
+c5 = aws/kinesis "Collector 5"
+c6 = aws/kinesis "Collector 6"
 
-c1 ~> norm
-c2 ~> norm
-c3 ~> norm
-c4 ~> norm
-c5 ~> norm
-c6 ~> norm
+// Normaliser
+normaliser = aws/lambda "Normaliser"
 
-norm ~> wh
-norm ~> idx
-norm ~> alert
+// Outputs
+warehouse = aws/redshift "Warehouse" datastore
+search = aws/opensearch "Search Index" datastore
+alerts = aws/sns "Alerting"
 
-view ingestion {
-  title "Ingestion Estate"
-  include *
+// Edges - collectors to normaliser
+c1 -> normaliser
+c2 -> normaliser
+c3 -> normaliser
+c4 -> normaliser
+c5 -> normaliser
+c6 -> normaliser
+
+// Edges - normaliser to outputs
+normaliser -> warehouse
+normaliser -> search
+normaliser -> alerts
+
+view main {
+  title "Ingestion Pipeline"
   layout {
+    direction right
     density compact
-    rows [c1 c2 c3 c4 c5 c6] [norm] [wh idx alert]
-    channel c1, c2, c3, c4, c5, c6 -> norm
+    rows [warehouse search] [alerts]
   }
 }

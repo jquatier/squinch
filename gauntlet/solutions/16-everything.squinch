@@ -3,51 +3,70 @@ pack aws
 person customer "Customer"
 
 storefront = aws/cloudfront "Storefront"
-gw         = aws/api-gateway "API Gateway"
+gw = aws/api-gateway "API Gateway"
 
 system catalog "Catalog Service" {
-  api = aws/lambda   "Catalog Handler"
-  db  = aws/dynamodb "Catalog Table" datastore
-  api -> db
+  description: "Product catalog and search"
+  icon: aws/lambda
+
+  handler = aws/lambda "Catalog Handler"
+  db = aws/dynamodb "Catalog DB" datastore
+
+  handler -> db
 }
 
-system orders "Order Service" {
-  api = aws/lambda   "Orders Handler"
-  db  = aws/dynamodb "Orders Table" datastore
-  api -> db
+system orders "Orders Service" {
+  description: "Order processing and management"
+  icon: aws/lambda
+
+  handler = aws/lambda "Orders Handler"
+  db = aws/dynamodb "Orders DB" datastore
+
+  handler -> db
 }
 
 system payments "Payments Service" {
+  description: "Payment processing"
+  icon: aws/lambda
   tags: #sensitive
 
-  api = aws/lambda   "Payments Handler"
-  db  = aws/dynamodb "Payments Table" datastore
-  api -> db
+  handler = aws/lambda "Payments Handler" {
+    tags: #sensitive
+  }
+  db = aws/dynamodb "Payments DB" datastore {
+    tags: #sensitive
+  }
+
+  handler -> db {
+    tags: #sensitive
+  }
 }
 
-bus    = aws/eventbridge "Order Events"
-fulfil = aws/lambda      "Fulfilment Worker"
+bus = aws/eventbridge "EventBridge"
+fulfilment = aws/lambda "Fulfilment Worker"
 
-customer  -> storefront "browses"
-storefront -> gw "requests"
-gw -> catalog.api
-gw -> orders.api
-gw -> payments.api { tags: #sensitive }
+customer -> storefront "browse"
+storefront -> gw "API calls"
+gw -> catalog.handler
+gw -> orders.handler
+gw -> payments.handler {
+  tags: #sensitive
+}
 
-orders.api ~> bus "order placed"
-bus         ~> fulfil "consume"
+orders.handler ~> bus "order events"
+bus ~> fulfilment "consumes"
 
 zone prod_vpc "Production VPC" vpc {
-  contains gw, catalog, orders, payments, bus, fulfil
+  contains gw, catalog, orders, payments, bus, fulfilment
 }
 
 view landscape {
-  title "Order Platform — Landscape"
+  title "Order Platform Landscape"
   include *
-  color #sensitive red
+  color #sensitive amber
   legend auto
 }
 
 view orders {
-  title "Order Service — Detail"
+  title "Orders Service Detail"
 }

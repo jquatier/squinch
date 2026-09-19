@@ -228,3 +228,59 @@ on somewhere (another stage, or out through the wall) sorts before one that is
 the end of the line, and the chain hugs the row while the dead end hangs beside
 it. Applied only in a directed frame's own call, and only when the author gave
 no interior hints of their own.
+
+## Round 26: two ways a coplanar wire ended in empty canvas (2026-09)
+
+Gauntlet round 26 added the first prompts about a *large* system. Their answers
+drew two things the corpus never had — an edge from an area itself rather than
+from something inside it, and a shared bus between a band of areas — and the
+invariant sweep caught both as `coplanar wire … ends on no boundary of …`.
+
+**A container endpoint was taken for a bare leaf.** The straight branch asks
+"are both ends their own unit?" so it can keep the pre-frames path
+byte-identical. A *container* is its own unit too (`checkout ~> fulfilment` with
+`checkout` expanded), so a frame several cards tall went down the leaf path: both
+ends at the frame's mid-height, and the wire stopped below a one-card neighbour.
+Bare now means a leaf — not a frame, not a zone — and a container endpoint jogs
+through the gutter like any other unit. Twelve-line repro in
+`test/band-split.test.ts`. No existing render moved: goldens, the five example
+projects and all 51 lookbook views are byte-identical.
+
+**A declared band came back as two tiers, and nothing said so.** Declared ranks
+reach ELK as scaffold edges, which are lower bounds: they push a unit down to
+its row and cannot pull one up. With `rows [… identity catalog commerce
+fulfilment …]` and an unlisted `kafka` on `identity ~> kafka ~> catalog`, ELK
+layered `catalog` below `kafka`; the band rendered as two tiers 350px apart, the
+hint was silently not honoured, and the router — classifying by *declared* rank,
+before layout — drew `commerce → fulfilment` as a 12px stub off `commerce`'s
+wall.
+
+Two things were measured before choosing the fix:
+
+- *It is not predictable from the graph.* `rows [a b]` with `a → k → b` comes
+  back intact: cycle breaking floats `k` above both. The split needs several
+  areas on each side of the wedge. A pre-layout rule ("an unlisted unit on a
+  path between band-mates") would refuse diagrams that render correctly, so the
+  check reads the result: group each hand-written band's units by the tier they
+  landed on, and more than one tier is the conflict.
+- *It is new.* Zero of the corpus's 67 views that use `rows` split a band; every
+  hit was a large-system answer. So it could be an error without touching a
+  committed file.
+
+It is an error, not a warning and not a router fallback, because the
+constitution already decided this class: a hint the engine cannot honour is a
+check-time error, never silently dropped. Teaching the router to draw *some*
+wire across tiers would have hidden the broken band and needed a second
+cross-tier router for an edge ELK was never shown.
+
+The fix text writes the `rows` line out, as `mergedRowsFix` does and for the
+same reason (round 17: abstract advice gets guessed at, a concrete line gets
+pasted). It tries the wedge in a band of its own, then in the tier below, then
+the tier above, and offers the first line with no upward edge; a bus that both
+hears from and speaks to the lower tier only fits beside it. When none is clean
+it says so in prose rather than offer a line that would be refused. `wrap`'s
+synthesized bands are exempt — they are the engine's own, and it routes them.
+
+Still open: the check covers a view's `rows`. A container's own `layout { }`
+bands can split the same way inside an auto view (seen once, on a catalog
+area whose indexer sat between two listed leaves), and `cols` is untested.

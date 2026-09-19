@@ -1,57 +1,79 @@
 pack aws
 
+// Order Platform Architecture
+
 person customer "Customer"
 
 system orders "Orders Service" {
-  description: "Order lifecycle and checkout"
-  domain: "orders"
+  description: "Order processing and fulfillment"
+  icon: aws/api-gateway
 
-  api    = aws/api-gateway "Orders API"
-  svc    = aws/lambda      "Orders Service" { subtitle: "Lambda · Node 20" }
-  db     = aws/dynamodb    "Orders Table" datastore
-  events = aws/eventbridge "Order Events"
+  api = aws/api-gateway "Orders API"
+  create = aws/lambda "Create Handler" {
+    description: "Validates and creates orders"
+    subtitle: "Lambda · Node 20"
+  }
+  process = aws/lambda "Process Handler" {
+    description: "Processes and fulfills orders"
+    subtitle: "Lambda · Node 20"
+  }
+  db = aws/dynamodb "Orders Table" datastore
+  queue = aws/sqs "Processing Queue"
 
-  api -> svc
-  svc -> db
-  svc ~> events "order placed"
+  api -> create
+  create -> db
+  create ~> queue "order created"
+  queue ~> process
+  process -> db
 
-  layout { rows [api] [svc] [db events] }
+  layout {
+    rows [api] [create] [queue process] [db]
+  }
 }
 
 system inventory "Inventory Service" {
-  description: "Stock levels and reservations"
-  domain: "inventory"
+  description: "Stock management"
+  icon: aws/lambda
 
   api = aws/api-gateway "Inventory API"
-  svc = aws/lambda      "Inventory Service"
-  db  = aws/dynamodb    "Stock Table" datastore
+  check = aws/lambda "Check Stock"
+  update = aws/lambda "Update Stock"
+  db = aws/dynamodb "Inventory Table" datastore
 
-  api -> svc
-  svc -> db
+  api -> check
+  api -> update
+  check -> db
+  update -> db
 }
 
 system notifications "Notifications Service" {
-  description: "Customer order updates"
-  domain: "notifications"
+  description: "Customer communications"
+  icon: aws/sns
 
-  queue  = aws/sqs   "Notify Queue"
-  worker = aws/lambda "Notify Worker"
-  email  = aws/ses    "Email"
+  handler = aws/lambda "Notification Handler"
+  email = aws/sns "Email Topic"
+  sms = aws/sns "SMS Topic"
 
-  queue ~> worker
-  worker -> email
+  handler ~> email
+  handler ~> sms
 }
 
 customer -> orders.api "places order"
-orders.svc -> inventory.api "check stock"
-orders.events ~> notifications.queue "order placed"
+orders.create -> inventory.api "check stock"
+orders.process -> inventory.api "reserve items"
+orders.process ~> notifications.handler "order confirmation"
 
 view landscape {
-  title "Order Platform"
+  title "Order Platform - System Landscape"
   include *
+  titleblock {
+    subtitle: "System overview"
+  }
 }
 
 view orders {
-  title "Orders Service"
-  scope orders
+  title "Orders Service - Internal Detail"
+  titleblock {
+    subtitle: "Detailed view"
+  }
 }

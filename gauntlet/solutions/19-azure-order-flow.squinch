@@ -2,32 +2,41 @@ pack azure
 
 person shopper "Shopper"
 
-system order "Order Flow" {
-  apim    = azure/api-management "API Management"
-  orderFn = azure/functions      "Order Function"
-  cosmos  = azure/cosmos         "Orders" datastore
-  bus     = azure/service-bus    "Order Events"
-  fulfilFn = azure/functions     "Fulfilment Function"
+system orders "Order System" {
+  icon: azure/api-management
+  description: "Order processing pipeline"
 
-  apim -> orderFn
-  orderFn -> cosmos "write order"
-  orderFn ~> bus "publish order"
-  bus ~> fulfilFn "consume order"
+  apim = azure/api-management "API Management"
+  create_fn = azure/functions "Create Order" {
+    subtitle: "Azure Function"
+  }
+  cosmos = azure/cosmos "Orders" datastore
+  bus = azure/service-bus "Order Events"
+  fulfil_fn = azure/functions "Fulfil Order" {
+    subtitle: "Azure Function"
+  }
+
+  apim -> create_fn
+  create_fn -> cosmos
+  create_fn ~> bus
+  bus ~> fulfil_fn
 }
 
-shopper -> order.apim "places order"
+shopper -> orders.apim "places order"
 
-flow checkout "Order Checkout" {
-  shopper -> order.apim
-  order.apim -> order.orderFn
-  order.orderFn -> order.cosmos
-  order.orderFn ~> order.bus
-  order.bus ~> order.fulfilFn
+flow order_flow "Order Journey" {
+  shopper -> orders.apim
+  orders.apim -> orders.create_fn
+  orders.create_fn -> orders.cosmos
+  orders.create_fn ~> orders.bus
+  orders.bus ~> orders.fulfil_fn
 }
 
-view landscape {
-  title "Order Flow — Azure"
-  include *
-  show flow checkout
-  legend auto
+view main {
+  title "Azure Order Flow"
+  expand orders
+  show flow order_flow
+  layout {
+    rows [orders.apim] [orders.create_fn] [orders.cosmos orders.bus] [orders.fulfil_fn]
+  }
 }

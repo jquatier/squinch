@@ -51,6 +51,9 @@ squinch render diagrams/ -o diagram.html     # every view, both palettes, click-
   SVGs can gate CI. For a throwaway diagram that lives nowhere, two explicit
   `--theme` renders plus the HTML are the lighter recipe.
 
+0. If the system is big — a whole repo, a platform — decide its *areas* before
+   you write a node, because no layout hint rescues everything on one page: see
+   "When the system is big".
 1. Write the model first, with **no `layout` block at all** — most diagrams
    never need one. Your edges already say what the tiers are, and the engine
    ranks from them: a node sits below everything that points at it. Render it
@@ -302,6 +305,38 @@ several services in a parent `system` purely to group them collapses them into
 one card at landscape altitude. If they should stay individually visible but
 share a boundary, keep them top-level and group them with a `zone`.
 
+### When the system is big
+
+A reader can only take in so much at once, so on a large system — a whole
+repo, a platform — size is a modelling decision, made before layout. A small
+system needs none of this: keep it flat.
+
+- **Group before you draw.** Sort the components into the areas the system
+  already has — its top-level folders, its teams, its domains — and make each
+  a `system`. Use the names the code uses. If nothing hands you the areas,
+  find them: things that call each other and change together. The landscape
+  then draws one card per area with the calls between them merged (`×4`), and
+  every area gets its own zoomable view for free.
+- **It holds at every altitude.** Opening an area should read as easily as the
+  landscape does. Every service inside one `backend` system has only moved
+  the problem down a click — group by what things are *for* (identity,
+  catalogue, buying, fulfilment), and nest a system inside a system when an
+  area is itself big.
+- **What a thing owns lives inside it.** A service's own database, cache or
+  worker belongs in that service's area, not beside it on the landscape. What
+  everyone shares — a gateway, an event bus — stays top-level.
+- **One caller with many targets is the shape that runs off the page**: a UI
+  or gateway calling every service draws them all in one row. Grouping the
+  targets is the fix. `wrap N` folds a fan-out only when the targets do not
+  call each other, and a real system's usually do. Never answer it by listing
+  every target in one `rows` band — that forces exactly the strip you are
+  trying to avoid. Leave the targets unhinted and let the engine rank them.
+- **Hand over altitudes, not one page.** Declare the landscape first, then a
+  view for each area worth opening; the interactive HTML lets the reader
+  click down. `view full { expand * }` is for when they ask for everything at
+  once. Say in your hand-over how you grouped it, so the reader can ask you
+  to open an area up rather than start over.
+
 Zoomed views automatically show outside neighbours as muted **context** cards —
 don't add them yourself; if one appears that you don't want, `context off`.
 
@@ -447,7 +482,7 @@ view detail {
 | Edge exits a silly side | `route a -> b from south to north` (sides: north/south/east/west) |
 | A wire jogs slightly instead of running straight | `align a b` — b takes a's axis exactly (a is the anchor) |
 | Diagram too cramped / too airy | `density spacious` / `density compact` |
-| Too many boxes at once | Split into views: a landscape with `include *`, plus per-system views |
+| Too many boxes at once | Group into `system`s by area and let the landscape show their cards — see "When the system is big". Splitting into views alone does not help while everything is still top-level |
 | Everything open on one page, no clicking into containers | `view full { expand * }` — every container becomes a nested frame, every edge shows natively |
 | A full-detail view came out tall — want it wide | Add `layout { rows … }` banding the expanded systems side by side; calls between them route through the gutters and land on the cards |
 | An expanded system's insides are in the wrong order or tier | Give the system its own `layout { rows … }` in short names — it follows the system into every view. Or name the interior paths in the view's `rows` (`[app.api] [app.db app.cache]`), which replaces the system's block for that view |
@@ -455,6 +490,7 @@ view detail {
 | A long chain renders as a tall strip, or a wide fan-out runs off the page | `layout { wrap 5 }` — folds one chain into a serpentine, or one source's fan-out into bands under it (the skipping edges become a bus). Two shapes only; anything else warns and names the `rows` line to write instead. Never beside `rows`/`cols` |
 | "`wrap 5` has no effect — this view is not a single chain or a single fan-out (…)" warning | `wrap` folds exactly one chain (a → b → c …) or one source fanning out to leaves. Write the bands by hand: `rows [a b] [c d]` |
 | "`a` and `b` are asked to share a row inside `s`, but the edge between them cannot be routed there" warning | Same-rank edges route between systems, not inside one. Put `b` in the row below `a`, or collapse `s` in this view |
+| "hint conflict: `rows` puts `a` and `b` in one band, but `k` sits on the path between them and is in no band — `b` lands a tier later" error | Something you did not list sits between two things you put side by side — usually a shared bus or queue (`a ~> k ~> b`). A band is one tier, so `b` cannot be beside `a` and below `k` at once. Paste the `rows` line the fix writes out: it lists `k` too, in its own band or beside whichever side the arrows allow. On a big landscape, expect this the moment you band the areas and forget the bus |
 | "hint conflict: `a` → `b` runs upward inside `s`" error | The system's bands contradict its own arrows, same rule as the view's `rows`: put `b` in a row below `a`, or drop one of them from that block |
 | "expand `x` inside `x`'s own view — this view stands inside `x` already" warning | A view named after a container *is* that container's own view: you are already inside it. To draw `x` opened up among its neighbours, name the view something else: `view overview { expand x }` |
 | "`expand *` already opens every container — the explicit `expand` lines are redundant" warning | Drop the explicit `expand x` lines; the star covers them |

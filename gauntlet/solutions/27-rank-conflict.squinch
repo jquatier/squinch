@@ -1,19 +1,16 @@
-request  = sys/webhook     "Request Service"
-policy   = sys/shield-check "Policy Engine"
-approver = sys/user-check  "Approver Service"
-audit    = sys/archive     "Audit Log" datastore
+// Approval chain with policy engine and audit log on same row
+request = sys/app-window "Request Service"
+policy = sys/shield "Policy Engine"
+approver = sys/cog "Approver Service"
+audit = sys/database "Audit Log" datastore
 
-request  -> policy   "submits request"
-policy   -> approver "requests approval"
-approver -> audit    "writes decision"
+request -> policy
+policy -> approver
+approver -> audit
 
-view landscape {
+view approval {
   title "Approval Chain"
-  include *
   layout {
-    rows [request] [policy approver audit]   // policy and audit share a row;
-                                              // left-to-right order keeps policy
-                                              // reading upstream of audit even
-                                              // though approver sits between them
+    rows [request] [policy audit approver]
   }
 }

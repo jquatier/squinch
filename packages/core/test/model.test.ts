@@ -352,6 +352,38 @@ describe("grammar + model builder", () => {
     expect(msgs).toContainEqual(expect.stringContaining("9: `direction` appears twice in this block"));
   });
 
+  describe("a container's icon: is a real icon reference too", () => {
+    // The last unvalidated icon reference. Gauntlet round 26: agents grouping a
+    // large system into areas wrote `icon: sys/shopping-cart`, which does not
+    // exist, and got a clean check and a `?` tile on the card.
+    const src = (icon: string) =>
+      `pack aws\nsystem s "S" {\n  icon: ${icon}\n  a = aws/lambda "A"\n}\n`;
+
+    it("accepts one that resolves", () => {
+      expect(buildModel(src("aws/lambda")).ok).toBe(true);
+      expect(buildModel(src("sys/server")).ok).toBe(true);
+    });
+
+    it("rejects a made-up id and says how to find a real one", () => {
+      const r = buildModel(src("sys/shopping-cart"));
+      expect(r.ok).toBe(false);
+      const d = r.diagnostics.find((x) => x.message.includes("in icon"));
+      expect(d?.message).toContain("unknown icon `sys/shopping-cart`");
+      expect(d?.fix).toBeTruthy();
+    });
+
+    it("rejects a near-miss with the id it probably meant", () => {
+      const d = buildModel(src("sys/serve")).diagnostics.find((x) => x.message.includes("in icon"));
+      expect(d?.fix).toContain("did you mean `sys/server`?");
+    });
+
+    it("rejects an unknown pack", () => {
+      const r = buildModel(src("sysx/server"));
+      expect(r.ok).toBe(false);
+      expect(r.diagnostics.find((x) => x.message.includes("in icon"))?.message).toContain("unknown pack `sysx`");
+    });
+  });
+
   describe("glyph: is a real icon reference", () => {
     // It was the one icon reference nobody validated. `view/resolve.ts` splits it
     // on `/` and shrugs, so a typo drew a `?` plate and exited 0 — the silent

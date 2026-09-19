@@ -1,0 +1,113 @@
+// E-commerce platform with React frontend, Node BFF, and multiple backend services
+pack logos
+
+// Frontend and gateway
+user = person "Customer"
+web = logos/react "Web App" {
+  subtitle: "React SPA"
+}
+bff = logos/nodedotjs "BFF" {
+  subtitle: "Node.js"
+}
+
+// Backend services - grouped by concern
+system user_services "User Services" {
+  users = sys/server "Users" { subtitle: "Postgres" }
+  auth = sys/server "Auth" { subtitle: "Redis sessions" }
+  profile = sys/server "Profile" { subtitle: "Postgres" }
+
+  layout { rows [auth] [users profile] }
+}
+
+system catalog_services "Catalog Services" {
+  catalog = sys/server "Catalog" { subtitle: "Postgres" }
+  search = sys/server "Search" { subtitle: "OpenSearch" }
+  pricing = sys/server "Pricing" { subtitle: "Redis" }
+  reviews = sys/server "Reviews" { subtitle: "MongoDB" }
+  recommendations = sys/server "Recommendations" { subtitle: "Redis" }
+
+  search -> catalog "reads from"
+  recommendations -> catalog "reads from"
+  recommendations -> reviews "reads from"
+}
+
+system order_services "Order Services" {
+  cart = sys/server "Cart" { subtitle: "Redis" }
+  checkout = sys/server "Checkout" { subtitle: "Postgres" }
+  orders = sys/server "Orders" { subtitle: "Postgres" }
+  payments = sys/server "Payments" { subtitle: "Postgres" }
+  inventory = sys/server "Inventory" { subtitle: "Postgres" }
+
+  checkout -> cart
+  checkout -> catalog_services.pricing
+  checkout -> payments
+  checkout -> orders
+  orders -> inventory
+
+  layout { rows [checkout] [cart payments orders] [inventory] }
+}
+
+system fulfillment "Fulfillment Services" {
+  shipping = sys/server "Shipping" { subtitle: "Postgres" }
+  notifications = sys/server "Notifications" { subtitle: "SendGrid" }
+  support = sys/server "Support" { subtitle: "Postgres" }
+
+  layout { rows [shipping notifications support] }
+}
+
+// External integrations
+stripe = box "Stripe" external
+carrier = box "Carrier API" external
+sendgrid = box "SendGrid" external
+
+// Event bus
+bus = logos/kafka "Kafka"
+
+// User interactions
+user -> web
+web -> bff
+
+// BFF to services
+bff -> user_services.users
+bff -> user_services.auth
+bff -> user_services.profile
+bff -> catalog_services.catalog
+bff -> catalog_services.search
+bff -> catalog_services.pricing
+bff -> catalog_services.reviews
+bff -> catalog_services.recommendations
+bff -> order_services.cart
+bff -> order_services.checkout
+bff -> order_services.orders
+bff -> fulfillment.support
+
+// Service integrations
+order_services.payments -> stripe
+fulfillment.shipping -> carrier
+fulfillment.notifications -> sendgrid
+
+// Event-driven flows
+order_services.orders ~> bus "order events"
+order_services.payments ~> bus "payment events"
+bus ~> fulfillment.notifications "consumes"
+bus ~> fulfillment.shipping "consumes"
+bus ~> catalog_services.recommendations "consumes"
+
+view landscape {
+  title "E-commerce Platform Architecture"
+  include *
+  layout {
+    rows [user] [web] [bff] [user_services] [order_services] [catalog_services bus] [fulfillment] [stripe carrier sendgrid]
+  }
+}
+
+view services {
+  title "Backend Services Detail"
+  expand user_services
+  expand catalog_services
+  expand order_services
+  expand fulfillment
+  layout {
+    rows [bff] [user_services] [order_services] [catalog_services bus] [fulfillment] [stripe carrier sendgrid]
+  }
+}

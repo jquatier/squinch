@@ -1,30 +1,29 @@
 pack aws
 
-system orders "Order Service" {
-  api    = aws/api-gateway "API Gateway"
-  create = aws/lambda      "Create Handler"
-  read   = aws/lambda      "Read Handler"
-  update = aws/lambda      "Update Handler"
-  delete = aws/lambda      "Delete Handler"
-  search = aws/lambda      "Search Handler"
-  db     = aws/dynamodb    "Orders Table" datastore
+gw = aws/api-gateway "API Gateway"
+create = aws/lambda "Create Handler"
+read = aws/lambda "Read Handler"
+update = aws/lambda "Update Handler"
+delete = aws/lambda "Delete Handler"
+search = aws/lambda "Search Handler"
+db = aws/dynamodb "Orders Table" datastore
 
-  api -> create, read, update, delete, search
+gw -> create
+gw -> read
+gw -> update
+gw -> delete
+gw -> search
 
-  create -> db
-  read   -> db
-  update -> db
-  delete -> db
-  search -> db
+create -> db
+read -> db
+update -> db
+delete -> db
+search -> db
 
+view main {
+  title "Channel Fan-in Example"
   layout {
-    rows [api] [create read update delete search] [db]
-  }
-}
-
-view orders {
-  scope orders
-  layout {
+    rows [gw] [create read update delete search] [db]
     channel create, read, update, delete, search -> db
   }
 }

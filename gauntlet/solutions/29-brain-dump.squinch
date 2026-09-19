@@ -1,34 +1,54 @@
 pack aws
 pack logos
 
-person customer   "Customer"
-person data_team  "Data Team"
+// Actors
+customer = person "Customer"
 
+// Entry points
 mobile = sys/smartphone "Mobile App"
-web    = sys/app-window "Website"
-gw     = aws/api-gateway "Gateway"
+web = sys/app-window "Website"
 
-account = sys/server "Account Service"
-billing = sys/server "Billing Service"
+// Infrastructure
+gw = aws/api-gateway "API Gateway"
 
-db         = logos/postgres "Postgres" datastore
-billing_db = sys/database   "Billing Database" datastore
-stripe     = logos/stripe   "Stripe" external
-export     = aws/s3         "Data Export" datastore
+// Services
+system account "Account Service" {
+  svc = sys/code "Account API"
+  db = sys/database "Account DB" datastore {
+    subtitle: "Postgres"
+  }
+  export = aws/lambda "Nightly Export"
 
-customer -> mobile "browses"
-customer -> web "browses"
+  svc -> db
+  db ~> export "nightly batch"
+}
+
+system billing "Billing Service" {
+  svc = sys/code "Billing API"
+  db = sys/database "Billing DB" datastore {
+    subtitle: "Postgres"
+  }
+
+  svc -> db
+}
+
+// External services
+stripe = box "Stripe" external
+s3 = aws/s3 "Data Export Bucket" datastore
+
+// Connections
+customer -> mobile
+customer -> web
 mobile -> gw
 web -> gw
-gw -> account
-gw -> billing
-account -> db "writes"
-account ~> export "nightly export"
-billing -> billing_db "writes"
-billing -> stripe "charges"
-export -> data_team "delivered to"
+gw -> account.svc
+gw -> billing.svc
+billing.svc -> stripe
+account.export ~> s3
 
 view landscape {
-  title "Platform Overview"
-  include *
+  title "System Overview"
+  layout {
+    rows [customer] [mobile web] [gw] [account billing] [stripe s3]
+  }
 }

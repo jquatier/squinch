@@ -1,42 +1,51 @@
 pack logos
+pack k8s
 
-person dev "Developer"
+person developer "Developer"
 
-github = logos/github "GitHub"
+github = logos/github "GitHub" {
+  subtitle: "Version Control"
+}
 
-system k8s "Kubernetes Cluster" {
-  icon: logos/kubernetes
+system app "Application Stack" {
+  frontend = logos/nextdotjs "Next.js Frontend" {
+    subtitle: "React · SSR"
+  }
+  api = logos/nestjs "NestJS API" {
+    subtitle: "Node.js · REST"
+  }
+  db = logos/postgres "PostgreSQL" datastore {
+    subtitle: "Primary Database"
+  }
+  cache = logos/redis "Redis" datastore {
+    subtitle: "Session & Cache"
+  }
+  events = logos/kafka "Kafka" {
+    subtitle: "Event Bus"
+  }
 
-  web   = logos/nextdotjs "Frontend" { subtitle: "Next.js" }
-  api   = logos/nestjs    "API"      { subtitle: "NestJS" }
-  db    = logos/postgres  "Database" datastore
-  cache = logos/redis     "Cache" datastore
-  bus   = logos/kafka     "Events" datastore
-  mon   = logos/grafana   "Monitoring"
-
-  web -> api
+  frontend -> api
   api -> db
   api -> cache
-  api ~> bus "publishes events"
-
-  api ~> mon "metrics"
-  db ~> mon "metrics"
-  cache ~> mon "metrics"
-  bus ~> mon "metrics"
-
-  layout {
-    rows [web] [api] [cache bus] [db] [mon]
-  }
+  api ~> events "publishes events"
 }
 
-dev -> github "pushes code"
-github -> k8s "deploys"
+k8s_cluster = logos/kubernetes "Kubernetes Cluster" {
+  subtitle: "Container Orchestration"
+}
+
+monitoring = logos/grafana "Grafana" {
+  subtitle: "Metrics & Dashboards"
+}
+
+developer -> github "pushes code"
+github ~> k8s_cluster "CI/CD deployment"
+k8s_cluster -> app
+monitoring -> app "observes"
 
 view landscape {
-  title "Stack Overview"
-  include *
-}
-
-view k8s {
-  title "Kubernetes Cluster"
+  title "Technology Stack"
+  layout {
+    rows [developer] [github] [k8s_cluster] [app monitoring]
+  }
 }

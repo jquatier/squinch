@@ -2,19 +2,14 @@ pack aws
 
 person user "User"
 
-system app "Three-Tier Web App" {
-  description: "Classic three-tier web app"
-
-  alb    = aws/elb          "Application Load Balancer"
-  svc    = aws/fargate      "ECS Service" {
-    subtitle: "ECS · Fargate"
-  }
-  db     = aws/aurora       "Orders DB" datastore
-  cache  = aws/elasticache  "Session Cache" datastore
-
-  alb -> svc
-  svc -> db
-  svc -> cache
+alb   = aws/elastic-load-balancing "Application Load Balancer"
+app   = aws/fargate "Application Service" {
+  subtitle: "ECS Fargate"
 }
+cache = aws/elasticache "Session Cache" datastore
+db    = aws/aurora "Database" datastore
 
-user -> app.alb "browses"
+user -> alb "HTTPS requests"
+alb -> app
+app -> cache "session data"
+app -> db "queries"

@@ -1,30 +1,56 @@
-bench1 = sys/scan   "Bench 1 Scanner"
-bench2 = sys/scan   "Bench 2 Scanner"
-bench3 = sys/scan   "Bench 3 Scanner"
-controller = sys/server-cog "Line Controller"
-sorter  = sys/route   "Conveyor Sorter"
-printer = sys/printer "Label Printer"
-board   = sys/screen  "Status Board"
-erp     = sys/server  "ERP System" external
+// Warehouse floor automation system
+
 supervisor = person "Shift Supervisor"
 
-bench1 ~> controller "scan"
-bench2 ~> controller "scan"
-bench3 ~> controller "scan"
-controller -> sorter, printer "drives"
-controller ~> board "status feed"
-controller ~> erp "sync" { animate: slow }
-supervisor -> board "watches"
-
-zone site_net "Site Network" network {
-  contains controller, erp
+scanner1 = sys/scan "Packing Bench 1" {
+  subtitle: "Barcode Scanner"
+}
+scanner2 = sys/scan "Packing Bench 2" {
+  subtitle: "Barcode Scanner"
+}
+scanner3 = sys/scan "Packing Bench 3" {
+  subtitle: "Barcode Scanner"
 }
 
-view landscape {
+controller = sys/cpu "Floor Controller" {
+  description: "Orchestrates packing automation"
+  subtitle: "Local PLC"
+}
+
+sorter = sys/route "Conveyor Sorter" {
+  description: "Routes packages to lanes"
+}
+
+printer = sys/printer "Label Printer"
+
+board = sys/monitor "Status Board" {
+  description: "Real-time floor status"
+}
+
+erp = sys/server "ERP System" {
+  description: "Enterprise resource planning"
+  subtitle: "Site Network"
+}
+
+// Scanners feed controller in real-time
+scanner1 ~> controller "scan events"
+scanner2 ~> controller "scan events"
+scanner3 ~> controller "scan events"
+
+// Controller drives physical devices
+controller -> sorter "routing commands"
+controller -> printer "print jobs"
+
+// Controller syncs to ERP periodically
+controller ~> erp "sync every minute"
+
+// Supervisor monitors the floor
+controller -> board "status updates"
+board -> supervisor
+
+view warehouse {
   title "Warehouse Floor Automation"
-  include *
   layout {
-    rows [bench1 bench2 bench3] [site_net] [sorter printer board]
-    channel bench1, bench2, bench3 -> controller
+    rows [scanner1 scanner2 scanner3] [controller] [sorter printer] [board] [supervisor] [erp]
   }
 }

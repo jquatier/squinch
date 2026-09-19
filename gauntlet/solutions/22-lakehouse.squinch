@@ -1,32 +1,81 @@
 pack logos
 
-analyst = person "Analyst"
-kafka   = logos/kafka "Order Events"
+person analyst "Analyst"
+person developer "ML Engineer"
 
-autoloader = sys/stream        "Auto Loader"          { badge: logos/databricks, subtitle: "Auto Loader" }
-bronze     = sys/table         "Bronze Orders"  datastore { badge: logos/databricks, subtitle: "Delta table" }
-merge      = sys/workflow      "Nightly Merge"        { badge: logos/databricks, subtitle: "Workflows job" }
-silver     = sys/table         "Silver Customers" datastore { badge: logos/databricks, subtitle: "Delta table" }
-uc         = sys/catalog       "Unity Catalog"        { badge: logos/databricks, subtitle: "Governance" }
-warehouse  = sys/database      "SQL Warehouse"  datastore { badge: logos/databricks, subtitle: "Databricks SQL" }
-vindex     = sys/vector-search "Vector Search Index"  { badge: logos/databricks }
-model      = sys/model         "Model Serving Endpoint" { badge: logos/databricks }
+kafka = logos/kafka "Order Events" external
 
-kafka      ~> autoloader "order events"
-autoloader ~> bronze     "ingest"
-bronze     -> merge
-merge      -> silver     "merge"
-uc         -> silver     "governs"
-silver     -> warehouse
-analyst    -> warehouse  "queries"
-silver     -> vindex
-vindex     -> model      "feeds"
+system lakehouse "Databricks Lakehouse" {
+  description: "Data platform with medallion architecture"
+  icon: sys/database
 
-zone lakehouse "Databricks Lakehouse" cloud {
-  contains autoloader, bronze, merge, silver, uc, warehouse, vindex, model
+  loader = sys/stream "Auto Loader" {
+    badge: logos/databricks
+    subtitle: "Structured Streaming"
+  }
+
+  bronze = sys/table "Bronze Orders" datastore {
+    badge: logos/databricks
+    subtitle: "Delta table"
+    tags: #bronze
+  }
+
+  job = sys/workflow "Merge Job" {
+    badge: logos/databricks
+    subtitle: "Scheduled nightly"
+  }
+
+  silver = sys/table "Silver Customers" datastore {
+    badge: logos/databricks
+    subtitle: "Delta table"
+    tags: #silver
+  }
+
+  catalog = sys/catalog "Unity Catalog" {
+    badge: logos/databricks
+    description: "Data governance"
+  }
+
+  warehouse = sys/database "SQL Warehouse" {
+    badge: logos/databricks
+    subtitle: "Databricks SQL"
+  }
+
+  vector = sys/waypoints "Vector Search" {
+    badge: logos/databricks
+    subtitle: "Embeddings index"
+  }
+
+  serving = sys/model "Model Serving" {
+    badge: logos/databricks
+    subtitle: "Real-time inference"
+  }
+
+  kafka ~> loader "stream events"
+  loader ~> bronze "append rows"
+  bronze ~> job "read source"
+  job -> silver "merge updates"
+  catalog -> silver "governs"
+  silver -> warehouse "query"
+  silver -> vector "index"
+  vector -> serving "retrieval"
+
+  layout {
+    rows [loader] [bronze] [job] [catalog] [silver] [warehouse vector] [serving]
+    place vector right-of warehouse
+  }
 }
 
-view landscape {
-  title "Databricks Lakehouse"
-  include *
+analyst -> lakehouse.warehouse "runs queries"
+developer -> lakehouse.serving "consumes API"
+
+view architecture {
+  title "Databricks Lakehouse Architecture"
+  expand lakehouse
+  color #bronze amber
+  color #silver teal
+  titleblock {
+    subtitle: "Medallion architecture"
+    version: "2026-09"
+  }
 }

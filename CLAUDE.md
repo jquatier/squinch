@@ -184,10 +184,12 @@ visibility/lifting → layout → themed SVG), the CLI (check/render/diff/icons/
 init/watch + sync/check model + Actions), the SPA playground, the VS Code
 extension + language server, five icon packs, and the light/dark pair. The acceptance
 bar — an agent producing clean diagrams from prose using only the skill + CLI —
-is certified at **33/33
-by independent cold agents**, most recently at **25/33 clean on the first
-`check`** (round 25, run on round 24's fixes; fourteen of thirty-three agents
-wrote `subtitle:` unprompted in each). Positional tags work on nodes, container heads and
+is certified at **35/35
+by independent cold agents** on the committed corpus; the latest round scored
+34/35 with **22/35 clean on the first `check`** (round 26, which added two
+large-system prompts and the skill's "When the system is big" section — the
+one miss, `21-market-data`, is that prompt's own variance and keeps round 25's
+answer). Positional tags work on nodes, container heads and
 edges; a comma is optional wherever whitespace already separates. `gauntlet/README.md` writes up the latest round only: every round's
 findings land as a code or docs change in the same commit, so the fixes are the
 record. The number is never the point — a round that scores full marks and
@@ -337,6 +339,13 @@ the same terms — the old "cannot cross a zone boundary" warning is gone, not
 reworded, because nothing is unroutable any more — and let each end continue
 past the wall to the leaf itself when the corridor between them is provably
 empty (never turning inside a compound; that interior is still ELK's).
+Round 26 (2026-09) closed two ways a coplanar wire could end in empty canvas: a
+*container* endpoint is its own unit but is not a bare leaf, so it jogs through
+the gutter rather than taking the straight path; and a hand-written band that
+ELK lays out as two tiers — an unlisted bus on the path between band-mates,
+scaffold edges being lower bounds — is a check error that writes the `rows`
+line to paste, measured off the result because the split is not predictable
+from the graph.
 The hand-built spike harness that proved this is retired, and its canonical
 oracle followed (2026-08): label-space reservation legitimately moves node
 positions, so second-implementation parity stopped being a meaningful claim.

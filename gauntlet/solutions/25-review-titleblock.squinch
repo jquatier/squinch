@@ -1,29 +1,37 @@
 pack aws
+pack logos
 
-system payments "Payments Platform" {
-  description: "Payments architecture"
-  domain: "payments"
+// Payments architecture for design review
+system payments "Payments Service" {
+  description: "Payment processing and settlement"
 
-  gw         = aws/api-gateway  "API Gateway"
-  auth       = sys/lock-keyhole "Auth Service"
-  ledger     = logos/postgres   "Ledger" datastore { subtitle: "Postgres" }
-  settlement = aws/batch        "Settlement Worker" { subtitle: "Nightly batch" }
+  gw   = aws/api-gateway "API Gateway"
+  auth = box "Auth Service"
+  ledger = sys/database "Ledger" datastore {
+    badge: logos/postgres
+    subtitle: "PostgreSQL"
+  }
+  worker = aws/lambda "Settlement Worker" {
+    description: "Batches transactions for bank settlement"
+    subtitle: "Overnight batch"
+  }
+  bank = box "Bank API" external
 
   gw -> auth "authenticate"
-  gw -> ledger "record transaction"
-  ledger ~> settlement "nightly ledger export"
+  gw -> ledger "read/write transactions"
+  auth -> ledger "verify account"
+  worker -> ledger "fetch pending"
+  worker -> bank "settle batch"
 }
 
-bank = box "Bank" external
-
-payments.settlement ~> bank "overnight settlement batch"
-
 view payments {
-  scope payments
   title "Payments Architecture"
   titleblock {
     version: "2.1"
-    date: "Q3 2026"
-    owner: team-payments
+    owner: "payments team"
+    subtitle: "Q3 2026"
+  }
+  layout {
+    rows [gw auth] [ledger worker] [bank]
   }
 }

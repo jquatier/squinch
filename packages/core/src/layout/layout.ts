@@ -1756,7 +1756,109 @@ export async function layoutView(
   const unitRect = (u: string): RRect | undefined =>
     frameByPath.get(u) ?? zoneRectById.get(u) ?? nodeById.get(u);
   const edgeRank = (e: VEdge) => rank.get(unitOf(e.from))!;
-  const blockedBy = (e: VEdge, a: RRect, b: RRect): boolean => {
+
+  // ── a band the layouter could not keep ───────────────────────────────────
+  // Declared ranks reach ELK as scaffold edges, which are *lower bounds*: they
+  // push a unit down to its row and cannot pull one up. So when an unlisted
+  // node sits on a path between two units of one band — `identity ~> kafka ~>
+  // catalog` under `rows [identity catalog …]` — ELK layers `catalog` below
+  // `kafka`, the band comes back as two tiers, and until now nothing said so:
+  // the hint was silently not honoured, and the router, still believing the
+  // band was one row, drew a 12px stub from `commerce`'s wall into empty canvas
+  // (gauntlet round 26, the first prompt big enough to have a shared bus).
+  //
+  // Whether ELK splits a band is not predictable from the graph — small cases
+  // with the same shape come back intact, because cycle breaking floats the
+  // unlisted node above both — so this is measured off the result, not guessed
+  // before layout. Zero of the corpus's 67 views with `rows` trip it.
+  // Hand-written bands only: `wrap`'s are the engine's own and it routes them.
+  if (view.layout.rows) {
+    const bandsNow: string[][] = [];
+    for (const u of units) {
+      const r = declared.get(u);
+      if (r !== undefined) (bandsNow[r] ??= []).push(u);
+    }
+    /** A band's units grouped into the tiers they actually landed on: two
+     *  units share a tier when their extents overlap on the rank axis. */
+    const tiersOf = (band: string[]): string[][] => {
+      const placed = band
+        .map((u) => ({ u, r: unitRect(u) }))
+        .filter((x): x is { u: string; r: RRect } => !!x.r)
+        .sort((p, q) => p.r[cross] - q.r[cross]);
+      const tiers: { lo: number; hi: number; us: string[] }[] = [];
+      for (const { u, r } of placed) {
+        const last = tiers[tiers.length - 1];
+        if (last && r[cross] < last.hi) {
+          last.us.push(u);
+          last.hi = Math.max(last.hi, r[cross] + r[crossSize]);
+        } else tiers.push({ lo: r[cross], hi: r[cross] + r[crossSize], us: [u] });
+      }
+      // keep each tier in the order the author listed it
+      return tiers.map((t) => band.filter((u) => t.us.includes(u)));
+    };
+    // `place` can leave a row number unused, so `bandsNow` may be sparse —
+    // and `map` skips holes while `findIndex` visits them as undefined
+    const split = Array.from(bandsNow, (band) => (band ? tiersOf(band) : [])).findIndex((t) => t.length > 1);
+    if (split !== -1) {
+      const tiers = tiersOf(bandsNow[split]);
+      const edgeBottom = (us: string[]) => Math.max(...us.map((u) => unitRect(u)!).map((r) => r[cross] + r[crossSize]));
+      const edgeTop = (us: string[]) => Math.min(...us.map((u) => unitRect(u)!).map((r) => r[cross]));
+      /** Unlisted units that landed between two tiers — what pushed them apart. */
+      const between = (upper: string[], lower: string[]) =>
+        units.filter((u) => {
+          if (declared.has(u)) return false;
+          const r = unitRect(u);
+          return !!r && r[cross] >= edgeBottom(upper) && r[cross] + r[crossSize] <= edgeTop(lower);
+        });
+      // The line to paste: every band as written, the split one as the tiers
+      // it became, and each wedge placed where the arrows allow — in a band of
+      // its own, else in the tier below it, else in the tier above (equal
+      // ranks are legal and route side to side, which is what a shared bus
+      // that both hears from and speaks to the lower tier needs). Offered only
+      // when the whole line is free of upward edges — a confidently wrong
+      // line is worse than a vague right one (see `mergedRowsFix`).
+      const lineWith = (where: "own" | "below" | "above"): string[][] => {
+        const out: string[][] = [];
+        bandsNow.forEach((band, i) => {
+          if (!band) return;
+          if (i !== split) return void out.push(band);
+          tiers.forEach((t, k) => {
+            const w = k > 0 ? between(tiers[k - 1], t) : [];
+            if (w.length && where === "own") out.push(w);
+            if (w.length && where === "above") out[out.length - 1] = [...out[out.length - 1], ...w];
+            out.push(w.length && where === "below" ? [...w, ...t] : t);
+          });
+        });
+        return out;
+      };
+      const isClean = (line: string[][]) => {
+        const rowOf = new Map<string, number>();
+        line.forEach((band, i) => band.forEach((u) => rowOf.set(u, i)));
+        return edges.every((e) => {
+          const ra = rowOf.get(unitOf(e.from)), rb = rowOf.get(unitOf(e.to));
+          return ra === undefined || rb === undefined || ra <= rb;
+        });
+      };
+      const proposed = (["own", "below", "above"] as const).map(lineWith).find(isClean);
+      const wedge = between(tiers[0], tiers[1]);
+      const [hi, lo] = [tiers[0][0], tiers[1][0]];
+      // one template, no ternary between two: the skill's diagnostic-coverage
+      // test reads message literals, and a choice of templates hides one
+      const why = wedge.length
+        ? `\`${wedge[0]}\` sits on the path between them and is in no band`
+        : "the edges between them do not allow it";
+      diagnostics.push({
+        severity: "error",
+        message: `hint conflict: \`rows\` puts \`${hi}\` and \`${lo}\` in one band, but ${why} — \`${lo}\` lands a tier later`,
+        fix: proposed
+          ? `write \`rows ${proposed.map((b) => `[${b.join(" ")}]`).join(" ")}\` — every unit on the path gets a band, and the arrows all point down the list`
+          : `list what sits between them in \`rows\` too, with \`${lo}\` in a band below \`${hi}\``,
+        loc: view.loc,
+      });
+    }
+  }
+
+  const blockedBy =(e: VEdge, a: RRect, b: RRect): boolean => {
     const [l, r] = a[along] <= b[along] ? [a, b] : [b, a];
     return units.some((u) => {
       if (u === unitOf(e.from) || u === unitOf(e.to)) return false;
@@ -1846,7 +1948,13 @@ export async function layoutView(
       const r = pt(mid - Math.round(w / 2), c - 9);
       return { x: r.x, y: r.y, ...(flowsRight ? { w: 18, h: w } : { w, h: 18 }) };
     };
-    const bothBare = unitOf(e.from) === e.from && unitOf(e.to) === e.to;
+    // A *container* endpoint is its own unit too (`checkout ~> fulfilment` with
+    // `checkout` expanded), so "is its own unit" alone let a frame through as
+    // a bare leaf: the straight run then sat at the frame's mid-height and
+    // stopped in empty canvas beside a shorter neighbour (gauntlet round 26).
+    // Bare means a leaf, not a frame or a zone — those jog like any other unit.
+    const bare = (p: string) => unitOf(p) === p && !frameByPath.has(p) && !zoneRectById.has(p);
+    const bothBare = bare(e.from) && bare(e.to);
     if (!blocked && bothBare) {
       // the pre-frames straight path, byte-for-byte: same-rank sibling leaves
       // share a cross-centre, the line is straight *because* both ends sit at

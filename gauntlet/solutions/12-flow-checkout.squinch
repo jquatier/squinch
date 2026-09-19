@@ -1,35 +1,37 @@
 pack aws
 
-customer = person "Customer"
-
-system checkout "Checkout" {
-  api     = aws/api-gateway "API Gateway"
-  cart    = aws/lambda      "Cart Handler"
-  pay     = aws/lambda      "Payment Handler"
-  db      = aws/dynamodb    "Orders Table" datastore
-  queue   = aws/sqs         "Fulfilment Queue" datastore
-  worker  = aws/lambda      "Fulfilment Worker"
-
-  api -> cart
-  cart -> pay
-  pay -> db
-  pay ~> queue
-  queue ~> worker
-
-  layout {
-    rows [api] [cart] [pay] [db queue] [worker]
-  }
+// Checkout flow components
+api = aws/api-gateway "API Gateway"
+cart = aws/lambda "Cart Service" {
+  subtitle: "Lambda · Node 20"
+}
+payment = aws/lambda "Payment Service" {
+  subtitle: "Lambda · Node 20"
+}
+db = aws/dynamodb "Orders" datastore
+queue = aws/sqs "Fulfilment Queue"
+worker = aws/lambda "Fulfilment Worker" {
+  subtitle: "Lambda · Node 20"
 }
 
-customer -> checkout.api "places order"
+// Connections
+api -> cart
+cart -> payment
+payment -> db
+payment ~> queue
+queue ~> worker
 
-flow checkout_flow "Checkout" {
-  checkout.api -> checkout.cart -> checkout.pay -> checkout.db
-  checkout.pay ~> checkout.queue ~> checkout.worker
+// Checkout flow with numbered steps
+flow checkout "Checkout Journey" {
+  api -> cart -> payment -> db
+  payment ~> queue ~> worker
 }
 
-view checkout {
+view main {
   title "Checkout Flow"
-  show flow checkout_flow
+  show flow checkout
   legend auto
+  layout {
+    rows [api] [cart] [payment] [db queue] [worker]
+  }
 }

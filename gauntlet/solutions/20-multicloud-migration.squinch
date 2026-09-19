@@ -1,29 +1,37 @@
 pack azure
 pack logos
-pack k8s
 
-pg = logos/postgres "PostgreSQL" datastore
-mq = logos/rabbitmq "RabbitMQ"
-
-system aks "AKS Cluster" {
-  icon: azure/aks
-  svc = k8s/deploy "New Services"
+// On-premises infrastructure
+pg = logos/postgres "PostgreSQL" datastore {
+  subtitle: "On-prem database"
+}
+rabbit = logos/rabbitmq "RabbitMQ" {
+  subtitle: "Message broker"
 }
 
-sql = azure/sql "Azure SQL" datastore
-
-pg ~> sql "nightly sync" { animate: slow }
-
-zone onprem_dc "On-Premises" onprem {
-  contains pg, mq
+// Azure infrastructure
+aks = azure/aks "AKS Cluster" {
+  description: "New services"
+}
+sql = azure/sql "Azure SQL" datastore {
+  subtitle: "Target database"
 }
 
-zone azure_cloud "Azure" cloud {
-  contains aks, sql
+// Sync job
+sync = azure/functions "Sync Job" {
+  description: "Nightly migration job"
 }
 
-view landscape {
-  title "Multi-Cloud Migration"
-  include *
-  legend auto
+// Connections
+pg ~> sync "nightly copy"
+sync ~> sql "writes"
+rabbit -> aks "legacy messages"
+
+// Deployment boundaries
+zone onprem "On-Premises" onprem {
+  contains pg, rabbit
+}
+
+zone cloud "Azure" cloud {
+  contains aks, sql, sync
 }

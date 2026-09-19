@@ -2,37 +2,14 @@ pack aws
 
 partner = box "Partner System" external
 
-system orders "Order Processing" {
-  description: "Partner-facing order intake"
+gw = aws/api-gateway "API Gateway"
+workflow = aws/step-functions "Integration Workflow"
+validate = aws/lambda "Validation"
+billing = aws/lambda "Billing"
+db = aws/aurora "Aurora DB" datastore
 
-  gw       = aws/api-gateway    "API Gateway"
-  sfn      = aws/step-functions "Order Workflow"
-  validate = aws/lambda         "Validation Lambda"
-  billing  = aws/lambda         "Billing Lambda"
-  db       = aws/aurora         "Orders DB" datastore
-
-  gw -> sfn "starts execution"
-  sfn -> validate "validate order"
-  sfn -> billing "process billing"
-  billing -> db "writes charge"
-}
-
-partner -> orders.gw "submits order"
-
-flow submit_order "Submit order" {
-  partner -> orders.gw
-  orders.gw -> orders.sfn
-  orders.sfn -> orders.validate
-  orders.sfn -> orders.billing
-  orders.billing -> orders.db
-}
-
-view landscape {
-  title "Partner Integration — Landscape"
-  include *
-}
-
-view orders {
-  title "Order Processing"
-  show flow submit_order
-}
+partner -> gw "API request"
+gw -> workflow
+workflow -> validate "1. validate"
+workflow -> billing "2. bill"
+billing -> db "write"

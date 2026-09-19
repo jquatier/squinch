@@ -1,31 +1,41 @@
 pack aws
 
-api = aws/api-gateway "API Gateway"
+// API layer
+gw = aws/api-gateway "API Gateway"
 
-create = aws/lambda "Create Handler" { subtitle: "Lambda" }
-get    = aws/lambda "Get Handler"    { subtitle: "Lambda" }
-search = aws/lambda "Search Handler" { subtitle: "Lambda" }
+// Lambda handlers
+create = aws/lambda "Create Handler"
+get    = aws/lambda "Get Handler"
+search = aws/lambda "Search Handler"
 
-db      = aws/dynamodb   "Orders Table" datastore
-files   = aws/s3         "Attachments"  datastore
-idx     = aws/opensearch "Search Index" datastore
+// Data stores
+db     = aws/dynamodb  "Orders Table" datastore
+files  = aws/s3        "Files Bucket" datastore
+idx    = aws/opensearch "Search Index" datastore
 
-indexer = aws/lambda "Stream Indexer" { subtitle: "Lambda" }
+// Stream processor
+sync   = aws/lambda "Index Sync" {
+  description: "Keeps OpenSearch up to date"
+}
 
-api -> create, get, search
+// Connections - sync edges
+gw -> create
+gw -> get
+gw -> search
 
-create -> db    "create order"
-create -> files "store attachment"
-get    -> db    "read order"
-search -> idx   "query"
+create -> db
+create -> files
+get    -> db
+get    -> files
+search -> idx
 
-db      ~> indexer "DynamoDB stream"
-indexer -> idx      "index order"
+// Async edge - DynamoDB stream
+db ~> sync "DynamoDB stream"
+sync -> idx
 
-view overview {
-  title "Order API"
-  include *
+view main {
+  title "Lambda-based API Architecture"
   layout {
-    rows [api] [create get search] [db indexer idx files]
+    rows [gw] [create get search] [db files sync] [idx]
   }
 }

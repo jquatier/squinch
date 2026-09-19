@@ -1,34 +1,66 @@
 pack k8s
-pack logos
 
-ingress = k8s/ing "Ingress" { badge: logos/nginx, subtitle: "NGINX" }
-
-web_svc    = k8s/svc "Web Service"
-api_svc    = k8s/svc "API Service"
-worker_svc = k8s/svc "Worker Service"
-
-web    = k8s/deploy "Web"
-api    = k8s/deploy "API"
-worker = k8s/deploy "Worker"
-
-db    = k8s/sts "Postgres" datastore { badge: logos/postgres }
-cache = logos/redis "Redis" datastore
-
-prune = k8s/cronjob "Prune Job" {
-  subtitle: "Nightly"
-  description: "Prunes old records"
+// Ingress layer
+ingress = k8s/ing "nginx-ingress" {
+  description: "External traffic entry point"
 }
 
-ingress -> web_svc, api_svc, worker_svc
-web_svc    -> web
-api_svc    -> api
+// Services
+web_svc = k8s/svc "web-service" {
+  description: "Routes traffic to web pods"
+}
+api_svc = k8s/svc "api-service" {
+  description: "Routes traffic to api pods"
+}
+worker_svc = k8s/svc "worker-service" {
+  description: "Routes traffic to worker pods"
+}
+
+// Deployments
+web = k8s/deploy "web" {
+  description: "Frontend application"
+}
+api = k8s/deploy "api" {
+  description: "Backend API service"
+}
+worker = k8s/deploy "worker" {
+  description: "Background job processor"
+}
+
+// Data layer
+postgres = k8s/sts "postgres" datastore {
+  description: "Primary database"
+}
+redis = k8s/deploy "redis" datastore {
+  description: "Cache layer"
+}
+
+// Scheduled jobs
+pruner = k8s/cronjob "pruner" {
+  description: "Nightly cleanup job"
+  subtitle: "Prunes old records"
+}
+
+// Ingress to services
+ingress -> web_svc
+ingress -> api_svc
+ingress -> worker_svc
+
+// Services to deployments
+web_svc -> web
+api_svc -> api
 worker_svc -> worker
 
-api -> db
-api -> cache
-prune -> db "prunes old records"
+// API data access
+api -> postgres "read/write"
+api -> redis "cache"
 
-zone cluster "Kubernetes Cluster" custom {
-  icon: logos/kubernetes
-  contains ingress, web_svc, api_svc, worker_svc, web, api, worker, db, cache, prune
+// Cronjob to database
+pruner -> postgres "prune"
+
+view cluster {
+  title "Kubernetes Platform"
+  layout {
+    rows [ingress] [web_svc api_svc worker_svc] [web api worker] [redis postgres pruner]
+  }
 }

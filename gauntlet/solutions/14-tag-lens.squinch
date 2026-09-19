@@ -1,23 +1,58 @@
+// Payments platform with PCI compliance tagging
 pack aws
 
-api       = aws/lambda   "API Lambda"       { tags: #pci }
-tokenizer = aws/lambda   "Tokenizer Lambda"  { tags: #pci }
-vault     = aws/dynamodb "Card Vault"        datastore { tags: #pci }
-analytics = aws/lambda   "Analytics Lambda"
-wh        = aws/redshift "Redshift Warehouse" datastore
-
-api -> tokenizer
-tokenizer -> vault
-vault     ~> analytics "stream"
-analytics ~> wh "load"
-
-view full {
-  title "Payments Platform"
-  include *
+// API layer
+api = aws/lambda "Payment API" {
+  description: "Handles incoming payment requests"
+  subtitle: "Lambda · Node 20"
+  tags: #pci
 }
 
-view audit {
-  title "Auditor View — PCI Scope"
+// Payment processing
+tokenizer = aws/lambda "Tokenizer" {
+  description: "Tokenizes card data"
+  subtitle: "Lambda · Node 20"
+  tags: #pci
+}
+
+// Storage
+vault = aws/dynamodb "Card Vault" datastore {
+  description: "Encrypted card data storage"
+  tags: #pci
+}
+
+// Analytics pipeline
+analytics = aws/lambda "Analytics" {
+  description: "Processes payment events"
+  subtitle: "Lambda · Python 3.11"
+}
+
+warehouse = aws/redshift "Warehouse" datastore {
+  description: "Analytics data warehouse"
+}
+
+// Connections
+api -> tokenizer "tokenize card"
+tokenizer -> vault "store token"
+tokenizer ~> analytics "payment event"
+analytics -> warehouse "load data"
+
+view full {
+  title "Payments Platform - Full Architecture"
+  include *
+  legend auto
+  layout {
+    rows [api] [tokenizer] [vault analytics] [warehouse]
+  }
+}
+
+view pci {
+  title "Payments Platform - PCI Scope"
   include *
   only #pci
+  highlight #pci
+  legend auto
+  layout {
+    rows [api] [tokenizer] [vault]
+  }
 }

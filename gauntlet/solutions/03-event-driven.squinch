@@ -1,15 +1,30 @@
 pack aws
 
-orders    = aws/lambda      "Order Service"
-bus       = aws/eventbridge "Event Bus"
-notifier  = aws/lambda      "Email Notifier"
-sns       = aws/sns         "Order Notifications"
-analytics = aws/lambda      "Analytics Writer"
-lake      = aws/s3          "Data Lake" datastore
-dlq       = aws/sqs         "Dead Letter Queue" datastore
+// Event source
+eventbus = aws/eventbridge "Order Events"
 
-orders ~> bus "order events"
-bus ~> notifier, analytics
-notifier ~> sns
-analytics -> lake
-bus ~> dlq "delivery failed"
+// Consumers
+email_fn   = aws/lambda "Email Notifier"
+sns        = aws/sns "Email Topic"
+
+analytics_fn = aws/lambda "Analytics Writer"
+datalake     = aws/s3 "Data Lake" datastore
+
+// Dead-letter queue for failed events
+dlq = aws/sqs "Dead Letter Queue"
+
+// Async flows
+eventbus ~> email_fn
+email_fn ~> sns
+
+eventbus ~> analytics_fn
+analytics_fn ~> datalake
+
+eventbus ~> dlq "failed events"
+
+view main {
+  title "Event-Driven Order Processing"
+  layout {
+    rows [eventbus] [email_fn analytics_fn] [sns datalake dlq]
+  }
+}

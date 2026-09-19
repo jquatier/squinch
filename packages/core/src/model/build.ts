@@ -506,15 +506,20 @@ export function buildProject(input: ProjectFile[]): BuildResult {
         // `glyph:` used to be the one icon reference nobody checked: the view
         // layer splits it on `/` and shrugs, so a typo drew a `?` plate, exited
         // 0, and left you to notice by eye. Same two errors as a zone `icon:`.
-        if (meta.attrs["glyph"]) {
-          const [p, i] = meta.attrs["glyph"].split("/");
+        // The container's own `icon:` was then the one left — round 26's agents
+        // grouped services into areas, reached for `icon: sys/shopping-cart`,
+        // which does not exist, and got a clean check and a `?` tile.
+        for (const key of ["glyph", "icon"] as const) {
+          const ref = meta.attrs[key];
+          if (!ref) continue;
+          const [p, i] = ref.split("/");
           if (!p || !i || !packExists(p)) {
             const s = p && suggest(p, allPackNames());
-            error(ctx, body, `unknown pack \`${p ?? meta.attrs["glyph"]}\` in glyph`,
-              s ? `did you mean \`${s}/${i ?? ""}\`?` : `use \`glyph: <pack>/<id>\``);
+            error(ctx, body, `unknown pack \`${p ?? ref}\` in ${key}`,
+              s ? `did you mean \`${s}/${i ?? ""}\`?` : `use \`${key}: <pack>/<id>\``);
           } else if (!iconExists(p, i)) {
             const s = suggest(i, iconIds(p));
-            error(ctx, body, `unknown icon \`${p}/${i}\` in glyph`,
+            error(ctx, body, `unknown icon \`${p}/${i}\` in ${key}`,
               s ? `did you mean \`${p}/${s}\`?` : `run \`squinch icons search ${i}\``);
           }
         }
