@@ -6,6 +6,15 @@ history too. Sections are drafted by `pnpm release` from the commits since the
 previous tag, then edited by a human before anything is written; the release
 workflow lifts the matching section verbatim into the GitHub Release notes.
 
+## 0.7.0 — 2026-09-19
+
+- The skill knows what to do with a large system. Pointed at a whole repo, an agent used to draw one enormous page, or a landscape with every backend in a single row. A new section, "When the system is big", and a step at the top of the loop tell it to decide the *areas* before writing a node: group by the folders, teams or domains the code already has, keep what a service owns inside it and what everyone shares top-level, hold that at every altitude, and hand over a landscape plus a view per area rather than one page. It carries no numbers — no box limits, no aspect ratios. Measured with cold agents it helps most where the repo already has structure, and only partly where it does not.
+- A band the layouter could not keep is a check error. `rows [identity catalog commerce …]` with an unlisted bus on the path between them (`identity ~> kafka ~> catalog`) used to come back as two tiers with nothing said, and the router drew a stub wire into empty canvas. `check` now names what sits between them and writes the `rows` line to paste, trying the wedge in a band of its own, then beside the lower tier, then the upper, and offering the first with no upward edge. Files that relied on the silent split will now fail `check`; none of the 67 views in the corpus that use `rows` did.
+- An edge written from a container itself (`checkout ~> fulfilment`, with `checkout` expanded) no longer stops in mid-air beside a shorter neighbour: a container endpoint jogs through the gutter like any other unit. No existing render changed.
+- A container's `icon:` is validated like its `glyph:` and a zone's `icon:`. A made-up id used to pass `check` and draw a `?` tile; it is now an error with a did-you-mean or the search command.
+- Gauntlet: two large-system prompts bring the corpus to thirty-five, certified 35/35 on the deep scorer. Round 26 is written up in `gauntlet/README.md`, including what the runs before it showed about where guidance does and does not move an agent.
+- Site: the landing's trust band claims only what the render path guarantees. Release: npm publishing runs as a deployment to the `npm` environment.
+
 ## 0.6.0 — 2026-09-15
 
 - `squinch` says when a newer version is on npm: after a successful command, one `update:` line on stderr names the version and the upgrade command (`npx squinch@latest skill` when run through npx). The lookup is one registry request a day, cached under `~/.cache/squinch` and never awaited — a slow or offline registry costs nothing and the notice arrives on the next run — and it is off under `CI`, `GITHUB_ACTIONS` or `SQUINCH_NO_UPDATE_CHECK`. It is never gated on a terminal, because the reader is usually an agent; `check --format json` carries it as an `update` field instead of a line. `docs/notes/update-check.md` records the rejected shapes.
