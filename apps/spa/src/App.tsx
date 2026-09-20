@@ -332,7 +332,10 @@ export function App() {
   const lineCount = source.split("\n").length;
 
   return (
-    <div className="flex h-screen flex-col bg-[var(--chrome)] text-[var(--fg)]">
+    // dvh, not vh: on iOS `100vh` is the height with the browser's toolbars
+    // *hidden*, so while they show the layout runs underneath the bottom bar —
+    // and takes the zoom pill, which sits at the bottom of the canvas, with it.
+    <div className="flex h-screen flex-col bg-[var(--chrome)] text-[var(--fg)] supports-[height:100dvh]:h-dvh">
       {/* offscreen, not decorative — the editor UI has no visible page title,
           so this is the only thing giving the document an <h1> at all */}
       <h1 className="sr-only">Squinch — playground</h1>

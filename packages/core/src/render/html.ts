@@ -299,7 +299,10 @@ function document(a: {
 const CHROME_CSS =
   "*{box-sizing:border-box}" +
   "body{margin:0;background:var(--sq-canvas);color:var(--sq-ink);" +
-  "font:13px/1.5 system-ui,-apple-system,sans-serif;height:100vh;display:flex;flex-direction:column}" +
+  // 100dvh over 100vh: on iOS `vh` is the height with the browser's toolbars
+  // hidden, so while they show the page ran underneath the bottom bar and took
+  // the view tabs with it. The first declaration is for engines without dvh.
+  "font:13px/1.5 system-ui,-apple-system,sans-serif;height:100vh;height:100dvh;display:flex;flex-direction:column}" +
   "#sq-bar{display:flex;align-items:center;justify-content:flex-end;gap:12px;padding:10px 16px;flex:none}" +
   "#sq-theme{font:inherit;background:var(--sq-surface);color:var(--sq-muted);cursor:pointer;" +
   "border:1px solid var(--sq-border);border-radius:6px;padding:2px 8px;flex:none}" +
