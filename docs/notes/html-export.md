@@ -92,6 +92,15 @@ output cannot drift with an esbuild upgrade. That import is what makes "the
 export moves exactly like the playground" a fact about the build rather than a
 comment.
 
+Pan and zoom (2026-09, `pan-zoom.md`) are the same bargain: the runtime bundles
+`view/camera.ts` and `view/camera-dom.ts`, the controller the playground calls
+from a React effect. It cost the bundle **7.3 KB → 13.6 KB**, in every export —
+against files of 115–370 KB, where the fonts alone are 32 KB. Still exactly two
+`<script>` elements. `#sq-cam`, the camera's wrapper, is `display:contents` and
+the three zoom buttons are hidden until the runtime puts `sq-pz` on `<html>`, so
+the reader without script sees precisely the static, width-fitted document
+they saw before there was a camera — and no dead controls.
+
 Because every body is already in the document, a view swap is **synchronous**,
 and most of `Stage.tsx` disappears:
 

@@ -8,7 +8,8 @@ import { CreditsDialog } from "./Credits";
 // file — there used to be four byte-identical copies of it in the tree.
 const markUrl = `${import.meta.env.BASE_URL}favicon.svg`;
 import { Presenter } from "./Presenter";
-import { Stage, useReducedMotion, type Box, type Intent } from "./Stage";
+import { Stage, useReducedMotion, type Box, type Intent, type StageHandle } from "./Stage";
+import { ZOOM_STEP } from "@squinch/core/browser";
 import { compile, decodeShare, encodeShare, ensureRenderable, svgToPng, type Preview } from "./squinch";
 import { themes, exportHTML, crumbs as crumbsFor, hop, upView as upViewFor, viewForPath as viewFor } from "@squinch/core/browser";
 import { EXAMPLES } from "./examples";
@@ -53,8 +54,15 @@ export function App() {
   const [paletteOpen, setPaletteOpen] = useState(false);
   const [creditsOpen, setCreditsOpen] = useState(false);
   const editorApi = useRef<EditorApi | null>(null);
-  const [zoom, setZoom] = useState(1);
-  const [fit, setFit] = useState(true);
+  // Pan and zoom live in the stage's camera, not here: the scale changes per
+  // frame during a pinch, and state up here would re-render the editor with it.
+  // The pill drives the camera through a handle, the percentage is written
+  // straight into its span, and only "is it fitted?" comes back as state.
+  const stage = useRef<StageHandle>(null);
+  const scaleReadout = useRef<HTMLButtonElement>(null);
+  const [atFit, setAtFit] = useState(true);
+  /** bumped when a different document is loaded, so the stage reframes it */
+  const [docKey, setDocKey] = useState(0);
   const [intent, setIntent] = useState<Intent>();
   const [presenting, setPresenting] = useState(false);
   // How much of the current view's flow has been narrated. Presentation only:
@@ -82,6 +90,7 @@ export function App() {
   const loadExample = useCallback((ex: (typeof EXAMPLES)[number]) => {
     setSource(ex.source);
     setView(undefined);
+    setDocKey((k) => k + 1);
   }, []);
 
   // Prev/next walk the list in its declared order (grouped, so neighbours are
@@ -447,8 +456,10 @@ export function App() {
           stale={!preview.ok}
           animate={!reduced}
           intent={intent}
-          fit={fit}
-          zoom={zoom}
+          ref={stage}
+          fitKey={docKey}
+          readout={scaleReadout}
+          onFitChange={setAtFit}
           onPick={onPick}
           onBlank={upView ? () => navigate(upView) : undefined}
         >
@@ -511,25 +522,34 @@ export function App() {
           )}
           <div className="pg-pill absolute bottom-3.5 right-4 z-10 flex items-center gap-0.5 rounded-[9px] p-[3px] text-[12px]">
             <button
-              onClick={() => { setFit(true); setZoom(1); }}
-              className={`rounded-md px-[11px] py-[5px] ${fit ? "bg-[var(--control-active)] font-medium text-[var(--fg)]" : "text-[var(--muted)] hover:text-[var(--fg)]"}`}
+              onClick={() => stage.current?.fit()}
+              title="Fit to window (0)"
+              className={`rounded-md px-[11px] py-[5px] ${atFit ? "bg-[var(--control-active)] font-medium text-[var(--fg)]" : "text-[var(--muted)] hover:text-[var(--fg)]"}`}
             >
               Fit
             </button>
             <button
-              onClick={() => { setFit(false); setZoom((z) => Math.max(0.25, +(z - 0.25).toFixed(2))); }}
+              onClick={() => stage.current?.zoomBy(1 / ZOOM_STEP)}
               className="h-[26px] w-7 rounded-md text-[13px] text-[var(--muted)] hover:text-[var(--fg)]"
               aria-label="Zoom out"
+              title="Zoom out (−)"
             >
               −
             </button>
-            <span className="pg-mono w-11 text-center text-[11.5px] font-medium tabular-nums text-[var(--muted)]">
-              {fit ? "auto" : `${Math.round(zoom * 100)}%`}
-            </span>
+            {/* No children: the stage writes the percentage here per frame, and
+                a React child would be put back over it on the next render. */}
             <button
-              onClick={() => { setFit(false); setZoom((z) => Math.min(3, +(z + 0.25).toFixed(2))); }}
+              ref={scaleReadout}
+              onClick={() => stage.current?.setScale(1)}
+              aria-label="Zoom to 100%"
+              title="Actual size (1)"
+              className="pg-mono w-11 rounded-md text-center text-[11.5px] font-medium tabular-nums text-[var(--muted)] hover:text-[var(--fg)]"
+            />
+            <button
+              onClick={() => stage.current?.zoomBy(ZOOM_STEP)}
               className="h-[26px] w-7 rounded-md text-[13px] text-[var(--muted)] hover:text-[var(--fg)]"
               aria-label="Zoom in"
+              title="Zoom in (+, or ⌘/Ctrl+scroll)"
             >
               +
             </button>

@@ -30,6 +30,9 @@ export { diffModels, formatDiff, formatDiffMarkdown };
 // the same motion, so neither owns a copy of it.
 export * from "./view/navigate.js";
 export * from "./view/dive.js";
+// the camera (docs/notes/pan-zoom.md): where pan and zoom put the picture. The
+// arithmetic only — the DOM half is `attachCamera`, on the browser entry.
+export * from "./view/camera.js";
 // the interactive export: every view of a project in one self-contained file
 export { exportHTML } from "./render/html.js";
 export type { HTMLExportOpts, HTMLExportResult } from "./render/html.js";

@@ -88,3 +88,106 @@ test("the wordmark takes you back to the landing", async ({ page }) => {
   await expect(page).toHaveURL(/\/$/);
   await expect(page.getByRole("heading", { name: "squinch" })).toBeVisible();
 });
+
+// ── the camera (docs/notes/pan-zoom.md) ──────────────────────────────────────
+//
+// The gestures themselves are tested against the interactive export, in two
+// engines — it is the same controller, bundled. What is checked here is the
+// wiring that only the playground has: React must not fight the camera, the
+// editor must keep its own keys, and an edit is not a reason to lose your place.
+// Chromium only, so the React arm/fire path gets no WebKit run; say so if that
+// ever matters.
+
+const VP = "main section[data-cam]";
+type Cam = { x: number; y: number; k: number };
+const camOf = (page: Page) =>
+  page.evaluate((vp): Cam => {
+    const t = (document.querySelector(vp)!.firstElementChild as HTMLElement).style.transform;
+    const m = /translate\(([-\d.e]+)px, ([-\d.e]+)px\) scale\(([-\d.e]+)\)/.exec(t)!;
+    return { x: +m[1], y: +m[2], k: +m[3] };
+  }, VP);
+const readout = (page: Page) => page.getByRole("button", { name: "Zoom to 100%" });
+const microservices = async (page: Page) => {
+  await page.goto("/playground/");
+  await page.getByRole("combobox").selectOption("Examples/Microservices");
+  await expect(page.locator('[data-path="orders"]')).toBeVisible();
+  await page.waitForTimeout(400); // let the first fit land
+};
+
+test("a drag pans the canvas, moves the dot grid with it, and does not navigate", async ({ page }) => {
+  await microservices(page);
+  const before = await camOf(page);
+  const b = (await page.locator('[data-path="orders"]').first().boundingBox())!;
+  const c = { x: b.x + b.width / 2, y: b.y + b.height / 2 };
+  await page.mouse.move(c.x, c.y);
+  await page.mouse.down();
+  await page.mouse.move(c.x + 30, c.y, { steps: 4 });
+  await page.mouse.move(c.x + 110, c.y - 50, { steps: 6 });
+  await page.mouse.up();
+  await page.waitForTimeout(250);
+  const after = await camOf(page);
+  expect(after.x - before.x).toBeCloseTo(110, 0);
+  expect(after.y - before.y).toBeCloseTo(-50, 0);
+  await expect(page.locator('[data-path="orders.api"]')).toHaveCount(0); // still the landscape
+  const bg = await page.locator(VP).evaluate((s) => (s as HTMLElement).style.backgroundPosition);
+  expect(bg.startsWith(`${after.x}px`)).toBe(true);
+});
+
+test("the zoom pill drives the camera, and the readout tracks it", async ({ page }) => {
+  await microservices(page);
+  const fit = await camOf(page);
+  await expect(readout(page)).toHaveText(`${Math.round(fit.k * 100)}%`);
+  await page.getByRole("button", { name: "Zoom in" }).click();
+  await page.waitForTimeout(260);
+  const one = await camOf(page);
+  expect(one.k / fit.k).toBeCloseTo(1.25, 2);
+  await expect(readout(page)).toHaveText(`${Math.round(one.k * 100)}%`);
+  await readout(page).click(); // the percentage is the "actual size" button
+  await page.waitForTimeout(260);
+  expect((await camOf(page)).k).toBeCloseTo(1, 3);
+  await page.getByRole("button", { name: "Fit", exact: true }).click();
+  await page.waitForTimeout(300);
+  expect((await camOf(page)).k).toBeCloseTo(fit.k, 3);
+});
+
+test("the editor keeps its own keys, and an edit keeps your place", async ({ page }) => {
+  await microservices(page);
+  await page.getByRole("button", { name: "Zoom in" }).click();
+  await page.waitForTimeout(260);
+  const placed = await camOf(page);
+  const show = page.getByRole("button", { name: /Show editor/ });
+  if (await show.count()) await show.click();
+  await page.locator(".cm-content").click();
+  await page.keyboard.type("// - + 0 1 = _\n");
+  await page.waitForTimeout(700); // debounce + compile + render
+  const after = await camOf(page);
+  expect(after.k).toBeCloseTo(placed.k, 6); // `0` did not fit, `+` did not zoom
+  // …and outside a text field the same key does work
+  await page.locator(VP).evaluate(() => (document.activeElement as HTMLElement | null)?.blur());
+  await page.keyboard.press("0");
+  await page.waitForTimeout(300);
+  expect((await camOf(page)).k).toBeLessThan(placed.k);
+});
+
+test("a dive from a zoomed view arrives fitted; loading another example refits", async ({ page }) => {
+  await microservices(page);
+  await page.getByRole("button", { name: "Zoom in" }).click();
+  await page.waitForTimeout(260);
+  await page.locator('[data-path="orders"]').first().click();
+  await expect(page.locator('[data-path="orders.api"]')).toBeVisible();
+  await expect(page.locator("[aria-hidden] svg")).toHaveCount(0, { timeout: 3000 });
+  const inside = () => page.locator(VP).evaluate((s) => {
+    const v = s.getBoundingClientRect(), l = s.firstElementChild!.children[1].getBoundingClientRect();
+    return l.left >= v.left && l.right <= v.right + 1 && l.top >= v.top;
+  });
+  expect((await camOf(page)).k).toBeLessThanOrEqual(1);
+  expect(await inside()).toBe(true);
+
+  await page.getByRole("button", { name: "Zoom in" }).click();
+  await page.getByRole("button", { name: "Zoom in" }).click();
+  await page.waitForTimeout(300);
+  await page.getByRole("combobox").selectOption({ index: 3 });
+  await page.waitForTimeout(1200);
+  expect((await camOf(page)).k).toBeLessThanOrEqual(1);
+  expect(await inside()).toBe(true);
+});

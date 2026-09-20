@@ -291,6 +291,16 @@ what `include` used to smuggle — draw an outside node at its own depth rather
 than as its system card — and splitting that out is what made `only` possible at
 all: a verb that also controls altitude cannot be redefined to control
 membership. Rule stack: SPEC §5.
+**Pan and zoom** (2026-09) is one camera shared by the playground and the
+interactive export: `view/camera.ts` is the arithmetic, `view/camera-dom.ts` the
+controller (browser entry only, unstable), bundled into the export's runtime and
+called from a React effect in `Stage.tsx`. Drag and scroll pan, pinch or
+Ctrl/⌘+wheel zooms at the cursor. The transform sits on a wrapper around *both*
+dive layers, the dive runs unchanged in the camera's local space, and every
+view arrives fitted — width-fitted from the top, as it always opened. Not
+negotiable without reading `docs/notes/pan-zoom.md`: a press is captured only
+once it is a drag (capture-on-down retargets the click), a gesture never
+cancels a pending paint, and React holds none of the camera's state.
 Other work since then is in the playground, not the language: altitude changes animate as an anchored dive through the card you
 clicked (`docs/notes/zoom-transitions.md`, DESIGN §11), presentation mode turns
 the declared views into a full-bleed deck, and a `show flow` view can be walked

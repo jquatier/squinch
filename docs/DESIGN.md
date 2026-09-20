@@ -334,6 +334,15 @@ slide change — and the chrome has to say so.
   element the two views share, so the reader never has to re-find their place.
   One motion, no picker; `prefers-reduced-motion` cuts straight through. The
   geometry and everything rejected on the way: `docs/notes/zoom-transitions.md`.
+- **The canvas is a camera, and it is the same camera everywhere.** Drag pans;
+  a wheel or two-finger scroll pans; pinch or Ctrl/⌘+scroll zooms about the
+  cursor; `+` `−` `0` `1` and Shift+arrows do it from the keyboard. The
+  playground and the interactive export run one controller, so they cannot
+  drift into two feels. A view opens as it always did — width-fitted, never
+  scaled up, from the top when it is tall — and **every view arrives fitted**,
+  whatever was done to the one before: the dive starts from exactly what the
+  reader was looking at and lands framed. Only a slide is drawn larger than
+  life. `docs/notes/pan-zoom.md`.
 - **The way back is always on screen.** A breadcrumb of the ancestor trail, every
   hop clickable, in the editor and in presentation alike.
 - **Presentation mode is the same views, full-bleed**: the declared views become

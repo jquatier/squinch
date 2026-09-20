@@ -2,8 +2,8 @@
 //
 // Changing altitude animates about the one card the two views share, so the
 // reader never has to re-find their place (DESIGN §11, docs/notes/zoom-
-// transitions.md). All of the geometry lives here, taking four measured
-// rectangles and returning the transforms — no DOM, so it can be tested, and so
+// transitions.md). All of the geometry lives here, taking four rectangles and
+// returning the transforms — no DOM, so it can be tested, and so
 // `scripts/hero-gif.mts` can re-derive the README animation from the same
 // constants instead of its own copy of them. Two copies in two languages with a
 // comment asserting they match is not a thing that stays true.
@@ -11,6 +11,11 @@
 // It sat in `apps/spa/src/lib/` while the playground was the only thing that
 // zoomed. The interactive HTML export zooms too and is built by core, so this
 // moved here rather than becoming the second copy its own header warns about.
+//
+// The four rectangles only have to share ONE coordinate space; nothing here
+// assumes which, or that `view` starts at the origin. Both hosts hand them over
+// in the camera's local space (`camera.ts`), which is how the dive runs
+// unchanged under any pan and zoom.
 
 export interface Box { x: number; y: number; w: number; h: number }
 

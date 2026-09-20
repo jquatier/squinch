@@ -27,7 +27,10 @@ if echo "$staged" | grep -q -e "^examples/" -e "^lookbook/cases/" -e "^apps/spa/
   check apps/spa/src/examples.ts sync-examples
 fi
 
-if echo "$staged" | grep -v "runtime\.generated\.ts" | grep -q -e "^packages/core/src/render/html/" -e "^packages/core/scripts/gen-html-runtime\.ts$"; then
+# src/view/ too: the runtime bundles dive.ts, navigate.ts and the camera from
+# there, so an edit to any of them changes the generated file. It used to be
+# missing, and CI's drift gate was the first thing to notice.
+if echo "$staged" | grep -v "runtime\.generated\.ts" | grep -q -e "^packages/core/src/render/html/" -e "^packages/core/src/view/" -e "^packages/core/scripts/gen-html-runtime\.ts$"; then
   (cd packages/core && npx tsx scripts/gen-html-runtime.ts >/dev/null)
   check packages/core/src/render/html/runtime.generated.ts gen-html-runtime
 fi

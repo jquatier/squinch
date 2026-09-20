@@ -8,3 +8,7 @@
 export * from "./api.js";
 export { registerPack, preloadIcons, packInfo, iconIds, hasIcon, glyph } from "./packs/registry.js";
 export type { PackManifest, AssetLoader } from "./packs/registry.js";
+// The camera's DOM half — browser entry only, and unstable: the playground's
+// pan and zoom. The interactive export bundles the same function directly.
+export { attachCamera } from "./view/camera-dom.js";
+export type { CameraHandle, CameraOpts } from "./view/camera-dom.js";

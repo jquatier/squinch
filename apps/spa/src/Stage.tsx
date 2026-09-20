@@ -1,4 +1,4 @@
-// The canvas, and the motion between altitudes.
+// The canvas: the camera, and the motion between altitudes.
 //
 // Zooming from a landscape into a system is the one navigation move that can
 // lose people: the picture is replaced wholesale, and nothing tells you which
@@ -7,20 +7,32 @@
 // move around that point, which stays put on screen, so your eye tracks it
 // through the cut.
 //
-// Mechanically: one live layer (in flow, holds the current SVG) and one ghost
-// layer (absolutely positioned clone of the previous SVG, pinned where it was,
-// purely decorative). Transforms are applied imperatively — React re-rendering
-// mid-animation would restart the transition.
+// Mechanically: a viewport that never scrolls, a **camera** inside it — one
+// element whose transform is the reader's pan and zoom — and inside that, the
+// two dive layers: live (the current SVG) and ghost (the previous one, purely
+// decorative). The camera is core's `attachCamera`, the same function the
+// interactive HTML export bundles, so the two surfaces cannot drift into two
+// feels (docs/notes/pan-zoom.md). Every transform here — camera, ghost, live —
+// is written imperatively: React re-rendering mid-gesture or mid-dive would
+// restart the transition, so none of those elements carries a `style` prop.
+//
+// The dive runs in the camera's *local* space, where `diveTransforms` neither
+// knows nor cares that a camera exists, and every view arrives fitted.
 import {
+  forwardRef,
   useCallback,
   useEffect,
+  useImperativeHandle,
   useLayoutEffect,
   useRef,
   useState,
 } from "react";
 
 export type { Box } from "@squinch/core/browser";
-import { type Box, DIVE, diveTransforms } from "@squinch/core/browser";
+import {
+  type Box, type CameraHandle, type CamPad,
+  DIVE, KEY_PAN, ZOOM_STEP, attachCamera, diveTransforms,
+} from "@squinch/core/browser";
 // stays local: the playground compiles per view and never hoists shared defs,
 // so its two layers still need their ids kept apart. The HTML export hoists,
 // and therefore does not.
@@ -31,23 +43,39 @@ import { isolateIds } from "./lib/isolate";
 export interface Intent {
   token: number;
   dir: "in" | "out";
-  /** anchor, already in canvas space — known up front when zooming in */
+  /** anchor, in the *outgoing* diagram's own px — known up front when zooming
+   *  in. Content-local rather than on-screen on purpose: compiling the next
+   *  view is async, and the reader can keep panning until it arrives. */
   rect?: Box;
-  /** anchor to locate in the *incoming* diagram — used when zooming out, where
-   *  the card we are returning to does not exist until the new SVG mounts */
+  /** anchor to locate by path — in the incoming diagram when zooming out (the
+   *  card we are returning to does not exist until the new SVG mounts), or in
+   *  the outgoing one when a tab, not a click, started a zoom in */
   path?: string;
 }
 
-const boxOf = (el: Element, host: HTMLElement): Box => {
-  const a = el.getBoundingClientRect();
-  const b = host.getBoundingClientRect();
-  return {
-    x: a.left - b.left + host.scrollLeft,
-    y: a.top - b.top + host.scrollTop,
-    w: a.width,
-    h: a.height,
-  };
+/** What the zoom pill drives. The camera's state lives in the DOM, not in React:
+ *  a per-frame `setState` would re-render the whole app on every pinch frame. */
+export interface StageHandle {
+  fit(): void;
+  zoomBy(factor: number): void;
+  setScale(k: number): void;
+}
+
+/** Air around a fitted diagram — enough at the top and bottom to clear the
+ *  pills that float over the canvas, so a title block never opens underneath
+ *  one. Presenting has less chrome and wants the picture as large as it goes. */
+const PAD: CamPad = { top: 64, right: 40, bottom: 60, left: 40 };
+const FILL_PAD: CamPad = 36;
+
+/** The renderer always writes unitless px `width` and `height`, adjacent, on the root. */
+const sizeOf = (svg: string) => {
+  const m = /<svg\b[^>]*?\swidth="([\d.]+)"\s+height="([\d.]+)"/.exec(svg);
+  return m ? { w: Number(m[1]), h: Number(m[2]) } : { w: 0, h: 0 };
 };
+
+/** Keys that belong to a text field, a button or the editor are theirs. */
+const typing = (t: EventTarget | null) =>
+  !!(t as Element | null)?.closest?.(".cm-editor, input, textarea, select, button, [contenteditable]");
 
 export interface StageProps {
   svg?: string;
@@ -56,61 +84,45 @@ export interface StageProps {
   /** false cuts straight to the new diagram — what `prefers-reduced-motion` gets */
   animate: boolean;
   intent?: Intent;
-  fit: boolean;
-  zoom: number;
-  /** presentation sizing: contain the artwork in the viewport, scaling it *up*
-   *  as well as down. `fit`/`zoom` are ignored. */
+  /** presentation: contain the artwork in the viewport, scaling it *up* as well
+   *  as down */
   fill?: boolean;
-  /** an element with a `data-path` was clicked; the box is in canvas space */
+  /** Changes when a different *document* is loaded (an example, a share link).
+   *  The next render refits, wherever the reader had left the camera — an edit
+   *  to the same document never does. */
+  fitKey?: string | number;
+  /** where the live zoom percentage is written, imperatively */
+  readout?: React.RefObject<HTMLElement | null>;
+  /** the camera went to, or left, its fitted state — not per frame */
+  onFitChange?(atFit: boolean): void;
+  /** an element with a `data-path` was clicked; the box is in the diagram's own px */
   onPick(path: string, box: Box): void;
-  /** the canvas itself was clicked, away from any diagram element. Passing this
-   *  is also what puts the zoom-out cursor on the backdrop, so only wire it up
-   *  when there is somewhere to go. */
+  /** the canvas itself was clicked, away from any diagram element */
   onBlank?(): void;
   /** overlays that live inside the canvas (toolbars, breadcrumbs) */
   children?: React.ReactNode;
   className?: string;
 }
 
-export function Stage({
-  svg,
-  stale,
-  animate,
-  intent,
-  fit,
-  zoom,
-  fill,
-  onPick,
-  onBlank,
-  children,
-  className,
-}: StageProps) {
-  const scroller = useRef<HTMLDivElement>(null);
+export const Stage = forwardRef<StageHandle, StageProps>(function Stage(
+  { svg, stale, animate, intent, fill, fitKey, readout, onFitChange, onPick, onBlank, children, className },
+  ref,
+) {
+  const viewport = useRef<HTMLElement>(null);
+  const cameraRef = useRef<HTMLDivElement>(null);
   const liveRef = useRef<HTMLDivElement>(null);
   const ghostRef = useRef<HTMLDivElement>(null);
-  // The sizing rules are frozen alongside the artwork: the ghost has to sit at
-  // exactly the size the live layer had, and the user can change fit or zoom
-  // mid-flight.
-  const [ghost, setGhost] = useState<{
-    svg: string;
-    box: Box;
-    cls: string;
-    scale: number;
-  } | null>(null);
+  const cam = useRef<CameraHandle | null>(null);
   /** armed at trigger time, consumed when a *different* SVG arrives */
-  const armed = useRef<{ intent: Intent; svg: string } | null>(null);
+  const armed = useRef<{ intent: Intent; svg: string; size: { w: number; h: number } } | null>(null);
   const timers = useRef<number[]>([]);
   /** the token already handled — a remount must not re-arm an old navigation */
   const seen = useRef(intent?.token);
-
-  // How the artwork is sized. Presenting contains it in the viewport (the root
-  // <svg> carries a viewBox, so width+height together letterbox correctly);
-  // editing leaves it at natural size, capped to the pane unless zoomed.
-  const artCls = fill
-    ? "h-full w-full [&>svg]:h-full [&>svg]:w-full"
-    : fit
-      ? "[&>svg]:h-auto [&>svg]:max-w-full"
-      : "";
+  /** the next SVG to arrive is framed from scratch, whatever the camera was doing */
+  const pendingFit = useRef(true);
+  const wasFit = useRef(true);
+  const fitChanged = useRef(onFitChange);
+  fitChanged.current = onFitChange;
 
   const cancel = useCallback(() => {
     timers.current.forEach(clearTimeout);
@@ -119,7 +131,8 @@ export function Stage({
 
   const settle = useCallback(() => {
     armed.current = null;
-    setGhost(null);
+    const g = ghostRef.current;
+    if (g) { g.replaceChildren(); g.removeAttribute("style"); }
     const el = liveRef.current;
     if (el) {
       el.style.transition = "";
@@ -128,71 +141,130 @@ export function Stage({
       el.style.transformOrigin = "";
       el.style.willChange = "";
     }
+    const c = cam.current;
+    c?.setBusy(false);
+    // the pane may have been resized mid-dive, while the camera held still for it
+    if (c?.atFit()) c.fit();
   }, []);
+
+  // The camera. Declared before the arm and fire effects, because layout
+  // effects run in declaration order and both of them need it on first mount.
+  useLayoutEffect(() => {
+    const vp = viewport.current, el = cameraRef.current;
+    if (!vp || !el) return;
+    const c = attachCamera(vp, el, {
+      pad: fill ? FILL_PAD : PAD,
+      upscale: !!fill,
+      onChange(state, atFit) {
+        if (readout?.current) readout.current.textContent = `${Math.round(state.k * 100)}%`;
+        // The dot grid is the canvas, so it moves with the camera. Spacing
+        // follows the scale but folds back by powers of two, which keeps the
+        // density readable from 10% to 400% — the infinite-grid trick.
+        if (!fill) {
+          let s = 22 * state.k;
+          while (s < 14) s *= 2;
+          while (s > 28) s /= 2;
+          vp.style.backgroundSize = `${s}px ${s}px`;
+          vp.style.backgroundPosition = `${state.x}px ${state.y}px`;
+        }
+        if (atFit !== wasFit.current) { wasFit.current = atFit; fitChanged.current?.(atFit); }
+      },
+    });
+    cam.current = c;
+    pendingFit.current = true;
+    return () => { cam.current = null; c.destroy(); vp.style.backgroundSize = ""; vp.style.backgroundPosition = ""; };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [fill]);
+
+  useImperativeHandle(ref, () => ({
+    fit: () => cam.current?.fit(true),
+    zoomBy: (f) => cam.current?.zoomBy(f),
+    setScale: (k) => cam.current?.setScale(k),
+  }), []);
+
+  // A different document: frame the next render from scratch.
+  useLayoutEffect(() => { pendingFit.current = true; }, [fitKey]);
 
   // Arm: freeze the diagram currently on screen, before the new one replaces it.
   useLayoutEffect(() => {
     if (!intent || intent.token === seen.current) return;
     seen.current = intent.token;
-    if (!animate || !svg || !liveRef.current || !scroller.current) return;
+    pendingFit.current = true; // every view arrives fitted — animated or not
+    const c = cam.current, g = ghostRef.current;
+    if (!animate || !svg || !c || !g) return;
     cancel();
-    armed.current = { intent, svg };
-    setGhost({
-      svg,
-      box: boxOf(liveRef.current, scroller.current),
-      cls: artCls,
-      scale: fill || fit ? 1 : zoom,
-    });
+    settle(); // a dive still in flight would be measured mid-move
+    const size = sizeOf(svg);
+    armed.current = { intent, svg, size };
+    // Input stops here, not at fire: macOS keeps sending inertial wheel events
+    // for a second after a flick, and compiling the next view takes a while.
+    c.setBusy(true);
+    // The ghost is parsed now — a large innerHTML must not land in the dive's
+    // first frame — and sits exactly over the live layer, in the camera's own
+    // space, where it is invisible. It gets its real box at fire.
+    g.innerHTML = isolateIds(svg);
+    g.style.cssText = `left:0;top:0;width:${size.w}px;height:${size.h}px`;
     // A view can render byte-identical SVG (a lateral hop to an equivalent
     // view), in which case the swap below never fires. Don't strand the ghost.
     timers.current.push(window.setTimeout(settle, DIVE.ms + 600));
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [intent?.token]);
 
-  // Fire: the incoming diagram has mounted, so both layers can be measured.
+  // Every new SVG: tell the camera its size — and, if a navigation is armed,
+  // fire the dive now that both layers exist.
   useLayoutEffect(() => {
+    const c = cam.current, live = liveRef.current, g = ghostRef.current;
+    if (!c || !svg || !live || !g) return;
+    const size = sizeOf(svg);
     const a = armed.current;
-    const live = liveRef.current;
-    const host = scroller.current;
-    if (!a || !svg || svg === a.svg || !live || !host || !ghostRef.current)
+    if (!a || svg === a.svg) {
+      c.setContentSize(size.w, size.h); // refits only if the reader had not moved it
+      if (pendingFit.current && !a) { pendingFit.current = false; c.fit(); }
       return;
+    }
     armed.current = null;
+    pendingFit.current = false;
     cancel();
 
-    const view: Box = {
-      x: host.scrollLeft,
-      y: host.scrollTop,
-      w: host.clientWidth,
-      h: host.clientHeight,
-    };
-    const ghostBox = { ...(ghost?.box ?? view) };
-    const liveBox = boxOf(live, host);
+    const find = (root: Element) =>
+      a.intent.path ? root.querySelector(`[data-path="${CSS.escape(a.intent.path)}"]`) : null;
 
-    // The anchor: the clicked card, already measured. Otherwise find it — going
-    // down, it is in the diagram we are leaving; coming back up, it is the card
-    // we are landing on, which only exists in the diagram that just mounted.
-    let anchor = a.intent.rect;
-    if (!anchor && a.intent.path) {
-      const from = a.intent.dir === "in" ? ghostRef.current : live;
-      const el = from.querySelector(
-        `[data-path="${CSS.escape(a.intent.path)}"]`,
-      );
-      if (el) anchor = boxOf(el, host);
-    }
+    // Where the old picture is on screen *now* — the reader may have kept
+    // panning while the next view compiled — and the clicked card with it.
+    // The ghost still overlays the old content exactly, so a card found in it
+    // by path measures the same as the one that was clicked.
+    const oldRect = c.toScreen({ x: 0, y: 0, w: a.size.w, h: a.size.h });
+    const inCard = a.intent.dir === "in" ? (a.intent.rect ?? (() => {
+      const el = find(g);
+      return el ? c.toLocal(c.screenBox(el)) : undefined;
+    })()) : undefined;
+    const oldAnchor = inCard ? c.toScreen(inCard) : undefined;
 
-    // All of the geometry lives in core's view/dive.ts — no DOM, so it is
+    // The camera is set for the NEW picture, synchronously, and then does not
+    // move for the whole dive.
+    c.setContentSize(size.w, size.h);
+    c.fit();
+
+    const ghostBox = c.toLocal(oldRect);
+    g.style.cssText =
+      `left:${ghostBox.x}px;top:${ghostBox.y}px;width:${ghostBox.w}px;height:${ghostBox.h}px`;
+    const liveBox: Box = { x: 0, y: 0, w: size.w, h: size.h };
+    const outCard = a.intent.dir === "out" ? find(live) : null;
+    let anchor = oldAnchor ? c.toLocal(oldAnchor) : outCard ? c.toLocal(c.screenBox(outCard)) : undefined;
+    // From deep zoom the old picture is already several screens wide, and the
+    // dive would scale it up to 3.2x more with a filter on every card. Past
+    // three viewports, cut instead — what a lateral hop gets.
+    const port = c.viewportBox();
+    if (oldRect.w > port.w * 3 || oldRect.h > port.h * 3) anchor = undefined;
+
+    // All of the geometry lives in core's view/dive.ts — no DOM, so
     // scripts/hero-gif.mts re-derives the README animation from the same
     // constants rather than its own copy. A missing anchor means the two views
     // sit at the same altitude: a change of lens, not of depth, so it cuts.
     const { ms, ease, gOrigin, lOrigin, gEnd, lStart } = diveTransforms({
-      view,
-      ghostBox,
-      liveBox,
-      anchor,
-      dir: a.intent.dir,
+      view: c.toLocal(port), ghostBox, liveBox, anchor, dir: a.intent.dir,
     });
 
-    const g = ghostRef.current;
     live.style.willChange = "transform, opacity";
     g.style.transition = "none";
     g.style.transformOrigin = gOrigin;
@@ -218,12 +290,35 @@ export function Stage({
 
   useEffect(() => cancel, [cancel]);
 
+  // Keys, wherever the focus is — except in anything that types. Hovering the
+  // canvas and pressing + should just work; needing to click it first would
+  // cost a backdrop click, which climbs a view.
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      const c = cam.current;
+      if (!c || e.metaKey || e.ctrlKey || e.altKey || typing(e.target)) return;
+      if (e.shiftKey && e.key.startsWith("Arrow")) {
+        e.preventDefault();
+        return c.panBy(
+          e.key === "ArrowLeft" ? KEY_PAN : e.key === "ArrowRight" ? -KEY_PAN : 0,
+          e.key === "ArrowUp" ? KEY_PAN : e.key === "ArrowDown" ? -KEY_PAN : 0,
+        );
+      }
+      if (e.key === "+" || e.key === "=") { e.preventDefault(); c.zoomBy(ZOOM_STEP); }
+      else if (e.key === "-" || e.key === "_") { e.preventDefault(); c.zoomBy(1 / ZOOM_STEP); }
+      else if (e.key === "0") { e.preventDefault(); c.fit(true); }
+      else if (e.key === "1") { e.preventDefault(); c.setScale(1); }
+    };
+    addEventListener("keydown", onKey);
+    return () => removeEventListener("keydown", onKey);
+  }, []);
+
   const click = useCallback(
     (e: React.MouseEvent) => {
       const el = (e.target as Element).closest?.("[data-path]");
       const path = el?.getAttribute("data-path");
-      if (path && scroller.current)
-        return onPick(path, boxOf(el!, scroller.current));
+      const c = cam.current;
+      if (path && c) return onPick(path, c.toLocal(c.screenBox(el!)));
       // Clicking a diagram element that leads nowhere does nothing — only true
       // backdrop climbs back out.
       if (!path) onBlank?.();
@@ -233,75 +328,39 @@ export function Stage({
 
   return (
     // Two layers, on purpose: the outer box is the positioning context for the
-    // overlay pills (`children`) and never scrolls; the inner section is the
-    // scroller. With one element doing both jobs, `absolute` overlays are laid
-    // out against the scrolled content, so a diagram taller than the viewport
-    // carried the altitude hint and zoom controls off the bottom with it.
+    // overlay pills (`children`), which must not move with the picture; the
+    // inner section is the viewport the camera looks through.
     <div className={`relative min-w-0 flex-1 ${className ?? ""}`}>
       <section
-        ref={scroller}
-        className={`absolute inset-0 bg-[var(--canvas)] ${
-          fill
-            ? "overflow-hidden"
-            : "overflow-auto [background-image:radial-gradient(var(--dot)_1px,transparent_1px)] [background-size:22px_22px]"
+        ref={viewport}
+        onClick={click}
+        className={`absolute inset-0 cursor-grab select-none overflow-hidden bg-[var(--canvas)] ${
+          fill ? "" : "[background-image:radial-gradient(var(--dot)_1px,transparent_1px)] [background-size:22px_22px]"
         }`}
       >
-        {ghost && (
+        {/* No `style` prop on the camera or on either layer: they are written
+            imperatively, and a prop would be re-applied over a gesture or a
+            dive on the next render. */}
+        <div ref={cameraRef} className="absolute left-0 top-0">
           <div
             ref={ghostRef}
             aria-hidden
-            className="pointer-events-none absolute z-[1] will-change-transform"
-            style={{
-              left: ghost.box.x,
-              top: ghost.box.y,
-              width: ghost.box.w,
-              height: ghost.box.h,
-            }}
-          >
-            <div
-              className={ghost.cls}
-              style={
-                ghost.scale === 1
-                  ? undefined
-                  : {
-                      transform: `scale(${ghost.scale})`,
-                      transformOrigin: "top left",
-                    }
-              }
-              dangerouslySetInnerHTML={{ __html: isolateIds(ghost.svg) }}
-            />
-          </div>
-        )}
-        <div
-          className={`flex items-center justify-center ${fill ? "h-full p-[4vmin]" : "min-h-full p-10"} ${
-            onBlank ? "cursor-zoom-out" : ""
-          }`}
-          onClick={click}
-        >
+            className="pointer-events-none absolute z-[1] [&>svg]:block [&>svg]:h-full [&>svg]:w-full"
+          />
           <div
-            className={fill ? "h-full w-full" : ""}
-            style={
-              fill || fit
-                ? undefined
-                : { transform: `scale(${zoom})`, transformOrigin: "center" }
-            }
-          >
-            {svg ? (
-              <div
-                ref={liveRef}
-                className={`${stale ? "opacity-60" : ""} ${artCls}`}
-                dangerouslySetInnerHTML={{ __html: svg }}
-              />
-            ) : (
-              <p className="text-[13px] text-[var(--muted)]">Rendering…</p>
-            )}
-          </div>
+            ref={liveRef}
+            className={`[&>svg]:block ${stale ? "opacity-60" : ""}`}
+            dangerouslySetInnerHTML={{ __html: svg ?? "" }}
+          />
         </div>
+        {!svg && (
+          <p className="absolute inset-0 grid place-items-center text-[13px] text-[var(--muted)]">Rendering…</p>
+        )}
       </section>
       {children}
     </div>
   );
-}
+});
 
 /** System preference wins over the picker — motion sickness is not a setting we
  *  get to override. */

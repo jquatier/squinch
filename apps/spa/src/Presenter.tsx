@@ -30,7 +30,7 @@ export interface PresenterProps {
 }
 
 const HINT =
-  "→ ← step · click a card to zoom in, the backdrop to come out · T theme · F fullscreen · Esc exit";
+  "→ ← step · click a card to zoom in, the backdrop to come out · drag or scroll to pan, pinch or + − to zoom, 0 to fit · T theme · F fullscreen · Esc exit";
 
 export function Presenter({
   svg, views, activeView, crumbs, upView, flow, flowStep, onFlowStep,
@@ -74,6 +74,11 @@ export function Presenter({
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       const k = e.key;
+      // A held modifier belongs to the browser (⌘− zooms the page, ⌘← goes
+      // back) — this handler used to step the deck *and* swallow it. And a
+      // shifted arrow is the stage's: it pans the camera.
+      if (e.metaKey || e.ctrlKey || e.altKey) return;
+      if (e.shiftKey && k.startsWith("Arrow")) return;
       if (k === "Escape") return onExit();
       if (k === "ArrowRight" || k === "PageDown" || k === " " || k === "Enter") { e.preventDefault(); return step(1); }
       if (k === "ArrowLeft" || k === "PageUp") { e.preventDefault(); return step(-1); }
@@ -116,15 +121,13 @@ export function Presenter({
   return (
     <div
       className={`fixed inset-0 z-50 flex flex-col bg-[var(--canvas)] text-[var(--fg)] ${
-        idle ? "cursor-none" : ""
+        idle ? "cursor-none [&_*]:!cursor-none" : ""
       }`}
     >
       <Stage
         svg={svg}
         animate={animate}
         intent={intent}
-        fit
-        zoom={1}
         fill
         onPick={onPick}
         onBlank={upView ? () => onNavigate(upView) : undefined}

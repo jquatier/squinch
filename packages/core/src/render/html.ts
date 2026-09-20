@@ -257,13 +257,27 @@ function document(a: {
   );
   // No breadcrumb: the view tabs in the footer name where you are and where
   // you can go, so the header keeps only the document-level controls.
+  // The zoom controls are text glyphs, not icons — every <svg> in this file is
+  // a diagram body or the sprite, and the tests count them — and they are
+  // hidden until the runtime says the camera exists: a reader without script
+  // gets a static diagram, not three dead buttons.
   L.push('<header id="sq-bar"><span id="sq-step"></span>' +
+    '<span id="sq-zoom">' +
+    '<button id="sq-zout" type="button" aria-label="Zoom out" title="Zoom out (-)">\u2212</button>' +
+    '<button id="sq-fit" type="button" aria-label="Fit to window" title="Fit to window (0)">Fit</button>' +
+    '<button id="sq-zin" type="button" aria-label="Zoom in" title="Zoom in (+, or Ctrl/\u2318+scroll)">+</button>' +
+    '</span>' +
     (a.palette.length > 1 ? '<button id="sq-theme" type="button" title="Change palette (t)">◐</button>' : "") +
     (a.views.length > 1 ? '<button id="sq-present" type="button" title="Present (p)">Present</button>' : "") +
     "</header>");
-  L.push('<main id="sq-stage"><div id="sq-ghost" aria-hidden="true"></div><div id="sq-live">');
+  // #sq-cam is the camera: the one element pan and zoom transform, wrapping
+  // BOTH dive layers so the dive can go on owning #sq-live's inline style. It
+  // is `display:contents` until the runtime boots, which makes it not exist for
+  // a reader without script. #sq-live stays attribute-free and wraps the entry
+  // SVG directly — the no-script test reads it with a regex.
+  L.push('<main id="sq-stage"><div id="sq-cam"><div id="sq-ghost" aria-hidden="true"></div><div id="sq-live">');
   L.push(a.entryBody);
-  L.push("</div></main>");
+  L.push("</div></div></main>");
   if (a.views.length > 1) L.push('<footer id="sq-foot"><nav id="sq-tabs" aria-label="Views"></nav></footer>');
   for (const [key, svg] of a.bodies) {
     if (key === `${a.entry}|${a.palette[0].name}`) continue; // already inline
@@ -298,6 +312,23 @@ const CHROME_CSS =
   // rule is what holds between flights.
   "#sq-ghost{position:absolute;left:0;top:0;pointer-events:none}" +
   "#sq-live svg,#sq-ghost svg{max-width:100%;height:auto;display:block}" +
+  // Without script the camera wrapper is not there and the layout above is the
+  // whole story. The runtime puts `sq-pz` on <html> once the camera is attached,
+  // and only then does the stage stop scrolling and start being grabbed: the
+  // SVG takes its natural size inside #sq-cam, whose transform is the camera
+  // (docs/notes/pan-zoom.md). Neither layer may have padding or a border — the
+  // dive's transform origins are px in each layer's own border box.
+  "#sq-cam{display:contents}#sq-zoom{display:none}" +
+  ".sq-pz #sq-stage{display:block;overflow:hidden;cursor:grab;user-select:none;-webkit-user-select:none}" +
+  ".sq-pz #sq-cam{display:block;position:absolute;left:0;top:0;transform-origin:0 0}" +
+  ".sq-pz #sq-live svg{max-width:none}" +
+  ".sq-pz #sq-ghost svg{width:100%;height:100%;max-width:none}" +
+  ".sq-pz #sq-stage[data-cam=drag],.sq-pz #sq-stage[data-cam=drag] *{cursor:grabbing!important}" +
+  ".sq-pz #sq-zoom{display:flex;gap:2px;flex:none}" +
+  "#sq-zoom button{font:inherit;background:var(--sq-surface);color:var(--sq-muted);cursor:pointer;" +
+  "border:1px solid var(--sq-border);border-radius:6px;padding:2px 8px}" +
+  "#sq-zoom button:hover{color:var(--sq-ink)}" +
+  "#sq-fit{min-width:6ch;font-variant-numeric:tabular-nums}" +
   // a card that leads somewhere says so — and only one that does. The class is
   // applied by the runtime, which is the only thing that knows whether a path
   // resolves to a view; styling every card invited a click that did nothing.
@@ -322,5 +353,5 @@ const CHROME_CSS =
   "body.presenting #sq-bar{top:0}body.presenting #sq-foot{bottom:0}" +
   "body.presenting #sq-stage{padding:0}" +
   "body.presenting.idle #sq-bar,body.presenting.idle #sq-foot{opacity:0;pointer-events:none}" +
-  "body.presenting.idle{cursor:none}" +
+  "body.presenting.idle,body.presenting.idle #sq-stage{cursor:none}" +
   "@media (prefers-reduced-motion:reduce){#sq-live,#sq-ghost{transition:none!important}}";

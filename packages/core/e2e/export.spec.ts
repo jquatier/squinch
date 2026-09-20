@@ -148,9 +148,12 @@ test("a card with nowhere to go does not pretend otherwise", async ({ page }) =>
 test("clicking the canvas climbs back out", async ({ page }) => {
   await open(page, { view: "api" });
   await expect(page.locator("#sq-tabs .on")).toHaveText("api");
+  // The margin around the artwork, not the artwork: the click listener used to
+  // sit on #sq-live, so this corner did nothing — and this test passed anyway,
+  // because it asserted `[data-path="web"]`, which view `api` already draws as
+  // a context card. The active tab is the thing that only changes on a climb.
   await page.locator("#sq-stage").click({ position: { x: 5, y: 5 } });
-  await page.waitForTimeout(600);
-  await expect(page.locator('#sq-live [data-path="web"]')).toHaveCount(1);
+  await expect(page.locator("#sq-tabs .on")).toHaveText("landscape");
 });
 
 test("presentation mode steps the flow, then the deck", async ({ page }) => {
@@ -207,5 +210,204 @@ test("the entry view renders with JavaScript disabled", async ({ browser }) => {
   await open(page, {}, "nojs.html");
   await expect(page.locator("#sq-live svg")).toHaveCount(1);
   await expect(card(page, "api")).toHaveCount(1);
+  await ctx.close();
+});
+
+// ── the camera: pan and zoom (docs/notes/pan-zoom.md) ────────────────────────
+//
+// What can be automated is here; what cannot stays in the note's hand-test
+// list — Playwright has no multi-touch, and Safari's `gesture*` events, iOS
+// touch, inertia and at-rest sharpness all need a person and a trackpad.
+
+type Cam = { x: number; y: number; k: number };
+const camOf = (page: Page) =>
+  page.evaluate((): Cam => {
+    const t = (document.querySelector("#sq-cam") as HTMLElement).style.transform;
+    const m = /translate\(([-\d.e]+)px, ([-\d.e]+)px\) scale\(([-\d.e]+)\)/.exec(t)!;
+    return { x: +m[1], y: +m[2], k: +m[3] };
+  });
+const settled = (page: Page) =>
+  page.waitForFunction(
+    () => !document.querySelector("#sq-live")!.hasAttribute("style") &&
+      !document.querySelector("#sq-ghost")!.firstChild,
+    null, { timeout: 5000 },
+  );
+/** A synthetic wheel plus two frames. `mouse.wheel` with a held modifier is not
+ *  something both engines agree on; the event itself is. */
+const wheel = (page: Page, at: { x: number; y: number }, deltaY: number, times: number, ctrlKey: boolean) =>
+  page.evaluate(({ at, deltaY, times, ctrlKey }) => {
+    const stage = document.querySelector("#sq-stage")!;
+    for (let i = 0; i < times; i++)
+      stage.dispatchEvent(new WheelEvent("wheel", {
+        clientX: at.x, clientY: at.y, deltaY, ctrlKey, bubbles: true, cancelable: true,
+      }));
+    return new Promise<void>((r) => requestAnimationFrame(() => requestAnimationFrame(() => r())));
+  }, { at, deltaY, times, ctrlKey });
+const centreOf = async (page: Page, path: string) => {
+  const b = (await card(page, path).boundingBox())!;
+  return { x: b.x + b.width / 2, y: b.y + b.height / 2 };
+};
+
+test("a drag that starts on a card pans, and does not dive", async ({ page }) => {
+  // The test that proves the click suppressor. Once a press has become a drag
+  // the pointer is captured, and the click that follows lands on the stage —
+  // which is exactly where the climb handler lives. WebKit is the engine that
+  // matters here, and this file runs in it.
+  await open(page, {}, "drag.html");
+  const before = await camOf(page);
+  const c = await centreOf(page, "api");
+  await page.mouse.move(c.x, c.y);
+  await page.mouse.down();
+  await page.mouse.move(c.x + 30, c.y + 10, { steps: 4 });
+  await page.mouse.move(c.x + 140, c.y - 60, { steps: 6 });
+  await page.mouse.up();
+  await page.waitForTimeout(250);
+  const after = await camOf(page);
+  expect(after.x - before.x).toBeCloseTo(140, 0); // the grabbed point stays under the pointer
+  expect(after.y - before.y).toBeCloseTo(-60, 0);
+  await expect(page.locator("#sq-tabs .on")).toHaveText("landscape");
+  await expect(page.locator("#sq-stage")).toHaveAttribute("data-cam", "idle");
+});
+
+test("a sloppy click is still a click", async ({ page }) => {
+  await open(page, {}, "sloppy.html");
+  const c = await centreOf(page, "api");
+  await page.mouse.move(c.x, c.y);
+  await page.mouse.down();
+  await page.mouse.move(c.x + 2, c.y + 1); // under the 4px threshold
+  await page.mouse.up();
+  await expect(page.locator("#sq-tabs .on")).toHaveText("api");
+});
+
+test("ctrl+wheel zooms about the cursor; a plain wheel over a diagram that fits does nothing", async ({ page }) => {
+  await open(page, {}, "wheel.html");
+  const fit = await camOf(page);
+  const at = await centreOf(page, "web");
+
+  await wheel(page, at, 240, 3, false);
+  expect(await camOf(page)).toEqual(fit); // nothing hidden to scroll to
+
+  // away from the clamp, the content under the cursor must not move
+  const under = (p: { x: number; y: number }) => page.evaluate((p) => {
+    const l = document.querySelector("#sq-live")!.getBoundingClientRect();
+    return { fx: (p.x - l.left) / l.width, fy: (p.y - l.top) / l.height };
+  }, p);
+  const f0 = await under(at);
+  await wheel(page, at, -20, 4, true);
+  const f1 = await under(at);
+  const zoomed = await camOf(page);
+  expect(zoomed.k).toBeGreaterThan(fit.k * 1.5);
+  const l = (await page.locator("#sq-live").boundingBox())!;
+  expect(Math.abs(f1.fx - f0.fx) * l.width).toBeLessThan(1);
+  expect(Math.abs(f1.fy - f0.fy) * l.height).toBeLessThan(1);
+  await expect(page.locator("#sq-fit")).toHaveText(`${Math.round(zoomed.k * 100)}%`);
+
+  // Into the cap and past it. Every wheel event used to cancel the pending
+  // paint before computing its move; once zoom hit the cap the next event had
+  // nothing to change, scheduled nothing, and the screen stayed a frame behind
+  // the camera until something else moved it.
+  await wheel(page, at, -24, 12, true);
+  expect((await camOf(page)).k).toBe(4);
+  await expect(page.locator("#sq-fit")).toHaveText("400%");
+});
+
+test("keys zoom and pan, and leave the deck alone", async ({ page }) => {
+  await open(page, {}, "keys.html");
+  const fit = await camOf(page);
+  await page.keyboard.press("+");
+  await page.waitForTimeout(260);
+  const one = await camOf(page);
+  expect(one.k / fit.k).toBeCloseTo(1.25, 2);
+  await page.keyboard.press("Shift+ArrowRight"); // used to step the deck: the switch reads e.key
+  await page.waitForTimeout(100);
+  expect((await camOf(page)).x - one.x).toBeCloseTo(-80, 0);
+  await expect(page.locator("#sq-tabs .on")).toHaveText("landscape");
+  await page.keyboard.press("0");
+  await page.waitForTimeout(300);
+  const back = await camOf(page);
+  expect(back.k).toBeCloseTo(fit.k, 4);
+  expect(back.x).toBeCloseTo(fit.x, 0);
+  await page.keyboard.press("ArrowRight"); // and a plain arrow still steps
+  await expect(page.locator("#sq-tabs .on")).toHaveText("web");
+});
+
+test("a focused button answers Enter — it used to step the deck instead", async ({ page }) => {
+  // The window key handler swallowed Space and Enter, so every button in the
+  // file was dead to the keyboard. Found while adding three more of them.
+  await open(page, {}, "buttons.html");
+  const fit = await camOf(page);
+  await page.focus("#sq-zin");
+  await page.keyboard.press("Enter");
+  await page.waitForTimeout(260);
+  expect((await camOf(page)).k).toBeGreaterThan(fit.k * 1.2);
+  await expect(page.locator("#sq-tabs .on")).toHaveText("landscape");
+  await page.locator("#sq-fit").click();
+  await page.waitForTimeout(300);
+  expect((await camOf(page)).k).toBeCloseTo(fit.k, 4);
+});
+
+test("a dive from a zoomed, panned view starts from what was on screen and arrives fitted", async ({ page }) => {
+  await open(page, {}, "zoomdive.html");
+  const at = await centreOf(page, "api");
+  await wheel(page, { x: at.x + 60, y: at.y - 40 }, -20, 2, true); // ~1.5x, off-centre
+  const first = await page.evaluate(() => {
+    const live = document.querySelector("#sq-live")!, ghost = document.querySelector("#sq-ghost")!;
+    const o = live.getBoundingClientRect();
+    live.querySelector('[data-path="api"]')!.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+    // same task as the click: the dive is set up and nothing has painted yet
+    const g = ghost.getBoundingClientRect();
+    return { old: [o.left, o.top, o.width, o.height], ghost: [g.left, g.top, g.width, g.height] };
+  });
+  first.old.forEach((v, i) => expect(Math.abs(v - first.ghost[i])).toBeLessThan(1));
+
+  await settled(page);
+  await expect(page.locator("#sq-tabs .on")).toHaveText("api");
+  const arrived = await camOf(page);
+  expect(arrived.k).toBeLessThanOrEqual(1);
+  const inside = await page.evaluate(() => {
+    const l = document.querySelector("#sq-live")!.getBoundingClientRect();
+    const s = document.querySelector("#sq-stage")!.getBoundingClientRect();
+    return l.left >= s.left && l.right <= s.right + 1 && l.top >= s.top;
+  });
+  expect(inside, "the new view is not framed").toBe(true);
+});
+
+test("a palette switch keeps the camera where the reader put it", async ({ page }) => {
+  await open(page, {}, "theme.html");
+  await wheel(page, await centreOf(page, "web"), -20, 3, true);
+  const before = await camOf(page);
+  await page.keyboard.press("t");
+  await page.waitForTimeout(100);
+  expect(await camOf(page)).toEqual(before);
+});
+
+test("a deep link opens fitted", async ({ page }) => {
+  await open(page, {}, "deeplink.html");
+  await page.goto(`${page.url()}#api`);
+  await settled(page);
+  await expect(page.locator("#sq-tabs .on")).toHaveText("api");
+  expect((await camOf(page)).k).toBeLessThanOrEqual(1);
+});
+
+test("reduced motion still arrives fitted", async ({ page }) => {
+  await page.emulateMedia({ reducedMotion: "reduce" });
+  await open(page, {}, "reduced-fit.html");
+  await wheel(page, await centreOf(page, "api"), -24, 6, true);
+  expect((await camOf(page)).k).toBeGreaterThan(2);
+  await card(page, "api").click({ force: true });
+  await expect(page.locator("#sq-tabs .on")).toHaveText("api");
+  expect((await camOf(page)).k).toBeLessThanOrEqual(1); // the early return refits too
+});
+
+test("without script there are no dead zoom buttons, and the layout is the static one", async ({ browser }) => {
+  const ctx = await browser.newContext({ javaScriptEnabled: false, viewport: { width: 400, height: 700 } });
+  const page = await ctx.newPage();
+  await open(page, {}, "nojs-zoom.html");
+  await expect(page.locator("#sq-zin")).toBeHidden();
+  await expect(page.locator("#sq-fit")).toBeHidden();
+  // #sq-cam is display:contents until the runtime boots, so a narrow reader
+  // still gets the width-fitted diagram they always had
+  const w = await page.locator("#sq-live svg").evaluate((s) => s.getBoundingClientRect().width);
+  expect(w).toBeLessThanOrEqual(400);
   await ctx.close();
 });

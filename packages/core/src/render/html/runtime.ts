@@ -13,6 +13,8 @@
 // than a comment nobody can check.
 import { diveTransforms, type Box } from "../../view/dive.js";
 import { hop, upView, viewForPath, type NavView } from "../../view/navigate.js";
+import { KEY_PAN, ZOOM_STEP, type CamPad } from "../../view/camera.js";
+import { attachCamera } from "../../view/camera-dom.js";
 
 interface Payload {
   views: NavView[];
@@ -23,6 +25,11 @@ interface Payload {
 }
 
 const $ = <T extends Element>(sel: string) => document.querySelector(sel) as T;
+
+/** Air around a fitted diagram. Presenting floats the bar and the tabs over
+ *  the canvas, so it keeps the picture clear of both. */
+const PAD: CamPad = 16;
+const PRESENT_PAD: CamPad = { top: 44, right: 24, bottom: 52, left: 24 };
 
 function boot() {
   const data: Payload = JSON.parse($("#sq-data").textContent || "{}");
@@ -62,10 +69,27 @@ function boot() {
     return tpl ? tpl.content.cloneNode(true) : null;
   };
   const scopeOf = (v: string) => data.views.find((x) => x.name === v)?.scope;
-  const boxOf = (el: Element): Box => {
-    const r = el.getBoundingClientRect(), s = stage.getBoundingClientRect();
-    return { x: r.left - s.left, y: r.top - s.top, w: r.width, h: r.height };
+
+  // The camera: pan and zoom, on the wrapper that holds both dive layers. It is
+  // attached before any click listener below, because its capture-phase click
+  // suppressor (the click that ends a drag is not a click) has to run first on
+  // the element they share. `sq-pz` is what tells the stylesheet there is a
+  // camera at all — without this script the stage keeps its static layout.
+  const fitBtn = document.querySelector<HTMLButtonElement>("#sq-fit");
+  const cam = attachCamera(stage, $<HTMLElement>("#sq-cam"), {
+    pad: PAD,
+    onChange: (c) => { if (fitBtn) fitBtn.textContent = `${Math.round(c.k * 100)}%`; },
+  });
+  document.documentElement.classList.add("sq-pz");
+  /** The renderer always writes unitless px `width`/`height` on the root. */
+  const sizeOf = () => {
+    const s = live.querySelector("svg");
+    return { w: Number(s?.getAttribute("width")) || 0, h: Number(s?.getAttribute("height")) || 0 };
   };
+  /** A new body is in: tell the camera its size. It refits if the reader had
+   *  not moved it, and otherwise leaves the picture where they put it — which
+   *  is what a palette switch or a flow step (same view, same size) wants. */
+  const framed = () => { const s = sizeOf(); cam.setContentSize(s.w, s.h); return s; };
 
   function paintChrome() {
     document.title = data.views.find((v) => v.name === view)?.title ?? document.title;
@@ -104,12 +128,17 @@ function boot() {
     if (counter) counter.textContent = presenting && hops ? `${step || 1} / ${hops}` : "";
   }
 
+  /** Finish the dive in flight, if there is one. Everything `go` measures has
+   *  to be at rest, and a second click mid-dive used to measure a moving layer. */
+  let settleNow = () => {};
+
   /** Swap the body, then animate the two layers about the card they share.
    *  The playground splits this in two ("arm, then fire") because compiling the
    *  next view is async; here every body is already in the document, so the
    *  swap is synchronous and the whole dance is one function. */
   function go(target: string, enterAtEnd = false) {
     if (!target || target === view) return;
+    settleNow();
     // A slide opens on its first hop — unless you reversed into it, in which
     // case you arrive where you left and can keep unwinding.
     const want = presenting && data.flows[target] ? (enterAtEnd ? data.flows[target] : 1) : 0;
@@ -117,34 +146,47 @@ function boot() {
     if (!next) return;
     step = want;
     const { dir, anchor: anchorPath } = hop(data.views, view, target);
-    const ghostBox = boxOf(live);
     const prev = live.firstElementChild;
+    const find = (root: Element) =>
+      anchorPath ? root.querySelector(`[data-path="${CSS.escape(anchorPath)}"]`) : null;
 
-    if (reduced() || !prev) {
-      live.replaceChildren(next);
-      view = target;
-      paintChrome();
-      return;
-    }
+    // What the reader is looking at, in screen space, before anything moves —
+    // however they had panned or zoomed it. Going down, the shared card is in
+    // this layer; coming up it is in the one about to arrive.
+    const oldRect = cam.screenBox(live);
+    const oldCard = dir === "in" ? find(live) : null;
+    const oldAnchor = oldCard ? cam.screenBox(oldCard) : undefined;
 
-    ghost.replaceChildren(prev.cloneNode(true));
+    // Every view arrives fitted. The camera is set for the NEW picture now,
+    // synchronously, and then does not move for the whole dive: the dive is
+    // computed in the camera's local space, where `diveTransforms` neither
+    // knows nor cares that there is a camera (docs/notes/pan-zoom.md).
+    live.replaceChildren(next);
+    view = target;
+    const size = framed();
+    cam.fit();
+    paintChrome();
+    if (reduced() || !prev) return;
+
+    cam.setBusy(true);
+    // The old picture goes into the ghost at the box that puts it exactly where
+    // it was on screen; its svg fills that box, so the first frame of the dive
+    // is the last thing the reader saw. Moved, not cloned — the defs are
+    // hoisted, so nothing in it is referenced by id from the live layer.
+    const ghostBox = cam.toLocal(oldRect);
+    ghost.replaceChildren(prev);
     ghost.style.cssText =
       `position:absolute;left:${ghostBox.x}px;top:${ghostBox.y}px;` +
       `width:${ghostBox.w}px;height:${ghostBox.h}px;z-index:1;pointer-events:none`;
-    live.replaceChildren(next);
-    view = target;
-    paintChrome();
-
-    const liveBox = boxOf(live);
-    // Going down, the shared card is in the layer we just left; coming up it is
-    // in the one that just arrived. Both layers are on screen either way, which
-    // is why one lookup covers both.
-    const from = dir === "in" ? ghost : live;
-    const el = anchorPath ? from.querySelector(`[data-path="${CSS.escape(anchorPath)}"]`) : null;
-    const t = diveTransforms({
-      view: { x: 0, y: 0, w: stage.clientWidth, h: stage.clientHeight },
-      ghostBox, liveBox, anchor: el ? boxOf(el) : undefined, dir,
-    });
+    const liveBox: Box = { x: 0, y: 0, w: size.w, h: size.h };
+    const newCard = dir === "in" ? null : find(live);
+    let anchor = oldAnchor ? cam.toLocal(oldAnchor) : newCard ? cam.toLocal(cam.screenBox(newCard)) : undefined;
+    // From deep zoom the old picture is already several screens wide, and the
+    // dive would scale it up to 3.2x more with a filter on every card. Past
+    // three viewports, cut instead — the anchorless crossfade lateral hops get.
+    const port = cam.viewportBox();
+    if (oldRect.w > port.w * 3 || oldRect.h > port.h * 3) anchor = undefined;
+    const t = diveTransforms({ view: cam.toLocal(port), ghostBox, liveBox, anchor, dir });
 
     const g = ghost.style, l = live.style;
     g.transition = "none"; g.transformOrigin = t.gOrigin; g.transform = "none"; g.opacity = "1";
@@ -172,17 +214,24 @@ function boot() {
     const settle = () => {
       if (settled) return;
       settled = true;
+      settleNow = () => {};
       cancelAnimationFrame(raf);
+      clearTimeout(net);
       ghost.replaceChildren();
       ghost.removeAttribute("style");
       live.removeAttribute("style");
+      cam.setBusy(false);
+      // the window may have been resized (or gone fullscreen) mid-dive, while
+      // the camera was holding still for it
+      if (cam.atFit()) cam.fit();
     };
     const watch = () => {
       if (getComputedStyle(live).transform === "none") settle();
       else raf = requestAnimationFrame(watch);
     };
+    settleNow = settle;
     raf = requestAnimationFrame(watch);
-    setTimeout(settle, t.ms + 1000);
+    const net = setTimeout(settle, t.ms + 1000);
   }
 
   function setTheme(name: string) {
@@ -191,6 +240,7 @@ function boot() {
     theme = name;
     document.documentElement.dataset.theme = name;
     live.replaceChildren(body);
+    framed();
   }
 
   /** Walking a flow and walking the deck are one axis: keep stepping hops
@@ -202,7 +252,7 @@ function boot() {
     const next = step + by;
     if (hops && next >= 1 && next <= hops) {
       const body = bodyFor(view, theme, next);
-      if (body) { step = next; live.replaceChildren(body); paintChrome(); }
+      if (body) { step = next; live.replaceChildren(body); framed(); paintChrome(); }
       return;
     }
     const at = data.views.findIndex((v) => v.name === view);
@@ -210,7 +260,9 @@ function boot() {
     if (to) go(to.name, by < 0);
   }
 
-  live.addEventListener("click", (e) => {
+  // On the stage, not the live layer: the margin around the artwork is backdrop
+  // too, and with a camera the artwork can be anywhere inside it.
+  stage.addEventListener("click", (e) => {
     const el = (e.target as Element).closest?.("[data-path]");
     const path = el?.getAttribute("data-path");
     if (path) {
@@ -251,6 +303,12 @@ function boot() {
         if (body) { step = 0; live.replaceChildren(body); }
       }
     }
+    // A slide fills the screen: contain, scaled UP — the one place a diagram is
+    // drawn larger than life. Going fullscreen resizes the stage a moment later,
+    // and a fitted camera refits itself on resize.
+    cam.setFitOptions(on ? { upscale: true, pad: PRESENT_PAD } : { upscale: false, pad: PAD });
+    framed();
+    cam.fit();
     paintChrome();
   }
 
@@ -271,7 +329,25 @@ function boot() {
 
   addEventListener("keydown", (e) => {
     if (e.metaKey || e.ctrlKey || e.altKey) return;
+    // A focused button keeps its own activation keys. This handler used to
+    // swallow Space and Enter and step the deck instead, which made every
+    // button in the file — tabs, palette, Present — dead to the keyboard.
+    const onButton = !!(e.target as Element | null)?.closest?.("button");
+    if (onButton && (e.key === " " || e.key === "Enter")) return;
+    // Shift+Arrow pans. Checked before the switch, which reads `e.key` and so
+    // cannot tell a shifted arrow from a plain one.
+    if (e.shiftKey && e.key.startsWith("Arrow")) {
+      e.preventDefault();
+      const d = KEY_PAN;
+      cam.panBy(e.key === "ArrowLeft" ? d : e.key === "ArrowRight" ? -d : 0,
+                e.key === "ArrowUp" ? d : e.key === "ArrowDown" ? -d : 0);
+      return;
+    }
     switch (e.key) {
+      case "+": case "=": e.preventDefault(); cam.zoomBy(ZOOM_STEP); break;
+      case "-": case "_": e.preventDefault(); cam.zoomBy(1 / ZOOM_STEP); break;
+      case "0": e.preventDefault(); cam.fit(true); break;
+      case "1": e.preventDefault(); cam.setScale(1); break;
       case "ArrowRight": case "PageDown": case " ": case "Enter":
         e.preventDefault(); step_(1); break;
       case "ArrowLeft": case "PageUp":
@@ -302,6 +378,12 @@ function boot() {
   const presentBtn = document.querySelector<HTMLButtonElement>("#sq-present");
   if (presentBtn) presentBtn.onclick = () => present(!presenting);
 
+  const zin = document.querySelector<HTMLButtonElement>("#sq-zin");
+  const zout = document.querySelector<HTMLButtonElement>("#sq-zout");
+  if (zin) zin.onclick = () => cam.zoomBy(ZOOM_STEP);
+  if (zout) zout.onclick = () => cam.zoomBy(1 / ZOOM_STEP);
+  if (fitBtn) fitBtn.onclick = () => cam.fit(true);
+
   // A deep link opens on that view — what makes the file shareable by more than
   // its filename. Kept in sync so the reader's back button and a copied URL
   // both do what they look like they do.
@@ -316,6 +398,8 @@ function boot() {
     const body = bodyFor(view, theme);
     if (body) live.replaceChildren(body);
   }
+  framed();
+  cam.fit();
   paintChrome();
   fromHash();
 }

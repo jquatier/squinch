@@ -206,6 +206,20 @@ describe("the pre-commit hook stays wired and armed", () => {
       expect(hook, `hook no longer guards ${guarded}`).toContain(guarded);
   });
 
+  it("the hook regenerates the export runtime for every directory it is bundled from", () => {
+    // The runtime imports from src/view/ (the dive, the scope arithmetic, the
+    // camera) as well as from its own directory. The trigger covered only the
+    // latter, so an edit to dive.ts committed a stale bundle and CI caught it
+    // late. Derived from the imports, so a third directory cannot be forgotten.
+    const hook = readFileSync(hookPath, "utf8");
+    const runtime = readFileSync(join(pkg, "src", "render", "html", "runtime.ts"), "utf8");
+    const dirs = new Set([...runtime.matchAll(/from "\.\.\/\.\.\/([a-z-]+)\//g)].map((m) => m[1]));
+    expect(dirs.size, "the runtime's imports were not found — has the path shape changed?").toBeGreaterThan(0);
+    for (const d of dirs)
+      expect(hook, `edits under packages/core/src/${d}/ do not regenerate runtime.generated.ts`)
+        .toContain(`^packages/core/src/${d}/`);
+  });
+
   it("husky is a dependency and the prepare script runs it", () => {
     // `prepare` is husky's documented hook and it does fire under pnpm — the
     // earlier note here claiming otherwise was a misdiagnosis. What actually

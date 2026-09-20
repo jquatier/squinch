@@ -54,6 +54,17 @@ Numbers that were tuned by eye, not derived:
   would otherwise resolve against the ghost's `<symbol>`.
 - **`prefers-reduced-motion` cuts straight through.** Not a preference we get to
   override with a setting.
+- **The dive runs in the camera's local space, and every view arrives fitted.**
+  Pan and zoom (2026-09, `pan-zoom.md`) put one transform on a wrapper around
+  both layers. The dive did not change: `diveTransforms` only ever needed its
+  four rectangles in *one* space, so both hosts now hand them over in the
+  camera's. On a navigation the camera is set for the NEW picture, synchronously
+  and before anything animates, and then holds still; the ghost is placed at the
+  box that puts the old picture exactly where it was on screen, so the first
+  frame is the last thing the reader saw however they had panned or zoomed. In
+  the playground what crosses from arm to fire is stored in the old diagram's
+  own px, never on-screen px — compiling is async and the reader can keep
+  panning until the new SVG arrives.
 
 ## Rejected
 

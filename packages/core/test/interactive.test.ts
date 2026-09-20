@@ -215,6 +215,23 @@ describe("interactive HTML export", () => {
     expect(live![1]).toContain('data-path="web"');
   });
 
+  it("ships a camera that does not exist until the script says so", async () => {
+    // Pan and zoom put one wrapper around both dive layers and three buttons in
+    // the bar. Without script none of it may show: the wrapper is
+    // `display:contents` (so the static, width-fitted layout is exactly what it
+    // was before there was a camera) and the buttons are hidden, because a
+    // reader with JS off should see a diagram, not three dead controls. The
+    // runtime flips both by putting `sq-pz` on <html>.
+    const { html } = await exportHTML(files);
+    expect(html).toContain('<main id="sq-stage"><div id="sq-cam"><div id="sq-ghost" aria-hidden="true"></div><div id="sq-live">');
+    expect(html).toContain("#sq-cam{display:contents}#sq-zoom{display:none}");
+    expect(html).toContain(".sq-pz #sq-zoom{display:flex");
+    expect(html).not.toMatch(/<html[^>]*sq-pz/); // only ever added at runtime
+    // glyph-only buttons are named for a screen reader, and carry no handler
+    for (const [id, label] of [["sq-zout", "Zoom out"], ["sq-fit", "Fit to window"], ["sq-zin", "Zoom in"]])
+      expect(html).toContain(`<button id="${id}" type="button" aria-label="${label}"`);
+  });
+
   it("can open on a chosen view, and refuses one that does not exist", async () => {
     const ok = await exportHTML(files, { view: "api" });
     expect(ok.ok).toBe(true);
