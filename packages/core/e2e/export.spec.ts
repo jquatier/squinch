@@ -243,6 +243,21 @@ const wheel = (page: Page, at: { x: number; y: number }, deltaY: number, times: 
       }));
     return new Promise<void>((r) => requestAnimationFrame(() => requestAnimationFrame(() => r())));
   }, { at, deltaY, times, ctrlKey });
+/** The camera has stopped moving: its transform is unchanged for three frames.
+ *  Never a fixed sleep — a 160ms tween is not 160ms on a loaded CI runner, and
+ *  asserting mid-tween is how this file's first CI run on WebKit failed. */
+const atRest = (page: Page) =>
+  page.evaluate(() => new Promise<void>((done) => {
+    const el = document.querySelector("#sq-cam") as HTMLElement;
+    let last = "", still = 0;
+    const tick = () => {
+      const t = el.style.transform;
+      still = t === last ? still + 1 : 0;
+      last = t;
+      if (still >= 3) done(); else requestAnimationFrame(tick);
+    };
+    requestAnimationFrame(tick);
+  }));
 const centreOf = async (page: Page, path: string) => {
   const b = (await card(page, path).boundingBox())!;
   return { x: b.x + b.width / 2, y: b.y + b.height / 2 };
@@ -261,7 +276,7 @@ test("a drag that starts on a card pans, and does not dive", async ({ page }) =>
   await page.mouse.move(c.x + 30, c.y + 10, { steps: 4 });
   await page.mouse.move(c.x + 140, c.y - 60, { steps: 6 });
   await page.mouse.up();
-  await page.waitForTimeout(250);
+  await atRest(page);
   const after = await camOf(page);
   expect(after.x - before.x).toBeCloseTo(140, 0); // the grabbed point stays under the pointer
   expect(after.y - before.y).toBeCloseTo(-60, 0);
@@ -315,15 +330,15 @@ test("keys zoom and pan, and leave the deck alone", async ({ page }) => {
   await open(page, {}, "keys.html");
   const fit = await camOf(page);
   await page.keyboard.press("+");
-  await page.waitForTimeout(260);
+  await atRest(page);
   const one = await camOf(page);
   expect(one.k / fit.k).toBeCloseTo(1.25, 2);
   await page.keyboard.press("Shift+ArrowRight"); // used to step the deck: the switch reads e.key
-  await page.waitForTimeout(100);
+  await atRest(page);
   expect((await camOf(page)).x - one.x).toBeCloseTo(-80, 0);
   await expect(page.locator("#sq-tabs .on")).toHaveText("landscape");
   await page.keyboard.press("0");
-  await page.waitForTimeout(300);
+  await atRest(page);
   const back = await camOf(page);
   expect(back.k).toBeCloseTo(fit.k, 4);
   expect(back.x).toBeCloseTo(fit.x, 0);
@@ -338,11 +353,11 @@ test("a focused button answers Enter — it used to step the deck instead", asyn
   const fit = await camOf(page);
   await page.focus("#sq-zin");
   await page.keyboard.press("Enter");
-  await page.waitForTimeout(260);
+  await atRest(page);
   expect((await camOf(page)).k).toBeGreaterThan(fit.k * 1.2);
   await expect(page.locator("#sq-tabs .on")).toHaveText("landscape");
   await page.locator("#sq-fit").click();
-  await page.waitForTimeout(300);
+  await atRest(page);
   expect((await camOf(page)).k).toBeCloseTo(fit.k, 4);
 });
 
@@ -377,7 +392,7 @@ test("a palette switch keeps the camera where the reader put it", async ({ page 
   await wheel(page, await centreOf(page, "web"), -20, 3, true);
   const before = await camOf(page);
   await page.keyboard.press("t");
-  await page.waitForTimeout(100);
+  await atRest(page);
   expect(await camOf(page)).toEqual(before);
 });
 
