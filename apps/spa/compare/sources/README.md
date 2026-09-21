@@ -5,11 +5,12 @@ its own coding agent on 2026-09-20, from `examples/microservices/shop.squinch`
 read as a specification, under the rules the page states. The pictures in
 `../img/` are these files' renders, resized to 1600px wide and nothing else.
 
-The site build cannot regenerate them — it would need four toolchains — so
+The site build cannot regenerate them — it would need five toolchains — so
 they are committed. To refresh one, re-run its tool and replace the picture.
 
 | Tool | Version | Files | Render |
 |---|---|---|---|
+| Archify | 2.17.0-dev.1 at `29f1ff5` | `archify-landscape.architecture.json`, `archify-full.architecture.json` | `archify deliver architecture <file>.json <file>.html --quality showcase`, then the viewer's own Export → PNG |
 | Mermaid | mermaid-cli 11.17 | `landscape.mmd`, `full.mmd` | `mmdc -i full.mmd -o full.png -t dark -b '#1f2020' --iconPacks @iconify-json/logos`, scaled with `-s` to about 2000px |
 | D2 | 0.9.0 | `shop.d2` (root board and the `full` scenario) | the command in the file's header comment |
 | Structurizr | structurizr 2026.09.19, PlantUML, Graphviz 16.1 | `workspace.dsl` | `render.sh` |

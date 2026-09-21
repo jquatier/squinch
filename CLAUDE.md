@@ -92,8 +92,8 @@ the landing at `/`, `/install/`, `/lookbook/`, `/compare/` and the playground at
 `/playground/`. Only the playground is React; the rest are hand-set static
 documents sharing `src/tokens.css` via `src/site.css`. `/lookbook/` is generated
 from `lookbook/README.md` by `scripts/sync-lookbook.ts`. `/compare/` sets one system beside
-four other tools' renders of it; theirs are committed under `compare/` with their
-sources, because the build cannot run four toolchains. Everything the site
+five other tools' renders of it; theirs are committed under `compare/` with their
+sources, because the build cannot run five toolchains. Everything the site
 serves out of `public/` is build output — pack icons (`scripts/sync-packs.ts`),
 the demo GIFs and the brand marks (`scripts/sync-media.ts`) — gitignored, never
 committed; only `og.png`, `apple-touch-icon.png`, `robots.txt` and `sitemap.xml`

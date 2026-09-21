@@ -4,7 +4,7 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>Compare — squinch</title>
-    <meta name="description" content="One microservices system drawn five ways: Squinch, Mermaid, D2, Structurizr and Python diagrams, each by a coding agent under the same rules. Every render and every source file, unedited." />
+    <meta name="description" content="One microservices system drawn six ways: Squinch, Archify, Mermaid, D2, Structurizr and Python diagrams, each by a coding agent under the same rules. Every render and every source file, unedited." />
     <link rel="canonical" href="https://squinch.cc/compare/" />
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
@@ -12,7 +12,7 @@
     <meta property="og:type" content="website" />
     <meta property="og:site_name" content="Squinch" />
     <meta property="og:title" content="Compare — squinch" />
-    <meta property="og:description" content="One microservices system drawn five ways: Squinch, Mermaid, D2, Structurizr and Python diagrams, each by a coding agent under the same rules. Every render and every source file, unedited." />
+    <meta property="og:description" content="One microservices system drawn six ways: Squinch, Archify, Mermaid, D2, Structurizr and Python diagrams, each by a coding agent under the same rules. Every render and every source file, unedited." />
     <meta property="og:image" content="https://squinch.cc/og.png" />
     <meta property="og:image:width" content="1200" />
     <meta property="og:image:height" content="630" />
@@ -38,10 +38,10 @@
 
     <div class="wrap lb sub-hero">
       <span class="eyebrow">Compare</span>
-      <h1>How Squinch compares.<br /><span class="grad-text">One system, drawn in five tools.</span></h1>
+      <h1>How Squinch compares.<br /><span class="grad-text">One system, drawn in six tools.</span></h1>
       <p>
         A storefront on AWS — four systems, thirteen components, eighteen
-        connections — drawn by a coding agent in each of five tools. No picture
+        connections — drawn by a coding agent in each of six tools. No picture
         is retouched, and every source file is
         <a href="https://github.com/jquatier/squinch/tree/main/apps/spa/compare/sources">in the repo</a>.
       </p>
@@ -54,10 +54,11 @@
         <a href="#glance"><span class="n">02</span>At a glance</a>
         <span class="rail-label" style="padding-top: 14px">The renders</span>
         <a href="#squinch"><span class="n">03</span>Squinch</a>
-        <a href="#mermaid"><span class="n">04</span>Mermaid</a>
-        <a href="#d2"><span class="n">05</span>D2</a>
-        <a href="#structurizr"><span class="n">06</span>Structurizr</a>
-        <a href="#python-diagrams"><span class="n">07</span>Python diagrams</a>
+        <a href="#archify"><span class="n">04</span>Archify</a>
+        <a href="#mermaid"><span class="n">05</span>Mermaid</a>
+        <a href="#d2"><span class="n">06</span>D2</a>
+        <a href="#structurizr"><span class="n">07</span>Structurizr</a>
+        <a href="#python-diagrams"><span class="n">08</span>Python diagrams</a>
       </nav>
 
       <main>
@@ -111,6 +112,15 @@
                   <td>One npm package</td>
                 </tr>
                 <tr>
+                  <th scope="row">Archify</th>
+                  <td>89 lines of JSON, two files</td>
+                  <td><span class="n">No</span> — views refocus, never collapse</td>
+                  <td><span class="p">Grid cells and pixel nudges</span> — the agent is the layout engine</td>
+                  <td><span class="n">None</span> — colour-coded kinds</td>
+                  <td><span class="y">Built in</span></td>
+                  <td>A git clone and Node</td>
+                </tr>
+                <tr>
                   <th scope="row">Mermaid</th>
                   <td>90 lines, two files</td>
                   <td><span class="n">No</span> — two hand-kept files</td>
@@ -155,7 +165,7 @@
           <span class="eyebrow">Showing</span>
           <button type="button" data-set-view="landscape" aria-pressed="true">Landscape</button>
           <button type="button" data-set-view="full" aria-pressed="false">Full detail</button>
-          <span class="cmp-switch-note">switches all five at once</span>
+          <span class="cmp-switch-note">switches all six at once</span>
         </div>
 
         <section class="panel cmp-tool is-us" id="squinch" aria-labelledby="squinch-h">
@@ -198,9 +208,49 @@
           </div>
         </section>
 
-        <section class="panel cmp-tool" id="mermaid" aria-labelledby="mermaid-h">
+        <section class="panel cmp-tool" id="archify" aria-labelledby="archify-h">
           <div class="card-head">
             <span class="n">04</span>
+            <h2 id="archify-h">Archify</h2>
+            <span class="tag">2.17-dev · agent skill, JSON → HTML</span>
+          </div>
+          <figure class="cmp-shot" data-view="landscape" style="--well: #020617">
+            <a href="./img/archify-landscape.webp"><img src="./img/archify-landscape.webp" width="1600" height="878" loading="lazy" alt="Archify, landscape: a clean left-to-right spine into a column of three services, colour-coded by kind, with a legend" /></a>
+            <figcaption>Landscape · <a href="https://github.com/jquatier/squinch/blob/main/apps/spa/compare/sources/archify-landscape.architecture.json">landscape.architecture.json</a>, 27 lines</figcaption>
+          </figure>
+          <figure class="cmp-shot" data-view="full" style="--well: #020617">
+            <a href="./img/archify-full.webp"><img src="./img/archify-full.webp" width="1600" height="1022" loading="lazy" alt="Archify, full detail: systems as dashed regions, orthogonal wires with no crossings, colour-coded boxes in place of AWS icons, one wire running behind the Order Service title" /></a>
+            <figcaption>Full detail · <a href="https://github.com/jquatier/squinch/blob/main/apps/spa/compare/sources/archify-full.architecture.json">full.architecture.json</a>, 62 lines</figcaption>
+          </figure>
+          <div class="cmp-notes">
+            <div>
+              <h3>What it took</h3>
+              <p>
+                The other agent skill here. It has no layout engine: the agent gives every node a grid cell and a size, a validator reports what collides, and labels are nudged in pixels. More than a dozen validate rounds; full detail carries seven pixel overrides.
+              </p>
+            </div>
+            <div>
+              <h3>Holds up</h3>
+              <ul>
+                <li>The validator: nine geometric checks, with exact clearances and suggested fixes.</li>
+                <li>Orthogonal wires, no crossings, and a polished dark theme.</li>
+                <li>One self-contained interactive HTML file, offline, with its own PNG and SVG export.</li>
+              </ul>
+            </div>
+            <div>
+              <h3>Falls short</h3>
+              <ul>
+                <li>No AWS icons: seven generic kinds, told apart by colour. DynamoDB and RDS are the same purple box.</li>
+                <li>Two hand-written files. Its views refocus a picture but cannot collapse a system into a box.</li>
+                <li>“price check” runs behind the Order Service title, and validation passed.</li>
+              </ul>
+            </div>
+          </div>
+        </section>
+
+        <section class="panel cmp-tool" id="mermaid" aria-labelledby="mermaid-h">
+          <div class="card-head">
+            <span class="n">05</span>
             <h2 id="mermaid-h">Mermaid</h2>
             <span class="tag">11.17 · flowchart, dagre</span>
           </div>
@@ -240,7 +290,7 @@
 
         <section class="panel cmp-tool" id="d2" aria-labelledby="d2-h">
           <div class="card-head">
-            <span class="n">05</span>
+            <span class="n">06</span>
             <h2 id="d2-h">D2</h2>
             <span class="tag">0.9 · ELK, then a grid</span>
           </div>
@@ -279,7 +329,7 @@
 
         <section class="panel cmp-tool" id="structurizr" aria-labelledby="structurizr-h">
           <div class="card-head">
-            <span class="n">06</span>
+            <span class="n">07</span>
             <h2 id="structurizr-h">Structurizr</h2>
             <span class="tag">DSL → PlantUML → Graphviz</span>
           </div>
@@ -319,7 +369,7 @@
 
         <section class="panel cmp-tool" id="python-diagrams" aria-labelledby="python-diagrams-h">
           <div class="card-head">
-            <span class="n">07</span>
+            <span class="n">08</span>
             <h2 id="python-diagrams-h">Python diagrams</h2>
             <span class="tag">0.25 · Graphviz dot</span>
           </div>
@@ -335,7 +385,7 @@
             <div>
               <h3>What it took</h3>
               <p>
-                The best-looking of the four, and the most Graphviz knowledge to get there: <code>splines</code>, <code>constraint="false"</code>, and a patched private attribute so larger labels clear their icons.
+                Handsome at a glance, and the most Graphviz knowledge to get there: <code>splines</code>, <code>constraint="false"</code>, and a patched private attribute so larger labels clear their icons.
               </p>
             </div>
             <div>
@@ -364,7 +414,7 @@
     </footer>
 
     <script>
-      // One switch for all five tools: the view lives on <html data-view>, and
+      // One switch for all six tools: the view lives on <html data-view>, and
       // CSS hides the other figure. With script off the attribute is never
       // read, so both pictures show — see `.cmp-switch` in site.css.
       const root = document.documentElement;

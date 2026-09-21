@@ -85,22 +85,22 @@ test("the landing and content pages are always dark", async ({ page }) => {
   }
 });
 
-test("the compare page shows every tool's render, and one switch flips all five", async ({ page }) => {
+test("the compare page shows every tool's render, and one switch flips all six", async ({ page }) => {
   const errors: string[] = [];
   page.on("pageerror", (e) => errors.push(String(e)));
 
   await page.goto("/compare/");
   const shown = page.locator(".cmp-shot:visible img");
-  await expect(shown).toHaveCount(5);
+  await expect(shown).toHaveCount(6);
   // every picture loaded — ours from public/, theirs hashed by the build
   for (const img of await shown.all()) {
     await img.scrollIntoViewIfNeeded();
     await expect.poll(() => img.evaluate((i: HTMLImageElement) => i.naturalWidth)).toBeGreaterThan(0);
   }
-  // it opens on the landscape; the switch takes all five to full detail
-  await expect(page.locator('.cmp-shot[data-view="landscape"]:visible')).toHaveCount(5);
+  // it opens on the landscape; the switch takes all six to full detail
+  await expect(page.locator('.cmp-shot[data-view="landscape"]:visible')).toHaveCount(6);
   await page.getByRole("button", { name: "Full detail" }).click();
-  await expect(page.locator('.cmp-shot[data-view="full"]:visible')).toHaveCount(5);
+  await expect(page.locator('.cmp-shot[data-view="full"]:visible')).toHaveCount(6);
   await expect(page.locator('.cmp-shot[data-view="landscape"]:visible')).toHaveCount(0);
   expect(errors).toEqual([]);
 });

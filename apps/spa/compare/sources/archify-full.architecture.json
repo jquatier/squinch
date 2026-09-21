@@ -1,0 +1,62 @@
+{
+  "schema_version": 1,
+  "diagram_type": "architecture",
+  "meta": {
+    "title": "Storefront — full detail",
+    "locale": "en",
+    "quality_profile": "showcase"
+  },
+  "layout": { "mode": "grid", "origin": [90, 80], "cols": 5, "cellW": 150, "cellH": 64, "gapX": 120, "gapY": 100 },
+  "components": [
+    { "id": "customer", "type": "external", "label": "Customer", "row": 1, "col": 0, "size": [150, 64] },
+
+    { "id": "web_cdn", "type": "cloud", "label": "CloudFront", "sublabel": "CDN · edge cache", "row": 2, "col": 0, "size": [150, 64] },
+    { "id": "web_bucket", "type": "frontend", "label": "React SPA", "sublabel": "S3 static site", "brand": "react", "row": 3, "col": 0, "size": [150, 64] },
+
+    { "id": "gw", "type": "cloud", "label": "Edge Gateway", "sublabel": "API Gateway · REST", "row": 2, "col": 1, "size": [150, 64] },
+
+    { "id": "catalog_idx", "type": "database", "label": "Product Index", "sublabel": "OpenSearch", "brand": "opensearch", "row": 0, "col": 2, "size": [150, 64] },
+    { "id": "catalog_api", "type": "backend", "label": "Catalog API", "sublabel": "Lambda · Node 20", "row": 1, "col": 2, "size": [150, 64] },
+    { "id": "catalog_db", "type": "database", "label": "Products", "sublabel": "DynamoDB", "row": 1, "col": 3, "size": [150, 64] },
+    { "id": "catalog_sync", "type": "backend", "label": "Index Sync", "sublabel": "Lambda · stream consumer", "row": 0, "col": 3, "size": [150, 64] },
+
+    { "id": "orders_api", "type": "backend", "label": "Orders API", "sublabel": "Lambda · Node 20", "row": 2, "col": 2, "size": [150, 64] },
+    { "id": "orders_queue", "type": "messagebus", "label": "Fulfillment Queue", "sublabel": "SQS FIFO", "row": 2, "col": 3, "size": [150, 64] },
+    { "id": "orders_worker", "type": "backend", "label": "Fulfillment Worker", "sublabel": "Lambda · batch 10", "row": 2, "col": 4, "size": [150, 64] },
+    { "id": "orders_db", "type": "database", "label": "Orders", "sublabel": "DynamoDB", "row": 3, "col": 3, "size": [150, 64] },
+
+    { "id": "accounts_api", "type": "backend", "label": "Accounts API", "sublabel": "Lambda · Node 20", "row": 4, "col": 2, "size": [150, 64] },
+    { "id": "accounts_db", "type": "database", "label": "Accounts DB", "sublabel": "RDS Postgres 16", "brand": "postgresql", "row": 4, "col": 3, "size": [150, 64] }
+  ],
+  "boundaries": [
+    { "kind": "region", "label": "Storefront", "wraps": ["web_cdn", "web_bucket"], "pad": 30 },
+    { "kind": "region", "label": "Catalog Service · #public", "wraps": ["catalog_api", "catalog_db", "catalog_idx", "catalog_sync"], "pad": 30 },
+    { "kind": "region", "label": "Order Service · #pci", "wraps": ["orders_api", "orders_db", "orders_queue", "orders_worker"], "pad": 30 },
+    { "kind": "region", "label": "Account Service · #pci", "wraps": ["accounts_api", "accounts_db"], "pad": 30 }
+  ],
+  "connections": [
+    { "from": "customer", "to": "web_cdn", "label": "browses", "labelAt": [165, 343] },
+    { "from": "web_cdn", "to": "web_bucket", "label": "origin", "labelAt": [165, 522] },
+    { "from": "web_cdn", "to": "gw", "label": "REST /api" },
+
+    { "from": "gw", "to": "catalog_api", "label": "browse" },
+    { "from": "gw", "to": "orders_api", "label": "checkout", "labelDx": 30 },
+    { "from": "gw", "to": "accounts_api", "label": "profile" },
+
+    { "from": "catalog_api", "to": "catalog_db" },
+    { "from": "catalog_api", "to": "catalog_idx", "label": "search" },
+    { "from": "catalog_db", "to": "catalog_sync", "label": "product stream", "variant": "dashed" },
+    { "from": "catalog_sync", "to": "catalog_idx", "label": "reindex" },
+
+    { "from": "orders_api", "to": "orders_db" },
+    { "from": "orders_api", "to": "orders_queue", "label": "enqueue", "variant": "dashed" },
+    { "from": "orders_queue", "to": "orders_worker", "variant": "dashed" },
+    { "from": "orders_worker", "to": "orders_db", "label": "mark shipped" },
+
+    { "from": "accounts_api", "to": "accounts_db" },
+
+    { "from": "orders_api", "to": "catalog_api", "label": "price check", "labelDy": -40, "labelDx": -42 },
+    { "from": "orders_worker", "to": "catalog_api", "label": "decrement stock", "fromSide": "top", "toSide": "bottom" },
+    { "from": "orders_api", "to": "accounts_api", "label": "verify identity", "fromSide": "bottom", "toSide": "left" }
+  ]
+}

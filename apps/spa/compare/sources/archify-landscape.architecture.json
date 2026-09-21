@@ -1,0 +1,27 @@
+{
+  "schema_version": 1,
+  "diagram_type": "architecture",
+  "meta": {
+    "title": "Storefront — landscape",
+    "locale": "en",
+    "quality_profile": "showcase"
+  },
+  "layout": { "mode": "grid", "cols": 4, "cellW": 200, "cellH": 72, "gapX": 110, "gapY": 150 },
+  "components": [
+    { "id": "customer", "type": "external", "label": "Customer", "row": 1, "col": 0, "size": [200, 72] },
+    { "id": "web", "type": "frontend", "label": "Storefront", "sublabel": "React SPA on S3 + CloudFront", "row": 1, "col": 1, "size": [200, 72] },
+    { "id": "gw", "type": "cloud", "label": "Edge Gateway", "sublabel": "API Gateway · REST", "row": 1, "col": 2, "size": [200, 72] },
+    { "id": "catalog", "type": "backend", "label": "Catalog Service", "sublabel": "Products, browse and search", "tag": "#public", "row": 0, "col": 3, "size": [200, 72] },
+    { "id": "orders", "type": "backend", "label": "Order Service", "sublabel": "Cart, checkout, fulfillment", "tag": "#pci", "row": 1, "col": 3, "size": [200, 72] },
+    { "id": "accounts", "type": "backend", "label": "Account Service", "sublabel": "Identity and profiles", "tag": "#pci", "row": 2, "col": 3, "size": [200, 72] }
+  ],
+  "connections": [
+    { "from": "customer", "to": "web", "label": "browses" },
+    { "from": "web", "to": "gw", "label": "REST /api" },
+    { "from": "gw", "to": "catalog", "label": "browse" },
+    { "from": "gw", "to": "orders", "label": "checkout", "labelDx": 30 },
+    { "from": "gw", "to": "accounts", "label": "profile" },
+    { "from": "orders", "to": "catalog", "label": "price check · decrement stock", "labelAt": [1070, 231] },
+    { "from": "orders", "to": "accounts", "label": "verify identity", "labelAt": [1070, 452] }
+  ]
+}
