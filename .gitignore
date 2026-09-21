@@ -36,6 +36,9 @@ apps/spa/public/mascot.png
 apps/spa/public/notifications-pipeline-dark.svg
 apps/spa/public/products-dark.svg
 apps/spa/public/products-light.svg
+# /compare/ shows examples/microservices' own committed renders
+apps/spa/public/compare-squinch-landscape.svg
+apps/spa/public/compare-squinch-full.svg
 
 # scratch frames for scripts/hero-gif.mts and scripts/prompt-gif.mts
 .hero-tmp/

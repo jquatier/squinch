@@ -48,6 +48,11 @@ const EXAMPLES: [string, string][] = [
   ["notifications/notifications.pipeline.dark.svg", "notifications-pipeline-dark.svg"],
   ["products-api/products-api.products.dark.svg", "products-dark.svg"],
   ["products-api/products-api.products.light.svg", "products-light.svg"],
+  // /compare/ sets these beside four other tools' renders of the same system.
+  // Theirs are committed (apps/spa/compare/img) because the build cannot
+  // regenerate them; ours is the committed example, as ever.
+  ["microservices/microservices.landscape.dark.svg", "compare-squinch-landscape.svg"],
+  ["microservices/microservices.full.dark.svg", "compare-squinch-full.svg"],
 ];
 for (const [from, to] of EXAMPLES)
   copyFileSync(join(root, "examples", from), join(publicDir, to));

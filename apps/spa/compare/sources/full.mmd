@@ -1,0 +1,62 @@
+---
+title: Storefront — full detail
+config:
+  themeVariables:
+    fontSize: 20px
+  flowchart:
+    rankSpacing: 15
+    nodeSpacing: 100
+    wrappingWidth: 160
+---
+flowchart LR
+  customer@{ shape: stadium, label: "Customer" }
+
+  subgraph web["Storefront"]
+    cdn@{ icon: "logos:aws-cloudfront", form: "square", label: "CloudFront<br/>CDN · edge cache", pos: "b", h: 48 }
+    bucket@{ icon: "logos:aws-s3", form: "square", label: "React SPA<br/>S3 static site", pos: "b", h: 48 }
+    cdn -->|origin| bucket
+  end
+
+  gw@{ icon: "logos:aws-api-gateway", form: "square", label: "Edge Gateway<br/>API Gateway · REST", pos: "b", h: 48 }
+
+  subgraph catalog["Catalog Service  #public"]
+    capi@{ icon: "logos:aws-lambda", form: "square", label: "Catalog API<br/>Lambda · Node 20", pos: "b", h: 48 }
+    cdb@{ icon: "logos:aws-dynamodb", form: "square", label: "Products<br/>DynamoDB", pos: "b", h: 48 }
+    cidx@{ icon: "logos:aws-open-search", form: "square", label: "Product Index<br/>OpenSearch", pos: "b", h: 48 }
+    csync@{ icon: "logos:aws-lambda", form: "square", label: "Index Sync<br/>Lambda · stream consumer", pos: "b", h: 48 }
+    capi --> cdb
+    capi -->|search| cidx
+    cdb -.->|product stream| csync
+    csync -->|reindex| cidx
+  end
+
+  subgraph orders["Order Service  #pci"]
+    oapi@{ icon: "logos:aws-lambda", form: "square", label: "Orders API<br/>Lambda · Node 20", pos: "b", h: 48 }
+    odb@{ icon: "logos:aws-dynamodb", form: "square", label: "Orders<br/>DynamoDB", pos: "b", h: 48 }
+    oqueue@{ icon: "logos:aws-sqs", form: "square", label: "Fulfillment Queue<br/>SQS FIFO", pos: "b", h: 48 }
+    oworker@{ icon: "logos:aws-lambda", form: "square", label: "Fulfillment Worker<br/>Lambda · batch 10", pos: "b", h: 48 }
+    oapi --> odb
+    oapi -.->|enqueue| oqueue
+    oqueue -.-> oworker
+    oworker -->|mark shipped| odb
+  end
+
+  subgraph accounts["Account Service  #pci"]
+    aapi@{ icon: "logos:aws-lambda", form: "square", label: "Accounts API<br/>Lambda · Node 20", pos: "b", h: 48 }
+    adb@{ icon: "logos:aws-rds", form: "square", label: "Accounts DB<br/>RDS Postgres 16", pos: "b", h: 48 }
+    aapi --> adb
+  end
+
+  customer -->|browses| cdn
+  cdn -->|REST /api| gw
+  gw -->|browse| capi
+  gw -->|checkout| oapi
+  gw -->|profile| aapi
+  oapi -->|price check| capi
+  oworker -->|decrement stock| capi
+  oapi -->|verify identity| aapi
+
+  classDef pci stroke:#c0392b,stroke-width:2px
+  classDef public stroke:#2e86c1,stroke-width:2px
+  class orders,accounts pci
+  class catalog public

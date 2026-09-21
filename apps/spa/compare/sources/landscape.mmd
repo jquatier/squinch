@@ -1,0 +1,28 @@
+---
+title: Storefront — landscape
+config:
+  themeVariables:
+    fontSize: 20px
+  flowchart:
+    rankSpacing: 20
+    nodeSpacing: 110
+    wrappingWidth: 340
+---
+flowchart TB
+  customer@{ shape: stadium, label: "Customer" }
+  web["<b>Storefront</b><br/>React SPA on S3 behind CloudFront"]
+  gw@{ icon: "logos:aws-api-gateway", form: "square", label: "Edge Gateway<br/>API Gateway · REST", pos: "b", h: 48 }
+  catalog["<b>Catalog Service</b><br/>Products, browse and search<br/>#public"]:::public
+  orders["<b>Order Service</b><br/>Cart, checkout, fulfillment<br/>#pci"]:::pci
+  accounts["<b>Account Service</b><br/>Identity and profiles<br/>#pci"]:::pci
+
+  customer -->|browses| web
+  web -->|REST /api| gw
+  gw -->|browse| catalog
+  gw -->|checkout| orders
+  gw -->|profile| accounts
+  orders -->|price check, decrement stock| catalog
+  orders -->|verify identity| accounts
+
+  classDef pci stroke:#c0392b,stroke-width:2px
+  classDef public stroke:#2e86c1,stroke-width:2px

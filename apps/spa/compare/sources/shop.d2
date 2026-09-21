@@ -1,0 +1,172 @@
+# Storefront — a microservices shop.
+# Root board = landscape (systems as single boxes).
+# scenarios.full inherits the root board, opens every system up,
+# and swaps the system-level edges for the container-level ones.
+#
+# Render: d2 --pad 30 --elk-nodeNodeBetweenLayers 30 --elk-edgeNodeBetweenLayers 20 shop.d2 out.png
+# (ELK spacing is CLI-only; it shapes the landscape board. The full board is a grid.)
+
+vars: {
+  d2-config: {
+    layout-engine: elk
+    theme-id: 200
+    pad: 40
+  }
+  icons: https://icons.terrastruct.com
+  lambda: ${icons}/aws%2FCompute%2FAWS-Lambda.svg
+  dynamodb: ${icons}/aws%2FDatabase%2FAmazon-DynamoDB.svg
+  rds: ${icons}/aws%2FDatabase%2FAmazon-RDS.svg
+  sqs: ${icons}/aws%2FApplication%20Integration%2FAmazon-Simple-Queue-Service-SQS.svg
+  s3: ${icons}/aws%2FStorage%2FAmazon-Simple-Storage-Service-S3.svg
+  cloudfront: ${icons}/aws%2FNetworking%20&%20Content%20Delivery%2FAmazon-CloudFront.svg
+  apigw: ${icons}/aws%2FNetworking%20&%20Content%20Delivery%2FAmazon-API-Gateway.svg
+  # icons.terrastruct.com has no OpenSearch icon; this is its predecessor.
+  user: ${icons}/essentials%2F365-user.svg
+  opensearch: ${icons}/aws%2FAnalytics%2FAmazon-Elasticsearch-Service.svg
+}
+
+direction: down
+
+classes: {
+  # tags: D2 has no tags, so a tag is a class that carries a style.
+  pci: {
+    style: {
+      stroke: "#C0392B"
+      stroke-width: 3
+    }
+  }
+  public: {
+    style: {
+      stroke: "#1E8449"
+      stroke-width: 3
+    }
+  }
+  # grid cells are not sized for label + icon the way ELK nodes are
+  leaf: {height: 160}
+  # landscape only: wide system boxes give the picture a web-friendly shape
+  sys: {width: 340}
+  async: {
+    style: {
+      stroke-dash: 4
+      animated: true
+    }
+  }
+}
+
+title: Storefront — landscape {
+  near: top-center
+  shape: text
+  style.font-size: 28
+  style.bold: true
+}
+
+customer: Customer {shape: person}
+
+web: "Storefront\nReact SPA on S3 behind CloudFront" {class: sys}
+gw: "Edge Gateway\nAPI Gateway · REST" {icon: ${apigw}; class: sys}
+catalog: "Catalog Service  #public\nProducts, browse and search" {class: [sys; public]}
+orders: "Order Service  #pci\nCart, checkout, fulfillment" {class: [sys; pci]}
+accounts: "Account Service  #pci\nIdentity and profiles" {class: [sys; pci]}
+
+customer -> web: browses
+web -> gw: REST /api
+gw -> catalog: browse
+gw -> orders: checkout
+gw -> accounts: profile
+orders -> catalog: price check
+orders -> catalog: "decrement\nstock"
+orders -> accounts: "verify\nidentity"
+
+scenarios: {
+  full: {
+    title.label: Storefront — full detail
+
+    # ELK/dagre stack this 5 ranks deep (1:4.5). A root grid folds it:
+    #   customer | catalog
+    #   web      | orders
+    #   gw       | accounts      (cells fill column by column)
+    grid-columns: 2
+    grid-rows: 3
+    horizontal-gap: 90
+    vertical-gap: 90
+    # a person shape stretches to its grid cell; use a plain box with an icon
+    # the landscape widths must not apply once a system is a container
+    web.class: null
+    catalog.class: public
+    orders.class: pci
+    accounts.class: pci
+    customer.shape: rectangle
+    customer.icon: ${user}
+
+    # a system that gains children becomes a container; give it a plain title
+    web.label: Storefront
+    catalog.label: "Catalog Service  #public"
+    orders.label: "Order Service  #pci"
+    accounts.label: "Account Service  #pci"
+
+    web: {
+      grid-rows: 1
+      horizontal-gap: 90
+      cdn: "CloudFront\nCDN · edge cache" {icon: ${cloudfront}; class: leaf}
+      bucket: "React SPA\nS3 static site" {icon: ${s3}; class: leaf}
+      cdn -> bucket: origin
+    }
+
+    catalog: {
+      grid-columns: 2
+      horizontal-gap: 90
+      vertical-gap: 80
+      idx: "Product Index\nOpenSearch" {icon: ${opensearch}; class: leaf}
+      api: "Catalog API\nLambda · Node 20" {icon: ${lambda}; class: leaf}
+      sync: "Index Sync\nLambda · stream consumer" {icon: ${lambda}; class: leaf}
+      db: "Products\nDynamoDB" {icon: ${dynamodb}; class: leaf}
+
+      api -> db
+      api -> idx: search
+      db -> sync: product stream {class: async}
+      sync -> idx: reindex
+    }
+
+    orders: {
+      grid-columns: 2
+      horizontal-gap: 90
+      vertical-gap: 80
+      api: "Orders API\nLambda · Node 20" {icon: ${lambda}; class: leaf}
+      db: "Orders\nDynamoDB" {icon: ${dynamodb}; class: leaf}
+      queue: "Fulfillment Queue\nSQS FIFO" {icon: ${sqs}; class: leaf}
+      worker: "Fulfillment Worker\nLambda · batch 10" {icon: ${lambda}; class: leaf}
+
+      api -> db
+      api -> queue: enqueue {class: async}
+      queue -> worker {class: async}
+      worker -> db: mark shipped
+    }
+
+    accounts: {
+      grid-rows: 1
+      horizontal-gap: 90
+      api: "Accounts API\nLambda · Node 20" {icon: ${lambda}; class: leaf}
+      db: "Accounts DB\nRDS Postgres 16" {icon: ${rds}; class: leaf}
+      api -> db
+    }
+
+    # replace the system-level edges with the real container-level ones
+    (customer -> web)[0]: null
+    (web -> gw)[0]: null
+    (gw -> catalog)[0]: null
+    (gw -> orders)[0]: null
+    (gw -> accounts)[0]: null
+    (orders -> catalog)[0]: null
+    (orders -> catalog)[1]: null
+    (orders -> accounts)[0]: null
+
+    customer -> web.cdn: browses
+    web.cdn -> gw: REST /api
+    gw -> catalog.api: browse
+    gw -> orders.api: checkout
+    gw -> accounts.api: profile
+    orders.api -> catalog.api: price check
+    orders.worker -> catalog.api: decrement stock
+    orders.api -> accounts.api: verify identity
+  }
+}

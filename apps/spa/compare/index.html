@@ -1,0 +1,404 @@
+<!doctype html>
+<html lang="en" data-theme="dark" data-view="landscape">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Compare — squinch</title>
+    <meta name="description" content="One microservices system drawn five ways: Squinch, Mermaid, D2, Structurizr and Python diagrams, each by a coding agent under the same rules. Every render and every source file, unedited." />
+    <link rel="canonical" href="https://squinch.cc/compare/" />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+    <meta name="theme-color" content="#141416" />
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="Squinch" />
+    <meta property="og:title" content="Compare — squinch" />
+    <meta property="og:description" content="One microservices system drawn five ways: Squinch, Mermaid, D2, Structurizr and Python diagrams, each by a coding agent under the same rules. Every render and every source file, unedited." />
+    <meta property="og:image" content="https://squinch.cc/og.png" />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:image:alt" content="The Squinch mark — an S standing on three stacked isometric planes — beside the wordmark" />
+    <meta property="og:url" content="https://squinch.cc/compare/" />
+    <meta name="twitter:card" content="summary_large_image" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet" />
+    <link rel="stylesheet" href="/src/site.css" />
+  </head>
+  <body>
+    <header class="site-header">
+      <a class="home" href="/"><img src="/favicon.svg" alt="" width="20" height="20" />squinch</a>
+      <nav aria-label="Site">
+        <a href="/install/">Install</a>
+        <a href="/lookbook/">Lookbook</a>
+        <a href="/compare/" aria-current="page">Compare</a>
+        <a href="/playground/">Playground</a>
+        <a href="https://github.com/jquatier/squinch">GitHub</a>
+      </nav>
+    </header>
+
+    <div class="wrap lb sub-hero">
+      <span class="eyebrow">Compare</span>
+      <h1>How Squinch compares.<br /><span class="grad-text">One system, drawn in five tools.</span></h1>
+      <p>
+        A storefront on AWS — four systems, thirteen components, eighteen
+        connections — drawn by a coding agent in each of five tools. No picture
+        is retouched, and every source file is
+        <a href="https://github.com/jquatier/squinch/tree/main/apps/spa/compare/sources">in the repo</a>.
+      </p>
+    </div>
+
+    <div class="wrap lb sub-body lb">
+      <nav class="rail" aria-label="Sections">
+        <span class="rail-label">Compare</span>
+        <a href="#method" class="is-active"><span class="n">01</span>How we tested</a>
+        <a href="#glance"><span class="n">02</span>At a glance</a>
+        <span class="rail-label" style="padding-top: 14px">The renders</span>
+        <a href="#squinch"><span class="n">03</span>Squinch</a>
+        <a href="#mermaid"><span class="n">04</span>Mermaid</a>
+        <a href="#d2"><span class="n">05</span>D2</a>
+        <a href="#structurizr"><span class="n">06</span>Structurizr</a>
+        <a href="#python-diagrams"><span class="n">07</span>Python diagrams</a>
+      </nav>
+
+      <main>
+        <section class="panel method" id="method" aria-labelledby="method-h">
+          <div class="card-head">
+            <span class="n">01</span>
+            <h2 id="method-h">How we tested</h2>
+            <span class="tag">Same for every tool</span>
+          </div>
+          <div class="card-body cmp-brief">
+            <p>
+              Each tool got its own agent, which saw neither the others' work
+              nor Squinch's render, and was told to do the tool justice.
+              Run in September 2026.
+            </p>
+            <ul class="cmp-rules">
+              <li><b>Two pictures.</b> The <em>landscape</em> — the systems as single boxes — and <em>full detail</em>, with every system opened up. From one model if the tool can.</li>
+              <li><b>The tool's own means.</b> Its built-in dark theme, its AWS icons, the layout engines that ship free with it.</li>
+              <li><b>A shape that fits a page.</b> Between 16:9 and 3:4, legible at this width, with a handful of iterations to get there.</li>
+            </ul>
+          </div>
+        </section>
+
+        <section class="panel method" id="glance" aria-labelledby="glance-h">
+          <div class="card-head">
+            <span class="n">02</span>
+            <h2 id="glance-h">At a glance</h2>
+            <span class="tag">From the runs below</span>
+          </div>
+          <div class="cmp-table-scroll">
+            <table class="cmp-table">
+              <thead>
+                <tr>
+                  <th scope="col"></th>
+                  <th scope="col">Source</th>
+                  <th scope="col">Both pictures from one model</th>
+                  <th scope="col">Layout control</th>
+                  <th scope="col">AWS icons</th>
+                  <th scope="col">Dark theme</th>
+                  <th scope="col">From text to PNG</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr class="is-us">
+                  <th scope="row">Squinch</th>
+                  <td>144 lines, seven views</td>
+                  <td><span class="y">Yes</span> — a view is five lines</td>
+                  <td><span class="y">Relative hints</span> — <code>rows</code>, <code>cols</code>, <code>place</code>, a direction per frame</td>
+                  <td><span class="y">Bundled</span></td>
+                  <td><span class="y">Built in</span></td>
+                  <td>One npm package</td>
+                </tr>
+                <tr>
+                  <th scope="row">Mermaid</th>
+                  <td>90 lines, two files</td>
+                  <td><span class="n">No</span> — two hand-kept files</td>
+                  <td><span class="n">Direction and spacing</span></td>
+                  <td><span class="p">Fetched</span> at render</td>
+                  <td><span class="y">Built in</span></td>
+                  <td>One npm package + headless Chromium</td>
+                </tr>
+                <tr>
+                  <th scope="row">D2</th>
+                  <td>172 lines, one file</td>
+                  <td><span class="p">Partly</span> — one file, cross-system edges written twice</td>
+                  <td><span class="p">Direction, or a grid</span> — and a grid stops routing edges</td>
+                  <td><span class="p">Fetched</span> by URL; no OpenSearch icon</td>
+                  <td><span class="y">Built in</span></td>
+                  <td>One binary</td>
+                </tr>
+                <tr>
+                  <th scope="row">Structurizr</th>
+                  <td>90 lines, one file</td>
+                  <td><span class="y">Yes</span> — the C4 model is the point</td>
+                  <td><span class="n">Direction and spacing</span> — the rest is dragging boxes in a browser</td>
+                  <td><span class="p">Fetched</span> at render</td>
+                  <td><span class="p">Undocumented</span> export flag</td>
+                  <td>Java, then PlantUML, then Graphviz — about 900 MB</td>
+                </tr>
+                <tr>
+                  <th scope="row">Python diagrams</th>
+                  <td>106 lines, two files</td>
+                  <td><span class="n">No</span> — two scripts</td>
+                  <td><span class="p">Raw Graphviz attributes</span></td>
+                  <td><span class="y">Bundled</span></td>
+                  <td><span class="n">None</span> — set by hand</td>
+                  <td>pip + Graphviz</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </section>
+
+        <div class="cmp-switch" role="group" aria-label="Which picture to show">
+          <span class="eyebrow">Showing</span>
+          <button type="button" data-set-view="landscape" aria-pressed="true">Landscape</button>
+          <button type="button" data-set-view="full" aria-pressed="false">Full detail</button>
+          <span class="cmp-switch-note">switches all five at once</span>
+        </div>
+
+        <section class="panel cmp-tool is-us" id="squinch" aria-labelledby="squinch-h">
+          <div class="card-head">
+            <span class="n">03</span>
+            <h2 id="squinch-h">Squinch</h2>
+            <span class="tag">0.8 · one model, seven views</span>
+          </div>
+          <figure class="cmp-shot" data-view="landscape" style="--well: #161618">
+            <a href="/compare-squinch-landscape.svg"><img src="/compare-squinch-landscape.svg" width="1070" height="582" alt="Squinch, landscape: the customer, storefront and gateway in a column above the three services in one row" /></a>
+            <figcaption>Landscape</figcaption>
+          </figure>
+          <figure class="cmp-shot" data-view="full" style="--well: #161618">
+            <a href="/compare-squinch-full.svg"><img src="/compare-squinch-full.svg" width="1166" height="1151" loading="lazy" alt="Squinch, full detail: every system opened into a frame, the three services side by side, wires routed at right angles between them" /></a>
+            <figcaption>Full detail</figcaption>
+          </figure>
+          <div class="cmp-notes">
+            <div>
+              <h3>What it took</h3>
+              <p>
+                One <a href="https://github.com/jquatier/squinch/blob/main/examples/microservices/shop.squinch">144-line file</a> that also holds five more views. <em>Full detail</em> is the landscape plus one line, <code>expand *</code>.
+              </p>
+            </div>
+            <div>
+              <h3>Holds up</h3>
+              <ul>
+                <li>The three services share a row because the source says so: <code>rows [catalog orders accounts]</code>.</li>
+                <li>Wires turn at right angles and cross no title or label.</li>
+                <li>Name and technology are separate lines; tags are part of the language.</li>
+              </ul>
+            </div>
+            <div>
+              <h3>Falls short</h3>
+              <ul>
+                <li>It is new. Mermaid renders inside GitHub and Notion; a Squinch diagram is an image you commit.</li>
+                <li>No Google Cloud icons — they cannot be redistributed.</li>
+                <li>A language of its own: written by agents, but one more thing in the repo.</li>
+              </ul>
+            </div>
+          </div>
+        </section>
+
+        <section class="panel cmp-tool" id="mermaid" aria-labelledby="mermaid-h">
+          <div class="card-head">
+            <span class="n">04</span>
+            <h2 id="mermaid-h">Mermaid</h2>
+            <span class="tag">11.17 · flowchart, dagre</span>
+          </div>
+          <figure class="cmp-shot" data-view="landscape" style="--well: #1f2020">
+            <a href="./img/mermaid-landscape.webp"><img src="./img/mermaid-landscape.webp" width="1600" height="1777" loading="lazy" alt="Mermaid, landscape: a clean top-down flowchart; two edge labels sit on top of their own wires" /></a>
+            <figcaption>Landscape · <a href="https://github.com/jquatier/squinch/blob/main/apps/spa/compare/sources/landscape.mmd">landscape.mmd</a>, 28 lines</figcaption>
+          </figure>
+          <figure class="cmp-shot" data-view="full" style="--well: #1f2020">
+            <a href="./img/mermaid-full.webp"><img src="./img/mermaid-full.webp" width="1600" height="922" loading="lazy" alt="Mermaid, full detail: laid out left to right, the three services step diagonally down the page with empty corners" /></a>
+            <figcaption>Full detail · <a href="https://github.com/jquatier/squinch/blob/main/apps/spa/compare/sources/full.mmd">full.mmd</a>, 62 lines</figcaption>
+          </figure>
+          <div class="cmp-notes">
+            <div>
+              <h3>What it took</h3>
+              <p>
+                A flowchart with subgraphs and icon nodes. Both files parsed first time; a page-shaped full detail took four tries at spacing and wrap width, the only layout controls there are.
+              </p>
+            </div>
+            <div>
+              <h3>Holds up</h3>
+              <ul>
+                <li>Rendered first try, from short, readable source.</li>
+                <li>The landscape is clean, with no crossings.</li>
+                <li>Renders natively on GitHub — though not with these icons.</li>
+              </ul>
+            </div>
+            <div>
+              <h3>Falls short</h3>
+              <ul>
+                <li>The services form a staircase: Orders calls Catalog, so Catalog ranks after it, and nothing can say otherwise.</li>
+                <li>Labels wrap as one block — “Lambda · Node / 20” — and chips sit on their own wires.</li>
+                <li>Two wires run through the Order Service frame and merge.</li>
+              </ul>
+            </div>
+          </div>
+        </section>
+
+        <section class="panel cmp-tool" id="d2" aria-labelledby="d2-h">
+          <div class="card-head">
+            <span class="n">05</span>
+            <h2 id="d2-h">D2</h2>
+            <span class="tag">0.9 · ELK, then a grid</span>
+          </div>
+          <figure class="cmp-shot" data-view="landscape" style="--well: #1e1e2e">
+            <a href="./img/d2-landscape.webp"><img src="./img/d2-landscape.webp" width="1600" height="2038" loading="lazy" alt="D2, landscape: a clean orthogonal layout, with Order Service ranked above the other two services" /></a>
+            <figcaption>Landscape · <a href="https://github.com/jquatier/squinch/blob/main/apps/spa/compare/sources/shop.d2">shop.d2</a>, 172 lines for both</figcaption>
+          </figure>
+          <figure class="cmp-shot" data-view="full" style="--well: #1e1e2e">
+            <a href="./img/d2-full.webp"><img src="./img/d2-full.webp" width="1600" height="1755" loading="lazy" alt="D2, full detail, as a grid: straight diagonal wires cross the Storefront frame, and one wire runs through the Orders database box" /></a>
+            <figcaption>Full detail · the same file, as a scenario</figcaption>
+          </figure>
+          <div class="cmp-notes">
+            <div>
+              <h3>What it took</h3>
+              <p>
+                One file, but <em>full</em> deletes the landscape's eight edges and rewrites them between containers. With ELK alone it came out 2004 × 8988, so full detail is a grid — D2's one way to set rows.
+              </p>
+            </div>
+            <div>
+              <h3>Holds up</h3>
+              <ul>
+                <li>A single binary that renders in half a second.</li>
+                <li>The ELK landscape is clean and orthogonal, with backed labels.</li>
+              </ul>
+            </div>
+            <div>
+              <h3>Falls short</h3>
+              <ul>
+                <li>Inside a grid, edges are not routed: each is a straight line. “verify identity” runs through the Orders database and hides another edge.</li>
+                <li>Grid cells stretch to match, so Customer and Edge Gateway become large empty boxes.</li>
+                <li>Every cross-system edge is written twice, and nothing checks the two agree.</li>
+              </ul>
+            </div>
+          </div>
+        </section>
+
+        <section class="panel cmp-tool" id="structurizr" aria-labelledby="structurizr-h">
+          <div class="card-head">
+            <span class="n">06</span>
+            <h2 id="structurizr-h">Structurizr</h2>
+            <span class="tag">DSL → PlantUML → Graphviz</span>
+          </div>
+          <figure class="cmp-shot" data-view="landscape" style="--well: #111111">
+            <a href="./img/structurizr-landscape.webp"><img src="./img/structurizr-landscape.webp" width="1600" height="2280" loading="lazy" alt="Structurizr, landscape: a clean C4 system landscape with Order Service a rank above Accounts and Catalog" /></a>
+            <figcaption>Landscape · <a href="https://github.com/jquatier/squinch/blob/main/apps/spa/compare/sources/workspace.dsl">workspace.dsl</a>, 90 lines for both</figcaption>
+          </figure>
+          <figure class="cmp-shot" data-view="full" style="--well: #111111">
+            <a href="./img/structurizr-full.webp"><img src="./img/structurizr-full.webp" width="1600" height="3327" loading="lazy" alt="Structurizr, full detail: a tall container view, the three services stepping down the page, two wires crossing boundary titles" /></a>
+            <figcaption>Full detail · the same model, a second view</figcaption>
+          </figure>
+          <div class="cmp-notes">
+            <div>
+              <h3>What it took</h3>
+              <p>
+                The only other tool here with a real model: one workspace, two views. But the CLI draws nothing itself — it exports PlantUML, which shells out to Graphviz — and full detail is either three screens tall or 4:1 and unreadable.
+              </p>
+            </div>
+            <div>
+              <h3>Holds up</h3>
+              <ul>
+                <li>Model once, view many times: the idea Squinch shares, and it works.</li>
+                <li>Precise validation errors.</li>
+                <li>The landscape is clean.</li>
+              </ul>
+            </div>
+            <div>
+              <h3>Falls short</h3>
+              <ul>
+                <li>Layout is a direction and two spacings. Its real answer is dragging boxes in a browser, which no agent can do.</li>
+                <li>The landscape silently drops “decrement stock”: two edges between the same systems merge into one.</li>
+                <li>Two wires cross boundary titles.</li>
+              </ul>
+            </div>
+          </div>
+        </section>
+
+        <section class="panel cmp-tool" id="python-diagrams" aria-labelledby="python-diagrams-h">
+          <div class="card-head">
+            <span class="n">07</span>
+            <h2 id="python-diagrams-h">Python diagrams</h2>
+            <span class="tag">0.25 · Graphviz dot</span>
+          </div>
+          <figure class="cmp-shot" data-view="landscape" style="--well: #0f172a">
+            <a href="./img/python-diagrams-landscape.webp"><img src="./img/python-diagrams-landscape.webp" width="1600" height="2055" loading="lazy" alt="Python diagrams, landscape: large AWS icons top to bottom, with Lambda icons standing in for whole services" /></a>
+            <figcaption>Landscape · <a href="https://github.com/jquatier/squinch/blob/main/apps/spa/compare/sources/diagrams-landscape.py">landscape.py</a>, 34 lines</figcaption>
+          </figure>
+          <figure class="cmp-shot" data-view="full" style="--well: #0f172a">
+            <a href="./img/python-diagrams-full.webp"><img src="./img/python-diagrams-full.webp" width="1600" height="883" loading="lazy" alt="Python diagrams, full detail: the services as three horizontal lanes of large icons; one wire loops under the whole picture and back up" /></a>
+            <figcaption>Full detail · <a href="https://github.com/jquatier/squinch/blob/main/apps/spa/compare/sources/diagrams-full.py">full.py</a>, 72 lines</figcaption>
+          </figure>
+          <div class="cmp-notes">
+            <div>
+              <h3>What it took</h3>
+              <p>
+                The best-looking of the four, and the most Graphviz knowledge to get there: <code>splines</code>, <code>constraint="false"</code>, and a patched private attribute so larger labels clear their icons.
+              </p>
+            </div>
+            <div>
+              <h3>Holds up</h3>
+              <ul>
+                <li>The icons: bundled, official, large, instantly recognisable.</li>
+                <li>Left to right, the services read as three tidy lanes.</li>
+              </ul>
+            </div>
+            <div>
+              <h3>Falls short</h3>
+              <ul>
+                <li>“decrement stock” loops under the whole picture and back; four iterations could not remove it.</li>
+                <li>Edge labels have no backing and land on frame titles.</li>
+                <li>No node for “a system”, so in the landscape a Lambda icon stands for a whole service.</li>
+              </ul>
+            </div>
+          </div>
+        </section>
+      </main>
+    </div>
+
+    <footer class="site-foot">
+      <span>Apache-2.0</span>
+      <a class="btn-grad" href="/playground/">Open the playground</a>
+    </footer>
+
+    <script>
+      // One switch for all five tools: the view lives on <html data-view>, and
+      // CSS hides the other figure. With script off the attribute is never
+      // read, so both pictures show — see `.cmp-switch` in site.css.
+      const root = document.documentElement;
+      root.classList.add("js");
+      const buttons = [...document.querySelectorAll("[data-set-view]")];
+      for (const b of buttons) {
+        b.addEventListener("click", () => {
+          root.dataset.view = b.dataset.setView;
+          for (const o of buttons) o.setAttribute("aria-pressed", String(o === b));
+        });
+      }
+
+      // Scroll-spy for the rail, as on the install page.
+      if ("IntersectionObserver" in window) {
+        const links = [...document.querySelectorAll(".rail a[href^='#']")];
+        const byId = new Map(links.map((a) => [a.getAttribute("href").slice(1), a]));
+        const visible = new Set();
+        const pick = () => {
+          const first = [...byId.keys()].find((id) => visible.has(id));
+          if (!first) return;
+          for (const [id, a] of byId) a.classList.toggle("is-active", id === first);
+        };
+        const io = new IntersectionObserver(
+          (entries) => {
+            for (const e of entries) e.isIntersecting ? visible.add(e.target.id) : visible.delete(e.target.id);
+            pick();
+          },
+          { rootMargin: "-15% 0px -70% 0px" },
+        );
+        for (const id of byId.keys()) {
+          const el = document.getElementById(id);
+          if (el) io.observe(el);
+        }
+      }
+    </script>
+  </body>
+</html>

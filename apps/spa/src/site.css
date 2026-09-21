@@ -517,6 +517,11 @@ pre code { background: none; padding: 0; font-size: inherit; }
   list-style: none;
 }
 .hero-links a { width: 100%; }
+/* One quiet line under the buttons, for the visitor who already uses another
+   tool: the question they arrived with, one click from its answer. */
+.hero-compare { display: inline-block; margin-top: 14px; font-size: 13.5px; color: var(--muted); }
+.hero-compare::after { content: " →" / ""; color: var(--accent); }
+.hero-compare:hover { color: var(--fg); text-decoration: none; }
 
 /* The demo stretches to the copy column's height so its bottom lands level
    with the CTA grid. The gif keeps its aspect (`contain`), and the slack
@@ -983,6 +988,124 @@ pre code { background: none; padding: 0; font-size: inherit; }
 }
 .quote.is-typing figcaption { opacity: 0; transition: none; }
 
+/* ── compare ───────────────────────────────────────────────────────────── */
+
+/* One system drawn by five tools. The pictures are the argument, so each gets
+   the full column; a well is never taller than 760px, and a picture taller
+   than that is fitted inside it (`contain`) on a ground matched to its own
+   background (`--well`), so the letterbox is invisible. Clicking through opens
+   the file at full size. */
+.cmp-brief > p { max-width: 68ch; }
+.cmp-rules {
+  margin: 16px 0 0;
+  padding: 0;
+  list-style: none;
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 14px 28px;
+}
+.cmp-rules li { color: var(--muted); font-size: 13.5px; line-height: 1.6; }
+.cmp-rules b { color: var(--fg); font-weight: 600; }
+.cmp-rules em, .cmp-notes em { font-style: normal; color: var(--fg); }
+
+.cmp-table-scroll { overflow-x: auto; }   /* the table scrolls, the page never does */
+.cmp-table { width: 100%; min-width: 860px; border-collapse: collapse; font-size: 13px; line-height: 1.5; }
+.cmp-table th, .cmp-table td {
+  padding: 12px 14px;
+  text-align: left;
+  vertical-align: top;
+  border-bottom: 1px solid var(--line-soft);
+  color: var(--muted);
+}
+.cmp-table th:first-child, .cmp-table td:first-child { padding-left: 22px; }
+.cmp-table th:last-child, .cmp-table td:last-child { padding-right: 22px; }
+.cmp-table tbody tr:last-child > * { border-bottom: none; }
+.cmp-table thead th {
+  font: 500 10px/1.4 var(--font-mono);
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--text-3);
+  border-bottom-color: var(--line);
+}
+.cmp-table tbody th { color: var(--fg); font-weight: 600; white-space: nowrap; }
+.cmp-table tr.is-us > * { background: color-mix(in srgb, var(--accent) 7%, transparent); }
+.cmp-table .y, .cmp-table .p, .cmp-table .n { font-weight: 600; }
+.cmp-table .y { color: #4CC38A; }
+.cmp-table .p { color: #E2B340; }
+.cmp-table .n { color: #E5484D; }
+
+/* the view switch: sticky, so the picture under the reader's eye can be
+   flipped without scrolling back. Hidden without script — then both figures
+   simply show, one above the other. */
+.cmp-switch { display: none; }
+.js .cmp-switch {
+  position: sticky;
+  top: 12px;
+  z-index: 2;
+  align-self: center;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 5px 14px 5px 16px;
+  margin-block: 10px;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--surface) 92%, transparent);
+  backdrop-filter: blur(8px);
+  box-shadow: var(--panel-shadow);
+}
+.cmp-switch .eyebrow { margin-right: 8px; }
+.cmp-switch button {
+  appearance: none;
+  border: 1px solid transparent;
+  border-radius: 999px;
+  padding: 6px 14px;
+  background: none;
+  color: var(--muted);
+  font: 500 13px/1.3 var(--font-ui);
+  cursor: pointer;
+  transition: background-color 0.15s ease, color 0.15s ease;
+}
+.cmp-switch button:hover { color: var(--fg); }
+.cmp-switch button[aria-pressed="true"] { background: var(--control-active); border-color: var(--line-strong); color: var(--fg); }
+.cmp-switch-note { margin-left: 8px; font: 400 11px/1.4 var(--font-mono); color: var(--text-3); }
+
+.cmp-tool { scroll-margin-top: 72px; }
+.cmp-tool.is-us { border-color: color-mix(in srgb, var(--accent) 55%, var(--line)); }
+.cmp-shot { margin: 0; background: var(--well, var(--canvas)); border-bottom: 1px solid var(--line); position: relative; }
+.cmp-shot a { display: flex; justify-content: center; padding: 20px; cursor: zoom-in; }
+.cmp-shot img { display: block; width: auto; height: auto; max-width: 100%; max-height: 760px; object-fit: contain; }
+.cmp-shot figcaption {
+  padding: 9px 22px;
+  border-top: 1px solid var(--line);
+  background: var(--surface);
+  font: 400 11.5px/1.4 var(--font-mono);
+  color: var(--text-3);
+}
+.cmp-shot figcaption a { display: inline; padding: 0; cursor: pointer; color: var(--muted); }
+.js[data-view="full"] .cmp-shot[data-view="landscape"],
+.js[data-view="landscape"] .cmp-shot[data-view="full"] { display: none; }
+
+.cmp-notes {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1.15fr) minmax(0, 1.15fr);
+  gap: 28px;
+  padding: 20px 22px 24px;
+}
+.cmp-notes h3 {
+  margin-bottom: 10px;
+  font: 600 10.5px/1.4 var(--font-mono);
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--text-3);
+}
+.cmp-notes p, .cmp-notes li { color: var(--muted); font-size: 13.5px; line-height: 1.6; }
+.cmp-notes ul { margin: 0; padding: 0; list-style: none; display: flex; flex-direction: column; gap: 8px; }
+.cmp-notes li { position: relative; padding-left: 16px; }
+.cmp-notes li::before { content: ""; position: absolute; left: 0; top: 0.62em; width: 6px; height: 6px; border-radius: 50%; }
+.cmp-notes div:nth-child(2) li::before { background: #4CC38A; }
+.cmp-notes div:nth-child(3) li::before { background: #E2B340; }
+
 /* ── responsive ─────────────────────────────────────────────────────────── */
 
 @media (max-width: 1024px) {
@@ -995,6 +1118,8 @@ pre code { background: none; padding: 0; font-size: inherit; }
 @media (max-width: 960px) {
   .sub-body, .sub-body.lb { grid-template-columns: 1fr; }
   .sub-body > .rail { display: none; }
+  .cmp-notes { grid-template-columns: 1fr; gap: 20px; }
+  .cmp-rules { grid-template-columns: 1fr; }
 }
 @media (max-width: 720px) {
   .site-header, .site-foot { padding-inline: 24px; }
@@ -1032,6 +1157,13 @@ pre code { background: none; padding: 0; font-size: inherit; }
   .hero-demo-wrap .mascot-shadow { width: 46px; height: 10px; right: 31px; bottom: -11px; }
 }
 @media (max-width: 480px) {
+  /* five links since /compare/ joined: a notch tighter holds them on one
+     line at 360px */
+  .site-header { padding-inline: 16px; }
+  .site-header nav { column-gap: 9px; font-size: 11.5px; }
+  .cmp-switch .eyebrow, .cmp-switch-note { display: none; }
+  .js .cmp-switch { padding: 4px; }
+  .cmp-shot a { padding: 10px; }
   .hero-links { grid-template-columns: 1fr; }
   .hero-cta { max-width: none; }
 }
@@ -1040,6 +1172,7 @@ pre code { background: none; padding: 0; font-size: inherit; }
    tracking leaves it 42px and 34px short of the edge. After the 720px block on
    purpose — it overrides that block's 104px mark and 34px wordmark. */
 @media (max-width: 400px) {
+  .site-header nav { column-gap: 7px; font-size: 11px; }
   .hero-brand { gap: 12px; }
   .hero-brand .sqs-mark { height: 92px; }
   .hero-brand .name { font-size: 31px; }

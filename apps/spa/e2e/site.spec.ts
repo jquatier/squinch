@@ -36,6 +36,7 @@ test("each content page serves, styled, with its own title", async ({ page }) =>
   for (const [path, title, h1] of [
     ["/install/", "Install — squinch", "Four ways in."],
     ["/lookbook/", "Lookbook — squinch", "systems, drawn properly."],
+    ["/compare/", "Compare — squinch", "How Squinch compares."],
   ] as const) {
     await page.goto(path);
     await expect(page).toHaveTitle(title);
@@ -78,8 +79,28 @@ test("the landing and content pages are always dark", async ({ page }) => {
   // toggle — emulating light proves the page isn't just defaulting to dark
   // by coincidence.
   await page.emulateMedia({ colorScheme: "light" });
-  for (const path of ["/", "/install/", "/lookbook/"]) {
+  for (const path of ["/", "/install/", "/lookbook/", "/compare/"]) {
     await page.goto(path);
     await expect(page.locator("html")).toHaveAttribute("data-theme", "dark");
   }
+});
+
+test("the compare page shows every tool's render, and one switch flips all five", async ({ page }) => {
+  const errors: string[] = [];
+  page.on("pageerror", (e) => errors.push(String(e)));
+
+  await page.goto("/compare/");
+  const shown = page.locator(".cmp-shot:visible img");
+  await expect(shown).toHaveCount(5);
+  // every picture loaded — ours from public/, theirs hashed by the build
+  for (const img of await shown.all()) {
+    await img.scrollIntoViewIfNeeded();
+    await expect.poll(() => img.evaluate((i: HTMLImageElement) => i.naturalWidth)).toBeGreaterThan(0);
+  }
+  // it opens on the landscape; the switch takes all five to full detail
+  await expect(page.locator('.cmp-shot[data-view="landscape"]:visible')).toHaveCount(5);
+  await page.getByRole("button", { name: "Full detail" }).click();
+  await expect(page.locator('.cmp-shot[data-view="full"]:visible')).toHaveCount(5);
+  await expect(page.locator('.cmp-shot[data-view="landscape"]:visible')).toHaveCount(0);
+  expect(errors).toEqual([]);
 });

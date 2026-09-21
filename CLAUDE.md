@@ -87,11 +87,13 @@ engine, CLI, playground and extension all ship (see §Where things stand).
 
 ## Layout of the workspace
 
-`apps/spa` — the **site** (Vite/React/Tailwind), four HTML entries from one app:
-the landing at `/`, `/install/`, `/lookbook/` and the playground at
+`apps/spa` — the **site** (Vite/React/Tailwind), five HTML entries from one app:
+the landing at `/`, `/install/`, `/lookbook/`, `/compare/` and the playground at
 `/playground/`. Only the playground is React; the rest are hand-set static
 documents sharing `src/tokens.css` via `src/site.css`. `/lookbook/` is generated
-from `lookbook/README.md` by `scripts/sync-lookbook.ts`. Everything the site
+from `lookbook/README.md` by `scripts/sync-lookbook.ts`. `/compare/` sets one system beside
+four other tools' renders of it; theirs are committed under `compare/` with their
+sources, because the build cannot run four toolchains. Everything the site
 serves out of `public/` is build output — pack icons (`scripts/sync-packs.ts`),
 the demo GIFs and the brand marks (`scripts/sync-media.ts`) — gitignored, never
 committed; only `og.png`, `apple-touch-icon.png`, `robots.txt` and `sitemap.xml`
@@ -407,7 +409,7 @@ The architecture it certified is still enforced by the corpus invariant sweep.
   --update-baseline` re-records — do it in the same commit as the change that
   earned the cost. CI has no baseline, so there it is budgets only.
 - `pnpm --filter @squinch/spa dev` — the site on :5180 (`.claude/launch.json`):
-  landing at `/`, playground at `/playground/`; one Vite app, four HTML entries.
+  landing at `/`, playground at `/playground/`; one Vite app, five HTML entries.
 - `npx tsx scripts/mark-stack.mts` — regenerate the layered mark from
   `docs/assets/mark.svg`. Maintainer-only; its header records the measurements
   the shape was reconstructed from.

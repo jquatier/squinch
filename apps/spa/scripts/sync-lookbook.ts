@@ -175,6 +175,7 @@ const html = `<!doctype html>
       <nav aria-label="Site">
         <a href="/install/">Install</a>
         <a href="/lookbook/" aria-current="page">Lookbook</a>
+        <a href="/compare/">Compare</a>
         <a href="/playground/">Playground</a>
         <a href="https://github.com/jquatier/squinch">GitHub</a>
       </nav>
