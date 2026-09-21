@@ -191,6 +191,39 @@
       </article>
     </section>
 
+    <!-- The palettes, compared: the same example rendered both ways under a
+         slider. The control is a real range input laid over the stage, so the
+         keyboard and a screen reader get it for free; the script below only
+         copies its value into --split. With script off it rests at the middle,
+         which is already the picture the band is about. -->
+    <section class="band adaptive" aria-labelledby="adaptive-h">
+      <div class="adaptive-copy">
+        <span class="eyebrow accent">Light and dark, both designed</span>
+        <h2 id="adaptive-h">One file, both palettes</h2>
+        <p>
+          <code>--adaptive</code> renders the pair off one shared layout and
+          merges them, so a single SVG follows the reader's system theme — in
+          a README, a wiki, a pull request. Pack artwork is never recoloured:
+          a vendor's mark stays its own colour on either ground.
+        </p>
+      </div>
+      <figure class="panel shadowed" style="margin: 0">
+        <div class="panel-strip" aria-hidden="true">
+          <span class="dot"></span>
+          products.svg<span class="arrow">→</span>--adaptive
+          <span class="split-hint">drag to compare</span>
+        </div>
+        <div class="split-stage" style="--split: 50%">
+          <img src="/products-dark.svg" width="850" height="608" loading="lazy" alt="A products API on AWS — shopper, CloudFront, a load balancer and a Fargate service inside a VPC, a table streaming into an indexer and a search index — drawn in the dark palette" />
+          <img class="split-light" src="/products-light.svg" width="850" height="608" loading="lazy" alt="The same diagram in the light palette, on the same layout" />
+          <input class="split-range" type="range" min="0" max="100" value="50" step="0.1" aria-label="Compare the light and dark palettes" />
+          <span class="split-bar" aria-hidden="true">
+            <span class="split-knob"><svg viewBox="0 0 24 24" focusable="false"><path d="M9 6 5 12l4 6M15 6l4 6-4 6" /></svg></span>
+          </span>
+        </div>
+      </figure>
+    </section>
+
     <!-- The trust band: four guarantees, beside the receipt that proves the
          first one. Every claim here is mechanically enforced — the goldens are
          byte-compared on all three runners, the metrics table is bundled, the
@@ -384,6 +417,24 @@
           });
         }
         box.addEventListener("click", () => box.close());
+      }
+    </script>
+    <script>
+      // The palette slider: the range input is the control, --split is the
+      // picture. Nothing else moves.
+      for (const stage of document.querySelectorAll(".split-stage")) {
+        const range = stage.querySelector(".split-range");
+        const set = () => stage.style.setProperty("--split", range.value + "%");
+        range.addEventListener("input", set);
+        // the fine step is for the pointer; an arrow key moves a readable 5%
+        range.addEventListener("keydown", (e) => {
+          const dir = e.key === "ArrowRight" || e.key === "ArrowUp" ? 1 : e.key === "ArrowLeft" || e.key === "ArrowDown" ? -1 : 0;
+          if (!dir) return;
+          e.preventDefault();
+          range.value = String(Number(range.value) + dir * 5);
+          set();
+        });
+        set();
       }
     </script>
     <script>

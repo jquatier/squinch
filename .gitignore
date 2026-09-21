@@ -34,6 +34,8 @@ apps/spa/public/zoom-dark.gif
 apps/spa/public/mascot.png
 # the landing's motion card is examples/notifications' own committed render
 apps/spa/public/notifications-pipeline-dark.svg
+apps/spa/public/products-dark.svg
+apps/spa/public/products-light.svg
 
 # scratch frames for scripts/hero-gif.mts and scripts/prompt-gif.mts
 .hero-tmp/

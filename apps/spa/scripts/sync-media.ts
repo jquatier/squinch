@@ -41,9 +41,13 @@ for (const [from, to] of FILES) copyFileSync(join(assetsDir, from), join(publicD
 // The landing's "Motion carries meaning" card shows the README's own motion
 // example. It is a committed example render, not a brand asset, and the
 // lookbook sync only copies lookbook/out/ — so it rides along here. Dark only:
-// the marketing pages never show the light palette.
+// the marketing pages never show the light palette — with one exception, the
+// "One file, both palettes" band, whose whole subject is the pair. It shows
+// the products example both ways under a comparison slider.
 const EXAMPLES: [string, string][] = [
   ["notifications/notifications.pipeline.dark.svg", "notifications-pipeline-dark.svg"],
+  ["products-api/products-api.products.dark.svg", "products-dark.svg"],
+  ["products-api/products-api.products.light.svg", "products-light.svg"],
 ];
 for (const [from, to] of EXAMPLES)
   copyFileSync(join(root, "examples", from), join(publicDir, to));
