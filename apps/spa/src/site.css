@@ -485,8 +485,16 @@ pre code { background: none; padding: 0; font-size: inherit; }
   line-height: 1;
   color: var(--fg);
 }
-/* The headline is an h2 on purpose: the lockup above is the page's one h1
-   ("squinch" is the document's name), and this is its first claim. */
+/* Under the wordmark, the category in two set lines of the site's own eyebrow —
+   the second in the accent, the way the headline's second line wears the ramp.
+   The column is shorter than the mark (128px), so the h1's box does not grow
+   and the mark's fold and the scroll observer behave exactly as before. Left-
+   set even on phones, where .hero-copy centres: the lockup stays one piece. */
+.hero-brand .lockup-text { display: flex; flex-direction: column; gap: 10px; min-width: 0; text-align: left; }
+.hero-brand .cat .eyebrow { white-space: nowrap; }
+/* The headline is an h2 on purpose: the lockup above is the page's one h1 —
+   the document's name and, in its two small lines, what the document is —
+   and this is its first claim. */
 .hero-title {
   font-size: 46px;
   line-height: 1.04;
@@ -954,4 +962,14 @@ pre code { background: none; padding: 0; font-size: inherit; }
 @media (max-width: 480px) {
   .hero-links { grid-template-columns: 1fr; }
   .hero-cta { max-width: none; }
+}
+/* Small phones: the lockup's category line ran flush to the column edge at
+   375px and overflowed at 360px. Trimming the mark, the wordmark and the
+   tracking leaves it 42px and 34px short of the edge. After the 720px block on
+   purpose — it overrides that block's 104px mark and 34px wordmark. */
+@media (max-width: 400px) {
+  .hero-brand { gap: 12px; }
+  .hero-brand .sqs-mark { height: 92px; }
+  .hero-brand .name { font-size: 31px; }
+  .hero-brand .cat .eyebrow { font-size: 10px; letter-spacing: 0.09em; }
 }

@@ -10,6 +10,10 @@ test("the landing renders the lockup and all four links", async ({ page }) => {
 
   await page.goto("/");
   await expect(page.getByRole("heading", { name: "squinch" })).toBeVisible();
+  // The category phrase is what the title exists to carry — it is the one
+  // on-page signal that names what this is, and it went missing once.
+  await expect(page).toHaveTitle(/architecture diagrams as code/);
+  await expect(page.getByRole("heading", { level: 1 })).toContainText("architecture diagrams as code");
   // Scoped to the hero's own CTA row: the footer repeats a "GitHub" link
   // lower on the page, and an unscoped lookup would resolve to both.
   const heroLinks = page.locator(".hero-links");

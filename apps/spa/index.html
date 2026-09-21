@@ -3,16 +3,16 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>squinch — architecture diagrams, drawn by your coding agent</title>
-    <meta name="description" content="A skill for coding agents that draws clean, professional architecture diagrams as code: real cloud icons, zoomable from the landscape down to one service, exported as SVG, PNG or interactive HTML." />
+    <title>squinch — architecture diagrams as code, for coding agents</title>
+    <meta name="description" content="A skill for coding agents that draws clean, professional architecture diagrams as code: real cloud icons, zoom into any system, SVG, PNG or HTML export." />
     <link rel="canonical" href="https://squinch.cc/" />
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
     <meta name="theme-color" content="#141416" />
     <meta property="og:type" content="website" />
     <meta property="og:site_name" content="Squinch" />
-    <meta property="og:title" content="squinch — architecture diagrams, drawn by your coding agent" />
-    <meta property="og:description" content="A skill for coding agents that draws clean, professional architecture diagrams as code: real cloud icons, zoomable from the landscape down to one service, exported as SVG, PNG or interactive HTML." />
+    <meta property="og:title" content="squinch — architecture diagrams as code, for coding agents" />
+    <meta property="og:description" content="A skill for coding agents that draws clean, professional architecture diagrams as code: real cloud icons, zoom into any system, SVG, PNG or HTML export." />
     <meta property="og:image" content="https://squinch.cc/og.png" />
     <meta property="og:image:width" content="1200" />
     <meta property="og:image:height" content="630" />
@@ -22,27 +22,44 @@
     <script type="application/ld+json">
       {
         "@context": "https://schema.org",
-        "@type": "SoftwareApplication",
-        "name": "Squinch",
-        "description": "A skill for coding agents that draws clean, professional architecture diagrams as code: real cloud icons, zoomable from the landscape down to one service, exported as SVG, PNG or interactive HTML.",
-        "applicationCategory": "DeveloperApplication",
-        "applicationSubCategory": "Architecture diagrams as code",
-        "operatingSystem": "macOS, Linux, Windows",
-        "offers": { "@type": "Offer", "price": "0", "priceCurrency": "USD" },
-        "featureList": [
-          "An agent skill: describe a system in prose and your coding agent writes, checks and renders the diagram",
-          "Zoom into any system: C4-style altitudes derived from one model, from the landscape down to one service",
-          "1,313 real vendor icons for AWS, Azure, Kubernetes and product logos",
-          "Relative layout hints only, never pixel coordinates",
-          "Deterministic SVG, byte-identical across macOS, Linux and Windows",
-          "SVG, PNG and self-contained interactive HTML export",
-          "VS Code extension with live preview and diagnostics",
-          "GitHub Actions for stale-diagram checks and architecture diffs on pull requests"
-        ],
-        "keywords": "architecture diagrams, diagrams as code, agent skill, Claude Code, Codex, C4, AWS, Azure, Kubernetes, SVG",
-        "license": "https://www.apache.org/licenses/LICENSE-2.0",
-        "url": "https://squinch.cc/",
-        "sameAs": ["https://github.com/jquatier/squinch"]
+        "@graph": [
+          {
+            "@type": "WebSite",
+            "@id": "https://squinch.cc/#website",
+            "name": "Squinch",
+            "url": "https://squinch.cc/"
+          },
+          {
+            "@type": "SoftwareApplication",
+            "name": "Squinch",
+            "description": "A skill for coding agents that draws clean, professional architecture diagrams as code: real cloud icons, zoom into any system, SVG, PNG or HTML export.",
+            "applicationCategory": "DeveloperApplication",
+            "applicationSubCategory": "Architecture diagrams as code",
+            "operatingSystem": "macOS, Linux, Windows",
+            "offers": {
+              "@type": "Offer",
+              "price": "0",
+              "priceCurrency": "USD"
+            },
+            "featureList": [
+              "An agent skill: describe a system in prose and your coding agent writes, checks and renders the diagram",
+              "Zoom into any system: C4-style altitudes derived from one model, from the landscape down to one service",
+              "1,313 real vendor icons for AWS, Azure, Kubernetes and product logos",
+              "Relative layout hints only, never pixel coordinates",
+              "Deterministic SVG, byte-identical across macOS, Linux and Windows",
+              "SVG, PNG and self-contained interactive HTML export",
+              "VS Code extension with live preview and diagnostics",
+              "GitHub Actions for stale-diagram checks and architecture diffs on pull requests"
+            ],
+            "keywords": "architecture diagrams, diagrams as code, agent skill, Claude Code, Codex, C4, AWS, Azure, Kubernetes, SVG",
+            "license": "https://www.apache.org/licenses/LICENSE-2.0",
+            "url": "https://squinch.cc/",
+            "sameAs": [
+              "https://github.com/jquatier/squinch",
+              "https://www.npmjs.com/package/squinch"
+            ]
+          }
+        ]
       }
     </script>
     <link rel="preconnect" href="https://fonts.googleapis.com" />
@@ -60,7 +77,17 @@
                  squinch-inline-mark plugin in vite.config.ts, so site.css can
                  animate its planes and respond to hover -->
             <!--mark-stack-->
-            <span class="name">squinch</span>
+            <!-- The category, inside the page's one heading: the wordmark names the
+                 document, these two lines say what it is. Set as two lines on
+                 purpose — left to the browser the break falls at "as / code",
+                 splitting the phrase. Spans only: an h1 holds phrasing content. -->
+            <span class="lockup-text">
+              <span class="name">squinch</span>
+              <span class="cat">
+                <span class="eyebrow">architecture diagrams as code</span>
+                <span class="eyebrow accent">for coding agents</span>
+              </span>
+            </span>
           </h1>
           <h2 class="hero-title">
             Your coding agent already knows the architecture.<br />
