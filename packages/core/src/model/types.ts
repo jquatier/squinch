@@ -25,6 +25,11 @@ export const HUES = [
 ] as const;
 export type Hue = (typeof HUES)[number];
 
+/** How many children a card's preview calls out — the shelf's icon chips, and
+ *  the rows of a card a view draws detailed. One number for both, so the two
+ *  altitudes of a card never disagree about what is inside. */
+export const PREVIEW_MAX = 3;
+
 export interface SNode {
   path: string; // full dotted path — the stable identity
   name: string; // last segment
@@ -58,6 +63,11 @@ export interface SContainer {
   tags: string[];
   /** `color:` — the card's spine, or the frame's stroke once expanded. */
   color?: Hue;
+  /** `preview:` — which direct children the collapsed card calls out: the
+   *  shelf's icon chips, and the rows of a card a view draws detailed. An
+   *  explicit list is resolved to child paths, in the author's order; `"none"`
+   *  draws no strip; absent means `auto`, the first PREVIEW_MAX children. */
+  preview?: string[] | "none";
   /** The container's own `layout { }` (SPEC §3): how its direct interior lays
    *  out wherever that interior is opened — as an expanded frame in any view,
    *  and as the root of a view scoped to it. Paths are resolved, absolute, and

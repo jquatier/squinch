@@ -384,6 +384,56 @@ describe("grammar + model builder", () => {
     });
   });
 
+  describe("preview: chooses what a card calls out (2026-09)", () => {
+    // SPEC promised `preview: none | auto | [api db]` from v0. The parser never
+    // carried the list — it was a syntax error — and the strip showed the first
+    // three leaf icons whatever the author wrote.
+    const src = (preview: string) =>
+      `pack aws\nsystem s "S" {\n  preview: ${preview}\n  a = aws/lambda "A"\n  b = aws/dynamodb "B"\n` +
+      `  c = aws/sqs "C"\n  d = aws/s3 "D"\n  container inner "Inner" {\n    x = aws/lambda "X"\n  }\n}\n`;
+    const previewOf = (r: ReturnType<typeof buildModel>) => r.model.containers.get("s")!.preview;
+
+    it("resolves a list to child paths, in the author's order — a nested container is a legal pick", () => {
+      const r = buildModel(src("[d inner a]"));
+      expect(r.ok).toBe(true);
+      expect(previewOf(r)).toEqual(["s.d", "s.inner", "s.a"]);
+    });
+
+    it("commas are optional, as in every other list of members", () => {
+      expect(previewOf(buildModel(src("[a, b]")))).toEqual(["s.a", "s.b"]);
+    });
+
+    it("none and auto", () => {
+      expect(previewOf(buildModel(src("none")))).toBe("none");
+      expect(previewOf(buildModel(src("auto")))).toBeUndefined();
+    });
+
+    it("a name that is not a direct child is an error with the id it probably meant", () => {
+      const r = buildModel(src("[a bb]"));
+      expect(r.ok).toBe(false);
+      const d = r.diagnostics.find((x) => x.message.includes("not a direct child"));
+      expect(d?.message).toContain("preview names `bb`");
+      expect(d?.fix).toContain("did you mean `b`?");
+      // a grandchild is not a direct child either — the card previews one level
+      expect(buildModel(src("[inner.x]")).ok).toBe(false);
+    });
+
+    it("more than three warns, names the ones that fold, and keeps the first three", () => {
+      const r = buildModel(src("[a b c d]"));
+      expect(r.ok).toBe(true);
+      const w = r.diagnostics.find((x) => x.severity === "warning" && x.message.includes("fold into +N"));
+      expect(w?.message).toContain("`d` fold into +N");
+      expect(previewOf(r)).toEqual(["s.a", "s.b", "s.c"]);
+    });
+
+    it("anything else is an error that writes the list to paste", () => {
+      const r = buildModel(src(`"yes"`));
+      expect(r.ok).toBe(false);
+      const d = r.diagnostics.find((x) => x.message.includes("`preview` is none, auto or a list"));
+      expect(d?.fix).toBe("preview: [a b c]");
+    });
+  });
+
   describe("glyph: is a real icon reference", () => {
     // It was the one icon reference nobody validated. `view/resolve.ts` splits it
     // on `/` and shrugs, so a typo drew a `?` plate and exited 0 — the silent

@@ -135,7 +135,10 @@ system shop "Order Service" {
                               //   child icon, so a card is never plateless
   glyph:   sys/code           // kind mark, in a chip at the card's top right
   domain:  "orders"           // optional ownership tag on the card's shelf
-  preview: auto               // none | auto | [api db] — mini-strip of inner icons
+  preview: auto               // none | auto | [api db] — which direct children the
+                              //   card calls out (≤ 3; the rest count as +N). A
+                              //   nested container is one pick, shown by its own
+                              //   card face; auto takes the first three declared
 
   api = aws/api-gateway "API Gateway"
   container workers "Async Workers" {

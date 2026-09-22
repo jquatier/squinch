@@ -89,7 +89,9 @@ Path { Ident ("." Ident)* }
 as { nl | ";" | "," }
 AttrBlock { "{" as* (Attr as+)* Attr? "}" }
 Attr { Ident ":" Value }
-Value { String | Number | Tag+ | IconRef | Path }
+// `Rank` is the bracket list `rows` uses — reused here so a card's
+// `preview: [api db]` is the same shape as every other list of members.
+Value { String | Number | Tag+ | IconRef | Path | Rank }
 
 View { kw<"view"> Path ViewBody }
 ViewBody { "{" list<viewStmt> "}" }

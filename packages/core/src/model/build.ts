@@ -13,7 +13,7 @@ import { themes } from "../themes/index.js";
 import type {
   ArrowKind, BuildResult, Diagnostic, Hue, Loc, RelPos, SContainer, SEdge, SModel, SNode, SNote, SView, Side, SFlow, SZone, ZoneKind, ZoneLabelPos,
 } from "./types.js";
-import { ZONE_KINDS, HUES, EDGE_STYLES, EDGE_ANIMATE } from "./types.js";
+import { ZONE_KINDS, HUES, EDGE_STYLES, EDGE_ANIMATE, PREVIEW_MAX } from "./types.js";
 
 export interface ProjectFile {
   name: string;
@@ -503,6 +503,46 @@ export function buildProject(input: ProjectFile[]): BuildResult {
         if (meta.description) c.attrs["description"] = meta.description;
         c.tags.push(...meta.tags);
         if (meta.attrs["color"]) c.color = checkHue(ctx, body, meta.attrs["color"]);
+        // `preview:` — none | auto | [a b c]. SPEC promised the list from v0 and
+        // the parser never carried it: the strip always showed the first three
+        // leaf icons, whatever the author wrote. The names are the container's
+        // *direct* children, in the author's order — a child container is a
+        // legal pick and appears as its own card face — and what they choose
+        // is what both the shelf chips and a detailed card's rows show.
+        const previewAttr = body.getChildren("Attr").find((a) => {
+          const k = a.getChild("Ident");
+          return k && ctx.text(k) === "preview";
+        });
+        if (previewAttr) {
+          const v = previewAttr.getChild("Value");
+          const rank = v?.getChild("Rank");
+          const raw = meta.attrs["preview"];
+          const childNames = c.children.map((p) => p.slice(c.path.length + 1));
+          if (rank) {
+            const picks: string[] = [];
+            for (const p of rank.getChildren("Path")) {
+              const name = ctx.text(p);
+              if (!childNames.includes(name)) {
+                const s = suggest(name, childNames);
+                error(ctx, p, `preview names \`${name}\`, which is not a direct child of \`${c.name}\``,
+                  s ? `did you mean \`${s}\`?` : `one of: ${childNames.join(", ") || "(no children)"}`);
+                continue;
+              }
+              if (!picks.includes(name)) picks.push(name);
+            }
+            if (picks.length > PREVIEW_MAX)
+              warn(ctx, previewAttr,
+                `preview lists ${picks.length} children — a card calls out ${PREVIEW_MAX}; ` +
+                  `${picks.slice(PREVIEW_MAX).map((n) => `\`${n}\``).join(", ")} fold into +N`,
+                `keep the ${PREVIEW_MAX} worth calling out`);
+            c.preview = picks.slice(0, PREVIEW_MAX).map((n) => `${c.path}.${n}`);
+          } else if (raw === "none") {
+            c.preview = "none";
+          } else if (raw !== "auto") {
+            error(ctx, previewAttr, `\`preview\` is none, auto or a list of children`,
+              `preview: [${childNames.slice(0, PREVIEW_MAX).join(" ")}]`);
+          }
+        }
         // `glyph:` used to be the one icon reference nobody checked: the view
         // layer splits it on `/` and shrugs, so a typo drew a `?` plate, exited
         // 0, and left you to notice by eye. Same two errors as a zone `icon:`.

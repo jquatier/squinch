@@ -1298,3 +1298,42 @@ view v { expand pipe
     expect(a).toBe(b);
   });
 });
+
+describe("`preview:` drives the card's shelf (SPEC §3)", () => {
+  // One declaration, two altitudes: what the chips show here is what a
+  // detailed card's rows will show — the choice is made once, on the container.
+  const SRC = (preview = "") => `pack aws
+system s "S" {
+${preview}
+  a = aws/lambda "A"
+  container inner "Inner" {
+    x = aws/dynamodb "X"
+    y = aws/sqs "Y"
+  }
+  c = aws/sqs "C"
+  d = aws/s3 "D"
+}
+view v { include * }`;
+  const card = (preview = "") => {
+    const { model } = buildModel(SRC(preview));
+    return resolveView(model, model.views.find((v) => v.name === "v")!).nodes.find((n) => n.path === "s")!;
+  };
+
+  it("auto: the first three direct children — a nested container is one chip, wearing its card face", () => {
+    const c = card();
+    expect(c.preview.map((i) => i.id)).toEqual(["lambda", "dynamodb", "sqs"]); // a, inner (→ x's icon), c
+    expect(c.more).toBe(1); // d
+  });
+
+  it("an explicit list picks the chips, in the author's order, and the count follows", () => {
+    const c = card("  preview: [d c]");
+    expect(c.preview.map((i) => i.id)).toEqual(["s3", "sqs"]);
+    expect(c.more).toBe(2); // a, inner
+  });
+
+  it("none draws no strip and counts nothing", () => {
+    const c = card("  preview: none");
+    expect(c.preview).toEqual([]);
+    expect(c.more).toBeUndefined();
+  });
+});

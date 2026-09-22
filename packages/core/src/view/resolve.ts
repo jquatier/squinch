@@ -4,6 +4,7 @@
 // `scope` is the view's *where*; `only` is its *which*. They are separate axes
 // because a tag is a cross-cutting concern and can never be a place.
 import type { Diagnostic, EdgeAnimate, Hue, SEdge, SModel, SView } from "../model/types.js";
+import { PREVIEW_MAX } from "../model/types.js";
 
 export interface VNode {
   path: string;
@@ -20,9 +21,7 @@ export interface VNode {
   badge?: { pack: string; id: string };
   tagline?: string;
   preview: { pack: string; id: string }[];
-  /** Leaves beyond the ones `preview` shows — the shelf's `+N`. Counted from
-   *  the icons that would have been drawn, so it never claims more than the
-   *  strip actually left out. */
+  /** Direct children beyond the ones `preview` shows — the shelf's `+N`. */
   more?: number;
   /** A short ownership label for the card's shelf: the team, domain or
    *  namespace a system belongs to (`domain: "payments"`). Free text. */
@@ -176,6 +175,25 @@ export function resolveView(model: SModel, view: SView): ViewGraph {
       ? { pack: iconRef.split("/")[0], id: iconRef.split("/")[1] }
       : leafIcons(path)[0];
   };
+  // What a collapsed card calls out (SPEC §3 `preview:`): the author's list,
+  // else the first PREVIEW_MAX direct children, else nothing. Direct children
+  // on purpose — a card previews *what is inside it*, and a nested container
+  // is one of those things, shown by its own card face.
+  const previewChildren = (path: string): string[] => {
+    const c = model.containers.get(path);
+    if (!c || c.preview === "none") return [];
+    if (c.preview) return c.preview;
+    // `children` lists leaves before nested containers (the builder walks
+    // NodeDecls first); "the first three declared" means source order, so sort
+    // by where each was written. Same file: containers and their children are
+    // one block.
+    const at = (p: string) => (model.nodes.get(p) ?? model.containers.get(p))?.loc.from ?? 0;
+    return [...c.children].sort((a, b) => at(a) - at(b)).slice(0, PREVIEW_MAX);
+  };
+  /** The mark a child shows on its parent's card: a leaf's own icon, a
+   *  container's card icon. */
+  const childIcon = (path: string) =>
+    model.nodes.has(path) ? model.nodes.get(path)!.icon : containerIcon(path);
   if (view.expandStar) {
     if (view.expand.length)
       diagnostics.push({
@@ -558,9 +576,13 @@ export function resolveView(model: SModel, view: SView): ViewGraph {
     const container = model.containers.get(path);
     if (container) {
       const leaves = leafDescendants(path);
-      const previewMode = container.attrs["preview"] ?? "auto";
-      const icons = leafIcons(path);
-      const preview = previewMode === "none" ? [] : icons.slice(0, 3);
+      // The strip shows the children `preview:` chose (SPEC §3) — direct
+      // children, so a nested container is one chip, not its leaves spilled
+      // out. `+N` counts the direct children left out, whether or not they
+      // have an icon: the number answers "how much more is in here".
+      const shown = previewChildren(path);
+      const preview = shown.map(childIcon).filter((i): i is NonNullable<typeof i> => !!i);
+      const more = container.preview === "none" ? 0 : container.children.length - shown.length;
       const glyphRef = container.attrs["glyph"];
       const glyph = glyphRef?.includes("/")
         ? { pack: glyphRef.split("/")[0], id: glyphRef.split("/")[1] }
@@ -572,7 +594,7 @@ export function resolveView(model: SModel, view: SView): ViewGraph {
         label: container.label ?? container.name,
         glyph,
         icon,
-        more: icons.length - preview.length || undefined,
+        more: more || undefined,
         domain: container.attrs["domain"],
         tagline:
           container.attrs["description"] ??
