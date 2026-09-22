@@ -1,6 +1,6 @@
 {
   "name": "@squinch/core",
-  "version": "0.9.0",
+  "version": "0.10.0",
   "description": "The Squinch engine: parse, model, layout and deterministic rendering for architecture diagrams as code, exported as SVG, PNG or interactive HTML — the engine behind the agent skill, the CLI and the playground.",
   "keywords": [
     "architecture",
