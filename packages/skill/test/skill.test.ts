@@ -279,6 +279,18 @@ describe("SKILL.md — diagnostic coverage", () => {
     // The fix names the substitution ("use an ASCII equivalent") and the
     // escape hatch, which is the bar for this list.
     ", which the bundled font cannot draw",
+    // `preview` (2026-09), the attr and the verb: every fix writes the line to
+    // paste — the did-you-mean child, the `preview: [a b c]` list, the one of
+    // `preview x` / `expand x` to keep, the line to drop — and the SKILL
+    // section on the detailed card teaches the construct itself.
+    "preview names", ", which is not a direct child of",
+    "preview lists", "children — a card calls out",
+    "preview` is none, auto or a list of children",
+    "in one view — a card is collapsed or open, not both",
+    "targets a leaf — only a container has an inside to preview",
+    "is not among the cards this view shows — nothing to detail",
+    "preview *` already details every card — the explicit `preview` lines are redundant",
+    "preview *` detailed nothing — no cards are visible here",
   ]);
 
   it("every diagnostic that needs a technique is in the cookbook", () => {

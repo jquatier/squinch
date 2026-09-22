@@ -289,9 +289,23 @@ error.
 ```squinch
 system orders "Orders" {
   description: "Order lifecycle, cart to refund"
-  preview: [checkout fulfillment returns]   // what the card calls out
-  system checkout "Checkout" { description: "Cart to confirmed order" … }
-  …
+  preview: [checkout fulfillment returns]   // what the card calls out; pricing folds into +1
+  system checkout "Checkout" {
+    description: "Cart to confirmed order"
+    api = aws/lambda "Checkout API"
+  }
+  system fulfillment "Fulfillment" {
+    description: "Pick, pack, dispatch"
+    worker = aws/lambda "Dispatcher"
+  }
+  system returns "Returns" {
+    description: "Refunds and RMAs"
+    api = aws/lambda "Returns API"
+  }
+  system pricing "Pricing" {
+    description: "Prices, promotions, tax"
+    api = aws/lambda "Pricing API"
+  }
 }
 view landscape {
   include *
