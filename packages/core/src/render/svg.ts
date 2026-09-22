@@ -254,9 +254,14 @@ function box(
  *  Deliberately NOT iconPlate: the logos pack is monochrome, and iconPlate's
  *  monochrome branch draws a brand-coloured plate with a white knockout — the
  *  inverse of this treatment. Here the plate is quiet (surface + border) and
- *  the mark carries its own brand colour from the pack manifest. Colour-pack
- *  artwork
- *  falls back to the same clip treatment iconPlate uses.
+ *  the mark carries its own brand colour from the pack manifest — unless that
+ *  colour would vanish into the plate (Kafka's and GitHub's near-blacks on the
+ *  dark surface, the yellows on white), in which case the mark draws in ink
+ *  and the plate stays quiet: it is the mark that yields, never the plate,
+ *  because a brand-coloured plate is the chip treatment this one exists to
+ *  invert. The flip is `chipLightness` against `BADGE_INK_GAP` — the same
+ *  deterministic integer the knockout chip uses. Colour-pack artwork falls
+ *  back to the same clip treatment iconPlate uses.
  */
 function badgeMarkup(
   badge: { pack: string; id: string }, plateX: number, plateY: number, rc: RC,
@@ -271,7 +276,8 @@ function badgeMarkup(
   if (!asset) return plate; // validated at check; an unloaded pack degrades to the bare plate
   const ix = x + INSET, iy = y + INSET, isz = SIZE - INSET * 2;
   if (badge.pack === "builtin" || packMonochrome(badge.pack)) {
-    const c = iconMeta(badge.pack, badge.id)?.color ?? t.muted;
+    const brand = iconMeta(badge.pack, badge.id)?.color ?? t.muted;
+    const c = Math.abs(chipLightness(brand) - chipLightness(t.surface)) < BADGE_INK_GAP ? t.ink : brand;
     return (
       plate +
       `<g color="${c}" fill="${c}">` +
@@ -1251,6 +1257,16 @@ const chipLightness = (hex: string): number => {
   return 2126 * r + 7152 * g + 722 * b;
 };
 const LIGHT_CHIP = 1_500_000;
+/** A `badge:` mark whose brand colour sits within this much of its plate's
+ *  lightness draws in `ink` instead (`badgeMarkup`). Validated the same way
+ *  over the logos pack, against each theme's surface: on the dark plate every
+ *  brand under 2.5:1 lands inside the gap (the near-blacks, the navy banks,
+ *  Elastic's teal at 1.9:1) and the first outside it is 2.7:1; on white only
+ *  the three yellows under 1.4:1 fall inside, so Snowflake's and React's cyans
+ *  keep their colour. The saturated reds at 2.7–3.6:1 (Target, Netflix,
+ *  Ansible) read as close to the dark plate by this measure and flip to ink
+ *  harmlessly early — the same kind of disagreement as `LIGHT_CHIP`'s. */
+const BADGE_INK_GAP = 425_000;
 const KNOCKOUT_DARK = "#1C1C1A";
 
 function iconPlate(

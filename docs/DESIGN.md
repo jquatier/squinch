@@ -107,7 +107,12 @@ it gets none of the marks that imply one.
   tagline does, which is why the check nudges past 24 characters. An optional
   **node badge** (`badge:`) sits on the tile's bottom-right corner: `22×22`,
   radius 5, surface fill + border stroke, holding a `14×14` mark in its own
-  brand colour, inset so it clears the card edge by 5.
+  brand colour, inset so it clears the card edge by 5. When that colour would
+  vanish into the plate — Kafka's and GitHub's near-blacks on the dark
+  surface, the yellows on white — the mark draws in `ink` instead, by the same
+  deterministic integer lightness threshold as the knockout chip. The plate
+  never changes: it is the inverse of the chip on purpose, so it is the mark
+  that yields.
 - **Actor tile** (`person`): height `56`, filled rather than outlined and with
   no border at all, holding a `34` round avatar. The human who starts the story
   should read as a different sort of thing before the icon is read, and shape

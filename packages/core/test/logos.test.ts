@@ -74,6 +74,28 @@ system s "S" {
     }
   });
 
+  it("draws a badge mark in ink when its brand colour would vanish into the plate", async () => {
+    // A `badge:` plate is quiet — surface + border — and the mark carries the
+    // brand colour. Kafka's #231F20 on the dark surface's #212124 is 1.02:1,
+    // an invisible badge rather than an obviously wrong one; on white it is
+    // fine. The mark yields to ink, never the plate.
+    const src = `pack logos\nsystem s "S" {\n bus = sys/stream "Event Bus" { badge: logos/apachekafka }\n}\n`;
+    const mark = (svg: string) => {
+      const m = /<g color="(#[0-9A-Fa-f]{6})" fill="\1"><use href="#sq-logos-apachekafka"[^>]*width="14"/.exec(svg);
+      expect(m, "badge mark").not.toBeNull();
+      return m![1];
+    };
+    const light = await render(src, { theme: "light" });
+    const dark = await render(src, { theme: "dark" });
+    expect(light.ok && dark.ok).toBe(true);
+    expect(mark(light.svg!)).toBe("#231F20");
+    expect(mark(dark.svg!)).not.toBe("#231F20");
+    expect(mark(dark.svg!)).toBe(themes.dark.ink);
+    // the plate is the same quiet surface in both — only the mark moved
+    for (const [r, t] of [[light, themes.light], [dark, themes.dark]] as const)
+      expect(r.svg).toContain(`width="22" height="22" rx="5" fill="${t.surface}" stroke="${t.border}"/>`);
+  });
+
   it("stays deterministic and valid in every theme", async () => {
     const src = `pack logos\nsystem s "S" {\n k = logos/kafka "Kafka"\n}\n`;
     for (const theme of ["light", "dark"]) {
