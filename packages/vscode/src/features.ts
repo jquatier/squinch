@@ -132,7 +132,7 @@ export function blockStack(src: string, offset: number): BlockKind[] {
 
 const TOP_KEYWORDS = ["pack", "person", "system", "container", "zone", "flow", "view", "theme"];
 const VIEW_KEYWORDS = [
-  "title", "theme", "scope", "only", "include", "exclude", "detail", "expand", "context",
+  "title", "theme", "scope", "only", "include", "exclude", "detail", "expand", "preview", "context",
   "highlight", "color", "show", "legend", "titleblock", "note", "layout",
 ];
 const LAYOUT_KEYWORDS = ["direction", "density", "lines", "rows", "cols", "place", "align", "route", "channel", "wrap"];
@@ -183,11 +183,16 @@ export function completionsAt(src: string, offset: number): Completion[] {
     return pathCompletions(src, partial);
   }
 
-  // 4. `expand` argument: `*` (open everything, SPEC §5) or a container path
-  if (here === "view" && /\bexpand\s+[\w.]*$/.test(line)) {
+  // 4. `expand` / `preview` argument: `*` (every container, SPEC §5) or a
+  // container path — the two verbs take the same targets at different altitudes
+  const verb = /\b(expand|preview)\s+[\w.]*$/.exec(line)?.[1];
+  if (here === "view" && verb) {
     const partial = /([\w.]*)$/.exec(line)?.[1] ?? "";
+    const starDetail = verb === "expand"
+      ? "open every container to leaf depth"
+      : "draw every card detailed — its preview children as rows";
     const star: Completion[] = partial === ""
-      ? [{ label: "*", kind: "value", detail: "open every container to leaf depth", insert: "*" }]
+      ? [{ label: "*", kind: "value", detail: starDetail, insert: "*" }]
       : [];
     return [...star, ...pathCompletions(src, partial).filter((c) => c.detail === "container" || c.detail?.startsWith("container"))];
   }

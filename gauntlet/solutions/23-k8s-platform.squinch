@@ -1,66 +1,50 @@
 pack k8s
 
-// Ingress layer
-ingress = k8s/ing "nginx-ingress" {
-  description: "External traffic entry point"
+person user "User"
+
+ingress = k8s/ing "Nginx Ingress"
+
+web_svc = k8s/svc "Web Service"
+api_svc = k8s/svc "API Service"
+worker_svc = k8s/svc "Worker Service"
+
+web = k8s/deploy "Web" {
+  subtitle: "Deployment"
 }
 
-// Services
-web_svc = k8s/svc "web-service" {
-  description: "Routes traffic to web pods"
-}
-api_svc = k8s/svc "api-service" {
-  description: "Routes traffic to api pods"
-}
-worker_svc = k8s/svc "worker-service" {
-  description: "Routes traffic to worker pods"
+api = k8s/deploy "API" {
+  subtitle: "Deployment"
 }
 
-// Deployments
-web = k8s/deploy "web" {
-  description: "Frontend application"
-}
-api = k8s/deploy "api" {
-  description: "Backend API service"
-}
-worker = k8s/deploy "worker" {
-  description: "Background job processor"
+worker = k8s/deploy "Worker" {
+  subtitle: "Deployment"
 }
 
-// Data layer
-postgres = k8s/sts "postgres" datastore {
-  description: "Primary database"
-}
-redis = k8s/deploy "redis" datastore {
-  description: "Cache layer"
+postgres = k8s/sts "Postgres" datastore {
+  subtitle: "StatefulSet"
 }
 
-// Scheduled jobs
-pruner = k8s/cronjob "pruner" {
-  description: "Nightly cleanup job"
-  subtitle: "Prunes old records"
+redis = k8s/deploy "Redis" datastore {
+  subtitle: "Deployment"
 }
 
-// Ingress to services
+prune = k8s/cronjob "Prune Job" {
+  description: "Nightly cleanup of old records"
+}
+
+user -> ingress
 ingress -> web_svc
 ingress -> api_svc
-ingress -> worker_svc
-
-// Services to deployments
 web_svc -> web
 api_svc -> api
 worker_svc -> worker
-
-// API data access
 api -> postgres "read/write"
 api -> redis "cache"
-
-// Cronjob to database
-pruner -> postgres "prune"
+prune -> postgres "cleanup"
 
 view cluster {
   title "Kubernetes Platform"
   layout {
-    rows [ingress] [web_svc api_svc worker_svc] [web api worker] [redis postgres pruner]
+    rows [user] [ingress] [web_svc api_svc worker_svc] [web api worker] [redis] [postgres prune]
   }
 }

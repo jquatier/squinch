@@ -1,58 +1,49 @@
-// Payments platform with PCI compliance tagging
+// Payments platform with PCI scope tagging
 pack aws
 
-// API layer
-api = aws/lambda "Payment API" {
-  description: "Handles incoming payment requests"
-  subtitle: "Lambda · Node 20"
-  tags: #pci
-}
+system payments "Payments Platform" {
+  description: "Payment processing and tokenization"
 
-// Payment processing
-tokenizer = aws/lambda "Tokenizer" {
-  description: "Tokenizes card data"
-  subtitle: "Lambda · Node 20"
-  tags: #pci
-}
+  api = aws/lambda "API Handler" {
+    description: "Payment request handler"
+    subtitle: "Lambda · Node 20"
+    tags: #pci
+  }
 
-// Storage
-vault = aws/dynamodb "Card Vault" datastore {
-  description: "Encrypted card data storage"
-  tags: #pci
-}
+  tokenizer = aws/lambda "Tokenizer" {
+    description: "Card tokenization service"
+    subtitle: "Lambda · Python 3.12"
+    tags: #pci
+  }
 
-// Analytics pipeline
-analytics = aws/lambda "Analytics" {
-  description: "Processes payment events"
-  subtitle: "Lambda · Python 3.11"
-}
+  vault = aws/dynamodb "Card Vault" datastore {
+    description: "Encrypted card token storage"
+    tags: #pci
+  }
 
-warehouse = aws/redshift "Warehouse" datastore {
-  description: "Analytics data warehouse"
-}
+  analytics = aws/lambda "Analytics" {
+    description: "Payment analytics processor"
+    subtitle: "Lambda · Python 3.12"
+  }
 
-// Connections
-api -> tokenizer "tokenize card"
-tokenizer -> vault "store token"
-tokenizer ~> analytics "payment event"
-analytics -> warehouse "load data"
+  warehouse = aws/redshift "Data Warehouse" datastore {
+    description: "Analytics and reporting"
+  }
+
+  api -> tokenizer "tokenize card"
+  tokenizer -> vault "store token"
+  api -> analytics "payment event"
+  analytics -> warehouse "aggregate metrics"
+}
 
 view full {
-  title "Payments Platform - Full Architecture"
-  include *
-  legend auto
-  layout {
-    rows [api] [tokenizer] [vault analytics] [warehouse]
-  }
+  title "Payments Platform — Full Architecture"
+  scope payments
 }
 
-view pci {
-  title "Payments Platform - PCI Scope"
-  include *
+view audit {
+  title "Payments Platform — PCI Audit Scope"
+  scope payments
   only #pci
   highlight #pci
-  legend auto
-  layout {
-    rows [api] [tokenizer] [vault]
-  }
 }

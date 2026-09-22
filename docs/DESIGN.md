@@ -122,6 +122,18 @@ it gets none of the marks that imply one.
   an optional `domain:` chip right-aligned. The shelf is drawn only when it has
   something to hold, and a card without one centres its header rather than
   leaving the bottom half empty.
+- **Detailed card** (`preview <path>`, SPEC §5): the same card, taller, never
+  wider. The head keeps its `66`, so the two altitudes of one card line up
+  head to head in a rank. Under it, one `32` row per previewed child (up to
+  three), each under a hairline in the shelf's tone: a `22` plate holding the
+  child's mark at `16`, its name at 12/500 in ink, then its caption at 11
+  in `faint` on the same baseline — a leaf's `subtitle:`, a container's
+  `description:`. The shelf stays — `+N more` and the domain chip when there
+  are any, a bare base when not, so a rank of detailed cards lines up along the
+  bottom — and carries no chips: the rows have named them. Three rows and the
+  shelf make `192`, exactly twice the small card. Wires
+  land on the card, never on a row — the rows are a callout of what is inside,
+  not a claim about which part a wire reaches (docs/notes/preview-card.md).
 - **Stacked sheets**: two outline rects behind every container, offset `4` and
   `8` back and down at opacity .8 and .5. "There is more inside", said by the
   shape before anyone clicks. They bleed past the card rather than being sized

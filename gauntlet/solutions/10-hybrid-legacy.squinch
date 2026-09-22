@@ -1,13 +1,26 @@
 pack aws
 
+// Legacy on-prem system
+erp = sys/server "ERP System" external {
+  description: "Legacy on-premises system"
+}
+
+// AWS components
+sync_worker = aws/lambda "Sync Worker" {
+  description: "Synchronizes data from legacy ERP"
+}
+
+db = aws/rds "Admin Database" datastore
+
+dashboard = sys/app-window "Admin Dashboard" {
+  description: "Web application for administrators"
+}
+
+// Administrators
 person admin "Administrator"
 
-erp    = sys/server  "Legacy ERP" external
-worker = aws/lambda  "Sync Worker"
-db     = aws/rds     "Admin Database" datastore
-web    = sys/app-window "Admin Dashboard"
-
-erp ~> worker "data sync"
-worker -> db
-web -> db
-admin -> web "manages system"
+// Connections
+erp ~> sync_worker "data sync"
+sync_worker -> db
+db -> dashboard
+admin -> dashboard "manages"

@@ -97,7 +97,7 @@ View { kw<"view"> Path ViewBody }
 ViewBody { "{" list<viewStmt> "}" }
 viewStmt {
   TitleStmt | ThemeStmt | ScopeStmt | OnlyStmt | IncludeStmt | ExcludeStmt |
-  DetailStmt | ExpandStmt | ContextStmt | HighlightStmt | ColorStmt | ShowStmt |
+  DetailStmt | ExpandStmt | PreviewStmt | ContextStmt | HighlightStmt | ColorStmt | ShowStmt |
   NoteStmt | LegendStmt | TitleBlockStmt | LayoutBlock
 }
 TitleStmt { kw<"title"> String }
@@ -108,6 +108,10 @@ IncludeStmt { kw<"include"> (Star | TargetList) }
 DetailStmt { kw<"detail"> Path }
 ExcludeStmt { kw<"exclude"> TargetList }
 ExpandStmt { kw<"expand"> (Star | Path) }
+// preview <path> | preview * — draw a card detailed: the children its
+// `preview:` chose as readable rows, still one card, wires still landing on
+// it. The altitude between a card and a frame (SPEC §5).
+PreviewStmt { kw<"preview"> (Star | Path) }
 ContextStmt { kw<"context"> (kw<"auto"> | kw<"off">) }
 HighlightStmt { kw<"highlight"> Tag (","? Tag)* }
 // one tag per statement, by design: `color #pci red` reads as a sentence, and

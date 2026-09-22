@@ -273,6 +273,32 @@ view full {
 }
 ```
 
+Between a card and an open frame there is one more altitude: **`preview
+<path>`** (or `preview *`) draws a card **detailed** — the children its
+`preview:` attr names (§ containers; up to three, `auto` takes the first three
+declared) as readable rows under the head, `+N more` on the shelf for the
+rest. It is still a card: every wire lands on it, nothing attaches to a row,
+and a dive opens the container. Reach for it on the *landscape*, when the
+reader should see what a system is made of without opening it — a domain and
+its capabilities, a platform and its services — and only where those children
+carry a `description:` or `subtitle:`; three bare names say little more than
+the chips. Do not put it on every view: a dense view has no room for a card
+twice its height, and `preview` beside `expand` on the same container is an
+error.
+
+```squinch
+system orders "Orders" {
+  description: "Order lifecycle, cart to refund"
+  preview: [checkout fulfillment returns]   // what the card calls out
+  system checkout "Checkout" { description: "Cart to confirmed order" … }
+  …
+}
+view landscape {
+  include *
+  preview orders            // the Orders card, with its three parts named
+}
+```
+
 Numbered flows badge a request's path over **edges that already exist** — a
 flow annotates the model, it never creates connections. A step with no edge
 behind it is a check error telling you to declare the edge first (steps count
@@ -336,6 +362,13 @@ system needs none of this: keep it flat.
   click down. `view full { expand * }` is for when they ask for everything at
   once. Say in your hand-over how you grouped it, so the reader can ask you
   to open an area up rather than start over.
+- **Let the landscape say what each area is made of.** Give every area a
+  `description:`, and when its parts are things the reader would recognise —
+  the services of a platform, the capabilities of a domain — name the three
+  that matter in `preview: [a b c]` and put `preview *` on the landscape view.
+  Each card then lists those three under its name, still as one card, and the
+  reader knows what is inside before clicking. Only there: a zoomed view has no
+  room for cards twice the height.
 
 Zoomed views automatically show outside neighbours as muted **context** cards —
 don't add them yourself; if one appears that you don't want, `context off`.

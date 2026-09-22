@@ -1279,7 +1279,8 @@ export function buildProject(input: ProjectFile[]): BuildResult {
     const body = bodyNode;
     const view: SView = {
       name,
-      only: [], include: [], includeStar: false, exclude: [], expand: [], expandStar: false, detail: [],
+      only: [], include: [], includeStar: false, exclude: [], expand: [], expandStar: false,
+      preview: [], previewStar: false, detail: [],
       context: "auto", highlight: [], colors: [], legend: false, notes: [],
       layout: { place: [], routes: [], align: [], channels: [] },
       loc: ctx.loc(v), file: ctx.name,
@@ -1362,6 +1363,14 @@ export function buildProject(input: ProjectFile[]): BuildResult {
       const path = ex.getChild("Path");
       const r = path && resolve(ctx.text(path), inScope, ex, ctx);
       if (r) view.expand.push(r);
+    }
+    // `preview` reads exactly as `expand` does; what it means of the target is
+    // the view layer's call, beside the expand diagnostics it mirrors.
+    for (const pv of body.getChildren("PreviewStmt")) {
+      if (pv.getChild("Star")) { view.previewStar = true; continue; }
+      const path = pv.getChild("Path");
+      const r = path && resolve(ctx.text(path), inScope, pv, ctx);
+      if (r) view.preview.push(r);
     }
     const ctxStmt = body.getChildren("ContextStmt")[0];
     if (ctxStmt) view.context = ctxStmt.getChild("off") ? "off" : "auto";
@@ -1600,7 +1609,8 @@ export function buildProject(input: ProjectFile[]): BuildResult {
       name: path,
       scope: path,
       auto: true,
-      only: [], include: [], includeStar: false, exclude: [], expand: [], expandStar: false, detail: [],
+      only: [], include: [], includeStar: false, exclude: [], expand: [], expandStar: false,
+      preview: [], previewStar: false, detail: [],
       context: "auto", highlight: [], colors: [], legend: false, notes: [],
       layout: { place: [], routes: [], align: [], channels: [] },
       loc: model.containers.get(path)!.loc,

@@ -3,8 +3,7 @@ pack aws
 gw = aws/api-gateway "API Gateway"
 
 system catalog "Catalog Service" {
-  description: "Product catalog and inventory management"
-  icon: aws/lambda
+  description: "Product catalog and inventory"
 
   api = aws/lambda "Catalog API"
   db = aws/dynamodb "Catalog DB" datastore
@@ -14,20 +13,18 @@ system catalog "Catalog Service" {
 
 system checkout "Checkout Service" {
   description: "Shopping cart and order processing"
-  icon: aws/lambda
 
   api = aws/lambda "Checkout API"
-  db = aws/dynamodb "Checkout DB" datastore
+  db = aws/dynamodb "Orders DB" datastore
 
   api -> db
 }
 
 system identity "Identity Service" {
-  description: "User authentication and authorization"
-  icon: aws/lambda
+  description: "Authentication and user management"
 
   api = aws/lambda "Identity API"
-  db = aws/dynamodb "Identity DB" datastore
+  db = aws/dynamodb "Users DB" datastore
 
   api -> db
 }

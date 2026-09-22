@@ -171,3 +171,56 @@ describe("both palettes stay mergeable", () => {
     expect(validateSVG(r.svg!).ok).toBe(true);
   });
 });
+
+describe("the detailed card (`preview <path>`)", () => {
+  // Five leaves, the first three previewed: three rows and a `+2 more` shelf.
+  const view = (extra = "") => `pack aws
+system s "System" {
+${extra}
+  a = aws/lambda "A" { subtitle: "Lambda" }
+  b = aws/dynamodb "B" datastore
+  c = aws/sqs "C"
+  d = aws/s3 "D"
+  e = aws/elasticache "E"
+}
+t = aws/lambda "T"
+t -> s
+view main { include *\n preview s }`;
+  // `group` stops at the first </g>, and a card's clipped parts each close
+  // one, so the detailed card is asserted over the whole document: it is the
+  // only card in it.
+  const draw = async (extra = "", theme = "light") => {
+    const r = await render(view(extra), { view: "main", theme });
+    expect(r.ok, JSON.stringify(r.diagnostics)).toBe(true);
+    expect(validateSVG(r.svg!).ok).toBe(true);
+    return r.svg!;
+  };
+
+  it("keeps the head at 66 and hangs 32px rows under it: 66 + 3×32 + 30 = 192", async () => {
+    const s = await draw();
+    expect(s).toMatch(/<rect x="\d+" y="\d+" width="\d+" height="192" rx="8" fill="url\(#sq-surface\)"/);
+    // a hairline opens each row, in the card's own coordinates
+    for (const y of [66, 98, 130]) expect(s).toContain(`<line x1="3" y1="${y}" x2=`);
+    // the rows name the children; the shelf says how many more, and has no chips
+    expect(s).toContain(">A<");
+    expect(s).toContain(">+2 more<");
+    // 16px marks: one per row, and none on the shelf (the leaf T draws its mark at 26)
+    expect((s.match(/<use [^>]*width="16" height="16"/g) ?? []).length).toBe(3);
+  });
+
+  it("keeps its shelf even with nothing to put on it, so a rank of detailed cards lines up", async () => {
+    // three children, all previewed, no domain: the shelf is a bare base — still 192
+    const src = `pack aws\nsystem s "S" {\n a = aws/lambda "A"\n b = aws/sqs "B"\n c = aws/s3 "C"\n}\nt = box "T"\nt -> s\nview main { include *\n preview s }`;
+    const r = await render(src, { view: "main", theme: "light" });
+    expect(r.ok).toBe(true);
+    expect(r.svg!).toMatch(/height="192" rx="8" fill="url\(#sq-surface\)"/);
+    expect(r.svg!).not.toContain(" more<");
+  });
+
+  it("stays mergeable across both palettes", async () => {
+    const r = await render(view(`  domain: "core"`), { view: "main", theme: "light", adaptive: true });
+    expect(r.ok, JSON.stringify(r.diagnostics)).toBe(true);
+    expect(r.svg).toContain("@media (prefers-color-scheme: dark)");
+    expect(validateSVG(r.svg!).ok).toBe(true);
+  });
+});

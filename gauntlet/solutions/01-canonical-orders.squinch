@@ -1,41 +1,42 @@
 pack aws
 
-// API layer
+// API Gateway entry point
 gw = aws/api-gateway "API Gateway"
 
 // Lambda handlers
 create = aws/lambda "Create Handler"
-get    = aws/lambda "Get Handler"
+get = aws/lambda "Get Handler"
 search = aws/lambda "Search Handler"
 
-// Data stores
-db     = aws/dynamodb  "Orders Table" datastore
-files  = aws/s3        "Files Bucket" datastore
-idx    = aws/opensearch "Search Index" datastore
+// Storage and search
+db = aws/dynamodb "DynamoDB Table" datastore
+files = aws/s3 "S3 Bucket" datastore
+idx = aws/opensearch "OpenSearch Index" datastore
 
 // Stream processor
-sync   = aws/lambda "Index Sync" {
-  description: "Keeps OpenSearch up to date"
+sync = aws/lambda "Index Sync Handler" {
+  description: "Updates OpenSearch from DynamoDB stream"
 }
 
-// Connections - sync edges
+// Connections - API Gateway to handlers
 gw -> create
 gw -> get
 gw -> search
 
+// Handlers to storage
 create -> db
 create -> files
-get    -> db
-get    -> files
+get -> db
+get -> files
 search -> idx
 
-// Async edge - DynamoDB stream
+// Async stream processing
 db ~> sync "DynamoDB stream"
 sync -> idx
 
-view main {
-  title "Lambda-based API Architecture"
+view api {
+  title "Lambda-based API"
   layout {
-    rows [gw] [create get search] [db files sync] [idx]
+    rows [gw] [create get search] [db files] [sync idx]
   }
 }

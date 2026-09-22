@@ -1,24 +1,36 @@
-exchange       = sys/building-2  "Exchange" external
-feed_handler   = sys/radio-tower "Feed Handler" {
-  description: "Ingests and normalises the price stream"
-}
-pricing_engine = sys/gauge       "Pricing Engine"
-trading_ui     = sys/app-window  "Trading UI"
-risk_service   = sys/shield-check "Risk Service"
-recon          = sys/repeat      "Overnight Reconciliation"
-clearing_house = sys/building-2  "Clearing House" external
+// Market data processing system
 
-exchange       ~> feed_handler   "price stream"    { tags: #continuous }
-feed_handler   ~> pricing_engine "ticks"            { tags: #continuous }
-pricing_engine ~> trading_ui     "price updates"    { tags: #continuous }
-risk_service   -> pricing_engine "health check"     { tags: #poll, animate: pulse }
-recon          ~> clearing_house "reconcile fills"  { tags: #nightly, animate: slow }
+exchange = box "Exchange" external
+clearing = box "Clearing House" external
+
+system market "Market Data" {
+  description: "Real-time price ingestion and distribution"
+
+  feed     = sys/antenna "Feed Handler"
+  norm     = sys/cog "Normaliser"
+  pricing  = sys/gauge "Pricing Engine"
+  batch    = sys/clock "Reconciliation Batch"
+
+  feed -> norm "stream" { animate: packets }
+  norm ~> pricing "ticks" { animate: packets }
+  batch -> clearing "reconcile fills (nightly)"
+
+  layout {
+    rows [feed] [norm] [pricing batch]
+  }
+}
+
+ui   = sys/monitor "Trading UI"
+risk = sys/shield "Risk Service"
+
+exchange ~> market.feed "price stream" { animate: packets }
+market.pricing ~> ui "subscribe" { animate: packets }
+risk -> market.pricing "health poll (every few seconds)" { animate: pulse }
 
 view landscape {
-  title "Market Data Path"
-  include *
-  color #continuous teal
-  color #poll violet
-  color #nightly amber
-  legend auto
+  title "Market Data Flow"
+  expand market
+  layout {
+    rows [exchange] [market risk] [ui]
+  }
 }

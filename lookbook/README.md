@@ -491,3 +491,21 @@ Source: [`cases/40-subtitles.squinch`](cases/40-subtitles.squinch)
 | light | dark |
 |---|---|
 | ![](out/40-subtitles.captions.light.svg) | ![](out/40-subtitles.captions.dark.svg) |
+
+## Preview Card
+
+The detailed card. A domain is a system whose children are systems, and at landscape altitude its card can say what those are: `preview *` draws every card with the three children its `preview:` names as readable rows — icon, name, description — under the same head, with `+N more` on the shelf for the rest. Still a card: every wire lands on it, and a dive opens the whole domain. Orders and Customers name their three; Catalog leaves `preview:` off and gets the first three declared. The second view is the same model with the verb removed — the chips are the same three, at 16px.
+
+Source: [`cases/41-preview-card.squinch`](cases/41-preview-card.squinch)
+
+**`landscape`**
+
+| light | dark |
+|---|---|
+| ![](out/41-preview-card.landscape.light.svg) | ![](out/41-preview-card.landscape.dark.svg) |
+
+**`chips`**
+
+| light | dark |
+|---|---|
+| ![](out/41-preview-card.chips.light.svg) | ![](out/41-preview-card.chips.dark.svg) |

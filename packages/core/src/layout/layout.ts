@@ -25,6 +25,13 @@ const PERSON_H = 56;
 const GLYPH_CHIP = 26;
 /** The shelf strip along a card's bottom: child icons, `+N`, domain chip. */
 export const SHELF_H = 30;
+/** One row of a detailed card (`preview <path>`): a 22 plate and a name with
+ *  its caption, under a hairline. Three rows make the card exactly 2×CARD_H. */
+export const ROW_H = 32;
+/** The head of a card that has a shelf — plate, title, tagline. A detailed
+ *  card keeps it at this height and grows below it, so the two altitudes of one
+ *  card line up head to head in a rank. */
+export const CARD_HEAD_H = 66;
 /** How far the stacked sheets bleed past a container, right and below. Not
  *  added to the node's size on purpose — see the comment at `canvasExtent`. */
 export const SHEET_BLEED = 8;
@@ -190,11 +197,24 @@ function sizeOf(n: VNode, font: Pick<ThemeFont, "metrics" | "scale">): { w: numb
     // The text column now starts after an icon plate and ends before the
     // glyph chip, so both come out of the width rather than letting the label
     // run under either.
-    const need = PAD + PLATE + PAD + Math.max(
+    const headNeed = PAD + PLATE + PAD + Math.max(
       measure(n.label, fx(15), "500", fam),
       measure(n.tagline ?? "", fx(11), "400", fam),
     ) + PAD + GLYPH_CHIP + PAD;
-    return { w: CARD_TIERS.find((t) => t >= need) ?? CARD_TIERS[CARD_TIERS.length - 1], h: CARD_H };
+    // A detailed card's rows widen the tier the way a tagline does: a 22 plate,
+    // the name at 12/500, then its caption at 11 — the widest row sets the need.
+    const rows = n.detailed ? n.rows ?? [] : [];
+    const rowNeed = Math.max(0, ...rows.map((r) =>
+      PAD + 22 + 10 + measure(r.label, fx(12), "500", fam) +
+      (r.subtitle ? 8 + measure(r.subtitle, fx(11), "400", fam) : 0) + PAD));
+    const need = Math.max(headNeed, rowNeed);
+    // Detailed: the head stays where it is, the rows hang below it, and the
+    // shelf always closes the card — with `+N more` and the domain chip when
+    // there are any, as a bare base when not. Always, because a rank of
+    // detailed cards (`preview *`) must line up along the bottom as well as
+    // the top, and because 66 + 32·n lands off the 8px grid without it.
+    const h = n.detailed ? CARD_HEAD_H + ROW_H * rows.length + SHELF_H : CARD_H;
+    return { w: CARD_TIERS.find((t) => t >= need) ?? CARD_TIERS[CARD_TIERS.length - 1], h };
   }
   // A subtitle widens the tier the way a card's tagline does: the smallest
   // tier leaves 44px of text room, which would clip nearly every one. The

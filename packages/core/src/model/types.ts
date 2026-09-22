@@ -145,6 +145,12 @@ export interface SView {
   /** `expand *` — open every visible container to leaf depth, frames nesting
    *  as they go (SPEC §5). The depth counterpart of `includeStar`'s breadth. */
   expandStar: boolean;
+  /** `preview <path>` — draw that card detailed: the children its `preview:`
+   *  chose, as rows under the head. Still a card (wires land on it); the
+   *  altitude between a card and an expanded frame. */
+  preview: string[];
+  /** `preview *` — every card this view shows, detailed. */
+  previewStar: boolean;
   /** Outside elements to draw at their own depth instead of as their top-level
    *  card. Split out of `include`, which used to carry this second meaning. */
   detail: string[];

@@ -1,6 +1,6 @@
 pack aws
 
-// 14-step nightly batch pipeline
+// Nightly batch pipeline - 14 sequential Lambda steps
 extract   = aws/lambda "Extract"
 validate  = aws/lambda "Validate"
 dedupe    = aws/lambda "Dedupe"
@@ -16,7 +16,7 @@ catalog   = aws/lambda "Catalog"
 verify    = aws/lambda "Verify"
 notify    = aws/lambda "Notify"
 
-// Sequential flow
+// Sequential chain
 extract -> validate
 validate -> dedupe
 dedupe -> normalize
@@ -35,6 +35,6 @@ view pipeline {
   title "Nightly Batch Pipeline"
   include *
   layout {
-    wrap 5
+    wrap 5  // fold the chain into landscape format
   }
 }

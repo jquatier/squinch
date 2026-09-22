@@ -205,11 +205,14 @@ init/watch + sync/check model + Actions), the SPA playground, the VS Code
 extension + language server, six icon packs, and the light/dark pair. The acceptance
 bar — an agent producing clean diagrams from prose using only the skill + CLI —
 is certified at **35/35
-by independent cold agents** on the committed corpus; the latest round scored
-34/35 with **22/35 clean on the first `check`** (round 26, which added two
-large-system prompts and the skill's "When the system is big" section — the
-one miss, `21-market-data`, is that prompt's own variance and keeps round 25's
-answer). Positional tags work on nodes, container heads and
+by independent cold agents** on the committed corpus; the latest full round scored
+33/35 with **19/35 clean on the first `check`** (round 27, run for the detailed
+card and its skill prose — zero of 35 reached for `preview` until a bullet was
+added where the large-system prompts send agents, "When the system is big";
+a subset re-run then had two of six use it, on the landscape only, and took the
+two misses, both large-system prompts, back to passing — 35's new answer then
+failed the invariant sweep on a pre-existing coplanar co-ranking defect, so the
+corpus keeps round 26's for it). Positional tags work on nodes, container heads and
 edges; a comma is optional wherever whitespace already separates. `gauntlet/README.md` writes up the latest round only: every round's
 findings land as a code or docs change in the same commit, so the fixes are the
 record. The number is never the point — a round that scores full marks and
@@ -311,6 +314,15 @@ what `include` used to smuggle — draw an outside node at its own depth rather
 than as its system card — and splitting that out is what made `only` possible at
 all: a verb that also controls altitude cannot be redefined to control
 membership. Rule stack: SPEC §5.
+**The detailed card** (2026-09): `preview <path>` / `preview *` in a view draws a
+collapsed card taller, with the children its `preview:` attr names as readable
+rows (up to three; `auto` = the first three declared, *direct* children — a
+nested container is one row wearing its card face). Still a card: wires land on
+it, a dive opens it, `only`/context never see the rows. The list lives on the
+container (a fact about the system), the verb in the view (a fact about this
+picture) — `docs/notes/preview-card.md` has the rejected shapes (filtered frame,
+tile strip, auto top-N). The same work made `preview: [a b]` actually parse; SPEC
+had promised it from v0 and the strip silently showed the first three leaf icons.
 **Pan and zoom** (2026-09) is one camera shared by the playground and the
 interactive export: `view/camera.ts` is the arithmetic, `view/camera-dom.ts` the
 controller (browser entry only, unstable), bundled into the export's runtime and

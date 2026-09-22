@@ -8,7 +8,7 @@ import { iconAsset, symbolId } from "../packs/registry.js";
 import type { Theme } from "../themes/index.js";
 // SHELF_H is layout's: the shelf is inside the card height it sets, so the
 // strip the renderer fills and the room the card reserves are one number.
-import { pillDims, NOTE_GUTTER, SHELF_H } from "../layout/layout.js";
+import { pillDims, NOTE_GUTTER, SHELF_H, ROW_H, CARD_HEAD_H } from "../layout/layout.js";
 import type { Positioned, PEdge, PNode, PZone, PFrame } from "../layout/layout.js";
 import type { EdgeAnimate, Hue, SNote, ZoneKind } from "../model/types.js";
 import { hueOf } from "../themes/index.js";
@@ -610,7 +610,13 @@ function card(n: PNode, rc: RC, dimmed: boolean, L: string[]) {
   // surface (the gradient's lower tone) under a hairline, so it reads as one
   // object with a divided base rather than a card sitting on a bar. Drawn only
   // when it has something to hold — an empty strip is just a taller card.
-  const hasShelf = !!(n.preview.length || n.more || n.domain);
+  // A detailed card (`preview <path>`) draws its previewed children as rows
+  // under the head instead of as chips, so its shelf keeps only what the rows
+  // do not say — the `+N more` and the domain chip. It keeps the shelf even
+  // when both are absent: the rows need a base to sit on, and a rank of
+  // detailed cards lines up along the bottom (layout sizes it the same way).
+  const rows = n.detailed ? n.rows ?? [] : [];
+  const hasShelf = rows.length > 0 || !!(n.preview.length || n.more || n.domain);
   if (hasShelf)
     L.push(inCard(
       `<rect x="3" y="${n.h - SHELF_H}" width="${n.w - 3}" height="${SHELF_H}" fill="${t.surfaceLo}"/>` +
@@ -622,7 +628,9 @@ function card(n: PNode, rc: RC, dimmed: boolean, L: string[]) {
   // The card's own mark, on the tile a leaf's icon sits on. The header row is
   // top-aligned in the body it shares with the shelf; with no shelf there is
   // no body to share, so it centres instead of leaving the bottom half empty.
-  const bodyH = hasShelf ? n.h - SHELF_H : n.h;
+  // A detailed card keeps its head at the small card's height and grows below
+  // it, so the two altitudes of one card line up head to head in a rank.
+  const bodyH = rows.length ? CARD_HEAD_H : hasShelf ? n.h - SHELF_H : n.h;
   const px = n.x + PAD + 5, py = n.y + Math.round((bodyH - PLATE) / 2);
   if (n.icon) L.push(iconTile(n.icon, px, py, rc, ctx));
   const tx = n.icon ? px + PLATE + PAD : n.x + PAD + 6;
@@ -660,16 +668,50 @@ function card(n: PNode, rc: RC, dimmed: boolean, L: string[]) {
         `<text x="${gx + GLYPH_CHIP / 2}" y="${gy + 17}" text-anchor="middle" font-size="${rc.fx(10)}" font-weight="500" fill="${t.muted}">${esc(meta.code)}</text>`,
       );
   }
+  // The detailed card's rows: under the head, one line per previewed child —
+  // a 22 plate with its mark, its name at 12/500, its caption at 11 in faint —
+  // each under a hairline in the shelf's tone. What the chips say at 16px,
+  // said at reading size. Still one card: nothing here is an edge target, and
+  // a wire into the system lands on the card exactly as it lands on the small
+  // one (docs/notes/preview-card.md).
+  if (rows.length) {
+    const ROW_PLATE = 22;
+    const right = n.x + n.w - CARD_INSET;
+    rows.forEach((r, i) => {
+      const top = CARD_HEAD_H + i * ROW_H;
+      const ry = n.y + top;
+      L.push(inCard(`<line x1="3" y1="${top}" x2="${n.w}" y2="${top}" stroke="${t.shelfLine}" stroke-width="1"/>`));
+      const rpx = n.x + CARD_INSET + 4;
+      L.push(`<rect x="${rpx}" y="${ry + 5}" width="${ROW_PLATE}" height="${ROW_PLATE}" rx="4" fill="${t.plate}"/>`);
+      L.push(iconPlate(r.icon, rpx + 3, ry + 8, 16, rc, ctx));
+      const lx = rpx + ROW_PLATE + 10;
+      const label = fit(r.label, right - lx, rc.fx(12), "500", rc.fam);
+      L.push(
+        `<text x="${lx}" y="${ry + 20}" font-size="${rc.fx(12)}" font-weight="500" fill="${t.ink}">${esc(label)}</text>`,
+      );
+      if (r.subtitle) {
+        const sx = lx + Math.ceil(measure(label, rc.fx(12), "500", rc.fam)) + 8;
+        // below two dozen pixels a caption is an ellipsis and nothing else
+        if (right - sx >= 24)
+          L.push(
+            `<text x="${sx}" y="${ry + 20}" font-size="${rc.fx(11)}" fill="${t.faint}">${esc(fit(r.subtitle, right - sx, rc.fx(11), "400", rc.fam))}</text>`,
+          );
+      }
+    });
+  }
   // Shelf contents. The bed itself went down with the surface, above.
   if (hasShelf) {
     const sy = n.y + n.h - SHELF_H;
     let ix = n.x + CARD_INSET;
-    for (const icon of n.preview) {
+    // the rows have already named these; the chips would say it twice
+    for (const icon of rows.length ? [] : n.preview) {
       L.push(iconPlate(icon, ix, sy + 7, 16, rc, ctx));
       ix += 22; // 16 of icon + a 6 gap, the shelf's rhythm
     }
     if (n.more) {
-      const label = `+${n.more}`;
+      // "+1" beside three chips reads as a count; alone on a shelf under rows
+      // it needs the noun
+      const label = rows.length ? `+${n.more} more` : `+${n.more}`;
       L.push(
         `<text x="${ix}" y="${sy + 19}" font-size="${rc.fx(11)}" font-weight="500" fill="${t.muted}">${label}</text>`,
       );

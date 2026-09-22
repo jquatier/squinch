@@ -1,56 +1,76 @@
 // Warehouse floor automation system
 
-supervisor = person "Shift Supervisor"
+person supervisor "Shift Supervisor"
 
-scanner1 = sys/scan "Packing Bench 1" {
-  subtitle: "Barcode Scanner"
-}
-scanner2 = sys/scan "Packing Bench 2" {
-  subtitle: "Barcode Scanner"
-}
-scanner3 = sys/scan "Packing Bench 3" {
-  subtitle: "Barcode Scanner"
+system floor "Warehouse Floor" {
+  description: "Automated packing and sorting"
+
+  // Packing stations
+  scan1 = sys/router "Scanner 1" {
+    subtitle: "Bench A"
+  }
+  scan2 = sys/router "Scanner 2" {
+    subtitle: "Bench B"
+  }
+  scan3 = sys/router "Scanner 3" {
+    subtitle: "Bench C"
+  }
+
+  // Local control system
+  ctrl = sys/server "Floor Controller" {
+    description: "Coordinates packing floor automation"
+    subtitle: "Local PLC"
+  }
+
+  // Automation equipment
+  sorter = sys/workflow "Conveyor Sorter" {
+    description: "Routes packages to shipping lanes"
+  }
+  printer = sys/printer "Label Printer" {
+    description: "Shipping labels"
+  }
+
+  // Monitoring
+  board = sys/monitor "Status Board" {
+    description: "Live floor status display"
+  }
+
+  // Scanners feed controller
+  scan1 -> ctrl
+  scan2 -> ctrl
+  scan3 -> ctrl
+
+  // Controller drives equipment
+  ctrl -> sorter
+  ctrl -> printer
+
+  // Controller updates status board
+  ctrl -> board
+
+  layout {
+    rows [scan1 scan2 scan3] [ctrl] [sorter printer board]
+  }
 }
 
-controller = sys/cpu "Floor Controller" {
-  description: "Orchestrates packing automation"
-  subtitle: "Local PLC"
-}
-
-sorter = sys/route "Conveyor Sorter" {
-  description: "Routes packages to lanes"
-}
-
-printer = sys/printer "Label Printer"
-
-board = sys/monitor "Status Board" {
-  description: "Real-time floor status"
-}
-
-erp = sys/server "ERP System" {
+// Enterprise system (off-site or back office)
+erp = sys/database "ERP System" external {
   description: "Enterprise resource planning"
-  subtitle: "Site Network"
 }
-
-// Scanners feed controller in real-time
-scanner1 ~> controller "scan events"
-scanner2 ~> controller "scan events"
-scanner3 ~> controller "scan events"
-
-// Controller drives physical devices
-controller -> sorter "routing commands"
-controller -> printer "print jobs"
 
 // Controller syncs to ERP periodically
-controller ~> erp "sync every minute"
+floor.ctrl ~> erp "sync batch (every 60s)"
 
-// Supervisor monitors the floor
-controller -> board "status updates"
-board -> supervisor
+// Supervisor monitors status
+supervisor -> floor.board "watches"
 
-view warehouse {
+zone site "Site Network" network {
+  contains floor, erp
+}
+
+view main {
   title "Warehouse Floor Automation"
+  expand floor
   layout {
-    rows [scanner1 scanner2 scanner3] [controller] [sorter printer] [board] [supervisor] [erp]
+    rows [supervisor] [site]
   }
 }

@@ -65,88 +65,60 @@ nothing.
 
 ## Latest round
 
-**Round 26 — 34/35 on the deep scorer; 22 of 35 clean on the first `check`**
-(2026-09-18, Sonnet). Run for two new prompts about a *large* system (34, 35)
-and the skill section written for them, "When the system is big". The pattern
-behind it: people drop an agent into a big repo, say "diagram the system", and
-get one enormous page or a landscape with every backend in a row, where they
-wanted altitudes. No outside-sandbox read; no agent looked at a render.
+**Round 27 — 33/35 on the deep scorer; 19 of 35 clean on the first `check`**
+(2026-09-21, Sonnet). Run for the detailed card — `preview <path>` in a view,
+and the `preview: [a b c]` list on a container that it draws — and for the
+skill prose written for it. The question was not the score: it was how often
+cold agents reach for a new verb that is right on a landscape and wrong on
+every other view, and whether they overreach.
 
-**The one miss is not this round's change.** `21-market-data` wrote a single
-`animate:` value where the prompt's three cadences need two. The same agent
-failure appeared three days earlier in a subset run on the *previous* skill, so
-it is that prompt's own variance. The corpus keeps round 25's answer for 21 —
-the only one of the thirty-five not authored this round or its re-runs — which
-is why CI scores 35/35 while the round scored 34.
+**Nobody reached for it.** Zero of thirty-five answers wrote `preview:` or
+`preview`, and no agent mentioned it in its own reasoning. The paragraph sat
+in the Views section, after the `expand *` example; the prompts where the card
+earns its height are the large-system ones, and those send an agent to "When
+the system is big", which said nothing about it. Round 26 measured this
+already — placement beats wording — and it held: prose 60 lines from where the
+agent is looking moves nobody.
 
-**What the new prompts showed, measured before the round over twenty-two cold
-sessions** (two prompts, the current skill against four wordings):
+**One bullet, then a subset.** "When the system is big" gained a bullet: give
+every area a `description:`, name the three recognisable parts in `preview:`,
+put `preview *` on the landscape view, and only there. Re-run cold on the six
+prompts where the card is defensible (04, 16, 28, 29, 34, 35): 6/6, 3 of 6 clean
+on the first `check`, and **two of six reached for it** — 28 ("just enough
+that a new engineer knows") wrote `preview orders`; 35 (the monorepo) wrote
+`preview *` on its landscape, six domain cards each naming three services.
+Both put it on the landscape only, both had written descriptions for the
+children, and neither hit a `preview` diagnostic. The three that did not use
+it (04, 16, 29) are small systems, where the bullet does not apply. That is
+the intended rate: the verb is opt-in, and the skill now puts it where the
+decision is made.
 
-- *Agents use structure they are handed and rarely invent it.* Given domain
-  folders (35), every agent grouped by folder with or without the new section;
-  what the section added there was a declared view per area. Given sixteen
-  services and no grouping (34), both control agents drew them flat, around
-  twenty things across a 2200px landscape.
-- *Placement beat wording.* Every agent read the whole skill, planned by
-  transcribing the prompt's list, and several wrote "16 backend services" in
-  that plan before drawing sixteen cards. The section alone, 300 lines in,
-  moved nobody. A two-sentence step 0 at the top of the loop produced the
-  only well-grouped answers — about one in four on 34.
-- *Grouping advice gets satisfied the cheapest way.* The first wording got
-  all sixteen services in one `backend` system from both agents: a tidy
-  landscape, and thirty-six boxes one click down. Hence "it holds at every
-  altitude".
-- *One agent made it worse*: sixteen systems, all listed in one `rows` band,
-  a strip nearly 6000px wide. Hence the sentence telling agents never to
-  answer a fan-out that way.
+**The two misses were the large-system prompts, and 34 needs saying plainly.**
+35 wrote one view in the full run and three in a re-run — variance. 34 drew
+all sixteen services flat, no systems, one view — *twice*, in the full run and
+in a two-prompt re-run on the same skill, where round 26 had it grouping about
+one time in four. The only skill change between the rounds was the `preview`
+paragraph in an unrelated section, so two flat answers in a row read as the
+prompt's known variance rather than a regression; the third run, with the new
+bullet (which says "area" again, one line from the grouping advice), grouped
+into four areas. 34 stays the prompt where a future skill change will show.
 
-So this is guidance, not a fix: prose moves the ungrouped case only partly,
-and 34 is the prompt where a future skill or engine change will show. It was
-kept deliberately free of numbers — no "at most N boxes", no aspect ratio. A
-`check` size warning was designed and dropped for the same reason, and because
-the maintainer preferred a wide six-across landscape to a squarer one: shape is
-not a quality measure. Both new prompts score on having used altitudes
-(`minSystems`, `minViews`, `requireNarrowerView`), not on size.
+**A router defect, surfaced and not fixed here.** 35's `preview *` answer
+draws a top-level Kafka bus that every domain publishes to and consumes from —
+`catalog.products -> kafka` and `kafka ~> catalog.indexer`, a two-node cycle
+once both lift to the landscape. The invariant sweep (`test/invariants.ts`)
+fails it three ways: two coplanar wires end on no boundary (the router took
+catalog and kafka for one rank — both carry rank 31 — while ELK laid kafka a
+band below), and the lifted label "products updated" lands on the Event Bus
+leaf. It reproduces with `preview *` removed, so it is the co-ranking of a
+mutual pair, not the detailed card (`docs/notes/coplanar.md` territory). The
+corpus therefore keeps round 26's answer for 35 — the invariants are a CI gate
+— and round 27's is saved under `.run/round27-findings/` for the fix. Also
+seen: 35's agent guessed `view identity, catalog, commerce` (a view list) and
+`highlight commerce.checkout` (a path where a tag goes) — two syntax errors and
+ten `check` calls, the round's most expensive prompt.
 
-**Two router defects, both fixed in this commit.** The new answers drew two
-things the corpus never had, and the invariant sweep caught both as a coplanar
-wire ending on no boundary (`docs/notes/coplanar.md`, "Round 26"):
-
-- *An edge from an area itself.* `31-checkout-tiers` wrote `checkout ~>
-  fulfillment` with `checkout` expanded. The router's straight branch took the
-  frame for a bare leaf, ran the wire at the frame's mid-height and stopped it
-  in empty canvas below a one-card neighbour. A container endpoint now jogs
-  through the gutter like any other unit. No existing render moved.
-- *A band the layouter could not keep.* 35 banded six areas in one row and left
-  the Kafka bus they all talk through out of `rows`. ELK layered four of the
-  areas below the bus, the band came back as two tiers, the hint was silently
-  not honoured, and the router drew `commerce → fulfilment` as a 12px stub. It
-  is now a check error naming the wedge and writing the `rows` line that
-  passes. Zero of the corpus's 67 views with `rows` trip it; every hit was a
-  large-system answer. 35 was re-run cold against the fixed engine and that
-  answer is the one committed — the agent listed the bus itself and never met
-  the new error.
-
-**The committed answers, as drawn.** 34 grouped into four areas — the good
-outcome, about one in four in the runs before the round — but banded them one
-per row, so its landscape is a tall strip, and its second view still opens all
-four at once. 35 grouped by folder with three declared views. Neither was
-re-rolled for a better-looking sample: the corpus is a record, and a re-roll
-hides the real rate.
-
-**A third fix, the silent kind.** A container's `icon:` was never validated,
-where its `glyph:` and a zone's `icon:` are. The first 35 answer wrote `icon:
-sys/shopping-cart` and 15 wrote `icon: k8s/k8s`; neither exists, `check` passed
-clean, and each card drew a `?` tile. Grouping guidance makes agents write more
-container icons, so this was going to recur. It is the same two errors as
-`glyph:` now, with the did-you-mean. 15 was re-run cold against the check, as
-35 was against the router fix, and those re-runs are what is committed.
-
-Also seen: the new prompts were the round's most expensive, seven and ten
-`check` calls (six on 35's re-run) — hint conflicts inside the areas they
-created, the rank-conflict class that survives the skill. `subtitle:` held at
-eighteen of thirty-five.
-
-The corpus in `solutions/` is this round's answers for thirty-four prompts and
-round 25's for `21-market-data`, cold-authored and deep-scored, none
+The corpus in `solutions/` is this round's answers for thirty-four prompts —
+the full run's for twenty-nine and the subset's for 04, 16, 28, 29 and 34 —
+and round 26's for 35, all cold-authored and deep-scored at 35/35, none
 re-authored.

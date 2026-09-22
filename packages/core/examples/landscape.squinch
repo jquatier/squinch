@@ -38,6 +38,12 @@ view landscape {
   include *
 }
 
+view landscape-preview {
+  title "System Landscape — with a look inside"
+  include *
+  preview orders            // the card, detailed: api, handlers, db as rows
+}
+
 view orders {
   scope orders
 }

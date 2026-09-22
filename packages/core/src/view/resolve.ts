@@ -23,6 +23,15 @@ export interface VNode {
   preview: { pack: string; id: string }[];
   /** Direct children beyond the ones `preview` shows — the shelf's `+N`. */
   more?: number;
+  /** The view asked for this card detailed (`preview <path>` / `preview *`):
+   *  the children in `preview` drawn as `rows` under the head, the shelf
+   *  keeping only `+N more` and the domain chip. Still a card — wires land on
+   *  it exactly as on the small one. Never set on a context card. */
+  detailed?: boolean;
+  /** One row per previewed child, in `preview:` order: its card face — a
+   *  leaf's icon, label and subtitle; a container's card icon, label and
+   *  description. */
+  rows?: { icon?: { pack: string; id: string }; label: string; subtitle?: string }[];
   /** A short ownership label for the card's shelf: the team, domain or
    *  namespace a system belongs to (`domain: "payments"`). Free text. */
   domain?: string;
@@ -275,6 +284,70 @@ export function resolveView(model: SModel, view: SView): ViewGraph {
       }
     }
   }
+
+  // ── 2b. preview: a card drawn detailed ──────────────────────────────────
+  // The altitude between a card and a frame. `expand` opens a container and
+  // its wires de-aggregate; `preview` keeps the card and the wires, and draws
+  // the children `preview:` chose as readable rows under the head — a callout
+  // of what is inside, never a claim about which part a wire reaches. Runs
+  // after expand (an opened container has no card to detail) and before
+  // `only`/context, which never see it: a detailed card is one visible unit.
+  const detailedSet = new Set<string>();
+  // hosts and tests build SView literals by hand; a view written before the
+  // verb existed simply previews nothing
+  const previews = view.preview ?? [];
+  if (view.previewStar) {
+    if (previews.length)
+      diagnostics.push({
+        severity: "warning",
+        message: "`preview *` already details every card — the explicit `preview` lines are redundant",
+        fix: "drop the explicit preview lines",
+        loc: view.loc,
+      });
+    for (const p of visible) if (model.containers.has(p)) detailedSet.add(p);
+    if (detailedSet.size === 0)
+      diagnostics.push({
+        severity: "warning",
+        message: "`preview *` detailed nothing — no cards are visible here",
+        fix: "drop the line; a leaf has no inside to preview, and an opened container is a frame",
+        loc: view.loc,
+      });
+  } else {
+    for (const p of previews) {
+      const c = model.containers.get(p);
+      if (view.expandStar || view.expand.includes(p)) {
+        diagnostics.push({
+          severity: "error",
+          message: `preview \`${p}\` and expand \`${p}\` in one view — a card is collapsed or open, not both`,
+          fix: `keep one: \`preview ${p}\` shows the card with its parts named, \`expand ${p}\` opens it`,
+          loc: view.loc,
+        });
+      } else if (!c && model.nodes.has(p)) {
+        diagnostics.push({
+          severity: "warning",
+          message: `preview \`${p}\` targets a leaf — only a container has an inside to preview`,
+          fix: "drop the line; a leaf is already drawn whole",
+          loc: view.loc,
+        });
+      } else if (c && visible.includes(p)) {
+        detailedSet.add(p);
+      } else if (c) {
+        diagnostics.push({
+          severity: "warning",
+          message: `preview \`${p}\` is not among the cards this view shows — nothing to detail`,
+          fix: `\`preview\` details a card the view already draws; name one of the scope's children, or \`preview *\` for all of them`,
+          loc: view.loc,
+        });
+      }
+    }
+  }
+  /** A previewed child's card face, for the detailed card's rows. */
+  const rowOf = (child: string) => {
+    const n = model.nodes.get(child);
+    if (n) return { icon: n.icon, label: n.label, subtitle: n.subtitle };
+    const c = model.containers.get(child)!;
+    return { icon: containerIcon(child), label: c.label ?? c.name, subtitle: c.attrs["description"] };
+  };
 
   const visSet = () => new Set(visible);
   /** Lift targets: the visible set plus expanded frames that still hold at
@@ -588,6 +661,9 @@ export function resolveView(model: SModel, view: SView): ViewGraph {
         ? { pack: glyphRef.split("/")[0], id: glyphRef.split("/")[1] }
         : undefined;
       const icon = containerIcon(path);
+      // scenery is never detailed: a context card is a muted stand-in, and
+      // rows would make it the most talkative thing in the picture
+      const detailed = !isContext && detailedSet.has(path) && shown.length > 0;
       return {
         path,
         kind: isContext ? "context-card" : "card",
@@ -595,6 +671,8 @@ export function resolveView(model: SModel, view: SView): ViewGraph {
         glyph,
         icon,
         more: more || undefined,
+        detailed: detailed || undefined,
+        rows: detailed ? shown.map(rowOf) : undefined,
         domain: container.attrs["domain"],
         tagline:
           container.attrs["description"] ??

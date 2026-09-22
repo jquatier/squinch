@@ -1,0 +1,139 @@
+// The detailed card. A domain is a system whose children are systems, and at
+// landscape altitude its card can say what those are: `preview *` draws every
+// card with the three children its `preview:` names as readable rows — icon,
+// name, description — under the same head, with `+N more` on the shelf for the
+// rest. Still a card: every wire lands on it, and a dive opens the whole domain.
+// Orders and Customers name their three; Catalog leaves `preview:` off and gets
+// the first three declared. The second view is the same model with the verb
+// removed — the chips are the same three, at 16px.
+pack aws
+
+person customer "Customer"
+gw = aws/api-gateway "Edge Gateway" { subtitle: "API Gateway · REST" }
+
+system orders "Orders" {
+  description: "Order lifecycle, cart to refund"
+  icon: sys/store
+  glyph: sys/layers
+  domain: "commerce"
+  preview: [checkout fulfillment returns]
+
+  system checkout "Checkout" {
+    description: "Cart to confirmed order"
+    icon: sys/boxes
+    api  = aws/lambda   "Checkout API" { subtitle: "Lambda · Node 20" }
+    cart = aws/dynamodb "Cart"         { subtitle: "DynamoDB" }
+    api -> cart
+  }
+  system fulfillment "Fulfillment" {
+    description: "Pick, pack, dispatch"
+    icon: sys/package
+    queue  = aws/sqs    "Dispatch Queue" { subtitle: "SQS FIFO" }
+    worker = aws/lambda "Dispatcher"     { subtitle: "Lambda · batch 10" }
+    queue ~> worker
+  }
+  system returns "Returns" {
+    description: "Refunds and RMAs"
+    icon: sys/refresh-cw
+    api = aws/lambda "Returns API" { subtitle: "Lambda · Node 20" }
+    db  = aws/rds    "Returns DB"  { subtitle: "RDS Postgres 16" }
+    api -> db
+  }
+  system pricing "Pricing" {
+    description: "Prices, promotions, tax"
+    icon: sys/tags
+    api = aws/lambda "Pricing API" { subtitle: "Lambda · Node 20" }
+  }
+  checkout.api -> pricing.api       "quote"
+  checkout.api ~> fulfillment.queue "confirmed orders"
+  returns.api  -> fulfillment.queue "restock"
+}
+
+system catalog "Catalog" {
+  description: "What is for sale, and how it is found"
+  icon: sys/search
+  glyph: sys/layers
+  domain: "commerce"
+
+  system products "Products" {
+    description: "The catalogue of record"
+    icon: sys/boxes
+    api = aws/lambda   "Products API" { subtitle: "Lambda · Node 20" }
+    db  = aws/dynamodb "Products"     { subtitle: "DynamoDB" }
+    api -> db
+  }
+  system search "Search" {
+    description: "Browse, filter, full text"
+    icon: sys/search
+    api = aws/lambda     "Search API"    { subtitle: "Lambda · Node 20" }
+    idx = aws/opensearch "Product Index" { subtitle: "OpenSearch" }
+    api -> idx
+  }
+  system merch "Merchandising" {
+    description: "Collections, ranking, promotions"
+    icon: sys/tags
+    api = aws/lambda "Merch API" { subtitle: "Lambda · Node 20" }
+  }
+  system inventory "Inventory" {
+    description: "Stock levels by warehouse"
+    icon: sys/package
+    api = aws/lambda   "Inventory API" { subtitle: "Lambda · Node 20" }
+    db  = aws/dynamodb "Stock"         { subtitle: "DynamoDB" }
+    api -> db
+  }
+  products.db ~> search.idx "product stream"
+}
+
+system customers "Customers" {
+  description: "Who is buying"
+  icon: sys/users
+  glyph: sys/layers
+  domain: "identity"
+  preview: [identity profiles loyalty]
+
+  system identity "Identity" {
+    description: "Sign-in, sessions, MFA"
+    icon: sys/lock
+    api = aws/lambda "Identity API" { subtitle: "Lambda · Node 20" }
+    db  = aws/rds    "Accounts"     { subtitle: "RDS Postgres 16" }
+    api -> db
+  }
+  system profiles "Profiles" {
+    description: "Addresses, preferences, consent"
+    icon: sys/user
+    api = aws/lambda   "Profiles API" { subtitle: "Lambda · Node 20" }
+    db  = aws/dynamodb "Profiles"     { subtitle: "DynamoDB" }
+    api -> db
+  }
+  system loyalty "Loyalty"  {
+    description: "Points, tiers, rewards"
+    icon: sys/tags
+    api = aws/lambda "Loyalty API" { subtitle: "Lambda · Node 20" }
+  }
+}
+
+customer -> gw "browses"
+gw -> orders.checkout.api  "checkout"
+gw -> catalog.search.api   "search"
+gw -> customers.identity.api "sign in"
+
+orders.checkout.api -> catalog.inventory.api   "availability"
+orders.checkout.api -> customers.identity.api  "verify"
+orders.fulfillment.worker -> catalog.inventory.api "decrement stock"
+
+view landscape {
+  title "Commerce — landscape"
+  include *
+  preview *
+  layout {
+    rows [customer] [gw] [catalog orders customers]
+  }
+}
+
+view chips {
+  title "Commerce — landscape, cards closed"
+  include *
+  layout {
+    rows [customer] [gw] [catalog orders customers]
+  }
+}

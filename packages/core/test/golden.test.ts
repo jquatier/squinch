@@ -14,6 +14,8 @@ const CASES: { file: string; themes: string[]; view?: string }[] = [
   { file: "examples/landscape.squinch", themes: ["light"], view: "orders" },
   { file: "examples/landscape.squinch", themes: ["light"], view: "orders-pci" },
   { file: "examples/landscape.squinch", themes: ["light", "dark"], view: "orders-detail" },
+  // the detailed card (`preview orders`): rows under the head, +N on the shelf
+  { file: "examples/landscape.squinch", themes: ["light", "dark"], view: "landscape-preview" },
 ];
 
 describe("golden renders", () => {

@@ -1,16 +1,17 @@
-// Approval chain with policy engine and audit log on same row
-request = sys/app-window "Request Service"
-policy = sys/shield "Policy Engine"
-approver = sys/cog "Approver Service"
-audit = sys/database "Audit Log" datastore
+// Approval chain diagram
+
+request   = sys/app-window "Request Service"
+policy    = sys/shield-check "Policy Engine"
+approver  = sys/user-check "Approver Service"
+audit     = sys/database "Audit Log" datastore
 
 request -> policy
 policy -> approver
 approver -> audit
 
-view approval {
+view main {
   title "Approval Chain"
   layout {
-    rows [request] [policy audit approver]
+    rows [request] [policy approver audit]
   }
 }

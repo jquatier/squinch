@@ -1337,3 +1337,73 @@ view v { include * }`;
     expect(c.more).toBeUndefined();
   });
 });
+
+describe("`preview <path>`: the card drawn detailed (SPEC §5)", () => {
+  const SRC = (viewBody: string) => `pack aws
+system s "S" {
+  description: "The system"
+  domain: "team"
+  a = aws/lambda "A" { subtitle: "Lambda" }
+  container inner "Inner" {
+    description: "Inside"
+    x = aws/dynamodb "X"
+  }
+  c = aws/sqs "C"
+  d = aws/s3 "D"
+}
+system o "O" {
+  y = aws/lambda "Y"
+}
+t = aws/lambda "T"
+t -> s.a
+o.y -> s.c
+view v {
+${viewBody}
+}`;
+  const resolved = (viewBody: string) => {
+    const { model } = buildModel(SRC(viewBody));
+    return resolveView(model, model.views.find((v) => v.name === "v")!);
+  };
+
+  it("rows are the previewed children's card faces, and the wire still lands on the card", () => {
+    const g = resolved("include *\npreview s");
+    const card = g.nodes.find((n) => n.path === "s")!;
+    expect(card.kind).toBe("card");
+    expect(card.detailed).toBe(true);
+    expect(card.rows).toEqual([
+      { icon: { pack: "aws", id: "lambda" }, label: "A", subtitle: "Lambda" },      // a leaf: icon, label, subtitle
+      { icon: { pack: "aws", id: "dynamodb" }, label: "Inner", subtitle: "Inside" }, // a container: card icon, label, description
+      { icon: { pack: "aws", id: "sqs" }, label: "C", subtitle: undefined },
+    ]);
+    expect(card.more).toBe(1);
+    expect(g.edges.some((e) => e.from === "t" && e.to === "s")).toBe(true);
+    // the other card is untouched
+    expect(g.nodes.find((n) => n.path === "o")!.detailed).toBeUndefined();
+  });
+
+  it("`preview *` details every visible card — and never a context card", () => {
+    const all = resolved("include *\npreview *");
+    expect(all.nodes.filter((n) => n.detailed).map((n) => n.path).sort()).toEqual(["o", "s"]);
+    // inside s, `o` is scenery: a muted stand-in earns no rows
+    const inside = resolved("scope s\npreview *");
+    const ctx = inside.nodes.find((n) => n.path === "o")!;
+    expect(ctx.kind).toBe("context-card");
+    expect(ctx.detailed).toBeUndefined();
+    expect(inside.nodes.find((n) => n.path === "s.inner")!.detailed).toBe(true);
+    expect(inside.diagnostics).toEqual([]);
+  });
+
+  it("the diagnostics mirror expand's", () => {
+    const msgs = (body: string) => resolved(body).diagnostics.map((d) => `${d.severity}: ${d.message}`);
+    expect(msgs("include *\npreview s\nexpand s")).toContainEqual(
+      expect.stringContaining("error: preview `s` and expand `s` in one view"));
+    expect(msgs("include *\npreview t")).toContainEqual(
+      expect.stringContaining("warning: preview `t` targets a leaf"));
+    expect(msgs("scope s\npreview o")).toContainEqual(
+      expect.stringContaining("warning: preview `o` is not among the cards this view shows"));
+    expect(msgs("include *\npreview *\npreview s")).toContainEqual(
+      expect.stringContaining("warning: `preview *` already details every card"));
+    expect(msgs("scope s.inner\npreview *")).toContainEqual(
+      expect.stringContaining("warning: `preview *` detailed nothing"));
+  });
+});

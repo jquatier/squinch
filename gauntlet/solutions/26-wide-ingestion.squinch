@@ -1,41 +1,35 @@
-// Wide ingestion architecture
+// Ingestion estate - wide layout for presentation
 
-pack aws
+c1 = sys/server "Collector 1"
+c2 = sys/server "Collector 2"
+c3 = sys/server "Collector 3"
+c4 = sys/server "Collector 4"
+c5 = sys/server "Collector 5"
+c6 = sys/server "Collector 6"
 
-// Six collectors
-c1 = aws/kinesis "Collector 1"
-c2 = aws/kinesis "Collector 2"
-c3 = aws/kinesis "Collector 3"
-c4 = aws/kinesis "Collector 4"
-c5 = aws/kinesis "Collector 5"
-c6 = aws/kinesis "Collector 6"
+normaliser = sys/cog "Normaliser"
 
-// Normaliser
-normaliser = aws/lambda "Normaliser"
+warehouse = sys/database "Warehouse" datastore
+search = sys/search "Search Index" datastore
+alerts = sys/siren "Alerting Service"
 
-// Outputs
-warehouse = aws/redshift "Warehouse" datastore
-search = aws/opensearch "Search Index" datastore
-alerts = aws/sns "Alerting"
+c1 ~> normaliser
+c2 ~> normaliser
+c3 ~> normaliser
+c4 ~> normaliser
+c5 ~> normaliser
+c6 ~> normaliser
 
-// Edges - collectors to normaliser
-c1 -> normaliser
-c2 -> normaliser
-c3 -> normaliser
-c4 -> normaliser
-c5 -> normaliser
-c6 -> normaliser
-
-// Edges - normaliser to outputs
-normaliser -> warehouse
-normaliser -> search
-normaliser -> alerts
+normaliser ~> warehouse
+normaliser ~> search
+normaliser ~> alerts
 
 view main {
-  title "Ingestion Pipeline"
+  title "Ingestion Estate"
   layout {
     direction right
     density compact
-    rows [warehouse search] [alerts]
+    rows [c1 c2 c3 c4 c5 c6] [normaliser] [warehouse alerts] [search]
+    align warehouse search
   }
 }

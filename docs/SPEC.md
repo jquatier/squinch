@@ -362,6 +362,8 @@ view shop {
   scope shop                    // zoom into one system; children become visible
   exclude files                 // trim noise
   expand workers                // inline one child container's internals
+  preview ledger                // draw that card detailed: the children its
+                                //   `preview:` names as rows, still one card
   layout { ... }                // §6
 
   highlight #pci                // spotlight matching elements, dim the rest;
@@ -406,6 +408,16 @@ too. Themes style them as callouts.
   top-level card standing in for its branch. This was once a second, silent
   meaning of `include`; separating it is what made `only` expressible, because a
   verb that also controls altitude cannot be redefined to control membership.
+- `preview <path>` / `preview *` draws a card **detailed**: the children its
+  `preview:` attr chose (§3) as readable rows — icon, name, caption — under the
+  same head, `+N more` on the shelf for the rest. It is the altitude between a
+  card and an expanded frame, and it is still a card: every wire lands on it
+  exactly as on the small one, and a dive opens the whole container. The
+  choice of children lives on the container because it is a fact about the
+  system; whether to show them large lives in the view because it is a fact
+  about this picture — a landscape has room for a taller card, a dense view
+  does not, and one model serves both. `preview` and `expand` on the same
+  container is an error: a card is collapsed or open, not both.
 - `color #tag <hue>` is a lens, so it wins over an element's own `color:`;
   tags inherit through containers exactly as for `highlight`. Two statements
   landing on one element with different hues is a warning (the later one
@@ -434,6 +446,13 @@ A deterministic rule stack, evaluated in fixed order:
    nothing — silence was the old behaviour, and it read as a rendered no-op.
    `expand *` alongside explicit `expand` lines warns (redundant), as does
    `expand *` with no visible containers to open.
+   **`preview <path>` / `preview *`** runs here too, on the cards that remain:
+   it marks a visible container's card detailed (its `preview:` children as
+   rows) without changing what is visible — the card is one unit to every later
+   rule, exactly as the small card is. Its diagnostics mirror `expand`'s: a
+   leaf target, a target not among the visible cards, `preview *` with nothing
+   to detail or beside explicit lines each warn; `preview` and `expand` on one
+   container is an error. Context cards are never detailed.
 2. **`only` filters the interior** — the view's *which* axis, applied after
    `expand` so an expanded container's children are filtered too. A container
    survives if it, anything beneath it, or a visible ancestor above it matches
@@ -625,7 +644,8 @@ pack        = "pack" ident [ "from" string ] ;
 import      = "import" string "as" ident ;               (* v2, not built *)
 container   = ("system" | "container") ident [ label ] { kind | tag } "{"
                 { ident ":" value      (* card attrs: description, icon, glyph,
-                                          domain, preview, tags, color *)
+                                          domain, preview (none|auto|rank),
+                                          tags, color *)
                 | node | container | edge | interior } "}" ;
 interior    = "layout" "{" { "rows" rank { rank } | "cols" rank { rank }
                            | "place" path relpos path
@@ -648,6 +668,7 @@ viewstmt    = "title" string | "theme" ident | "scope" path
             | "only" targets
             | "include" targets | "exclude" targets
             | "detail" path | "expand" ( "*" | path )
+            | "preview" ( "*" | path )
             | "context" ( "auto" | "off" )
             | "highlight" tag { tag }
             | "color" tag ident
