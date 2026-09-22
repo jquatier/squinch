@@ -41,3 +41,26 @@ view landscape { include * }
     expect(r.svg).not.toContain(">API</text>");
   });
 });
+
+describe("iconsUsedBy — what a browser host must preload", () => {
+  // The playground streams icons on demand and renders synchronously, so any
+  // reference this misses draws as a bare plate there while the CLI, loading
+  // packs from disk, draws it fine. A container's own `icon:` was missed from
+  // the day it was added; the detailed card's rows made it visible.
+  it("lists a container's icon: as well as its glyph:, a leaf's icon and badge, and a zone's icon", async () => {
+    const { iconsUsedBy } = await import("../src/api.js");
+    const refs = iconsUsedBy(`pack aws
+system orders "Orders" {
+  icon: sys/store
+  glyph: sys/layers
+  system checkout "Checkout" {
+    icon: sys/boxes
+    api = aws/lambda "API" { badge: logos/postgresql }
+  }
+}
+zone vpc "VPC" { icon: sys/server
+  contains orders }
+view v { include * }`).map((r) => `${r.pack}/${r.id}`).sort();
+    expect(refs).toEqual(["aws/lambda", "logos/postgresql", "sys/boxes", "sys/layers", "sys/server", "sys/store"]);
+  });
+});

@@ -55,8 +55,15 @@ export function iconsUsedBy(files: ProjectFile[] | string): { pack: string; id: 
   }
   for (const z of model.zones) if (z.icon) refs.set(`${z.icon.pack}/${z.icon.id}`, z.icon);
   for (const c of model.containers.values()) {
-    const g = c.attrs["glyph"];
-    if (g?.includes("/")) refs.set(g, { pack: g.split("/")[0], id: g.split("/")[1] });
+    // Both of a card's marks: the kind glyph in its chip, and its own `icon:`
+    // on the tile — which a detailed card's rows also draw for a nested
+    // container. The icon was missing here from the day `icon:` was added, so
+    // every `icon: sys/store` card was a bare plate in the playground while
+    // the CLI, which loads packs from disk, drew it.
+    for (const key of ["glyph", "icon"] as const) {
+      const ref = c.attrs[key];
+      if (ref?.includes("/")) refs.set(ref, { pack: ref.split("/")[0], id: ref.split("/")[1] });
+    }
   }
   return [...refs.values()];
 }
