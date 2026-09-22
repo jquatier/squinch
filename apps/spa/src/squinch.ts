@@ -18,7 +18,7 @@ let ready: Promise<void> | undefined;
  *  serves from the site root, while this document now lives at /playground/.
  *  Anchoring on BASE_URL (never the document URL) is what keeps the fetches
  *  pointed at the root from a sub-route, with or without a deploy base path. */
-export const PACK_NAMES = ["aws", "azure", "logos", "sys", "k8s"];
+export const PACK_NAMES = ["aws", "azure", "logos", "sys", "k8s", "gcp"];
 const PACKS = PACK_NAMES.map((name) => ({
   manifest: `${import.meta.env.BASE_URL}pack-${name}.json`,
   icons: `${import.meta.env.BASE_URL}${name}-icons`,

@@ -127,7 +127,7 @@ Every pack under `packages/pack-*/icons/` is third-party artwork redistributed
 `npm run fetch` inside it; never edit, recolour, or optimize an icon. Theme
 treatment happens at render time. See [NOTICE](NOTICE) for what binds you.
 
-Adding a pack means registering it in five places — a guardrail test lists them
+Adding a pack means registering it in six places — a guardrail test lists them
 and fails if they disagree.
 
 ## Where things live
@@ -159,7 +159,7 @@ not the changelog), bumps every workspace manifest together, commits
 From there [release.yml](.github/workflows/release.yml) builds the VSIX from
 the tagged commit, re-runs the whole suite as its own gate, publishes the
 GitHub Release with that CHANGELOG section as its notes plus a `SHA256SUMS`,
-and then publishes to npm — `squinch`, `@squinch/core` and the five icon
+and then publishes to npm — `squinch`, `@squinch/core` and the six icon
 packs, in dependency order. Everything else (`@squinch/skill`, the playground,
 the gauntlet, the lookbook) stays `private: true` and never reaches the
 registry; a guardrail asserts that split by name.

@@ -197,6 +197,108 @@ describe("pack sanitizer", () => {
     expect(a.body).toContain(`url(#one-c)`);
     expect(b.body).toContain(`url(#two-c)`);
   });
+
+  // Google's icons (and one Azure icon) carry every colour as a class rule in
+  // a <style> element. The element and the class attr are both outside the
+  // allowlist and stay dropped — so the rules are folded onto the shapes as
+  // presentation attributes first. Values move verbatim; nothing is recoloured.
+  it("promotes <style> class rules to presentation attributes", () => {
+    const { body } = sanitizeIcon(
+      wrap(
+        `<defs><style>\n .st0 { fill: none; }\n .st1 { fill: #4285f4; }\n</style></defs>` +
+          `<g id="bounding_box"><rect class="st0" width="512" height="512"/></g>` +
+          `<g id="art"><path class="st1" d="M0 0h1"/></g>`,
+      ),
+      "t",
+    );
+    expect(body).toContain(`fill="none"`);
+    expect(body).toContain(`fill="#4285f4"`);
+    expect(body).toContain(`width="512"`);
+    expect(body).not.toContain("class=");
+    expect(body).not.toContain("<style");
+    expect(body).not.toContain(".st1"); // no CSS text leaks through as a text node
+  });
+
+  it("honours selector lists and namespaces url(#…) values that come from CSS", () => {
+    // the intune-trends shape: a grouped selector, and a gradient reference
+    // living in the stylesheet rather than on the element
+    const { body } = sanitizeIcon(
+      wrap(
+        `<defs><style>.cls-1{fill:#0078d4;}.cls-1,.cls-2{fill-rule:evenodd;}.cls-2{fill:url(#linear-gradient);}</style>` +
+          `<linearGradient id="linear-gradient"><stop offset="0" stop-color="#5e9624"/></linearGradient></defs>` +
+          `<rect class="cls-1" width="2" height="7"/><path class="cls-2" d="M0 0h1"/>`,
+      ),
+      "t",
+    );
+    expect(body).toContain(`fill="#0078d4"`);
+    expect(body).toContain(`fill="url(#t-linear-gradient)"`);
+    expect(body).toContain(`id="t-linear-gradient"`);
+    expect(body.match(/fill-rule="evenodd"/g)?.length).toBe(2);
+    expect(body).toContain(`stop-color="#5e9624"`);
+    expect(body).not.toContain(`url(#linear-gradient)`);
+  });
+
+  it("CSS beats a same-name attribute, and a later rule beats an earlier one", () => {
+    const { body } = sanitizeIcon(
+      wrap(`<style>.a{fill:#111;}.b{fill:#222;}</style><rect class="b a" fill="#999" width="1" height="1"/>`),
+      "t",
+    );
+    expect(body).toContain(`fill="#222"`); // stylesheet order decides, not class order
+    expect(body).not.toContain("#999");
+    expect(body).not.toContain("#111");
+    expect(body.match(/fill="/g)?.length).toBe(1);
+  });
+
+  it("ignores non-class selectors, non-paint properties, comments and !important", () => {
+    const { body } = sanitizeIcon(
+      wrap(
+        `<style>/* .z{fill:#bad} */ rect{fill:#f00} #x{fill:#0f0} .a .b{fill:#00f} .a:hover{fill:#ff0}` +
+          ` .a{ width:99; transform:scale(9); fill:#123 !important; }</style>` +
+          `<rect class="a" width="5" height="5"/>`,
+      ),
+      "t",
+    );
+    expect(body).toContain(`fill="#123"`);
+    expect(body).toContain(`width="5"`);
+    for (const leaked of ["#f00", "#0f0", "#00f", "#ff0", "#bad", "scale(9)", "important"])
+      expect(body).not.toContain(leaked);
+  });
+
+  it("concatenates every <style> in document order", () => {
+    const { body } = sanitizeIcon(
+      wrap(`<style>.a{fill:#111}</style><rect class="a" width="1" height="1"/><defs><style>.a{fill:#222}</style></defs>`),
+      "t",
+    );
+    expect(body).toContain(`fill="#222"`);
+    expect(body).not.toContain("#111");
+  });
+
+  it("a class with no stylesheet is a byte-for-byte no-op", () => {
+    // Lucide puts `class="lucide lucide-x"` on every root and ships no
+    // stylesheet — the whole of pack-sys rides this path, so it must stay
+    // identical to the same file with the class removed.
+    const withClass = sanitizeIcon(
+      `<svg xmlns="http://www.w3.org/2000/svg" class="lucide lucide-x" viewBox="0 0 24 24" fill="none" stroke="currentColor">` +
+        `<path class="lucide-path" d="M0 0h1" stroke="#333"/></svg>`,
+      "t",
+    );
+    const without = sanitizeIcon(
+      `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor">` +
+        `<path d="M0 0h1" stroke="#333"/></svg>`,
+      "t",
+    );
+    expect(withClass).toEqual(without);
+  });
+
+  it("azure/intune-trends gets its paint from its stylesheet", () => {
+    // the one shipped icon with a <style> block before the gcp pack existed —
+    // it rendered as black shapes until the rules were promoted
+    const asset = iconAsset("azure", "intune-trends")!;
+    expect(asset.body).toContain(`fill="#0078d4"`);
+    expect(asset.body).toContain(`fill="url(#azure-intune-trends-linear-gradient)"`);
+    expect(asset.body).not.toContain("class=");
+    expect(asset.body).not.toContain("<style");
+  });
 });
 
 describe("aws pack", () => {

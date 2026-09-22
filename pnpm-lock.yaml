@@ -57,6 +57,9 @@ importers:
       '@squinch/pack-azure':
         specifier: workspace:*
         version: link:../../packages/pack-azure
+      '@squinch/pack-gcp':
+        specifier: workspace:*
+        version: link:../../packages/pack-gcp
       '@squinch/pack-k8s':
         specifier: workspace:*
         version: link:../../packages/pack-k8s
@@ -142,6 +145,9 @@ importers:
       '@squinch/pack-azure':
         specifier: workspace:*
         version: link:../pack-azure
+      '@squinch/pack-gcp':
+        specifier: workspace:*
+        version: link:../pack-gcp
       '@squinch/pack-k8s':
         specifier: workspace:*
         version: link:../pack-k8s
@@ -199,6 +205,15 @@ importers:
         version: 7.0.2
 
   packages/pack-azure:
+    devDependencies:
+      tsx:
+        specifier: ^4.23.1
+        version: 4.23.1
+      typescript:
+        specifier: ^7.0.2
+        version: 7.0.2
+
+  packages/pack-gcp:
     devDependencies:
       tsx:
         specifier: ^4.23.1
@@ -266,6 +281,9 @@ importers:
       '@squinch/pack-azure':
         specifier: workspace:*
         version: link:../pack-azure
+      '@squinch/pack-gcp':
+        specifier: workspace:*
+        version: link:../pack-gcp
       '@squinch/pack-logos':
         specifier: workspace:*
         version: link:../pack-logos

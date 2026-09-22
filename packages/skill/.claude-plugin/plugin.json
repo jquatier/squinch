@@ -1,7 +1,7 @@
 {
   "name": "squinch",
   "version": "0.8.0",
-  "description": "Turns your coding agent into an architecture diagrammer: describe a system in plain language and it writes, checks and renders a clean, professional diagram — AWS, Azure and Kubernetes estates, landscapes you can zoom into at every altitude, numbered request flows — with real vendor icons, exported as SVG, PNG or interactive HTML. Requires the squinch CLI (npx squinch).",
+  "description": "Turns your coding agent into an architecture diagrammer: describe a system in plain language and it writes, checks and renders a clean, professional diagram — AWS, Azure, Google Cloud and Kubernetes estates, landscapes you can zoom into at every altitude, numbered request flows — with real vendor icons, exported as SVG, PNG or interactive HTML. Requires the squinch CLI (npx squinch).",
   "author": { "name": "Jacob Quatier", "url": "https://github.com/jquatier" },
   "homepage": "https://squinch.cc/",
   "license": "Apache-2.0"

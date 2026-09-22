@@ -1,8 +1,8 @@
 // Maintainer-only: regenerate the pack from the official Kubernetes community
 // icon set (github.com/kubernetes/community, icons/). The set exists precisely
 // to standardize architecture diagrams, and is dual-licensed Apache-2.0 /
-// CC-BY-4.0 — a real redistribution grant, which is the bar a pack has to
-// clear here (see the GCP paragraph in CLAUDE.md for the counter-example).
+// CC-BY-4.0 — a real redistribution grant, which every pack but one has (the
+// exception is pack-gcp, whose NOTICE states the footing it ships on instead).
 //
 // Unlike the AWS (CC-BY-ND) and Azure (no-alteration terms) packs, this
 // licence PERMITS modification — so the one treatment applied is mechanical:

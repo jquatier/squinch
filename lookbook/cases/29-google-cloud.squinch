@@ -1,0 +1,50 @@
+// The gcp pack: Google's current (2025) product icons, drawn full-colour like
+// aws and azure. Nineteen core products carry their own four-colour mark
+// (`gcp/cloud-run`, `gcp/gke`, `gcp/bigquery`, `gcp/spanner`); every other
+// product draws as its category's two-colour glyph, by Google's design, and
+// resolves by name (`gcp/pubsub`, `gcp/cloud-functions`, `gcp/memorystore`) —
+// the label names the product, the icon says the category. A VPC draws as a
+// zone with `icon: gcp/vpc`.
+pack gcp
+
+person user "Customer"
+
+lb = gcp/load-balancer "Cloud Load Balancing"
+
+system shop "storefront" {
+  icon: gcp/serverless-computing
+  run = gcp/cloud-run "web"
+  gke = gcp/gke "checkout-gke"
+  fn = gcp/cloud-functions "notify-fn"
+  topic = gcp/pubsub "orders"
+  db = gcp/spanner "orders-db"
+  cache = gcp/memorystore "session-cache"
+  kv = gcp/secret-manager "shop-secrets"
+  img = gcp/gcs "product-images"
+
+  run -> db
+  run -> cache
+  run -> img
+  gke -> db
+  gke ~> topic "order placed"
+  topic ~> fn
+  fn -> kv "reads certs"
+}
+
+bq = gcp/bigquery "orders-warehouse"
+shop.fn ~> bq "order events"
+
+zone vpc_shop "shop-vpc" network {
+  contains shop
+  icon: gcp/vpc
+}
+
+user -> lb
+lb -> shop.run
+
+view platform {
+  title "Storefront on Google Cloud"
+  include *
+  expand shop
+  legend auto
+}

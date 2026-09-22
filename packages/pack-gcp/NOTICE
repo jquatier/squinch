@@ -1,0 +1,76 @@
+@squinch/pack-gcp
+=================
+
+This package redistributes Google Cloud's product icons.
+
+Icon assets (icons/*.svg)
+-------------------------
+Copyright Google LLC. All rights reserved.
+
+Source:  https://cloud.google.com/icons
+Release: 2026-05 (the "Updated" date on Google's product-icons PDF, the only
+         version marker the library publishes)
+
+The footing this pack ships on, stated plainly
+----------------------------------------------
+Google publishes NO redistribution grant for these icons. The icon library
+page says, in full, what they are for:
+
+  Welcome to the official library for Google Cloud product icons. Here you
+  can find the Google Cloud product icons you need for your diagrams,
+  technical documentation, and more.
+
+The ZIPs carry no licence file and the PDF that accompanies them carries no
+terms. That is less than Microsoft gives Azure's icons ("you can copy,
+distribute, and display the icons" for architecture diagrams) and much less
+than the CC0, ISC and Apache-2.0 grants behind the other packs.
+
+This pack relies on two things instead: Google's stated purpose for the
+library — architecture diagrams and technical documentation, which is exactly
+what Squinch draws — and long-standing practice. draw.io, the `diagrams`
+Python package on PyPI, Iconify, IcePanel's gcpicons.com and several PlantUML
+sprite libraries have redistributed these icons for years, openly, with no
+objection from Google that we could find. If Google objects, this pack will be
+withdrawn. Consumers of it acquire no more rights than we have: use the
+artwork for Google Cloud architecture diagrams and documentation, nothing
+else.
+
+The files are Google's, byte for byte
+-------------------------------------
+Nothing here is recoloured, reshaped, run through an optimizer or stripped of
+metadata. Regenerate this directory with `npm run fetch`, never by hand; the
+fetch pins each of Google's ZIPs by content hash and refuses to run on
+artwork nobody reviewed. The one treatment the files need in order to render
+happens at load time in @squinch/core, not in the files: Google's export puts
+the paint of sixteen icons in a `<style>` element as class rules, which the
+load-time sanitizer moves onto the shapes as presentation attributes. Values
+are moved verbatim, never altered. Theme treatment (placement, clipping,
+plates) is likewise render-time only.
+
+What is in here, and what is not
+--------------------------------
+Google replaced its product iconography in early 2025. The current system,
+which is what this pack ships, is 19 unique icons for core products (4-colour)
+and 26 category icons (2-colour); every other product is drawn with its
+category's icon, by Google's design. pack.json encodes that: the products
+named in Google's category tables resolve, as aliases, to the category glyph
+Google says to draw them with.
+
+The 216 "legacy console icons" — the per-service two-tone blue set most
+third-party mirrors carry — are deliberately absent. Google's PDF says of
+them: "these icons should not be used as of 2026."
+
+Trademarks
+----------
+Google, Google Cloud, and the product names and marks shown in these icons
+are trademarks of Google LLC. Their use here is nominative — identifying
+Google Cloud services in an architecture diagram, the purpose Google
+publishes them for — and implies no endorsement, sponsorship or affiliation.
+Squinch is not affiliated with Google. Trademark law, not any icon licence,
+governs how the marks may be used.
+
+Packaging code (scripts/, pack.json)
+------------------------------------
+Copyright the Squinch authors, licensed under Apache-2.0 with the rest of the
+repository. pack.json is generated metadata (ids, titles, categories,
+aliases), not an adaptation of the artwork.

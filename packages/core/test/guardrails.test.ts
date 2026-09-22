@@ -304,7 +304,7 @@ describe("the workspace ships one version", () => {
     // asserted by name rather than left to whoever edits a manifest next.
     const PUBLIC = [
       "squinch", "@squinch/core",
-      "@squinch/pack-aws", "@squinch/pack-azure", "@squinch/pack-k8s",
+      "@squinch/pack-aws", "@squinch/pack-azure", "@squinch/pack-gcp", "@squinch/pack-k8s",
       "@squinch/pack-logos", "@squinch/pack-sys",
     ];
     const members = [

@@ -35,7 +35,8 @@ environment" rule in CLAUDE.md.
 Icon artwork
 --------------------------------------------------------------------------------
 
-This package depends on @squinch/pack-aws, -azure, -k8s, -logos and -sys. Their
-artwork is third-party and carries its own terms — AWS's is no-derivatives and
-Microsoft's is limited to architecture diagrams, training and documentation.
+This package depends on @squinch/pack-aws, -azure, -gcp, -k8s, -logos and -sys.
+Their artwork is third-party and carries its own terms — AWS's is no-derivatives,
+Microsoft's is limited to architecture diagrams, training and documentation, and
+Google publishes no grant at all (pack-gcp's NOTICE states the footing).
 Each pack ships its own NOTICE with the full text; none of it is Apache-2.0.

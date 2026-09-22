@@ -77,7 +77,7 @@ squinch render diagrams/ -o diagram.html     # every view, both palettes, click-
 ```squinch
 // comments are // only (# belongs to tags)
 pack aws                              // icon packs this file draws from (aws |
-pack azure                            //  azure | logos | k8s). Optional — any
+pack azure                            //  azure | gcp | logos | k8s). Optional — any
                                       //  installed pack resolves without it — but
                                       //  declaring documents intent and catches a
                                       //  misspelled pack name at check time.
@@ -546,6 +546,34 @@ concept as `aws/…` in one box and `azure/…` in the next. Combining a cloud p
 with `logos` is a different thing and completely normal: it's how you draw a
 hybrid estate, with `logos/postgres` on the on-prem side and `azure/sql` in the
 cloud.
+
+**Google Cloud** has its own pack (45 icons), and it works differently from
+the other two clouds because Google's own icon system does: nineteen core
+products carry a unique four-colour mark, and *every other product draws as
+its category's glyph*. The unique marks: `gcp/cloud-run` (`run`) · `gcp/gke` ·
+`gcp/compute-engine` (`gce`, `vm`) · `gcp/cloud-storage` (`gcs`, `bucket`) ·
+`gcp/cloud-sql` (`sql`) · `gcp/spanner` · `gcp/alloydb` · `gcp/bigquery` (`bq`)
+· `gcp/vertex-ai` (`vertex`) · `gcp/looker` · `gcp/apigee` · `gcp/anthos` ·
+`gcp/distributed-cloud` (`gdc`) · `gcp/hyperdisk` (`persistent-disk`) ·
+`gcp/ai-hypercomputer` · `gcp/security-command-center` (`scc`) ·
+`gcp/security-operations` (`secops`) · `gcp/threat-intelligence` ·
+`gcp/mandiant`. Everything else resolves by the name you know it by and draws
+the category glyph: `gcp/pubsub`, `gcp/dataflow` and `gcp/dataproc` all draw
+the Data Analytics mark; `gcp/cloud-functions` (`functions`) and
+`gcp/app-engine` the Serverless one; `gcp/firestore`, `gcp/bigtable` and
+`gcp/memorystore` the Databases one; `gcp/load-balancer` (`lb`), `gcp/cloud-cdn`,
+`gcp/cloud-armor` and `gcp/cloud-nat` the Networking one; `gcp/iam`, `gcp/kms`
+and `gcp/secret-manager` the Security one; `gcp/cloud-build` and
+`gcp/artifact-registry` the DevOps one; `gcp/cloud-logging` and
+`gcp/cloud-monitoring` the Observability one. That is how Google draws them
+now, so it is not a shortfall to work around — **put the product name in the
+label** and let the icon say the category; don't borrow a look-alike from
+`aws/` or `azure/`. A VPC is a boundary: `zone net "prod-vpc" network {
+contains …, icon: gcp/vpc }`. The same one-cloud rule applies, and composing
+with `logos` is normal. Use `gcp/*` when the diagram is about what runs
+*inside* Google Cloud; use `logos/googlecloud` when Google Cloud is one box in
+a wider estate. `squinch icons search --pack gcp <term>` scopes the search;
+the bare word `gcp` lists the whole pack.
 
 **Kubernetes internals** come from the `k8s` pack (39 official community
 icons — the blue heptagons from the k8s docs). Canonical ids are kubectl's

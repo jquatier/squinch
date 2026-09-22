@@ -36,3 +36,4 @@ registerPackFromDisk("@squinch/pack-azure");
 registerPackFromDisk("@squinch/pack-logos");
 registerPackFromDisk("@squinch/pack-sys");
 registerPackFromDisk("@squinch/pack-k8s");
+registerPackFromDisk("@squinch/pack-gcp");

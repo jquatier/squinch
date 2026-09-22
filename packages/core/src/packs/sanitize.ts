@@ -38,6 +38,20 @@ const REF_ATTRS = new Set(["clip-path", "mask", "filter", "fill", "stroke"]);
  *  the last pack to expose it. */
 const BARE_REF_ATTRS = new Set(["href", "xlink:href"]);
 
+/** Properties a `<style>` class rule may set on an element. Paint, stroke and
+ *  text only — never geometry (`d`, `width`, `transform`), which would move the
+ *  artwork — and every one already in ATTRS, so a promoted value cannot bypass
+ *  the allowlist. Mirrors the PROMOTE set the k8s fetch script applies to
+ *  inline `style=""` at fetch time; this is the same treatment for stylesheets,
+ *  applied at load because the packs that need it (Google Cloud, one Azure
+ *  icon) have no licence permitting the files themselves to be rewritten. */
+const CSS_PROPS = new Set([
+  "fill", "fill-opacity", "fill-rule", "clip-rule", "stroke", "stroke-width",
+  "stroke-linecap", "stroke-linejoin", "stroke-dasharray", "stroke-opacity",
+  "opacity", "font-size", "font-family", "text-anchor", "dominant-baseline",
+  "stop-color", "stop-opacity",
+]);
+
 export interface SanitizedIcon {
   /** Inner markup, ids namespaced, safe to inline. */
   body: string;
@@ -62,13 +76,32 @@ const builder = new XMLBuilder({
 /**
  * Strip everything not on the allowlist and namespace internal ids so several
  * icons can coexist in one document. Does not alter geometry or colour — the
- * asset itself must stay byte-faithful (CC-BY-ND).
+ * asset itself must stay byte-faithful (CC-BY-ND). Paint that arrives as
+ * `<style>` class rules is moved, verbatim, onto the elements as presentation
+ * attributes: the stylesheet itself cannot be kept (free-text CSS defeats an
+ * allowlist, and Illustrator's `.st0`/`.cls-1` names collide across every icon
+ * sharing a document), and dropping it leaves the shapes filled black.
  */
 export function sanitizeIcon(svg: string, idPrefix: string): SanitizedIcon {
   const tree = parser.parse(svg) as any[];
   const root = findElement(tree, "svg");
   if (!root) throw new Error("pack asset has no <svg> root");
   const viewBox = String(attrOf(root, "viewBox") ?? "0 0 80 80");
+
+  // Collected before `clean()` runs, because `clean()` is what discards
+  // `<style>`. With no stylesheet there are no rules, `cssFor` returns nothing,
+  // and every element's attribute map is copied in its original order — the
+  // output is byte-identical to a file that never had a `class` (Lucide's
+  // `class="lucide lucide-server"` is that case, across all of pack-sys).
+  const rules = parseClassRules(styleText(root.svg as any[]));
+  const cssFor = (classAttr: unknown): Record<string, string> => {
+    const out: Record<string, string> = {};
+    if (!rules.length || typeof classAttr !== "string") return out;
+    const classes = new Set(classAttr.split(/\s+/).filter(Boolean));
+    // stylesheet order: a later rule wins, as the cascade does at equal specificity
+    for (const r of rules) if (classes.has(r.cls)) for (const [p, v] of r.decls) out[p] = v;
+    return out;
+  };
 
   const clean = (nodes: any[]): any[] => {
     const out: any[] = [];
@@ -79,7 +112,14 @@ export function sanitizeIcon(svg: string, idPrefix: string): SanitizedIcon {
         continue;
       }
       if (!ELEMENTS.has(tag)) continue; // drops script, foreignObject, image, …
-      const attrs = node[":@"] ?? {};
+      const attrs: Record<string, unknown> = { ...(node[":@"] ?? {}) };
+      // CSS beats a same-name presentation attribute. Assigning into the copy
+      // keeps an existing key's position and appends new ones, so attribute
+      // order — and therefore the emitted bytes — stays a function of the input.
+      // The values then take the same allowlist / id-namespacing path as any
+      // attribute, so `fill:url(#g)` from a stylesheet is rewritten exactly as
+      // `fill="url(#g)"` is.
+      for (const [p, v] of Object.entries(cssFor(attrs["@class"]))) attrs[`@${p}`] = v;
       const kept: Record<string, unknown> = {};
       for (const [rawName, value] of Object.entries(attrs)) {
         const name = rawName.replace(/^@/, "");
@@ -116,8 +156,9 @@ export function sanitizeIcon(svg: string, idPrefix: string): SanitizedIcon {
     "dominant-baseline",
   ];
   const inherited: Record<string, unknown> = {};
+  const rootCss = cssFor(attrOf(root, "class"));
   for (const name of INHERITED) {
-    const v = attrOf(root, name);
+    const v = rootCss[name] ?? attrOf(root, name);
     if (v !== undefined && v !== null) inherited[`@${name}`] = String(v);
   }
 
@@ -137,4 +178,49 @@ function findElement(nodes: any[], tag: string): any | undefined {
 
 function attrOf(node: any, name: string): string | undefined {
   return node[":@"]?.[`@${name}`];
+}
+
+/** The text of every `<style>` element in the tree, in document order. */
+function styleText(nodes: any[]): string {
+  let css = "";
+  for (const node of nodes) {
+    const tag = Object.keys(node).find((k) => k !== ":@" && k !== "#text");
+    const children = tag === undefined ? undefined : node[tag];
+    if (!Array.isArray(children)) continue;
+    if (tag === "style") {
+      for (const c of children) if (c["#text"] !== undefined) css += `${String(c["#text"])}\n`;
+    } else css += styleText(children);
+  }
+  return css;
+}
+
+interface ClassRule { cls: string; decls: [string, string][] }
+
+/** The subset of CSS an icon needs: `selectors { declarations }` blocks, where
+ *  a selector is a bare class (`.st1`) and a declaration a CSS_PROPS property.
+ *  Anything else — element, id, descendant or pseudo selectors, geometry
+ *  properties, `!important` — is ignored rather than approximated: an icon that
+ *  depends on it renders as it would have anyway, and nothing here can widen
+ *  what the allowlist admits. One entry per selector, so a rule written for a
+ *  selector list keeps its place in the cascade. */
+function parseClassRules(css: string): ClassRule[] {
+  const rules: ClassRule[] = [];
+  const src = css.replace(/\/\*[\s\S]*?\*\//g, "");
+  const block = /([^{}]+)\{([^{}]*)\}/g;
+  for (let m: RegExpExecArray | null; (m = block.exec(src)); ) {
+    const decls: [string, string][] = [];
+    for (const d of m[2].split(";")) {
+      const i = d.indexOf(":");
+      if (i < 0) continue;
+      const prop = d.slice(0, i).trim().toLowerCase();
+      const value = d.slice(i + 1).replace(/\s*!important\s*$/i, "").trim();
+      if (CSS_PROPS.has(prop) && value) decls.push([prop, value]);
+    }
+    if (!decls.length) continue;
+    for (const sel of m[1].split(",")) {
+      const cls = /^\s*\.([A-Za-z_][\w-]*)\s*$/.exec(sel);
+      if (cls) rules.push({ cls: cls[1], decls });
+    }
+  }
+  return rules;
 }

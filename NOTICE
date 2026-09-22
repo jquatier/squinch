@@ -32,24 +32,32 @@ carries its full notice and the fetch-time treatments applied to it:
                                 CC-BY-4.0; redistributed under the Apache-2.0
                                 arm. Attribution required.
 
-  packages/pack-logos/NOTICE    Simple Icons (124)
+  packages/pack-gcp/NOTICE      Google Cloud product icons (45)
+                                Copyright Google LLC. Published "for your
+                                diagrams, technical documentation, and more"
+                                with NO redistribution grant; shipped on that
+                                stated purpose and on long-standing practice,
+                                for architecture diagrams and documentation
+                                only. The files must not be modified.
+
+  packages/pack-logos/NOTICE    Simple Icons (147)
                                 CC0-1.0. The marks themselves remain the
                                 trademarks of their respective owners.
 
-  packages/pack-sys/NOTICE      Lucide (164)
+  packages/pack-sys/NOTICE      Lucide (175)
                                 ISC; portions from Feather (MIT).
                                 Copyright (c) for portions held by Cole Bemis.
 
 If you redistribute Squinch, or anything containing these packs, these notices
-must travel with it (Apache-2.0 §4(d)), and the AWS and Azure constraints above
-bind you as they bind us.
+must travel with it (Apache-2.0 §4(d)), and the AWS, Azure and Google Cloud
+constraints above bind you as they bind us.
 
 --------------------------------------------------------------------------------
 Trademarks
 --------------------------------------------------------------------------------
 
 Kubernetes and the Kubernetes logo are trademarks of The Linux Foundation. AWS,
-Amazon Web Services, Azure and Microsoft are trademarks of their respective
+Amazon Web Services, Azure, Microsoft, Google and Google Cloud are trademarks of their respective
 owners, as are the brand marks in packages/pack-logos. Their use in Squinch is
 nominative — identifying the thing a diagram depicts — and implies no
 endorsement or affiliation. Trademark law, not the icon licences, governs how

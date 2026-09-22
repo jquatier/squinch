@@ -346,6 +346,16 @@ Source: [`cases/29-edge-styles.squinch`](cases/29-edge-styles.squinch)
 |---|---|
 | ![](out/29-edge-styles.styles.light.svg) | ![](out/29-edge-styles.styles.dark.svg) |
 
+## Google Cloud
+
+The gcp pack: Google's current (2025) product icons, drawn full-colour like aws and azure. Nineteen core products carry their own four-colour mark (`gcp/cloud-run`, `gcp/gke`, `gcp/bigquery`, `gcp/spanner`); every other product draws as its category's two-colour glyph, by Google's design, and resolves by name (`gcp/pubsub`, `gcp/cloud-functions`, `gcp/memorystore`) — the label names the product, the icon says the category. A VPC draws as a zone with `icon: gcp/vpc`.
+
+Source: [`cases/29-google-cloud.squinch`](cases/29-google-cloud.squinch)
+
+| light | dark |
+|---|---|
+| ![](out/29-google-cloud.platform.light.svg) | ![](out/29-google-cloud.platform.dark.svg) |
+
 ## Badges
 
 `badge:` composites a vendor mark onto a node's icon plate, for platforms with no icon pack: a `sys/*` icon says what the thing is and a `logos/*` mark says whose it is. Here every Databricks-owned node carries the mark.

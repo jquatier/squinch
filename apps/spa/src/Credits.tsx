@@ -1,5 +1,5 @@
 // Icon attribution. The playground serves pack artwork to whoever loads it,
-// and three of the five packs require credit to travel with the files —
+// and three of the six packs require credit to travel with the files —
 // AWS's CC-BY-ND and the Kubernetes set's CC-BY-4.0 by licence, Azure's terms
 // by being narrower than one. Shipped as npm packages the NOTICE files do
 // that job; served as a web page nothing does, so this panel is the NOTICE.
@@ -42,7 +42,7 @@ export function CreditsDialog({ open, onClose }: { open: boolean; onClose: () =>
         <div className="border-b border-[var(--line)] px-4 py-3">
           <div className="text-[13px] font-medium text-[var(--fg)]">Icon credits</div>
           <div className="mt-0.5 text-[11px] text-[var(--muted)]">
-            {total ? `${total.toLocaleString()} marks` : "Loading"} from five packs, each redistributed
+            {total ? `${total.toLocaleString()} marks` : "Loading"} from six packs, each redistributed
             under its own terms. Artwork is drawn verbatim — Squinch applies theme treatment at
             render time and never edits the asset.
           </div>
@@ -80,7 +80,8 @@ export function CreditsDialog({ open, onClose }: { open: boolean; onClose: () =>
 
         <div className="border-t border-[var(--line)] px-4 py-2 text-[10px] leading-relaxed text-[var(--muted)]">
           Microsoft's grant covers architecture diagrams, training and documentation only, and does
-          not travel to other uses. Cloud artwork must not be modified. Brand marks remain their
+          not travel to other uses; Google publishes its icons for diagrams and documentation and
+          grants nothing further. Cloud artwork must not be modified. Brand marks remain their
           owners' trademarks; use here is nominative. Squinch itself is Apache-2.0. · esc close
         </div>
       </div>

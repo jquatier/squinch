@@ -78,7 +78,11 @@ engine, CLI, playground and extension all ship (see §Where things stand).
   Label pills are collision-resolved; the golden suite asserts no two overlap.
 - **Pack SVGs are sanitized at load** (`src/packs/sanitize.ts`: allowlist elements
   and attributes, strip scripts/handlers/foreignObject/external refs, namespace
-  internal ids). AWS icons in `packages/pack-aws/icons/` ship **verbatim** under
+  internal ids, and promote `<style>` class rules onto the shapes as presentation
+  attributes — the stylesheet itself cannot be kept, free-text CSS defeats an
+  allowlist and Illustrator's `.st0` names collide across icons sharing a
+  document, but dropping it leaves Google's icons filled black; values move
+  verbatim, and a file with no `<style>` sanitizes byte-identically to before). AWS icons in `packages/pack-aws/icons/` ship **verbatim** under
   CC-BY-ND: never edit, recolour, or "optimize" them — regenerate with
   `npm run fetch`. Theme treatment is render-time only (placement, clipping,
   plates). Renderer note: `clip-path` on a `<use>` stops it instantiating in some
@@ -123,8 +127,8 @@ distinguishes them from the other packs.
 half of a stack; `monochrome: true` in its manifest makes the renderer plate and
 tint them.
 `packages/pack-k8s` — 39 Kubernetes community icons (dual Apache-2.0 /
-CC-BY-4.0 — a real redistribution grant, which is the bar; see the GCP
-paragraph below). Canonical ids are kubectl's short names (`pod`, `deploy`,
+CC-BY-4.0 — a real redistribution grant, which every pack but `pack-gcp`
+has; see its paragraph below). Canonical ids are kubectl's short names (`pod`, `deploy`,
 `svc`); the long names alias to them. The fetch pins an upstream commit and
 applies two licence-permitted treatments, both recorded in its NOTICE: strip
 Inkscape metadata, and promote `style="fill:…"` CSS into presentation
@@ -135,12 +139,12 @@ vendor draws (servers, hardware, network gear, data/ML concepts) plus plain
 shapes as a last resort. Also `monochrome: true`. It is the `sys/*` prefix, and like `builtin` it
 resolves with **no `pack` statement** — which is a property of being registered,
 not of the DSL: `model.packs` is recorded and never read, so `pack` is a
-declaration of intent. Registration is hardcoded in five places, all one-liners:
+declaration of intent. Registration is hardcoded in six places, all one-liners:
 `core/src/packs/node-fs.ts`, `apps/spa/scripts/sync-packs.ts` +
 `apps/spa/src/squinch.ts`, `packages/vscode/scripts/bundle.mjs` (miss it and
 `packExists` is false in the bundled extension), and `gauntlet/run.ts` (miss
-it and cold agents silently run without the pack). The guardrails test
-asserts all five agree.
+it and cold agents silently run without the pack), plus the `PUBLIC` allowlist
+in `guardrails.test.ts`. The guardrails test asserts all of them agree.
 A pack name must never appear in **both** `BUILTIN_GLYPHS` and the pack registry:
 `iconIds` short-circuits on the former, so the disk icons would vanish from
 search, completions and `squinch icons` while `hasIcon` still accepted them.
@@ -153,8 +157,22 @@ onto a wrapping `<g>`** (`packs/sanitize.ts`): the body is lifted out of its roo
 into a `<symbol>`, and stroke-only sets like Lucide put `fill="none"
 stroke="currentColor"` on the root and nothing on the paths — drop those and
 every icon renders as a solid black blob.
-Deliberately absent: GCP. Google grants permission to *use* its Cloud icons in
-diagrams but publishes no redistribution grant, so we don't ship them.
+`packages/pack-gcp` — 45 Google Cloud icons: the **current** (2025) system
+only — 19 core-product marks (4-colour) and 26 category glyphs (2-colour) —
+never the 216 legacy per-service icons, which Google's own PDF says "should not
+be used as of 2026". Every other product draws as its category glyph by
+Google's design, and `pack.json` encodes that as ~280 aliases (`gcp/pubsub` →
+`data-analytics`, `gcp/cloud-functions` → `serverless-computing`), so an agent
+writing from prose gets the glyph Google would use rather than a dead id; the
+label carries the product name. It is the one pack with **no redistribution
+grant**: Google publishes the library "for your diagrams, technical
+documentation, and more" and says nothing about redistributing it, every
+comparable tool (draw.io, `diagrams`, Iconify, PlantUML sprites) has shipped it
+for years unchallenged, and its NOTICE states that footing in full — do not
+soften it. The fetch pins Google's unversioned ZIPs by SHA-256 and `release` is
+the PDF's "Updated" date. Sixteen of the files carry their paint as `<style>`
+class rules; they ship verbatim and the sanitizer promotes the rules at load
+(the bullet above), never the fetch script.
 `packages/cli` — the `squinch` binary,
 thin wrapper over core: arg parsing, project loading (file *or* directory), and the
 sync/check model (`--sync` writes stamped renders, `--check` re-renders and compares).
@@ -184,7 +202,7 @@ committed SVGs that CI verifies.
 Everything planned for v1 and v1.1 ships: the engine (grammar → model →
 visibility/lifting → layout → themed SVG), the CLI (check/render/diff/icons/
 init/watch + sync/check model + Actions), the SPA playground, the VS Code
-extension + language server, five icon packs, and the light/dark pair. The acceptance
+extension + language server, six icon packs, and the light/dark pair. The acceptance
 bar — an agent producing clean diagrams from prose using only the skill + CLI —
 is certified at **35/35
 by independent cold agents** on the committed corpus; the latest round scored

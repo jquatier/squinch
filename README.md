@@ -99,7 +99,7 @@ drift — see [examples/microservices](examples/microservices) for the source.
   [skill](packages/skill) and ask for a diagram of your system. The language was
   designed for agents to author rather than retrofitted for them, so what comes
   back is a correct diagram, not one you have to redraw.
-- **1,313 real vendor icons.** AWS, Azure, Kubernetes and product logos, not
+- **1,358 real vendor icons.** AWS, Azure, Google Cloud, Kubernetes and product logos, not
   grey boxes with labels on them.
 - **Auto-layout that gets it right, and lets you overrule it.** Good diagrams
   with no hints at all; when you disagree, steer it with `rows`,
@@ -516,8 +516,8 @@ themes, and CI fails if any of them changes unintentionally.
 
 ## Icons
 
-**1,313 marks across five packs**, all chosen because they can be
-redistributed:
+**1,358 marks across six packs**, five chosen because they can be
+redistributed and one shipped on Google's stated purpose for it:
 
 | Pack | Count | Terms |
 | --- | --- | --- |
@@ -526,6 +526,7 @@ redistributed:
 | [`pack-logos`](packages/pack-logos) | 147 | CC0, from [Simple Icons](https://simpleicons.org) — the non-cloud half of a stack |
 | [`pack-sys`](packages/pack-sys) | 175 | ISC, from [Lucide](https://lucide.dev) — the generic set: servers, hardware, network gear, shapes, data/ML concepts |
 | [`pack-k8s`](packages/pack-k8s) | 39 | Apache-2.0 / CC-BY-4.0 — the official [Kubernetes community icons](https://github.com/kubernetes/community/tree/main/icons), published to standardize cluster diagrams |
+| [`pack-gcp`](packages/pack-gcp) | 45 | Google's [icon library](https://cloud.google.com/icons), published "for your diagrams, technical documentation, and more" — no redistribution grant; see its NOTICE for the footing |
 
 ```console
 $ squinch icons search factory
@@ -549,8 +550,14 @@ uses. Lucide's ISC and Simple Icons' CC0 carry no such limits, though those are
 shipped verbatim too so `npm run fetch` can pick up upstream fixes without
 re-applying local edits. Each pack's NOTICE has the details.
 
-Deliberately absent: GCP. Google grants permission to *use* its Cloud icons in
-diagrams but publishes no redistribution grant, so we don't ship them.
+Google Cloud is the exception to "chosen because they can be redistributed".
+Google publishes its icons for diagrams and documentation and says nothing
+about redistributing them; draw.io, `diagrams`, Iconify and the PlantUML sprite
+libraries have shipped them for years without objection, and `pack-gcp` stands
+on the same footing, stated in full in its NOTICE. It ships Google's *current*
+icon system — 19 core-product marks and 26 category glyphs, every other product
+resolving to its category's glyph by Google's own design — and not the 216
+legacy per-service icons, which Google says "should not be used as of 2026".
 
 ## Editor support and a playground
 
@@ -559,7 +566,7 @@ which block you're in, live diagnostics with quick fixes, hover, document
 symbols, and a preview pane that re-renders as you type.
 
 The **playground** is the app in the zoom animation above: click a system to
-dive into it, walk a flow one hop at a time, ⌘K to search 1,313 icons, and
+dive into it, walk a flow one hop at a time, ⌘K to search 1,358 icons, and
 full-screen the declared views as a presentation deck. It lives at
 [squinch.cc/playground](https://squinch.cc/playground/) — nothing you draw
 leaves your browser — or run it locally with `pnpm --filter @squinch/spa dev`.
@@ -608,11 +615,13 @@ travels with anything that serves the artwork (the playground carries it under
 | [`pack-aws`](packages/pack-aws) | Amazon Web Services — [AWS Architecture Icons](https://aws.amazon.com/architecture/icons/) | [CC-BY-ND 2.0](packages/pack-aws/NOTICE) — attribution required, no derivatives |
 | [`pack-azure`](packages/pack-azure) | Microsoft — [Azure Architecture Icons](https://learn.microsoft.com/en-us/azure/architecture/icons/) | [Microsoft's icon terms](packages/pack-azure/NOTICE) — architecture diagrams, training and documentation only |
 | [`pack-k8s`](packages/pack-k8s) | © the Kubernetes Authors — [community icons](https://github.com/kubernetes/community/tree/main/icons) | [Apache-2.0 or CC-BY-4.0](packages/pack-k8s/NOTICE) — attribution required |
+| [`pack-gcp`](packages/pack-gcp) | Google — [Google Cloud icon library](https://cloud.google.com/icons) | [No published grant](packages/pack-gcp/NOTICE) — architecture diagrams and documentation, the purpose Google publishes them for |
 | [`pack-logos`](packages/pack-logos) | [Simple Icons](https://simpleicons.org) | [CC0-1.0](packages/pack-logos/NOTICE) — the marks remain their owners' trademarks |
 | [`pack-sys`](packages/pack-sys) | [Lucide](https://lucide.dev), portions from Feather | [ISC](packages/pack-sys/NOTICE) (Feather portions MIT) |
 
 Kubernetes and the Kubernetes logo are trademarks of The Linux Foundation;
-brand marks in `pack-logos` belong to their respective owners. Use throughout
+Google Cloud and its product names are trademarks of Google LLC; brand marks
+in `pack-logos` belong to their respective owners. Use throughout
 is nominative — identifying the thing a diagram depicts — and implies no
 endorsement or affiliation. Each pack's NOTICE carries the full text and
 records the fetch-time treatments applied.
