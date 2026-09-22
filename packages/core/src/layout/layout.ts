@@ -501,14 +501,51 @@ export async function layoutView(
     downward ? rp === "above" || rp === "below" : rp === "left-of" || rp === "right-of";
   const towardsStart = (rp: RelPos) => rp === "above" || rp === "left-of";
 
-  const crossEdges = edges
-    .map((e) => [unitOf(e.from), unitOf(e.to)] as const)
-    .filter(([a, b]) => a !== b);
+  /** `items` minus every edge that would close a cycle with the ones before
+   *  it — first declared wins, the closing edge is dropped. Ranks are a
+   *  longest-path relaxation, and on a cycle that never converges: it ran out
+   *  its pass budget and the members landed wherever the count left them.
+   *  Round 27 had a bus that six areas publish to and consume from, so
+   *  `catalog ↔ kafka` lifted to a mutual pair with no hint anywhere; both
+   *  came back rank 31, the router classified both edges coplanar (hiding
+   *  them from ELK — the whole co-ranking mechanism), and ELK, seeing no
+   *  edge between them, layered them apart. Each wire then ran straight at
+   *  its own height and ended in canvas beside the other. ELK breaks cycles
+   *  itself before layering (a back edge is reversed, never a same-layer
+   *  pair), so the rank estimate breaks them the same way and the closing
+   *  edge reaches ELK as the ordinary cross-rank edge it always was. A pair
+   *  the author *pins* to one row is untouched: that is a declared rank,
+   *  and both directions route side to side as before. */
+  const acyclic = <T>(items: readonly T[], ends: (t: T) => readonly [string, string]): T[] => {
+    const succ = new Map<string, Set<string>>();
+    const reaches = (from: string, to: string): boolean => {
+      const seen = new Set<string>([from]);
+      const stack = [from];
+      for (let cur = stack.pop(); cur !== undefined; cur = stack.pop()) {
+        if (cur === to) return true;
+        for (const n of succ.get(cur) ?? []) if (!seen.has(n)) { seen.add(n); stack.push(n); }
+      }
+      return false;
+    };
+    const kept: T[] = [];
+    for (const it of items) {
+      const [a, b] = ends(it);
+      if (reaches(b, a)) continue;
+      kept.push(it);
+      (succ.get(a) ?? succ.set(a, new Set()).get(a)!).add(b);
+    }
+    return kept;
+  };
+  const unitEnds = (e: VEdge) => [unitOf(e.from), unitOf(e.to)] as const;
+  /** The cross-unit edges ranks are relaxed over: a DAG, in declaration order. */
+  const forwardEdges = acyclic(edges.filter((e) => unitOf(e.from) !== unitOf(e.to)), unitEnds);
+  const crossEdges = forwardEdges.map(unitEnds);
 
   /** Relax until stable: successors sit below predecessors; unpinned
    *  predecessors of a pinned node float above it (possibly negative).
    *  Parameterised over the level's members and edges so an expanded frame's
-   *  interior (below) runs the same pass over its own children. */
+   *  interior (below) runs the same pass over its own children. `pairs` must
+   *  be acyclic (see `acyclic`) or the loop below never settles. */
   const relaxOver = (
     members: string[],
     pairs: readonly (readonly [string, string])[],
@@ -719,10 +756,10 @@ export async function layoutView(
     const named = new Set([...rowsHere.flat(), ...colsHere.flat(), ...placeHere.flatMap((x) => [x.node, x.target])]);
     if (named.size < 2) continue;
 
-    const pairs = edges.flatMap((e) => {
+    const pairs = acyclic(edges.flatMap((e) => {
       const a = memberOf(F, e.from), b = memberOf(F, e.to);
       return a && b && a !== b ? [[a, b] as const] : [];
-    });
+    }), (p) => p);
     // same rule as the root: a member named from several bands takes the last
     const pinned = new Map<string, number>();
     rowsHere.forEach((row, i) => row.forEach((m) => pinned.set(m, i)));
@@ -818,11 +855,16 @@ export async function layoutView(
   const busSet = new Set(bus.map((e) => e.id));
   const elkEdges = edges.filter((e) => !coplanarSet.has(e.id) && !busSet.has(e.id));
 
+  // ELK's own layering estimate, over the edges it will see — minus the ones
+  // it will reverse: the same DAG the ranks were relaxed over, so a cycle
+  // cannot inflate this side of the `nat < want` comparison either.
+  const elkEdgeSet = new Set(elkEdges.map((e) => e.id));
   const natural = new Map(units.map((p) => [p, 0]));
   for (let i = 0; i < units.length; i++)
-    for (const e of elkEdges) {
-      const ef = unitOf(e.from), et = unitOf(e.to);
-      if (ef !== et) natural.set(et, Math.max(natural.get(et)!, natural.get(ef)! + 1));
+    for (const e of forwardEdges) {
+      if (!elkEdgeSet.has(e.id)) continue;
+      const [ef, et] = unitEnds(e);
+      natural.set(et, Math.max(natural.get(et)!, natural.get(ef)! + 1));
     }
   /** The `rows` line the author could paste, with `target` moved into
    *  `source`'s band — or undefined when that would break a different edge. */

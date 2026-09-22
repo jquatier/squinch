@@ -388,6 +388,12 @@ ELK lays out as two tiers — an unlisted bus on the path between band-mates,
 scaffold edges being lower bounds — is a check error that writes the `rows`
 line to paste, measured off the result because the split is not predictable
 from the graph.
+Round 27 (2026-09) closed a third: an unhinted mutual pair (`a -> bus`,
+`bus ~> a` lifted to a 2-cycle) tied on one rank by accident — the rank
+relaxation has no fixpoint on a cycle and ran out its pass budget — so both
+edges were hidden from ELK and each ended in canvas. Ranks now break cycles
+ahead of the relaxation the way ELK does (first-declared edge wins, `acyclic`
+in `layout.ts`); a pair the author pins to one row is unchanged.
 The hand-built spike harness that proved this is retired, and its canonical
 oracle followed (2026-08): label-space reservation legitimately moves node
 positions, so second-implementation parity stopped being a meaningful claim.

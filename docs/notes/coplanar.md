@@ -284,3 +284,52 @@ synthesized bands are exempt — they are the engine's own, and it routes them.
 Still open: the check covers a view's `rows`. A container's own `layout { }`
 bands can split the same way inside an auto view (seen once, on a catalog
 area whose indexer sat between two listed leaves), and `cols` is untested.
+
+## Round 27: a mutual pair with no hint tied by accident (2026-09)
+
+Round 27's monorepo answer drew a bus that six areas publish to *and*
+consume from, so `catalog.products -> kafka` and `kafka ~> catalog.indexer`
+lifted to a 2-cycle `catalog ↔ kafka` in the landscape with no `rows`
+anywhere. The sweep caught it three ways — both wires `end … on no boundary`
+and the label sat on the bus — and it reproduced with the view's `preview *`
+removed, so it was the ranking, not the detailed card.
+
+**The rank relaxation never settles on a cycle.** Unhinted ranks are a
+longest-path relaxation (`relaxOver`), run for `members + 2` passes and
+stopped at a fixpoint. A cycle has no fixpoint: every pass pushes both ends
+one further, the loop runs out its budget, and the pair lands wherever the
+count left it — rank 31 and rank 31 here, rank 9 and rank 10 for a smaller
+graph with the same shape. Tied, both edges were classified coplanar, which
+hid both from ELK; that hiding *is* the co-ranking mechanism (approach #5),
+and with no edge left between them ELK layered the two apart. The router
+then drew each wire straight at its own source's height, from one unit's
+x-extent to the other's, into canvas.
+
+Nothing to refuse here: round 26's band-split check refuses a *hint* the
+layouter will not honour, and this view declared none. ELK breaks cycles
+itself before layering (a back edge is reversed; it is never a same-layer
+pair), so the rank estimate now breaks them the same way, ahead of the
+relaxation: edges are taken in declaration order and one that would close a
+cycle with the ones already accepted is left out (`acyclic`). First declared
+wins — `catalog -> kafka` puts the bus below the catalog — and the closing
+edge reaches ELK as the ordinary cross-rank edge it always was, which ELK
+reverses on its own. The same DAG feeds the `natural` estimate that decides
+scaffold edges, so a cycle cannot inflate that side of `nat < want` either,
+and the frame-interior pass gets the filter through the same function. A
+pair the author *pins* to one row is untouched: `rows [a b]` with edges both
+ways is a declared rank, both edges stay coplanar, and the router draws them
+side to side as before.
+
+Corpus impact: one view of 224 moved, the committed round-26 answer to the
+same prompt (`gauntlet/solutions/35-monorepo` landscape) — it carried the
+same cycle and had landed the pair on *different* inflated ranks by the same
+accident. Everything else is byte-identical. Repro and the pinned-pair guard
+in `test/band-split.test.ts`; lookbook `42-mutual-pair` keeps the shape in
+the sweep. The reduction is order-sensitive on purpose: the tie is an
+artefact of the pass count, so a different edge order inflates the ranks
+without tying them, and the test keeps the order that did.
+
+Seen on the way and left alone: a *pinned* mutual pair (`rows [a b]`, `a ->
+b`, `b ~> a`) draws both straight wires on one line, ports stacked at the
+same point on each face. That is the router's, predates this change, and is
+recorded here so it is not mistaken for a ranking regression.

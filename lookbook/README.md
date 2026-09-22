@@ -509,3 +509,13 @@ Source: [`cases/41-preview-card.squinch`](cases/41-preview-card.squinch)
 | light | dark |
 |---|---|
 | ![](out/41-preview-card.chips.light.svg) | ![](out/41-preview-card.chips.dark.svg) |
+
+## Mutual Pair
+
+A bus that one area both publishes to and consumes from — `catalog -> bus` and `bus ~> catalog` lift to a mutual pair with no `rows` anywhere. Ranks break the cycle the way ELK does (the first-declared edge wins), so the pair lands on two ranks and both edges are ELK's. Before that, the rank relaxation ran out its pass budget on the cycle, the pair tied by accident, the router classified both edges same-rank and drew each straight at its own height — ending in canvas beside the other card.
+
+Source: [`cases/42-mutual-pair.squinch`](cases/42-mutual-pair.squinch)
+
+| light | dark |
+|---|---|
+| ![](out/42-mutual-pair.landscape.light.svg) | ![](out/42-mutual-pair.landscape.dark.svg) |

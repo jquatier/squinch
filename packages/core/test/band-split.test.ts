@@ -105,3 +105,69 @@ view v { include *
     expect(diagnostics).toEqual([]);
   });
 });
+
+describe("a mutual pair with no hint is two ranks, not one (round 27)", () => {
+  // The lifted unit graph of round 27's monorepo answer, pruned to the
+  // smallest edge set that still tied the pair: a bus six areas publish to
+  // and consume from, so `catalog -> bus` and `bus ~> catalog` are a
+  // 2-cycle. Rank relaxation is a longest path and never settles on a
+  // cycle; it ran out its pass budget with both on one rank, the router
+  // took both edges (hiding them from ELK — the whole co-ranking
+  // mechanism), and ELK, seeing no edge between the two, layered them
+  // apart. Each wire ran straight at its own height and ended in canvas.
+  // Edge *order* is part of the repro: the tie is an accident of the pass
+  // count, and other orders inflate the ranks without tying them.
+  const SRC = `identity = box "identity"
+bus = box "bus"
+catalog = box "catalog"
+commerce = box "commerce"
+fulfilment = box "fulfilment"
+engagement = box "engagement"
+analytics = box "analytics"
+gw = box "gw"
+identity -> bus
+catalog -> bus
+bus ~> catalog
+commerce -> bus
+fulfilment -> bus
+bus ~> fulfilment
+bus ~> engagement
+bus ~> analytics
+gw -> catalog
+gw -> commerce
+commerce -> fulfilment
+view v { include * }`;
+
+  it("hands both edges to ELK as ordinary cross-rank edges", async () => {
+    const { positioned, diagnostics } = await lay(SRC);
+    expect(diagnostics).toEqual([]);
+    expect(checkLayout(positioned)).toEqual([]);
+    const at = (p: string) => positioned.nodes.find((n) => n.path === p)!;
+    expect(at("catalog").rank).not.toBe(at("bus").rank);
+    expect(positioned.edges.filter((e) => e.coplanar)).toEqual([]);
+    // the first-declared direction wins: catalog above the bus
+    expect(at("catalog").rank).toBeLessThan(at("bus").rank);
+    // and the cycle no longer inflates the ladder — ranks are contiguous
+    const ranks = [...new Set(positioned.nodes.map((n) => n.rank))].sort((a, b) => a - b);
+    expect(ranks).toEqual(ranks.map((_, i) => i));
+  });
+
+  it("still routes a pair the author pins to one row, both ways", async () => {
+    // A declared rank is not a cycle accident: `rows [a b]` keeps both edges
+    // coplanar and the router draws them side to side, as it always has.
+    const { positioned, diagnostics } = await lay(`a = box "A"
+b = box "B"
+a -> b
+b ~> a
+view v { include *
+  layout { rows [a b] } }`);
+    expect(diagnostics).toEqual([]);
+    // Not `checkLayout` here: a pinned mutual pair stacks both straight
+    // wires on one line (ports for e1 and e2 at the same point on each
+    // face) on the engine before this change too — a router defect of its
+    // own, not the ranking one this file is about.
+    expect(positioned.edges.map((e) => e.coplanar)).toEqual([true, true]);
+    const at = (p: string) => positioned.nodes.find((n) => n.path === p)!;
+    expect(at("a").rank).toBe(at("b").rank);
+  });
+});
