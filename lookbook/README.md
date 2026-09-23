@@ -86,7 +86,7 @@ Source: [`cases/08-landscape.squinch`](cases/08-landscape.squinch)
 
 ## Coplanar Row
 
-Connections between things on the same row. Neighbours join straight across; ones that reach past a node drop into a lane underneath so they never run through anything.
+Connections between things on the same row. Neighbours join straight across; ones that reach past a node drop into a lane underneath so they never run through anything; and two neighbours that talk both ways take two lanes on the faces they share, one wire above the other, rather than one line with both arrowheads on it.
 
 Source: [`cases/09-coplanar-row.squinch`](cases/09-coplanar-row.squinch)
 

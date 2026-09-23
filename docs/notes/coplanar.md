@@ -329,7 +329,19 @@ the sweep. The reduction is order-sensitive on purpose: the tie is an
 artefact of the pass count, so a different edge order inflates the ranks
 without tying them, and the test keeps the order that did.
 
-Seen on the way and left alone: a *pinned* mutual pair (`rows [a b]`, `a ->
-b`, `b ~> a`) draws both straight wires on one line, ports stacked at the
-same point on each face. That is the router's, predates this change, and is
-recorded here so it is not mistaken for a ranking regression.
+Seen on the way: a *pinned* mutual pair (`rows [a b]`, `a -> b`, `b ~> a`)
+drew both straight wires on one line, ports stacked at the same point on each
+face, arrowheads on top of each other and one pill under the other. That was
+the router's and predated the ranking change — the straight branch put every
+wire at the pair's mid-height on the argument that two straight coplanar
+wires cannot collide because a second *target* on a face is blocked by the
+first, which is true and does not cover a second wire to the *same* target.
+Fixed in the straight branch alone: the wires between one pair take lanes,
+the face divided into n+1 even slots (the spread ELK gives the parallel ports
+it owns — the same node cross-rank gets its two ports at 40 and 80 on a
+120-wide face, and the pinned pair under `direction right` now lands on
+exactly those), measured off the first-declared wire's source so each wire
+stays straight and the group sits centred. A lone wire is slot 1 of 2, which
+is the centre it always had, and the gallery gate held all 225 corpus views
+byte-identical. The go-around branches were already spreading through
+`freePort`, so a pinned pair of *frames* never stacked.

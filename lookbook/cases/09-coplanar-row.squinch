@@ -1,6 +1,8 @@
 // Connections between things on the same row. Neighbours join straight across;
 // ones that reach past a node drop into a lane underneath so they never run
-// through anything.
+// through anything; and two neighbours that talk both ways take two lanes on
+// the faces they share, one wire above the other, rather than one line with
+// both arrowheads on it.
 pack aws
 
 system row "One Row" {
@@ -18,6 +20,7 @@ system row "One Row" {
   e -> f
   a -> d "skip"
   b -> f "far skip"
+  f ~> e "ack"
 }
 
 view row {

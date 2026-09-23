@@ -162,10 +162,7 @@ b ~> a
 view v { include *
   layout { rows [a b] } }`);
     expect(diagnostics).toEqual([]);
-    // Not `checkLayout` here: a pinned mutual pair stacks both straight
-    // wires on one line (ports for e1 and e2 at the same point on each
-    // face) on the engine before this change too — a router defect of its
-    // own, not the ranking one this file is about.
+    expect(checkLayout(positioned)).toEqual([]);
     expect(positioned.edges.map((e) => e.coplanar)).toEqual([true, true]);
     const at = (p: string) => positioned.nodes.find((n) => n.path === p)!;
     expect(at("a").rank).toBe(at("b").rank);

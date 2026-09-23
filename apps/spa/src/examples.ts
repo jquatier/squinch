@@ -73,7 +73,7 @@ export const EXAMPLES: { name: string; group: string; source: string }[] = [
   {
     "name": "Coplanar row",
     "group": "Lookbook",
-    "source": "// Connections between things on the same row. Neighbours join straight across;\n// ones that reach past a node drop into a lane underneath so they never run\n// through anything.\npack aws\n\nsystem row \"One Row\" {\n  a = aws/lambda \"Alpha\"\n  b = aws/lambda \"Bravo\"\n  c = aws/lambda \"Charlie\"\n  d = aws/lambda \"Delta\"\n  e = aws/lambda \"Echo\"\n  f = aws/lambda \"Foxtrot\"\n\n  a -> b\n  b -> c\n  c -> d\n  d -> e\n  e -> f\n  a -> d \"skip\"\n  b -> f \"far skip\"\n}\n\nview row {\n  layout {\n    rows [a b c d e f]\n  }\n}\n"
+    "source": "// Connections between things on the same row. Neighbours join straight across;\n// ones that reach past a node drop into a lane underneath so they never run\n// through anything; and two neighbours that talk both ways take two lanes on\n// the faces they share, one wire above the other, rather than one line with\n// both arrowheads on it.\npack aws\n\nsystem row \"One Row\" {\n  a = aws/lambda \"Alpha\"\n  b = aws/lambda \"Bravo\"\n  c = aws/lambda \"Charlie\"\n  d = aws/lambda \"Delta\"\n  e = aws/lambda \"Echo\"\n  f = aws/lambda \"Foxtrot\"\n\n  a -> b\n  b -> c\n  c -> d\n  d -> e\n  e -> f\n  a -> d \"skip\"\n  b -> f \"far skip\"\n  f ~> e \"ack\"\n}\n\nview row {\n  layout {\n    rows [a b c d e f]\n  }\n}\n"
   },
   {
     "name": "Highlight notes",

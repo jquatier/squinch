@@ -1796,11 +1796,13 @@ export async function layoutView(
         if (c >= lo && c <= hi && clear(c)) return c;
     return want; // a face with nowhere left to go: draw it rather than not
   };
-  // Only the go-around branch uses this. The straight branch puts both ends at
-  // the same cross-coordinate *because* the line is straight, so moving one end
-  // would have to move the other and could not always — and two straight
-  // coplanar edges cannot collide anyway: a second target on the same side is
-  // either blocked by the first or overlapping it.
+  // Only the go-around branches use this. The straight branch puts both ends
+  // at the same cross-coordinate *because* the line is straight, so moving one
+  // end would have to move the other and could not always — and two straight
+  // coplanar edges to *different* targets cannot collide: a second target on
+  // the same side is blocked by the first. The one collision left is two
+  // wires between the same pair (a pinned mutual pair, or two labelled edges
+  // one way), and the straight branch lanes those itself, below.
 
   // Routing rects: a bare leaf routes by its own rect; a leaf inside a unit
   // (or a frame endpoint) routes by its *outermost* unit's rect — frame or
@@ -2021,9 +2023,19 @@ export async function layoutView(
       // the pre-frames straight path, byte-for-byte: same-rank sibling leaves
       // share a cross-centre, the line is straight *because* both ends sit at
       // a's centre, and it never consults freePort (see the comment above it —
-      // straight pairs cannot collide, and a port probe here could nudge an
-      // existing diagram into a jog it never had)
-      const c = midCross(a);
+      // a port probe here could nudge an existing diagram into a jog it never
+      // had). The one thing that *can* collide here is a second wire between
+      // the same two leaves — `rows [a b]` with `a -> b` and `b ~> a` drew two
+      // collinear wires, ports stacked at one point on each face, arrowheads
+      // on top of each other. Those take lanes: the face divided into n+1
+      // even slots, the spread ELK gives the parallel ports it owns, measured
+      // off the first-declared wire's source so every wire in the group stays
+      // straight and the group sits centred on the face. A lone wire is slot
+      // 1 of 2, which is the centre it always had.
+      const pair = coplanar.filter((o) =>
+        (o.from === e.from && o.to === e.to) || (o.from === e.to && o.to === e.from));
+      const ref = routeRect(pair[0].from);
+      const c = ref[cross] + Math.round((ref[crossSize] * (pair.indexOf(e) + 1)) / (pair.length + 1));
       const first = a[along] <= b[along];
       const pts = first
         ? [pt(a[along] + a[alongSize], c), pt(b[along], c)]
