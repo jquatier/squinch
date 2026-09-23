@@ -161,7 +161,7 @@ const html = `<!doctype html>
     <meta property="og:image" content="https://squinch.cc/og.png" />
     <meta property="og:image:width" content="1200" />
     <meta property="og:image:height" content="630" />
-    <meta property="og:image:alt" content="The Squinch mark — an S standing on three stacked isometric planes — beside the wordmark" />
+    <meta property="og:image:alt" content="The Squinch mark — an S standing on three stacked isometric planes — beside the wordmark and, under it, the line “architecture diagrams as code, for coding agents”" />
     <meta property="og:url" content="https://squinch.cc/lookbook/" />
     <meta name="twitter:card" content="summary_large_image" />
     <link rel="preconnect" href="https://fonts.googleapis.com" />

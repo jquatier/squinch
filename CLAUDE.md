@@ -450,9 +450,12 @@ The architecture it certified is still enforced by the corpus invariant sweep.
   `docs/assets/mark.svg`. Maintainer-only; its header records the measurements
   the shape was reconstructed from.
 - `npx tsx scripts/og.mts` — regenerate `apps/spa/public/og.png`, the social
-  card: the layered mark lifted from `mark-stack.svg` beside the wordmark in
-  the bundled Inter 600, rasterised by resvg with system fonts off. Re-run
-  after a recolour; the lockup is the whole card, there is no tagline.
+  card: the landing's h1 lockup (`.hero-brand`) at three times the size — the
+  layered mark lifted from `mark-stack.svg` beside the wordmark in the bundled
+  Inter 600 and the two eyebrow lines in IBM Plex Mono 600, cut from core's
+  `@fontsource` source face at run time — rasterised by resvg with system
+  fonts off. Re-run after a recolour or a change to the lockup's copy; the
+  numbers in the script are `site.css`'s, scaled, so change them there first.
 - VS Code extension: <kbd>F5</kbd> ("Run Squinch extension") bundles core + the
   extension and opens `examples/` in a dev host; or
   `pnpm --filter squinch-vscode build`.
