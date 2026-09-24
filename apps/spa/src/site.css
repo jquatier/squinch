@@ -515,6 +515,23 @@ pre code { background: none; padding: 0; font-size: inherit; }
    set even on phones, where .hero-copy centres: the lockup stays one piece. */
 .hero-brand .lockup-text { display: flex; flex-direction: column; gap: 10px; min-width: 0; text-align: left; }
 .hero-brand .cat .eyebrow { white-space: nowrap; }
+/* The category lines rise in one at a time as the mark's planes land, each
+   out from under an edge at the foot of its own slot: the line slides up while
+   a clip keeps its bottom trimmed to that slot, so it surfaces rather than
+   drifts. The two move together because they share one keyframe — at every
+   instant the clip trims exactly as much as the line still has to rise. The
+   second waits for the first to land. Paint-only on purpose: anything that
+   touches the tracking widens the lockup and slides the centred hero.
+   `backwards` for the reason given at mark-rise. */
+.hero-brand .cat .eyebrow { animation: cat-rise 720ms cubic-bezier(0.2, 0.8, 0.2, 1) 420ms backwards; }
+.hero-brand .cat .eyebrow + .eyebrow { animation-delay: 900ms; }
+@keyframes cat-rise {
+  from { transform: translateY(100%); clip-path: inset(0 0 100% 0); opacity: 0.2; }
+  to { transform: none; clip-path: inset(0 0 0 0); opacity: 1; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .hero-brand .cat .eyebrow { animation: none; }
+}
 /* The headline is an h2 on purpose: the lockup above is the page's one h1 —
    the document's name and, in its two small lines, what the document is —
    and this is its first claim. */
