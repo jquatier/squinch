@@ -63,6 +63,29 @@ pre {
 }
 pre code { background: none; padding: 0; font-size: inherit; }
 
+/* A command block with a copy button pinned top-right. The button sits beside
+   the <pre>, not inside it, so it stays put while a long command scrolls. */
+.copyable { position: relative; }
+.copyable pre { padding-right: 52px; }
+.copy-btn {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  display: grid;
+  place-items: center;
+  width: 30px;
+  height: 30px;
+  padding: 0;
+  border: 1px solid var(--line);
+  border-radius: 7px;
+  background: var(--surface);
+  color: var(--muted);
+  cursor: pointer;
+  transition: background-color 0.15s ease, border-color 0.15s ease, color 0.15s ease;
+}
+.copy-btn:hover { background: var(--control); border-color: var(--text-faint); color: var(--fg); }
+.copy-btn[data-copied] { color: var(--accent); }
+
 /* ── shared vocabulary ──────────────────────────────────────────────────── */
 
 /* The mono eyebrow: a system label, in the voice code and commands use. */
@@ -327,7 +350,7 @@ pre code { background: none; padding: 0; font-size: inherit; }
 }
 .card-body { padding: 18px 22px 22px; }
 .card-body > p { color: var(--muted); font-size: 14.5px; max-width: 56ch; }
-.card-body > p + pre { margin-top: 14px; }
+.card-body > p + pre, .card-body > p + .copyable { margin-top: 14px; }
 .card-body p a { color: var(--accent); }
 
 /* the commands table: hairline rows, a code chip per command */

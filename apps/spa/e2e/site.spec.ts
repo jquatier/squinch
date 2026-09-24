@@ -46,6 +46,20 @@ test("each content page serves, styled, with its own title", async ({ page }) =>
   }
 });
 
+test("every command on the install page copies, without its comments", async ({ page, context }) => {
+  await context.grantPermissions(["clipboard-read", "clipboard-write"]);
+  await page.goto("/install/");
+  // one button per block — a new <pre> gets one for free, so count them
+  await expect(page.locator(".copy-btn")).toHaveCount(await page.locator("pre").count());
+  const cli = page.locator("#cli .copy-btn");
+  await cli.click();
+  await expect(cli).toHaveAccessibleName("Copied");
+  // the `# or npx …` aside stays on the page and off the clipboard
+  expect(await page.evaluate(() => navigator.clipboard.readText())).toBe(
+    "npm i -g squinch\n\nsquinch init my-diagrams\nsquinch render my-diagrams --sync",
+  );
+});
+
 test("the landing's Playground link opens the working playground", async ({ page }) => {
   await page.goto("/");
   await page.getByRole("link", { name: "Open the playground", exact: true }).click();

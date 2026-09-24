@@ -136,7 +136,7 @@ codex plugin add squinch@squinch</code></pre>
           </div>
           <div class="card-body">
             <p>One package, and the first render is two commands. macOS, Linux and Windows, on Node ≥ 22.</p>
-            <pre><code>npm i -g squinch          # or npx squinch &lt;cmd&gt;
+            <pre><code>npm i -g squinch          <span class="c"># or npx squinch &lt;cmd&gt;</span>
 
 squinch init my-diagrams
 squinch render my-diagrams --sync</code></pre>
@@ -207,6 +207,50 @@ squinch render my-diagrams --sync</code></pre>
     </footer>
 
     <script>
+      // Copy buttons, added here rather than in the markup so a reader with
+      // script off never sees a button that cannot work. What lands on the
+      // clipboard is the command without its `# …` asides, so a multi-line
+      // block pastes into a shell as exactly the commands.
+      if (navigator.clipboard) {
+        // Lucide's copy and check glyphs (ISC), the set pack-sys draws from
+        const svg = (d) =>
+          `<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${d}</svg>`;
+        const COPY = svg('<rect x="8" y="8" width="14" height="14" rx="2"/><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"/>');
+        const DONE = svg('<path d="M20 6 9 17l-5-5"/>');
+        for (const pre of document.querySelectorAll("pre")) {
+          const wrap = document.createElement("div");
+          wrap.className = "copyable";
+          pre.replaceWith(wrap);
+          const btn = document.createElement("button");
+          btn.type = "button";
+          btn.className = "copy-btn";
+          btn.innerHTML = COPY;
+          btn.setAttribute("aria-label", "Copy command");
+          btn.title = "Copy";
+          wrap.append(pre, btn);
+          let reset;
+          btn.addEventListener("click", async () => {
+            const code = pre.cloneNode(true);
+            for (const c of code.querySelectorAll(".c")) c.remove();
+            const text = code.textContent.split("\n").map((l) => l.trimEnd()).join("\n").trim();
+            try {
+              await navigator.clipboard.writeText(text);
+            } catch {
+              return;
+            }
+            btn.innerHTML = DONE;
+            btn.dataset.copied = "";
+            btn.setAttribute("aria-label", "Copied");
+            clearTimeout(reset);
+            reset = setTimeout(() => {
+              btn.innerHTML = COPY;
+              delete btn.dataset.copied;
+              btn.setAttribute("aria-label", "Copy command");
+            }, 1600);
+          });
+        }
+      }
+
       // Scroll-spy for the rail: the active entry is the section nearest the
       // top of the viewport. The root margin shrinks the observed band to the
       // upper part of the screen, so a card counts as "current" once its head
