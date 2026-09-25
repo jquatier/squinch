@@ -7,7 +7,7 @@ import { themes, type Theme } from "../src/index.js";
 const ROLES: (keyof Theme)[] = [
   "canvas", "surface", "border", "ink", "muted", "edge", "asyncEdge",
   "plateText", "accent", "beadText", "warnTint", "surfaceAlt",
-  "surfaceHi", "surfaceLo", "shelfLine", "plate", "actorLo",
+  "surfaceHi", "surfaceLo", "shelfLine", "plate", "actorHi", "actorLo",
   "sheetFill", "sheetBorder", "faint", "dim",
   "hueRed", "hueAmber", "hueGreen", "hueTeal", "hueBlue", "hueViolet", "huePink", "hueGray",
 ];
@@ -54,7 +54,15 @@ describe("themes", () => {
     expect(ratio(t.muted, t.canvas)).toBeGreaterThanOrEqual(4.5);
   });
 
-  it("dark is designed, not inverted — its canvas is near-black, not grey", () => {
+  it("the actor tile clears its canvas without a border", () => {
+    // The tile is filled and borderless, so its top stop is all that separates
+    // it from the ground. Graphite's canvas landed within 1.01:1 of the old
+    // top stop (`plate`) and people vanished; the original handoff sat at 1.07.
+    for (const [name, t] of Object.entries(themes))
+      expect(ratio(t.actorHi, t.canvas), `${name}.actorHi on canvas`).toBeGreaterThanOrEqual(1.1);
+  });
+
+    it("dark is designed, not inverted — its canvas is near-black, not grey", () => {
     expect(lum(themes.dark.canvas)).toBeLessThan(0.02);
     expect(ratio(themes.dark.ink, themes.dark.canvas)).toBeGreaterThanOrEqual(7);
   });

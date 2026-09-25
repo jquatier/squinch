@@ -266,7 +266,7 @@ view landscape { include * }
     const r = await render(src, { view: "landscape", theme: "light" });
     expect(r.ok).toBe(true);
     // light theme accent
-    expect(r.svg!.match(/<g data-kind="zone"[^>]*>.*?stroke="#5A57C9"/s)).toBeTruthy();
+    expect(r.svg!.match(new RegExp(`<g data-kind="zone"[^>]*>.*?stroke="${themes.light.accent}"`, "s"))).toBeTruthy();
     const teal = await render(src.replace("color: accent", "color: teal"), { view: "landscape", theme: "light" });
     expect(teal.svg!.match(new RegExp(`<g data-kind="zone"[^>]*>.*?stroke="${themes.light.hueTeal}"`, "s"))).toBeTruthy();
     const bad = buildModel(BASE + `zone z "Z" cloud { contains core\n color: "#ff0000" }\n`);

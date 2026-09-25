@@ -4,7 +4,7 @@ import { fileURLToPath } from "node:url";
 import { join, dirname } from "node:path";
 import { buildModel } from "../src/model/build.js";
 import { resolveView } from "../src/view/resolve.js";
-import { render, validateSVG } from "../src/index.js";
+import { render, themes, validateSVG } from "../src/index.js";
 import { checkLayout } from "./invariants.js";
 
 const pkg = join(dirname(fileURLToPath(import.meta.url)), "..");
@@ -416,7 +416,7 @@ view v {
     const frame = /<rect data-path="svc" data-kind="frame" x="(\d+)" y="(\d+)"/.exec(svg)!;
     const fx = Number(frame[1]), fy = Number(frame[2]);
     expect(svg).toContain(`<rect x="${fx + 12}" y="${fy + 9}" width="24" height="24" rx="5"`);
-    expect(svg).toMatch(new RegExp(`<text x="${fx + 44}" y="${fy + 26}" font-size="13" font-weight="500" fill="#1C1C1A">Service</text>`));
+    expect(svg).toMatch(new RegExp(`<text x="${fx + 44}" y="${fy + 26}" font-size="13" font-weight="500" fill="${themes.light.ink}">Service</text>`));
     // the chip carries no data-path: the frame's rect is the dive anchor
     expect((svg.match(/data-path="svc"/g) ?? []).length).toBe(1);
   });

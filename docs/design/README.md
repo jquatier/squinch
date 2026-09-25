@@ -10,6 +10,8 @@ The bundled `.dc.html` file is a **design reference built in HTML** — it rende
 
 Recreate the values below in those files' existing patterns; don't copy HTML/CSS wholesale.
 
+> **Light palette superseded (2026-09).** The light hexes below are the handoff's original near-white palette, which read washed out. The shipping light theme is now the "graphite" ground — `#E3E3E1` neutral grey canvas under white cards, `#C7C7C3` borders, darker muted/edge ink, the gray hue deepened to match — and `packages/core/src/themes/index.ts` is the authority for every light value. Geometry, and every dark value, is unchanged.
+
 ## Fidelity
 **High-fidelity.** Every value below (colors, radii, stroke widths, gradients, spacing) is final. Implement pixel-for-pixel where the renderer's coordinate system allows.
 

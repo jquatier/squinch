@@ -149,7 +149,7 @@ const surfaceGradient = (t: Theme, id: string) =>
  *  would disappear into the canvas. */
 const actorGradient = (t: Theme, id: string) =>
   `<linearGradient id="${id}" x1="0" y1="0" x2="0" y2="1">` +
-  `<stop offset="0" stop-color="${t.plate}"/><stop offset="1" stop-color="${t.actorLo}"/>` +
+  `<stop offset="0" stop-color="${t.actorHi}"/><stop offset="1" stop-color="${t.actorLo}"/>` +
   `</linearGradient>`;
 /** The 1px contact shadow. The alpha rides `flood-color` rather than
  *  `flood-opacity` on purpose: the adaptive merge only rewrites colour-valued

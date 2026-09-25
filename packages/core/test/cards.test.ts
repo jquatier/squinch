@@ -60,11 +60,12 @@ describe("the card's icon tile", () => {
     const tile = /<rect x="(\d+)" y="(\d+)" width="40" height="40" rx="6" fill="([^"]+)"\/>/.exec(g)!;
     expect(tile[3]).toBe(themes.light.plate);
     // the chip sits at the same 7px inset as vendor artwork, filled with the
-    // mark's colour — sys has none, so it takes the theme's muted ink
+    // mark's colour — sys has none, so `iconMeta` folds in its neutral grey
+    // (a pack constant, not a theme token: it matched light's old `muted`)
     const chip = /<rect x="(\d+)" y="(\d+)" width="26" height="26" rx="3" fill="([^"]+)"\/>/.exec(g)!;
     expect(+chip[1]).toBe(+tile[1] + 7);
     expect(+chip[2]).toBe(+tile[2] + 7);
-    expect(chip[3]).toBe(themes.light.muted);
+    expect(chip[3]).toBe("#6F6E69");
   });
 });
 

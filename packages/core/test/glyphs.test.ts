@@ -3,7 +3,7 @@
 // (Lucide, ISC) and goes through the same plate-and-tint path via
 // `monochrome: true` rather than a hardcoded pack name.
 import { describe, it, expect } from "vitest";
-import { render } from "../src/index.js";
+import { render, themes } from "../src/index.js";
 import { validateSVG } from "../src/render/validate.js";
 import { iconAsset, BUILTIN_GLYPHS } from "../src/packs/registry.js";
 
@@ -35,7 +35,7 @@ view landscape { include * }
     for (const sym of ["sq-sys-code", "sq-builtin-person", "sq-builtin-box"])
       expect(r.svg).toContain(`href="#${sym}"`);
     // badge tinted muted, plates tinted plate-text
-    expect(r.svg).toContain(`<g color="#6F6E69"><use href="#sq-sys-code"`);
+    expect(r.svg).toContain(`<g color="${themes.light.muted}"><use href="#sq-sys-code"`);
     // no lettered-placeholder fallback: sys is a real pack with real art now,
     // and `builtin` is the only pseudo-pack left with `code` strings at all
     expect(r.svg).not.toContain(">API</text>");

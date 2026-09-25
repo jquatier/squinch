@@ -334,7 +334,8 @@ product that costs money.
   each matched to the diagram theme in view.
 - The canvas is the hero: chrome occupies edges only (slim toolbar, collapsible
   editor pane, floating breadcrumb + tag chips); every panel is dismissible to a
-  pure-canvas mode. Canvas gets a barely-there dot grid.
+  pure-canvas mode. The stage is a plain ground in the diagram theme's own canvas
+  colour — no dot grid — so a render floods it with no visible edge.
 - Typography: same bundled sans as the diagrams for wordmark/UI labels, mono for the
   editor — the app and its output visibly share one type system.
 - Details that read "expensive": real keyboard shortcuts surfaced in tooltips, Cmd-K

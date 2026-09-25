@@ -157,22 +157,12 @@ export const Stage = forwardRef<StageHandle, StageProps>(function Stage(
       upscale: !!fill,
       onChange(state, atFit) {
         if (readout?.current) readout.current.textContent = `${Math.round(state.k * 100)}%`;
-        // The dot grid is the canvas, so it moves with the camera. Spacing
-        // follows the scale but folds back by powers of two, which keeps the
-        // density readable from 10% to 400% — the infinite-grid trick.
-        if (!fill) {
-          let s = 22 * state.k;
-          while (s < 14) s *= 2;
-          while (s > 28) s /= 2;
-          vp.style.backgroundSize = `${s}px ${s}px`;
-          vp.style.backgroundPosition = `${state.x}px ${state.y}px`;
-        }
         if (atFit !== wasFit.current) { wasFit.current = atFit; fitChanged.current?.(atFit); }
       },
     });
     cam.current = c;
     pendingFit.current = true;
-    return () => { cam.current = null; c.destroy(); vp.style.backgroundSize = ""; vp.style.backgroundPosition = ""; };
+    return () => { cam.current = null; c.destroy(); };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [fill]);
 
@@ -334,9 +324,9 @@ export const Stage = forwardRef<StageHandle, StageProps>(function Stage(
       <section
         ref={viewport}
         onClick={click}
-        className={`absolute inset-0 cursor-grab select-none overflow-hidden bg-[var(--canvas)] ${
-          fill ? "" : "[background-image:radial-gradient(var(--dot)_1px,transparent_1px)] [background-size:22px_22px]"
-        }`}
+        // A plain ground, the diagram's own: the stage floods with its canvas
+        // colour, so a render has no visible edge to sit inside.
+        className="absolute inset-0 cursor-grab select-none overflow-hidden bg-[var(--canvas)]"
       >
         {/* No `style` prop on the camera or on either layer: they are written
             imperatively, and a prop would be re-applied over a gesture or a

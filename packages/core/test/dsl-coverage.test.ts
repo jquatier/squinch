@@ -13,7 +13,7 @@
 // actually broke: a construct parsed, validated, documented, and then rendered
 // identically to its neighbour.
 import { describe, it, expect } from "vitest";
-import { buildModel, buildProject, render } from "../src/index.js";
+import { buildModel, buildProject, render, themes } from "../src/index.js";
 import { layoutView } from "../src/layout/layout.js";
 import { validateSVG } from "../src/render/validate.js";
 
@@ -99,7 +99,7 @@ describe("subtitle (2026-09)", () => {
       sub: doc(`{ subtitle: "Lambda · Node 20", description: "handles orders" }`),
     }, "v");
     expect(plain).not.toContain("Node 20");
-    expect(sub).toMatch(/<text [^>]*font-size="11" fill="#8A8880">Lambda · Node 20<\/text>/);
+    expect(sub).toMatch(new RegExp(`<text [^>]*font-size="11" fill="${themes.light.faint}">Lambda · Node 20</text>`));
     expect(sub).not.toContain("handles orders");
   });
 

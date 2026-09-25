@@ -43,10 +43,14 @@ export interface Theme {
    *  because it divides one surface rather than bounding two. */
   shelfLine: string;
   /** The neutral chip an icon sits on: card plates, glyph chips, shelf chips.
-   *  Doubles as the actor tile's upper tone — an actor is a filled shape, and
-   *  this is the quietest fill that still separates from canvas. */
+   *  Also the actor's avatar disc. */
   plate: string;
-  /** The actor tile's lower gradient stop, a step under `plate`. */
+  /** The actor tile's gradient, top to bottom. Its own pair rather than
+   *  `plate` on top: an actor is a filled, borderless shape, so its fill must
+   *  clear the canvas on its own — and once the light canvas deepened to
+   *  graphite, `plate` sat within one step of it and the tile's top vanished.
+   *  The avatar disc stays `plate`, a lighter coin on the darker tile. */
+  actorHi: string;
   actorLo: string;
   /** The stacked sheets behind a container — "there is more inside". Quieter
    *  than the card's own border and fill: a hint, not a stack of real cards. */
@@ -97,8 +101,8 @@ export const light: Theme = {
   name: "light",
   font: inter,
   pairsWith: "dark",
-  // red/blue/violet/gray are the former zone tints, verbatim, so every zone
-  // ever rendered is byte-identical; the other four were designed beside them
+  // red/blue/violet are the former zone tints, verbatim; gray was deepened
+  // with the graphite ground so a gray zone still reads on it
   hueRed: "#B5544C",
   hueAmber: "#A06B12",
   hueGreen: "#3F8A5C",
@@ -106,31 +110,37 @@ export const light: Theme = {
   hueBlue: "#3A6EA8",
   hueViolet: "#6B5FC9",
   huePink: "#B04A8A",
-  hueGray: "#7A776E",
-  canvas: "#F7F7F5",
+  hueGray: "#62625C",
+  // The "graphite" ground (2026-09): the first light palette was near-white
+  // on near-white — a #F7F7F5 canvas under #FFFFFF cards behind #EAE9E5
+  // hairlines — and read washed out. Cards stay white, but the canvas is a
+  // neutral grey a clear step under them, and borders, secondary text and
+  // edges each moved a step darker. Neutral, so it still pairs with `dark`.
+  canvas: "#E3E3E1",
   surface: "#FFFFFF",
-  border: "#EAE9E5",
-  ink: "#1C1C1A",
-  muted: "#6F6E69",
-  edge: "#57564F",
+  border: "#C7C7C3",
+  ink: "#111111",
+  muted: "#474744",
+  edge: "#2F2F2C",
   // one purple, not two: the design exploration shipped #7C74D9 for async
   // beside #5A57C9 for flow beads and flagged them as indistinguishable
-  asyncEdge: "#5A57C9",
+  asyncEdge: "#4C47C2",
   plateText: "#FFFFFF",
-  accent: "#5A57C9",
+  accent: "#4C47C2",
   beadText: "#FFFFFF",
   warnTint: "#FBF3DC",
-  surfaceAlt: "#EFEFEC",
+  surfaceAlt: "#DADAD7",
   surfaceHi: "#FFFFFF",
-  surfaceLo: "#F2F1ED",
-  shelfLine: "#EFEFEC",
-  plate: "#EFEFEC",
-  actorLo: "#E4E3DE",
-  faint: "#8A8880",
-  dim: "#A5A199",
-  sheetFill: "#F2F1ED",
-  sheetBorder: "#DEDDD6",
-  shadow: "rgba(28,28,26,0.06)",
+  surfaceLo: "#F5F5F4",
+  shelfLine: "#E6E6E3",
+  plate: "#E4E4E1",
+  actorHi: "#D4D4D0",
+  actorLo: "#C6C6C1",
+  faint: "#6A6A66",
+  dim: "#85857F",
+  sheetFill: "#E9E9E6",
+  sheetBorder: "#BDBDB8",
+  shadow: "rgba(0,0,0,0.12)",
 };
 
 export const dark: Theme = {
@@ -161,6 +171,7 @@ export const dark: Theme = {
   surfaceLo: "#1D1D20",
   shelfLine: "#2E2E33",
   plate: "#2F2F34",
+  actorHi: "#2F2F34",
   actorLo: "#26262A",
   faint: "#7A796F",
   dim: "#6E6D67",
