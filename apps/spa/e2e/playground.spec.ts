@@ -128,7 +128,7 @@ const microservices = async (page: Page) => {
   await page.waitForTimeout(400); // let the first fit land
 };
 
-test("a drag pans the canvas, moves the dot grid with it, and does not navigate", async ({ page }) => {
+test("a drag pans the canvas over a plain ground, and does not navigate", async ({ page }) => {
   await microservices(page);
   const before = await camOf(page);
   const b = (await page.locator('[data-path="orders"]').first().boundingBox())!;
@@ -143,8 +143,10 @@ test("a drag pans the canvas, moves the dot grid with it, and does not navigate"
   expect(after.x - before.x).toBeCloseTo(110, 0);
   expect(after.y - before.y).toBeCloseTo(-50, 0);
   await expect(page.locator('[data-path="orders.api"]')).toHaveCount(0); // still the landscape
-  const bg = await page.locator(VP).evaluate((s) => (s as HTMLElement).style.backgroundPosition);
-  expect(bg.startsWith(`${after.x}px`)).toBe(true);
+  // the stage is the diagram's own canvas colour and nothing else — no grid
+  // for the camera to carry along
+  const bg = await page.locator(VP).evaluate((s) => getComputedStyle(s).backgroundImage);
+  expect(bg).toBe("none");
 });
 
 test("the zoom pill drives the camera, and the readout tracks it", async ({ page }) => {
