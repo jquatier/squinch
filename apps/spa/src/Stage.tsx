@@ -31,7 +31,7 @@ import {
 export type { Box } from "@squinch/core/browser";
 import {
   type Box, type CameraHandle, type CamPad,
-  DIVE, KEY_PAN, ZOOM_STEP, attachCamera, diveTransforms,
+  DIVE, KEY_PAN, ZOOM_STEP, attachCamera, cameraKey, diveTransforms,
 } from "@squinch/core/browser";
 // stays local: the playground compiles per view and never hoists shared defs,
 // so its two layers still need their ids kept apart. The HTML export hoists,
@@ -73,9 +73,11 @@ const sizeOf = (svg: string) => {
   return m ? { w: Number(m[1]), h: Number(m[2]) } : { w: 0, h: 0 };
 };
 
-/** Keys that belong to a text field, a button or the editor are theirs. */
+/** Keys that belong to a text field or the editor are theirs. Not a button's:
+ *  a button only owns Space and Enter, and after clicking the zoom pill's own
+ *  + the + key used to be dead until you clicked somewhere else. */
 const typing = (t: EventTarget | null) =>
-  !!(t as Element | null)?.closest?.(".cm-editor, input, textarea, select, button, [contenteditable]");
+  !!(t as Element | null)?.closest?.(".cm-editor, input, textarea, select, [contenteditable]");
 
 export interface StageProps {
   svg?: string;
@@ -280,13 +282,25 @@ export const Stage = forwardRef<StageHandle, StageProps>(function Stage(
 
   useEffect(() => cancel, [cancel]);
 
-  // Keys, wherever the focus is — except in anything that types. Hovering the
-  // canvas and pressing + should just work; needing to click it first would
-  // cost a backdrop click, which climbs a view.
+  // Keys, wherever the focus is — except bare keys in anything that types.
+  // Hovering the canvas and pressing + should just work; needing to click it
+  // first would cost a backdrop click, which climbs a view. The ⌘/Ctrl chords
+  // work even from the editor, which has no use for them.
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       const c = cam.current;
-      if (!c || e.metaKey || e.ctrlKey || e.altKey || typing(e.target)) return;
+      if (!c) return;
+      const k = cameraKey(e);
+      if (k) {
+        if (!k.chord && typing(e.target)) return;
+        e.preventDefault();
+        if (k.act === "in") c.zoomBy(ZOOM_STEP);
+        else if (k.act === "out") c.zoomBy(1 / ZOOM_STEP);
+        else if (k.act === "fit") c.fit(true);
+        else c.setScale(1);
+        return;
+      }
+      if (e.metaKey || e.ctrlKey || e.altKey || typing(e.target)) return;
       if (e.shiftKey && e.key.startsWith("Arrow")) {
         e.preventDefault();
         return c.panBy(
@@ -294,10 +308,6 @@ export const Stage = forwardRef<StageHandle, StageProps>(function Stage(
           e.key === "ArrowUp" ? KEY_PAN : e.key === "ArrowDown" ? -KEY_PAN : 0,
         );
       }
-      if (e.key === "+" || e.key === "=") { e.preventDefault(); c.zoomBy(ZOOM_STEP); }
-      else if (e.key === "-" || e.key === "_") { e.preventDefault(); c.zoomBy(1 / ZOOM_STEP); }
-      else if (e.key === "0") { e.preventDefault(); c.fit(true); }
-      else if (e.key === "1") { e.preventDefault(); c.setScale(1); }
     };
     addEventListener("keydown", onKey);
     return () => removeEventListener("keydown", onKey);

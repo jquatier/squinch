@@ -263,9 +263,9 @@ function document(a: {
   // gets a static diagram, not three dead buttons.
   L.push('<header id="sq-bar"><span id="sq-step"></span>' +
     '<span id="sq-zoom">' +
-    '<button id="sq-zout" type="button" aria-label="Zoom out" title="Zoom out (-)">\u2212</button>' +
+    '<button id="sq-zout" type="button" aria-label="Zoom out" title="Zoom out (- or Ctrl/\u2318 -)">\u2212</button>' +
     '<button id="sq-fit" type="button" aria-label="Fit to window" title="Fit to window (0)">Fit</button>' +
-    '<button id="sq-zin" type="button" aria-label="Zoom in" title="Zoom in (+, or Ctrl/\u2318+scroll)">+</button>' +
+    '<button id="sq-zin" type="button" aria-label="Zoom in" title="Zoom in (+ or Ctrl/\u2318 +, or Ctrl/\u2318+scroll)">+</button>' +
     '</span>' +
     (a.palette.length > 1 ? '<button id="sq-theme" type="button" title="Change palette (t)">◐</button>' : "") +
     (a.views.length > 1 ? '<button id="sq-present" type="button" title="Present (p)">Present</button>' : "") +

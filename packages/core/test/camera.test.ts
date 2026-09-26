@@ -1,6 +1,6 @@
 import { describe, it, expect } from "vitest";
 import {
-  clampCamera, containK, fitCamera, lerpCamera, normalizeWheel, panBy, pinchStep, sameCamera,
+  cameraKey, clampCamera, containK, fitCamera, lerpCamera, normalizeWheel, panBy, pinchStep, sameCamera,
   toLocal, toScreen, wheelPan, wheelZoomFactor, zoomAt, zoomLimits, diveTransforms,
   KEEP_VISIBLE, MAX_K, type Camera, type CamSize,
 } from "../src/api.js";
@@ -98,6 +98,37 @@ describe("zoom", () => {
     const under = toLocal(z, { x: 550, y: 320, w: 0, h: 0 });
     close(under.x, 500); close(under.y, 300);
     expect(pinchStep(cam, { x: 1, y: 1 }, { x: 1, y: 1 }, { x: 1, y: 1 }, { x: 1, y: 1 }, limits)).toEqual(cam);
+  });
+});
+
+describe("the zoom keys — one table for every host", () => {
+  const key = (k: string, mods: Partial<{ metaKey: boolean; ctrlKey: boolean; altKey: boolean }> = {}) =>
+    cameraKey({ key: k, metaKey: false, ctrlKey: false, altKey: false, ...mods });
+
+  it("bare + − 0 1 zoom, fit and go to actual size", () => {
+    expect(key("=")).toEqual({ act: "in", chord: false });
+    expect(key("+")).toEqual({ act: "in", chord: false });
+    expect(key("-")).toEqual({ act: "out", chord: false });
+    expect(key("_")).toEqual({ act: "out", chord: false });
+    expect(key("0")).toEqual({ act: "fit", chord: false });
+    expect(key("1")).toEqual({ act: "actual", chord: false });
+  });
+
+  it("⌘ and Ctrl + − 0 zoom the diagram, not the page", () => {
+    for (const mod of [{ metaKey: true }, { ctrlKey: true }]) {
+      expect(key("=", mod)).toEqual({ act: "in", chord: true });
+      expect(key("+", mod)).toEqual({ act: "in", chord: true });
+      expect(key("-", mod)).toEqual({ act: "out", chord: true });
+      expect(key("0", mod)).toEqual({ act: "fit", chord: true });
+    }
+  });
+
+  it("leaves the browser its tab switch, Alt chords and everything else", () => {
+    expect(key("1", { metaKey: true })).toBeNull();
+    expect(key("1", { ctrlKey: true })).toBeNull();
+    expect(key("=", { altKey: true })).toBeNull();
+    expect(key("s", { metaKey: true })).toBeNull();
+    expect(key("a")).toBeNull();
   });
 });
 

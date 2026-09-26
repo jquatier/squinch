@@ -535,7 +535,7 @@ export function App() {
               onClick={() => stage.current?.zoomBy(1 / ZOOM_STEP)}
               className="h-[26px] w-7 rounded-md text-[13px] text-[var(--muted)] hover:text-[var(--fg)]"
               aria-label="Zoom out"
-              title="Zoom out (−)"
+              title="Zoom out (− or ⌘/Ctrl −)"
             >
               −
             </button>
@@ -552,7 +552,7 @@ export function App() {
               onClick={() => stage.current?.zoomBy(ZOOM_STEP)}
               className="h-[26px] w-7 rounded-md text-[13px] text-[var(--muted)] hover:text-[var(--fg)]"
               aria-label="Zoom in"
-              title="Zoom in (+, or ⌘/Ctrl+scroll)"
+              title="Zoom in (+ or ⌘/Ctrl +, or ⌘/Ctrl+scroll)"
             >
               +
             </button>

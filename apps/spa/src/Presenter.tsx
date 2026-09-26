@@ -74,9 +74,9 @@ export function Presenter({
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       const k = e.key;
-      // A held modifier belongs to the browser (⌘− zooms the page, ⌘← goes
-      // back) — this handler used to step the deck *and* swallow it. And a
-      // shifted arrow is the stage's: it pans the camera.
+      // A held modifier is not the deck's (⌘← goes back; ⌘+ − 0 are the
+      // stage's zoom keys) — this handler used to step the deck *and* swallow
+      // it. And a shifted arrow is the stage's too: it pans the camera.
       if (e.metaKey || e.ctrlKey || e.altKey) return;
       if (e.shiftKey && k.startsWith("Arrow")) return;
       if (k === "Escape") return onExit();

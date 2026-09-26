@@ -64,6 +64,10 @@ export function attachCamera(viewport: HTMLElement, cameraEl: HTMLElement, opts:
   let fitted = true;
   let busy = false;
   let frame = 0, tween = 0;
+  /** Where the running tween lands. A second + pressed mid-tween steps from
+   *  here, not from the frame on screen — else a double press, or a held key's
+   *  repeat, loses most of every step after the first. */
+  let goal: Camera | null = null;
   let size: CamSize = { w: viewport.clientWidth, h: viewport.clientHeight };
 
   const limits = (): CamLimits => zoomLimits(content, size, fitOpts);
@@ -83,7 +87,7 @@ export function attachCamera(viewport: HTMLElement, cameraEl: HTMLElement, opts:
    *  pending paint: a wheel event that changes nothing (zoom already at its
    *  cap) schedules no paint of its own, so cancelling the last one left the
    *  screen a frame behind the camera until something else moved it. */
-  const stopTween = () => { if (tween) cancelAnimationFrame(tween); tween = 0; };
+  const stopTween = () => { if (tween) cancelAnimationFrame(tween); tween = 0; goal = null; };
   const halt = () => {
     stopTween();
     if (frame) cancelAnimationFrame(frame);
@@ -108,8 +112,10 @@ export function attachCamera(viewport: HTMLElement, cameraEl: HTMLElement, opts:
       cam = p < 1 ? lerpCamera(from, target, p, size) : target;
       write();
       tween = p < 1 ? requestAnimationFrame(step) : 0;
+      if (!tween) goal = null;
     };
     tween = requestAnimationFrame(step);
+    goal = target;
   };
 
   // ── pointers: drag to pan, two to pinch ──────────────────────────────────
@@ -247,12 +253,13 @@ export function attachCamera(viewport: HTMLElement, cameraEl: HTMLElement, opts:
       cam = target; fitted = true; now();
     },
     zoomBy(factor, animate = true) {
-      const target = clampCamera(zoomAt(cam, { x: size.w / 2, y: size.h / 2 }, factor, limits()), content, size);
+      const base = goal ?? cam;
+      const target = clampCamera(zoomAt(base, { x: size.w / 2, y: size.h / 2 }, factor, limits()), content, size);
       if (sameCamera(target, cam, 1e-6)) return;
       if (animate) return animateTo(target, false);
       cam = target; fitted = false; now();
     },
-    setScale(k, animate = true) { handle.zoomBy(k / cam.k, animate); },
+    setScale(k, animate = true) { handle.zoomBy(k / (goal ?? cam).k, animate); },
     panBy(dx, dy) { stopTween(); moveTo(panCam(cam, dx, dy)); },
     setContentSize(w, h) {
       content = { w, h };

@@ -36,6 +36,12 @@ meaning; the dive still *starts* from exactly what was on screen.
   guessing mouse-versus-trackpad from the event's shape (it misfires on hi-res
   mice and Windows touchpads). A mouse-only reader zooms with Ctrl+wheel, the
   buttons, or `+`/`−`; the button titles say so.
+- **⌘/Ctrl `+` `−` `0` zoom the diagram, not the page** — in every host, from
+  one table (`cameraKey` in `camera.ts`). They are the keys readers press first,
+  and handing them to the browser scaled the chrome while ⌘/Ctrl+wheel scaled
+  the canvas. The chords work even from the editor; the bare keys yield to
+  anything that types, but not to a focused button, which only owns Space and
+  Enter. ⌘1 stays the browser's: it switches tabs.
 - **The first view is what it always was**: fit the *width*, never above 1:1,
   and open at the *top* when that leaves the diagram taller than the window. A
   contain fit opens a 900×4000 diagram as a 150px strip, and a "legibility

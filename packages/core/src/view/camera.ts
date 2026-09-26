@@ -39,6 +39,29 @@ export const DRAG_PX = { mouse: 4, touch: 8 };
 export const TWEEN_MS = 160;
 export const IDENTITY: Camera = { x: 0, y: 0, k: 1 };
 
+export type CamKey = "in" | "out" | "fit" | "actual";
+export interface KeyLike { key: string; metaKey: boolean; ctrlKey: boolean; altKey: boolean }
+
+/**
+ * The zoom keys, for every host. Bare `+` `−` `0` `1`, and the ones everyone
+ * reaches for first — ⌘/Ctrl `+` `−` `0` — which the hosts used to hand to the
+ * browser, so the reader zoomed the page chrome instead of the diagram. ⌘/Ctrl
+ * +wheel already zoomed the canvas; the keys now agree with it. ⌘1 stays the
+ * browser's (it switches tabs). `chord` is whether a modifier was held: a host
+ * lets a text field keep the bare keys, never the chords.
+ */
+export function cameraKey(e: KeyLike): { act: CamKey; chord: boolean } | null {
+  if (e.altKey) return null;
+  const chord = e.metaKey || e.ctrlKey;
+  switch (e.key) {
+    case "+": case "=": return { act: "in", chord };
+    case "-": case "_": return { act: "out", chord };
+    case "0": return { act: "fit", chord };
+    case "1": return chord ? null : { act: "actual", chord };
+  }
+  return null;
+}
+
 const sides = (pad: CamPad = 0) =>
   typeof pad === "number" ? { top: pad, right: pad, bottom: pad, left: pad } : pad;
 

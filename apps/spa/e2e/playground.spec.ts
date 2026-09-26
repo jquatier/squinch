@@ -185,6 +185,25 @@ test("the editor keeps its own keys, and an edit keeps your place", async ({ pag
   expect((await camOf(page)).k).toBeLessThan(placed.k);
 });
 
+test("⌘/Ctrl + − 0 zoom the diagram from anywhere, and a clicked zoom button keeps +", async ({ page }) => {
+  await microservices(page);
+  const fit = await camOf(page);
+  const show = page.getByRole("button", { name: /Show editor/ });
+  if (await show.count()) await show.click();
+  await page.locator(".cm-content").click();
+  await page.keyboard.press("ControlOrMeta+Equal");
+  await atRest(page);
+  expect((await camOf(page)).k / fit.k).toBeCloseTo(1.25, 2); // the chord works from the editor
+  await page.keyboard.press("ControlOrMeta+Digit0");
+  await atRest(page);
+  expect((await camOf(page)).k).toBeCloseTo(fit.k, 3);
+  // focus now sits on the pill's +, which used to swallow the bare key
+  await page.getByRole("button", { name: "Zoom in" }).click();
+  await page.keyboard.press("Equal");
+  await atRest(page);
+  expect((await camOf(page)).k / fit.k).toBeCloseTo(1.5625, 2);
+});
+
 test("a dive from a zoomed view arrives fitted; loading another example refits", async ({ page }) => {
   await microservices(page);
   await page.getByRole("button", { name: "Zoom in" }).click();

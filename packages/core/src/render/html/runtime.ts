@@ -13,7 +13,7 @@
 // than a comment nobody can check.
 import { diveTransforms, type Box } from "../../view/dive.js";
 import { hop, upView, viewForPath, type NavView } from "../../view/navigate.js";
-import { KEY_PAN, ZOOM_STEP, type CamPad } from "../../view/camera.js";
+import { KEY_PAN, ZOOM_STEP, cameraKey, type CamPad } from "../../view/camera.js";
 import { attachCamera } from "../../view/camera-dom.js";
 
 interface Payload {
@@ -328,6 +328,16 @@ function boot() {
     setTheme(data.themes[(data.themes.indexOf(theme) + 1) % data.themes.length]);
 
   addEventListener("keydown", (e) => {
+    // The zoom keys, bare and ⌘/Ctrl — the same table the playground reads.
+    const z = cameraKey(e);
+    if (z) {
+      e.preventDefault();
+      if (z.act === "in") cam.zoomBy(ZOOM_STEP);
+      else if (z.act === "out") cam.zoomBy(1 / ZOOM_STEP);
+      else if (z.act === "fit") cam.fit(true);
+      else cam.setScale(1);
+      return;
+    }
     if (e.metaKey || e.ctrlKey || e.altKey) return;
     // A focused button keeps its own activation keys. This handler used to
     // swallow Space and Enter and step the deck instead, which made every
@@ -344,10 +354,6 @@ function boot() {
       return;
     }
     switch (e.key) {
-      case "+": case "=": e.preventDefault(); cam.zoomBy(ZOOM_STEP); break;
-      case "-": case "_": e.preventDefault(); cam.zoomBy(1 / ZOOM_STEP); break;
-      case "0": e.preventDefault(); cam.fit(true); break;
-      case "1": e.preventDefault(); cam.setScale(1); break;
       case "ArrowRight": case "PageDown": case " ": case "Enter":
         e.preventDefault(); step_(1); break;
       case "ArrowLeft": case "PageUp":
