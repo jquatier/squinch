@@ -9,8 +9,10 @@
 // them somewhere reachable.
 import { describe, it, expect } from "vitest";
 import {
-  stepToward, ancestors, parentScope, viewForPath, hop, crumbs, upView, type NavView,
+  stepToward, ancestors, parentScope, viewForPath, hop, crumbs, upView, viewBar, type NavView,
 } from "../src/view/navigate.js";
+import { viewIndex } from "../src/api.js";
+import { readFileSync } from "node:fs";
 import { diveTransforms, scaleFor, CAP, DIVE, CUT, type Box } from "../src/view/dive.js";
 
 describe("stepToward — which card the zoom flies through", () => {
@@ -213,5 +215,115 @@ describe("crumbs and upView — the way back", () => {
 
   it("has nowhere up to go from the top", () => {
     expect(upView(VIEWS, "landscape", undefined)).toBeUndefined();
+  });
+});
+
+// ── the view bar ─────────────────────────────────────────────────────────────
+
+/** The microservices shape again, with the things the bar has to sort: a
+ *  second view at the top, a lens, a flow at `orders`, and one more altitude. */
+const BAR: NavView[] = [
+  { name: "landscape" },
+  { name: "full", title: "Full detail" },
+  { name: "catalog", scope: "catalog", title: "Catalog" },
+  { name: "orders", scope: "orders", title: "Order Service" },
+  { name: "accounts", scope: "accounts" },
+  { name: "orders-pci", scope: "orders", title: "PCI surface" },
+  { name: "checkout", scope: "orders", flow: "Placing an order" },
+  { name: "orders.api", scope: "orders.api", auto: true },
+  { name: "orders.db", scope: "orders.db", auto: true },
+];
+const shape = (b: ReturnType<typeof viewBar>) =>
+  b.segments.map((s) => [s.label, s.state, s.items.map((i) => (i.active ? `*${i.view}` : i.view))]);
+
+describe("viewBar — home, a menu per hop, and the flows apart", () => {
+  it("at the top: the choice of top views, and the way in", () => {
+    const b = viewBar(BAR, "landscape");
+    expect(b.home).toBe("landscape");
+    expect(b.atHome).toBe(true);
+    expect(shape(b)).toEqual([
+      ["landscape", "current", ["*landscape", "full"]],
+      ["3 inside", "ghost", ["catalog", "orders", "accounts"]],
+    ]);
+    expect(b.flows.map((f) => [f.view, f.label])).toEqual([["checkout", "checkout"]]);
+    expect(b.activeFlow).toBeUndefined();
+  });
+
+  it("in a container: its siblings, its lenses, and what is inside it", () => {
+    const b = viewBar(BAR, "orders");
+    expect(b.atHome).toBe(false);
+    expect(shape(b)).toEqual([
+      ["landscape", "link", ["landscape", "full"]],
+      ["Order Service", "current", ["catalog", "*orders", "accounts"]],
+      ["1 lens", "ghost", ["*orders", "orders-pci"]],
+      ["2 inside", "ghost", ["orders.api", "orders.db"]],
+    ]);
+    // the sibling menu says which containers have more than one way to look
+    expect(b.segments[1].items.find((i) => i.view === "orders")?.lenses).toBe(1);
+  });
+
+  it("a lens titled after its container drops the part the path already says", () => {
+    const views: NavView[] = [
+      { name: "o", scope: "o", title: "Order Service" },
+      { name: "o-pci", scope: "o", title: "Order Service — PCI surface" },
+      { name: "o-x", scope: "o", title: "Order Servicex" },
+    ];
+    const b = viewBar(views, "o-pci");
+    expect(b.segments.at(-1)?.label).toBe("PCI surface");
+    expect(b.segments.at(-1)?.items.map((i) => i.label)).toEqual(["Order Service", "PCI surface", "Order Servicex"]);
+  });
+
+  it("on a lens, the lens hop is where you stand", () => {
+    const b = viewBar(BAR, "orders-pci");
+    expect(b.segments[1].state).toBe("link");
+    expect(b.segments[2]).toMatchObject({ label: "PCI surface", state: "current" });
+  });
+
+  it("a flow is filed under Flows, not in the path", () => {
+    const b = viewBar(BAR, "checkout");
+    expect(b.activeFlow?.view).toBe("checkout");
+    expect(b.segments.flatMap((s) => s.items).some((i) => i.view === "checkout")).toBe(false);
+    // it still stands at its container, which it does not claim
+    expect(b.segments[1]).toMatchObject({ label: "Order Service", state: "link" });
+  });
+
+  it("deeper down, every ancestor is a hop", () => {
+    const b = viewBar(BAR, "orders.api");
+    expect(shape(b)).toEqual([
+      ["landscape", "link", ["landscape", "full"]],
+      ["Order Service", "link", ["catalog", "*orders", "accounts"]],
+      ["orders.api", "current", ["*orders.api", "orders.db"]],
+    ]);
+    expect(b.segments[2].items[0].auto).toBe(true);
+  });
+
+  it("keeps the first-match rule: the first view at a scope stands for it", () => {
+    const b = viewBar([{ name: "a2", scope: "a", title: "A two" }, { name: "a", scope: "a" }], "a");
+    expect(b.segments[0].items.map((i) => i.view)).toEqual(["a2"]);
+  });
+
+  it("one top view is the home button alone, with no hop of its own", () => {
+    const b = viewBar(BAR.filter((v) => v.name !== "full"), "orders");
+    expect(b.segments[0].label).toBe("Order Service");
+  });
+
+  it("with nothing at the top, home is the first view", () => {
+    const b = viewBar([{ name: "a", scope: "a" }, { name: "b", scope: "b" }], "b");
+    expect(b.home).toBe("a");
+    expect(shape(b)).toEqual([["b", "current", ["a", "*b"]]]);
+  });
+
+  it("an unknown or missing active view falls back to the first", () => {
+    expect(viewBar(BAR, "nope").atHome).toBe(true);
+    expect(viewBar([], undefined)).toEqual({ home: undefined, atHome: false, segments: [], flows: [] });
+  });
+});
+
+describe("viewIndex — flows are named", () => {
+  it("labels the view that shows a flow with the flow's label", () => {
+    const src = readFileSync(new URL("../../../examples/microservices/shop.squinch", import.meta.url), "utf8");
+    const v = viewIndex(src);
+    expect(v.find((x) => x.name === "checkout")?.flow).toBe("Placing an order");
+    expect(v.find((x) => x.name === "orders")?.flow).toBeUndefined();
   });
 });

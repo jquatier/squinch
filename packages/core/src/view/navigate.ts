@@ -13,8 +13,11 @@
 // on `orders` and the breadcrumb labels the hop `orders`. That is
 // declaration-order dependent and deliberately not "improved" here.
 
-/** A view as a zoom target: what it is called, and the container it looks at. */
-export interface NavView { name: string; scope?: string; title?: string; auto?: boolean }
+import type { SModel } from "../model/types.js";
+
+/** A view as a zoom target: what it is called, and the container it looks at.
+ *  `flow` is the label of the flow it narrates, when it shows one. */
+export interface NavView { name: string; scope?: string; title?: string; auto?: boolean; flow?: string }
 
 /**
  * The one card that stands for `inner` inside a view scoped to `outer` — the
@@ -30,6 +33,18 @@ export function stepToward(
   if (!outer) return inner.split(".")[0];
   if (inner === outer || !inner.startsWith(`${outer}.`)) return undefined;
   return `${outer}.${inner.slice(outer.length + 1).split(".")[0]}`;
+}
+
+/** A model's views as navigation sees them — `flow` carries the label of the
+ *  flow a view narrates, which is what files it under the bar's Flows menu. */
+export function navViews(model: Pick<SModel, "views" | "flows">): NavView[] {
+  return model.views.map((v) => {
+    const f = v.showFlow ? model.flows.find((x) => x.id === v.showFlow) : undefined;
+    return {
+      name: v.name, scope: v.scope, title: v.title, auto: v.auto,
+      ...(v.showFlow ? { flow: f?.label ?? v.showFlow } : {}),
+    };
+  });
 }
 
 /** The ancestor trail of a scope, outermost first — `a.b.c` → a, a.b, a.b.c. */
@@ -97,4 +112,142 @@ export function upView(
   activeScope: string | undefined,
 ): string | undefined {
   return [...crumbs(views, activeScope)].reverse().find((c) => c.view && c.view !== activeView)?.view;
+}
+
+// ── the view bar ─────────────────────────────────────────────────────────────
+//
+// The playground, its presenter and the interactive export all draw the same
+// navigation: a home button, then the path to where you stand, each hop a menu
+// of the views beside it at that altitude, and the flows apart because a story
+// belongs to no one altitude. This is the one description of that bar, so the
+// three surfaces cannot disagree about what a hop contains.
+// `docs/notes/view-bar.md` has the options it beat.
+
+/** One entry in a hop's menu. */
+export interface BarItem {
+  view: string;
+  label: string;
+  active: boolean;
+  auto?: boolean;
+  /** further views looking at the same container — they live in its lens hop */
+  lenses?: number;
+}
+
+/**
+ * One hop of the path. `current` is where you stand, `link` an ancestor or a
+ * sibling level you can move within, `ghost` a level you can open but are not
+ * on (the lenses of this container, or the containers inside it). A hop with
+ * one item is a plain link; with none it is only a label.
+ */
+export interface BarSegment {
+  key: string;
+  label: string;
+  state: "current" | "link" | "ghost";
+  items: BarItem[];
+}
+
+export interface ViewBar {
+  /** the view the home button goes to — the landscape, else the first view */
+  home?: string;
+  atHome: boolean;
+  segments: BarSegment[];
+  flows: BarItem[];
+  /** set when the view you are on narrates a flow */
+  activeFlow?: BarItem;
+}
+
+const labelOf = (v: NavView) => v.title ?? v.name;
+/** `title` minus a leading `prefix` and the separator after it — or `title`
+ *  whole when it does not start that way, or nothing would be left. */
+function afterPrefix(title: string, prefix: string): string {
+  if (!title.startsWith(prefix)) return title;
+  const rest = title.slice(prefix.length).replace(/^\s*[—–:·|-]\s*/, "");
+  return rest && rest !== title.slice(prefix.length) ? rest : title;
+}
+
+/** The bar for the view you are on. Pure: views in, description out. */
+export function viewBar(views: NavView[], activeView: string | undefined): ViewBar {
+  const active = views.find((v) => v.name === activeView) ?? views[0];
+  const paths = views.filter((v) => !v.flow);
+  const home = (paths.find((v) => !v.scope) ?? views.find((v) => !v.scope) ?? views[0])?.name;
+  if (!active) return { home, atHome: false, segments: [], flows: [] };
+
+  // The first-match rule: the first view at a scope stands for that container.
+  const scopeView = new Map<string, NavView>();
+  const atScope = new Map<string, NavView[]>();
+  for (const v of paths) {
+    if (!v.scope) continue;
+    if (!scopeView.has(v.scope)) scopeView.set(v.scope, v);
+    atScope.set(v.scope, [...(atScope.get(v.scope) ?? []), v]);
+  }
+  const item = (v: NavView, on: boolean, counted = true): BarItem => {
+    const n = counted && v.scope ? (atScope.get(v.scope)?.length ?? 1) - 1 : 0;
+    return {
+      view: v.name, label: labelOf(v), active: on,
+      ...(v.auto ? { auto: true } : {}), ...(n > 0 ? { lenses: n } : {}),
+    };
+  };
+  /** the containers one level below `parent` (undefined = the top) that have a view */
+  const level = (parent: string | undefined) =>
+    [...scopeView.keys()].filter((s) => (parentScope(s) ?? "") === (parent ?? ""));
+
+  const segments: BarSegment[] = [];
+  const scope = active.scope;
+
+  // The top. The home button already is the landscape, so this hop only earns
+  // its place when there is more than one view up here to choose between.
+  const roots = paths.filter((v) => !v.scope);
+  if (roots.length > 1) {
+    const here = !scope && !active.flow && roots.includes(active);
+    segments.push({
+      key: "", label: labelOf(here ? active : roots[0]),
+      state: here ? "current" : "link",
+      items: roots.map((v) => item(v, v === active)),
+    });
+  }
+
+  // One hop per ancestor, each a menu of its siblings.
+  for (const p of ancestors(scope)) {
+    const own = scopeView.get(p);
+    const here = p === scope && own === active;
+    segments.push({
+      key: p,
+      label: own ? labelOf(own) : p.slice(p.lastIndexOf(".") + 1),
+      state: here ? "current" : "link",
+      items: level(parentScope(p)).map((s) => item(scopeView.get(s)!, s === p)),
+    });
+  }
+
+  // The lenses: other views looking at the container you are in. A lens is
+  // usually titled after its container ("Order Service — PCI surface"), and
+  // the hop before it already says "Order Service", so that much is dropped.
+  const lenses = scope ? (atScope.get(scope) ?? []) : [];
+  if (lenses.length > 1) {
+    const onLens = lenses.indexOf(active) > 0;
+    const lensLabel = (v: NavView, i: number) => (i ? afterPrefix(labelOf(v), labelOf(lenses[0])) : labelOf(v));
+    segments.push({
+      key: `${scope}#lens`,
+      label: onLens
+        ? lensLabel(active, 1)
+        : `${lenses.length - 1} ${lenses.length === 2 ? "lens" : "lenses"}`,
+      state: onLens ? "current" : "ghost",
+      items: lenses.map((v, i) => ({ ...item(v, v === active, false), label: lensLabel(v, i) })),
+    });
+  }
+
+  // One level further in, when there is one to open.
+  const inside = level(scope);
+  if (inside.length)
+    segments.push({
+      key: `${scope ?? ""}#in`,
+      label: `${inside.length} inside`,
+      state: "ghost",
+      items: inside.map((s) => item(scopeView.get(s)!, false)),
+    });
+
+  const flows = views.filter((v) => v.flow).map((v) => item(v, v === active, false));
+  return {
+    home, atHome: active.name === home, segments, flows,
+    ...(active.flow ? { activeFlow: flows.find((f) => f.active) } : {}),
+  };
 }

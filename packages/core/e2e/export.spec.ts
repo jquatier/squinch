@@ -105,12 +105,12 @@ test("icons actually paint — the hoisted sprite resolves across <svg> roots", 
   expect(shot.byteLength).toBeGreaterThan(1000);
 });
 
-test("clicking a card dives, and the active tab follows", async ({ page }) => {
+test("clicking a card dives, and the view bar follows", async ({ page }) => {
   await open(page);
-  await expect(page.locator("#sq-tabs .on")).toHaveText("landscape");
+  await expect(page.locator("#sq-nav")).toHaveAttribute("data-view", "landscape");
 
   await card(page, "api").click();
-  await expect(page.locator("#sq-tabs .on")).toHaveText("api");
+  await expect(page.locator("#sq-nav")).toHaveAttribute("data-view", "api");
   // the child view's own nodes are on screen now
   await expect(page.locator('#sq-live [data-path="api.gw"]')).toHaveCount(1);
   // …and once the dive lands, cleanup leaves no transform to snap out of
@@ -147,13 +147,13 @@ test("a card with nowhere to go does not pretend otherwise", async ({ page }) =>
 
 test("clicking the canvas climbs back out", async ({ page }) => {
   await open(page, { view: "api" });
-  await expect(page.locator("#sq-tabs .on")).toHaveText("api");
+  await expect(page.locator("#sq-nav")).toHaveAttribute("data-view", "api");
   // The margin around the artwork, not the artwork: the click listener used to
   // sit on #sq-live, so this corner did nothing — and this test passed anyway,
   // because it asserted `[data-path="web"]`, which view `api` already draws as
-  // a context card. The active tab is the thing that only changes on a climb.
+  // a context card. The bar's view is the thing that only changes on a climb.
   await page.locator("#sq-stage").click({ position: { x: 5, y: 5 } });
-  await expect(page.locator("#sq-tabs .on")).toHaveText("landscape");
+  await expect(page.locator("#sq-nav")).toHaveAttribute("data-view", "landscape");
 });
 
 test("presentation mode steps the flow, then the deck", async ({ page }) => {
@@ -175,10 +175,72 @@ test("presentation mode steps the flow, then the deck", async ({ page }) => {
   // would silently collapse if the two axes were ever merged
   await page.keyboard.press("ArrowUp");
   await page.waitForTimeout(600);
-  await expect(page.locator("#sq-tabs .on")).not.toHaveText("story");
+  await expect(page.locator("#sq-nav")).not.toHaveAttribute("data-view", "story");
 
   await page.keyboard.press("Escape");
   await expect(page.locator("body")).not.toHaveClass(/presenting/);
+});
+
+test("the view bar: a hop's menu moves sideways, and home comes back", async ({ page }) => {
+  await open(page, { view: "api" }, "bar.html");
+  const nav = page.locator("#sq-nav");
+  await expect(nav).toHaveAttribute("data-view", "api");
+  // the hop you stand on lists its siblings — the flow view is not one of them
+  await nav.locator('[data-hop="api"]').click();
+  const menu = nav.locator(".sq-menu");
+  await expect(menu.getByRole("menuitemradio")).toHaveText([/^web/, /^api/, /^ops/]);
+  await expect(menu.getByRole("menuitemradio", { name: /^api/ })).toBeFocused();
+  await menu.getByRole("menuitemradio", { name: /^web/ }).click();
+  await expect(nav).toHaveAttribute("data-view", "web");
+  await expect(menu).toHaveCount(0);
+  await nav.locator(".sq-home").click();
+  await expect(nav).toHaveAttribute("data-view", "landscape");
+  await expect(nav.locator(".sq-home")).toHaveAttribute("aria-current", "page");
+});
+
+test("flows sit apart from the path — and one flow is a plain link", async ({ page }) => {
+  await open(page, {}, "flows.html");
+  const nav = page.locator("#sq-nav");
+  await expect(nav.locator('[data-hop="#flows"]')).not.toHaveAttribute("aria-haspopup");
+  await nav.locator('[data-hop="#flows"]').click();
+  await expect(nav).toHaveAttribute("data-view", "story");
+  await expect(nav.locator('[data-hop="#flows"]')).toHaveAttribute("aria-current", "page");
+});
+
+test("presenting, b puts the bar away and the top edge brings it back", async ({ page }) => {
+  await open(page, {}, "hide.html");
+  const nav = page.locator("#sq-nav");
+  await page.keyboard.press("p");
+  await expect(nav).toBeVisible();
+  await page.keyboard.press("b");
+  await expect(nav).toBeHidden();
+  // moved to by hand: the handle is gone the instant the hover works, which
+  // Playwright's own hover() reads as a failure and retries forever
+  const h = (await page.locator("#sq-handle").boundingBox())!;
+  await page.mouse.move(h.x + h.width / 2, h.y + h.height / 2);
+  await expect(nav).toBeVisible();
+  await nav.locator("#sq-hide").click();
+  await expect(nav).toBeHidden();
+  await page.keyboard.press("b");
+  await expect(nav).toBeVisible();
+  // arrows inside a menu move through it rather than stepping the deck
+  await nav.locator('[data-hop="#in"]').click();
+  await page.keyboard.press("ArrowDown");
+  await expect(nav).toHaveAttribute("data-view", "landscape");
+});
+
+test("an open menu owns Escape", async ({ page }) => {
+  // Not tested while presenting: a fullscreen browser spends Escape on leaving
+  // fullscreen before the page hears it (WebKit here, and every real browser),
+  // and leaving fullscreen leaves the deck. Where the key does reach the page,
+  // it closes the menu and nothing else.
+  await open(page, {}, "esc.html");
+  const nav = page.locator("#sq-nav");
+  await nav.locator('[data-hop="#in"]').click();
+  await expect(nav.locator(".sq-menu")).toBeVisible();
+  await page.keyboard.press("Escape");
+  await expect(nav.locator(".sq-menu")).toHaveCount(0);
+  await expect(nav.locator('[data-hop="#in"]')).toBeFocused();
 });
 
 test("reduced motion cuts straight through — no ghost, ever", async ({ page }) => {
@@ -280,7 +342,7 @@ test("a drag that starts on a card pans, and does not dive", async ({ page }) =>
   const after = await camOf(page);
   expect(after.x - before.x).toBeCloseTo(140, 0); // the grabbed point stays under the pointer
   expect(after.y - before.y).toBeCloseTo(-60, 0);
-  await expect(page.locator("#sq-tabs .on")).toHaveText("landscape");
+  await expect(page.locator("#sq-nav")).toHaveAttribute("data-view", "landscape");
   await expect(page.locator("#sq-stage")).toHaveAttribute("data-cam", "idle");
 });
 
@@ -291,7 +353,7 @@ test("a sloppy click is still a click", async ({ page }) => {
   await page.mouse.down();
   await page.mouse.move(c.x + 2, c.y + 1); // under the 4px threshold
   await page.mouse.up();
-  await expect(page.locator("#sq-tabs .on")).toHaveText("api");
+  await expect(page.locator("#sq-nav")).toHaveAttribute("data-view", "api");
 });
 
 test("ctrl+wheel zooms about the cursor; a plain wheel over a diagram that fits does nothing", async ({ page }) => {
@@ -336,14 +398,14 @@ test("keys zoom and pan, and leave the deck alone", async ({ page }) => {
   await page.keyboard.press("Shift+ArrowRight"); // used to step the deck: the switch reads e.key
   await atRest(page);
   expect((await camOf(page)).x - one.x).toBeCloseTo(-80, 0);
-  await expect(page.locator("#sq-tabs .on")).toHaveText("landscape");
+  await expect(page.locator("#sq-nav")).toHaveAttribute("data-view", "landscape");
   await page.keyboard.press("0");
   await atRest(page);
   const back = await camOf(page);
   expect(back.k).toBeCloseTo(fit.k, 4);
   expect(back.x).toBeCloseTo(fit.x, 0);
   await page.keyboard.press("ArrowRight"); // and a plain arrow still steps
-  await expect(page.locator("#sq-tabs .on")).toHaveText("web");
+  await expect(page.locator("#sq-nav")).toHaveAttribute("data-view", "web");
 });
 
 test("a focused button answers Enter — it used to step the deck instead", async ({ page }) => {
@@ -355,7 +417,7 @@ test("a focused button answers Enter — it used to step the deck instead", asyn
   await page.keyboard.press("Enter");
   await atRest(page);
   expect((await camOf(page)).k).toBeGreaterThan(fit.k * 1.2);
-  await expect(page.locator("#sq-tabs .on")).toHaveText("landscape");
+  await expect(page.locator("#sq-nav")).toHaveAttribute("data-view", "landscape");
   await page.locator("#sq-fit").click();
   await atRest(page);
   expect((await camOf(page)).k).toBeCloseTo(fit.k, 4);
@@ -376,7 +438,7 @@ test("a dive from a zoomed, panned view starts from what was on screen and arriv
   first.old.forEach((v, i) => expect(Math.abs(v - first.ghost[i])).toBeLessThan(1));
 
   await settled(page);
-  await expect(page.locator("#sq-tabs .on")).toHaveText("api");
+  await expect(page.locator("#sq-nav")).toHaveAttribute("data-view", "api");
   const arrived = await camOf(page);
   expect(arrived.k).toBeLessThanOrEqual(1);
   const inside = await page.evaluate(() => {
@@ -400,7 +462,7 @@ test("a deep link opens fitted", async ({ page }) => {
   await open(page, {}, "deeplink.html");
   await page.goto(`${page.url()}#api`);
   await settled(page);
-  await expect(page.locator("#sq-tabs .on")).toHaveText("api");
+  await expect(page.locator("#sq-nav")).toHaveAttribute("data-view", "api");
   expect((await camOf(page)).k).toBeLessThanOrEqual(1);
 });
 
@@ -410,7 +472,7 @@ test("reduced motion still arrives fitted", async ({ page }) => {
   await wheel(page, await centreOf(page, "api"), -24, 6, true);
   expect((await camOf(page)).k).toBeGreaterThan(2);
   await card(page, "api").click({ force: true });
-  await expect(page.locator("#sq-tabs .on")).toHaveText("api");
+  await expect(page.locator("#sq-nav")).toHaveAttribute("data-view", "api");
   expect((await camOf(page)).k).toBeLessThanOrEqual(1); // the early return refits too
 });
 

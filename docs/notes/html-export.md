@@ -177,10 +177,15 @@ push's critical path. What it covers, in order of why it exists:
    cleaned up — when the motion *actually* ends, observed via the live
    layer's computed transform, not on a wall-clock timer. The timer variant
    stripped the transition mid-flight whenever a heavy first paint delayed
-   its start, and the diagram visibly snapped a beat after the zoom. (The
-   tabs are the SPA's view picker, transplanted; they replaced both the
-   breadcrumb and the dots — one navigation surface that names every view.)
-3. Clicking the canvas climbs.
+   its start, and the diagram visibly snapped a beat after the zoom. The
+   view the bar stands on is read from `#sq-nav[data-view]`; the bar itself
+   is the SPA's, painted from the same `viewBar` (`docs/notes/view-bar.md`).
+3. Clicking the canvas climbs. A hop's menu moves sideways and home comes
+   back; one flow is a plain link, not a menu of one; presenting, `b` puts the
+   bar away and the top-edge handle returns it; an open menu owns Escape and
+   the arrow keys. (Escape is asserted outside presentation only: a
+   fullscreen browser spends it on leaving fullscreen before the page hears
+   it, and leaving fullscreen leaves the deck.)
 4. Presentation mode: `p` presents, the counter opens at hop 1, arrows walk the
    flow both ways, `↑` climbs *instead of* stepping, `Escape` leaves.
 5. `prefers-reduced-motion` never produces a ghost layer — watched with a

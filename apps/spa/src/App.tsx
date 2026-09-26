@@ -8,10 +8,11 @@ import { CreditsDialog } from "./Credits";
 // file — there used to be four byte-identical copies of it in the tree.
 const markUrl = `${import.meta.env.BASE_URL}favicon.svg`;
 import { Presenter } from "./Presenter";
+import { ViewBar } from "./ViewBar";
 import { Stage, useReducedMotion, type Box, type Intent, type StageHandle } from "./Stage";
 import { ZOOM_STEP } from "@squinch/core/browser";
 import { compile, decodeShare, encodeShare, ensureRenderable, svgToPng, type Preview } from "./squinch";
-import { themes, exportHTML, crumbs as crumbsFor, hop, upView as upViewFor, viewForPath as viewFor } from "@squinch/core/browser";
+import { themes, exportHTML, hop, upView as upViewFor, viewForPath as viewFor, viewBar } from "@squinch/core/browser";
 import { EXAMPLES } from "./examples";
 
 type Theme = "light" | "dark";
@@ -194,8 +195,9 @@ export function App() {
     [views, activeView],
   );
 
-  /** Ancestor trail of the current scope, each hop a view we can jump to. */
-  const crumbs = useMemo(() => crumbsFor(views, activeScope), [views, activeScope]);
+  /** Home, the path to here with a menu per hop, and the flows — what the
+   *  view bar draws, here and in the presenter. */
+  const bar = useMemo(() => viewBar(views, activeView), [views, activeView]);
 
   /** One altitude back up: the nearest ancestor that has a view of its own. */
   const upView = useMemo(
@@ -310,7 +312,7 @@ export function App() {
         svg={shown}
         views={views}
         activeView={activeView}
-        crumbs={crumbs}
+        bar={bar}
         upView={upView}
         flow={preview.flow}
         flowStep={flowStep}
@@ -468,47 +470,35 @@ export function App() {
         >
           {/* Everything over the stage is a floating translucent pill inset
               14/16px from the edges (design handoff §4). */}
+          {/* An icon, not a labelled pill: the top edge belongs to the view
+              bar, and the words cost it a hundred pixels on each side. */}
           <button
             onClick={() => setEditorOpen((o) => !o)}
-            className="pg-btn pg-pill absolute left-4 top-3.5 z-10 text-[12px]"
-            title="⌘\"
+            aria-label={editorOpen ? "Hide editor" : "Show editor"}
+            aria-pressed={editorOpen}
+            title={`${editorOpen ? "Hide" : "Show"} editor (⌘\\)`}
+            className="pg-pill absolute left-4 top-3.5 z-10 flex h-9 w-9 items-center justify-center rounded-[9px] text-[var(--muted)] transition-colors hover:text-[var(--fg)]"
           >
-            {editorOpen ? "⇤ Hide editor" : "⇥ Show editor"}
+            <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinejoin="round" aria-hidden="true">
+              <rect x="2" y="2.75" width="12" height="10.5" rx="2" />
+              <path d="M6.25 2.75v10.5" />
+              {editorOpen && <path d="M2.75 3.5h3.5v9h-3.5z" fill="currentColor" stroke="none" opacity="0.35" />}
+            </svg>
           </button>
           {/* The views belong to the diagram, not to the app: they are its
               altitudes, and switching one is a move within the picture rather
               than a global mode. Top-centre keeps them clear of the editor
-              toggle on the left and the readout top right. There is no
-              breadcrumb beside them: the tabs are the whole altitude ladder
-              (the one you are on is lit), and with eight views the two pills
-              collided and read as two selectors. Clicking the backdrop still
-              climbs one altitude, and Present keeps its own trail. */}
+              toggle on the left. The bar is the
+              whole altitude ladder — home, the path to here with the views
+              beside each hop in its menu, and the flows — so it stays one
+              width at three views or forty, where the tabs it replaced ran
+              off the edge. Clicking the backdrop still climbs one altitude. */}
           {views.length > 1 && (
-            <nav className="pg-pill absolute left-1/2 top-3.5 z-10 flex max-w-[calc(100%-24rem)] -translate-x-1/2 items-center gap-0.5 overflow-x-auto rounded-[9px] p-[3px] max-md:left-auto max-md:right-3 max-md:max-w-[55%] max-md:translate-x-0">
-              {views.map((v) => (
-                <button
-                  key={v.name}
-                  onClick={() => navigate(v.name)}
-                  title={v.title}
-                  // nowrap: a hyphenated name (`orders-pci`) breaks across two
-                  // lines otherwise and the whole bar goes ragged
-                  className={`whitespace-nowrap rounded-md px-[13px] py-1.5 text-[12.5px] transition-colors ${
-                    v.name === activeView
-                      ? "bg-[var(--control-active)] font-medium text-[var(--fg)]"
-                      : "text-[var(--muted)] hover:text-[var(--fg)]"
-                  }`}
-                >
-                  {v.name}
-                </button>
-              ))}
-            </nav>
-          )}
-          {renderMs !== undefined && (
-            <div className="pg-pill absolute right-4 top-3.5 z-10 flex items-center gap-2 px-[11px] py-1.5 max-md:hidden">
-              <span className="h-1.5 w-1.5 rounded-full [background:var(--grad-dot)]" />
-              <span className="pg-mono text-[11.5px] font-medium tabular-nums text-[var(--muted)]">
-                rendered in {renderMs} ms
-              </span>
+            // Clear of the editor toggle, on both sides so it stays centred;
+            // a fixed-width, click-through strip: the bar measures it to decide
+            // how far to fold, and centres inside it
+            <div className="pointer-events-none absolute left-1/2 top-3.5 z-10 flex w-[calc(100%-8rem)] -translate-x-1/2 justify-center max-md:left-auto max-md:right-3 max-md:w-[calc(100%-5rem)] max-md:translate-x-0 max-md:justify-end">
+              <ViewBar bar={bar} onNavigate={navigate} />
             </div>
           )}
           {/* Kept small: it is a hint, not a control, and the canvas is what
@@ -523,39 +513,52 @@ export function App() {
               <span className="text-[11px] text-[var(--muted)]">click a system to open its internals</span>
             </div>
           )}
-          <div className="pg-pill absolute bottom-3.5 right-4 z-10 flex items-center gap-0.5 rounded-[9px] p-[3px] text-[12px]">
-            <button
-              onClick={() => stage.current?.fit()}
-              title="Fit to window (0)"
-              className={`rounded-md px-[11px] py-[5px] ${atFit ? "bg-[var(--control-active)] font-medium text-[var(--fg)]" : "text-[var(--muted)] hover:text-[var(--fg)]"}`}
-            >
-              Fit
-            </button>
-            <button
-              onClick={() => stage.current?.zoomBy(1 / ZOOM_STEP)}
-              className="h-[26px] w-7 rounded-md text-[13px] text-[var(--muted)] hover:text-[var(--fg)]"
-              aria-label="Zoom out"
-              title="Zoom out (− or ⌘/Ctrl −)"
-            >
-              −
-            </button>
-            {/* No children: the stage writes the percentage here per frame, and
-                a React child would be put back over it on the next render. */}
-            <button
-              ref={scaleReadout}
-              onClick={() => stage.current?.setScale(1)}
-              aria-label="Zoom to 100%"
-              title="Actual size (1)"
-              className="pg-mono w-11 rounded-md text-center text-[11.5px] font-medium tabular-nums text-[var(--muted)] hover:text-[var(--fg)]"
-            />
-            <button
-              onClick={() => stage.current?.zoomBy(ZOOM_STEP)}
-              className="h-[26px] w-7 rounded-md text-[13px] text-[var(--muted)] hover:text-[var(--fg)]"
-              aria-label="Zoom in"
-              title="Zoom in (+ or ⌘/Ctrl +, or ⌘/Ctrl+scroll)"
-            >
-              +
-            </button>
+          {/* The stage's own readouts live with its zoom: how long the render
+              took sits beside the scale it is drawn at. It used to hold the
+              top-right corner, which the view bar needs more. */}
+          <div className="absolute bottom-3.5 right-4 z-10 flex items-center gap-3">
+            {renderMs !== undefined && (
+              <span className="pg-pill pointer-events-none flex items-center gap-2 px-[11px] py-1.5 max-md:hidden">
+                <span className="h-1.5 w-1.5 rounded-full [background:var(--grad-dot)]" />
+                <span className="pg-mono text-[11.5px] font-medium tabular-nums text-[var(--muted)]">
+                  rendered in {renderMs} ms
+                </span>
+              </span>
+            )}
+            <div className="pg-pill flex items-center gap-0.5 rounded-[9px] p-[3px] text-[12px]">
+              <button
+                onClick={() => stage.current?.fit()}
+                title="Fit to window (0)"
+                className={`rounded-md px-[11px] py-[5px] ${atFit ? "bg-[var(--control-active)] font-medium text-[var(--fg)]" : "text-[var(--muted)] hover:text-[var(--fg)]"}`}
+              >
+                Fit
+              </button>
+              <button
+                onClick={() => stage.current?.zoomBy(1 / ZOOM_STEP)}
+                className="h-[26px] w-7 rounded-md text-[13px] text-[var(--muted)] hover:text-[var(--fg)]"
+                aria-label="Zoom out"
+                title="Zoom out (− or ⌘/Ctrl −)"
+              >
+                −
+              </button>
+              {/* No children: the stage writes the percentage here per frame, and
+                  a React child would be put back over it on the next render. */}
+              <button
+                ref={scaleReadout}
+                onClick={() => stage.current?.setScale(1)}
+                aria-label="Zoom to 100%"
+                title="Actual size (1)"
+                className="pg-mono w-11 rounded-md text-center text-[11.5px] font-medium tabular-nums text-[var(--muted)] hover:text-[var(--fg)]"
+              />
+              <button
+                onClick={() => stage.current?.zoomBy(ZOOM_STEP)}
+                className="h-[26px] w-7 rounded-md text-[13px] text-[var(--muted)] hover:text-[var(--fg)]"
+                aria-label="Zoom in"
+                title="Zoom in (+ or ⌘/Ctrl +, or ⌘/Ctrl+scroll)"
+              >
+                +
+              </button>
+            </div>
           </div>
           {copied && (
             <div className="absolute bottom-4 left-1/2 z-10 -translate-x-1/2 rounded-lg bg-[var(--fg)] px-3 py-1.5 text-[12px] text-[var(--chrome)]">

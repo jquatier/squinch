@@ -14,6 +14,7 @@ import { packInfo } from "./packs/registry.js";
 import { diffModels, formatDiff, formatDiffMarkdown } from "./diff/diff.js";
 import { suggest } from "./model/suggest.js";
 import type { BuildResult, Diagnostic, SView } from "./model/types.js";
+import { navViews, type NavView } from "./view/navigate.js";
 
 export { buildModel, buildProject, formatDiagnostics, layoutView, renderSVG, validateSVG, themes };
 // CRLF → LF, exported for hosts that map core's Loc offsets back into their own
@@ -194,9 +195,8 @@ export interface RenderResult {
 }
 
 /** Views a source declares, with the container each one scopes to (zoom targets). */
-export function viewIndex(src: string): { name: string; scope?: string; title?: string; auto?: boolean }[] {
-  const { model } = buildModel(src);
-  return model.views.map((v) => ({ name: v.name, scope: v.scope, title: v.title, auto: v.auto }));
+export function viewIndex(src: string): NavView[] {
+  return navViews(buildModel(src).model);
 }
 
 /** One-call pipeline: source → SVG for a view (default: first/implicit view). */

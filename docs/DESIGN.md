@@ -361,8 +361,16 @@ slide change — and the chrome has to say so.
   whatever was done to the one before: the dive starts from exactly what the
   reader was looking at and lands framed. Only a slide is drawn larger than
   life. `docs/notes/pan-zoom.md`.
-- **The way back is always on screen.** A breadcrumb of the ancestor trail, every
-  hop clickable, in the editor and in presentation alike.
+- **The way back is always on screen.** The view bar is a breadcrumb of the
+  ancestor trail: a home button, then one hop per altitude down to the view you
+  are on, each hop a menu of the views beside it at that level (its lenses and
+  the containers inside it get hops of their own, set in italic until you stand
+  on one). Flows sit apart in their own menu — a story belongs to no one
+  altitude. It is one width at three views or forty, and the same bar in the
+  playground, the export and presentation; what goes in each hop is core's
+  `viewBar`. Presenting, it can be put away outright (`B`, or its own button),
+  leaving a sliver at the top edge that brings it back on hover.
+  `docs/notes/view-bar.md`.
 - **Presentation mode is the same views, full-bleed**: the declared views become
   the deck in declaration order, arrows step, clicking a card still zooms in and
   the deck follows. Nothing is authored twice. Chrome auto-hides while idle and

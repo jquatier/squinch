@@ -28,14 +28,20 @@ test("loads, compiles and draws — with a clean console", async ({ page }) => {
   expect(errors, `console errors on load:\n${errors.join("\n")}`).toEqual([]);
 });
 
-test("an example loads and its views appear as tabs", async ({ page }) => {
+test("an example loads and its views are in the bar", async ({ page }) => {
   await page.goto("/playground/");
   await page.getByRole("combobox").selectOption("Examples/Microservices");
 
   // the view bar is built from the compiled model, so its presence is evidence
   // the whole pipeline ran, not just that a string got into the editor
-  for (const v of ["landscape", "catalog", "orders", "accounts"])
-    await expect(page.getByRole("button", { name: v, exact: true })).toBeVisible();
+  const bar = page.getByRole("navigation", { name: "Views" });
+  await expect(bar.getByRole("button", { name: "landscape", exact: true })).toHaveAttribute("aria-current", "page");
+  await bar.getByRole("button", { name: "4 inside" }).click();
+  const menu = bar.getByRole("menu");
+  for (const v of ["Catalog Service", "Order Service", "Account Service", "web"])
+    await expect(menu.getByRole("menuitemradio", { name: new RegExp(`^${v}`) })).toBeVisible();
+  // and the flow is filed apart, not in the path — one flow is a named link
+  await expect(bar.getByRole("button", { name: /^Placing an order/ })).not.toHaveAttribute("aria-haspopup");
   await expect(nodes(page).first()).toBeVisible();
 });
 
@@ -44,13 +50,17 @@ test("switching view redraws the canvas", async ({ page }) => {
   await page.getByRole("combobox").selectOption("Examples/Microservices");
   await expect(page.locator('[data-path="orders"]')).toBeVisible();
 
-  await page.getByRole("button", { name: "orders", exact: true }).click();
+  const bar = page.getByRole("navigation", { name: "Views" });
+  await bar.getByRole("button", { name: "4 inside" }).click();
+  await bar.getByRole("menuitemradio", { name: /^Order Service/ }).click();
   // the orders view shows that system's internals, which the landscape does not
   await expect(page.locator('[data-path="orders.api"]')).toBeVisible();
   await expect(page.locator('[data-path="orders"]')).toHaveCount(0);
+  // and the bar now stands there, with its siblings one click away
+  await expect(bar.getByRole("button", { name: "Order Service" })).toHaveAttribute("aria-current", "page");
 });
 
-test("clicking a card zooms, and the breadcrumb offers the way back", async ({ page }) => {
+test("clicking a card zooms, and the home button offers the way back", async ({ page }) => {
   await page.goto("/playground/");
   await page.getByRole("combobox").selectOption("Examples/Microservices");
   // the card, not its label: the click handler binds to closest([data-path]),
@@ -62,6 +72,25 @@ test("clicking a card zooms, and the breadcrumb offers the way back", async ({ p
   await expect(back.first()).toBeVisible();
   // and the ghost layer from the dive does not outlive it
   await expect(page.locator("[aria-hidden] svg")).toHaveCount(0, { timeout: 3000 });
+});
+
+test("presenting, B puts the bar away and the top edge brings it back", async ({ page }) => {
+  await page.goto("/playground/");
+  await page.getByRole("combobox").selectOption("Examples/Microservices");
+  await expect(nodes(page).first()).toBeVisible();
+  await page.getByRole("button", { name: /Present/ }).click();
+
+  const bar = page.getByRole("navigation", { name: "Views" });
+  await expect(bar).toBeVisible();
+  await page.keyboard.press("b");
+  await expect(bar).toHaveCount(0);
+  const handle = page.getByRole("button", { name: "Show the view bar" });
+  // moved to by hand: the handle is gone the instant the hover works
+  const h = (await handle.boundingBox())!;
+  await page.mouse.move(h.x + h.width / 2, h.y + h.height / 2);
+  await expect(bar).toBeVisible();
+  await bar.getByRole("button", { name: "Hide the view bar" }).click();
+  await expect(bar).toHaveCount(0);
 });
 
 test("a syntax error reports itself and keeps the last good drawing", async ({ page }) => {

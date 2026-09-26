@@ -12,7 +12,7 @@
 // performs the same motion as the playground" a fact about the build rather
 // than a comment nobody can check.
 import { diveTransforms, type Box } from "../../view/dive.js";
-import { hop, upView, viewForPath, type NavView } from "../../view/navigate.js";
+import { hop, upView, viewBar, viewForPath, type BarItem, type NavView } from "../../view/navigate.js";
 import { KEY_PAN, ZOOM_STEP, cameraKey, type CamPad } from "../../view/camera.js";
 import { attachCamera } from "../../view/camera-dom.js";
 
@@ -26,10 +26,10 @@ interface Payload {
 
 const $ = <T extends Element>(sel: string) => document.querySelector(sel) as T;
 
-/** Air around a fitted diagram. Presenting floats the bar and the tabs over
- *  the canvas, so it keeps the picture clear of both. */
+/** Air around a fitted diagram. Presenting floats the header — view bar and
+ *  all — over the canvas, so it keeps the picture clear of it. */
 const PAD: CamPad = 16;
-const PRESENT_PAD: CamPad = { top: 44, right: 24, bottom: 52, left: 24 };
+const PRESENT_PAD: CamPad = { top: 52, right: 24, bottom: 24, left: 24 };
 
 function boot() {
   const data: Payload = JSON.parse($("#sq-data").textContent || "{}");
@@ -94,26 +94,7 @@ function boot() {
   function paintChrome() {
     document.title = data.views.find((v) => v.name === view)?.title ?? document.title;
 
-    // The view tabs are the deck's one navigation surface — every view by
-    // name, the active one on a plate, exactly the SPA's picker. They replaced
-    // both the breadcrumb and the dots: the tabs already name where you are
-    // and where you can go, so two more spellings of the same facts were
-    // chrome without capability.
-    const tabs = document.querySelector<HTMLElement>("#sq-tabs");
-    if (tabs) {
-      tabs.replaceChildren();
-      for (const v of data.views) {
-        const b = document.createElement("button");
-        b.type = "button";
-        b.className = v.name === view ? "on" : "";
-        b.textContent = v.name;
-        b.title = v.title ?? v.name;
-        b.onclick = () => go(v.name);
-        tabs.append(b);
-      }
-      // keep the active tab reachable when the deck outgrows the bar
-      tabs.querySelector(".on")?.scrollIntoView?.({ block: "nearest", inline: "nearest" });
-    }
+    paintNav();
     // Mark the cards that actually lead somewhere. Only the runtime can know:
     // it depends on which views this file carries and which one you are in.
     // Without it every card wore a zoom cursor and the ones with no view were
@@ -127,6 +108,179 @@ function boot() {
     const hops = data.flows[view] ?? 0;
     if (counter) counter.textContent = presenting && hops ? `${step || 1} / ${hops}` : "";
   }
+
+  // ── the view bar ──────────────────────────────────────────────────────────
+  // Home, the path to where you stand with a menu of the views beside each
+  // hop, and the flows. What goes in each hop is `viewBar` — the function the
+  // playground draws from — so this is only the DOM spelling of it. Built with
+  // properties, never markup attributes: the file carries no inline handlers.
+  let openHop: string | undefined;
+  let navHidden = false;
+  let navView = "";
+  const nav = document.querySelector<HTMLElement>("#sq-nav");
+  const mk = <K extends keyof HTMLElementTagNameMap>(tag: K, cls = "", text = "") => {
+    const e = document.createElement(tag);
+    if (cls) e.className = cls;
+    if (text) e.textContent = text;
+    return e;
+  };
+  const btn = (cls: string, text = "") => {
+    const b = mk("button", cls, text);
+    b.type = "button";
+    return b;
+  };
+  const setNavHidden = (h: boolean) => {
+    navHidden = h;
+    openHop = undefined;
+    document.body.classList.toggle("sq-navhidden", h);
+    if (!h) paintNav();
+  };
+  const closeMenu = (refocus: boolean) => {
+    const key = openHop;
+    openHop = undefined;
+    paintNav();
+    if (refocus && key) nav?.querySelector<HTMLElement>(`[data-hop="${CSS.escape(key)}"]`)?.focus();
+  };
+
+  function hopEl(key: string, label: string, state: string, items: BarItem[], extra = "", count = "") {
+    const wrap = mk("span", `sq-hop${extra ? ` ${extra}` : ""}`);
+    if (!items.length) {
+      wrap.append(mk("span", `sq-seg ${state}`, label));
+      return wrap;
+    }
+    const b = btn(`sq-seg ${state}`);
+    b.dataset.hop = key;
+    b.append(mk("span", "sq-l", label));
+    if (count) b.append(mk("span", "sq-count", count));
+    wrap.append(b);
+    if (items.length === 1) {
+      if (items[0].active) b.setAttribute("aria-current", "page");
+      b.onclick = () => go(items[0].view);
+      return wrap;
+    }
+    b.append(mk("span", "sq-caret", "\u25BE"));
+    b.setAttribute("aria-haspopup", "menu");
+    b.setAttribute("aria-expanded", String(openHop === key));
+    if (state === "current") b.setAttribute("aria-current", "page");
+    b.onclick = () => {
+      openHop = openHop === key ? undefined : key;
+      paintNav();
+      const m = nav?.querySelector<HTMLElement>(".sq-menu");
+      // kept on screen: a hop near the edge would run its menu off it
+      if (m) {
+        const r = m.getBoundingClientRect();
+        const over = r.right - (document.documentElement.clientWidth - 8);
+        if (over > 0) m.style.transform = `translateX(${-Math.min(over, Math.max(0, r.left - 8))}px)`;
+      }
+      (m?.querySelector<HTMLElement>("[aria-checked=true]") ?? m?.querySelector<HTMLElement>("button"))?.focus();
+    };
+    if (openHop !== key) return wrap;
+    const menu = mk("div", "sq-menu");
+    menu.setAttribute("role", "menu");
+    for (const it of items) {
+      const r = btn("");
+      r.setAttribute("role", "menuitemradio");
+      r.setAttribute("aria-checked", String(it.active));
+      r.title = it.view;
+      r.dataset.label = it.label.toLowerCase();
+      r.append(mk("span", "sq-l", it.label));
+      if (it.auto) r.append(mk("span", "sq-auto", "auto"));
+      if (it.lenses) r.append(mk("span", "sq-n", `+${it.lenses} ${it.lenses === 1 ? "lens" : "lenses"}`));
+      r.append(mk("span", "sq-ck", it.active ? "\u2713" : ""));
+      r.onclick = () => { openHop = undefined; if (it.active) paintNav(); else go(it.view); };
+      menu.append(r);
+    }
+    // arrows move, a letter jumps; none of it reaches the deck's own keys
+    menu.onkeydown = (e) => {
+      wake();
+      const rows = [...menu.querySelectorAll<HTMLElement>("button")];
+      const at = rows.indexOf(document.activeElement as HTMLElement);
+      const to = (i: number) => rows[(i + rows.length) % rows.length]?.focus();
+      if (e.key === "ArrowDown") to(at + 1);
+      else if (e.key === "ArrowUp") to(at - 1);
+      else if (e.key === "Home") to(0);
+      else if (e.key === "End") to(rows.length - 1);
+      else if (e.key.length === 1 && /\S/.test(e.key)) {
+        const k = e.key.toLowerCase();
+        [...rows.slice(at + 1), ...rows.slice(0, at + 1)].find((r) => r.dataset.label?.startsWith(k))?.focus();
+      } else return;
+      e.preventDefault();
+      e.stopPropagation();
+    };
+    wrap.append(menu);
+    return wrap;
+  }
+
+  function paintNav() {
+    if (!nav) return;
+    // a view change closes whatever menu led there
+    if (navView !== view) { navView = view; openHop = undefined; }
+    const bar = viewBar(data.views, view);
+    nav.dataset.view = view; // where you are, for a test or a stylesheet to read
+    const path = mk("div", "sq-path");
+    const home = btn("sq-home", "\u2302");
+    home.setAttribute("aria-label", bar.home ?? "home");
+    home.title = `Home \u2014 ${bar.home ?? ""}`;
+    if (bar.atHome) home.setAttribute("aria-current", "page");
+    home.onclick = () => bar.home && go(bar.home);
+    path.append(home);
+    if (bar.segments.length) path.append(mk("span", "sq-div"));
+    const nearest = bar.segments.map((s) => s.state).lastIndexOf("link");
+    bar.segments.forEach((s, i) => {
+      const hop = hopEl(s.key, s.label, s.state, s.items);
+      // folding classes, and a trailing separator so a folded hop takes its own
+      if (s.state === "link") hop.classList.add(i === nearest ? "sq-near" : "sq-outer");
+      if (i < bar.segments.length - 1) hop.append(mk("span", "sq-sep", "/"));
+      path.append(hop);
+    });
+    nav.replaceChildren(path);
+    if (bar.flows.length) {
+      const f = bar.activeFlow;
+      const hops = data.flows[view] ?? 0;
+      // one flow is a link to it, named — a menu of one is a click for nothing
+      const only = bar.flows.length === 1 ? bar.flows[0] : undefined;
+      const count = f ? (presenting && hops ? `${step || 1}/${hops}` : "") : only ? "" : String(bar.flows.length);
+      const label = f ? f.label : only ? only.label : "Flows";
+      const flows = hopEl("#flows", label, f ? "current" : "link", bar.flows, "sq-flows", count);
+      // a text glyph, so the pill still says what it is once its label folds
+      const pill = flows.querySelector<HTMLElement>(".sq-seg");
+      if (pill) { pill.prepend(mk("span", "sq-fg", "\u219D")); pill.title = label; }
+      nav.append(flows);
+    }
+    const hide = btn("", "\u2303");
+    hide.id = "sq-hide";
+    hide.setAttribute("aria-label", "Hide the view bar");
+    hide.title = "Hide (b)";
+    hide.onclick = () => setNavHidden(true);
+    nav.append(hide);
+    fold();
+  }
+
+  /** Short of room the bar gives way in steps, never by overlapping — the
+   *  playground's levels (ViewBar.tsx): truncate, fold the outer ancestors,
+   *  drop the flows label, fold the nearest ancestor, truncate hard. Measured
+   *  with no menu open, since an open one counts toward the width. */
+  function fold() {
+    if (!nav || openHop) return;
+    for (let l = 0; l <= 5; l++) {
+      nav.className = Array.from({ length: l }, (_, i) => `sq-f${i + 1}`).join(" ");
+      if (nav.scrollWidth <= nav.clientWidth + 0.5) return;
+    }
+  }
+  addEventListener("resize", fold);
+
+  // what is left of the bar while it is put away
+  const handle = btn("");
+  handle.id = "sq-handle";
+  handle.setAttribute("aria-label", "Show the view bar");
+  handle.title = "Show the view bar (b)";
+  handle.onclick = handle.onpointerenter = () => setNavHidden(false);
+  if (nav) document.body.append(handle);
+
+  // one menu at a time, gone on the press — before the click lands underneath
+  addEventListener("pointerdown", (e) => {
+    if (openHop && !(e.target as Element).closest?.(".sq-menu,[aria-expanded=true]")) closeMenu(false);
+  });
 
   /** Finish the dive in flight, if there is one. Everything `go` measures has
    *  to be at rest, and a second click mid-dive used to measure a moving layer. */
@@ -339,6 +493,8 @@ function boot() {
       return;
     }
     if (e.metaKey || e.ctrlKey || e.altKey) return;
+    // An open menu owns Escape; it closes the menu, not the presentation.
+    if (e.key === "Escape" && openHop) { e.preventDefault(); return closeMenu(true); }
     // A focused button keeps its own activation keys. This handler used to
     // swallow Space and Enter and step the deck instead, which made every
     // button in the file — tabs, palette, Present — dead to the keyboard.
@@ -365,7 +521,12 @@ function boot() {
         if (up) { e.preventDefault(); go(up); }
         break;
       }
-      case "Home": e.preventDefault(); go(data.views[0].name); break;
+      case "Home": {
+        const home = viewBar(data.views, view).home;
+        e.preventDefault();
+        if (home) go(home);
+        break;
+      }
       case "End": e.preventDefault(); go(data.views[data.views.length - 1].name, true); break;
       case "Escape": if (presenting) { e.preventDefault(); present(false); } break;
       case "p": case "P": present(!presenting); break;
@@ -374,6 +535,7 @@ function boot() {
         else document.documentElement.requestFullscreen?.().catch(() => {});
         break;
       case "t": case "T": if (data.themes.length > 1) cycleTheme(); break;
+      case "b": case "B": if (presenting && nav) setNavHidden(!navHidden); break;
     }
   });
   // leaving fullscreen by the browser's own affordance should leave the deck

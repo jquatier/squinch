@@ -27,7 +27,7 @@ import { themes, type Theme } from "../themes/index.js";
 import { fontFaceCSS, allFaces } from "./svg.js";
 import { RUNTIME_JS } from "./html/runtime.generated.js";
 import type { Diagnostic } from "../model/types.js";
-import type { NavView } from "../view/navigate.js";
+import { navViews, type NavView } from "../view/navigate.js";
 
 export interface HTMLExportOpts {
   /** Which view opens. Default: the first declared one. */
@@ -99,9 +99,7 @@ export async function exportHTML(
   const implicit = all.length === 0 && opts.views !== "declared";
   const list: NavView[] = implicit
     ? [{ name: "default", auto: true }]
-    : (opts.views === "declared" ? all.filter((v) => !v.auto) : all).map(
-        (v): NavView => ({ name: v.name, scope: v.scope, title: v.title, auto: v.auto }),
-      );
+    : navViews(built.model).filter((v) => opts.views !== "declared" || !v.auto);
   if (!list.length)
     return {
       diagnostics: [...built.diagnostics, {
@@ -255,13 +253,17 @@ function document(a: {
     `<svg id="sq-defs" aria-hidden="true" style="position:absolute;width:0;height:0;overflow:hidden">` +
       `<defs>${a.sprite}</defs></svg>`,
   );
-  // No breadcrumb: the view tabs in the footer name where you are and where
-  // you can go, so the header keeps only the document-level controls.
+  // The view bar leads the header: home, the path to where you stand with a
+  // menu of the views beside each hop, and the flows (docs/notes/view-bar.md).
+  // It is an empty <nav> the runtime fills, so a reader without script is not
+  // handed a row of dead controls, and it holds no <svg>: its glyphs are text.
   // The zoom controls are text glyphs, not icons — every <svg> in this file is
   // a diagram body or the sprite, and the tests count them — and they are
   // hidden until the runtime says the camera exists: a reader without script
   // gets a static diagram, not three dead buttons.
-  L.push('<header id="sq-bar"><span id="sq-step"></span>' +
+  L.push('<header id="sq-bar">' +
+    (a.views.length > 1 ? '<nav id="sq-nav" aria-label="Views"></nav>' : "") +
+    '<span id="sq-step"></span>' +
     '<span id="sq-zoom">' +
     '<button id="sq-zout" type="button" aria-label="Zoom out" title="Zoom out (- or Ctrl/\u2318 -)">\u2212</button>' +
     '<button id="sq-fit" type="button" aria-label="Fit to window" title="Fit to window (0)">Fit</button>' +
@@ -278,7 +280,6 @@ function document(a: {
   L.push('<main id="sq-stage"><div id="sq-cam"><div id="sq-ghost" aria-hidden="true"></div><div id="sq-live">');
   L.push(a.entryBody);
   L.push("</div></div></main>");
-  if (a.views.length > 1) L.push('<footer id="sq-foot"><nav id="sq-tabs" aria-label="Views"></nav></footer>');
   for (const [key, svg] of a.bodies) {
     if (key === `${a.entry}|${a.palette[0].name}`) continue; // already inline
     L.push(`<template data-key="${attr(key)}">${svg}</template>`);
@@ -339,22 +340,66 @@ const CHROME_CSS =
   "#sq-step{color:var(--sq-muted);font-variant-numeric:tabular-nums;flex:none}" +
   "#sq-present{font:inherit;background:var(--sq-surface);color:var(--sq-muted);cursor:pointer;" +
   "border:1px solid var(--sq-border);border-radius:6px;padding:2px 10px;flex:none}" +
-  "#sq-foot{display:flex;justify-content:center;padding:10px;flex:none;min-width:0}" +
-  // the SPA's view picker, verbatim in spirit: a quiet bar of view names, the
-  // active one on a plate. Scrolls sideways rather than wrapping when a deck
-  // outgrows it — a two-row bar reads as two bars.
-  "#sq-tabs{display:flex;gap:2px;padding:3px;max-width:calc(100% - 16px);overflow-x:auto;" +
+  // The view bar (runtime.ts paints it). One quiet pill for the path, one
+  // for the flows; a hop with siblings opens a menu beneath it. Long labels
+  // truncate rather than wrap — a two-row bar reads as two bars.
+  "#sq-nav{display:flex;align-items:center;gap:8px;margin-right:auto;min-width:0}" +
+  "#sq-nav>*,.sq-path>*,.sq-hop>*{flex:none}" +
+  // the fold levels, applied by the runtime until the bar fits (runtime.ts)
+  "#sq-nav .sq-seg>.sq-l{max-width:220px}" +
+  "#sq-nav.sq-f1 .sq-seg:not(.current)>.sq-l{max-width:8rem}#sq-nav.sq-f1 .sq-seg.current>.sq-l{max-width:11rem}" +
+  "#sq-nav.sq-f2 .sq-outer,#sq-nav.sq-f4 .sq-near{display:none}" +
+  "#sq-nav.sq-f3 .sq-flows .sq-l{display:none}" +
+  "#sq-nav.sq-f5 .sq-seg.current>.sq-l{max-width:6rem}" +
+  ".sq-fg{opacity:.7}" +
+  // a phone pinches to zoom; its header is better spent on the view bar
+  "@media (max-width:560px){.sq-pz #sq-zoom{display:none}#sq-bar{gap:8px;padding:10px 8px}}" +
+  "#sq-nav button{font:inherit;font-size:12px;border:0;background:none;color:var(--sq-muted);" +
+  "cursor:pointer;border-radius:5px;padding:0}" +
+  "#sq-nav button:hover{color:var(--sq-ink)}" +
+  ".sq-path{display:flex;align-items:center;gap:1px;padding:2px;min-width:0;" +
   "border:1px solid var(--sq-border);border-radius:8px;background:var(--sq-surface)}" +
-  "#sq-tabs button{font:inherit;font-size:12px;white-space:nowrap;padding:3px 10px;border-radius:5px;" +
-  "border:0;background:none;color:var(--sq-muted);cursor:pointer}" +
-  "#sq-tabs button:hover{color:var(--sq-ink)}" +
-  "#sq-tabs button.on{background:var(--sq-canvas);color:var(--sq-ink);" +
-  "box-shadow:inset 0 0 0 1px var(--sq-border)}" +
+  "#sq-nav .sq-home{width:26px;height:26px;font-size:15px;line-height:1;flex:none}" +
+  "#sq-nav .sq-home[aria-current]{background:var(--sq-canvas);color:var(--sq-ink)}" +
+  ".sq-div{width:1px;height:14px;background:var(--sq-border);margin:0 4px;flex:none}" +
+  ".sq-sep{color:var(--sq-border);padding:0 1px}" +
+  ".sq-hop{position:relative;display:flex;align-items:center}" +
+  "#sq-nav .sq-seg{display:flex;align-items:center;gap:4px;height:26px;padding:0 8px 0 9px;" +
+  "white-space:nowrap}" +
+  ".sq-seg>.sq-l{overflow:hidden;text-overflow:ellipsis}" +
+  "#sq-nav .sq-seg.current{color:var(--sq-ink);font-weight:600}" +
+  "#sq-nav .sq-seg.ghost{font-style:italic}" +
+  "#sq-nav .sq-seg[aria-expanded=true]{background:var(--sq-canvas);color:var(--sq-ink)}" +
+  "#sq-nav span.sq-seg{cursor:default}" +
+  ".sq-caret{font-size:9px;opacity:.7}.sq-count{font-variant-numeric:tabular-nums;opacity:.7}" +
+  "#sq-nav .sq-flows>.sq-seg,#sq-nav #sq-hide{height:32px;border:1px solid var(--sq-border);" +
+  "border-radius:8px;background:var(--sq-surface)}" +
+  "#sq-nav .sq-flows>.sq-seg{padding:0 10px}" +
+  "#sq-nav #sq-hide{display:none;width:32px;flex:none}body.presenting #sq-nav #sq-hide{display:block}" +
+  ".sq-menu{position:absolute;top:calc(100% + 6px);left:0;z-index:5;width:256px;max-width:calc(100vw - 16px);" +
+  "max-height:min(420px,70vh);overflow-y:auto;padding:4px;background:var(--sq-surface);" +
+  "border:1px solid var(--sq-border);border-radius:10px;box-shadow:0 12px 32px rgba(0,0,0,.16)}" +
+  ".sq-flows .sq-menu{left:auto;right:0}" +
+  "#sq-nav .sq-menu button{display:flex;align-items:center;gap:8px;width:100%;text-align:left;" +
+  "padding:6px 9px;font-size:13px;color:var(--sq-ink)}" +
+  "#sq-nav .sq-menu button:hover,#sq-nav .sq-menu button:focus-visible{background:var(--sq-canvas);outline:none}" +
+  "#sq-nav .sq-menu [aria-checked=true]{font-weight:600;background:var(--sq-canvas)}" +
+  ".sq-menu .sq-l{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}" +
+  ".sq-menu .sq-auto{font-size:10px;color:var(--sq-muted);border:1px solid var(--sq-border);" +
+  "border-radius:4px;padding:0 4px}" +
+  ".sq-menu .sq-n{font-size:11px;color:var(--sq-muted)}.sq-menu .sq-ck{width:12px;flex:none}" +
+  // Presenting, the bar can be put away (b, or its own button). What is left
+  // is a sliver at the top edge that brings it back on hover.
+  "#sq-handle{display:none;position:fixed;top:0;left:50%;transform:translateX(-50%);z-index:3;" +
+  "width:240px;height:22px;padding:7px 0 0;border:0;background:none;cursor:pointer;transition:opacity .3s}" +
+  "#sq-handle::after{content:\"\";display:block;margin:0 auto;width:44px;height:4px;border-radius:2px;" +
+  "background:var(--sq-border)}" +
+  "body.presenting.sq-navhidden #sq-nav{display:none}" +
+  "body.presenting.sq-navhidden #sq-handle{display:block}" +
   // presenting: full bleed, chrome floats over the canvas and fades when idle
-  "body.presenting #sq-bar,body.presenting #sq-foot{position:fixed;left:0;right:0;z-index:2;" +
+  "body.presenting #sq-bar{position:fixed;left:0;right:0;top:0;z-index:2;" +
   "transition:opacity .3s;background:transparent}" +
-  "body.presenting #sq-bar{top:0}body.presenting #sq-foot{bottom:0}" +
   "body.presenting #sq-stage{padding:0}" +
-  "body.presenting.idle #sq-bar,body.presenting.idle #sq-foot{opacity:0;pointer-events:none}" +
+  "body.presenting.idle #sq-bar,body.presenting.idle #sq-handle{opacity:0;pointer-events:none}" +
   "body.presenting.idle,body.presenting.idle #sq-stage{cursor:none}" +
   "@media (prefers-reduced-motion:reduce){#sq-live,#sq-ghost{transition:none!important}}";

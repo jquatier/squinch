@@ -2,14 +2,12 @@
 // resolved before each (synchronous) render.
 import {
   registerPack, preloadIcons, iconsUsedBy, render, buildProject, viewIndex,
-  type PackManifest, type Diagnostic,
+  type PackManifest, type Diagnostic, type NavView,
 } from "@squinch/core/browser";
 
-export interface ViewRef {
-  name: string;
-  scope?: string;
-  title?: string;
-}
+/** A view as the playground navigates it — core's `NavView`, `auto` and
+ *  `flow` included, which the bar's menus mark and sort by. */
+export type ViewRef = NavView;
 
 let ready: Promise<void> | undefined;
 
