@@ -53,10 +53,18 @@ When it still does not fit, it folds in steps and never overlaps:
 3. The flows pill drops to its icon.
 4. The nearest ancestor folds too.
 5. The hop you stand on truncates hard.
+6. A ghost hop keeps only its count ("4 inside" becomes "4"). Its accessible
+   name and tooltip keep the whole label.
+7. The hop you stand on truncates harder still. This is for a 320px phone.
 
-A ghost hop never truncates. "4 inside" is short, and says nothing once cut.
+A ghost hop is never cut mid-word, because it says nothing once cut. It is
+not clipped either: `overflow:hidden` shaves the slant off an italic's last
+letter.
 The level is **measured**: render, see whether the bar fits its strip, fold
-one more, all before paint. The ViewBar does it in a layout effect and the
+one more, all before paint. Reset and fold must be one effect. As two, the
+reset-on-change and the fold ran in the same commit, and React merged "fold
+to 1, back to 0" into no change and no re-render. A bar that loaded too wide
+stayed too wide, off a phone's left edge. The ViewBar does it in a layout effect and the
 export's runtime in `fold()`. Container queries were tried first and could
 not do it. A flex item's automatic minimum is its full unwrapped label, so the
 hops either would not shrink or shrank past their own caret and slid under

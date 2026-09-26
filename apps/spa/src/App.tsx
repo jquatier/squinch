@@ -497,7 +497,7 @@ export function App() {
             // Clear of the editor toggle, on both sides so it stays centred;
             // a fixed-width, click-through strip: the bar measures it to decide
             // how far to fold, and centres inside it
-            <div className="pointer-events-none absolute left-1/2 top-3.5 z-10 flex w-[calc(100%-8rem)] -translate-x-1/2 justify-center max-md:left-auto max-md:right-3 max-md:w-[calc(100%-5rem)] max-md:translate-x-0 max-md:justify-end">
+            <div className="pointer-events-none absolute left-1/2 top-3.5 z-10 flex w-[calc(100%-8rem)] -translate-x-1/2 justify-center max-md:left-auto max-md:right-3 max-md:w-[calc(100%-4.5rem)] max-md:translate-x-0">
               <ViewBar bar={bar} onNavigate={navigate} />
             </div>
           )}

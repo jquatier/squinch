@@ -93,6 +93,24 @@ test("presenting, B puts the bar away and the top edge brings it back", async ({
   await expect(bar).toHaveCount(0);
 });
 
+test("on a phone the bar folds to fit, clear of the editor toggle", async ({ page }) => {
+  // It used to load at full width and run off the left edge: the fold and the
+  // reset-on-change ran in one commit and cancelled out, so nothing measured.
+  for (const width of [390, 320]) {
+    await page.setViewportSize({ width, height: 800 });
+    await page.goto("/playground/");
+    await page.getByRole("combobox").selectOption("Examples/Microservices");
+    const bar = page.getByRole("navigation", { name: "Views" });
+    await expect(bar).toBeVisible();
+    const toggle = (await page.getByRole("button", { name: /editor/ }).boundingBox())!;
+    await expect.poll(async () => (await bar.boundingBox())!.x).toBeGreaterThan(toggle.x + toggle.width);
+    const box = (await bar.boundingBox())!;
+    expect(box.x + box.width).toBeLessThanOrEqual(width);
+    // folded or not, the way in keeps its name for a screen reader
+    await expect(bar.getByRole("button", { name: "4 inside" })).toBeVisible();
+  }
+});
+
 test("a syntax error reports itself and keeps the last good drawing", async ({ page }) => {
   // the failure this guards is a blank canvas mid-keystroke: the compile fails
   // on half-typed input constantly, and the editor would be unusable if the

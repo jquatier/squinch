@@ -22,14 +22,15 @@ const tone = {
  *   3. the flows pill drops to its icon
  *   4. the nearest ancestor folds too
  *   5. the hop you stand on truncates hard
- * A ghost hop ("4 inside") is short and says nothing once cut, so it never
- * does. The level is measured, not guessed from the window: the editor pane,
+ *   6. a ghost hop keeps only its count ("4 inside" → "4")
+ *   7. the hop you stand on truncates harder still (a 320px phone)
+ * A ghost hop is never cut mid-word: it says nothing once cut. The level is measured, not guessed from the window: the editor pane,
  * the presenter and a phone all hand the bar different room.
  */
-const FOLDS = 5;
+const FOLDS = 7;
 const labelMax = (state: BarSegment["state"], level: number) =>
   state === "ghost" ? "" : state === "current"
-    ? level >= 5 ? "max-w-[6rem]" : level >= 1 ? "max-w-[11rem]" : "max-w-[220px]"
+    ? level >= 7 ? "max-w-[4rem]" : level >= 5 ? "max-w-[6rem]" : level >= 1 ? "max-w-[11rem]" : "max-w-[220px]"
     : level >= 1 ? "max-w-[8rem]" : "max-w-[220px]";
 
 export function ViewBar({
@@ -52,20 +53,29 @@ export function ViewBar({
   // Fold one level at a time until the bar fits its strip. Runs before paint,
   // so the reader never sees a level that did not fit; any change to what is
   // drawn, or to the room, starts again from the top.
+  //
+  // One effect decides both, on purpose. A separate "reset on change" effect
+  // ran in the same commit as the fold and React merged the two updates, fold
+  // then reset, into no change at all: no re-render, no measurement, and a
+  // bar that loaded too wide stayed too wide (it ran off a phone's left edge).
+  const drawn = bar.segments.map((s) => s.key + s.state + s.label).join() + bar.activeFlow?.view + !!onHide;
+  const measured = useRef({ drawn, room: 0 });
+  const [, remeasure] = useState(0);
   useLayoutEffect(() => {
     const nav = wrap.current;
-    const room = nav?.parentElement?.clientWidth;
+    const room = nav?.parentElement?.clientWidth ?? 0;
+    const was = measured.current;
+    if (was.drawn !== drawn || was.room !== room) {
+      measured.current = { drawn, room };
+      if (level !== 0) return setLevel(0);
+    }
     if (nav && room && nav.scrollWidth > room + 0.5 && level < FOLDS) setLevel(level + 1);
   });
-  const drawn = bar.segments.map((s) => s.key + s.state + s.label).join() + bar.activeFlow?.view + !!onHide;
-  useLayoutEffect(() => setLevel(0), [drawn]);
+  // a resize is not a render, so it has to ask for one
   useEffect(() => {
     const strip = wrap.current?.parentElement;
     if (!strip) return;
-    let last = strip.clientWidth;
-    const ro = new ResizeObserver(() => {
-      if (strip.clientWidth !== last) { last = strip.clientWidth; setLevel(0); }
-    });
+    const ro = new ResizeObserver(() => remeasure((n) => n + 1));
     ro.observe(strip);
     return () => ro.disconnect();
   }, []);
@@ -172,7 +182,11 @@ export function ViewBarHandle({ onShow }: { onShow(): void }) {
 function Hop({ seg, level, open, onToggle, onPick }: {
   seg: BarSegment; level: number; open: boolean; onToggle(): void; onPick(view: string): void;
 }) {
-  const label = <span className={`truncate ${labelMax(seg.state, level)}`}>{seg.label}</span>;
+  // a ghost hop never truncates, and must not clip either: overflow:hidden
+  // shaves the slant off an italic's last letter
+  const label = seg.state === "ghost"
+    ? <span className="pr-px">{level >= 6 ? seg.label.split(" ")[0] : seg.label}</span>
+    : <span className={`truncate ${labelMax(seg.state, level)}`}>{seg.label}</span>;
   if (!seg.items.length)
     return <span className={`${hopBtn} ${tone[seg.state]} cursor-default pr-2.5`}>{label}</span>;
   if (seg.items.length === 1) {
@@ -180,6 +194,8 @@ function Hop({ seg, level, open, onToggle, onPick }: {
     return (
       <button
         data-hop={seg.key}
+        title={seg.label}
+        aria-label={seg.label}
         onClick={() => !only.active && onPick(only.view)}
         aria-current={only.active ? "page" : undefined}
         className={`${hopBtn} ${tone[seg.state]} pr-2.5`}
@@ -192,6 +208,8 @@ function Hop({ seg, level, open, onToggle, onPick }: {
     <span className="relative flex">
       <button
         data-hop={seg.key}
+        title={seg.label}
+        aria-label={seg.label}
         onClick={onToggle}
         aria-haspopup="menu"
         aria-expanded={open}
@@ -213,6 +231,10 @@ function FlowsHop({ bar, flowStep, iconOnly, open, onToggle, onPick }: {
   const f = bar.activeFlow;
   // One flow is a link to it, named — a menu of one is a click for nothing.
   const only = bar.flows.length === 1 ? bar.flows[0] : undefined;
+  const count = f && flowStep ? `${flowStep.step}/${flowStep.steps}` : f || only ? "" : String(bar.flows.length);
+  // folded to a lone icon, the pill is a square — an empty count or a hidden
+  // label still owned a gap, which read as padding on the right
+  const bare = iconOnly && !count && !!only;
   return (
     <span className="relative flex shrink-0">
       <button
@@ -222,7 +244,9 @@ function FlowsHop({ bar, flowStep, iconOnly, open, onToggle, onPick }: {
         aria-expanded={only ? undefined : open}
         aria-current={f ? "page" : undefined}
         title={f ? f.label : only ? only.label : "Flows"}
-        className={`pg-pill flex h-9 items-center gap-[7px] whitespace-nowrap rounded-[9px] px-[11px] text-[12.5px] ${
+        className={`pg-pill flex h-9 items-center gap-[7px] whitespace-nowrap rounded-[9px] text-[12.5px] ${
+          bare ? "w-9 justify-center" : "px-[11px]"
+        } ${
           open ? "bg-[var(--control)]" : ""
         }`}
       >
@@ -232,12 +256,12 @@ function FlowsHop({ bar, flowStep, iconOnly, open, onToggle, onPick }: {
           <circle cx="12" cy="12" r="1.5" />
           <path d="M5.5 4H10a2 2 0 0 1 0 4H6a2 2 0 0 0 0 4h4.5" />
         </svg>
-        <span className={`max-w-[200px] truncate ${iconOnly ? "hidden" : ""} ${f ? "font-semibold text-[var(--fg)]" : "text-[var(--muted)]"}`}>
-          {f ? f.label : only ? only.label : "Flows"}
-        </span>
-        <span className="pg-mono text-[10.5px] tabular-nums text-[var(--text-3)]">
-          {f && flowStep ? `${flowStep.step}/${flowStep.steps}` : f || only ? "" : bar.flows.length}
-        </span>
+        {!iconOnly && (
+          <span className={`max-w-[200px] truncate ${f ? "font-semibold text-[var(--fg)]" : "text-[var(--muted)]"}`}>
+            {f ? f.label : only ? only.label : "Flows"}
+          </span>
+        )}
+        {count && <span className="pg-mono text-[10.5px] tabular-nums text-[var(--text-3)]">{count}</span>}
         {!only && <Caret />}
       </button>
       {open && !only && <Menu items={bar.flows} onPick={onPick} alignRight />}
