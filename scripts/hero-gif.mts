@@ -4,8 +4,9 @@
 // than to a particular diagram. A third act closes the argument: the full
 // view (`expand *`) opens every system at once, arriving as the app's own
 // lateral cut — sibling views crossfade rather than dive, there being no card
-// to anchor on (docs/notes/zoom-transitions.md) — and the breadcrumb still
-// walks back out.
+// to anchor on (docs/notes/zoom-transitions.md). The view bar rides the top as
+// it does in the app, following every move, and home is how the pointer
+// comes back out.
 //
 // Maintainer-only, macOS/Linux: needs ffmpeg on PATH. `NODE_OPTIONS=--expose-gc`
 // keeps memory flatter still — see the frame loop.
@@ -29,7 +30,7 @@ import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { renderProject, themes, buildModel } from "../packages/core/dist/index.js";
 import { svgToPng } from "../packages/cli/src/raster.js";
-import { TRAVEL, scaleFor, type Box } from "../packages/core/dist/index.js";
+import { TRAVEL, scaleFor, viewBar, viewIndex, type Box, type NavView } from "../packages/core/dist/index.js";
 import { measure } from "../packages/core/dist/metrics.js";
 
 const root = join(dirname(fileURLToPath(import.meta.url)), "..");
@@ -49,15 +50,13 @@ const W = 900, H = 620, PAD = 28;
  *  than they are tall, so height is the binding constraint and every pixel of
  *  vertical padding shrinks the diagram. */
 const PAD_V = 14;
-/** Gap between the diagram and the bottom strip, and below the strip. */
-const FOOT_GAP = 8, FOOT_BOTTOM = 16;
-/** A reserved strip along the bottom for the view toolbar. Without it the
- *  diagram fills the full height and the landscape's bottom row collides with
- *  the chips — the artwork is centred, so there is no corner it reliably
- *  avoids. (The wordmark used to share this strip; it went — the GIF sits on
- *  pages that already carry the mark, and the band was sized for it.) */
-let FOOT = 0;
-let STAGE_H = H;
+/** The view bar floats along the top, as it does over the playground's stage.
+ *  The stage is what is left below it: the artwork is centred, so there is no
+ *  corner it reliably avoids, and a bar drawn over the landscape's top row
+ *  would hide the thing the clip is about. */
+const BAR = { top: 14, h: 34, font: 12.5 };
+const STAGE_TOP = BAR.top + BAR.h + 4;
+const STAGE_H = H - STAGE_TOP - 6;
 const FPS = 20;
 // Imported, not copied. These used to be redeclared here with a comment saying
 // they matched Stage.tsx — two untested copies of one animation model, in two
@@ -134,7 +133,7 @@ function readSource(): string {
  *  past 1:1 so the diagram keeps its designed weight. */
 function fitOf(a: Art) {
   const s = Math.min((W - PAD * 2) / a.w, (STAGE_H - PAD_V * 2) / a.h, 1);
-  return { s, x: (W - a.w * s) / 2, y: (STAGE_H - a.h * s) / 2 };
+  return { s, x: (W - a.w * s) / 2, y: STAGE_TOP + (STAGE_H - a.h * s) / 2 };
 }
 
 /** SVG has no transform-origin, so a scale about a point becomes an explicit
@@ -186,63 +185,103 @@ const BIG = { w: W * 3, h: H * 3 };
  *  pixels, so nothing else has to know. */
 const SS = 2;
 
-/** The frame's own chrome — background, breadcrumb, pointer, ripple — drawn
+/** The frame's own chrome — background, view bar, pointer, ripple — drawn
  *  from the theme's tokens so the animation matches the diagram it wraps and
  *  follows any future change to the palette. */
 let T = themes.light;
-/** Baseline of the bottom strip's chrome — the toolbar hangs off it. The
- *  breadcrumb that used to sit here is gone: the toolbar names every view and
- *  its chips are the click targets, so a second navigation affordance in the
- *  same strip was one more thing to read for no new capability. */
-const STRIP = { y: H - FOOT_BOTTOM - 6 };
 
-/** The SPA's view picker, transplanted to the bottom strip: every declared
- *  view as a chip, the active one on a raised plate — the same affordance the
- *  app gives for lateral moves, and the thing the pointer presses to reach
- *  `full`. Geometry is computed once per theme from real text metrics so the
- *  chips can be click targets. */
-const CHIP_FONT = 12, CHIP_PAD = 8, CHIP_H = 22, CHIP_GAP = 2;
-let TOOLBAR: { names: string[]; x: number; w: number; chips: Map<string, { x: number; w: number }> } =
-  { names: [], x: 0, w: 0, chips: new Map() };
+/** Every view the playground would list, auto views included — the bar is
+ *  core's `viewBar` over them, the same description the app draws, so the clip
+ *  cannot show a bar the app would not. */
+let NAV: NavView[] = [];
 
-const toolbarLayout = (names: string[]) => {
-  const chips = new Map<string, { x: number; w: number }>();
-  const widths = names.map((n) => Math.round(measure(n, CHIP_FONT, "500")) + CHIP_PAD * 2);
-  const total = widths.reduce((a, b) => a + b, 0) + CHIP_GAP * (names.length - 1) + 8;
-  let x = (W - total) / 2 + 4;
-  names.forEach((n, i) => {
-    chips.set(n, { x, w: widths[i] });
-    x += widths[i] + CHIP_GAP;
-  });
-  TOOLBAR = { names, x: (W - total) / 2, w: total, chips };
-};
+/** Which view the bar stands on, and which hop's menu is open (a segment key;
+ *  the top level's is ""). */
+interface BarState { view: string; open?: string }
+type Pt = { x: number; y: number };
 
-/** Centre of a chip — where the pointer aims. */
-const chipPoint = (name: string) => {
-  const c = TOOLBAR.chips.get(name)!;
-  return { x: c.x + c.w / 2, y: STRIP.y - 8 };
-};
+const HOUSE = '<path d="M2.5 7.25 8 2.75l5.5 4.5"/><path d="M4 6.25v6.25a1 1 0 0 0 1 1h2V10h2v3.5h2a1 1 0 0 0 1-1V6.25"/>';
+const CARET = '<path d="m4.5 6.5 3.5 3.5 3.5-3.5"/>';
+const FLOW = '<circle cx="4" cy="4" r="1.5"/><circle cx="12" cy="12" r="1.5"/><path d="M5.5 4H10a2 2 0 0 1 0 4H6a2 2 0 0 0 0 4h4.5"/>';
+/** A 16-unit stroke icon, centred on (cx, cy) at `size` px. */
+const icon = (paths: string, cx: number, cy: number, size: number, color: string) =>
+  `<g transform="translate(${(cx - size / 2).toFixed(2)} ${(cy - size / 2).toFixed(2)}) scale(${(size / 16).toFixed(4)})" ` +
+  `fill="none" stroke="${color}" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">${paths}</g>`;
+const esc = (t: string) => t.replace(/&/g, "&amp;").replace(/</g, "&lt;");
+const text = (x: number, y: number, t: string, size: number, weight: string, fill: string, anchor = "start") =>
+  `<text x="${x.toFixed(1)}" y="${y.toFixed(1)}" font-family="Inter" font-size="${size}" font-weight="${weight}" ` +
+  `fill="${fill}" text-anchor="${anchor}">${esc(t)}</text>`;
 
-const toolbar = (active: string) => {
-  if (!TOOLBAR.names.length) return "";
-  const top = STRIP.y - 8 - CHIP_H / 2;
-  const bar =
-    `<rect x="${(TOOLBAR.x - 3).toFixed(1)}" y="${(top - 3).toFixed(1)}" width="${(TOOLBAR.w + 6).toFixed(1)}" ` +
-    `height="${CHIP_H + 6}" rx="6" fill="${T.surface}" stroke="${T.border}" stroke-width="1"/>`;
-  const chips = TOOLBAR.names.map((n) => {
-    const c = TOOLBAR.chips.get(n)!;
-    const plate = n === active
-      ? `<rect x="${c.x.toFixed(1)}" y="${top.toFixed(1)}" width="${c.w.toFixed(1)}" height="${CHIP_H}" rx="4" fill="${T.surfaceAlt}"/>`
-      : "";
-    return (
-      plate +
-      `<text x="${(c.x + c.w / 2).toFixed(1)}" y="${(top + CHIP_H / 2 + CHIP_FONT * 0.36).toFixed(1)}" ` +
-      `text-anchor="middle" font-family="Inter" font-size="${CHIP_FONT}" font-weight="500" ` +
-      `fill="${n === active ? T.ink : T.muted}">${n}</text>`
-    );
-  }).join("");
-  return bar + chips;
-};
+/** The view bar for one state: its SVG, and where the pointer can aim —
+ *  home, each hop, and the rows of an open menu. The playground's geometry
+ *  (ViewBar.tsx), laid out from real text metrics and centred on the canvas. */
+function bar(st: BarState): { svg: string; home: Pt; hops: Map<string, Pt>; rows: Map<string, Pt> } {
+  const b = viewBar(NAV, st.view);
+  const mid = BAR.top + BAR.h / 2;
+  const base = mid + BAR.font * 0.36;
+  const weight = (state: string) => (state === "current" ? "600" : "400");
+  const hopW = (s: { label: string; state: string; items: unknown[] }) =>
+    10 + measure(s.label, BAR.font, weight(s.state)) + (s.items.length > 1 ? 4 + 13 + 8 : 10);
+  const segW = b.segments.map(hopW);
+  const pathW = 3 + 28 + (b.segments.length ? 9 + segW.reduce((x, y) => x + y, 0) + 10 * (b.segments.length - 1) : 0) + 3;
+  const f = b.activeFlow ?? (b.flows.length === 1 ? b.flows[0] : undefined);
+  const flowLabel = f ? f.label : "Flows";
+  const flowW = b.flows.length ? 11 + 14 + 7 + measure(flowLabel, BAR.font, f && b.activeFlow ? "600" : "400") + 11 : 0;
+  const total = pathW + (flowW ? 8 + flowW : 0);
+  let x = (W - total) / 2;
+  const hops = new Map<string, Pt>(), rows = new Map<string, Pt>();
+  const out: string[] = [];
+  const pill = (px: number, w: number) =>
+    `<rect x="${px.toFixed(1)}" y="${BAR.top}" width="${w.toFixed(1)}" height="${BAR.h}" rx="9" ` +
+    `fill="${T.surface}" stroke="${T.border}" stroke-width="1"/>`;
+  out.push(pill(x, pathW));
+  // home
+  const home = { x: x + 3 + 14, y: mid };
+  if (b.atHome) out.push(`<rect x="${(x + 3).toFixed(1)}" y="${BAR.top + 3}" width="28" height="28" rx="6" fill="${T.surfaceAlt}"/>`);
+  out.push(icon(HOUSE, home.x, home.y, 15, b.atHome ? T.accent : T.muted));
+  x += 3 + 28;
+  let menu = "";
+  if (b.segments.length) {
+    out.push(`<rect x="${(x + 4).toFixed(1)}" y="${mid - 8}" width="1" height="16" fill="${T.border}"/>`);
+    x += 9;
+    b.segments.forEach((s, i) => {
+      const w = segW[i];
+      const open = st.open === s.key && s.items.length > 1;
+      if (open) out.push(`<rect x="${x.toFixed(1)}" y="${BAR.top + 3}" width="${w.toFixed(1)}" height="28" rx="6" fill="${T.surfaceAlt}"/>`);
+      const color = s.state === "current" || open ? T.ink : T.muted;
+      out.push(text(x + 10, base, s.label, BAR.font, weight(s.state), color));
+      if (s.items.length > 1) out.push(icon(CARET, x + w - 8 - 6.5, mid, 13, T.muted));
+      hops.set(s.key, { x: x + w / 2, y: mid });
+      if (open) {
+        // the hop's menu: one row per view beside it, the one you are on ticked
+        const mx = x, my = BAR.top + BAR.h + 6, rowH = 32, mw = 256, mh = s.items.length * rowH + 8;
+        menu +=
+          `<rect x="${mx}" y="${my + 6}" width="${mw}" height="${mh}" rx="12" fill="#000" opacity="0.07"/>` +
+          `<rect x="${mx}" y="${my}" width="${mw}" height="${mh}" rx="11" fill="${T.surface}" stroke="${T.border}" stroke-width="1"/>`;
+        s.items.forEach((it, r) => {
+          const ry = my + 4 + r * rowH;
+          if (it.active) menu += `<rect x="${mx + 4}" y="${ry}" width="${mw - 8}" height="${rowH}" rx="7" fill="${T.surfaceAlt}"/>`;
+          menu += text(mx + 14, ry + rowH / 2 + 13 * 0.36, it.label, 13, it.active ? "600" : "400", T.ink);
+          if (it.active) menu += `<path d="M ${mx + mw - 30} ${ry + 16} l 3 3 l 6 -7" fill="none" stroke="${T.accent}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>`;
+          rows.set(it.view, { x: mx + 60, y: ry + rowH / 2 });
+        });
+      }
+      x += w;
+      if (i < b.segments.length - 1) {
+        out.push(text(x + 5, base, "/", 13, "400", T.border, "middle"));
+        x += 10;
+      }
+    });
+  }
+  x += 3;
+  if (flowW) {
+    x += 8;
+    out.push(pill(x, flowW));
+    out.push(icon(FLOW, x + 11 + 7, mid, 14, b.activeFlow ? T.accent : T.muted));
+    out.push(text(x + 11 + 14 + 7, base, flowLabel, BAR.font, b.activeFlow ? "600" : "400", b.activeFlow ? T.ink : T.muted));
+  }
+  return { svg: out.join("") + menu, home, hops, rows };
+}
 
 /** A pointer, drawn dark on light with a thin light outline so it stays legible
  *  over icons and edges alike. Origin is the tip. */
@@ -267,16 +306,14 @@ const ripple = (x: number, y: number, t: number) => {
   );
 };
 
-const frame = (body: string, crumbs: string[]) =>
+/** Canvas, then the boards, then the bar — it floats over a dive exactly as it
+ *  does over the app's stage — then whatever rides on top of everything: the
+ *  pointer and its ripple, which have to land ON the bar when they press it. */
+const frame = (body: string, st: BarState, overlay = "") =>
   `<svg xmlns="http://www.w3.org/2000/svg" width="${BIG.w}" height="${BIG.h}" ` +
   `viewBox="${-M.x} ${-M.y} ${BIG.w} ${BIG.h}">` +
   `<rect x="${-M.x}" y="${-M.y}" width="${BIG.w}" height="${BIG.h}" fill="${T.canvas}"/>` +
-  // the active chip is wherever the trail currently ends, flipping at each
-  // transition's midpoint. The toolbar draws BEFORE the body: the stage never
-  // reaches the bottom strip so the order is invisible for the boards, but
-  // the pointer rides inside `body` and has to land ON the chips, not under
-  // them — the first cut had it sliding beneath the bar it was clicking.
-  `${toolbar(crumbs[crumbs.length - 1])}${body}</svg>`;
+  `${body}${bar(st).svg}${overlay}</svg>`;
 
 const build = async (theme: string) => {
   T = (themes as Record<string, typeof themes.light>)[theme];
@@ -286,17 +323,9 @@ const build = async (theme: string) => {
   rmSync(tmp, { recursive: true, force: true });
   mkdirSync(tmp, { recursive: true });
 
-  // the band is only as tall as the toolbar needs — anything more reads as a
-  // hole between the diagram and the chips. The bar's top edge is where
-  // toolbar() puts it: STRIP.y - 8 - CHIP_H / 2 - 3.
-  FOOT = H - (STRIP.y - 8 - CHIP_H / 2 - 3) + FOOT_GAP;
-  STAGE_H = H - FOOT;
-  // every declared view, in declaration order — what the SPA's picker shows
-  const declared = buildModel(readSource()).model.views.filter((v: any) => !v.auto).map((v: any) => v.name);
-  toolbarLayout(declared);
-
+  NAV = viewIndex(readSource());
   const land = await view("landscape", theme);
-  const V = { x: W / 2, y: STAGE_H / 2 };
+  const V = { x: W / 2, y: STAGE_TOP + STAGE_H / 2 };
 
   /** Everything a dive into one system needs: its view, the card it is
    *  anchored on in canvas coordinates, and the scale/offset that carries one
@@ -350,39 +379,39 @@ const build = async (theme: string) => {
     return frame(
       vis(leaving, lTag, about(into ? A : V, outD, outK), outA) +
         vis(arriving, aTag, about(into ? V : A, inD, inK), inA),
-      // the trail flips at the midpoint, where the arriving altitude takes over
-      into === e > 0.5 ? ["landscape", g.name] : ["landscape"],
+      // the bar flips at the midpoint, where the arriving altitude takes over
+      { view: into === e > 0.5 ? g.name : "landscape" },
     );
   };
 
-  const still = (a: Art, tag: string, crumbs: string[], overlay = "") =>
-    frame(board(a, tag, "translate(0 0)", 1) + overlay, crumbs);
+  const still = (a: Art, tag: string, st: BarState, overlay = "") =>
+    frame(board(a, tag, "translate(0 0)", 1), st, overlay);
 
-  // Where the pointer goes. Clicking the card is how you descend; clicking the
-  // `landscape` chip in the toolbar is how you come back — the same two
-  // affordances the app has, so the GIF teaches the interaction rather than
-  // just showing the motion.
+  // Where the pointer goes. Clicking the card is how you descend; the home
+  // button is how you come back — it moves with the bar, which is centred and
+  // changes width with every view, so it is looked up per state. The bar is
+  // otherwise only watched, never pressed, except to open the full view.
   const cardPoint = (g: Target) => ({ x: g.A.x + 6, y: g.A.y - 4 });
-  const LAND_CHIP = chipPoint("landscape");
-  const START = { x: W - 150, y: STAGE_H - 70 };
+  const homeOf = (view: string) => bar({ view }).home;
+  const START = { x: W - 150, y: STAGE_TOP + STAGE_H - 70 };
 
   /** Pointer travelling from `a` to `b` across `n` frames, clicking at the end:
    *  the ring starts on the frame the press lands, and the arrow dips with it. */
   const approach = (
-    art: Art, tag: string, crumbs: string[],
+    art: Art, tag: string, st: BarState,
     from: { x: number; y: number }, to: { x: number; y: number },
     idle: number, travel: number, dwell: number,
   ) => {
     const out: string[] = [];
-    for (let i = 0; i < idle; i++) out.push(still(art, tag, crumbs));
+    for (let i = 0; i < idle; i++) out.push(still(art, tag, st));
     for (let i = 0; i < travel; i++) {
       const e = ease((i + 1) / travel);
-      out.push(still(art, tag, crumbs,
+      out.push(still(art, tag, st,
         cursor(lerp(from.x, to.x, e), lerp(from.y, to.y, e), 1, false)));
     }
     for (let i = 0; i < dwell; i++) {
       const t = i / dwell;
-      out.push(still(art, tag, crumbs, ripple(to.x, to.y, t) + cursor(to.x, to.y, 1, i < 2)));
+      out.push(still(art, tag, st, ripple(to.x, to.y, t) + cursor(to.x, to.y, 1, i < 2)));
     }
     return out;
   };
@@ -395,14 +424,14 @@ const build = async (theme: string) => {
    *  Deliberately not a dive; there is no card for one to anchor on. */
   const cut = (
     fromArt: Art, fromTag: string, toArt: Art, toTag: string,
-    fromCrumbs: string[], toCrumbs: string[], n: number,
+    fromSt: BarState, toSt: BarState, n: number,
   ) => {
     for (let i = 1; i <= n; i++) {
       const e = ease(i / n);
       frames.push(frame(
         (1 - e > 0.005 ? board(fromArt, fromTag, "translate(0 0)", 1 - e) : "") +
           (e > 0.005 ? board(toArt, toTag, "translate(0 0)", e) : ""),
-        e > 0.5 ? toCrumbs : fromCrumbs,
+        e > 0.5 ? toSt : fromSt,
       ));
     }
   };
@@ -413,13 +442,14 @@ const build = async (theme: string) => {
   // edge is on screen no two frames are identical, so the encoder cannot
   // collapse a dwell into one.
   // One round trip: reach for a card, dive, read the internals, climb back out
-  // on the breadcrumb. The pointer starts wherever it was left, so the second
+  // on the home button. The pointer starts wherever it was left, so the second
   // trip continues the first rather than teleporting.
   let from = START;
   targets.forEach((g, i) => {
     const CARD = cardPoint(g);
+    const HOME = homeOf(g.name);
     // the first landscape needs reading time; by the second the viewer knows it
-    frames.push(...approach(land, "a", ["landscape"], from, CARD, i === 0 ? 10 : 6, 12, 6));
+    frames.push(...approach(land, "a", { view: "landscape" }, from, CARD, i === 0 ? 10 : 6, 12, 6));
     // the dive carries the pointer for a moment, then lets it go
     for (let j = 1; j <= 11; j++) {
       const t = j / 12;
@@ -427,29 +457,34 @@ const build = async (theme: string) => {
         dive(t, true, g).replace("</svg>", `${cursor(CARD.x, CARD.y, Math.max(0, 1 - t * 2.2), false)}</svg>`),
       );
     }
-    // read the detail, then reach for the breadcrumb to come back up
-    frames.push(...approach(g.art, "b", ["landscape", g.name], CARD, LAND_CHIP, 12, 12, 6));
+    // read the detail, then reach for home to come back up
+    frames.push(...approach(g.art, "b", { view: g.name }, CARD, HOME, 12, 12, 6));
     for (let j = 1; j <= 11; j++) {
       const t = j / 12;
       frames.push(
-        dive(t, false, g).replace("</svg>", `${cursor(LAND_CHIP.x, LAND_CHIP.y, Math.max(0, 1 - t * 2.2), false)}</svg>`),
+        dive(t, false, g).replace("</svg>", `${cursor(HOME.x, HOME.y, Math.max(0, 1 - t * 2.2), false)}</svg>`),
       );
     }
-    from = LAND_CHIP;
+    from = HOME;
   });
 
   // Act three: everything at once. `expand *` opens all four systems on one
   // page — the view the two dives have been trading detail for altitude to
-  // avoid needing. The pointer reaches it the way the app does: the view
-  // picker. A lateral cut, not a dive — siblings have no card to anchor on —
-  // and clicking `landscape` in the same toolbar closes the loop.
+  // avoid needing. It sits beside the landscape at the top of the model, so the
+  // pointer reaches it the way the app does: the top hop's menu. A lateral cut,
+  // not a dive — siblings have no card to anchor on — and home closes the loop.
   const full = await view("full", theme);
-  frames.push(...approach(land, "a", ["landscape"], from, chipPoint("full"), 4, 12, 6));
-  cut(land, "a", full, "c", ["landscape"], ["full"], 6);
-  hold(still(full, "c", ["full"]), 30);
-  frames.push(...approach(full, "c", ["full"], chipPoint("full"), chipPoint("landscape"), 0, 10, 6));
-  cut(full, "c", land, "a", ["full"], ["landscape"], 6);
-  hold(still(land, "a", ["landscape"]), 10);
+  const TOP = bar({ view: "landscape" }).hops.get("")!;
+  const menuOpen: BarState = { view: "landscape", open: "" };
+  const FULL_ROW = bar(menuOpen).rows.get("full")!;
+  frames.push(...approach(land, "a", { view: "landscape" }, from, TOP, 4, 12, 6));
+  frames.push(...approach(land, "a", menuOpen, TOP, FULL_ROW, 4, 10, 6));
+  cut(land, "a", full, "c", menuOpen, { view: "full" }, 6);
+  hold(still(full, "c", { view: "full" }), 30);
+  const FULL_HOME = homeOf("full");
+  frames.push(...approach(full, "c", { view: "full" }, FULL_ROW, FULL_HOME, 0, 10, 6));
+  cut(full, "c", land, "a", { view: "full" }, { view: "landscape" }, 6);
+  hold(still(land, "a", { view: "landscape" }), 10);
 
   // Phase is stamped here rather than in the timeline: held frames push the
   // same string N times, and only the output index knows how far the clip has
