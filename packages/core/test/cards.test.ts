@@ -126,17 +126,49 @@ describe("stacked sheets", () => {
     expect(s.slice(0, s.indexOf(`data-path="s"`))).toContain(themes.light.sheetBorder);
   });
 
-  it("are two, offset back and down, and never on a leaf or a context card", async () => {
+  it("are two, peeking out below, each narrower than the one in front", async () => {
     const s = await svg();
-    // `sheetFill` is also the gradient's lower stop and the shelf bed, so the
-    // stroke is what identifies a sheet
-    const sheets = [...s.matchAll(
-      new RegExp(`<rect x="(\\d+)" y="(\\d+)"[^>]*stroke="${themes.light.sheetBorder}"`, "g"),
-    )];
-    expect(sheets.length).toBe(2);
-    const [near, far] = sheets.map((m) => [+m[1], +m[2]]).sort((a, b) => a[0] - b[0]);
-    expect(far[0] - near[0]).toBe(4);
-    expect(far[1] - near[1]).toBe(4);
+    const outlines = [...s.matchAll(new RegExp(
+      `<path d="([^"]*)" fill="none" stroke="${themes.light.sheetBorder}"`, "g",
+    ))].map((m) => m[1]);
+    const card = /<rect x="(\d+)" y="(\d+)" width="(\d+)" height="(\d+)"/.exec(group(s, "s"))!;
+    const [cx, cy, cw, ch] = [+card[1], +card[2], +card[3], +card[4]];
+    const top = cy + ch, right = cx + cw;
+    // Only the part that peeks out is drawn, from the card's bottom edge down.
+    // Back sheet first, so the near one overlaps it: 12 down and 24 in from
+    // each side, deeper than the corner radius, so its sides run straight down
+    // before turning the corner.
+    expect(outlines[0]).toBe(
+      `M${cx + 24} ${top} V${top + 4} A8 8 0 0 0 ${cx + 32} ${top + 12} ` +
+      `H${right - 32} A8 8 0 0 0 ${right - 24} ${top + 4} V${top}`);
+    // the near sheet, 6 down and 12 in, is shallower than the radius: two
+    // partial arcs meeting the card's edge 0.25 in from the sheet's sides
+    expect(outlines[1]).toBe(
+      `M${cx + 12.25} ${top} A8 8 0 0 0 ${cx + 20} ${top + 6} ` +
+      `H${right - 20} A8 8 0 0 0 ${right - 12.25} ${top}`);
+  });
+
+  it("draw nothing under the card, so a dimmed card has no ghost behind it", async () => {
+    const s = await svg();
+    const card = /<rect x="(\d+)" y="(\d+)" width="(\d+)" height="(\d+)"/.exec(group(s, "s"))!;
+    const bottom = +card[2] + +card[4];
+    const before = s.slice(0, s.indexOf(`data-path="s"`));
+    // every sheet path — two fills, two outlines — keeps to the card's bottom
+    // edge and below; nothing sits under the card to show through when it is dimmed
+    const t = themes.light;
+    const paths = [...before.matchAll(
+      new RegExp(`<path d="([^"]*)" fill="(?:${t.sheetFill}|${t.sheetFillNear}|none)"[^>]*(?:filter|stroke="${t.sheetBorder}")`, "g"),
+    )].map((m) => m[1]);
+    expect(paths.length).toBe(4);
+    for (const d of paths) {
+      const ys = [...d.matchAll(/(?:M|A8 8 0 0 0 )[\d.]+ ([\d.]+)|V([\d.]+)/g)].map((m) => +(m[1] ?? m[2]));
+      expect(ys.length).toBeGreaterThan(0);
+      for (const y of ys) expect(y).toBeGreaterThanOrEqual(bottom);
+    }
+  });
+
+  it("are never on a leaf", async () => {
+    const s = await svg();
     // a leaf has no inside, so it gets none of the affordances that imply one
     expect(group(s, "t")).not.toContain(themes.light.sheetBorder);
   });

@@ -52,9 +52,13 @@ export interface Theme {
    *  The avatar disc stays `plate`, a lighter coin on the darker tile. */
   actorHi: string;
   actorLo: string;
-  /** The stacked sheets behind a container — "there is more inside". Quieter
-   *  than the card's own border and fill: a hint, not a stack of real cards. */
+  /** The stacked sheets peeking out from under a container — "there is more
+   *  inside". Solid, and a step darker per sheet as they recede: `sheetFillNear`
+   *  is the one just behind the card, `sheetFill` the one at the back.
+   *  `sheetBorder` is its own role rather than `border`, so the stack's edge
+   *  can be tuned apart from the card's. */
   sheetFill: string;
+  sheetFillNear: string;
   sheetBorder: string;
   /** Dimmer than `muted`: a note's glyph, the title block's date — present,
    *  but never the thing read first. */
@@ -139,6 +143,7 @@ export const light: Theme = {
   faint: "#6A6A66",
   dim: "#85857F",
   sheetFill: "#E9E9E6",
+  sheetFillNear: "#F3F3F1",
   sheetBorder: "#BDBDB8",
   shadow: "rgba(0,0,0,0.12)",
 };
@@ -175,7 +180,8 @@ export const dark: Theme = {
   actorLo: "#26262A",
   faint: "#7A796F",
   dim: "#6E6D67",
-  sheetFill: "#1D1D20",
+  sheetFill: "#1B1B1E",
+  sheetFillNear: "#202023",
   sheetBorder: "#33333A",
   shadow: "rgba(0,0,0,0.5)",
 };

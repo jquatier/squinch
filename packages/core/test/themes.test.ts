@@ -8,7 +8,7 @@ const ROLES: (keyof Theme)[] = [
   "canvas", "surface", "border", "ink", "muted", "edge", "asyncEdge",
   "plateText", "accent", "beadText", "warnTint", "surfaceAlt",
   "surfaceHi", "surfaceLo", "shelfLine", "plate", "actorHi", "actorLo",
-  "sheetFill", "sheetBorder", "faint", "dim",
+  "sheetFill", "sheetFillNear", "sheetBorder", "faint", "dim",
   "hueRed", "hueAmber", "hueGreen", "hueTeal", "hueBlue", "hueViolet", "huePink", "hueGray",
 ];
 const HUE_ROLES = ROLES.filter((r) => String(r).startsWith("hue"));

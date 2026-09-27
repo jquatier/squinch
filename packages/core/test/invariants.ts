@@ -108,16 +108,18 @@ export function checkLayout(p: Positioned, ctx: Ctx = {}): string[] {
         bad.push(`nodes ${nodes[i].path} and ${nodes[j].path} overlap`);
 
   // ── the stacked sheets have room to land ────────────────────────────────
-  // A container's sheets are drawn from its node rect, offset SHEET_BLEED
-  // right and down, rather than sized into it — inflating the node would put
-  // ELK's ports on the inflated face and every edge would stop short of the
-  // card it points at (layout.ts). That trade is only safe while the bleed
-  // lands in empty space, which the spacing constants guarantee: node spacing
-  // 32, frame padding 16, zone padding 20, root padding 32, all wider than 8.
-  // This asserts the guarantee instead of trusting it, so a future spacing
-  // change that breaks it fails here rather than shipping overlapped sheets.
-  const SHEET = 8;
-  const sheetBand = (n: PNode) => ({ x: n.x, y: n.y, w: n.w + SHEET, h: n.h + SHEET });
+  // A container's sheets are drawn from its node rect, peeking SHEET_BLEED
+  // below it and inset at the sides, rather than sized into it — inflating the
+  // node would put ELK's ports on the inflated face and every edge would stop
+  // short of the card it points at (layout.ts). That trade is only safe while
+  // the bleed lands in empty space, which the spacing constants guarantee:
+  // node spacing 32, frame padding 16, zone padding 20, root padding 32, all
+  // wider than 12. This asserts the guarantee instead of trusting it, so a
+  // future spacing change that breaks it fails here rather than shipping
+  // overlapped sheets. The band is the strip the near sheet shows under the
+  // card, inset as it is — the back sheet is narrower still.
+  const SHEET = 12;
+  const sheetBand = (n: PNode) => ({ x: n.x + SHEET, y: n.y + n.h, w: n.w - 2 * SHEET, h: SHEET });
   for (const n of nodes) {
     if (n.kind !== "card") continue;
     const band = sheetBand(n);
@@ -129,6 +131,15 @@ export function checkLayout(p: Positioned, ctx: Ctx = {}): string[] {
       // border is a collision
       if (f.path !== n.frame && overlaps(band, f) && !contains(f, band))
         bad.push(`sheets behind ${n.path} cross frame ${f.path}`);
+    // and the label on a wire leaving the card: ELK spaces it from the sheets
+    // only because the card carries a sheet-deep node label (layout.ts,
+    // leafChild) — every such pill in the corpus sat inside the sheets before
+    for (const e of p.edges)
+      if (e.label && e.labelRect) {
+        const r = e.labelRect;
+        const pill = { x: r.x, y: r.y + Math.round((r.h - 18) / 2), w: r.w, h: 18 };
+        if (overlaps(band, pill)) bad.push(`sheets behind ${n.path} reach the label on ${e.id}`);
+      }
   }
 
   // ── containment ─────────────────────────────────────────────────────────

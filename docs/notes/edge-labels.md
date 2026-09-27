@@ -78,6 +78,29 @@ and it improves diagrams the allowance never touched: the `×3` aggregate in
 `21-logos` was stranded in open space below the diagram and now sits directly
 under the node its edge leaves, 30px of canvas shorter.
 
+## Labels under a card's sheets (2026-09)
+
+When the stacked sheets moved to peeking 12px straight below a card, every
+label on a wire leaving a card's bottom landed inside them — all 32 in the
+corpus, each exactly `LABEL_GAP` (10) under the card edge, because ELK spaces
+the inline label from the node and the sheets are not part of the node. (At
+the old 8px bleed they cleared by 2, which is why nobody had noticed.)
+
+The fix is reservation, as everywhere else in this note: the card carries an
+invisible node label, `SHEET_BLEED` tall, placed `OUTSIDE V_BOTTOM`, and every
+option bag sets `elk.spacing.labelNode` to 0 so the room is exactly 12. ELK
+counts node labels when it spaces the next layer, so the wire's label — or the
+next node — lands `LABEL_GAP` below the sheets. The node, and so every port,
+stays the card's own rect.
+
+Measured negatives, elkjs 0.12, so nobody tries them again: `elk.margins` set
+on the node is discarded (ELK recomputes margins from labels and ports);
+`elk.spacing.individual` with `nodeNodeBetweenLayers` or
+`edgeNodeBetweenLayers` does not move the label; and `elk.spacing.labelNode`
+only takes effect on the graph, not on the node or the label. Inflating the
+node was never on the table — ports would move to the inflated face. The
+invariant sweep now fails if a label pill overlaps a card's sheet strip.
+
 ## Flow badges (2026-08)
 
 A `show flow` view draws a numbered badge on each step. Those badges were the

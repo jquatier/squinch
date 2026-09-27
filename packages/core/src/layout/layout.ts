@@ -32,9 +32,10 @@ export const ROW_H = 32;
  *  card keeps it at this height and grows below it, so the two altitudes of one
  *  card line up head to head in a rank. */
 export const CARD_HEAD_H = 66;
-/** How far the stacked sheets bleed past a container, right and below. Not
- *  added to the node's size on purpose — see the comment at `canvasExtent`. */
-export const SHEET_BLEED = 8;
+/** How far the stacked sheets bleed below a container (they are inset at the
+ *  sides, so nothing bleeds right). Not added to the node's size on purpose —
+ *  see the comment at `canvasExtent`. */
+export const SHEET_BLEED = 12;
 const PLATE = 40;
 const PAD = 12;
 /** The label gap, B. In a view that carries ELK labels the between-layers
@@ -1079,6 +1080,18 @@ export async function layoutView(
         ...(gutter ? { "elk.spacing.individual": `elk.spacing.nodeNode:${gutter}` } : {}),
         ...interiorSlot(p),
       },
+      // A card's stacked sheets peek SHEET_BLEED out of its bottom, and ELK
+      // must space the next thing down — a node, or the inline label on the
+      // wire leaving the card — from the sheets, not the card. The node (and
+      // so every port) stays the card's own rect; the room is an invisible
+      // node label hung outside its bottom edge, which is how ELK learns a
+      // node's margins. `elk.margins` itself is recomputed by ELK from labels
+      // and ports and a value set on it is discarded (measured, elkjs 0.12).
+      // Without this every label under a card sat LABEL_GAP below the card
+      // edge, inside the sheets — all 32 such labels in the corpus.
+      ...(n.kind === "card"
+        ? { labels: [{ text: " ", width: 1, height: SHEET_BLEED, layoutOptions: { "elk.nodeLabels.placement": "OUTSIDE V_BOTTOM H_CENTER" } }] }
+        : {}),
     };
   };
   // The in-layer lever inside a compound, below its entry layer. Model order
@@ -1253,6 +1266,9 @@ export async function layoutView(
       // bag for the same reason the edge spacing is: ELK does not inherit
       "elk.edgeLabels.inline": "true",
       "elk.spacing.edgeLabel": String(LABEL_GAP),
+      // the sheet reservation on a card (leafChild) is a node label; with
+      // ELK's default 5 between it and its node the room would be 17, not 12
+      "elk.spacing.labelNode": "0",
           },
           children: framedChildren(p),
         };
@@ -1350,6 +1366,7 @@ export async function layoutView(
       // bag for the same reason the edge spacing is: ELK does not inherit
       "elk.edgeLabels.inline": "true",
       "elk.spacing.edgeLabel": String(LABEL_GAP),
+      "elk.spacing.labelNode": "0", // see entityElk: the card sheet reservation
     },
     children: [
       ...zones.filter((c) => zoneParent.get(c.id) === z).map(zoneElk),
@@ -1399,6 +1416,9 @@ export async function layoutView(
     // bag for the same reason the edge spacing is: ELK does not inherit
     "elk.edgeLabels.inline": "true",
     "elk.spacing.edgeLabel": String(LABEL_GAP),
+    // the card sheet reservation is a node label (leafChild): 0 between it
+    // and its card, so the room is exactly SHEET_BLEED
+    "elk.spacing.labelNode": "0",
     "elk.spacing.edgeEdge": "16",
     // spiked: MEDIAN_LAYER puts the label mid-dogleg, closest to the old
     // nine-fraction midpoint aesthetic (TAIL hugs the source, HEAD the sink)
@@ -2563,15 +2583,17 @@ export async function layoutView(
     }
   }
 
-  // Stacked sheets bleed SHEET_BLEED past a container's right and bottom
-  // edges, and they are drawn from the node rect rather than sized into it:
-  // inflating the node would put ELK's ports on the inflated face, so every
-  // edge would stop 8px short of the card it points at. The bleed lands in
+  // Stacked sheets bleed SHEET_BLEED below a container (inset at the sides,
+  // so never past its right edge), and they are drawn from the node rect
+  // rather than sized into it: inflating the node would put ELK's ports on the
+  // inflated face, so every edge would stop short of the card it points
+  // at. The bleed lands in
   // gaps that are wider than it everywhere by construction (node spacing 32,
   // frame padding 16, zone padding 20, root padding 32) — the one place it
-  // has no gap to land in is the canvas edge, which is what these two lines
-  // fix. `checkLayout` asserts the rest of that claim over the corpus.
-  const bleed = (n: PNode) => (n.kind === "card" || n.kind === "context-card" ? SHEET_BLEED : 0);
+  // has no gap to land in is the canvas's bottom edge, which is what the
+  // height line fixes. `checkLayout` asserts the rest of that claim over the
+  // corpus.
+  const bleed = (n: PNode) => (n.kind === "card" ? SHEET_BLEED : 0);
   const height = Math.max(
     q(out.height),
     ...pEdges.flatMap((e) => e.points.map((p) => p.y + 32)),
@@ -2583,7 +2605,7 @@ export async function layoutView(
   const width = Math.max(
     q(out.width),
     ...pEdges.flatMap((e) => e.points.map((p) => p.x + 32)),
-    ...nodes.map((n) => n.x + n.w + bleed(n) + 32),
+    ...nodes.map((n) => n.x + n.w + 32),
   );
 
   // footer band + pill-extended height, exactly as the renderer computed them

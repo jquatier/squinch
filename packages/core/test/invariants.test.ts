@@ -110,13 +110,22 @@ describe("the invariants themselves", () => {
   });
 
   it("catches sheets reaching a neighbour, and leaves a leaf's gap alone", () => {
-    const card = (path: string, x: number) =>
-      ({ ...node(path, x, 0, 200, 96), kind: "card" }) as any;
-    // 8px of bleed with only 6px of gap: the back sheet lands on the neighbour
-    expect(checkLayout(base({ nodes: [card("a", 0), card("b", 206)] })).join())
+    const card = (path: string, x: number, y = 0) =>
+      ({ ...node(path, x, y, 200, 96), kind: "card" }) as any;
+    // 12px of bleed below with only 6px of gap: the sheets land on the neighbour
+    expect(checkLayout(base({ nodes: [card("a", 0), card("b", 0, 102)] })).join())
       .toContain("sheets behind a reach b");
     // the same pair at the spacing the layout actually uses is fine
-    expect(checkLayout(base({ nodes: [card("a", 0), card("b", 232)] }))).toEqual([]);
+    expect(checkLayout(base({ nodes: [card("a", 0), card("b", 0, 128)] }))).toEqual([]);
+    // the sheets are inset at the sides and never bleed right, so a tight
+    // neighbour beside the card is left alone
+    expect(checkLayout(base({ nodes: [card("a", 0), card("b", 206)] }))).toEqual([]);
+    // a label pill LABEL_GAP under the card lands in the sheets; one spaced
+    // from the sheets' base is clear
+    const pill = (y: number) => ({ id: "e", from: "a", to: "x", label: "REST", points: [{ x: 100, y: 96 }, { x: 100, y: 200 }], labelRect: { x: 80, y, w: 40, h: 18 } }) as any;
+    expect(checkLayout(base({ nodes: [card("a", 0)], edges: [pill(106)] })).join())
+      .toContain("sheets behind a reach the label on e");
+    expect(checkLayout(base({ nodes: [card("a", 0)], edges: [pill(118)] }))).toEqual([]);
     // a leaf has no sheets, so the same tight gap is legal for one
     expect(checkLayout(base({ nodes: [node("a", 0, 0), node("b", 126, 0)] }))).toEqual([]);
   });

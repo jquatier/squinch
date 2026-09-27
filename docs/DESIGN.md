@@ -139,14 +139,21 @@ it gets none of the marks that imply one.
   shelf make `192`, exactly twice the small card. Wires
   land on the card, never on a row — the rows are a callout of what is inside,
   not a claim about which part a wire reaches (docs/notes/preview-card.md).
-- **Stacked sheets**: two outline rects behind every container, offset `4` and
-  `8` back and down at opacity .8 and .5. "There is more inside", said by the
-  shape before anyone clicks. They bleed past the card rather than being sized
-  into it — inflating the node would put ELK's ports on the inflated face and
-  every edge would stop short of the card it points at — so a corpus invariant
-  asserts the bleed lands in empty space (`test/invariants.ts`). They are
-  emitted *outside* the node's own group, because the playground styles the
-  group's first rect on hover and measures its bounding box for the dive.
+- **Stacked sheets**: two solid sheets peeking out below every container, each
+  `6` further down and `12` further in on both sides than the one in front, on
+  the same contact shadow. "There is more inside", said by the shape before
+  anyone clicks. Straight down only, so nothing bleeds right, where `direction
+  right` wires leave; and only the strip that shows is drawn, so a dimmed card
+  (translucent) has nothing under it to ghost through. They bleed past the
+  card rather than being sized into it — inflating the node would put ELK's
+  ports on the inflated face and every edge would stop short of the card it
+  points at — so the `12` below is reserved another way: an invisible node
+  label hung outside the card's bottom, which ELK counts when it spaces the
+  next layer, so a label on a wire leaving the card lands below the sheets, not
+  in them. A corpus invariant asserts the bleed lands in empty space, labels
+  included (`test/invariants.ts`). They are emitted *outside* the node's own
+  group, because the playground styles the group's first rect on hover and
+  measures its bounding box for the dive.
 - **Context** cards and leaves keep the flat surface and a dashed border: they
   are scenery, and scenery is not lit, lifted, or advertised as divable. A
   context card keeps a muted spine, so subject and scenery never read alike.

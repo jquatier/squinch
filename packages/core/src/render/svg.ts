@@ -570,8 +570,20 @@ function spine(n: PNode, rx: number, fill: string, rc: RC): string {
     `<rect x="0" y="0" width="3" height="${n.h}" fill="${fill}"/></g>`;
 }
 
-/** Two outline rects behind a container, offset back and down: "there is more
- *  inside", said by the shape, before anyone clicks.
+/** Two solid sheets peeking out from under a container: "there is more
+ *  inside", said by the shape, before anyone clicks. Each sits `6` further down
+ *  and `12` further in on both sides than the one in front, a shade darker, on
+ *  the same contact shadow — a stack of cards, where the old outlines offset
+ *  back *and* right read as a doubled border. Straight down only, so the bleed
+ *  is SHEET_BLEED below the card and nothing to its right, where `direction
+ *  right` wires leave.
+ *
+ *  Only the part that shows is drawn: the strip under the card's bottom edge,
+ *  down to the sheet's rounded base. A whole sheet would sit under the card,
+ *  and a dimmed card (`highlight`, a flow step) is translucent — the sheets
+ *  showed through it as a ghost rectangle. The corner arcs start where they
+ *  cross the card's edge, and the outline is a separate open path so no
+ *  stroke runs along that edge.
  *
  *  Emitted as siblings *outside* the node's own group on purpose. The SPA's
  *  hover rule styles the group's first rect, and the dive animation measures
@@ -579,11 +591,24 @@ function spine(n: PNode, rx: number, fill: string, rc: RC): string {
  *  hover and throw every zoom 8px off centre. */
 function sheets(n: PNode, rc: RC, dimmed: boolean): string {
   const { t } = rc;
+  const op = dimmed ? ` opacity="${DIM}"` : "";
+  const r = R_CARD, top = n.y + n.h;
   // back sheet first, so the nearer one overlaps it
-  return [{ d: 8, o: "0.5" }, { d: 4, o: "0.8" }]
-    .map(({ d, o }) =>
-      `<rect x="${n.x + d}" y="${n.y + d}" width="${n.w}" height="${n.h}" rx="${R_CARD}" ` +
-      `fill="${t.sheetFill}" stroke="${t.sheetBorder}" stroke-width="1" opacity="${dimmed ? DIM : o}"/>`)
+  return [{ d: 12, fill: t.sheetFill }, { d: 6, fill: t.sheetFillNear }]
+    .map(({ d, fill }) => {
+      const x0 = n.x + 2 * d, x1 = n.x + n.w - 2 * d, base = top + d;
+      // A strip no deeper than the radius is two partial arcs meeting the
+      // card's edge `s` in from each side; a deeper one runs straight down
+      // its sides first and then turns the full corner.
+      const s = d < r ? Math.round(Math.sqrt(r * r - (r - d) ** 2) * 100) / 100 : r;
+      const edge = d < r
+        ? `M${x0 + r - s} ${top} A${r} ${r} 0 0 0 ${x0 + r} ${base} ` +
+          `H${x1 - r} A${r} ${r} 0 0 0 ${x1 - r + s} ${top}`
+        : `M${x0} ${top} V${base - r} A${r} ${r} 0 0 0 ${x0 + r} ${base} ` +
+          `H${x1 - r} A${r} ${r} 0 0 0 ${x1} ${base - r} V${top}`;
+      return `<path d="${edge} Z" fill="${fill}" filter="url(#${rc.shadow})"${op}/>` +
+        `<path d="${edge}" fill="none" stroke="${t.sheetBorder}" stroke-width="1"${op}/>`;
+    })
     .join("");
 }
 
