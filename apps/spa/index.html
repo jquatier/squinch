@@ -10,13 +10,13 @@
     <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
     <meta name="theme-color" content="#141416" />
     <meta property="og:type" content="website" />
-    <meta property="og:site_name" content="Squinch" />
+    <meta property="og:site_name" content="squinch" />
     <meta property="og:title" content="squinch — architecture diagrams as code, for coding agents" />
     <meta property="og:description" content="A skill for coding agents that draws clean, professional architecture diagrams as code: real cloud icons, zoom into any system, SVG, PNG or HTML export." />
     <meta property="og:image" content="https://squinch.cc/og.png" />
     <meta property="og:image:width" content="1200" />
     <meta property="og:image:height" content="630" />
-    <meta property="og:image:alt" content="The Squinch mark — an S standing on three stacked isometric planes — beside the wordmark and, under it, the line “architecture diagrams as code, for coding agents”" />
+    <meta property="og:image:alt" content="The squinch mark — an S standing on three stacked isometric planes — beside the wordmark and, under it, the line “architecture diagrams as code, for coding agents”" />
     <meta property="og:url" content="https://squinch.cc/" />
     <meta name="twitter:card" content="summary_large_image" />
     <script type="application/ld+json">
@@ -26,12 +26,12 @@
           {
             "@type": "WebSite",
             "@id": "https://squinch.cc/#website",
-            "name": "Squinch",
+            "name": "squinch",
             "url": "https://squinch.cc/"
           },
           {
             "@type": "SoftwareApplication",
-            "name": "Squinch",
+            "name": "squinch",
             "description": "A skill for coding agents that draws clean, professional architecture diagrams as code: real cloud icons, zoom into any system, SVG, PNG or HTML export.",
             "applicationCategory": "DeveloperApplication",
             "applicationSubCategory": "Architecture diagrams as code",
@@ -124,13 +124,6 @@
               alt="A paragraph is typed into a prompt box describing a products API on AWS. A status line reads Thinking, then Using squinch skill, then Finalizing diagram, and the finished diagram rises underneath it, every element from the sentence drawn with its real vendor icon."
             />
           </figure>
-          <!-- The mascot signs the demo panel from its corner: a brand touch
-               that competes with nothing, since the panel is the pitch and he
-               only ever overlaps its frame. Decorative, so the alt is empty.
-               The shadow beneath him is a separate element so it can pulse on
-               landing independently of his own rise. -->
-          <span class="mascot-shadow" aria-hidden="true"></span>
-          <img class="mascot" src="/mascot.png" width="241" height="240" loading="lazy" alt="" />
         </div>
       </div>
     </div>
@@ -337,6 +330,14 @@
           <figcaption>Charlie &middot; Software Engineer</figcaption>
         </figure>
       </div>
+      <!-- The mascot stands beside the quotes, as if he said them too.
+           Decorative, so the alt is empty. The shadow beneath him is a
+           separate element so it can pulse on landing independently of his
+           own spin. -->
+      <span class="mascot-perch" aria-hidden="true">
+        <span class="mascot-shadow"></span>
+        <img class="mascot" src="/mascot.png" width="241" height="240" loading="lazy" alt="" />
+      </span>
     </section>
 
     <!-- The capability cards' lightbox: one dialog, filled by the script
@@ -392,6 +393,20 @@
           };
           figs[0].classList.remove("is-on");
           play();
+        }
+        // The mascot spins in when the quotes scroll into view rather than
+        // on load, which would play him out a screen below the fold. Held
+        // hidden until then; script-off and reduced-motion readers just see
+        // him standing there.
+        const perch = document.querySelector(".mascot-perch");
+        if (perch && "IntersectionObserver" in window) {
+          perch.classList.add("is-waiting");
+          const io = new IntersectionObserver((entries) => {
+            if (!entries.some((e) => e.isIntersecting)) return;
+            perch.classList.replace("is-waiting", "is-in");
+            io.disconnect();
+          }, { threshold: 0.6 });
+          io.observe(perch);
         }
       }
     </script>
