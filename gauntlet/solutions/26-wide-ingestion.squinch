@@ -1,18 +1,23 @@
-// Ingestion estate - wide layout for presentation
+// Wide ingestion estate
+pack aws
 
-c1 = sys/server "Collector 1"
-c2 = sys/server "Collector 2"
-c3 = sys/server "Collector 3"
-c4 = sys/server "Collector 4"
-c5 = sys/server "Collector 5"
-c6 = sys/server "Collector 6"
+// Six collectors
+c1 = aws/lambda "Collector 1"
+c2 = aws/lambda "Collector 2"
+c3 = aws/lambda "Collector 3"
+c4 = aws/lambda "Collector 4"
+c5 = aws/lambda "Collector 5"
+c6 = aws/lambda "Collector 6"
 
-normaliser = sys/cog "Normaliser"
+// Normaliser
+normaliser = aws/lambda "Normaliser"
 
-warehouse = sys/database "Warehouse" datastore
-search = sys/search "Search Index" datastore
-alerts = sys/siren "Alerting Service"
+// Targets
+warehouse = aws/redshift "Warehouse" datastore
+search = aws/opensearch "Search Index" datastore
+alerting = aws/sns "Alerting"
 
+// Connections: collectors feed normaliser
 c1 ~> normaliser
 c2 ~> normaliser
 c3 ~> normaliser
@@ -20,16 +25,16 @@ c4 ~> normaliser
 c5 ~> normaliser
 c6 ~> normaliser
 
+// Normaliser fans out to targets
 normaliser ~> warehouse
 normaliser ~> search
-normaliser ~> alerts
+normaliser ~> alerting
 
 view main {
   title "Ingestion Estate"
   layout {
     direction right
     density compact
-    rows [c1 c2 c3 c4 c5 c6] [normaliser] [warehouse alerts] [search]
-    align warehouse search
+    rows [warehouse search]
   }
 }

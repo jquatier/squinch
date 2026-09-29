@@ -1,48 +1,50 @@
-// Payments platform with PCI scope tagging
 pack aws
 
-system payments "Payments Platform" {
-  description: "Payment processing and tokenization"
+system payments "Payment Platform" {
+  description: "Payment processing and analytics"
 
-  api = aws/lambda "API Handler" {
-    description: "Payment request handler"
+  api = aws/lambda "API Handler" #pci {
     subtitle: "Lambda · Node 20"
-    tags: #pci
+    description: "Receives and validates payment requests"
   }
 
-  tokenizer = aws/lambda "Tokenizer" {
-    description: "Card tokenization service"
-    subtitle: "Lambda · Python 3.12"
-    tags: #pci
+  tokenizer = aws/lambda "Tokenizer" #pci {
+    subtitle: "Lambda · Node 20"
+    description: "Tokenizes sensitive card data"
   }
 
-  vault = aws/dynamodb "Card Vault" datastore {
-    description: "Encrypted card token storage"
-    tags: #pci
+  vault = aws/dynamodb "Card Vault" datastore #pci {
+    subtitle: "DynamoDB"
+    description: "Encrypted storage for tokenized card data"
   }
 
-  analytics = aws/lambda "Analytics" {
-    description: "Payment analytics processor"
-    subtitle: "Lambda · Python 3.12"
+  analytics = aws/lambda "Analytics Processor" {
+    subtitle: "Lambda · Python 3.11"
+    description: "Processes transaction metrics"
   }
 
-  warehouse = aws/redshift "Data Warehouse" datastore {
-    description: "Analytics and reporting"
+  warehouse = aws/redshift "Analytics Warehouse" datastore {
+    subtitle: "Redshift"
+    description: "Transaction analytics and reporting"
   }
 
-  api -> tokenizer "tokenize card"
+  // Payment flow
+  api -> tokenizer "validate payment"
   tokenizer -> vault "store token"
-  api -> analytics "payment event"
-  analytics -> warehouse "aggregate metrics"
+  tokenizer ~> analytics "transaction event"
+  analytics -> warehouse "load metrics"
 }
 
 view full {
-  title "Payments Platform — Full Architecture"
+  title "Payment Platform - Full Architecture"
   scope payments
+  layout {
+    rows [api] [tokenizer] [vault analytics] [warehouse]
+  }
 }
 
-view audit {
-  title "Payments Platform — PCI Audit Scope"
+view auditor {
+  title "Payment Platform - PCI Compliance Scope"
   scope payments
   only #pci
   highlight #pci

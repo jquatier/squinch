@@ -1,4 +1,3 @@
-// Classic three-tier web application
 pack aws
 
 person user "User"
@@ -7,14 +6,10 @@ alb   = aws/elastic-load-balancing "Application Load Balancer"
 app   = aws/ecs                    "Web Application" {
   subtitle: "ECS · Fargate"
 }
-cache = aws/elasticache            "Session Cache" datastore {
-  subtitle: "ElastiCache"
-}
-db    = aws/aurora                 "Database" datastore {
-  subtitle: "Aurora"
-}
+cache = aws/elasticache            "Session Cache" datastore
+db    = aws/aurora                 "Database" datastore
 
-user -> alb "HTTP requests"
+user -> alb "requests"
 alb  -> app
-app  -> cache
-app  -> db
+app  -> cache "read/write sessions"
+app  -> db    "read/write data"

@@ -1,26 +1,31 @@
+// Multi-cloud migration: On-premises to Azure
 pack azure
 pack logos
 
 // On-premises infrastructure
-pg = logos/postgres "PostgreSQL" datastore
-mq = logos/rabbitmq "RabbitMQ"
+old_db = logos/postgres "Legacy Database" datastore
+broker = logos/rabbitmq "Message Broker"
 
 // Azure infrastructure
 aks = azure/aks "AKS Cluster"
-sql = azure/sql "Azure SQL" datastore
+new_db = azure/sql "Azure SQL" datastore
 
 // Sync job
-sync = sys/workflow "Nightly Sync Job"
+sync = azure/functions "Nightly Sync"
 
 // Connections
-pg ~> sync "copy data"
-sync ~> sql "write"
+sync ~> new_db "copies data"
+old_db ~> sync "reads"
 
 // Deployment boundaries
-zone onprem "On-Premises" onprem {
-  contains pg, mq
+zone onprem "On-Premises Data Center" onprem {
+  contains old_db, broker
 }
 
-zone cloud "Azure" cloud {
-  contains aks, sql
+zone azure_cloud "Azure Cloud" cloud {
+  contains aks, new_db, sync
+}
+
+view migration {
+  title "On-Premises to Azure Migration"
 }

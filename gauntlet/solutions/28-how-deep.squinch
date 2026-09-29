@@ -1,86 +1,59 @@
-// Order Platform - architecture for new engineers
+// Order Platform Architecture
 pack aws
 
 person customer "Customer"
 
-system orders "Orders" {
-  description: "Order lifecycle and fulfillment"
-
+system orders "Orders Service" {
+  description: "Order lifecycle management"
   api = aws/api-gateway "Orders API"
-  create = aws/lambda "Create Order" {
-    description: "Validates and creates orders"
-    subtitle: "Lambda · Node 20"
+  handler = aws/lambda "Order Handler" {
+    subtitle: "Node 20"
   }
-  get = aws/lambda "Get Order" {
-    description: "Retrieves order details"
-    subtitle: "Lambda · Node 20"
-  }
-  update = aws/lambda "Update Order" {
-    description: "Modifies order status"
-    subtitle: "Lambda · Node 20"
-  }
-  db = aws/dynamodb "Orders Table" datastore {
-    description: "Primary order data"
-  }
+  db = aws/dynamodb "Orders DB" datastore
   queue = aws/sqs "Order Events"
 
-  api -> create
-  api -> get
-  api -> update
-  create -> db
-  get -> db
-  update -> db
-  create ~> queue
-  update ~> queue
-
-  layout {
-    rows [api] [create get update] [db queue]
-  }
+  api -> handler
+  handler -> db
+  handler ~> queue "order events"
 }
 
-system inventory "Inventory" {
-  description: "Stock management and allocation"
-
+system inventory "Inventory Service" {
+  description: "Stock and availability"
   api = aws/api-gateway "Inventory API"
-  check = aws/lambda "Check Stock"
-  reserve = aws/lambda "Reserve Items"
-  db = aws/dynamodb "Inventory Table" datastore
-
-  api -> check
-  api -> reserve
-  check -> db
-  reserve -> db
-
-  layout {
-    rows [api] [check reserve] [db]
+  handler = aws/lambda "Inventory Handler" {
+    subtitle: "Python 3.12"
   }
+  db = aws/dynamodb "Inventory DB" datastore
+
+  api -> handler
+  handler -> db
 }
 
-system notifications "Notifications" {
-  description: "Customer notifications"
-
-  processor = aws/lambda "Event Processor"
-  send = aws/lambda "Send Notification"
-  sns = aws/sns "SNS Topic"
-
-  processor -> send
-  send ~> sns
-
-  layout {
-    rows [processor] [send] [sns]
+system notifications "Notifications Service" {
+  description: "Customer communications"
+  processor = aws/lambda "Notification Processor" {
+    subtitle: "Node 20"
   }
+  delivery = aws/sns "SNS"
+
+  processor -> delivery
 }
 
-customer -> orders.api "places order"
-orders.queue ~> inventory.api "stock check"
-orders.queue ~> notifications.processor "order updates"
+customer -> orders.api "place order"
+orders.queue ~> inventory.api "inventory check"
+orders.queue ~> notifications.processor "order confirmation"
 
 view landscape {
-  title "Order Platform - System Landscape"
+  title "Order Platform"
   include *
-  preview orders
+  titleblock {
+    subtitle: "Platform overview"
+  }
 }
 
 view orders {
-  title "Orders Service - Internal Structure"
+  title "Orders Service Detail"
+  titleblock {
+    subtitle: "Order lifecycle management"
+  }
 }

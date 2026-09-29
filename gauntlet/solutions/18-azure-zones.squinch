@@ -1,26 +1,16 @@
-// Azure estate with network boundaries
 pack azure
 
-// Application Gateway sits in front
-appgw = azure/app-gateway "Application Gateway"
+gw  = azure/app-gateway     "Application Gateway"
+aks = azure/aks             "AKS Cluster"
+acr = azure/acr             "Container Registry"
+sql = azure/sql             "Azure SQL"
 
-// AKS cluster in private subnet
-aks = azure/aks "AKS Cluster"
-
-// Container Registry for images
-acr = azure/acr "Container Registry"
-
-// Azure SQL database
-sql = azure/sql "Azure SQL Database" datastore
-
-// Connections
-appgw -> aks
+gw -> aks "ingress traffic"
 aks -> acr "pulls images"
-aks -> sql
+aks -> sql "queries"
 
-// Network boundaries
 zone subscription "Azure Subscription" account {
-  contains appgw, aks, acr, sql
+  contains gw, aks, acr, sql
 }
 
 zone vnet "Virtual Network" network {

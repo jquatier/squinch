@@ -1,0 +1,36 @@
+pack aws
+
+system billing "Billing Service" {
+  description: "API and nightly export"
+
+  api = aws/ecs "Billing API" {
+    subtitle: "ECS Fargate"
+  }
+
+  container db "Billing DB" {
+    icon: aws/rds
+    description: "Postgres · 5 tables"
+
+    customers      = sys/table "customers" datastore
+    invoices       = sys/table "invoices" datastore
+    invoice_lines  = sys/table "invoice_lines" datastore
+    payments       = sys/table "payments" datastore
+    refunds        = sys/table "refunds" datastore
+
+    invoices      -> customers      "customer_id"
+    invoice_lines -> invoices       "invoice_id"
+    payments      -> invoices       "invoice_id"
+    refunds       -> payments       "payment_id"
+  }
+
+  export = aws/lambda "Nightly Export" {
+    description: "Reads invoices and exports to S3"
+  }
+
+  bucket = aws/s3 "Export Files" datastore
+
+  api    -> db.invoices "writes"
+  api    -> db.payments "writes"
+  export -> db.invoices "reads"
+  export -> bucket      "writes file"
+}

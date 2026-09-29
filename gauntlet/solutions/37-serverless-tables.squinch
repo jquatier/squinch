@@ -1,0 +1,34 @@
+pack aws
+
+system notifications "Notifications Service" {
+  description: "Send notifications via SES with preferences and delivery tracking"
+
+  api = aws/api-gateway "API Gateway"
+  receive = aws/lambda "Receive Handler" {
+    subtitle: "Validates send requests"
+  }
+  queue = aws/sqs "Send Queue"
+  sender = aws/lambda "Sender Worker" {
+    subtitle: "Queue processor"
+  }
+  ses = aws/ses "SES"
+
+  preferences = aws/dynamodb "Preferences" datastore {
+    subtitle: "User settings"
+  }
+  delivery_log = aws/dynamodb "Delivery Log" datastore {
+    subtitle: "Send history and status"
+  }
+
+  api -> receive
+  receive -> preferences "reads"
+  receive ~> queue "enqueues"
+  queue ~> sender
+  sender -> ses "sends"
+  sender -> delivery_log "writes"
+
+  layout {
+    rows [api] [receive] [queue] [sender ses] [preferences delivery_log]
+    place preferences left-of delivery_log
+  }
+}

@@ -1,25 +1,27 @@
 pack aws
 
-dispatcher = aws/ec2 "Dispatcher"
+dispatcher = aws/ec2 "Dispatcher" {
+  description: "Distributes frames to render workers"
+}
 
-worker01 = aws/ec2 "Worker 01"
-worker02 = aws/ec2 "Worker 02"
-worker03 = aws/ec2 "Worker 03"
-worker04 = aws/ec2 "Worker 04"
-worker05 = aws/ec2 "Worker 05"
-worker06 = aws/ec2 "Worker 06"
-worker07 = aws/ec2 "Worker 07"
-worker08 = aws/ec2 "Worker 08"
-worker09 = aws/ec2 "Worker 09"
+worker1  = aws/ec2 "Worker 1"
+worker2  = aws/ec2 "Worker 2"
+worker3  = aws/ec2 "Worker 3"
+worker4  = aws/ec2 "Worker 4"
+worker5  = aws/ec2 "Worker 5"
+worker6  = aws/ec2 "Worker 6"
+worker7  = aws/ec2 "Worker 7"
+worker8  = aws/ec2 "Worker 8"
+worker9  = aws/ec2 "Worker 9"
 worker10 = aws/ec2 "Worker 10"
 worker11 = aws/ec2 "Worker 11"
 worker12 = aws/ec2 "Worker 12"
 
-dispatcher -> worker01, worker02, worker03, worker04, worker05, worker06
-dispatcher -> worker07, worker08, worker09, worker10, worker11, worker12
+dispatcher -> worker1, worker2, worker3, worker4, worker5, worker6, worker7, worker8, worker9, worker10, worker11, worker12
 
-view farm {
+view main {
   title "Render Farm"
+  include *
   layout {
     wrap 4
   }

@@ -1,66 +1,64 @@
-// Technology stack with real product logos
 pack logos
+pack k8s
 
-person developer "Developer"
-person customer "Customer"
+person dev "Developer"
+person user "User"
 
-frontend = logos/nextdotjs "Web Frontend" {
-  subtitle: "Next.js"
-}
+system platform "Application Platform" {
+  description: "Modern web application stack"
 
-api = logos/nestjs "API Server" {
-  subtitle: "NestJS"
-}
-
-db = logos/postgres "Database" datastore {
-  subtitle: "PostgreSQL"
-}
-
-cache = logos/redis "Cache" datastore {
-  subtitle: "Redis"
-}
-
-events = logos/kafka "Event Stream" {
-  subtitle: "Kafka"
-}
-
-monitor = logos/grafana "Monitoring" {
-  subtitle: "Grafana"
-}
-
-vcs = logos/github "Source Control" external {
-  subtitle: "GitHub"
-}
-
-cluster = logos/kubernetes "Container Platform" {
-  subtitle: "Kubernetes"
-}
-
-// User interactions
-customer -> frontend "browses"
-developer -> vcs "pushes code"
-
-// Application flow
-frontend -> api "API requests"
-api -> db "queries"
-api -> cache "reads/writes"
-api ~> events "publishes events"
-
-// Deployment
-vcs ~> cluster "deploys"
-
-// Deployment relationships
-cluster -> frontend
-cluster -> api
-
-// Monitoring
-monitor -> api "scrapes metrics"
-monitor -> db "monitors"
-monitor -> cache "monitors"
-
-view stack {
-  title "Application Stack"
-  layout {
-    rows [developer] [customer] [vcs] [cluster] [frontend api monitor] [db cache events]
+  frontend = logos/nextdotjs "Frontend" {
+    subtitle: "Next.js"
   }
+
+  api = logos/nestjs "API" {
+    subtitle: "NestJS"
+  }
+
+  db = logos/postgres "Database" datastore {
+    subtitle: "PostgreSQL"
+  }
+
+  cache = logos/redis "Cache" datastore {
+    subtitle: "Redis"
+  }
+
+  events = logos/kafka "Event Bus" {
+    subtitle: "Kafka"
+  }
+
+  monitoring = logos/grafana "Monitoring" {
+    subtitle: "Grafana"
+  }
+
+  user -> frontend "browses"
+  frontend -> api "API calls"
+  api -> db "queries"
+  api -> cache "caches"
+  api ~> events "publishes events"
+  api -> monitoring "metrics"
+  frontend -> monitoring "metrics"
+  db -> monitoring "metrics"
+}
+
+system cicd "CI/CD Pipeline" {
+  description: "Deployment automation"
+
+  repo = logos/github "Repository" {
+    subtitle: "GitHub"
+  }
+
+  cluster = logos/kubernetes "Cluster" {
+    subtitle: "Kubernetes"
+  }
+
+  repo ~> cluster "deploys"
+}
+
+dev -> cicd.repo "pushes code"
+cicd.cluster -> platform "hosts"
+
+view landscape {
+  title "Application Stack"
+  include *
 }

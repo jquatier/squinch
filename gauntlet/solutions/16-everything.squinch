@@ -1,86 +1,62 @@
 // Order platform architecture
 pack aws
-pack logos
 
-// External actors and edge infrastructure
 person customer "Customer"
-storefront = aws/cloudfront "Storefront" {
-  subtitle: "CloudFront CDN"
-}
-gw = aws/api-gateway "API Gateway"
 
-// Catalog service
+storefront = aws/cloudfront "Storefront"
+
 system catalog "Catalog Service" {
   description: "Product catalog and search"
   icon: aws/lambda
+  api = aws/lambda "Catalog Handler"
+  db = aws/dynamodb "Products" datastore
 
-  cat_fn = aws/lambda "Catalog Handler" {
-    subtitle: "Lambda · Node 20"
-  }
-  cat_db = aws/dynamodb "Product Catalog" datastore
-
-  cat_fn -> cat_db
+  api -> db
 }
 
-// Orders service
 system orders "Orders Service" {
-  description: "Order processing and lifecycle"
+  description: "Order processing and management"
   icon: aws/lambda
+  api = aws/lambda "Orders Handler"
+  db = aws/dynamodb "Orders" datastore
 
-  ord_fn = aws/lambda "Orders Handler" {
-    subtitle: "Lambda · Node 20"
-  }
-  ord_db = aws/dynamodb "Orders Table" datastore
-
-  ord_fn -> ord_db
-  ord_fn ~> bus "order events"
+  api -> db
+  api ~> events "order events"
 }
 
-// Payments service
 system payments "Payments Service" {
   description: "Payment processing"
   icon: aws/lambda
   tags: #sensitive
+  api = aws/lambda "Payment Handler" #sensitive
+  db = aws/dynamodb "Transactions" datastore #sensitive
 
-  pay_fn = aws/lambda "Payments Handler" {
-    subtitle: "Lambda · Node 20"
-    tags: #sensitive
-  }
-  pay_db = aws/dynamodb "Payments Table" datastore {
-    tags: #sensitive
-  }
-
-  pay_fn -> pay_db { tags: #sensitive }
+  api -> db { tags: #sensitive }
 }
 
-// Event infrastructure and workers
-bus = aws/eventbridge "Event Bus"
-fulfill = aws/lambda "Fulfillment Worker" {
-  subtitle: "Lambda · Python 3.12"
-}
+gw = aws/api-gateway "API Gateway"
+events = aws/eventbridge "Event Bus"
+fulfilment = aws/lambda "Fulfilment Worker"
 
-// Connections
 customer -> storefront "browse"
-storefront -> gw "API requests"
-gw -> catalog.cat_fn "catalog queries"
-gw -> orders.ord_fn "order operations"
-gw -> payments.pay_fn "payment processing" { tags: #sensitive }
-bus ~> fulfill "order.created"
+storefront -> gw "API calls"
+gw -> catalog.api "catalog requests"
+gw -> orders.api "order requests"
+gw -> payments.api "payment requests" { tags: #sensitive }
+events ~> fulfilment "order events"
 
-// VPC boundary
-zone prod_vpc "VPC prod" vpc {
-  contains gw, catalog, orders, payments, bus, fulfill
+zone prod_vpc "Production VPC" vpc {
+  contains gw, catalog, orders, payments, events, fulfilment
 }
 
-// Views
 view landscape {
-  title "Order Platform - System Landscape"
+  title "Order Platform - Landscape"
   include *
   color #sensitive amber
   legend auto
 }
 
 view orders {
-  title "Orders Service - Detail View"
-  scope orders
+  title "Orders Service - Detail"
+  legend auto
 }

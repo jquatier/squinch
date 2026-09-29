@@ -1,36 +1,49 @@
-// Market data processing system
+// Market data flow diagram
+pack aws
 
+// External systems
 exchange = box "Exchange" external
 clearing = box "Clearing House" external
 
-system market "Market Data" {
-  description: "Real-time price ingestion and distribution"
-
-  feed     = sys/antenna "Feed Handler"
-  norm     = sys/cog "Normaliser"
-  pricing  = sys/gauge "Pricing Engine"
-  batch    = sys/clock "Reconciliation Batch"
-
-  feed -> norm "stream" { animate: packets }
-  norm ~> pricing "ticks" { animate: packets }
-  batch -> clearing "reconcile fills (nightly)"
-
-  layout {
-    rows [feed] [norm] [pricing batch]
-  }
+// Core components
+feed = aws/kinesis "Feed Handler" {
+  description: "Ingests and normalises price stream"
 }
 
-ui   = sys/monitor "Trading UI"
-risk = sys/shield "Risk Service"
+pricing = aws/lambda "Pricing Engine" {
+  description: "Processes ticks and serves prices"
+}
 
-exchange ~> market.feed "price stream" { animate: packets }
-market.pricing ~> ui "subscribe" { animate: packets }
-risk -> market.pricing "health poll (every few seconds)" { animate: pulse }
+ui = sys/app-window "Trading UI" {
+  description: "Real-time price display"
+}
 
-view landscape {
+risk = aws/lambda "Risk Service" {
+  description: "Market risk monitoring"
+}
+
+batch = aws/batch "Reconciliation Job" {
+  description: "Nightly fill reconciliation"
+  subtitle: "Runs overnight"
+}
+
+// Continuous data flow
+exchange ~> feed "price stream" { animate: packets }
+feed ~> pricing "ticks" { animate: fast }
+pricing ~> ui "subscribe" { animate: slow }
+
+// Polling for health
+risk -> pricing "health check" { animate: pulse }
+
+// Nightly batch job
+batch -> clearing "reconcile fills" { color: amber }
+
+view market-data {
   title "Market Data Flow"
-  expand market
   layout {
-    rows [exchange] [market risk] [ui]
+    rows [exchange] [feed] [pricing risk] [ui] [batch clearing]
+    place risk right-of pricing
+    place clearing right-of batch
   }
+  legend auto
 }

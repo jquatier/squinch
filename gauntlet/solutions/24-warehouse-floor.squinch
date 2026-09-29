@@ -3,74 +3,73 @@
 person supervisor "Shift Supervisor"
 
 system floor "Warehouse Floor" {
-  description: "Automated packing and sorting"
+  description: "Packing automation and control"
 
-  // Packing stations
-  scan1 = sys/router "Scanner 1" {
-    subtitle: "Bench A"
+  // Packing benches with barcode scanners
+  bench1 = sys/monitor "Packing Bench 1" {
+    subtitle: "Barcode scanner"
   }
-  scan2 = sys/router "Scanner 2" {
-    subtitle: "Bench B"
+  bench2 = sys/monitor "Packing Bench 2" {
+    subtitle: "Barcode scanner"
   }
-  scan3 = sys/router "Scanner 3" {
-    subtitle: "Bench C"
-  }
-
-  // Local control system
-  ctrl = sys/server "Floor Controller" {
-    description: "Coordinates packing floor automation"
-    subtitle: "Local PLC"
+  bench3 = sys/monitor "Packing Bench 3" {
+    subtitle: "Barcode scanner"
   }
 
-  // Automation equipment
-  sorter = sys/workflow "Conveyor Sorter" {
-    description: "Routes packages to shipping lanes"
-  }
-  printer = sys/printer "Label Printer" {
-    description: "Shipping labels"
+  // Local controller
+  controller = sys/server "Floor Controller" {
+    description: "Orchestrates packing and sorting"
+    subtitle: "On-premise"
   }
 
-  // Monitoring
+  // Output devices
+  sorter = sys/route "Conveyor Sorter" {
+    description: "Routes packages by destination"
+  }
+  printer = sys/printer "Label Printer"
+
+  // Status monitoring
   board = sys/monitor "Status Board" {
-    description: "Live floor status display"
+    description: "Real-time floor status display"
   }
 
-  // Scanners feed controller
-  scan1 -> ctrl
-  scan2 -> ctrl
-  scan3 -> ctrl
+  // Barcode scanners feed the controller
+  bench1 -> controller "scan events"
+  bench2 -> controller "scan events"
+  bench3 -> controller "scan events"
 
-  // Controller drives equipment
-  ctrl -> sorter
-  ctrl -> printer
+  // Controller drives automation
+  controller -> sorter "routing commands"
+  controller -> printer "print jobs"
 
-  // Controller updates status board
-  ctrl -> board
+  // Supervisor watches status
+  controller -> board "status updates"
 
   layout {
-    rows [scan1 scan2 scan3] [ctrl] [sorter printer board]
+    rows [bench1 bench2 bench3] [controller] [sorter printer board]
   }
 }
 
-// Enterprise system (off-site or back office)
-erp = sys/database "ERP System" external {
+// External ERP system
+erp = box "ERP System" external {
   description: "Enterprise resource planning"
+  subtitle: "Site network"
 }
 
-// Controller syncs to ERP periodically
-floor.ctrl ~> erp "sync batch (every 60s)"
+// Controller syncs to ERP
+floor.controller ~> erp "sync batch (every minute)"
 
-// Supervisor monitors status
-supervisor -> floor.board "watches"
+// Supervisor watches the board
+supervisor -> floor.board "monitors"
 
-zone site "Site Network" network {
+zone site_network "Site Network" network {
   contains floor, erp
 }
 
-view main {
+view warehouse {
   title "Warehouse Floor Automation"
   expand floor
-  layout {
-    rows [supervisor] [site]
+  titleblock {
+    subtitle: "Physical automation system"
   }
 }

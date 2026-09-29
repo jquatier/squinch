@@ -158,6 +158,34 @@ Rules that matter:
   — `channel`, `align`, `wrap`, `density`, `highlight`, `note`, `expand` —
   belongs to a view alone.
 
+Tables — a database is one node until the reader asks what is *in* it. Then
+write it as a `container` holding one `sys/table` per table: it still draws as
+one card where it sits, a dive opens it onto the tables, and a foreign key is
+an ordinary labelled edge. A caller points at the container (`svc -> db`) or
+at the table it touches (`svc -> db.orders`). `datastore` moves to the tables
+— on a container it is a check error — and `icon:` keeps the database's own
+mark on the card. Tables are as deep as it goes: nothing draws columns, so
+leave them out. A database nobody asked to open stays a node, and so does a
+table with no database above it. On a serverless or managed store where the
+table is itself the resource you deploy, write one node per table inside the
+service that owns it, with no container invented to hold them.
+
+```squinch
+system shop "Order Service" {
+  svc = aws/lambda "Order Handler"
+  container db "Orders DB" {
+    icon: aws/rds
+    description: "Postgres 16 · 3 tables"
+    customers = sys/table "customers" datastore
+    orders    = sys/table "orders" datastore { subtitle: "partitioned monthly" }
+    payments  = sys/table "payments" datastore
+    orders   -> customers "customer_id"   // a foreign key, child to parent
+    payments -> orders    "order_id"
+  }
+  svc -> db.orders "writes"
+}
+```
+
 Edge motion — `~>` edges animate on their own (dashes drift toward the target,
 off under `prefers-reduced-motion`). Opt out with `{ animate: false }`, or pick
 a variant: `reverse` (acks flowing back), `slow`/`fast` (cadence), `packets`

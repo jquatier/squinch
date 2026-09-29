@@ -1,21 +1,21 @@
-// Databricks Lakehouse Architecture
+// Databricks lakehouse architecture
 pack logos
 
-// External data source
-kafka = logos/kafka "Order Events" {
-  description: "Kafka topic with order data"
-}
+person analyst "Data Analyst"
 
-// Databricks components
 system lakehouse "Databricks Lakehouse" {
-  description: "Data processing and analytics platform"
-  icon: sys/database
+  description: "Event-driven analytics platform"
 
-  // Ingestion
-  autoloader = sys/stream "Auto Loader" {
+  // External data source (not Databricks)
+  kafka = logos/kafka "Kafka" external {
+    subtitle: "Order Events"
+  }
+
+  // Databricks ingestion
+  loader = sys/workflow "Auto Loader" {
     badge: logos/databricks
-    subtitle: "Databricks Auto Loader"
-    description: "Incrementally loads data from Kafka"
+    subtitle: "Databricks"
+    description: "Streaming ingestion from Kafka"
   }
 
   // Bronze layer
@@ -26,73 +26,68 @@ system lakehouse "Databricks Lakehouse" {
   }
 
   // Processing job
-  merge_job = sys/workflow "Nightly Merge Job" {
+  merge = sys/workflow "Nightly Merge Job" {
     badge: logos/databricks
     subtitle: "Databricks Workflows"
-    description: "Merges bronze data into silver"
+    description: "Aggregates bronze to silver"
   }
 
   // Silver layer
-  silver = sys/table "Silver Customers Table" datastore {
+  silver = sys/table "Customers Table" datastore {
     badge: logos/databricks
     subtitle: "Delta Lake"
-    description: "Clean, merged customer data"
+    description: "Curated customer data"
   }
 
   // Governance
   catalog = sys/catalog "Unity Catalog" {
     badge: logos/databricks
-    subtitle: "Unity Catalog"
-    description: "Data governance and access control"
+    subtitle: "Databricks"
+    description: "Data governance layer"
   }
 
-  // Analytics
+  // Query engine
   warehouse = sys/database "SQL Warehouse" {
     badge: logos/databricks
     subtitle: "Databricks SQL"
-    description: "Query engine for analysts"
   }
 
   // Vector search
-  vector_index = sys/waypoints "Vector Search Index" {
+  vector = sys/waypoints "Vector Search Index" {
     badge: logos/databricks
-    subtitle: "Vector Search"
-    description: "Embeddings for similarity search"
+    subtitle: "Databricks"
+    description: "Embeddings for ML"
   }
 
   // Model serving
   model = sys/model "Model Serving" {
     badge: logos/databricks
-    subtitle: "Model Serving"
-    description: "ML endpoint powered by vector search"
+    subtitle: "Databricks"
+    description: "Real-time inference endpoint"
   }
 
   // Data flow
-  autoloader -> bronze
-  bronze ~> merge_job "scheduled"
-  merge_job -> silver
-  catalog -> silver "governs"
-  silver -> warehouse
-  silver -> vector_index
-  vector_index -> model
+  kafka ~> loader "stream events"
+  loader ~> bronze "append raw"
+  bronze -> merge "reads"
+  merge -> silver "writes merged"
+  silver -> catalog "governed by"
+  catalog -> warehouse "metadata"
+  silver -> warehouse "query source"
+  silver -> vector "indexed"
+  vector -> model "embeddings"
 
   layout {
-    rows [autoloader] [bronze] [merge_job] [catalog] [silver] [warehouse vector_index] [model]
+    rows [kafka] [loader] [bronze] [merge] [silver] [catalog] [warehouse vector] [model]
   }
 }
 
-// Actors
-person analyst "Analyst"
-
-// External connections
-kafka ~> lakehouse.autoloader "order events"
 analyst -> lakehouse.warehouse "queries"
 
 view architecture {
   title "Databricks Lakehouse Architecture"
   expand lakehouse
   titleblock {
-    subtitle: "Data processing flow"
-    version: "2026-09"
+    subtitle: "Event-driven analytics"
   }
 }

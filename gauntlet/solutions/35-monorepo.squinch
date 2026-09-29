@@ -1,66 +1,70 @@
-// E-commerce monorepo architecture
-pack logos
+// Monorepo e-commerce platform architecture
+
 pack aws
+pack logos
 
-// Human actors
-customer = person "Customer"
-staff = person "Staff"
+// Actors
+person customer "Customer"
+person staff "Staff"
 
-// Infrastructure
-gw = sys/router "API Gateway" { subtitle: "Kong" }
+// Gateway
+gw = box "Kong Gateway" { subtitle: "API Gateway" }
 
 // Applications (top-level for landscape visibility)
-storefront = sys/app-window "Storefront" { subtitle: "Next.js" }
-admin = sys/app-window "Admin" { subtitle: "React" }
-mobile = sys/smartphone "Mobile App" { subtitle: "React Native" }
+storefront = box "Storefront" { subtitle: "Next.js" }
+admin = box "Admin Portal" { subtitle: "React" }
+mobile = box "Mobile App" { subtitle: "React Native" }
 
-// Message infrastructure
-kafka = logos/kafka "Kafka Cluster"
+// Kafka event bus
+kafka = logos/kafka "Kafka Cluster" { subtitle: "Event Bus" }
 
-// Identity domain
+// External services
+stripe = box "Stripe" external
+avalara = box "Avalara" external
+carriers = box "Carrier APIs" external
+sendgrid = box "SendGrid" external
+firebase = box "Firebase" external
+
+// Identity service
 system identity "Identity" {
-  description: "Authentication and sessions"
-  domain: "identity"
+  description: "Authentication and access control"
   icon: sys/lock
 
   accounts = sys/server "Accounts API"
   sessions = sys/server "Sessions API"
   mfa = sys/server "MFA Worker"
-  db = logos/postgres "User DB" datastore
+  db = logos/postgres "Identity DB" datastore
   cache = logos/redis "Sessions Cache" datastore
 
   accounts -> db
   sessions -> cache
   sessions -> db
   mfa -> db
-  accounts ~> kafka "user events"
+  accounts ~> kafka
 }
 
-// Catalog domain
+// Catalog service
 system catalog "Catalog" {
-  description: "Products and search"
-  domain: "catalog"
-  icon: sys/database
+  description: "Product catalog and search"
+  icon: sys/archive
 
   products = sys/server "Products API"
   media = sys/server "Media API"
   search = sys/server "Search API"
   indexer = sys/server "Indexer Worker"
-  s3 = sys/folder "Media Storage" datastore { badge: aws/s3 }
-  es = logos/elasticsearch "Search Index" datastore
+  s3 = aws/s3 "Media Storage" datastore
+  searchdb = logos/elasticsearch "Search Index" datastore
 
-  products -> s3
+  products ~> kafka
   media -> s3
-  search -> es
-  kafka ~> indexer "product events"
+  search -> searchdb
   indexer -> products
-  indexer -> es
+  indexer -> searchdb
 }
 
-// Commerce domain
+// Commerce service
 system commerce "Commerce" {
-  description: "Shopping and payments"
-  domain: "commerce"
+  description: "Cart, checkout, orders and payments"
   icon: sys/code
 
   cart = sys/server "Cart API"
@@ -68,129 +72,140 @@ system commerce "Commerce" {
   orders = sys/server "Orders API"
   payments = sys/server "Payments API"
   tax = sys/server "Tax API"
-  cart_cache = logos/redis "Cart Cache" datastore
-  orders_db = logos/postgres "Orders DB" datastore
-  payments_db = logos/postgres "Payments DB" datastore
-  stripe = box "Stripe" external
-  avalara = box "Avalara" external
+  cartcache = logos/redis "Cart Cache" datastore
+  ordersdb = logos/postgres "Orders DB" datastore
+  paymentsdb = logos/postgres "Payments DB" datastore
 
-  cart -> cart_cache
+  cart -> cartcache
   checkout -> cart
   checkout -> tax
   checkout -> payments
   checkout -> orders
-  orders -> orders_db
-  payments -> payments_db
-  payments -> stripe
-  tax -> avalara
-  orders ~> kafka "order events"
-  payments ~> kafka "payment events"
+  orders -> ordersdb
+  payments -> paymentsdb
+  orders ~> kafka
+  payments ~> kafka
+
+  layout { rows [checkout] [cart tax payments orders] [cartcache paymentsdb ordersdb] }
 }
 
-// Fulfilment domain
+// Fulfilment service
 system fulfilment "Fulfilment" {
-  description: "Warehouse and shipping"
-  domain: "fulfilment"
+  description: "Warehouse, shipping and returns"
   icon: sys/warehouse
 
   warehouse = sys/server "Warehouse API"
   shipping = sys/server "Shipping API"
   returns = sys/server "Returns API"
-  label_worker = sys/server "Label Worker"
-  warehouse_db = logos/postgres "Warehouse DB" datastore
-  returns_db = logos/postgres "Returns DB" datastore
-  carriers = box "Carrier APIs" external
+  labelworker = sys/server "Label Worker"
+  warehousedb = logos/postgres "Warehouse DB" datastore
+  returnsdb = logos/postgres "Returns DB" datastore
 
-  warehouse -> warehouse_db
-  returns -> returns_db
-  shipping -> carriers
-  kafka ~> label_worker "shipment events"
-  returns ~> kafka "return events"
+  warehouse -> warehousedb
+  shipping -> warehouse
+  returns -> returnsdb
+  returns ~> kafka
+  labelworker -> shipping
 }
 
-// Engagement domain
+// Engagement service
 system engagement "Engagement" {
   description: "Customer communications"
-  domain: "engagement"
-  icon: sys/webhook
+  icon: sys/activity
 
-  email_worker = sys/server "Email Worker"
-  push_worker = sys/server "Push Worker"
+  emailworker = sys/server "Email Worker"
+  pushworker = sys/server "Push Worker"
   campaigns = sys/server "Campaigns API"
-  campaigns_db = logos/postgres "Campaigns DB" datastore
-  sendgrid = box "SendGrid" external
-  firebase = box "Firebase" external
+  campaignsdb = logos/postgres "Campaigns DB" datastore
 
-  campaigns -> campaigns_db
-  kafka ~> email_worker "notification events"
-  kafka ~> push_worker "notification events"
-  email_worker -> sendgrid
-  push_worker -> firebase
+  emailworker -> sendgrid
+  pushworker -> firebase
+  campaigns -> campaignsdb
+
+  layout { rows [campaigns] [emailworker pushworker] [campaignsdb] }
 }
 
-// Analytics domain
+// Analytics service
 system analytics "Analytics" {
-  description: "Data warehouse and BI"
-  domain: "analytics"
+  description: "Data warehouse and reporting"
   icon: sys/chart-line
 
   collector = sys/server "Events Collector"
-  warehouse = sys/database "Data Warehouse" datastore { badge: logos/snowflake }
-  dbt_job = sys/workflow "dbt Job" { subtitle: "Nightly" }
-  metabase = sys/chart-line "Metabase" { subtitle: "BI Dashboards" }
+  warehouse = sys/database "Data Warehouse" datastore { badge: logos/snowflake, subtitle: "Snowflake" }
+  dbt = sys/workflow "dbt Transform" { subtitle: "Nightly job" }
+  metabase = box "Metabase" { subtitle: "Dashboards" }
 
-  kafka ~> collector "all events"
   collector -> warehouse
-  dbt_job -> warehouse
+  dbt -> warehouse
   metabase -> warehouse
+
+  layout { rows [collector] [warehouse dbt metabase] }
 }
 
-// External integrations
+// Application connections
 customer -> storefront
 customer -> mobile
 staff -> admin
-
 storefront -> gw
 admin -> gw
 mobile -> gw
 
+// Gateway to services
 gw -> identity.sessions "auth check"
+gw -> identity.accounts
 gw -> catalog.products
 gw -> catalog.media
 gw -> catalog.search
 gw -> commerce.cart
 gw -> commerce.checkout
+gw -> fulfilment.warehouse
+gw -> fulfilment.shipping
+gw -> fulfilment.returns
 gw -> engagement.campaigns
 
+// Service interactions
 commerce.orders -> fulfilment.warehouse
+commerce.tax -> avalara
+commerce.payments -> stripe
+fulfilment.shipping -> carriers
 
+// Kafka publishers
+identity.accounts -> kafka "account events"
+catalog.products -> kafka "product events"
+commerce.orders -> kafka "order events"
+commerce.payments -> kafka "payment events"
+fulfilment.returns -> kafka "return events"
+
+// Kafka consumers
+kafka ~> catalog.indexer "product events"
+kafka ~> fulfilment.labelworker "order events"
+kafka ~> engagement.emailworker "order/account events"
+kafka ~> engagement.pushworker "order events"
+kafka ~> analytics.collector "all events"
+
+// Views
 view landscape {
-  title "E-commerce Platform Architecture"
+  title "Monorepo System Landscape"
   include *
-
-  titleblock {
-    subtitle: "Monorepo overview"
-  }
-
   layout {
-    rows [customer staff] [storefront admin mobile] [gw]
+    rows [customer staff] [storefront admin mobile] [gw] [identity commerce] [catalog fulfilment kafka] [engagement analytics] [stripe avalara carriers sendgrid firebase]
   }
 }
 
-view checkout_flow {
-  title "Checkout Flow"
+view commerce_flow {
+  title "Commerce Flow"
   scope commerce
-
   layout {
-    rows [gw] [cart checkout] [tax payments orders] [cart_cache orders_db payments_db] [stripe avalara]
+    rows [checkout] [cart tax payments orders] [cartcache paymentsdb ordersdb]
   }
 }
 
-view data_flow {
+view event_driven {
   title "Event-Driven Architecture"
-  context off
-
+  include identity.accounts, catalog.products, catalog.indexer, commerce.orders, commerce.payments
+  include fulfilment.returns, fulfilment.labelworker, engagement.emailworker, engagement.pushworker
+  include analytics.collector
   layout {
-    rows [identity.accounts commerce.orders commerce.payments fulfilment.returns] [kafka] [catalog.indexer fulfilment.label_worker engagement.email_worker engagement.push_worker analytics.collector]
+    rows [identity.accounts commerce.orders commerce.payments fulfilment.returns] [kafka] [catalog.indexer fulfilment.labelworker engagement.emailworker engagement.pushworker analytics.collector]
   }
 }

@@ -1,12 +1,12 @@
 # The gauntlet (end-to-end acceptance)
 
-Thirty-five natural-language architecture prompts. An agent, armed with only
+Thirty-seven natural-language architecture prompts. An agent, armed with only
 [`packages/skill/skills/squinch/SKILL.md`](../packages/skill/skills/squinch/SKILL.md) and the `squinch` CLI,
 must produce a clean diagram for each. **v1 ships at ≥ 16/20 with zero human
 layout fixes** (the original ≥ 8/10 bar, at the current prompt count).
 
-> **Current standing: the committed corpus scores 35/35 on the deep scorer; the
-> latest round itself scored 34/35, with 22 of 35 clean on the first `check`.** The
+> **Current standing: the committed corpus scores 37/37 on the deep scorer; the
+> latest round itself scored 36/37, with 23 of 37 clean on the first `check`.** The
 > solutions those agents wrote are committed in `solutions/` and re-scored by CI
 > on every push, so the claim is inspectable rather than asserted.
 >
@@ -65,60 +65,59 @@ nothing.
 
 ## Latest round
 
-**Round 27 — 33/35 on the deep scorer; 19 of 35 clean on the first `check`**
-(2026-09-21, Sonnet). Run for the detailed card — `preview <path>` in a view,
-and the `preview: [a b c]` list on a container that it draws — and for the
-skill prose written for it. The question was not the score: it was how often
-cold agents reach for a new verb that is right on a landscape and wrong on
-every other view, and whether they overreach.
+**Round 28 — 36/37 on the deep scorer; 23 of 37 clean on the first `check`**
+(2026-09-28, Sonnet). Run for one paragraph of skill prose, "Tables": when the
+reader asks what is *in* a database, write it as a `container` holding one
+`sys/table` per table; when the table is itself the deployed resource, as on a
+serverless store, it stays a node in the service that owns it. No engine
+change — the container, the card, the dive and the labelled edge all shipped
+already. The question was whether cold agents find the idiom when asked, and
+whether they start opening every database when not.
 
-**Nobody reached for it.** Zero of thirty-five answers wrote `preview:` or
-`preview`, and no agent mentioned it in its own reasoning. The paragraph sat
-in the Views section, after the `expand *` example; the prompts where the card
-earns its height are the large-system ones, and those send an agent to "When
-the system is big", which said nothing about it. Round 26 measured this
-already — placement beats wording — and it held: prose 60 lines from where the
-agent is looking moves nobody.
+**Two new prompts, both carried.** 36 asks for a billing service whose
+database the reader can open onto five named tables; 37 for a notifications
+service that keeps two DynamoDB tables. 36 came back clean on the first
+`check`: a `container` with `icon: aws/rds`, five tables, each foreign key a
+labelled edge. 37 drew both tables as plain nodes beside the queue, and needed
+a second `check` only for two subtitles a character over the limit. The scorer
+gained the two expectations that make those checkable — `inside` (something
+labelled like this sits within a container labelled like that) and `siblings`
+(these two share a parent, so nothing was invented to hold one of them) —
+matched by label, as `layout` is, since ids are the agent's.
 
-**One bullet, then a subset.** "When the system is big" gained a bullet: give
-every area a `description:`, name the three recognisable parts in `preview:`,
-put `preview *` on the landscape view, and only there. Re-run cold on the six
-prompts where the card is defensible (04, 16, 28, 29, 34, 35): 6/6, 3 of 6 clean
-on the first `check`, and **two of six reached for it** — 28 ("just enough
-that a new engineer knows") wrote `preview orders`; 35 (the monorepo) wrote
-`preview *` on its landscape, six domain cards each naming three services.
-Both put it on the landscape only, both had written descriptions for the
-children, and neither hit a `preview` diagnostic. The three that did not use
-it (04, 16, 29) are small systems, where the bullet does not apply. That is
-the intended rate: the verb is opt-in, and the skill now puts it where the
-decision is made.
+**Nobody overreached.** Zero of the thirty-five standing prompts wrapped a
+database in tables. The paragraph sits in the Language section, which every
+agent reads, so this was the risk; the only `sys/table` among them is 22's
+lakehouse, where the prompt asks for tables and always had them.
 
-**The two misses were the large-system prompts, and 34 needs saying plainly.**
-35 wrote one view in the full run and three in a re-run — variance. 34 drew
-all sixteen services flat, no systems, one view — *twice*, in the full run and
-in a two-prompt re-run on the same skill, where round 26 had it grouping about
-one time in four. The only skill change between the rounds was the `preview`
-paragraph in an unrelated section, so two flat answers in a row read as the
-prompt's known variance rather than a regression; the third run, with the new
-bullet (which says "area" again, one line from the grouping advice), grouped
-into four areas. 34 stays the prompt where a future skill change will show.
+**Columns were tried three ways and then cut.** A third prompt gave a schema
+with its columns. The first wording said a table's one hard fact goes in its
+`subtitle:`; the agent put four column lists there and shipped two "will be
+cut off" warnings. The second sent them to `description:`, "which the reader
+gets on hover" — the agent complied, passed clean, and drew none of it,
+because a leaf's description reaches no render at all: not the SVG, not the
+interactive export. The wording was wrong and the scorer could not see it,
+since a column that is not drawn is not a diagnostic. The third pointed at
+view notes, which do draw, and the agent wrote four. Then the scope was
+settled the other way: squinch draws tables, not schemas. The prompt is gone
+and the skill says to leave columns out. Its three answers are under
+`.run/round28-findings/`.
 
-**A router defect, surfaced and not fixed here.** 35's `preview *` answer
-draws a top-level Kafka bus that every domain publishes to and consumes from —
-`catalog.products -> kafka` and `kafka ~> catalog.indexer`, a two-node cycle
-once both lift to the landscape. The invariant sweep (`test/invariants.ts`)
-fails it three ways: two coplanar wires end on no boundary (the router took
-catalog and kafka for one rank — both carry rank 31 — while ELK laid kafka a
-band below), and the lifted label "products updated" lands on the Event Bus
-leaf. It reproduces with `preview *` removed, so it is the co-ranking of a
-mutual pair, not the detailed card (`docs/notes/coplanar.md` territory). The
-corpus therefore keeps round 26's answer for 35 — the invariants are a CI gate
-— and round 27's is saved under `.run/round27-findings/` for the fix. Also
-seen: 35's agent guessed `view identity, catalog, commerce` (a view list) and
-`highlight commerce.checkout` (a path where a tag goes) — two syntax errors and
-ten `check` calls, the round's most expensive prompt.
+**The one miss was 34, again.** It made each of the sixteen services its own
+`system` and declared a single view — grouped, in the letter of "When the
+system is big", into areas of one. Nothing in the answer touches tables, and
+34 is the prompt round 27 already named as the one that varies; the corpus
+keeps round 27's answer for it and this round's is saved with the findings.
 
-The corpus in `solutions/` is this round's answers for thirty-four prompts —
-the full run's for twenty-nine and the subset's for 04, 16, 28, 29 and 34 —
-and round 26's for 35, all cold-authored and deep-scored at 35/35, none
-re-authored.
+**Surfaced and not fixed here.** 35 took thirteen `check` calls, the round's
+most expensive prompt for the second round running: it wrote its `rows` bands
+one per line, which the check names (`rows` bands must sit on one line) beside
+a cascade of syntax errors for the same mistake. And SPEC §3 and DESIGN §3
+both promise a hover card for a leaf's `description:` that no surface draws;
+the VS Code extension's hover over the id in source is the only place it
+shows.
+
+The corpus in `solutions/` is this round's answers for thirty-six prompts —
+the full run's for thirty-four of the standing thirty-five, and a final
+two-prompt pass on the settled wording for 36 and 37 — and round 27's for 34,
+all cold-authored and deep-scored at 37/37, none re-authored.

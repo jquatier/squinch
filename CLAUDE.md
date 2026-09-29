@@ -204,15 +204,15 @@ visibility/lifting → layout → themed SVG), the CLI (check/render/diff/icons/
 init/watch + sync/check model + Actions), the SPA playground, the VS Code
 extension + language server, six icon packs, and the light/dark pair. The acceptance
 bar — an agent producing clean diagrams from prose using only the skill + CLI —
-is certified at **35/35
+is certified at **37/37
 by independent cold agents** on the committed corpus; the latest full round scored
-33/35 with **19/35 clean on the first `check`** (round 27, run for the detailed
-card and its skill prose — zero of 35 reached for `preview` until a bullet was
-added where the large-system prompts send agents, "When the system is big";
-a subset re-run then had two of six use it, on the landscape only, and took the
-two misses, both large-system prompts, back to passing — 35's new answer then
-failed the invariant sweep on a pre-existing coplanar co-ranking defect, so the
-corpus keeps round 26's for it). Positional tags work on nodes, container heads and
+36/37 with **23/37 clean on the first `check`** (round 28, run for the skill's
+"Tables" paragraph — a database the reader wants opened is a `container` of
+`sys/table` leaves, a serverless table stays a node — with two prompts and the
+scorer's `inside`/`siblings` expectations added for it; both new prompts passed
+and none of the standing 35 opened a database unasked. Columns were tried three
+ways and cut: squinch draws tables, not schemas. The one miss, 34, is the
+large-system prompt that varies, so the corpus keeps round 27's answer for it). Positional tags work on nodes, container heads and
 edges; a comma is optional wherever whitespace already separates. `gauntlet/README.md` writes up the latest round only: every round's
 findings land as a code or docs change in the same commit, so the fixes are the
 record. The number is never the point — a round that scores full marks and

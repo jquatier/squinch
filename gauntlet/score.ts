@@ -58,6 +58,15 @@ interface Expect {
   /** a view must carry a titleblock */
   requireTitleblock?: boolean;
   icons?: string[][];
+  /** Ownership, read off the model. Each pair is [container, thing]: something
+   *  labelled like the second sits inside a container labelled like the first,
+   *  at any depth — "the tables are in the database", however it was spelled.
+   *  Named by label pattern, as `layout` does, since ids are the agent's. */
+  inside?: [string, string][];
+  /** Each pair shares a parent: both top-level, or both direct children of one
+   *  container. The other half of `inside` — nothing was invented to hold one
+   *  of them apart from the other. */
+  siblings?: [string, string][];
   /** Geometry, read off a laid-out view — a "does the picture say so" test
    *  that is construct-agnostic: however the author got there (a container's
    *  own layout block, interior paths in a view's rows, `wrap`, a
@@ -291,6 +300,33 @@ for (const p of prompts) {
   for (const anyOf of e.icons ?? [])
     if (!anyOf.some((id) => iconIdsUsed.has(id)))
       problems.push(`missing icon: ${anyOf.join(" | ")}`);
+
+  if (e.inside || e.siblings) {
+    const named = (x: { label?: string; name: string }) => x.label ?? x.name;
+    const parentOf = (path: string) => path.slice(0, Math.max(0, path.lastIndexOf(".")));
+    const entities = [...nodes, ...m.containers.values()];
+    const like = <T extends { label?: string; name: string }>(xs: T[], pat: string, what = "nothing") => {
+      const re = new RegExp(pat, "i");
+      const hits = xs.filter((x) => re.test(named(x)));
+      // one line per pattern: four tables missing one database is one finding
+      const miss = `${what} labelled like /${pat}/i`;
+      if (!hits.length && !problems.includes(miss)) problems.push(miss);
+      return hits;
+    };
+    for (const [a, b] of e.inside ?? []) {
+      const A = like([...m.containers.values()], a, "no container"), B = like(entities, b);
+      if (A.length && B.length && !A.some((c) => B.some((x) => x.path.startsWith(`${c.path}.`))))
+        problems.push(`\`${named(B[0])}\` is not inside \`${named(A[0])}\``);
+    }
+    for (const [a, b] of e.siblings ?? []) {
+      const A = like(entities, a), B = like(entities, b);
+      if (
+        A.length && B.length
+        && !A.some((x) => B.some((y) => x.path !== y.path && parentOf(x.path) === parentOf(y.path)))
+      )
+        problems.push(`\`${named(A[0])}\` and \`${named(B[0])}\` do not share a parent`);
+    }
+  }
 
   if (e.layout) {
     const L = e.layout;

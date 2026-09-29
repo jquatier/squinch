@@ -617,5 +617,58 @@
       "minViews": 2,
       "requireNarrowerView": true
     }
+  },
+  {
+    "id": "36-database-tables",
+    "prompt": "Our billing service is an API on ECS Fargate with one Postgres database on RDS, plus a nightly export job (a Lambda) that reads from the same database and writes a file to S3. I want a reader to be able to open the database and see its tables: customers, invoices, invoice_lines, payments and refunds. Invoices belong to customers, invoice lines to invoices, payments to invoices, refunds to payments. The API writes invoices and payments; the export job reads invoices.",
+    "expect": {
+      "minNodes": 9,
+      "inside": [
+        [
+          "db|database|postgres|rds|sql",
+          "customers"
+        ],
+        [
+          "db|database|postgres|rds|sql",
+          "invoice.?lines"
+        ],
+        [
+          "db|database|postgres|rds|sql",
+          "payments"
+        ],
+        [
+          "db|database|postgres|rds|sql",
+          "refunds"
+        ]
+      ]
+    }
+  },
+  {
+    "id": "37-serverless-tables",
+    "prompt": "The notifications service: API Gateway in front of a Lambda that takes send requests, an SQS queue, and a second Lambda that works the queue and sends through SES. It uses two DynamoDB tables: preferences, which the API Lambda reads before it queues anything, and delivery-log, which the sender writes after each send.",
+    "expect": {
+      "minNodes": 7,
+      "icons": [
+        [
+          "dynamodb"
+        ],
+        [
+          "sqs"
+        ],
+        [
+          "lambda"
+        ]
+      ],
+      "siblings": [
+        [
+          "preferences",
+          "delivery"
+        ],
+        [
+          "preferences",
+          "queue|sqs"
+        ]
+      ]
+    }
   }
 ]
