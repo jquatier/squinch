@@ -6,6 +6,12 @@ history too. Sections are drafted by `pnpm release` from the commits since the
 previous tag, then edited by a human before anything is written; the release
 workflow lifts the matching section verbatim into the GitHub Release notes.
 
+## 0.14.0 — 2026-09-29
+
+- The skill teaches tables. When the reader asks what is in a database, an agent now writes it as a `container` holding one `sys/table` per table: one card where it sits, a dive that opens onto the tables, and each foreign key a labelled edge. Where the table is itself the deployed resource, as on a serverless store, it stays a node in the service that owns it, with no container invented to hold it. Nothing in the engine changed — the idiom already worked and nothing told an agent it existed. Columns are out of scope: squinch draws tables, not schemas. Re-run `squinch skill` to install it.
+- Gauntlet round 28: two prompts for the tables idiom bring the corpus to thirty-seven, certified 37/37 on the deep scorer. Both passed, and none of the standing thirty-five opened a database unasked. The scorer gains two expectations, `inside` and `siblings`, matched by label. The round is written up in `gauntlet/README.md`.
+- The site: the zoom GIF wears the view bar — the home button climbs and the top menu opens full detail — the landing's mascot stands beside the quotes, and the social card and JSON-LD spell squinch in lowercase.
+
 ## 0.13.0 — 2026-09-27
 
 - The stacked sheets behind a container card peek out below it instead of echoing it. Two outline rects offset back and down read as a doubled border at diagram scale; the stack is now two solid sheets straight under the card, 6 and 12px down and 12 and 24px in from each side, a shade darker as they recede. Only the strip that shows is drawn, so a card dimmed by `highlight` or a flow step no longer has a ghost rectangle behind it, and nothing bleeds right, where `direction right` wires leave. Themes gain a `sheetFillNear` token for the near sheet.
