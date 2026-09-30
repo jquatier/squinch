@@ -3,13 +3,20 @@
 # workflow builds the VSIX from the tagged commit, re-runs the suite — its own
 # gate, deliberately, rather than trusting that some other run was green —
 # publishes the GitHub Release with the CHANGELOG section as its notes, and
-# then publishes to npm. npm goes last on purpose: the GitHub Release is the
-# fallback artifact, so a registry problem reddens the run without costing
-# anyone the VSIX. npm authenticates by trusted publishing (OIDC, configured
-# per package on npmjs.com against this repo and workflow file); NPM_TOKEN is
-# the fallback for a package not yet wired up, and the first publish of a new
-# package is done by hand, since npm only configures trust on a package that
-# exists.
+# then *stages* every package on npm. npm goes last on purpose: the GitHub
+# Release is the fallback artifact, so a registry problem reddens the run
+# without costing anyone the VSIX.
+#
+# npm is two steps, and only the first is here. This job authenticates by
+# trusted publishing (OIDC — each package's publisher on npmjs.com names this
+# repo, this workflow file and the `npm` environment) and is registered
+# *stage-only*: it may `stage publish`, never `publish`. A staged version is
+# invisible to `npm install` until a maintainer approves it with 2FA — on
+# npmjs.com under Staged Packages, or `pnpm stage approve <id>` — so a green
+# run here has shipped nothing yet, and no secret in this repo can. There is no
+# token: an OIDC failure reddens the run, and re-running the job after fixing
+# the publisher is the recovery. The first publish of a *new* package is done
+# by hand, since npm only configures trust on a package that exists.
 #
 # Two ways it fails on purpose: the tag not matching the workspace version
 # (someone tagged by hand), and the CHANGELOG missing this version's section
@@ -31,10 +38,10 @@ jobs:
     runs-on: ubuntu-latest
     # A release is a deployment to npm: declaring the environment lists every
     # release in the repo's Deployments panel beside the Pages deploys, each
-    # linking to the version it published, and makes a reviewer gate or an
-    # environment-scoped NPM_TOKEN a settings change rather than a workflow
-    # change. It is also what npm's trusted publishing binds to, should a
-    # publisher be registered for this workflow + environment.
+    # linking to the version it staged, and makes a reviewer gate a settings
+    # change rather than a workflow change. It is also the environment each
+    # package's trusted publisher is bound to — rename it and every publish
+    # fails the OIDC exchange.
     environment:
       name: npm
       url: https://www.npmjs.com/package/squinch/v/${{ steps.version.outputs.version }}
@@ -48,8 +55,6 @@ jobs:
         with:
           node-version: 22
           cache: pnpm
-          # writes an .npmrc wired to NODE_AUTH_TOKEN, which the publish step sets
-          registry-url: https://registry.npmjs.org
       - run: pnpm install --frozen-lockfile
       # The tag IS the version. Fail before doing any work if they disagree.
       # The bare version is exported for the environment URL above.
@@ -83,22 +88,23 @@ jobs:
           GH_TOKEN: ${{ github.token }}
 
       # npm last, deliberately. The GitHub Release is the artifact people can
-      # always fall back to, so a registry problem — an expired token, a name
-      # taken, npm being down — must not cost them the VSIX. This step failing
-      # reddens the run and leaves the Release standing, which is the right way
-      # round.
+      # always fall back to, so a registry problem — a publisher misconfigured,
+      # a name taken, npm being down — must not cost them the VSIX. This step
+      # failing reddens the run and leaves the Release standing, which is the
+      # right way round.
       #
-      # `pnpm -r publish` walks in dependency order (packs → core → cli) and
-      # skips every `private: true` package, which is what keeps the playground,
-      # the gauntlet and the lookbook off the registry. It also rewrites
-      # `workspace:*` to the real version on the way out; plain `npm publish`
-      # does not, and would ship a manifest nobody can install.
+      # `pnpm -r stage publish` walks in dependency order (packs → core → cli)
+      # and skips every `private: true` package, which is what keeps the
+      # playground, the gauntlet and the lookbook off the registry. It also
+      # rewrites `workspace:*` to the real version on the way out; plain `npm`
+      # does not, and would ship a manifest nobody can install. Approve in the
+      # same order, or all eight at once, so nobody installs a `squinch` whose
+      # `@squinch/core` is still staged.
       #
       # --no-git-checks: a tag build is a detached HEAD, which pnpm otherwise
       # refuses to publish from.
       #
-      # Versions already on the registry are skipped, so re-running a release
-      # does not fail on "you cannot publish over a published version".
-      - run: pnpm -r publish --no-git-checks
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+      # Versions already on the registry are skipped ("no new packages that
+      # should be published"), so re-running a release does not fail on "you
+      # cannot publish over a published version".
+      - run: pnpm -r stage publish --no-git-checks
