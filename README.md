@@ -27,8 +27,8 @@
   <a href="https://squinch.cc/install/">Install</a>
 </p>
 
-**Your coding agent already knows the architecture — now it can draw it.**
-Squinch is a skill for coding agents: describe the system in a paragraph and
+**Your AI coding agent already knows the architecture — now it can draw it.**
+Squinch is a skill for AI coding agents: describe the system in a paragraph and
 the agent writes a small, readable model that renders as a clean, professional
 diagram — real cloud icons, layout you steer without placing a box, and
 altitudes you can zoom through, from the whole landscape down to one service's
