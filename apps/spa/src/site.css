@@ -171,8 +171,8 @@ pre code { background: none; padding: 0; font-size: inherit; }
 .panel-strip .arrow { color: var(--text-4); }
 
 /* Section index rails (install, lookbook): a hairline with the active entry
-   pinned to it by a 2px accent bar. Scroll-spy toggles `.is-active` from a
-   small inline script in each page. */
+   pinned to it by a 2px accent bar. Scroll-spy toggles `.is-active` from
+   src/rail.js, inlined into each page that has a rail. */
 .rail {
   display: flex;
   flex-direction: column;
@@ -389,7 +389,9 @@ pre code { background: none; padding: 0; font-size: inherit; }
   color: var(--muted);
 }
 .site-foot .btn-grad { padding: 11px 20px; }
-.site-foot .foot-meta { display: flex; align-items: center; gap: 10px; }
+/* wraps between its items, never inside one: the lookbook's licence note is
+   long enough that a phone would otherwise break "Apache-2.0" at its hyphen */
+.site-foot .foot-meta { display: flex; flex-wrap: wrap; justify-content: center; align-items: center; gap: 2px 10px; }
 .site-foot .foot-version {
   font: 500 12px/1 var(--font-mono);
   letter-spacing: 0.02em;

@@ -5,36 +5,12 @@
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>Install — squinch</title>
     <meta name="description" content="Install the Squinch agent skill — as a Claude Code or Codex plugin, from npm, or dropped into your repo — then ask your coding agent for an architecture diagram." />
-    <link rel="canonical" href="https://squinch.cc/install/" />
-    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
-    <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
     <meta name="theme-color" content="#141416" />
-    <meta property="og:type" content="website" />
-    <meta property="og:site_name" content="squinch" />
-    <meta property="og:title" content="Install — squinch" />
-    <meta property="og:description" content="Install the squinch agent skill — as a Claude Code or Codex plugin, from npm, or dropped into your repo — then ask your coding agent for an architecture diagram." />
-    <meta property="og:image" content="https://squinch.cc/og.png" />
-    <meta property="og:image:width" content="1200" />
-    <meta property="og:image:height" content="630" />
-    <meta property="og:image:alt" content="The squinch mark — an S standing on three stacked isometric planes — beside the wordmark and, under it, the line “architecture diagrams as code, for coding agents”" />
-    <meta property="og:url" content="https://squinch.cc/install/" />
-    <meta name="twitter:card" content="summary_large_image" />
-    <link rel="preconnect" href="https://fonts.googleapis.com" />
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet" />
+    <!--site-head-->
     <link rel="stylesheet" href="/src/site.css" />
   </head>
   <body>
-    <header class="site-header">
-      <a class="home" href="/"><img src="/favicon.svg" alt="" width="20" height="20" />squinch</a>
-      <nav aria-label="Site">
-        <a href="/install/" aria-current="page">Install</a>
-        <a href="/lookbook/">Lookbook</a>
-        <a href="/compare/">Compare</a>
-        <a href="/playground/">Playground</a>
-        <a href="https://github.com/jquatier/squinch">GitHub</a>
-      </nav>
-    </header>
+    <!--site-header-->
 
     <div class="wrap sub-hero">
       <span class="eyebrow">Install</span>
@@ -202,7 +178,7 @@ squinch render my-diagrams --sync</code></pre>
     </div>
 
     <footer class="site-foot">
-      <span>Apache-2.0</span>
+      <span class="foot-meta"><!--foot-meta--></span>
       <a class="btn-grad" href="/playground/">Open the playground</a>
     </footer>
 
@@ -250,32 +226,7 @@ squinch render my-diagrams --sync</code></pre>
           });
         }
       }
-
-      // Scroll-spy for the rail: the active entry is the section nearest the
-      // top of the viewport. The root margin shrinks the observed band to the
-      // upper part of the screen, so a card counts as "current" once its head
-      // has scrolled into the top fifth, not the moment a pixel of it appears.
-      if ("IntersectionObserver" in window) {
-        const links = [...document.querySelectorAll(".rail a[href^='#']")];
-        const byId = new Map(links.map((a) => [a.getAttribute("href").slice(1), a]));
-        const visible = new Set();
-        const pick = () => {
-          const first = [...byId.keys()].find((id) => visible.has(id));
-          if (!first) return;
-          for (const [id, a] of byId) a.classList.toggle("is-active", id === first);
-        };
-        const io = new IntersectionObserver(
-          (entries) => {
-            for (const e of entries) e.isIntersecting ? visible.add(e.target.id) : visible.delete(e.target.id);
-            pick();
-          },
-          { rootMargin: "-15% 0px -70% 0px" },
-        );
-        for (const id of byId.keys()) {
-          const el = document.getElementById(id);
-          if (el) io.observe(el);
-        }
-      }
     </script>
+    <!--rail-spy-->
   </body>
 </html>

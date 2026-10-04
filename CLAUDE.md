@@ -95,7 +95,11 @@ engine, CLI, playground and extension all ship (see §Where things stand).
 the landing at `/`, `/install/`, `/lookbook/`, `/compare/` and the playground at
 `/playground/`. Only the playground is React; the rest are hand-set static
 documents sharing `src/tokens.css` via `src/site.css`. `/lookbook/` is generated
-from `lookbook/README.md` by `scripts/sync-lookbook.ts`. `/compare/` sets one system beside
+from `lookbook/README.md` by `scripts/sync-lookbook.ts`. What the documents share
+— the head's og/font block, the header nav, the footer's version line, the rail's
+scroll-spy (`src/rail.js`) and the icon and case counts — is written once in
+`site-shell.ts` and substituted at build time for placeholders like
+`<!--site-header-->`; never paste it back into a page. `/compare/` sets one system beside
 five other tools' renders of it; theirs are committed under `compare/` with their
 sources, because the build cannot run five toolchains. Everything the site
 serves out of `public/` is build output — pack icons (`scripts/sync-packs.ts`),

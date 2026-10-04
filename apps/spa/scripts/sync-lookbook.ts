@@ -150,36 +150,12 @@ const html = `<!doctype html>
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>Lookbook — squinch</title>
     <meta name="description" content="${cases.length} reference renders of Squinch architecture diagrams — dense meshes, deep nesting, zones, flows, both themes — each beside the source that drew it." />
-    <link rel="canonical" href="https://squinch.cc/lookbook/" />
-    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
-    <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
     <meta name="theme-color" content="#141416" />
-    <meta property="og:type" content="website" />
-    <meta property="og:site_name" content="squinch" />
-    <meta property="og:title" content="Lookbook — squinch" />
-    <meta property="og:description" content="${cases.length} reference renders of squinch architecture diagrams — dense meshes, deep nesting, zones, flows, both themes — each beside the source that drew it." />
-    <meta property="og:image" content="https://squinch.cc/og.png" />
-    <meta property="og:image:width" content="1200" />
-    <meta property="og:image:height" content="630" />
-    <meta property="og:image:alt" content="The squinch mark — an S standing on three stacked isometric planes — beside the wordmark and, under it, the line “architecture diagrams as code, for coding agents”" />
-    <meta property="og:url" content="https://squinch.cc/lookbook/" />
-    <meta name="twitter:card" content="summary_large_image" />
-    <link rel="preconnect" href="https://fonts.googleapis.com" />
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet" />
+    <!--site-head-->
     <link rel="stylesheet" href="/src/site.css" />
   </head>
   <body>
-    <header class="site-header">
-      <a class="home" href="/"><img src="/favicon.svg" alt="" width="20" height="20" />squinch</a>
-      <nav aria-label="Site">
-        <a href="/install/">Install</a>
-        <a href="/lookbook/" aria-current="page">Lookbook</a>
-        <a href="/compare/">Compare</a>
-        <a href="/playground/">Playground</a>
-        <a href="https://github.com/jquatier/squinch">GitHub</a>
-      </nav>
-    </header>
+    <!--site-header-->
 
     <div class="wrap lb sub-hero lb">
       <span class="eyebrow">Lookbook</span>
@@ -192,7 +168,7 @@ const html = `<!doctype html>
       </p>
       <div class="stat-row">
         <span>${cases.length} cases</span><span class="sep">·</span>
-        <span>1,358 vendor icons</span><span class="sep">·</span>
+        <span><!--icon-count--> vendor icons</span><span class="sep">·</span>
         <span>light &amp; dark</span><span class="sep">·</span>
         <span>every one editable in the playground</span>
       </div>
@@ -209,49 +185,11 @@ ${cases.map(caseHtml).join("\n")}
     </div>
 
     <footer class="site-foot">
-      <span>Apache-2.0 · icon artwork under its packs' own terms</span>
+      <span class="foot-meta"><!--foot-meta--><span aria-hidden="true">·</span><span>icon artwork under its packs' own terms</span></span>
       <a class="btn-grad" href="/playground/">Try it in the playground</a>
     </footer>
 
-    <script>
-      // Scroll-spy for the rail (same shape as the install page's): the
-      // active entry is the first case, in page order, whose card overlaps
-      // the upper part of the viewport. The rail scrolls its own content so
-      // the active entry also gets scrolled into view inside it.
-      if ("IntersectionObserver" in window) {
-        const links = [...document.querySelectorAll(".rail a[href^='#']")];
-        const byId = new Map(links.map((a) => [a.getAttribute("href").slice(1), a]));
-        const visible = new Set();
-        const pick = () => {
-          const first = [...byId.keys()].find((id) => visible.has(id));
-          if (!first) return;
-          for (const [id, a] of byId) {
-            const on = id === first;
-            a.classList.toggle("is-active", on);
-            // keep the active entry inside the rail's own scroll window —
-            // done by hand rather than scrollIntoView, which would also
-            // scroll the page to it and fight the reader's own scrolling
-            const rail = on && a.closest(".rail");
-            if (rail) {
-              const top = a.offsetTop, bottom = top + a.offsetHeight;
-              if (top < rail.scrollTop || bottom > rail.scrollTop + rail.clientHeight)
-                rail.scrollTop = top - rail.clientHeight / 2;
-            }
-          }
-        };
-        const io = new IntersectionObserver(
-          (entries) => {
-            for (const e of entries) e.isIntersecting ? visible.add(e.target.id) : visible.delete(e.target.id);
-            pick();
-          },
-          { rootMargin: "-15% 0px -70% 0px" },
-        );
-        for (const id of byId.keys()) {
-          const el = document.getElementById(id);
-          if (el) io.observe(el);
-        }
-      }
-    </script>
+    <!--rail-spy-->
   </body>
 </html>
 `;

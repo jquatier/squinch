@@ -9,5 +9,5 @@
     "noEmit": true,
     "declaration": false
   },
-  "include": ["src", "vite.config.ts"]
+  "include": ["src", "vite.config.ts", "site-shell.ts"]
 }
