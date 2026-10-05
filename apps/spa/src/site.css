@@ -98,6 +98,16 @@ pre code { background: none; padding: 0; font-size: inherit; }
 }
 .eyebrow.accent { color: var(--accent); }
 
+/* Read, never seen: punctuation a heading needs as text but not as type. */
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
 /* The second line of every page's h1 wears the ramp. */
 .grad-text {
   background: var(--grad);

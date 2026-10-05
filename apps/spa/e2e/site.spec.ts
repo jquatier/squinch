@@ -12,8 +12,11 @@ test("the landing renders the lockup and all four links", async ({ page }) => {
   await expect(page.getByRole("heading", { name: "squinch" })).toBeVisible();
   // The category phrase is what the title exists to carry — it is the one
   // on-page signal that names what this is, and it went missing once.
-  await expect(page).toHaveTitle(/architecture diagrams as code/);
-  await expect(page.getByRole("heading", { level: 1 })).toContainText("architecture diagrams as code");
+  await expect(page).toHaveTitle(/diagrams as code/);
+  // And the h1 reads as the title, word for word: Google headlined the result
+  // with the h1's run-together text when the two disagreed.
+  const h1 = (await page.getByRole("heading", { level: 1 }).textContent())!.replace(/\s+/g, " ").trim();
+  expect(h1).toBe(await page.title());
   // Scoped to the hero's own CTA row: the footer repeats a "GitHub" link
   // lower on the page, and an unscoped lookup would resolve to both.
   const heroLinks = page.locator(".hero-links");
@@ -34,9 +37,9 @@ test("each content page serves, styled, with its own title", async ({ page }) =>
   // the h1s are two-line claims; a substring of the first line is enough to
   // tell them apart and survives a copy tweak to the second
   for (const [path, title, h1] of [
-    ["/install/", "Install — squinch", "Four ways in."],
-    ["/lookbook/", "Lookbook — squinch", "systems, drawn properly."],
-    ["/compare/", "Compare — squinch", "How Squinch compares."],
+    ["/install/", "Install - squinch", "Four ways in."],
+    ["/lookbook/", "Lookbook - squinch", "systems, drawn properly."],
+    ["/compare/", "Compare - squinch", "How Squinch compares."],
   ] as const) {
     await page.goto(path);
     await expect(page).toHaveTitle(title);

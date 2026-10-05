@@ -3,7 +3,7 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>squinch — architecture diagrams as code, for AI coding agents</title>
+    <title>squinch - diagrams as code for AI agents</title>
     <meta name="description" content="A skill for AI coding agents that draws clean, professional architecture diagrams as code: real cloud icons, zoom into any system, SVG, PNG or HTML export." />
     <meta name="theme-color" content="#141416" />
     <!--site-head-->
@@ -64,13 +64,16 @@
             <!--mark-stack-->
             <!-- The category, inside the page's one heading: the wordmark names the
                  document, these two lines say what it is. Set as two lines on
-                 purpose — left to the browser the break falls at "as / code",
-                 splitting the phrase. Spans only: an h1 holds phrasing content. -->
+                 purpose, so the browser never breaks inside a phrase. Spans
+                 only: an h1 holds phrasing content. The hidden " - " makes it
+                 read exactly as the <title> does: Google headlines the result
+                 with this h1 when the two disagree. Keep them one string, and
+                 short enough for one line in a result (~430px of 20px Arial). -->
             <span class="lockup-text">
-              <span class="name">squinch</span>
+              <span class="name">squinch<span class="sr-only"> - </span></span>
               <span class="cat">
-                <span class="eyebrow">architecture diagrams as code</span>
-                <span class="eyebrow accent">for coding agents</span>
+                <span class="eyebrow">diagrams as code</span>
+                <span class="eyebrow accent">for AI agents</span>
               </span>
             </span>
           </h1>

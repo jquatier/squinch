@@ -148,8 +148,8 @@ const html = `<!doctype html>
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>Lookbook — squinch</title>
-    <meta name="description" content="${cases.length} reference renders of Squinch architecture diagrams — dense meshes, deep nesting, zones, flows, both themes — each beside the source that drew it." />
+    <title>Lookbook - squinch</title>
+    <meta name="description" content="${cases.length} reference renders of Squinch architecture diagrams - dense meshes, deep nesting, zones, flows, both themes - each beside the source that drew it." />
     <meta name="theme-color" content="#141416" />
     <!--site-head-->
     <link rel="stylesheet" href="/src/site.css" />

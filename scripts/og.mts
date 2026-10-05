@@ -53,7 +53,7 @@ const MUTED = "#9C9B94"; // --muted, dark
 const ACCENT = "#8B88E8"; // --accent, dark
 
 const NAME = "squinch";
-const EYEBROW = ["architecture diagrams as code", "for coding agents"]; // .cat, as on the landing
+const EYEBROW = ["diagrams as code", "for AI agents"]; // .cat, as on the landing
 
 // .hero-brand: mark 128px beside a column, gap 16px.
 const MARK_H = 128 * SCALE;

@@ -75,7 +75,7 @@ const head = (html: string, route: string): string => {
     <meta property="og:image" content="${ORIGIN}/og.png" />
     <meta property="og:image:width" content="1200" />
     <meta property="og:image:height" content="630" />
-    <meta property="og:image:alt" content="The squinch mark — an S standing on three stacked isometric planes — beside the wordmark and, under it, the line “architecture diagrams as code, for coding agents”" />
+    <meta property="og:image:alt" content="The squinch mark - an S standing on three stacked isometric planes - beside the wordmark and, under it, the lines “diagrams as code” and “for AI agents”" />
     <meta property="og:url" content="${ORIGIN}${route}" />
     <meta name="twitter:card" content="summary_large_image" />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
