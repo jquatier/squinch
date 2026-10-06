@@ -409,6 +409,20 @@ pre code { background: none; padding: 0; font-size: inherit; }
   text-decoration: none;
 }
 .site-foot .foot-version:hover { color: var(--fg); }
+/* the landing's colophon: what the name means, between the meta and the CTA */
+.site-foot .foot-gloss {
+  flex: 1 1 320px;
+  max-width: 640px;
+  margin-inline: auto;
+  text-align: center;
+  text-wrap: balance;
+  font-size: 12.5px;
+  font-style: italic;
+  line-height: 1.5;
+  color: var(--text-3);
+}
+.foot-gloss dfn, .foot-gloss .pos { margin-right: 5px; font: 500 10.5px/1 var(--font-mono); }
+.foot-gloss dfn { font-weight: 600; font-style: normal; letter-spacing: 0.12em; text-transform: uppercase; color: var(--accent); }
 
 /* ── the landing ───────────────────────────────────────────────────────── */
 /* No header bar here, deliberately: the lockup carries identity, and the four
