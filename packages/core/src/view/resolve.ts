@@ -341,6 +341,27 @@ export function resolveView(model: SModel, view: SView): ViewGraph {
       }
     }
   }
+  // A card with one thing inside has nothing to preview: its one row repeats
+  // the card, and opening it shows a single box. Warned rather than skipped,
+  // because the better fix is usually in the model — the part, not a system
+  // wrapped around it — and only the author can say whether the boundary is
+  // meant (a vendor system, an area that will grow).
+  for (const p of detailedSet) {
+    const c = model.containers.get(p)!;
+    if (c.children.length !== 1) continue;
+    const only = c.children[0];
+    diagnostics.push({
+      severity: "warning",
+      message: view.previewStar
+        ? `\`preview *\` details \`${p}\`, which holds only \`${only}\` — its preview row repeats the card`
+        : `preview \`${p}\`: it holds only \`${only}\` — its preview row repeats the card`,
+      fix: view.previewStar
+        ? `move \`${only}\` up a level rather than wrapping it in a system of its own, or name the ` +
+          `cards worth detailing with \`preview\` lines instead of \`preview *\``
+        : `drop the line, or move \`${only}\` up a level rather than wrapping it in a system of its own`,
+      loc: view.loc,
+    });
+  }
   /** A previewed child's card face, for the detailed card's rows. */
   const rowOf = (child: string) => {
     const n = model.nodes.get(child);

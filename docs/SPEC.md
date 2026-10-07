@@ -452,7 +452,11 @@ A deterministic rule stack, evaluated in fixed order:
    rule, exactly as the small card is. Its diagnostics mirror `expand`'s: a
    leaf target, a target not among the visible cards, `preview *` with nothing
    to detail or beside explicit lines each warn; `preview` and `expand` on one
-   container is an error. Context cards are never detailed.
+   container is an error. Context cards are never detailed. A detailed card
+   with one child warns too, whether named or reached by `preview *`: its one
+   row repeats the card. The card still draws detailed — the fix is the
+   author's, usually the part moved up a level rather than wrapped in a system
+   of its own, since only they know whether the boundary is meant.
 2. **`only` filters the interior** — the view's *which* axis, applied after
    `expand` so an expanded container's children are filtered too. A container
    survives if it, anything beneath it, or a visible ancestor above it matches

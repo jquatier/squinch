@@ -1347,12 +1347,14 @@ system s "S" {
   container inner "Inner" {
     description: "Inside"
     x = aws/dynamodb "X"
+    w = aws/sqs "W"
   }
   c = aws/sqs "C"
   d = aws/s3 "D"
 }
 system o "O" {
   y = aws/lambda "Y"
+  z = aws/sqs "Z"
 }
 t = aws/lambda "T"
 t -> s.a
@@ -1405,5 +1407,35 @@ ${viewBody}
       expect.stringContaining("warning: `preview *` already details every card"));
     expect(msgs("scope s.inner\npreview *")).toContainEqual(
       expect.stringContaining("warning: `preview *` detailed nothing"));
+  });
+
+  it("a card with one thing inside warns: its one row would repeat the card", () => {
+    const ONE = (viewBody: string) => {
+      const { model } = buildModel(`pack aws
+system solo "Solo" {
+  only = aws/lambda "Only"
+}
+system pair "Pair" {
+  a = aws/lambda "A"
+  b = aws/sqs "B"
+}
+solo.only -> pair.a
+view v {
+${viewBody}
+}`);
+      return resolveView(model, model.views.find((v) => v.name === "v")!).diagnostics;
+    };
+    const named = ONE("include *\npreview solo");
+    expect(named).toHaveLength(1);
+    expect(named[0]).toMatchObject({ severity: "warning" });
+    expect(named[0].message).toContain("preview `solo`: it holds only `solo.only`");
+    expect(named[0].fix).toContain("drop the line");
+    // `preview *` names each one-child card it reached, and only those
+    const star = ONE("include *\npreview *");
+    expect(star).toHaveLength(1);
+    expect(star[0].message).toContain("`preview *` details `solo`, which holds only `solo.only`");
+    expect(star[0].fix).toContain("`preview` lines instead of `preview *`");
+    // a card with two parts previews cleanly
+    expect(ONE("include *\npreview pair")).toEqual([]);
   });
 });
