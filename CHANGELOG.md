@@ -6,6 +6,15 @@ history too. Sections are drafted by `pnpm release` from the commits since the
 previous tag, then edited by a human before anything is written; the release
 workflow lifts the matching section verbatim into the GitHub Release notes.
 
+## 0.15.0 — 2026-10-07
+
+- The skill's hand-over changed. An agent now rasterises each view beside the source and looks at it, leaves out anything the request does not support — including glue it would put between two things the request names — and ends with three or four plain bullets: where to open it, what it guessed, what it saw. It also learned to pick `wrap N` for a slide: N ≈ √(nodes folded), rounded up, and no `direction right` on a wide fold.
+- `check` and the editor lay out every view the interactive export draws, auto views included. A system's own `layout { }` block could check clean and then fail `render -o x.html`; that is now a check error, pointing at the block. Layout errors also name their file — `catalog.squinch:7:3`, not `input:7:3` — in the human and JSON formats alike.
+- `check` warns when a previewed card has one child: its one row repeats the card.
+- Gauntlet round 29: 35/37 on the deep scorer, 25 of 37 clean on the first `check`. A prompt can now check out a real repository at a pinned commit, and prompt 38 diagrams Google's Online Boutique from its code, scored against the call graph the code has. The corpus is certified 38/38; both are written up in `gauntlet/README.md`.
+- The site: the pages' shared chrome is written once, the title and copy say "for AI coding agents", the landing's demo clips are video at a third of the GIFs' bytes, the header nav holds one row on phones, and the footer says what the name means.
+- Releases stage the eight npm packages through OIDC with no token; nothing is installable until a human approves them with 2FA.
+
 ## 0.14.0 — 2026-09-29
 
 - The skill teaches tables. When the reader asks what is in a database, an agent now writes it as a `container` holding one `sys/table` per table: one card where it sits, a dive that opens onto the tables, and each foreign key a labelled edge. Where the table is itself the deployed resource, as on a serverless store, it stays a node in the service that owns it, with no container invented to hold it. Nothing in the engine changed — the idiom already worked and nothing told an agent it existed. Columns are out of scope: squinch draws tables, not schemas. Re-run `squinch skill` to install it.
