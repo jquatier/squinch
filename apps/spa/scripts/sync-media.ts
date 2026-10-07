@@ -25,10 +25,14 @@ mkdirSync(publicDir, { recursive: true });
 /** [source in docs/assets, name under public/] */
 const FILES: [string, string][] = [
   ["mark.svg", "favicon.svg"],
-  ["prompt-light.gif", "prompt-light.gif"],
-  ["prompt-dark.gif", "prompt-dark.gif"],
-  ["zoom-light.gif", "zoom-light.gif"],
-  ["zoom-dark.gif", "zoom-dark.gif"],
+  // The landing's two demo clips, as video with a poster still. The GIFs in
+  // docs/assets are the README's — GitHub will not autoplay a video — and the
+  // site does not serve them. All four are written by scripts/prompt-gif.mts
+  // and scripts/hero-gif.mts.
+  ["prompt-dark.mp4", "prompt-dark.mp4"],
+  ["prompt-dark.webp", "prompt-dark.webp"],
+  ["zoom-dark.mp4", "zoom-dark.mp4"],
+  ["zoom-dark.webp", "zoom-dark.webp"],
   // The mascot stands beside the landing's quotes. mascot.png is the full
   // drawing (1246px, 1.4MB) and stays in docs/assets as the master; the site
   // serves mascot-web.png, the same drawing trimmed to its alpha bounds and

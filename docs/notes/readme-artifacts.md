@@ -30,6 +30,12 @@ renderer's output, so they *can* be regenerated after any visual change:
 | `docs/assets/prompt-{light,dark}.gif` | `npx tsx scripts/prompt-gif.mts` | A description in, a diagram out. The page's opening shot. |
 | `docs/assets/zoom-{light,dark}.gif` | `npx tsx scripts/hero-gif.mts` | C4 altitudes: click a system, come back up — then `expand *` opens everything at once. |
 
+Each script also writes the site's copy of its dark clip: `*-dark.mp4` (H.264
+at the full 2× the frames are drawn at, so it is sharp where the GIF is
+stretched, at a third of the bytes) and `*-dark.webp`, the poster still a
+reduced-motion or script-off reader sees. Same frames, same run — commit all
+six files together.
+
 The prompt clip has one hazard the zoom clip does not: **the sentence is a
 claim about the picture.** Every clause maps to something drawn, and nothing
 drawn is unaccounted for. Change `examples/products-api`, and `PROMPT` in the

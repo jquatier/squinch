@@ -471,6 +471,22 @@ const build = async (theme: string) => {
   mkdirSync(dirname(OUT), { recursive: true });
   ff(["-framerate", String(FPS), "-i", join(tmp, "f%04d.png"), "-i", pal,
       "-lavfi", `[0:v]${down}[c];[c][1:v]paletteuse=dither=none`, "-loop", "0", OUT]);
+  // The site plays the same frames as video (dark only — the marketing pages
+  // never show the light palette): H.264 at the full 2× the frames were drawn
+  // at, no palette and no downscale — sharp on a retina screen where the GIF is
+  // stretched, and a third of its bytes at four times the pixels. CRF 28 is
+  // indistinguishable from 22 at 2× on this artwork and 40% smaller; AV1 saved
+  // another 10% and was not worth a second file. The poster is the finished
+  // diagram — the still a reduced-motion or script-off reader gets — taken
+  // from the lossless frame, not the video. The README keeps the GIFs: GitHub
+  // will not autoplay a video.
+  if (theme === "dark") {
+    ff(["-framerate", String(FPS), "-i", join(tmp, "f%04d.png"),
+        "-c:v", "libx264", "-preset", "veryslow", "-tune", "animation", "-crf", "28",
+        "-pix_fmt", "yuv420p", "-movflags", "+faststart", join(root, "docs/assets/prompt-dark.mp4")]);
+    ff(["-i", join(tmp, `f${String(frames.length - 1).padStart(4, "0")}.png`),
+        "-c:v", "libwebp", "-quality", "90", join(root, "docs/assets/prompt-dark.webp")]);
+  }
   if (!process.env.KEEP_FRAMES) rmSync(tmp, { recursive: true, force: true });
 
   console.log(

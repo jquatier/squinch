@@ -103,7 +103,7 @@ scroll-spy (`src/rail.js`) and the icon and case counts — is written once in
 five other tools' renders of it; theirs are committed under `compare/` with their
 sources, because the build cannot run five toolchains. Everything the site
 serves out of `public/` is build output — pack icons (`scripts/sync-packs.ts`),
-the demo GIFs and the brand marks (`scripts/sync-media.ts`) — gitignored, never
+the demo videos and the brand marks (`scripts/sync-media.ts`) — gitignored, never
 committed; only `og.png`, `apple-touch-icon.png`, `robots.txt` and `sitemap.xml`
 are real files there. Anything absolute must be anchored to
 `import.meta.env.BASE_URL`, or it breaks under a deploy sub-path.

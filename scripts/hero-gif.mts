@@ -534,6 +534,19 @@ const build = async (theme: string) => {
   args(["-framerate", String(FPS), "-i", join(tmp, "f%04d.png"), "-i", pal,
         "-lavfi", `[0:v]${crop}[c];[c][1:v]paletteuse=dither=none`,
         "-loop", "0", OUT]);
+  // The site plays the same frames as video (dark only — the marketing pages
+  // never show the light palette): H.264 at the full 2×, cropped but never
+  // downscaled. The encode is prompt-gif.mts's, settings and reasons both. The
+  // poster is the opening landscape — the loop's first frame, so the hand-off
+  // to playback is seamless, and the still a reduced-motion reader gets.
+  if (theme === "dark") {
+    const crop2x = `crop=${W * SS}:${H * SS}:${M.x * SS}:${M.y * SS}`;
+    args(["-framerate", String(FPS), "-i", join(tmp, "f%04d.png"), "-vf", crop2x,
+          "-c:v", "libx264", "-preset", "veryslow", "-tune", "animation", "-crf", "28",
+          "-pix_fmt", "yuv420p", "-movflags", "+faststart", join(root, "docs/assets/zoom-dark.mp4")]);
+    args(["-i", join(tmp, "f0000.png"), "-vf", crop2x,
+          "-c:v", "libwebp", "-quality", "90", join(root, "docs/assets/zoom-dark.webp")]);
+  }
   // KEEP_FRAMES=1 leaves the PNGs behind. Palette and dither settings can only
   // be judged by comparing encodes of the *same* frames, and re-rendering 166
   // of them between attempts is both slow and one more variable.
