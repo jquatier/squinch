@@ -1,32 +1,34 @@
-// Payments architecture for design review
+pack aws
 
-system payments "Payments System" {
-  gw   = aws/api-gateway "API Gateway"
-  auth = aws/lambda      "Auth Service"
-  api  = aws/lambda      "Payment API"
-  ledger = sys/database  "Ledger" datastore {
+person reviewer "Reviewer"
+
+system payments "Payments Architecture" {
+  gw = aws/api-gateway "API Gateway"
+  auth = aws/lambda "Auth Service" {
+    subtitle: "Auth & Authz"
+  }
+  ledger = aws/rds "Ledger" datastore {
     subtitle: "Postgres"
   }
-  worker = aws/lambda    "Settlement Worker" {
-    description: "Batches payments overnight"
+  worker = aws/lambda "Settlement Worker" {
+    subtitle: "Batch processor"
   }
-  bank = box             "Bank" external
+  bank = box "Bank API" external
 
   gw -> auth
-  gw -> api
-  api -> ledger "records transaction"
-  worker -> ledger "reads batch"
-  worker -> bank "settles overnight"
+  gw -> ledger "transactions"
+  auth -> ledger "validate"
+  worker -> ledger "query pending"
+  worker -> bank "batch settlement"
 }
+
+reviewer -> payments.gw "review design"
 
 view payments {
   title "Payments Architecture"
   titleblock {
     version: "2.1"
-    owner: payments-team
-    date: "Q1 2026"
-  }
-  layout {
-    rows [gw] [auth api] [ledger worker] [bank]
+    owner: "payments team"
+    subtitle: "Q1 2026"
   }
 }

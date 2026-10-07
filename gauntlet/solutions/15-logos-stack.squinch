@@ -1,11 +1,10 @@
+// Stack diagram using real product logos (logos pack)
 pack logos
-pack k8s
 
 person dev "Developer"
-person user "User"
 
-system platform "Application Platform" {
-  description: "Modern web application stack"
+system stack "Application Stack" {
+  description: "Next.js frontend with NestJS backend"
 
   frontend = logos/nextdotjs "Frontend" {
     subtitle: "Next.js"
@@ -27,38 +26,33 @@ system platform "Application Platform" {
     subtitle: "Kafka"
   }
 
-  monitoring = logos/grafana "Monitoring" {
-    subtitle: "Grafana"
-  }
-
-  user -> frontend "browses"
-  frontend -> api "API calls"
+  frontend -> api "requests"
   api -> db "queries"
-  api -> cache "caches"
+  api -> cache "reads/writes"
   api ~> events "publishes events"
-  api -> monitoring "metrics"
-  frontend -> monitoring "metrics"
-  db -> monitoring "metrics"
 }
 
-system cicd "CI/CD Pipeline" {
-  description: "Deployment automation"
-
-  repo = logos/github "Repository" {
-    subtitle: "GitHub"
-  }
-
-  cluster = logos/kubernetes "Cluster" {
-    subtitle: "Kubernetes"
-  }
-
-  repo ~> cluster "deploys"
+monitoring = logos/grafana "Monitoring" {
+  subtitle: "Grafana"
 }
 
-dev -> cicd.repo "pushes code"
-cicd.cluster -> platform "hosts"
+github = logos/github "GitHub" {
+  subtitle: "Source Control"
+}
+
+k8s = logos/kubernetes "Kubernetes" {
+  subtitle: "Container Orchestration"
+}
+
+dev -> github "pushes code"
+github ~> k8s "CI/CD deployment"
+k8s -> stack "runs"
+monitoring -> stack "observes"
 
 view landscape {
   title "Application Stack"
   include *
+  layout {
+    rows [dev] [github] [k8s] [stack monitoring]
+  }
 }

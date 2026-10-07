@@ -1,34 +1,49 @@
 pack aws
 
-system notifications "Notifications Service" {
-  description: "Send notifications via SES with preferences and delivery tracking"
+system notifications "Notification Service" {
+  description: "Async email delivery pipeline"
 
   api = aws/api-gateway "API Gateway"
-  receive = aws/lambda "Receive Handler" {
-    subtitle: "Validates send requests"
+
+  receiver = aws/lambda "Request Handler" {
+    subtitle: "Validates and enqueues"
   }
+
   queue = aws/sqs "Send Queue"
+
   sender = aws/lambda "Sender Worker" {
-    subtitle: "Queue processor"
-  }
-  ses = aws/ses "SES"
-
-  preferences = aws/dynamodb "Preferences" datastore {
-    subtitle: "User settings"
-  }
-  delivery_log = aws/dynamodb "Delivery Log" datastore {
-    subtitle: "Send history and status"
+    subtitle: "Processes and delivers"
   }
 
-  api -> receive
-  receive -> preferences "reads"
-  receive ~> queue "enqueues"
-  queue ~> sender
+  ses = aws/ses "SES" {
+    description: "Email delivery service"
+  }
+
+  container prefs_db "Preferences" {
+    icon: aws/dynamodb
+    description: "DynamoDB · 1 table"
+    preferences = sys/table "preferences" datastore
+  }
+
+  container log_db "Delivery Log" {
+    icon: aws/dynamodb
+    description: "DynamoDB · 1 table"
+    delivery_log = sys/table "delivery-log" datastore
+  }
+
+  api -> receiver
+  receiver -> prefs_db.preferences "reads"
+  receiver ~> queue "enqueues"
+  sender -> queue "polls"
   sender -> ses "sends"
-  sender -> delivery_log "writes"
+  sender -> log_db.delivery_log "writes"
+}
 
+view notifications {
+  title "Notification Service"
   layout {
-    rows [api] [receive] [queue] [sender ses] [preferences delivery_log]
-    place preferences left-of delivery_log
+    rows [api] [receiver] [queue sender] [ses]
+    place prefs_db.preferences right-of receiver
+    place log_db.delivery_log right-of sender
   }
 }

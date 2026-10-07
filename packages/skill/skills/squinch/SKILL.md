@@ -45,11 +45,28 @@ squinch render diagrams/ -o diagram.html     # every view, both palettes, click-
   view and a theme switch, and it needs no server — point the user at it
   first. A project with several views is unreadable as a pile of SVGs.
 - **PNG is the exception**, not the default: render one only when the user
-  asks for an image, slides, or a surface that cannot show SVG.
+  asks for an image, slides, or a surface that cannot show SVG. A PNG you
+  render to check your own work is a different thing (quality bar 3) and
+  stays out of the hand-over.
 - Every render carries the tool version that drew it (`data-squinch` on the
   root `<svg>`), and `render --check` re-renders and compares, so committed
   SVGs can gate CI. For a throwaway diagram that lives nowhere, two explicit
   `--theme` renders plus the HTML are the lighter recipe.
+
+Then end your reply with three or four short bullets, each a plain sentence
+you would say to a colleague:
+
+- Open `diagram.html` — it has the landscape and orders views, light and dark.
+- I guessed that the services run on Lambda and that Postgres means RDS; the
+  request named neither.
+- I looked at both views. The one rough spot is the Kafka wire running round
+  the right edge; moving it made the services row harder to read, so I left it.
+
+The first three are never skipped: where to open it; what you guessed — every
+product, cloud or runtime the request did not name — or "Nothing guessed" when
+that is true; and what you saw when you looked, or that you could not look. A
+fourth bullet is for how you grouped a big system, or a warning you kept.
+Don't describe the components or the layout: the diagram shows them.
 
 0. If the system is big — a whole repo, a platform — decide its *areas* before
    you write a node, because no layout hint rescues everything on one page: see
@@ -452,6 +469,13 @@ view steps { include *
   edges that skip a band detour around it and the fold reads worse than the
   wide version. That is what `wrap N` is for — it folds the chain as a
   serpentine, or the fan-out onto a bus, and routes the fold cleanly.
+- **`wrap N` puts N in each band, and N sets the shape** — for a chain and a
+  fan-out alike. For a slide, roughly 16:9, use N ≈ √(nodes being folded),
+  rounded up: a 14-step chain is `wrap 4`, and so are twelve workers under
+  one dispatcher. Half per band (`wrap 7` on fourteen) is a ribbon, not a
+  slide. Leave `direction right` out of a wide fold: a band is a rank, and
+  under `direction right` ranks are columns, so `wrap 7` becomes two tall
+  columns of seven.
 - **Every edge must point down your bands** — check each band against your
   arrows before you write it. The bands are a claim about direction, and a node
   pointing back *up* the list is a check error, not a nudge. This bites on
@@ -562,7 +586,7 @@ view detail {
 | A full-detail view came out tall — want it wide | Add `layout { rows … }` banding the expanded systems side by side; calls between them route through the gutters and land on the cards |
 | An expanded system's insides are in the wrong order or tier | Give the system its own `layout { rows … }` in short names — it follows the system into every view. Or name the interior paths in the view's `rows` (`[app.api] [app.db app.cache]`), which replaces the system's block for that view |
 | A pipeline inside a system should read left to right while the view flows down | `layout { direction right }` inside that system — its interior becomes a row wherever it is opened; the view keeps its own direction |
-| A long chain renders as a tall strip, or a wide fan-out runs off the page | `layout { wrap 5 }` — folds one chain into a serpentine, or one source's fan-out into bands under it (the skipping edges become a bus). Two shapes only; anything else warns and names the `rows` line to write instead. Never beside `rows`/`cols` |
+| A long chain renders as a tall strip, or a wide fan-out runs off the page | `layout { wrap 5 }` — folds one chain into a serpentine, or one source's fan-out into bands under it (the skipping edges become a bus). Two shapes only; anything else warns and names the `rows` line to write instead. Never beside `rows`/`cols`. For a 16:9 slide, N ≈ √(steps) rounded up, and no `direction right` |
 | "`wrap 5` has no effect — this view is not a single chain or a single fan-out (…)" warning | `wrap` folds exactly one chain (a → b → c …) or one source fanning out to leaves. Write the bands by hand: `rows [a b] [c d]` |
 | "`a` and `b` are asked to share a row inside `s`, but the edge between them cannot be routed there" warning | Same-rank edges route between systems, not inside one. Put `b` in the row below `a`, or collapse `s` in this view |
 | "hint conflict: `rows` puts `a` and `b` in one band, but `k` sits on the path between them and is in no band — `b` lands a tier later" error | Something you did not list sits between two things you put side by side — usually a shared bus or queue (`a ~> k ~> b`). A band is one tier, so `b` cannot be beside `a` and below `k` at once. Paste the `rows` line the fix writes out: it lists `k` too, in its own band or beside whichever side the arrows allow. On a big landscape, expect this the moment you band the areas and forget the bus |
@@ -738,8 +762,15 @@ icon, and that contrast is what makes the platform boundary readable.
 2. **Every view** you declared is rendered in both `--theme light` and
    `--theme dark`, plus the interactive `.html` — and all of it is handed
    over, not just checked (see "What to hand over").
-3. Look at the SVG: tiers read top-to-bottom (or left-to-right), no edge takes a
-   baffling detour, async flows (`~>`) are dashed, related things sit together.
+3. **Look at the picture, not the markup.** SVG source cannot show you a
+   detour. Rasterise each view beside the source and open the image —
+   `squinch render diagram.squinch --view NAME -o NAME.check.png` — then
+   delete the `.check.png` files when you are done. Keep them inside your
+   working directory: a path like `/tmp` is often one you may not read. One
+   theme is enough, both share one layout. Tiers read top-to-bottom (or
+   left-to-right), no edge takes a baffling detour, async flows (`~>`) are
+   dashed, related things sit together. If you could not view the image, say
+   so in the hand-over and make no claim about how the layout looks.
 4. Labels are short noun phrases. A `subtitle:` of a few words says what a
    leaf runs on or who owns it; anything longer goes in `description`, never
    the label.
@@ -753,3 +784,10 @@ icon, and that contrast is what makes the platform boundary readable.
    `person`, and a stack diagram that draws only the technology has left out
    who uses it. Re-read the request and check each noun appears — a human is a
    `person`, not a box and not omitted.
+7. **Nothing is in the diagram that the request does not support.** A reader
+   takes every box as a fact, so a CDN, WAF, cache or queue that nothing in
+   the request implies is a guess presented as truth — leave it out. The same
+   goes for glue: an API or worker you put between two things the request
+   names, and a product you picked where it named only a kind ("Postgres" is
+   not "RDS"). When the picture cannot be drawn without filling a gap, draw
+   the plainest reading and say what you guessed in the hand-over.

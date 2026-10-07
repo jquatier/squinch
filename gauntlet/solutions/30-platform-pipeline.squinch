@@ -3,13 +3,14 @@ pack aws
 stream = aws/kinesis "Event Stream"
 
 system platform "Data Platform" {
-  description: "Ingestion pipeline and catalog"
+  description: "Ingestion pipeline and catalog services"
+  icon: aws/glue
 
   extract  = aws/lambda "Extract"
   validate = aws/lambda "Validate"
   enrich   = aws/lambda "Enrich"
   publish  = aws/lambda "Publish"
-  catalog  = aws/dynamodb "Catalog" datastore
+  catalog  = aws/glue   "Catalog" datastore
 
   extract -> validate
   validate -> enrich
@@ -21,15 +22,12 @@ system platform "Data Platform" {
   }
 }
 
-warehouse = aws/redshift "Data Warehouse" datastore
+warehouse = aws/redshift "Warehouse" datastore
 
 stream ~> platform.extract "events"
-platform.publish -> warehouse "writes"
+platform.publish -> warehouse "write"
 
 view pipeline {
   title "Data Platform Pipeline"
   expand platform
-  layout {
-    rows [stream] [platform] [warehouse]
-  }
 }

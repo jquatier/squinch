@@ -1,20 +1,19 @@
-// Nightly batch pipeline - 14 Lambda steps in sequence
 pack aws
 
-extract    = aws/lambda "Extract"
-validate   = aws/lambda "Validate"
-dedupe     = aws/lambda "Dedupe"
-normalize  = aws/lambda "Normalize"
-enrich     = aws/lambda "Enrich"
-score      = aws/lambda "Score"
-aggregate  = aws/lambda "Aggregate"
-partition  = aws/lambda "Partition"
-compress   = aws/lambda "Compress"
-encrypt    = aws/lambda "Encrypt"
-upload     = aws/lambda "Upload"
-catalog    = aws/lambda "Catalog"
-verify     = aws/lambda "Verify"
-notify     = aws/lambda "Notify"
+extract   = aws/lambda "Extract"
+validate  = aws/lambda "Validate"
+dedupe    = aws/lambda "Dedupe"
+normalize = aws/lambda "Normalize"
+enrich    = aws/lambda "Enrich"
+score     = aws/lambda "Score"
+aggregate = aws/lambda "Aggregate"
+partition = aws/lambda "Partition"
+compress  = aws/lambda "Compress"
+encrypt   = aws/lambda "Encrypt"
+upload    = aws/lambda "Upload"
+catalog   = aws/lambda "Catalog"
+verify    = aws/lambda "Verify"
+notify    = aws/lambda "Notify"
 
 extract -> validate
 validate -> dedupe
@@ -32,7 +31,6 @@ verify -> notify
 
 view pipeline {
   title "Nightly Batch Pipeline"
-  include *
   layout {
     wrap 4
   }

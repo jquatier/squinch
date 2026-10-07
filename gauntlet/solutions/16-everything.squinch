@@ -1,62 +1,56 @@
-// Order platform architecture
 pack aws
 
 person customer "Customer"
 
-storefront = aws/cloudfront "Storefront"
+cdn = aws/cloudfront "CloudFront CDN"
+gw = aws/api-gateway "API Gateway"
 
 system catalog "Catalog Service" {
   description: "Product catalog and search"
-  icon: aws/lambda
   api = aws/lambda "Catalog Handler"
-  db = aws/dynamodb "Products" datastore
+  db = aws/dynamodb "Catalog DB" datastore
 
   api -> db
 }
 
 system orders "Orders Service" {
-  description: "Order processing and management"
-  icon: aws/lambda
+  description: "Order management and processing"
   api = aws/lambda "Orders Handler"
-  db = aws/dynamodb "Orders" datastore
+  db = aws/dynamodb "Orders DB" datastore
 
   api -> db
-  api ~> events "order events"
+  api ~> bus "publish events"
 }
 
 system payments "Payments Service" {
   description: "Payment processing"
-  icon: aws/lambda
   tags: #sensitive
-  api = aws/lambda "Payment Handler" #sensitive
-  db = aws/dynamodb "Transactions" datastore #sensitive
+  api = aws/lambda "Payments Handler"
+  db = aws/dynamodb "Payments DB" datastore
 
   api -> db { tags: #sensitive }
 }
 
-gw = aws/api-gateway "API Gateway"
-events = aws/eventbridge "Event Bus"
-fulfilment = aws/lambda "Fulfilment Worker"
+bus = aws/eventbridge "Event Bus"
+fulfillment = aws/lambda "Fulfillment Worker"
 
-customer -> storefront "browse"
-storefront -> gw "API calls"
+customer -> cdn "browse"
+cdn -> gw
 gw -> catalog.api "catalog requests"
 gw -> orders.api "order requests"
 gw -> payments.api "payment requests" { tags: #sensitive }
-events ~> fulfilment "order events"
+bus ~> fulfillment "order events"
 
 zone prod_vpc "Production VPC" vpc {
-  contains gw, catalog, orders, payments, events, fulfilment
+  contains gw, catalog, orders, payments, bus, fulfillment
 }
 
 view landscape {
   title "Order Platform - Landscape"
   include *
   color #sensitive amber
-  legend auto
 }
 
 view orders {
   title "Orders Service - Detail"
-  legend auto
 }

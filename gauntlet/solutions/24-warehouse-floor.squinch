@@ -1,75 +1,38 @@
-// Warehouse floor automation system
+// Warehouse automation system - physical deployment
+pack logos
 
-person supervisor "Shift Supervisor"
+supervisor = person "Shift Supervisor"
 
-system floor "Warehouse Floor" {
-  description: "Packing automation and control"
+scanner1 = sys/smartphone "Scanner 1" { subtitle: "Bench A" }
+scanner2 = sys/smartphone "Scanner 2" { subtitle: "Bench B" }
+scanner3 = sys/smartphone "Scanner 3" { subtitle: "Bench C" }
 
-  // Packing benches with barcode scanners
-  bench1 = sys/monitor "Packing Bench 1" {
-    subtitle: "Barcode scanner"
-  }
-  bench2 = sys/monitor "Packing Bench 2" {
-    subtitle: "Barcode scanner"
-  }
-  bench3 = sys/monitor "Packing Bench 3" {
-    subtitle: "Barcode scanner"
-  }
+controller = sys/server "Local Controller" { subtitle: "On-prem server" }
 
-  // Local controller
-  controller = sys/server "Floor Controller" {
-    description: "Orchestrates packing and sorting"
-    subtitle: "On-premise"
-  }
+sorter   = sys/router    "Conveyor Sorter"
+printer  = sys/printer   "Label Printer"
+board    = sys/monitor   "Status Board"
+erp      = box           "ERP" external { subtitle: "Corporate" }
 
-  // Output devices
-  sorter = sys/route "Conveyor Sorter" {
-    description: "Routes packages by destination"
-  }
-  printer = sys/printer "Label Printer"
+scanner1 -> controller "scan data"
+scanner2 -> controller "scan data"
+scanner3 -> controller "scan data"
 
-  // Status monitoring
-  board = sys/monitor "Status Board" {
-    description: "Real-time floor status display"
-  }
+controller -> sorter   "sort commands"
+controller -> printer  "print labels"
+controller -> board    "status updates"
+controller ~> erp      "sync batch · 1 min"
 
-  // Barcode scanners feed the controller
-  bench1 -> controller "scan events"
-  bench2 -> controller "scan events"
-  bench3 -> controller "scan events"
+supervisor -> board    "monitors"
 
-  // Controller drives automation
-  controller -> sorter "routing commands"
-  controller -> printer "print jobs"
+zone floor "Warehouse Floor" onprem {
+  contains scanner1, scanner2, scanner3, controller, sorter, printer, board
+  icon: sys/warehouse
+}
 
-  // Supervisor watches status
-  controller -> board "status updates"
-
+view landscape {
+  title "Warehouse Automation"
   layout {
-    rows [bench1 bench2 bench3] [controller] [sorter printer board]
-  }
-}
-
-// External ERP system
-erp = box "ERP System" external {
-  description: "Enterprise resource planning"
-  subtitle: "Site network"
-}
-
-// Controller syncs to ERP
-floor.controller ~> erp "sync batch (every minute)"
-
-// Supervisor watches the board
-supervisor -> floor.board "monitors"
-
-zone site_network "Site Network" network {
-  contains floor, erp
-}
-
-view warehouse {
-  title "Warehouse Floor Automation"
-  expand floor
-  titleblock {
-    subtitle: "Physical automation system"
+    rows [supervisor] [controller] [erp]
   }
 }

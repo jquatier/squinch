@@ -210,13 +210,15 @@ extension + language server, six icon packs, and the light/dark pair. The accept
 bar — an agent producing clean diagrams from prose using only the skill + CLI —
 is certified at **37/37
 by independent cold agents** on the committed corpus; the latest full round scored
-36/37 with **23/37 clean on the first `check`** (round 28, run for the skill's
-"Tables" paragraph — a database the reader wants opened is a `container` of
-`sys/table` leaves, a serverless table stays a node — with two prompts and the
-scorer's `inside`/`siblings` expectations added for it; both new prompts passed
-and none of the standing 35 opened a database unasked. Columns were tried three
-ways and cut: squinch draws tables, not schemas. The one miss, 34, is the
-large-system prompt that varies, so the corpus keeps round 27's answer for it). Positional tags work on nodes, container heads and
+35/37 with **25/37 clean on the first `check`** (round 29, run for the skill's
+hand-over: the agent rasterises each view beside the source and opens it,
+draws nothing the request does not support, and ends with three or four plain
+bullets — where to open it, what it guessed, what it saw. Agents now look and
+say what they guessed; looking fixed one layout in thirty-seven. The round
+surfaced that no wording told an agent how to pick `wrap N` for a slide, and
+the paragraph that does took 32 from 2 of 7 to 6 of 6. The other miss, 34, is
+the large-system prompt that varies, so the corpus keeps round 27's answer
+for it). Positional tags work on nodes, container heads and
 edges; a comma is optional wherever whitespace already separates. `gauntlet/README.md` writes up the latest round only: every round's
 findings land as a code or docs change in the same commit, so the fixes are the
 record. The number is never the point — a round that scores full marks and

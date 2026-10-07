@@ -1,7 +1,7 @@
 pack aws
 
 system billing "Billing Service" {
-  description: "API and nightly export"
+  description: "API, export job, and database"
 
   api = aws/ecs "Billing API" {
     subtitle: "ECS Fargate"
@@ -24,13 +24,23 @@ system billing "Billing Service" {
   }
 
   export = aws/lambda "Nightly Export" {
-    description: "Reads invoices and exports to S3"
+    subtitle: "Lambda · scheduled"
   }
 
-  bucket = aws/s3 "Export Files" datastore
+  files = aws/s3 "Exports" datastore
 
   api    -> db.invoices "writes"
   api    -> db.payments "writes"
   export -> db.invoices "reads"
-  export -> bucket      "writes file"
+  export -> files       "writes"
+}
+
+view landscape {
+  title "Billing Service Landscape"
+  include *
+}
+
+view billing {
+  title "Billing Service Detail"
+  expand db
 }

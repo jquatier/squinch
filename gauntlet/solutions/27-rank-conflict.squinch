@@ -1,17 +1,15 @@
-// Approval chain architecture
+// Approval chain with rank conflict resolution
+system approval "Approval Chain" {
+  request  = box "Request Service"
+  policy   = box "Policy Engine"
+  approver = box "Approver Service"
+  audit    = box "Audit Log" datastore
 
-request  = box "Request Service"
-policy   = box "Policy Engine"
-approver = box "Approver Service"
-audit    = box "Audit Log" datastore
+  request -> policy
+  policy -> approver
+  approver -> audit
 
-request -> policy
-policy  -> approver
-approver -> audit
-
-view main {
-  title "Approval Chain"
   layout {
-    rows [request] [policy] [audit approver]
+    rows [request] [policy approver audit]
   }
 }

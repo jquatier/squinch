@@ -1,50 +1,44 @@
 pack aws
 
-system payments "Payment Platform" {
+system payments "Payments Platform" {
   description: "Payment processing and analytics"
 
-  api = aws/lambda "API Handler" #pci {
-    subtitle: "Lambda · Node 20"
-    description: "Receives and validates payment requests"
+  api = aws/lambda "API Handler" {
+    description: "Processes payment requests"
+    tags: #pci
   }
 
-  tokenizer = aws/lambda "Tokenizer" #pci {
-    subtitle: "Lambda · Node 20"
-    description: "Tokenizes sensitive card data"
+  tokenizer = aws/lambda "Tokenizer" {
+    description: "Tokenizes card data"
+    tags: #pci
   }
 
-  vault = aws/dynamodb "Card Vault" datastore #pci {
-    subtitle: "DynamoDB"
-    description: "Encrypted storage for tokenized card data"
+  vault = aws/dynamodb "Card Vault" datastore {
+    description: "Stores tokenized card data"
+    tags: #pci
   }
 
-  analytics = aws/lambda "Analytics Processor" {
-    subtitle: "Lambda · Python 3.11"
-    description: "Processes transaction metrics"
+  analytics = aws/lambda "Analytics Handler" {
+    description: "Processes analytics events"
   }
 
-  warehouse = aws/redshift "Analytics Warehouse" datastore {
-    subtitle: "Redshift"
-    description: "Transaction analytics and reporting"
+  warehouse = aws/redshift "Data Warehouse" datastore {
+    description: "Analytics data store"
   }
 
-  // Payment flow
-  api -> tokenizer "validate payment"
+  api -> tokenizer "tokenize card"
   tokenizer -> vault "store token"
-  tokenizer ~> analytics "transaction event"
-  analytics -> warehouse "load metrics"
+  api ~> analytics "payment event"
+  analytics -> warehouse "store analytics"
 }
 
 view full {
-  title "Payment Platform - Full Architecture"
+  title "Payments Platform — Full Detail"
   scope payments
-  layout {
-    rows [api] [tokenizer] [vault analytics] [warehouse]
-  }
 }
 
 view auditor {
-  title "Payment Platform - PCI Compliance Scope"
+  title "Payments Platform — PCI Scope"
   scope payments
   only #pci
   highlight #pci

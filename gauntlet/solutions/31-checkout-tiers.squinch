@@ -1,6 +1,7 @@
 pack aws
 
 person shopper "Shopper"
+
 cdn = aws/cloudfront "CDN"
 
 system checkout "Checkout" {
@@ -25,7 +26,7 @@ system checkout "Checkout" {
   }
 }
 
-fulfillment = box "Fulfillment"
+fulfillment = aws/lambda "Fulfillment"
 
 shopper -> cdn
 cdn -> checkout.api

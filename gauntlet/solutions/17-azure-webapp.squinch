@@ -2,27 +2,18 @@ pack azure
 
 person customer "Customer"
 
-system webapp "Web Application" {
-  description: "Azure-hosted web application"
-
-  frontdoor = azure/front-door "Front Door"
-  app       = azure/app-services "App Service" {
-    subtitle: "Web tier"
-  }
-  sql       = azure/sql "SQL Database" datastore
-  cache     = azure/redis "Redis Cache" datastore
-  vault     = azure/key-vault "Key Vault"
-  insights  = azure/application-insights "Application Insights"
-
-  frontdoor -> app "routes traffic"
-  app -> sql "reads/writes"
-  app -> cache "caches data"
-  app -> vault "retrieves secrets"
-  app ~> insights "telemetry"
-
-  layout {
-    rows [frontdoor] [app] [sql cache vault insights]
-  }
+frontdoor = azure/front-door "Azure Front Door"
+appservice = azure/app-services "Web App" {
+  subtitle: "App Service"
 }
+sql = azure/sql "SQL Database" datastore
+cache = azure/redis "Redis Cache" datastore
+vault = azure/key-vault "Key Vault"
+insights = azure/application-insights "Application Insights"
 
-customer -> webapp.frontdoor "accesses"
+customer -> frontdoor "HTTPS"
+frontdoor -> appservice "routes traffic"
+appservice -> sql "read/write"
+appservice -> cache "cache ops"
+appservice -> vault "fetch secrets"
+appservice ~> insights "telemetry"

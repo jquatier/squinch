@@ -1,18 +1,17 @@
-// Hybrid legacy ERP to cloud migration
 pack aws
 
 person admin "Administrator"
 
 erp = sys/server "Legacy ERP" external {
-  subtitle: "On-premises"
+  description: "On-premises enterprise resource planning"
 }
 
-sync_worker = aws/lambda "Sync Worker" {
-  description: "Syncs ERP data to cloud"
+worker = aws/lambda "Sync Worker" {
+  description: "Syncs data from ERP to RDS"
 }
 
 db = aws/rds "Admin Database" datastore {
-  subtitle: "RDS Postgres"
+  description: "Stores synced ERP data"
 }
 
 dashboard = sys/app-window "Admin Dashboard" {
@@ -20,8 +19,7 @@ dashboard = sys/app-window "Admin Dashboard" {
   subtitle: "Web App"
 }
 
-// connections
-erp ~> sync_worker "data feed"
-sync_worker -> db "writes"
-dashboard -> db "reads"
+erp ~> worker "data feed"
+worker -> db "writes"
+dashboard -> db "queries"
 admin -> dashboard "uses"

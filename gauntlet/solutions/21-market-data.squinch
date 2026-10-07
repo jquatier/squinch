@@ -1,49 +1,45 @@
-// Market data flow diagram
+// Market data processing pipeline
 pack aws
 
 // External systems
-exchange = box "Exchange" external
-clearing = box "Clearing House" external
+exchange      = box "Exchange" external
+clearing      = box "Clearing House" external
 
 // Core components
-feed = aws/kinesis "Feed Handler" {
-  description: "Ingests and normalises price stream"
+feed_handler  = aws/lambda "Feed Handler" {
+  subtitle: "Lambda · Node 20"
+  description: "Ingests continuous price stream"
 }
-
-pricing = aws/lambda "Pricing Engine" {
-  description: "Processes ticks and serves prices"
+pricing       = aws/lambda "Pricing Engine" {
+  subtitle: "Lambda · Python"
+  description: "Normalises ticks and serves prices"
 }
-
-ui = sys/app-window "Trading UI" {
+ui            = sys/app-window "Trading UI" {
   description: "Real-time price display"
 }
-
-risk = aws/lambda "Risk Service" {
-  description: "Market risk monitoring"
+reconcile     = aws/batch "Reconciliation Job" {
+  subtitle: "Batch · Nightly"
+  description: "Validates fills against clearing house"
+}
+risk          = aws/lambda "Risk Service" {
+  subtitle: "Lambda · Java"
+  description: "Health monitoring"
 }
 
-batch = aws/batch "Reconciliation Job" {
-  description: "Nightly fill reconciliation"
-  subtitle: "Runs overnight"
-}
+// Connections
+exchange      ~> feed_handler "price stream" { animate: packets }
+feed_handler  ~> pricing "normalised ticks" { animate: fast }
+pricing       ~> ui "subscription"
+clearing      -> reconcile "daily fills" { color: amber }
+risk          -> pricing "health poll" { animate: pulse, style: dotted }
 
-// Continuous data flow
-exchange ~> feed "price stream" { animate: packets }
-feed ~> pricing "ticks" { animate: fast }
-pricing ~> ui "subscribe" { animate: slow }
-
-// Polling for health
-risk -> pricing "health check" { animate: pulse }
-
-// Nightly batch job
-batch -> clearing "reconcile fills" { color: amber }
-
-view market-data {
-  title "Market Data Flow"
+view main {
+  title "Market Data Pipeline"
   layout {
-    rows [exchange] [feed] [pricing risk] [ui] [batch clearing]
-    place risk right-of pricing
-    place clearing right-of batch
+    rows [exchange] [feed_handler] [pricing risk] [ui]
+    place reconcile right-of ui
   }
-  legend auto
+  titleblock {
+    subtitle: "Data flow architecture"
+  }
 }

@@ -3,32 +3,22 @@ pack logos
 
 person customer "Customer"
 
-mobile = box "Mobile App"
-web = box "Website"
+mobile = sys/smartphone "Mobile App"
+web = sys/app-window "Website"
 gw = aws/api-gateway "API Gateway"
 
-system account "Account Service" {
-  api = aws/lambda "Account API"
-  db = sys/database "Account DB" datastore {
-    badge: logos/postgres
-    subtitle: "Postgres"
-  }
-  exporter = aws/lambda "Data Exporter"
-  bucket = aws/s3 "Export Bucket" datastore
+account = aws/lambda "Account Service"
+billing = aws/lambda "Billing Service"
 
-  api -> db "writes"
-  db -> exporter "nightly"
-  exporter -> bucket
+account_db = aws/rds "Account DB" datastore {
+  subtitle: "Postgres"
+}
+billing_db = aws/rds "Billing DB" datastore {
+  subtitle: "Postgres"
 }
 
-system billing "Billing Service" {
-  api = aws/lambda "Billing API"
-  db = sys/database "Billing DB" datastore {
-    badge: logos/postgres
-    subtitle: "Postgres"
-  }
-
-  api -> db
+export = aws/s3 "Data Export" datastore {
+  subtitle: "Nightly export"
 }
 
 stripe = box "Stripe" external
@@ -37,9 +27,12 @@ customer -> mobile
 customer -> web
 mobile -> gw
 web -> gw
-gw -> account.api
-gw -> billing.api
-billing.api -> stripe
+gw -> account
+gw -> billing
+account -> account_db
+billing -> billing_db
+billing -> stripe
+account_db ~> export "nightly export"
 
 view landscape {
   title "System Architecture"

@@ -1,40 +1,35 @@
+// Lambda-based API with three handlers behind API Gateway
 pack aws
 
-// API tier
 gw = aws/api-gateway "API Gateway"
 
-// Handler tier
 create = aws/lambda "Create Handler"
 get    = aws/lambda "Get Handler"
 search = aws/lambda "Search Handler"
 
-// Sync tier (stream processor)
-sync = aws/lambda "Stream Sync"
+db    = aws/dynamodb   "Orders Table" datastore
+files = aws/s3         "Files Bucket" datastore
+idx   = aws/opensearch "Search Index" datastore
 
-// Storage tier
-db    = aws/dynamodb  "DynamoDB" datastore
-files = aws/s3        "S3 Bucket" datastore
-idx   = aws/opensearch "OpenSearch" datastore
+sync = aws/lambda "Stream Processor"
 
-// Sync connections
 gw -> create
 gw -> get
 gw -> search
 
 create -> db
 create -> files
-get -> db
-get -> files
+get    -> db
+get    -> files
 search -> idx
 
-// Async stream processing
 db ~> sync "DynamoDB stream"
 sync -> idx
 
-// Layout
-view main {
-  title "Lambda-based API Architecture"
+view api {
+  title "Lambda-based API"
   layout {
-    rows [gw] [create get search] [db files sync idx]
+    rows [gw] [create get search] [db files idx sync]
+    place sync right-of idx
   }
 }

@@ -1,41 +1,48 @@
 pack aws
 
 system payments "Payment Service" {
-  description: "PCI-compliant payment processing"
+  description: "Card processing, tokenization, and settlement"
 
-  api = aws/lambda "Payment API" {
-    description: "Accepts payment requests"
-  }
-
-  tokenizer = aws/lambda "Card Tokenizer" #pci {
-    description: "Tokenizes card data"
+  api       = aws/lambda    "Payment API" #pci {
     subtitle: "Lambda · Node 20"
+    description: "Receives payment requests with card data"
   }
 
-  vault = aws/dynamodb "Card Vault" datastore #pci {
-    description: "Encrypted token storage"
+  tokenizer = aws/lambda    "Tokenizer" #pci {
+    subtitle: "Lambda · Node 20"
+    description: "Tokenizes card data"
   }
 
-  queue = aws/sqs "Settlement Queue" #pci {
-    description: "Async settlement processing"
+  vault     = aws/dynamodb  "Card Vault" datastore #pci {
+    subtitle: "DynamoDB"
+    description: "Encrypted token-to-card mapping"
   }
 
-  worker = aws/lambda "Settlement Worker" #pci {
+  queue     = aws/sqs       "Settlement Queue" {
+    subtitle: "SQS FIFO"
+    description: "Settlement requests with tokens"
+  }
+
+  worker    = aws/lambda    "Settlement Worker" {
+    subtitle: "Lambda · Node 20"
     description: "Processes settlements"
-    subtitle: "Lambda · Python 3.12"
   }
 
-  api -> tokenizer "tokenize card"
-  tokenizer -> vault "store token"
-  tokenizer ~> queue "settlement event"
-  queue ~> worker "process"
+  api       -> tokenizer "card data"
+  tokenizer -> vault     "store token"
+  tokenizer ~> queue     "settlement request"
+  queue     ~> worker
 }
 
 view payments {
-  title "Payment Service Architecture"
+  title "Payment Service"
+}
+
+view pci_surface {
+  title "PCI Compliance Surface"
+  scope payments
   highlight #pci
-  note right-of vault "Tokens stored encrypted at rest; keys in KMS" {
+  note right-of vault "Tokens stored encrypted at rest; card data never persisted in plain text" {
     style: warning
   }
-  legend auto
 }
