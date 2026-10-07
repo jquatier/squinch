@@ -232,10 +232,16 @@ const outName = (base: string, view: string, theme: string) =>
 async function cmdCheck(path: string, json: boolean, notices: Notices = {}): Promise<number> {
   const input = loadInput(path);
   const built = buildProject(input.files);
-  // layout-stage diagnostics too: render every view
+  // Layout-stage diagnostics too: lay out every view the interactive export
+  // draws — the auto views included, not just the ones `--sync` commits. A
+  // system's own `layout { }` block takes effect only where that system is
+  // opened, and its auto view always opens it; some of its errors are
+  // measured off the finished layout. Checking declared views alone let a
+  // file check clean and then fail `render -o x.html` (gauntlet round 29).
   const all: Diagnostic[] = [...built.diagnostics];
+  const every = built.ok ? built.model.views.map((v) => v.name) : [];
   if (built.ok)
-    for (const { view } of targets(input))
+    for (const view of every.length ? every : [undefined])
       for (const theme of ["light"]) {
         const r = await renderProject(input.files, { ...(view ? { view } : {}), theme });
         for (const d of r.diagnostics)

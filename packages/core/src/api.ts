@@ -13,7 +13,7 @@ import { allPackNames, iconIds, iconMeta, iconExists, packExists, iconTitle } fr
 import { packInfo } from "./packs/registry.js";
 import { diffModels, formatDiff, formatDiffMarkdown } from "./diff/diff.js";
 import { suggest } from "./model/suggest.js";
-import type { BuildResult, Diagnostic, SView } from "./model/types.js";
+import type { BuildResult, Diagnostic, Loc, SModel, SView } from "./model/types.js";
 import { navViews, type NavView } from "./view/navigate.js";
 
 export { buildModel, buildProject, formatDiagnostics, layoutView, renderSVG, validateSVG, themes };
@@ -38,6 +38,32 @@ export * from "./view/camera.js";
 export { exportHTML } from "./render/html.js";
 export type { HTMLExportOpts, HTMLExportResult } from "./render/html.js";
 export type { Change, ChangeKind, DiffResult, Weight } from "./diff/diff.js";
+
+/**
+ * The file a layout-stage diagnostic belongs to. The layouter sees one view,
+ * not the files the model came from, so its diagnostics carried a loc and no
+ * file: `check` printed `input:9:3`, and in a project of several files the
+ * line alone named nothing. Their locs are the model's own objects — a
+ * zone's, a system's `layout { }` block's, else something the view itself
+ * declares — so the file is recovered by identity, not threaded through every
+ * site that reports.
+ */
+function stampFile(model: SModel, view: SView): (d: Diagnostic) => Diagnostic {
+  const byLoc = new Map<Loc, string | undefined>();
+  for (const z of model.zones) byLoc.set(z.loc, z.file);
+  for (const c of model.containers.values()) {
+    if (!c.layout) continue;
+    byLoc.set(c.layout.loc, c.file);
+    for (const pl of c.layout.place) byLoc.set(pl.loc, c.file);
+  }
+  return (d) => {
+    if (d.file !== undefined) return d;
+    const file = byLoc.has(d.loc) ? byLoc.get(d.loc) : view.file;
+    if (file === undefined) return d;
+    const { loc, ...rest } = d;
+    return { ...rest, file, loc };
+  };
+}
 
 /** Diff two projects by source — the common entry point. */
 export function diffProjects(before: ProjectFile[], after: ProjectFile[]) {
@@ -305,7 +331,7 @@ export async function renderProject(
     };
 
   const { positioned, diagnostics: layoutDiags } = await layoutView(built.model, view, theme.font);
-  diagnostics.push(...layoutDiags);
+  diagnostics.push(...layoutDiags.map(stampFile(built.model, view)));
   if (diagnostics.some((d) => d.severity === "error")) return { diagnostics, ok: false };
   const flow = positioned.flow
     ? {

@@ -84,9 +84,14 @@ export async function allDiagnosticsFor(src: string): Promise<FeatureDiagnostic[
   const built = buildProject([{ name: "doc.squinch", src }]);
   const out = built.diagnostics.map((d) => convert(src, d));
   if (built.ok) {
-    const views = built.model.views.filter((v) => !v.auto);
-    for (const v of views.length ? views : built.model.views.slice(0, 1)) {
-      const r = await renderProject([{ name: "doc.squinch", src }], { view: v.name });
+    // Every view the interactive export draws, auto views included — what
+    // `squinch check` lays out. A system's own `layout { }` takes effect only
+    // where that system is opened, and its auto view always opens it; the
+    // declared views alone let the editor show a file clean that the export
+    // then rejected (gauntlet round 29).
+    const views = built.model.views.map((v) => v.name);
+    for (const view of views.length ? views : [undefined]) {
+      const r = await renderProject([{ name: "doc.squinch", src }], view ? { view } : {});
       for (const d of r.diagnostics) out.push(convert(src, d));
     }
   }

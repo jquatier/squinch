@@ -241,6 +241,12 @@ export async function layoutView(
   // the view's hints replace the block outright (SPEC §6: explicit wins, all
   // or nothing — the same rule that makes `view <path>` the customization of
   // the auto view rather than an overlay on it).
+  //
+  // A diagnostic about those hints points at whichever block they came from.
+  // An auto view has no source of its own (its loc is the container's head),
+  // so an adopted block's error used to land on the `system` line, a few lines
+  // above the band the author has to edit.
+  let hintsLoc = view.loc;
   {
     const own = view.scope ? model.containers.get(view.scope)?.layout : undefined;
     // `wrap` is a rows line the engine writes, so it counts as the view's own
@@ -250,11 +256,13 @@ export async function layoutView(
     const viewHints = !!(
       view.layout.rows || view.layout.cols || view.layout.place.length || view.layout.direction || view.layout.wrap
     );
-    if (own && !viewHints)
+    if (own && !viewHints) {
       view = {
         ...view,
         layout: { ...view.layout, rows: own.rows, cols: own.cols, place: own.place, direction: own.direction },
       };
+      hintsLoc = own.loc;
+    }
   }
   const graph = resolveView(model, view);
   const diagnostics = [...graph.diagnostics];
@@ -638,7 +646,7 @@ export async function layoutView(
           `rows/cols/place order things *between* zones, not within one. ` +
           `Name a single member to rank the zone as a whole, ` +
           `or drop the boundary if the order inside it matters more.`,
-        loc: view.loc,
+        loc: hintsLoc,
       });
     }
   }
@@ -917,7 +925,7 @@ export async function layoutView(
         // suggestion is worse than a vague right one.
         fix: mergedRowsFix(a, b) ??
           `put ${named(e.to, b)} in a row below ${named(e.from, a)}, or drop one of them from \`rows\``,
-        loc: view.loc,
+        loc: hintsLoc,
       });
     }
   }
@@ -1937,7 +1945,7 @@ export async function layoutView(
         fix: proposed
           ? `write \`rows ${proposed.map((b) => `[${b.join(" ")}]`).join(" ")}\` — every unit on the path gets a band, and the arrows all point down the list`
           : `list what sits between them in \`rows\` too, with \`${lo}\` in a band below \`${hi}\``,
-        loc: view.loc,
+        loc: hintsLoc,
       });
     }
   }
@@ -2444,7 +2452,7 @@ export async function layoutView(
     ...view.layout.align.map((g) => ({ ...g, from: "align" as const })),
     ...(view.layout.cols ?? [])
       .filter((c) => c.length > 1)
-      .map((nodes) => ({ nodes, loc: view.loc, from: "cols" as const })),
+      .map((nodes) => ({ nodes, loc: hintsLoc, from: "cols" as const })),
   ];
   if (alignGroups.length) {
     const axis: "x" | "y" = view.layout.direction === "right" ? "y" : "x";

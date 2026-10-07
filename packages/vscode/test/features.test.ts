@@ -64,6 +64,26 @@ view s {
     expect(ds.some((d) => d.message.includes("runs upward"))).toBe(true);
   });
 
+  it("lays out the auto views too — what the interactive export draws", async () => {
+    // A system's own block takes effect only where the system is opened; no
+    // declared view opens this one, but its auto view does, and the band
+    // split is measured off that layout. Round 29: clean here, export failed.
+    const src = `system catalog "Catalog" {
+  products = aws/lambda "Products"
+  bus      = aws/sqs "Index Queue"
+  search   = aws/lambda "Search"
+  products ~> bus
+  bus ~> search
+  layout { rows [products search] }
+}
+gw = aws/api-gateway "Gateway"
+gw -> catalog.products
+view landscape { include * }
+`;
+    const split = (await allDiagnosticsFor(src)).find((d) => d.message.includes("lands a tier later"));
+    expect(split?.range.start.line).toBe(6); // the `layout` line, zero-based
+  });
+
   it("extracts replacements only from did-you-mean fixes", () => {
     expect(replacementIn("did you mean `aws/lambda`?")).toBe("aws/lambda");
     expect(replacementIn("run `squinch icons search x`")).toBeUndefined();
