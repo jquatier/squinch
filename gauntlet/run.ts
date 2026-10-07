@@ -24,7 +24,9 @@
 // ## The protocol (this file is its only specification)
 //
 // Each prompt gets `<tmp>/box/<id>/` holding exactly three things: `SKILL.md`,
-// `PROMPT.md`, and `bin/squinch`. cwd is that box and the repo is not reachable
+// `PROMPT.md`, and `bin/squinch` — four when the prompt names a `repo`, whose
+// checkout is copied in beside them (see `checkouts` below). cwd is that box
+// and *this* repo is not reachable
 // from it — not by relative path, and not by any path printed anywhere the
 // agent can look. That last part is why the CLI is **bundled** rather than
 // shimmed to `packages/cli/bin/squinch.js`: a shim would hand the agent a repo
@@ -80,7 +82,11 @@ const require_ = createRequire(import.meta.url);
  *  that cannot start. */
 const cliRequire = createRequire(join(root, "packages/cli/package.json"));
 
-interface Prompt { id: string; prompt: string }
+/** A prompt about real code names the repository it is about. Pinned to a
+ *  full commit so every round reads the same bytes — a branch or a tag can
+ *  move, and a prompt whose ground truth moves cannot be scored. */
+interface Repo { url: string; commit: string; dir: string }
+interface Prompt { id: string; prompt: string; repo?: Repo }
 const prompts: Prompt[] = JSON.parse(readFileSync(join(here, "prompts.json"), "utf8"));
 // The one version the workspace shares (scripts/version.mjs owns it) — planted
 // beside the bundle below so the boxed CLI can read its own version.
@@ -265,6 +271,34 @@ writeFileSync(
   console.log(`bundle ok (agrees with the repo CLI on ${probe.id})\n`);
 }
 
+// ── repository checkouts: fetched once, copied into each box ───────────────
+// A prompt that names a `repo` is about real code, so the agent gets that
+// code in its box, at the commit the expectations were written against. The
+// fetch happens here, not in the box: agents have no web tools by
+// construction, and a clone per session would spend minutes and bandwidth on
+// identical bytes. Cached under `.cache/` by commit, so a second round
+// fetches nothing. The checkout keeps its (shallow) `.git`: an agent asked to
+// stamp a commit should be able to read one.
+const checkouts = new Map<string, string>();
+for (const p of selected) {
+  if (!p.repo) continue;
+  const { url, commit } = p.repo;
+  if (!/^[0-9a-f]{40}$/.test(commit)) die(`${p.id}: repo.commit must be a full 40-character sha`);
+  const dest = join(here, ".cache", "repos", commit);
+  if (!existsSync(join(dest, ".git"))) {
+    console.log(`fetching ${url} @ ${commit.slice(0, 7)}…`);
+    rmSync(dest, { recursive: true, force: true });
+    mkdirSync(dest, { recursive: true });
+    const git = (...a: string[]) => execFileSync("git", a, { cwd: dest, stdio: "pipe" });
+    git("init", "-q");
+    git("fetch", "-q", "--depth", "1", url, commit);
+    git("checkout", "-q", "FETCH_HEAD");
+  }
+  const head = execFileSync("git", ["rev-parse", "HEAD"], { cwd: dest, encoding: "utf8" }).trim();
+  if (head !== commit) die(`${p.id}: checkout at ${dest} is ${head}, not ${commit}`);
+  checkouts.set(p.id, dest);
+}
+
 // ── one sandbox per prompt ─────────────────────────────────────────────────
 const skill = readFileSync(join(root, "packages/skill/skills/squinch/SKILL.md"), "utf8");
 mkdirSync(join(tmp, "logs"), { recursive: true });
@@ -332,6 +366,8 @@ async function session(p: Prompt, box: string, log: string) {
   mkdirSync(join(box, "bin"), { recursive: true });
   writeFileSync(join(box, "SKILL.md"), skill);
   writeFileSync(join(box, "PROMPT.md"), `${p.prompt}\n`);
+  const checkout = checkouts.get(p.id);
+  if (checkout && p.repo) cpSync(checkout, join(box, p.repo.dir), { recursive: true });
 
   // The shim: tee the real CLI's output through, then record the call. CJS
   // because the file is extensionless and Node reads that as CommonJS.

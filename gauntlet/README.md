@@ -1,11 +1,12 @@
 # The gauntlet (end-to-end acceptance)
 
-Thirty-seven natural-language architecture prompts. An agent, armed with only
+Thirty-eight architecture prompts — thirty-seven in prose, and one that hands
+the agent a real repository. An agent, armed with only
 [`packages/skill/skills/squinch/SKILL.md`](../packages/skill/skills/squinch/SKILL.md) and the `squinch` CLI,
 must produce a clean diagram for each. **v1 ships at ≥ 16/20 with zero human
 layout fixes** (the original ≥ 8/10 bar, at the current prompt count).
 
-> **Current standing: the committed corpus scores 37/37 on the deep scorer; the
+> **Current standing: the committed corpus scores 38/38 on the deep scorer; the
 > latest round itself scored 35/37, with 25 of 37 clean on the first `check`.** The
 > solutions those agents wrote are committed in `solutions/` and re-scored by CI
 > on every push, so the claim is inspectable rather than asserted.
@@ -16,7 +17,10 @@ layout fixes** (the original ≥ 8/10 bar, at the current prompt count).
 > disclaimer about the number above.
 
 - `prompts.json` — the prompts plus machine-checkable expectations
-  (structure, icons, tags, views).
+  (structure, icons, tags, views). A prompt about real code names a `repo` —
+  a URL and a full commit sha, never a branch — and `run.ts` copies that
+  checkout into the box beside the prompt; its `labels` and `edges`
+  expectations then check the services and calls the code actually has.
 - `solutions/` — the current certification set: one solution per prompt, authored cold by
   fresh agents. Each round overwrites it, so what is committed is always the
   latest reviewed run. CI regression-tests this corpus on every push.
@@ -123,14 +127,29 @@ under one dispatcher — went back to hand-written bands with every wire
 detouring; naming the fan-out too fixed it. Confirmation runs on the final
 wording: 32 six of six and 33 three of three, every one at `wrap 4`.
 
-**Surfaced and not fixed here.** A file can check clean, `render --sync`
+**Surfaced, and fixed since.** A file could check clean, `render --sync`
 cleanly, and still fail `render -o x.html`. 35 did: the interactive export
 lays out every auto view, and in `catalog`'s the band-split conflict — the
 one measured off the result rather than the graph — fired on a system
-`layout { }` block that no declared view opens. `check` and `--sync` lay out
+`layout { }` block that no declared view opens. `check` laid out
 declared views only, so the agent met the error at the last step and fixed
-it there.
+it there. `check` and the editor now lay out every view the export draws,
+and the error points at the block.
+
+**After the round, the first prompt about real code.** 38 checks out Google's
+Online Boutique at a pinned commit and asks for a picture to find your way
+around it, naming no service. Its expectations are the call graph read off
+the code — eleven services, and which calls which — so a diagram copied
+from a README's picture and one traced from the clients score alike, and
+one that skipped a service does not. Three cold runs passed one: both misses
+dropped the recommendation service's call to the product catalogue, because
+neither agent opened that service — they traced the frontend's and
+checkout's clients and stopped. The skill has nothing yet on tracing a
+repository, and this is the prompt that will measure it. One also invented a
+"Load Tester" who configures the load generator and reported nothing
+guessed. A run cost $0.56–0.68, inside the default budget.
 
 The corpus in `solutions/` is this round's full-run answers for thirty-three
 prompts, the confirmation runs' for 26, 32 and 33, and round 27's for 34 —
-all cold-authored and deep-scored at 37/37, none re-authored.
+plus the passing run of 38 — all cold-authored and deep-scored at 38/38,
+none re-authored.

@@ -1,0 +1,105 @@
+// Online Boutique - e-commerce microservices demo
+pack logos
+
+person user "User"
+
+// Frontend
+frontend = sys/app-window "Frontend" {
+  subtitle: "Go · HTTP server"
+  description: "Web interface for browsing and purchasing items"
+}
+
+// Core shopping services
+productcatalog = sys/database "Product Catalog" {
+  subtitle: "Go · gRPC"
+  description: "Product list from JSON, search and retrieval"
+}
+
+cart = sys/code "Cart Service" {
+  subtitle: "C# · gRPC"
+  description: "Manages shopping cart items"
+}
+
+redis = logos/redis "Redis Cache" datastore {
+  description: "Shopping cart data storage"
+}
+
+recommendation = sys/code "Recommendation Service" {
+  subtitle: "Python · gRPC"
+  description: "Product recommendations based on cart"
+}
+
+ad = sys/code "Ad Service" {
+  subtitle: "Java · gRPC"
+  description: "Contextual text advertisements"
+}
+
+// Checkout orchestration
+checkout = sys/workflow "Checkout Service" {
+  subtitle: "Go · gRPC"
+  description: "Orchestrates order processing workflow"
+}
+
+currency = sys/code "Currency Service" {
+  subtitle: "Node.js · gRPC"
+  description: "Currency conversion with live ECB rates"
+}
+
+shipping = sys/code "Shipping Service" {
+  subtitle: "Go · gRPC"
+  description: "Shipping cost estimates and fulfillment"
+}
+
+payment = sys/code "Payment Service" {
+  subtitle: "Node.js · gRPC"
+  description: "Credit card payment processing"
+}
+
+email = sys/code "Email Service" {
+  subtitle: "Python · gRPC"
+  description: "Order confirmation emails"
+}
+
+// Load testing
+loadgen = sys/gauge "Load Generator" {
+  subtitle: "Python/Locust"
+  description: "Simulates realistic user traffic"
+}
+
+// User interactions
+user -> frontend "browses and shops"
+
+// Load generator
+loadgen -> frontend "simulates users"
+
+// Frontend connections
+frontend -> productcatalog "list and search products"
+frontend -> cart "manage cart"
+frontend -> recommendation "get suggestions"
+frontend -> ad "fetch ads"
+frontend -> checkout "place order"
+frontend -> currency "convert prices"
+frontend -> shipping "get shipping quote"
+
+// Cart data persistence
+cart -> redis "stores and retrieves cart data"
+
+// Recommendation service
+recommendation -> productcatalog "fetch product details"
+
+// Checkout orchestration
+checkout -> cart "retrieve cart"
+checkout -> productcatalog "get product info"
+checkout -> currency "convert amounts"
+checkout -> shipping "arrange shipping"
+checkout -> payment "process payment"
+checkout -> email "send confirmation"
+
+view landscape {
+  title "Online Boutique Architecture"
+  include *
+  titleblock {
+    subtitle: "Microservices Demo"
+    version: "11 services"
+  }
+}

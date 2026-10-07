@@ -54,3 +54,6 @@ packages/core/test-results/
 packages/core/playwright-report/
 apps/spa/test-results/
 apps/spa/playwright-report/
+
+# repository checkouts for gauntlet prompts that name a `repo` (run.ts)
+gauntlet/.cache/

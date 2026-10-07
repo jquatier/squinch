@@ -418,23 +418,24 @@ agent needs — `npx squinch skill` installs it for every skills-compatible agen
 (or paste it into whatever your harness calls context), then ask for a diagram
 in plain language; [the package README](packages/skill/) has the details.
 
-The **gauntlet** is the acceptance test: thirty-seven natural-language
-architecture prompts, each solved *cold* by a fresh agent given only SKILL.md
+The **gauntlet** is the acceptance test: thirty-eight architecture prompts —
+thirty-seven in plain language and one that hands the agent a real repository — each solved *cold* by a fresh agent given only SKILL.md
 and the CLI —
 no examples, no human layout fixes, no coaching. A deterministic scorer checks
 the structure, icons, tags and views of every solution, and CI regression-tests
 the whole corpus on every push.
 
 The agents are kept genuinely cold, and physically so: each one runs in a
-sandbox holding nothing but SKILL.md, its prompt and a `squinch` binary, with
+sandbox holding nothing but SKILL.md, its prompt and a `squinch` binary (and,
+for the repository prompt, that repository at a pinned commit), with
 this repository unreachable from inside — no examples, no docs, no engine
 source, and no previous answers to copy. Every prompt is re-run from scratch as
 the language grows, and the bar rises with it — the corpus has gone
-10 → 16 → 20 → 29 → 33 → 35 → 37 prompts as zones, flows, tag lenses, channels,
-more packs, the positional-tag grammar, large-system prompts and database
-tables landed.
+10 → 16 → 20 → 29 → 33 → 35 → 37 → 38 prompts as zones, flows, tag lenses,
+channels, more packs, the positional-tag grammar, large-system prompts,
+database tables and a real repository landed.
 
-The committed corpus scores **37/37** with zero human layout fixes. Every round is
+The committed corpus scores **38/38** with zero human layout fixes. Every round is
 written up in [gauntlet/README.md](gauntlet/README.md) — what was asked, how it
 was run, and what came back.
 

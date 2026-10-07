@@ -67,6 +67,16 @@ interface Expect {
    *  container. The other half of `inside` — nothing was invented to hold one
    *  of them apart from the other. */
   siblings?: [string, string][];
+  /** Something is labelled like each pattern — a thing or a container. For a
+   *  prompt about real code: the services the code has are in the picture,
+   *  however the agent grouped or named them. */
+  labels?: string[];
+  /** Each pair is a call the code makes: some edge runs from something
+   *  labelled like the first to something labelled like the second. Either
+   *  end may be matched by a container around the endpoint — a service drawn
+   *  as a system holding its API and its store is the same service. `--` and
+   *  `<->` count both ways. */
+  edges?: [string, string][];
   /** Geometry, read off a laid-out view — a "does the picture say so" test
    *  that is construct-agnostic: however the author got there (a container's
    *  own layout block, interior paths in a view's rows, `wrap`, a
@@ -325,6 +335,32 @@ for (const p of prompts) {
         && !A.some((x) => B.some((y) => x.path !== y.path && parentOf(x.path) === parentOf(y.path)))
       )
         problems.push(`\`${named(A[0])}\` and \`${named(B[0])}\` do not share a parent`);
+    }
+  }
+
+  if (e.labels || e.edges) {
+    const all = [...nodes, ...m.containers.values()];
+    const labelOf = (path: string) => {
+      const x = m.nodes.get(path) ?? m.containers.get(path);
+      return x ? (x.label ?? x.name) : "";
+    };
+    /** the endpoint and every container around it, innermost first */
+    const around = (path: string) => {
+      const out: string[] = [];
+      for (let q = path; q; q = q.slice(0, Math.max(0, q.lastIndexOf(".")))) out.push(labelOf(q));
+      return out;
+    };
+    for (const pat of e.labels ?? []) {
+      const re = new RegExp(pat, "i");
+      if (!all.some((x) => re.test(x.label ?? x.name))) problems.push(`nothing labelled like /${pat}/i`);
+    }
+    for (const [a, b] of e.edges ?? []) {
+      const A = new RegExp(a, "i"), B = new RegExp(b, "i");
+      const runs = (from: string, to: string) =>
+        around(from).some((l) => A.test(l)) && around(to).some((l) => B.test(l));
+      const hit = m.edges.some((ed) =>
+        runs(ed.from, ed.to) || ((ed.arrow === "--" || ed.arrow === "<->") && runs(ed.to, ed.from)));
+      if (!hit) problems.push(`no edge from /${a}/i to /${b}/i`);
     }
   }
 

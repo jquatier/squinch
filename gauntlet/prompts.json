@@ -670,5 +670,72 @@
         ]
       ]
     }
+  },
+  {
+    "id": "38-repo-boutique",
+    "prompt": "Diagram the system in this repository — it is checked out at ./repo. I am new to it and want a picture I can find my way around with: the services, which ones call which, and where data is kept.",
+    "repo": {
+      "url": "https://github.com/GoogleCloudPlatform/microservices-demo",
+      "commit": "5b608cb1dfe317d05e4f1bb8c99b7618452fde87",
+      "dir": "repo"
+    },
+    "expect": {
+      "minNodes": 11,
+      "labels": [
+        "front.?end",
+        "cart",
+        "catalog",
+        "currency",
+        "payment",
+        "shipping",
+        "email",
+        "checkout",
+        "recommend",
+        "\\bads?\\b|ad.?service",
+        "redis|cart.?(store|db|cache)"
+      ],
+      "edges": [
+        [
+          "front.?end",
+          "checkout"
+        ],
+        [
+          "front.?end",
+          "cart"
+        ],
+        [
+          "front.?end",
+          "catalog"
+        ],
+        [
+          "checkout",
+          "payment"
+        ],
+        [
+          "checkout",
+          "email"
+        ],
+        [
+          "checkout",
+          "shipping"
+        ],
+        [
+          "checkout",
+          "currency"
+        ],
+        [
+          "checkout",
+          "cart"
+        ],
+        [
+          "recommend",
+          "catalog"
+        ],
+        [
+          "cart",
+          "redis|store|cache"
+        ]
+      ]
+    }
   }
 ]
