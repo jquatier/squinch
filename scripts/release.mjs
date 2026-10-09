@@ -11,9 +11,8 @@
 // workspace manifest via scripts/version.mjs, commits, tags vX.Y.Z, and pushes
 // branch + tag together. From there .github/workflows/release.yml builds the
 // VSIX from that exact commit, re-runs the suite, publishes the GitHub
-// Release with this section as its notes, and *stages* the npm packages —
-// nothing is installable until you approve them with 2FA on npmjs.com. If CI
-// fails, no release exists — fix and run this again with the next number.
+// Release with this section as its notes, and publishes the npm packages. If
+// CI fails, no release exists — fix and run this again with the next number.
 import { execFileSync, spawnSync } from "node:child_process";
 import { readFileSync, writeFileSync, mkdtempSync, rmSync } from "node:fs";
 import { dirname, join } from "node:path";
@@ -163,7 +162,5 @@ git("push", "origin", "main", `v${version}`);
 
 const remote = git("remote", "get-url", "origin").replace(/\.git$/, "");
 console.log(
-  `\nv${version} pushed — watch ${remote}/actions (release.yml builds, releases, and stages npm).\n` +
-    "Then approve the staged packages with 2FA — npmjs.com's Staged Packages tab, or\n" +
-    "`pnpm stage list` and `pnpm stage approve <id>` — packs → core → squinch, or all at once.",
+  `\nv${version} pushed — watch ${remote}/actions (release.yml builds, releases, and publishes to npm).`,
 );

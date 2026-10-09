@@ -401,11 +401,11 @@ describe("the workspace ships one version", () => {
       .toContain("scripts/release-notes.mjs");
     // npm must stay *after* the release step: a registry failure should cost
     // the packages, never the VSIX people can otherwise fall back to. And it
-    // is a *staged* publish: the trusted publisher on npmjs.com is stage-only,
-    // so a plain `pnpm -r publish` here would be refused by the registry.
-    const stage = wf.indexOf("- run: pnpm -r stage publish");
-    expect(stage, "release.yml no longer stages the npm packages").toBeGreaterThan(0);
-    expect(stage).toBeGreaterThan(wf.indexOf("gh release create"));
+    // is `pnpm -r publish`, which rewrites `workspace:*` on the way out —
+    // plain `npm publish` would ship manifests nobody can install.
+    const publish = wf.indexOf("- run: pnpm -r publish");
+    expect(publish, "release.yml no longer publishes the npm packages").toBeGreaterThan(0);
+    expect(publish).toBeGreaterThan(wf.indexOf("gh release create"));
     expect(wf, "release.yml must not carry an npm token — OIDC only").not.toMatch(/NPM_TOKEN|NODE_AUTH_TOKEN/);
   });
 });

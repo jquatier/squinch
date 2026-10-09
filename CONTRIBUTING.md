@@ -159,7 +159,7 @@ not the changelog), bumps every workspace manifest together, commits
 From there [release.yml](.github/workflows/release.yml) builds the VSIX from
 the tagged commit, re-runs the whole suite as its own gate, publishes the
 GitHub Release with that CHANGELOG section as its notes plus a `SHA256SUMS`,
-and then **stages** the npm packages — `squinch`, `@squinch/core` and the six
+and then **publishes** the npm packages — `squinch`, `@squinch/core` and the six
 icon packs, in dependency order. Everything else (`@squinch/skill`, the
 playground, the gauntlet, the lookbook) stays `private: true` and never
 reaches the registry; a guardrail asserts that split by name.
@@ -167,12 +167,10 @@ reaches the registry; a guardrail asserts that split by name.
 npm goes **last** on purpose: the GitHub Release is the fallback artifact, so a
 registry problem reddens the run without costing anyone the VSIX. There is no
 npm token anywhere: the workflow authenticates by trusted publishing (OIDC),
-and each package's publisher on npmjs.com is registered *stage-only*, so the
-run can stage a version but never make one installable. That last step is a
-human with 2FA — approve the eight staged versions on npmjs.com (Staged
-Packages) or with `pnpm stage approve <id>`, packs → core → `squinch` so nobody
-installs a CLI whose core is still staged. A green run has shipped nothing
-until then.
+and each package's publisher on npmjs.com names this repo, `release.yml` and
+the `npm` environment. A green run is a shipped release. A newly created
+publisher expires if it has not published within 48 hours, so (re)create one
+only right before cutting a release.
 
 If CI fails, no release exists — fix and release the next patch number.
 

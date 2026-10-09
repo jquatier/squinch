@@ -3,20 +3,20 @@
 # workflow builds the VSIX from the tagged commit, re-runs the suite — its own
 # gate, deliberately, rather than trusting that some other run was green —
 # publishes the GitHub Release with the CHANGELOG section as its notes, and
-# then *stages* every package on npm. npm goes last on purpose: the GitHub
+# then publishes every package to npm. npm goes last on purpose: the GitHub
 # Release is the fallback artifact, so a registry problem reddens the run
 # without costing anyone the VSIX.
 #
-# npm is two steps, and only the first is here. This job authenticates by
-# trusted publishing (OIDC — each package's publisher on npmjs.com names this
-# repo, this workflow file and the `npm` environment) and is registered
-# *stage-only*: it may `stage publish`, never `publish`. A staged version is
-# invisible to `npm install` until a maintainer approves it with 2FA — on
-# npmjs.com under Staged Packages, or `pnpm stage approve <id>` — so a green
-# run here has shipped nothing yet, and no secret in this repo can. There is no
-# token: an OIDC failure reddens the run, and re-running the job after fixing
-# the publisher is the recovery. The first publish of a *new* package is done
-# by hand, since npm only configures trust on a package that exists.
+# This job authenticates by trusted publishing (OIDC — each package's
+# publisher on npmjs.com names this repo, this workflow file and the `npm`
+# environment) and publishes for real: a green run is an installable release.
+# 0.15.0 went out stage-only, each version waiting on a maintainer's 2FA
+# approval; from 0.16.0 the tag push that starts this run is the only human
+# step. There is no token: an OIDC failure reddens the run, and re-running the
+# job after fixing the publisher is the recovery. A publisher that has never
+# published expires 48 hours after it is created, so (re)create one only right
+# before a release. The first publish of a *new* package is done by hand,
+# since npm only configures trust on a package that exists.
 #
 # Two ways it fails on purpose: the tag not matching the workspace version
 # (someone tagged by hand), and the CHANGELOG missing this version's section
@@ -38,7 +38,7 @@ jobs:
     runs-on: ubuntu-latest
     # A release is a deployment to npm: declaring the environment lists every
     # release in the repo's Deployments panel beside the Pages deploys, each
-    # linking to the version it staged, and makes a reviewer gate a settings
+    # linking to the version it published, and makes a reviewer gate a settings
     # change rather than a workflow change. It is also the environment each
     # package's trusted publisher is bound to — rename it and every publish
     # fails the OIDC exchange.
@@ -93,13 +93,13 @@ jobs:
       # failing reddens the run and leaves the Release standing, which is the
       # right way round.
       #
-      # `pnpm -r stage publish` walks in dependency order (packs → core → cli)
+      # `pnpm -r publish` walks in dependency order (packs → core → cli)
       # and skips every `private: true` package, which is what keeps the
       # playground, the gauntlet and the lookbook off the registry. It also
       # rewrites `workspace:*` to the real version on the way out; plain `npm`
-      # does not, and would ship a manifest nobody can install. Approve in the
-      # same order, or all eight at once, so nobody installs a `squinch` whose
-      # `@squinch/core` is still staged.
+      # does not, and would ship a manifest nobody can install. The order also
+      # means nobody can install a `squinch` whose `@squinch/core` is not
+      # on the registry yet.
       #
       # --no-git-checks: a tag build is a detached HEAD, which pnpm otherwise
       # refuses to publish from.
@@ -107,4 +107,4 @@ jobs:
       # Versions already on the registry are skipped ("no new packages that
       # should be published"), so re-running a release does not fail on "you
       # cannot publish over a published version".
-      - run: pnpm -r stage publish --no-git-checks
+      - run: pnpm -r publish --no-git-checks
