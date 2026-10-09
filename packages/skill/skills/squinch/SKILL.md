@@ -52,21 +52,30 @@ squinch render diagrams/ -o diagram.html     # every view, both palettes, click-
   root `<svg>`), and `render --check` re-renders and compares, so committed
   SVGs can gate CI. For a throwaway diagram that lives nowhere, two explicit
   `--theme` renders plus the HTML are the lighter recipe.
+- **Write the files; leave committing to the user.** Don't commit, push or
+  make a branch unless they ask — they will want to look first.
 
-Then end your reply with three or four short bullets, each a plain sentence
-you would say to a colleague:
+Then end your reply with three to five bullets, one or two plain sentences
+each, the way you would say it to a colleague — and nothing before them that
+says the same thing:
 
 - Open `diagram.html` — it has the landscape and orders views, light and dark.
 - I guessed that the services run on Lambda and that Postgres means RDS; the
   request named neither.
 - I looked at both views. The one rough spot is the Kafka wire running round
   the right edge; moving it made the services row harder to read, so I left it.
+- If this is more than you need, I can take out the load generator and the
+  tracing collector, or show less detail by grouping the services into three
+  areas.
 
 The first three are never skipped: where to open it; what you guessed — every
 product, cloud or runtime the request did not name — or "Nothing guessed" when
-that is true; and what you saw when you looked, or that you could not look. A
-fourth bullet is for how you grouped a big system, or a warning you kept.
-Don't describe the components or the layout: the diagram shows them.
+that is true; and what you saw when you looked, or that you could not look.
+The last — an offer to cut it down, naming your own most peripheral boxes, not
+a category — ends every hand-over of an open-ended request or a big system,
+and is left off a small diagram that drew what was asked. One more bullet may
+say how you grouped a big system, or a warning you kept. Don't describe the
+components or the layout: the diagram shows them.
 
 0. If the system is big — a whole repo, a platform — decide its *areas* before
    you write a node, because no layout hint rescues everything on one page: see
