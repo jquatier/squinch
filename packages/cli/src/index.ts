@@ -655,7 +655,11 @@ export async function main(
     console.error(`error: ${(e as Error).message}`);
     return 2;
   }
-  if (code === 0 && !json) for (const line of formatNotices(notices)) console.error(line);
+  // `skill` rewrites the very files the skill notice reads, so it reads them
+  // again once the command has run. Read beforehand, the notice named the
+  // copies `skill` had just replaced and told the reader to run it again.
+  const shown = command === "skill" ? collectNotices(PKG, deps) : notices;
+  if (code === 0 && !json) for (const line of formatNotices(shown)) console.error(line);
   return code;
 }
 

@@ -827,6 +827,21 @@ describe("update notices through the CLI", () => {
     expect(err.join("\n")).not.toContain("skill:");
   });
 
+  it("`squinch skill` does not report the copy it just replaced as stale", async () => {
+    // The stamps were read before dispatch, so `skill --global` over a 0.10.1
+    // install wrote fresh copies and then printed `installed by squinch 0.10.1
+    // … re-run squinch skill` about them.
+    const proj = join(dir, "proj");
+    mkdirSync(proj);
+    expect(await main(["skill", proj])).toBe(0);
+    const file = join(proj, ".agents", "skills", "squinch", "SKILL.md");
+    writeFileSync(file, readFileSync(file, "utf8").replace(/installed by squinch [^ ]+ /, "installed by squinch 0.1.0 "));
+    err = [];
+    expect(await main(["skill", proj], { update: update({ cwd: proj }) })).toBe(0);
+    expect(err.join("\n")).not.toContain("skill:");
+    expect(readFileSync(file, "utf8")).toContain(`installed by squinch ${manifest.version} `);
+  });
+
   it("is silent under CI", async () => {
     expect(await main(["check", write()], { update: update({ env: { CI: "true" } }) })).toBe(0);
     expect(err.join("\n")).not.toContain("update:");
