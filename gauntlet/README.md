@@ -111,11 +111,29 @@ would; an unknown id inside the list is reported at the id. The goldens and
 every committed render are byte-identical, since none of this reaches the
 drawing.
 
-**34 varied again.** This run's answer lost the second view the scorer
-expects, so the corpus keeps round 27's, as it has since round 27. 38, the
-repository prompt, passed on its first run of this round — five checks, the
-first three spent on the person block above.
+**34, measured and changed.** The one miss was 34 again, for the fifth
+round, so it was run alone. Three cold runs on the committed skill and
+prompt: none passed, and every answer declared one view and told the reader
+the HTML "has all 16 views, landscape plus each service's detail view" — the
+automatic views read to an agent as altitudes delivered. Two of the three also
+made a system per service, which the prompt's one-folder-per-service layout
+invites and 35's domain folders never do. The skill was tried first: the
+big-system section rewritten to name the folder-per-service trap and to say
+that a view per area is written out, not left to the automatic one. Three
+runs: none passed — two per-service, one flat — so the section moved nobody,
+as round 26 had found of it. Then the prompt: one sentence appended, in a
+user's words and naming no construct — *"It is for the team wiki: an overview
+page that fits on one screen, and then a page for each part of the system."*
+Three runs with that sentence and the skill edit passed three; three with the
+sentence alone passed three, four areas each and a declared view per area.
+The skill edit is not kept, the sentence is, and 34 stops being the prompt
+that varies. What the prompt lost is the one thing round 26 kept it for — a
+large system with no steering at all — and the six runs say that test had
+only ever measured whether an agent counts automatic views as pages.
+
+38, the repository prompt, passed on its first run of this round — five
+checks, the first three spent on the person block above.
 
 The corpus in `solutions/` is this round's answers for thirty-seven prompts
-and round 27's for 34, all cold-authored and deep-scored at 38/38, none
-re-authored.
+and, for 34, one of the three confirmation runs on its new wording — all
+cold-authored and deep-scored at 38/38, none re-authored.

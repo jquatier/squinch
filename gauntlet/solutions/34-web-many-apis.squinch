@@ -1,173 +1,247 @@
-// E-commerce platform with React web app, Node BFF, and microservices
+// E-commerce platform architecture
+pack aws
 pack logos
 
 person customer "Customer"
 
-// Frontend
+// Frontend & BFF
 web = logos/react "Web App" {
-  description: "React single-page application"
   subtitle: "React SPA"
 }
 
-// Backend-for-frontend
 bff = logos/nodedotjs "BFF" {
-  description: "Backend-for-frontend orchestration layer"
   subtitle: "Node.js"
+  description: "Backend for frontend - orchestrates all backend calls"
 }
 
-// Core services
-system core_services "Core Services" {
-  description: "User identity and authentication"
+// Auth & User domain
+system auth_domain "Auth & Users" {
+  description: "Authentication, user management and profiles"
+  icon: sys/lock
 
-  users = sys/database "Users" datastore {
-    subtitle: "Postgres"
-    badge: logos/postgres
+  auth_svc = sys/server "Auth Service" {
+    subtitle: "Node.js"
   }
-  auth = sys/database "Auth" datastore {
-    subtitle: "Redis · Sessions"
-    badge: logos/redis
+  auth_cache = logos/redis "Sessions" datastore
+
+  users_svc = sys/server "Users Service" {
+    subtitle: "Node.js"
   }
-  profile = sys/database "Profile" datastore {
-    subtitle: "Postgres"
-    badge: logos/postgres
+  users_db = logos/postgres "Users DB" datastore
+
+  profile_svc = sys/server "Profile Service" {
+    subtitle: "Node.js"
+  }
+  profile_db = logos/postgres "Profiles DB" datastore
+
+  auth_svc -> auth_cache
+  users_svc -> users_db
+  profile_svc -> profile_db
+
+  layout {
+    rows [auth_svc users_svc profile_svc] [auth_cache users_db profile_db]
   }
 }
 
-// Catalog and discovery
-system catalog_services "Catalog & Discovery" {
-  description: "Product catalog, search, and recommendations"
+// Catalog & Discovery
+system catalog_domain "Catalog & Discovery" {
+  description: "Product catalog, search and recommendations"
+  icon: sys/search
 
-  catalog = sys/database "Catalog" datastore {
-    subtitle: "Postgres"
-    badge: logos/postgres
+  catalog_svc = sys/server "Catalog Service" {
+    subtitle: "Node.js"
   }
-  search = sys/database "Search" datastore {
+  catalog_db = logos/postgres "Catalog DB" datastore
+
+  search_svc = sys/server "Search Service" {
+    subtitle: "Node.js"
+  }
+  search_idx = logos/elasticsearch "Search Index" datastore {
     subtitle: "OpenSearch"
-    badge: logos/elasticsearch
   }
-  reviews = sys/database "Reviews" datastore {
-    subtitle: "MongoDB"
-    badge: logos/mongodb
+
+  pricing_svc = sys/server "Pricing Service" {
+    subtitle: "Node.js"
   }
-  recommendations = sys/database "Recommendations" datastore {
-    subtitle: "Redis"
-    badge: logos/redis
+  pricing_cache = logos/redis "Pricing Cache" datastore
+
+  reviews_svc = sys/server "Reviews Service" {
+    subtitle: "Node.js"
   }
-  pricing = sys/database "Pricing" datastore {
-    subtitle: "Redis"
-    badge: logos/redis
+  reviews_db = logos/mongodb "Reviews DB" datastore
+
+  recommendations_svc = sys/server "Recommendations" {
+    subtitle: "Node.js"
+  }
+  recommendations_cache = logos/redis "Recommendations Cache" datastore
+
+  catalog_svc -> catalog_db
+  search_svc -> catalog_db "reads"
+  search_svc -> search_idx
+  pricing_svc -> pricing_cache
+  reviews_svc -> reviews_db
+  recommendations_svc -> catalog_db "reads"
+  recommendations_svc -> reviews_db "reads"
+  recommendations_svc -> recommendations_cache
+
+  layout {
+    rows [catalog_svc pricing_svc] [search_svc] [reviews_svc recommendations_svc] [catalog_db search_idx pricing_cache reviews_db recommendations_cache]
   }
 }
 
-// Order processing
-system order_services "Order Processing" {
-  description: "Cart, checkout, orders, and payments"
+// Order fulfillment
+system order_domain "Order Fulfillment" {
+  description: "Shopping cart, checkout, orders and payments"
+  icon: sys/shopping-cart
 
-  cart = sys/database "Cart" datastore {
-    subtitle: "Redis"
-    badge: logos/redis
+  cart_svc = sys/server "Cart Service" {
+    subtitle: "Node.js"
   }
-  checkout = sys/database "Checkout" datastore {
-    subtitle: "Postgres"
-    badge: logos/postgres
+  cart_cache = logos/redis "Cart Cache" datastore
+
+  checkout_svc = sys/server "Checkout Service" {
+    subtitle: "Node.js"
   }
-  orders = sys/database "Orders" datastore {
-    subtitle: "Postgres"
-    badge: logos/postgres
+  checkout_db = logos/postgres "Checkout DB" datastore
+
+  orders_svc = sys/server "Orders Service" {
+    subtitle: "Node.js"
   }
-  payments = sys/database "Payments" datastore {
-    subtitle: "Postgres"
-    badge: logos/postgres
+  orders_db = logos/postgres "Orders DB" datastore
+
+  payments_svc = sys/server "Payments Service" {
+    subtitle: "Node.js"
   }
-  inventory = sys/database "Inventory" datastore {
-    subtitle: "Postgres"
-    badge: logos/postgres
+  payments_db = logos/postgres "Payments DB" datastore
+
+  inventory_svc = sys/server "Inventory Service" {
+    subtitle: "Node.js"
+  }
+  inventory_db = logos/postgres "Inventory DB" datastore
+
+  cart_svc -> cart_cache
+  checkout_svc -> checkout_db
+  checkout_svc -> cart_svc "reads cart"
+  checkout_svc -> catalog_domain.pricing_svc "gets pricing"
+  checkout_svc -> payments_svc "processes payment"
+  checkout_svc -> orders_svc "creates order"
+
+  orders_svc -> orders_db
+  orders_svc -> inventory_svc "reserves stock"
+
+  payments_svc -> payments_db
+
+  inventory_svc -> inventory_db
+
+  layout {
+    rows [cart_svc checkout_svc] [orders_svc payments_svc inventory_svc] [cart_cache checkout_db orders_db payments_db inventory_db]
   }
 }
 
-// Fulfillment and support
-system fulfillment_services "Fulfillment & Support" {
-  description: "Shipping, notifications, and customer support"
+// Operations
+system operations "Operations & Support" {
+  description: "Shipping, notifications and customer support"
+  icon: sys/headset
 
-  shipping = sys/database "Shipping" datastore {
-    subtitle: "Postgres"
-    badge: logos/postgres
+  shipping_svc = sys/server "Shipping Service" {
+    subtitle: "Node.js"
   }
-  notifications = sys/server "Notifications" {
-    subtitle: "SendGrid"
+  shipping_db = logos/postgres "Shipping DB" datastore
+
+  notifications_svc = sys/server "Notifications Service" {
+    subtitle: "Node.js"
   }
-  support = sys/database "Support" datastore {
-    subtitle: "Postgres"
-    badge: logos/postgres
+
+  support_svc = sys/server "Support Service" {
+    subtitle: "Node.js"
   }
+  support_db = logos/postgres "Support DB" datastore
+
+  shipping_svc -> shipping_db
+  support_svc -> support_db
+
+  layout {
+    rows [shipping_svc notifications_svc support_svc] [shipping_db support_db]
+  }
+}
+
+// Message bus
+bus = logos/kafka "Event Bus" {
+  subtitle: "Kafka"
 }
 
 // External services
-stripe = box "Stripe" external
-carrier = box "Carrier API" external
-sendgrid = box "SendGrid" external
-
-// Event bus
-kafka = logos/kafka "Kafka" {
-  description: "Event streaming platform"
+stripe = box "Stripe" external {
+  description: "Payment processing"
 }
 
-// Frontend to BFF
-customer -> web "uses"
-web -> bff "API requests"
+sendgrid = box "SendGrid" external {
+  description: "Email delivery"
+}
+
+carrier = box "Carrier API" external {
+  description: "Shipping carrier"
+}
+
+// Frontend connections
+customer -> web "browses, orders"
+web -> bff
 
 // BFF to services
-bff -> core_services.users
-bff -> core_services.auth
-bff -> core_services.profile
-bff -> catalog_services.catalog
-bff -> catalog_services.search
-bff -> catalog_services.reviews
-bff -> catalog_services.recommendations
-bff -> catalog_services.pricing
-bff -> order_services.cart
-bff -> order_services.checkout
-bff -> order_services.orders
-bff -> order_services.payments
-bff -> order_services.inventory
-bff -> fulfillment_services.shipping
-bff -> fulfillment_services.notifications
-bff -> fulfillment_services.support
+bff -> auth_domain.auth_svc "authenticates"
+bff -> auth_domain.users_svc "manages users"
+bff -> auth_domain.profile_svc "manages profile"
+bff -> catalog_domain.catalog_svc "browses catalog"
+bff -> catalog_domain.search_svc "searches products"
+bff -> catalog_domain.pricing_svc "gets prices"
+bff -> catalog_domain.reviews_svc "reads/writes reviews"
+bff -> catalog_domain.recommendations_svc "gets recommendations"
+bff -> order_domain.cart_svc "manages cart"
+bff -> order_domain.checkout_svc "checkout"
+bff -> order_domain.orders_svc "views orders"
+bff -> operations.support_svc "submits tickets"
 
-// Service-to-service interactions
-catalog_services.search -> catalog_services.catalog "reads"
-catalog_services.recommendations -> catalog_services.catalog "reads"
-catalog_services.recommendations -> catalog_services.reviews "reads"
+// Kafka publishing
+order_domain.orders_svc ~> bus "order events"
+order_domain.payments_svc ~> bus "payment events"
 
-order_services.checkout -> order_services.cart "reads cart"
-order_services.checkout -> catalog_services.pricing "gets pricing"
-order_services.checkout -> order_services.payments "processes payment"
-order_services.checkout -> order_services.orders "creates order"
-
-order_services.orders -> order_services.inventory "reserves stock"
+// Kafka consuming
+bus ~> operations.shipping_svc "order events"
+bus ~> operations.notifications_svc "order & payment events"
+bus ~> catalog_domain.recommendations_svc "order events"
 
 // External integrations
-order_services.payments -> stripe "processes payment"
-fulfillment_services.shipping -> carrier "creates shipment"
-fulfillment_services.notifications -> sendgrid "sends emails"
+order_domain.payments_svc -> stripe "processes payment"
+operations.shipping_svc -> carrier "creates shipment"
+operations.notifications_svc -> sendgrid "sends email"
 
-// Event streaming
-order_services.orders ~> kafka "order events"
-order_services.payments ~> kafka "payment events"
-kafka ~> fulfillment_services.notifications "consumes events"
-kafka ~> fulfillment_services.shipping "consumes events"
-kafka ~> catalog_services.recommendations "consumes events"
-
+// Landscape view
 view landscape {
-  title "E-commerce Platform Architecture"
+  title "E-commerce Platform - System Landscape"
   include *
-
-  titleblock {
-    subtitle: "Microservices Architecture"
-  }
+  preview auth_domain, catalog_domain, order_domain, operations
 }
 
-view full {
-  title "E-commerce Platform - Full Detail"
-  expand *
+// Auth & Users detailed view
+view auth {
+  title "Auth & Users - Detailed View"
+  scope auth_domain
+}
+
+// Catalog & Discovery detailed view
+view catalog {
+  title "Catalog & Discovery - Detailed View"
+  scope catalog_domain
+}
+
+// Order fulfillment detailed view
+view orders {
+  title "Order Fulfillment - Detailed View"
+  scope order_domain
+}
+
+// Operations detailed view
+view ops {
+  title "Operations & Support - Detailed View"
+  scope operations
 }

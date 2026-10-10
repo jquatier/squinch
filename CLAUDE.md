@@ -211,15 +211,21 @@ extension + language server, six icon packs, and the light/dark pair. The accept
 bar — an agent producing clean diagrams from prose using only the skill + CLI —
 is certified at **38/38
 by independent cold agents** on the committed corpus; the latest full round scored
-35/37 with **25/37 clean on the first `check`** (round 29, run for the skill's
-hand-over: the agent rasterises each view beside the source and opens it,
-draws nothing the request does not support, and ends with three or four plain
-bullets — where to open it, what it guessed, what it saw. Agents now look and
-say what they guessed; looking fixed one layout in thirty-seven. The round
-surfaced that no wording told an agent how to pick `wrap N` for a slide, and
-the paragraph that does took 32 from 2 of 7 to 6 of 6. The other miss, 34, is
-the large-system prompt that varies, so the corpus keeps round 27's answer
-for it). Prompt 38 is the first about real code: a prompt may name a `repo` at
+38/38 with **18/38 clean on the first `check`** (round 30, run to check that
+moving the quality bar above the language — Claude Code keeps only a skill's
+first 5,000 tokens after compaction, and the checklist sat last — left the
+hand-over intact: all 38 agents rasterised a view, ran `--sync` and wrote the
+HTML. Round 29 had put that hand-over in: the agent looks at a render, draws
+nothing the request does not support, and ends with plain bullets — where to
+open it, what it guessed, what it saw. Round 30's first failures became two
+grammar fixes, a block on top-level `person` and a comma list on
+`expand`/`preview`/`detail`. 34, the large-system prompt that had varied
+since round 26, now says what it is for — "an overview page that fits on one
+screen, and then a page for each part of the system" — because six cold runs
+on the old wording passed none, every one declaring a single view and calling
+the automatic views its altitudes, and six on the new passed all six;
+rewording the skill's big-system section was measured first and moved
+nobody, as round 26 had also found, so it was not kept). Prompt 38 is the first about real code: a prompt may name a `repo` at
 a pinned commit, which `run.ts` checks out into the box, and the scorer's
 `labels`/`edges` hold the agent to the call graph the code has. Online
 Boutique passed one cold run in three — both misses never opened a service
