@@ -36,6 +36,7 @@ permissions:
 jobs:
   release:
     runs-on: ubuntu-latest
+    timeout-minutes: 30
     # A release is a deployment to npm: declaring the environment lists every
     # release in the repo's Deployments panel beside the Pages deploys, each
     # linking to the version it published, and makes a reviewer gate a settings
@@ -53,7 +54,7 @@ jobs:
       - uses: pnpm/action-setup@0977fd99725f1db4007ccb2928dbb4e90d06cc86 # v6
       - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7
         with:
-          node-version: 22
+          node-version-file: .node-version
           cache: pnpm
       - run: pnpm install --frozen-lockfile
       # The tag IS the version. Fail before doing any work if they disagree.
@@ -67,6 +68,16 @@ jobs:
             exit 1
           fi
           echo "version=${v#v}" >> "$GITHUB_OUTPUT"
+      # The tag must point at main. Windows and e2e are not re-run here on the
+      # strength of that — a tag pushed from a branch would publish a commit
+      # those gates never saw, and anyone with push access can push a tag.
+      - run: |
+          git fetch --no-tags origin main
+          if ! git merge-base --is-ancestor "$GITHUB_SHA" FETCH_HEAD; then
+            echo "tag $GITHUB_REF_NAME points at $GITHUB_SHA, which is not on main"
+            echo "releases are cut from main — \`pnpm release\` pushes main and the tag together"
+            exit 1
+          fi
       - run: pnpm -r build
       - run: pnpm -r typecheck
       - run: pnpm -r test

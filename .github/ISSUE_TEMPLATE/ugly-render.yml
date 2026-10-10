@@ -1,0 +1,35 @@
+name: Ugly render
+description: A diagram that checks clean and renders, but looks wrong. These are the most useful reports we get.
+labels: [render]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        What looks bad becomes the next fix — the lookbook is built from reports like this one.
+        No need to minimise the source; the full file is often what shows the problem.
+  - type: textarea
+    id: source
+    attributes:
+      label: The .squinch source
+      render: squinch
+    validations:
+      required: true
+  - type: textarea
+    id: render
+    attributes:
+      label: The rendered SVG or PNG
+      description: Drag the file in, or paste a screenshot. Say which theme if it matters.
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: What you expected to see
+      description: A sketch, a sentence, or a hint you tried that did not help.
+    validations:
+      required: true
+  - type: input
+    id: version
+    attributes:
+      label: squinch --version
+      placeholder: "0.16.0"

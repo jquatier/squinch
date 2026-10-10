@@ -1,0 +1,38 @@
+name: Bug
+description: A check error that is wrong, a crash, or output that disagrees with the spec.
+labels: [bug]
+body:
+  - type: textarea
+    id: source
+    attributes:
+      label: The smallest .squinch that reproduces it
+      description: Cut it down until removing one more line makes the problem go away. A fenced block is fine.
+      render: squinch
+    validations:
+      required: true
+  - type: input
+    id: version
+    attributes:
+      label: squinch --version
+      placeholder: "0.16.0"
+    validations:
+      required: true
+  - type: textarea
+    id: check
+    attributes:
+      label: squinch check output
+      description: Paste it as printed, including the location and the suggested fix if there was one.
+      render: text
+    validations:
+      required: true
+  - type: input
+    id: os
+    attributes:
+      label: Operating system
+      placeholder: "macOS 15.6, Ubuntu 24.04, Windows 11"
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: What you expected instead

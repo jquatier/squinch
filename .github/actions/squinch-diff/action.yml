@@ -25,7 +25,10 @@ inputs:
 runs:
   using: composite
   steps:
-    - uses: actions/setup-node@v7
+    # Pinned to a commit SHA with the tag alongside, as ci.yml does: this
+    # action runs in other people's repositories, where a moved tag would
+    # reach further than it does here.
+    - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7
       with:
         node-version: 22
         # This action runs in someone else's repo and only needs `npx`, never a
@@ -34,16 +37,22 @@ runs:
         # fails outright when there is no lockfile to hash — so a repo that has
         # the field but not the file would break on a step that wants neither.
         package-manager-cache: false
+    # Inputs reach the shell through the environment, never by `${{ }}` inside
+    # the script: an expression is substituted as source text before bash
+    # parses it, so a path or ref an author controls could be a command.
     - name: Compute the semantic diff
       id: diff
       shell: bash
+      env:
+        SQUINCH_PATH: ${{ inputs.path }}
+        BASE: ${{ inputs.base }}
+        BASE_REF: ${{ github.event.pull_request.base.ref }}
       run: |
         set -euo pipefail
-        BASE="${{ inputs.base }}"
-        if [ -z "$BASE" ]; then BASE="origin/${{ github.event.pull_request.base.ref }}"; fi
+        if [ -z "$BASE" ]; then BASE="origin/$BASE_REF"; fi
         # the base ref must exist locally: actions/checkout is shallow by default
-        git fetch --no-tags --depth=1 origin "${{ github.event.pull_request.base.ref }}" || true
-        REPORT=$(npx --yes squinch@${{ inputs.version }} diff "${{ inputs.path }}" \
+        git fetch --no-tags --depth=1 origin "$BASE_REF" || true
+        REPORT=$(npx --yes squinch@${{ inputs.version }} diff "$SQUINCH_PATH" \
           --base "$BASE" --format markdown || true)
         {
           echo 'report<<SQUINCH_EOF'
@@ -52,10 +61,16 @@ runs:
         } >> "$GITHUB_OUTPUT"
     - name: Comment on the pull request
       if: ${{ inputs.comment == 'true' && github.event_name == 'pull_request' }}
-      uses: actions/github-script@v7
+      uses: actions/github-script@f28e40c7f34bde8b3046d885e986cb6290c5673b # v7
+      env:
+        # The report quotes diagram labels verbatim (packages/core/src/diff),
+        # so it is the PR author's text. Read it from the environment rather
+        # than splicing it into the script, where a backtick in a label would
+        # end the string and run whatever follows.
+        REPORT: ${{ steps.diff.outputs.report }}
       with:
         script: |
-          const body = `${{ steps.diff.outputs.report }}`;
+          const body = process.env.REPORT ?? "";
           if (!body.trim()) return;
           // one comment per PR, updated in place — a review thread should not
           // fill up with a new diagram summary on every push
@@ -70,8 +85,11 @@ runs:
     - name: Gate on the change weight
       if: ${{ inputs.fail-on != 'none' }}
       shell: bash
+      env:
+        SQUINCH_PATH: ${{ inputs.path }}
+        BASE: ${{ inputs.base }}
+        BASE_REF: ${{ github.event.pull_request.base.ref }}
       run: |
-        BASE="${{ inputs.base }}"
-        if [ -z "$BASE" ]; then BASE="origin/${{ github.event.pull_request.base.ref }}"; fi
-        npx --yes squinch@${{ inputs.version }} diff "${{ inputs.path }}" \
+        if [ -z "$BASE" ]; then BASE="origin/$BASE_REF"; fi
+        npx --yes squinch@${{ inputs.version }} diff "$SQUINCH_PATH" \
           --base "$BASE" --fail-on "${{ inputs.fail-on }}"

@@ -1,0 +1,21 @@
+# Dependabot reads the pnpm workspace from the root: one manifest here covers
+# every package under packages/, apps/ and gauntlet. Updates are grouped so a
+# week's worth of bumps is two pull requests rather than forty — one for the
+# minor and patch moves that should be safe to take together, one for majors,
+# which each deserve their own reading. Every action is pinned to a commit
+# SHA with its tag alongside, and Dependabot moves both together.
+version: 2
+updates:
+  - package-ecosystem: npm
+    directory: /
+    schedule:
+      interval: weekly
+    groups:
+      minor-and-patch:
+        update-types: [minor, patch]
+      major:
+        update-types: [major]
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly

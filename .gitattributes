@@ -18,10 +18,10 @@
 *.squinch text eol=lf
 *.svg     text eol=lf
 
-# Scripts git runs through sh. A CR before the newline is a syntax error
-# (`\r: command not found`) that reads as the hook being broken rather than the
-# checkout being wrong.
-.githooks/*        text eol=lf
+# Scripts git runs through sh — the husky hooks and the CLI's bin shim. A CR
+# before the newline is a syntax error (`\r: command not found`) that reads as
+# the hook being broken rather than the checkout being wrong.
+.husky/*           text eol=lf
 packages/cli/bin/* text eol=lf
 
 # Binaries, declared rather than detected. text=auto's heuristic (NUL in the

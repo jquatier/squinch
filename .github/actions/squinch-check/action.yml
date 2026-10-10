@@ -13,7 +13,10 @@ inputs:
 runs:
   using: composite
   steps:
-    - uses: actions/setup-node@v7
+    # Pinned to a commit SHA with the tag alongside, as ci.yml does: this
+    # action runs in other people's repositories, where a moved tag would
+    # reach further than it does here.
+    - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7
       with:
         node-version: 22
         # This action runs in someone else's repo and only needs `npx`, never a
@@ -27,5 +30,11 @@ runs:
     # (Every SVG names the version that drew it — `data-squinch` on the root —
     # and the check ignores that attribute, so a new version only fails it when
     # the picture itself changed.)
-    - run: npx --yes squinch@${{ inputs.version }} render ${{ inputs.path }} --check
-      shell: bash
+    #
+    # The path reaches the shell through the environment, never by `${{ }}`
+    # inside the script: an expression is substituted as source text before
+    # bash parses it, so a path an author controls could be a command.
+    - shell: bash
+      env:
+        SQUINCH_PATH: ${{ inputs.path }}
+      run: npx --yes squinch@${{ inputs.version }} render "$SQUINCH_PATH" --check

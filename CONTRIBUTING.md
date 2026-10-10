@@ -187,7 +187,8 @@ Both stop the workflow before anything publishes.
 Small and focused beats comprehensive. Explain what a reviewer should look at
 rather than what the diff already shows — and if the change moves rendered
 output, include a before/after image. There's no CLA and no template; branch
-from `main` and open the PR.
+from `main` and open the PR. Reviews and discussion follow the
+[code of conduct](CODE_OF_CONDUCT.md).
 
 By contributing you agree your work is licensed under
 [Apache-2.0](LICENSE).

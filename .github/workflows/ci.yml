@@ -13,12 +13,23 @@ on:
 permissions:
   contents: read
 
+# A push to a branch with a run still going supersedes that run. The matrix
+# plus Windows plus e2e is many runner-minutes per push, and the result for a
+# commit nobody will merge is not worth them.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   build:
     strategy:
       matrix:
         os: [ubuntu-latest, macos-latest]
     runs-on: ${{ matrix.os }}
+    # Every job has a ceiling. The default is six hours, which is what a hung
+    # browser or a stuck install costs before anyone notices; nothing here
+    # should take a tenth of that.
+    timeout-minutes: 30
     steps:
       # Runner-side Node, not ours: these majors are the first that ship a
       # node24 entry point. The floating @v4 tags are still node20, which the
@@ -31,7 +42,7 @@ jobs:
       - uses: pnpm/action-setup@0977fd99725f1db4007ccb2928dbb4e90d06cc86 # v6
       - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7
         with:
-          node-version: 22
+          node-version-file: .node-version
           cache: pnpm
       - run: pnpm install --frozen-lockfile
       # pnpm -r builds in dependency order: core (emits .d.ts) then cli
@@ -87,6 +98,7 @@ jobs:
   # baseline so the perf budgets run here too.
   windows:
     runs-on: windows-latest
+    timeout-minutes: 30
     defaults:
       run:
         # git-bash, preinstalled. The default shell is pwsh, where `cd x && y`
@@ -98,7 +110,7 @@ jobs:
       - uses: pnpm/action-setup@0977fd99725f1db4007ccb2928dbb4e90d06cc86 # v6
       - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7
         with:
-          node-version: 22
+          node-version-file: .node-version
           cache: pnpm
       - run: pnpm install --frozen-lockfile
       - run: pnpm -r build
@@ -142,12 +154,13 @@ jobs:
   # critical path when the rest of the suite runs in seconds.
   e2e:
     runs-on: ubuntu-latest
+    timeout-minutes: 30
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
       - uses: pnpm/action-setup@0977fd99725f1db4007ccb2928dbb4e90d06cc86 # v6
       - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7
         with:
-          node-version: 22
+          node-version-file: .node-version
           cache: pnpm
       - run: pnpm install --frozen-lockfile
       - run: pnpm -r build

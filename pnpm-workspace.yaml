@@ -9,5 +9,9 @@ allowBuilds:
   # are not workspace dependencies at all: they arrive transiently under
   # `npx --yes @vscode/vsce package`, which this file does not govern.
   esbuild: true
+# A version must be a day old before pnpm will resolve to it: most hijacked
+# npm releases are pulled within hours, and nothing here needs same-day
+# upgrades. The exclusion below is meaningless without this line.
+minimumReleaseAge: 1440
 minimumReleaseAgeExclude:
   - simple-icons@16.27.1

@@ -1,0 +1,16 @@
+# What the tree already does, written down so an editor does it too: two-space
+# indent, LF, a final newline, no trailing whitespace. Line endings are also a
+# determinism input (see .gitattributes), so this is not only a tidiness rule.
+root = true
+
+[*]
+charset = utf-8
+end_of_line = lf
+indent_style = space
+indent_size = 2
+insert_final_newline = true
+trim_trailing_whitespace = true
+
+# Two trailing spaces are a hard line break in Markdown.
+[*.md]
+trim_trailing_whitespace = false
