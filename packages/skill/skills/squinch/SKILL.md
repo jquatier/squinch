@@ -711,7 +711,7 @@ their brand colour): `logos/postgres` · `logos/mysql` · `logos/mongodb` ·
 Some brands (Slack, Twilio, Salesforce, Heroku, gRPC…) have no icon upstream —
 they were withdrawn on trademark request. Use `box` for those.
 
-`sys/*` is the generic set — 175 Lucide icons for anything no vendor draws, and
+`sys/*` is the generic set — 195 Lucide icons for anything no vendor draws, and
 it needs no `pack` statement. Use it for on-prem and physical things, and as the
 last resort when nothing else fits. Ids are Lucide's own names:
 
@@ -724,12 +724,17 @@ last resort when nothing else fits. Ids are Lucide's own names:
 - **places** — `factory`, `warehouse`, `building-2`, `house`, `earth`
 - **process / observability** — `clock`, `timer`, `repeat`, `activity`, `gauge`,
   `chart-line`, `siren`, `bug`
+- **commerce** — `shopping-cart`, `shopping-bag`, `credit-card`, `wallet`,
+  `receipt-text`, `banknote`, `coins`, `badge-percent`, `ticket`, `truck`,
+  `package-check`, `barcode`, `calculator`, `gift`, `heart`, `headset`
 - **shapes, when nothing fits** — `box`, `circle`, `square`, `triangle`,
   `diamond`, `hexagon`, `star`
 
 Short aliases exist for words you would type instead: `gear`→`cog`,
 `cube`→`box`, `db`→`database`, `rack`/`vm`/`host`→`server`, `disk`→`hard-drive`,
-`firewall`→`shield`, `vault`→`lock-keyhole`, `cron`→`clock`, `lb`→`share-2`.
+`firewall`→`shield`, `vault`→`lock-keyhole`, `cron`→`clock`, `lb`→`share-2`,
+`cart`→`shopping-cart`, `checkout`→`shopping-bag`, `payment`→`credit-card`,
+`order`/`invoice`→`receipt-text`, `shipping`→`truck`, `ads`→`megaphone`.
 
 ## Platforms with no icon pack
 

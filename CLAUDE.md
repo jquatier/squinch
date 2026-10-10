@@ -138,9 +138,10 @@ applies two licence-permitted treatments, both recorded in its NOTICE: strip
 Inkscape metadata, and promote `style="fill:…"` CSS into presentation
 attributes — the upstream files carry all their paint in `style`, which the
 sanitizer drops, so without promotion every icon loads unfilled.
-`packages/pack-sys` — 175 curated Lucide icons (ISC): the generic set for what no
-vendor draws (servers, hardware, network gear, data/ML concepts) plus plain
-shapes as a last resort. Also `monochrome: true`. It is the `sys/*` prefix, and like `builtin` it
+`packages/pack-sys` — 195 curated Lucide icons (ISC): the generic set for what no
+vendor draws (servers, hardware, network gear, data/ML concepts, and the commerce
+row — cart, payment, order, shipping — that round 26 agents reached for and
+missed) plus plain shapes as a last resort. Also `monochrome: true`. It is the `sys/*` prefix, and like `builtin` it
 resolves with **no `pack` statement** — which is a property of being registered,
 not of the DSL: `model.packs` is recorded and never read, so `pack` is a
 declaration of intent. Registration is hardcoded in six places, all one-liners:

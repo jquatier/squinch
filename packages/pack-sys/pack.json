@@ -42,6 +42,21 @@
       "title": "Audio lines",
       "category": "Intelligence"
     },
+    "badge-percent": {
+      "file": "badge-percent.svg",
+      "title": "Badge percent",
+      "category": "Commerce"
+    },
+    "banknote": {
+      "file": "banknote.svg",
+      "title": "Banknote",
+      "category": "Commerce"
+    },
+    "barcode": {
+      "file": "barcode.svg",
+      "title": "Barcode",
+      "category": "Commerce"
+    },
     "battery": {
       "file": "battery.svg",
       "title": "Battery",
@@ -137,6 +152,11 @@
       "title": "Cable",
       "category": "Network"
     },
+    "calculator": {
+      "file": "calculator.svg",
+      "title": "Calculator",
+      "category": "Commerce"
+    },
     "calendar-clock": {
       "file": "calendar-clock.svg",
       "title": "Calendar clock",
@@ -202,6 +222,11 @@
       "title": "Cog",
       "category": "Compute"
     },
+    "coins": {
+      "file": "coins.svg",
+      "title": "Coins",
+      "category": "Commerce"
+    },
     "component": {
       "file": "component.svg",
       "title": "Component",
@@ -221,6 +246,11 @@
       "file": "cpu.svg",
       "title": "Cpu",
       "category": "Compute"
+    },
+    "credit-card": {
+      "file": "credit-card.svg",
+      "title": "Credit card",
+      "category": "Commerce"
     },
     "database": {
       "file": "database.svg",
@@ -347,6 +377,11 @@
       "title": "Gauge",
       "category": "Observability"
     },
+    "gift": {
+      "file": "gift.svg",
+      "title": "Gift",
+      "category": "Commerce"
+    },
     "git-branch": {
       "file": "git-branch.svg",
       "title": "Git branch",
@@ -382,6 +417,11 @@
       "title": "Grid 2x2",
       "category": "Shapes"
     },
+    "hand-coins": {
+      "file": "hand-coins.svg",
+      "title": "Hand coins",
+      "category": "Commerce"
+    },
     "handshake": {
       "file": "handshake.svg",
       "title": "Handshake",
@@ -401,6 +441,16 @@
       "file": "hard-drive-upload.svg",
       "title": "Hard drive upload",
       "category": "Data"
+    },
+    "headset": {
+      "file": "headset.svg",
+      "title": "Headset",
+      "category": "Commerce"
+    },
+    "heart": {
+      "file": "heart.svg",
+      "title": "Heart",
+      "category": "Commerce"
     },
     "hexagon": {
       "file": "hexagon.svg",
@@ -572,6 +622,16 @@
       "title": "Package",
       "category": "Compute"
     },
+    "package-check": {
+      "file": "package-check.svg",
+      "title": "Package check",
+      "category": "Commerce"
+    },
+    "package-search": {
+      "file": "package-search.svg",
+      "title": "Package search",
+      "category": "Commerce"
+    },
     "pause": {
       "file": "pause.svg",
       "title": "Pause",
@@ -607,6 +667,11 @@
       "title": "Puzzle",
       "category": "App"
     },
+    "qr-code": {
+      "file": "qr-code.svg",
+      "title": "Qr code",
+      "category": "Commerce"
+    },
     "radio": {
       "file": "radio.svg",
       "title": "Radio",
@@ -616,6 +681,11 @@
       "file": "radio-tower.svg",
       "title": "Radio tower",
       "category": "Network"
+    },
+    "receipt-text": {
+      "file": "receipt-text.svg",
+      "title": "Receipt text",
+      "category": "Commerce"
     },
     "refresh-cw": {
       "file": "refresh-cw.svg",
@@ -727,6 +797,16 @@
       "title": "Shield check",
       "category": "Security"
     },
+    "shopping-bag": {
+      "file": "shopping-bag.svg",
+      "title": "Shopping bag",
+      "category": "Commerce"
+    },
+    "shopping-cart": {
+      "file": "shopping-cart.svg",
+      "title": "Shopping cart",
+      "category": "Commerce"
+    },
     "siren": {
       "file": "siren.svg",
       "title": "Siren",
@@ -802,6 +882,16 @@
       "title": "Thermometer",
       "category": "Observability"
     },
+    "thumbs-up": {
+      "file": "thumbs-up.svg",
+      "title": "Thumbs up",
+      "category": "Commerce"
+    },
+    "ticket": {
+      "file": "ticket.svg",
+      "title": "Ticket",
+      "category": "Commerce"
+    },
     "timer": {
       "file": "timer.svg",
       "title": "Timer",
@@ -811,6 +901,11 @@
       "file": "triangle.svg",
       "title": "Triangle",
       "category": "Shapes"
+    },
+    "truck": {
+      "file": "truck.svg",
+      "title": "Truck",
+      "category": "Commerce"
     },
     "unlock": {
       "file": "unlock.svg",
@@ -846,6 +941,11 @@
       "file": "vault.svg",
       "title": "Vault",
       "category": "Security"
+    },
+    "wallet": {
+      "file": "wallet.svg",
+      "title": "Wallet",
+      "category": "Commerce"
     },
     "warehouse": {
       "file": "warehouse.svg",
@@ -885,70 +985,110 @@
   },
   "aliases": {
     "accelerator": "gpu",
+    "ads": "megaphone",
     "agent": "bot",
     "alert": "siren",
     "assistant": "bot-message-square",
     "audit": "history",
+    "bank": "landmark",
+    "basket": "shopping-cart",
+    "billing": "receipt-text",
     "blob": "folder",
     "broker": "radio-tower",
     "browser": "app-window",
     "bucket": "folder",
+    "card": "credit-card",
+    "cart": "shopping-cart",
     "catalog": "library-big",
     "cdn": "earth",
     "cert": "shield-check",
     "chatbot": "bot-message-square",
+    "checkout": "shopping-bag",
     "context": "memory-stick",
+    "coupon": "ticket",
     "cron": "clock",
     "cube": "box",
+    "currency": "coins",
     "db": "database",
+    "delivery": "truck",
     "desktop": "monitor",
+    "discount": "badge-percent",
     "disk": "hard-drive",
     "dns": "globe",
     "egress": "log-out",
     "eval": "target",
     "evals": "target",
     "experiment": "flask-conical",
+    "favorites": "heart",
+    "favourites": "heart",
     "fine-tune": "brain-cog",
     "firewall": "shield",
     "fn": "square-function",
+    "fulfillment": "package-check",
+    "fulfilment": "package-check",
+    "fx": "coins",
     "gear": "cog",
+    "gift-card": "gift",
     "guardrail": "shield-check",
+    "helpdesk": "headset",
     "host": "server",
     "ingress": "log-in",
+    "inventory": "barcode",
+    "invoice": "receipt-text",
     "job": "cog",
     "lambda": "zap",
     "lb": "share-2",
+    "ledger": "banknote",
     "llm": "brain",
     "load-balancer": "share-2",
     "logs": "scroll-text",
+    "loyalty": "gift",
     "metrics": "chart-line",
     "model": "brain-circuit",
     "notebook": "notebook-text",
     "ocr": "scan-text",
     "office": "building-2",
     "onprem": "factory",
+    "order": "receipt-text",
+    "payment": "credit-card",
+    "payments": "credit-card",
+    "payout": "hand-coins",
     "pc": "monitor",
     "people": "users",
     "phone": "smartphone",
     "plant": "factory",
+    "pos": "barcode",
+    "pricing": "badge-percent",
+    "promo": "badge-percent",
     "pubsub": "radio-tower",
     "rack": "server",
     "rag": "file-search",
+    "ratings": "thumbs-up",
+    "refund": "hand-coins",
     "retrieval": "file-search",
     "retry": "refresh-cw",
+    "reviews": "thumbs-up",
     "screen": "monitor",
     "secret": "lock-keyhole",
+    "settlement": "banknote",
+    "shipping": "truck",
+    "sku": "barcode",
     "speech": "audio-lines",
     "ssd": "hard-drive",
     "stream": "database-zap",
     "stt": "audio-lines",
+    "support": "headset",
+    "tax": "calculator",
     "team": "users",
     "topic": "radio-tower",
     "trace": "activity",
+    "tracking": "package-search",
     "training": "brain-cog",
     "tts": "audio-lines",
     "vector-search": "database-search",
     "vision": "image",
-    "vm": "server"
+    "vm": "server",
+    "voucher": "ticket",
+    "wishlist": "heart"
   }
 }

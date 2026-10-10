@@ -354,8 +354,10 @@ describe("grammar + model builder", () => {
 
   describe("a container's icon: is a real icon reference too", () => {
     // The last unvalidated icon reference. Gauntlet round 26: agents grouping a
-    // large system into areas wrote `icon: sys/shopping-cart`, which does not
-    // exist, and got a clean check and a `?` tile on the card.
+    // large system into areas wrote `icon: sys/shopping-cart`, which did not
+    // exist, and got a clean check and a `?` tile on the card. (The cart has
+    // since joined the pack — the agents were right — so the made-up id here
+    // is one Lucide draws and the pack deliberately leaves out.)
     const src = (icon: string) =>
       `pack aws\nsystem s "S" {\n  icon: ${icon}\n  a = aws/lambda "A"\n}\n`;
 
@@ -365,10 +367,10 @@ describe("grammar + model builder", () => {
     });
 
     it("rejects a made-up id and says how to find a real one", () => {
-      const r = buildModel(src("sys/shopping-cart"));
+      const r = buildModel(src("sys/coffee"));
       expect(r.ok).toBe(false);
       const d = r.diagnostics.find((x) => x.message.includes("in icon"));
-      expect(d?.message).toContain("unknown icon `sys/shopping-cart`");
+      expect(d?.message).toContain("unknown icon `sys/coffee`");
       expect(d?.fix).toBeTruthy();
     });
 

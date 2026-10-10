@@ -5,10 +5,12 @@
 //   npm run fetch
 //
 // Lucide ships 2,000+ icons. Vendoring all of them would bury the ones people
-// actually reach for under a pile of shopping carts and coffee cups, so this is
+// actually reach for under a pile of coffee cups and chess pieces, so this is
 // a curated list, grouped by the role an icon plays in an architecture diagram.
 // Add an id, run the script, commit the result. Unknown ids are reported, never
-// silent.
+// silent. The bar for an id is that an agent drawing a system would reach for
+// it: `shopping-cart` joined because one did (gauntlet round 26 wrote
+// `sys/shopping-cart` into a card and got a `?` tile).
 import { existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { createRequire } from "node:module";
 import { dirname, join } from "node:path";
@@ -77,6 +79,17 @@ const CURATED: Record<string, string[]> = {
   People: [
     "user", "users", "user-cog", "contact", "briefcase", "id-card", "handshake",
   ],
+  // The commerce vocabulary: cart, checkout, payment, order, shipping. Every
+  // other row here is a thing a system *is*; this one is what a system *sells*,
+  // and no vendor pack draws any of it. One icon per concept — the basket and
+  // the handbag duplicate the cart and the bag, and `receipt` has a dollar
+  // sign baked in where `receipt-text` is currency-neutral.
+  Commerce: [
+    "shopping-cart", "shopping-bag", "credit-card", "wallet", "receipt-text",
+    "banknote", "coins", "hand-coins", "badge-percent", "ticket", "truck",
+    "package-check", "package-search", "barcode", "qr-code", "calculator",
+    "gift", "heart", "thumbs-up", "headset",
+  ],
   Process: [
     "clock", "calendar-clock", "timer", "hourglass", "repeat", "refresh-cw",
     "play", "circle-play", "pause", "git-branch", "git-merge", "check-check",
@@ -126,6 +139,21 @@ const ALIASES: Record<string, string> = {
   context: "memory-stick", eval: "target", evals: "target", ocr: "scan-text",
   speech: "audio-lines", tts: "audio-lines", stt: "audio-lines", vision: "image",
   guardrail: "shield-check",
+  cart: "shopping-cart", basket: "shopping-cart", checkout: "shopping-bag",
+  payment: "credit-card", payments: "credit-card", card: "credit-card",
+  order: "receipt-text", invoice: "receipt-text", billing: "receipt-text",
+  settlement: "banknote", ledger: "banknote", currency: "coins", fx: "coins",
+  payout: "hand-coins", refund: "hand-coins",
+  pricing: "badge-percent", promo: "badge-percent", discount: "badge-percent",
+  coupon: "ticket", voucher: "ticket",
+  shipping: "truck", delivery: "truck",
+  fulfilment: "package-check", fulfillment: "package-check", tracking: "package-search",
+  sku: "barcode", inventory: "barcode", pos: "barcode",
+  tax: "calculator", loyalty: "gift", "gift-card": "gift",
+  wishlist: "heart", favourites: "heart", favorites: "heart",
+  reviews: "thumbs-up", ratings: "thumbs-up",
+  support: "headset", helpdesk: "headset",
+  ads: "megaphone", bank: "landmark",
 };
 
 interface IconEntry { file: string; title: string; category: string }

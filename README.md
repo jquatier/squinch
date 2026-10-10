@@ -526,7 +526,7 @@ redistributed and one shipped on Google's stated purpose for it:
 | [`pack-aws`](packages/pack-aws) | 316 | CC-BY-ND 2.0 — the same basis AWS uses for its own PlantUML icons |
 | [`pack-azure`](packages/pack-azure) | 636 | Microsoft's icon terms: copy and distribute **for architecture diagrams, training and documentation** |
 | [`pack-logos`](packages/pack-logos) | 147 | CC0, from [Simple Icons](https://simpleicons.org) — the non-cloud half of a stack |
-| [`pack-sys`](packages/pack-sys) | 175 | ISC, from [Lucide](https://lucide.dev) — the generic set: servers, hardware, network gear, shapes, data/ML concepts |
+| [`pack-sys`](packages/pack-sys) | 195 | ISC, from [Lucide](https://lucide.dev) — the generic set: servers, hardware, network gear, shapes, data/ML and commerce concepts |
 | [`pack-k8s`](packages/pack-k8s) | 39 | Apache-2.0 / CC-BY-4.0 — the official [Kubernetes community icons](https://github.com/kubernetes/community/tree/main/icons), published to standardize cluster diagrams |
 | [`pack-gcp`](packages/pack-gcp) | 45 | Google's [icon library](https://cloud.google.com/icons), published "for your diagrams, technical documentation, and more" — no redistribution grant; see its NOTICE for the footing |
 
