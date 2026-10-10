@@ -3,7 +3,7 @@
 [`skills/squinch/SKILL.md`](skills/squinch/SKILL.md) is the whole contract an
 agent needs to author Squinch diagrams: the grammar, the visibility rules, a
 layout cookbook, and the check-render-fix loop. It is the *only* thing the
-twenty cold agents in the [gauntlet](../../gauntlet/) are given, alongside the
+cold agents in the [gauntlet](../../gauntlet/) are given, alongside the
 `squinch` binary — so if something an agent needs isn't in here, the gauntlet
 is where that shows up.
 

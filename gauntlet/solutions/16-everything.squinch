@@ -1,12 +1,15 @@
 pack aws
+pack logos
 
 person customer "Customer"
 
-cdn = aws/cloudfront "CloudFront CDN"
-gw = aws/api-gateway "API Gateway"
+cdn = aws/cloudfront "CloudFront"
+storefront = box "Storefront"
 
 system catalog "Catalog Service" {
+  icon: aws/lambda
   description: "Product catalog and search"
+
   api = aws/lambda "Catalog Handler"
   db = aws/dynamodb "Catalog DB" datastore
 
@@ -14,43 +17,60 @@ system catalog "Catalog Service" {
 }
 
 system orders "Orders Service" {
-  description: "Order management and processing"
-  api = aws/lambda "Orders Handler"
-  db = aws/dynamodb "Orders DB" datastore
+  icon: aws/lambda
+  description: "Order management and checkout"
+
+  api = aws/lambda "Orders Handler" { tags: #sensitive }
+  db = aws/dynamodb "Orders DB" datastore { tags: #sensitive }
+  bus = aws/eventbridge "Order Events" { tags: #sensitive }
 
   api -> db
-  api ~> bus "publish events"
+  api ~> bus "order created"
 }
 
 system payments "Payments Service" {
+  icon: aws/lambda
   description: "Payment processing"
-  tags: #sensitive
-  api = aws/lambda "Payments Handler"
-  db = aws/dynamodb "Payments DB" datastore
 
-  api -> db { tags: #sensitive }
+  api = aws/lambda "Payments Handler" { tags: #sensitive }
+  db = aws/dynamodb "Payments DB" datastore { tags: #sensitive }
+
+  api -> db
 }
 
-bus = aws/eventbridge "Event Bus"
-fulfillment = aws/lambda "Fulfillment Worker"
+system fulfillment "Fulfillment Service" {
+  icon: aws/lambda
+  description: "Order fulfillment and shipping"
 
-customer -> cdn "browse"
-cdn -> gw
-gw -> catalog.api "catalog requests"
-gw -> orders.api "order requests"
-gw -> payments.api "payment requests" { tags: #sensitive }
-bus ~> fulfillment "order events"
+  worker = aws/lambda "Fulfillment Worker"
+  db = aws/dynamodb "Fulfillment DB" datastore
 
-zone prod_vpc "Production VPC" vpc {
-  contains gw, catalog, orders, payments, bus, fulfillment
+  worker -> db
+}
+
+gw = aws/api-gateway "API Gateway"
+
+customer -> cdn "browses"
+cdn -> storefront
+storefront -> gw "API calls"
+gw -> catalog.api
+gw -> orders.api
+gw -> payments.api
+orders.bus ~> fulfillment.worker "order events"
+
+zone prod_vpc "VPC Production" vpc {
+  contains gw, catalog, orders, payments, fulfillment
 }
 
 view landscape {
-  title "Order Platform - Landscape"
+  title "Order Platform Landscape"
   include *
-  color #sensitive amber
+  titleblock {
+    subtitle: "End-to-end architecture"
+  }
 }
 
 view orders {
-  title "Orders Service - Detail"
+  title "Orders Service Detail"
+  color #sensitive amber
 }

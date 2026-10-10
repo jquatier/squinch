@@ -1,38 +1,41 @@
 pack k8s
 
+person user "User"
+
 // Ingress layer
-ingress = k8s/ing "Nginx Ingress"
+ingress = k8s/ing "nginx-ingress"
 
 // Services
-web_svc = k8s/svc "Web Service"
-api_svc = k8s/svc "API Service"
-worker_svc = k8s/svc "Worker Service"
+web_svc = k8s/svc "web-service"
+api_svc = k8s/svc "api-service"
+worker_svc = k8s/svc "worker-service"
 
 // Deployments
-web = k8s/deploy "Web" {
-  description: "Frontend deployment"
+web = k8s/deploy "web" {
+  subtitle: "Frontend"
 }
-api = k8s/deploy "API" {
-  description: "API deployment"
+api = k8s/deploy "api" {
+  subtitle: "REST API"
 }
-worker = k8s/deploy "Worker" {
-  description: "Background worker"
+worker = k8s/deploy "worker" {
+  subtitle: "Background jobs"
 }
 
 // Data layer
-postgres = k8s/sts "Postgres" datastore {
-  description: "Database StatefulSet"
+postgres = k8s/sts "postgres" datastore {
+  subtitle: "StatefulSet"
 }
-redis = k8s/sts "Redis" datastore {
-  description: "Cache layer"
+redis = k8s/deploy "redis" datastore {
+  subtitle: "Cache"
 }
 
-// Scheduled job
-prune = k8s/cronjob "Prune Job" {
-  description: "Nightly cleanup"
+// Scheduled jobs
+prune = k8s/cronjob "prune-job" {
+  subtitle: "Nightly cleanup"
 }
 
 // Traffic flow
+user -> ingress
 ingress -> web_svc
 ingress -> api_svc
 web_svc -> web
@@ -40,15 +43,8 @@ api_svc -> api
 worker_svc -> worker
 
 // API data access
-api -> postgres "read/write"
 api -> redis "cache"
+api -> postgres "read/write"
 
-// Cleanup job
-prune -> postgres "prune old records"
-
-view cluster {
-  title "Kubernetes Cluster"
-  layout {
-    rows [ingress] [web_svc api_svc worker_svc] [web api worker] [redis] [postgres prune]
-  }
-}
+// Job data access
+prune -> postgres "delete old records"

@@ -1,22 +1,29 @@
 pack aws
 
-// Event source
-bus = aws/eventbridge "Order Events"
-
-// Email notification path
-email_handler = aws/lambda "Email Notifier"
-email_svc = aws/sns "Email Service"
-
-// Analytics path
-analytics_handler = aws/lambda "Analytics Writer"
-data_lake = aws/s3 "Data Lake" datastore
-
-// Dead-letter queue
+bus = aws/eventbridge "EventBridge"
 dlq = aws/sqs "Dead Letter Queue"
 
-// Async event flows
-bus ~> email_handler
-email_handler -> email_svc
-bus ~> analytics_handler
-analytics_handler -> data_lake
+system email_notify "Email Notifier" {
+  handler = aws/lambda "Email Handler"
+  sns = aws/sns "Email Topic"
+
+  handler ~> sns
+}
+
+system analytics "Analytics" {
+  writer = aws/lambda "Analytics Writer"
+  lake = aws/s3 "Data Lake" datastore
+
+  writer ~> lake
+}
+
+bus ~> email_notify.handler "order events"
+bus ~> analytics.writer "order events"
 bus ~> dlq "failed events"
+
+view default {
+  title "Event-Driven Architecture"
+  layout {
+    rows [bus] [email_notify analytics] [dlq]
+  }
+}

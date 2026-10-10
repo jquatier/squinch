@@ -1,10 +1,10 @@
-// Stack diagram using real product logos (logos pack)
 pack logos
+pack k8s
 
-person dev "Developer"
+person developer "Developer"
 
-system stack "Application Stack" {
-  description: "Next.js frontend with NestJS backend"
+system app "Application" {
+  description: "Next.js + NestJS stack"
 
   frontend = logos/nextdotjs "Frontend" {
     subtitle: "Next.js"
@@ -14,45 +14,52 @@ system stack "Application Stack" {
     subtitle: "NestJS"
   }
 
-  db = logos/postgres "Database" datastore {
-    subtitle: "PostgreSQL"
-  }
-
   cache = logos/redis "Cache" datastore {
     subtitle: "Redis"
   }
 
-  events = logos/kafka "Event Bus" {
+  db = logos/postgres "Database" datastore {
+    subtitle: "PostgreSQL"
+  }
+
+  events = logos/kafka "Events" {
     subtitle: "Kafka"
   }
 
-  frontend -> api "requests"
-  api -> db "queries"
-  api -> cache "reads/writes"
-  api ~> events "publishes events"
+  frontend -> api
+  api -> cache
+  api -> db
+  api ~> events "publishes"
+
+  layout {
+    rows [frontend] [api] [cache db] [events]
+  }
 }
 
-monitoring = logos/grafana "Monitoring" {
-  subtitle: "Grafana"
+vcs = logos/github "GitHub" {
+  description: "Source control and CI/CD"
 }
 
-github = logos/github "GitHub" {
-  subtitle: "Source Control"
+cluster = logos/kubernetes "Kubernetes" {
+  description: "Container orchestration"
 }
 
-k8s = logos/kubernetes "Kubernetes" {
-  subtitle: "Container Orchestration"
+monitoring = logos/grafana "Grafana" {
+  description: "Observability"
 }
 
-dev -> github "pushes code"
-github ~> k8s "CI/CD deployment"
-k8s -> stack "runs"
-monitoring -> stack "observes"
+developer -> vcs "pushes code"
+vcs -> cluster "deploys to"
+cluster -> app.frontend
+cluster -> app.api
+app.api -> monitoring "metrics"
+app.events -> monitoring "metrics"
 
 view landscape {
   title "Application Stack"
-  include *
+  expand app
+
   layout {
-    rows [dev] [github] [k8s] [stack monitoring]
+    rows [developer] [vcs] [cluster] [app] [monitoring]
   }
 }

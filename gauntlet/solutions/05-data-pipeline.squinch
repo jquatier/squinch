@@ -1,22 +1,18 @@
-// Clickstream data pipeline
 pack aws
 
+stream    = aws/kinesis     "Clickstream"
+transform = aws/lambda      "Transformer"
+lake      = aws/s3          "Data Lake" datastore
+catalog   = aws/glue        "Glue Catalog"
+query     = aws/athena      "Athena"
 person analyst "Analyst"
 
-stream    = aws/kinesis "Clickstream Stream"
-transform = aws/lambda "Transform Handler" {
-  subtitle: "Lambda"
-}
-lake      = aws/s3 "Data Lake" datastore {
-  subtitle: "S3"
-}
-catalog   = aws/glue "Data Catalog" {
-  subtitle: "Glue Crawler"
-}
-query     = aws/athena "Query Engine"
-
 stream ~> transform "events"
-transform -> lake "writes"
-lake -> catalog "crawls"
-analyst -> query "runs queries"
-query -> lake "reads"
+transform -> lake "parquet files"
+catalog -> lake "catalogs"
+analyst -> query "SQL queries"
+query -> lake "scans"
+
+view pipeline {
+  title "Clickstream Data Pipeline"
+}

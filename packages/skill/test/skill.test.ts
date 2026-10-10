@@ -100,8 +100,7 @@ describe("SKILL.md — grammar coverage", () => {
     // Round 4's lesson: fixing the prose was not enough, because agents copy the
     // reference block. A verb the cookbook names but no example shows is a verb
     // that will be spelled wrong.
-    // the table only — past it sits the quality bar, whose `--theme light` is a
-    // CLI flag rather than a recommendation to write `theme` in a view
+    // the table only — past it sit the icon sections, which name no verbs
     // A renamed heading must fail loudly: indexOf's -1 would otherwise slice
     // the last character of the file and the verb sweep would pass vacuously.
     const cookbookAt = SKILL.indexOf("## Layout cookbook");

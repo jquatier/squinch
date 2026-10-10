@@ -1,6 +1,7 @@
 ---
 name: squinch
-description: Author architecture diagrams as code with the Squinch DSL. Use this whenever the user wants an architecture or system diagram — creating one from prose, editing or reviewing a .squinch file, drawing cloud infrastructure (AWS, Azure, Kubernetes, hybrid estates), documenting services for a README or a design review, or any picture of systems, services and the connections between them — even when they never say "squinch". Write the .squinch model, validate it with `squinch check`, render it with `squinch render` (SVG in both themes plus the interactive HTML by default; PNG only when asked), and fix what you see using the layout cookbook below.
+description: Author architecture diagrams as code with the Squinch DSL. Use this whenever the user wants an architecture or system diagram — creating one from prose, editing or reviewing a .squinch file, drawing cloud infrastructure (AWS, Azure, Kubernetes, hybrid estates), documenting services for a README or a design review, or any picture of systems, services and the connections between them — even when they never say "squinch". Write the .squinch model, validate it with `squinch check`, render it with `squinch render` (SVG in both themes plus the interactive HTML by default; PNG only when asked), and fix what you see with the layout cookbook.
+compatibility: Requires Node.js 22+ and the squinch CLI on PATH, or npx squinch with no install
 ---
 
 # Squinch — architecture diagrams as code
@@ -98,6 +99,42 @@ components or the layout: the diagram shows them.
    carry on. Never upgrade squinch or re-run `squinch skill` unasked: an
    upgrade can change render bytes, and that is the user's call.
 
+## Quality bar before you call it done
+
+1. `squinch check` exits 0 with no diagnostics.
+2. **Every view** you declared is rendered in both `--theme light` and
+   `--theme dark`, plus the interactive `.html` — and all of it is handed
+   over, not just checked (see "What to hand over").
+3. **Look at the picture, not the markup.** SVG source cannot show you a
+   detour. Rasterise each view beside the source and open the image —
+   `squinch render diagram.squinch --view NAME -o NAME.check.png` — then
+   delete the `.check.png` files when you are done. Keep them inside your
+   working directory: a path like `/tmp` is often one you may not read. One
+   theme is enough, both share one layout. Tiers read top-to-bottom (or
+   left-to-right), no edge takes a baffling detour, async flows (`~>`) are
+   dashed, related things sit together. If you could not view the image, say
+   so in the hand-over and make no claim about how the layout looks.
+4. Labels are short noun phrases. A `subtitle:` of a few words says what a
+   leaf runs on or who owns it; anything longer goes in `description`, never
+   the label.
+5. Model semantics honestly: request/response is `->`; anything that queues,
+   buffers or fans out is `~>`. If the prose says stream, queue, topic, event,
+   publishes, emits, feeds, notifies or subscribes — Kinesis, Kafka, SQS, SNS,
+   EventBridge, Service Bus — that edge is `~>`, and a pipeline drawn entirely
+   with `->` is almost always wrong.
+6. **Every actor the prose names is in the diagram.** People are easy to drop:
+   "customers browse", "developers push", "an analyst queries" each name a
+   `person`, and a stack diagram that draws only the technology has left out
+   who uses it. Re-read the request and check each noun appears — a human is a
+   `person`, not a box and not omitted.
+7. **Nothing is in the diagram that the request does not support.** A reader
+   takes every box as a fact, so a CDN, WAF, cache or queue that nothing in
+   the request implies is a guess presented as truth — leave it out. The same
+   goes for glue: an API or worker you put between two things the request
+   names, and a product you picked where it named only a kind ("Postgres" is
+   not "RDS"). When the picture cannot be drawn without filling a gap, draw
+   the plainest reading and say what you guessed in the hand-over.
+
 ## Language
 
 ```squinch
@@ -110,7 +147,8 @@ pack azure                            //  azure | gcp | logos | k8s). Optional �
 
 person customer "Customer"            // human actor. This form is top-level
                                       // only — inside a system write it as
-                                      // `who = person "Operator"`.
+                                      // `who = person "Operator"`. Either
+                                      // takes a block: `{ description: "…" }`
 gw = aws/api-gateway "Edge Gateway"   // components may sit at the top level too —
                                       // that's how things stay individually
                                       // visible at landscape altitude (see
@@ -171,7 +209,7 @@ Rules that matter:
 - **Commas are optional wherever whitespace already separates** — `rows [a, b]`,
   `align a, b`, `highlight #a, #b`, `{ style: dashed, animate: slow }` all parse,
   as does a trailing comma. They stay *required* in a path list (`a -> b, c`,
-  `contains`, `channel`, `only`), and stay wrong inside a tag value: write
+  `contains`, `channel`, `only`, `expand`), and stay wrong inside a tag value: write
   `tags: #a #b`, never `tags: #a, #b`.
 - Parallel edges between the same pair are fine — give each a label.
 - **A system you are not breaking down is a node, not an empty system.**
@@ -294,7 +332,8 @@ view shop {                 // name matching a system = that system's view
                             // Takes ids too: `only api, vault`
   exclude legacy            // trim noise (removes the subtree)
   expand workers            // inline one child container in a frame — one
-                            // level; nesting two explicit expands is an error
+                            // level; nesting two explicit expands is an error.
+                            // Several: `expand workers, ledger`, or one per line
   detail ledger.post        // draw an outside node itself, not its system card
   highlight #pci            // spotlight matches, dim the rest — this still
                             // shows EVERYTHING; "only the PCI parts" is `only`
@@ -328,7 +367,7 @@ view full {
 ```
 
 Between a card and an open frame there is one more altitude: **`preview
-<path>`** (or `preview *`) draws a card **detailed** — the children its
+<path>`** (a comma list, or `preview *`) draws a card **detailed** — the children its
 `preview:` attr names (§ containers; up to three, `auto` takes the first three
 declared) as readable rows under the head, `+N more` on the shelf for the
 rest. It is still a card: every wire lands on it, nothing attaches to a row,
@@ -769,39 +808,3 @@ The same recipe covers any vendor whose mark is in the logos pack —
 badge; if there's no mark, skip the badge and let the label carry the vendor.
 Badge only what the platform actually owns: a Kafka or S3 node keeps its own
 icon, and that contrast is what makes the platform boundary readable.
-
-## Quality bar before you call it done
-
-1. `squinch check` exits 0 with no diagnostics.
-2. **Every view** you declared is rendered in both `--theme light` and
-   `--theme dark`, plus the interactive `.html` — and all of it is handed
-   over, not just checked (see "What to hand over").
-3. **Look at the picture, not the markup.** SVG source cannot show you a
-   detour. Rasterise each view beside the source and open the image —
-   `squinch render diagram.squinch --view NAME -o NAME.check.png` — then
-   delete the `.check.png` files when you are done. Keep them inside your
-   working directory: a path like `/tmp` is often one you may not read. One
-   theme is enough, both share one layout. Tiers read top-to-bottom (or
-   left-to-right), no edge takes a baffling detour, async flows (`~>`) are
-   dashed, related things sit together. If you could not view the image, say
-   so in the hand-over and make no claim about how the layout looks.
-4. Labels are short noun phrases. A `subtitle:` of a few words says what a
-   leaf runs on or who owns it; anything longer goes in `description`, never
-   the label.
-5. Model semantics honestly: request/response is `->`; anything that queues,
-   buffers or fans out is `~>`. If the prose says stream, queue, topic, event,
-   publishes, emits, feeds, notifies or subscribes — Kinesis, Kafka, SQS, SNS,
-   EventBridge, Service Bus — that edge is `~>`, and a pipeline drawn entirely
-   with `->` is almost always wrong.
-6. **Every actor the prose names is in the diagram.** People are easy to drop:
-   "customers browse", "developers push", "an analyst queries" each name a
-   `person`, and a stack diagram that draws only the technology has left out
-   who uses it. Re-read the request and check each noun appears — a human is a
-   `person`, not a box and not omitted.
-7. **Nothing is in the diagram that the request does not support.** A reader
-   takes every box as a fact, so a CDN, WAF, cache or queue that nothing in
-   the request implies is a guess presented as truth — leave it out. The same
-   goes for glue: an API or worker you put between two things the request
-   names, and a product you picked where it named only a kind ("Postgres" is
-   not "RDS"). When the picture cannot be drawn without filling a gap, draw
-   the plainest reading and say what you guessed in the hand-over.

@@ -1,74 +1,48 @@
 pack logos
 
-// External source
+person analyst "Data Analyst"
+
 kafka = logos/kafka "Order Events" external
 
-// Ingestion layer
-autoloader = sys/workflow "Auto Loader" {
-  badge: logos/databricks
-  subtitle: "Streaming ingestion"
+system bronze "Bronze Layer" {
+  description: "Raw ingestion zone"
+  loader = sys/workflow "Auto Loader" { badge: logos/databricks, subtitle: "Databricks" }
+  bronze_table = sys/table "Bronze Orders" datastore { badge: logos/databricks }
+
+  loader -> bronze_table
 }
 
-// Storage layer - Bronze
-bronze = sys/table "Bronze Orders" datastore {
-  badge: logos/databricks
-  subtitle: "Raw Delta table"
+system silver "Silver Layer" {
+  description: "Cleaned and merged data"
+  job = sys/workflow "Nightly Merge" { badge: logos/databricks, subtitle: "Databricks Job" }
+  customers = sys/table "Customers" datastore { badge: logos/databricks }
+
+  job -> customers
 }
 
-// Processing
-job = sys/workflow "Merge Job" {
-  badge: logos/databricks
-  subtitle: "Nightly transform"
+system serving "ML Serving" {
+  description: "Vector search and model serving"
+  vector = sys/waypoints "Vector Search" { badge: logos/databricks }
+  model = sys/model "Model Endpoint" { badge: logos/databricks, subtitle: "Databricks" }
+
+  vector -> model
 }
 
-// Storage layer - Silver
-silver = sys/table "Silver Customers" datastore {
-  badge: logos/databricks
-  subtitle: "Curated Delta"
-}
+catalog = sys/catalog "Unity Catalog" { badge: logos/databricks }
+warehouse = sys/database "SQL Warehouse" { badge: logos/databricks, subtitle: "Databricks SQL" }
 
-// Governance
-catalog = sys/catalog "Unity Catalog" {
-  badge: logos/databricks
-  description: "Data governance"
-}
+kafka ~> bronze.loader "order events"
+bronze.bronze_table ~> silver.job "stream"
+silver.customers -> catalog "governed by"
+catalog -> warehouse "queries"
+silver.customers -> serving.vector "indexed"
+warehouse -> analyst "analytics"
+serving.model -> analyst "predictions"
 
-// Analytics
-warehouse = sys/database "SQL Warehouse" {
-  badge: logos/databricks
-  subtitle: "Databricks SQL"
-}
-
-// ML components
-vector = sys/waypoints "Vector Search" {
-  badge: logos/databricks
-  description: "Embedding index"
-}
-
-serving = sys/model "Model Serving" {
-  badge: logos/databricks
-  description: "ML endpoint"
-}
-
-// Actors
-analyst = person "Analyst"
-
-// Data flow
-kafka ~> autoloader "streams"
-autoloader -> bronze "writes"
-bronze -> job "reads"
-job -> silver "merges"
-catalog -> silver "governs"
-silver -> warehouse "queries"
-silver -> vector "indexes"
-vector -> serving "powers"
-analyst -> warehouse "queries"
-
-view lakehouse {
-  title "Databricks Lakehouse Architecture"
+view landscape {
+  title "Databricks Lakehouse"
   layout {
-    rows [kafka] [autoloader] [bronze] [job] [silver catalog] [warehouse vector] [serving]
-    place analyst left-of warehouse
-    place catalog right-of silver
+    rows [kafka] [bronze] [silver catalog] [serving warehouse] [analyst]
+    place warehouse right-of serving
   }
 }

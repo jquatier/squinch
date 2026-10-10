@@ -1,30 +1,31 @@
 pack aws
 
-person user "User"
 gw = aws/api-gateway "API Gateway"
 
 system catalog "Catalog Service" {
-  description: "Product browsing and search"
+  description: "Product listings and search"
   api = aws/lambda "Catalog API"
-  db = aws/dynamodb "Product Catalog" datastore
+  db = aws/dynamodb "Products" datastore
+
   api -> db
 }
 
 system checkout "Checkout Service" {
-  description: "Cart management and order processing"
+  description: "Shopping cart and order processing"
   api = aws/lambda "Checkout API"
   db = aws/dynamodb "Orders" datastore
+
   api -> db
 }
 
 system identity "Identity Service" {
-  description: "Authentication and user management"
+  description: "User authentication and authorization"
   api = aws/lambda "Identity API"
   db = aws/dynamodb "Users" datastore
+
   api -> db
 }
 
-user -> gw
 gw -> catalog.api
 gw -> checkout.api
 gw -> identity.api

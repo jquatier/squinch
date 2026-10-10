@@ -3,11 +3,15 @@ pack aws
 person user "User"
 
 alb   = aws/elastic-load-balancing "Application Load Balancer"
-app   = aws/ecs                    "Web App" { subtitle: "ECS · Fargate" }
-cache = aws/elasticache            "Cache" datastore { subtitle: "ElastiCache" }
-db    = aws/aurora                 "Database" datastore { subtitle: "Aurora" }
+app   = aws/ecs "App Service" {
+  subtitle: "ECS · Fargate"
+}
+cache = aws/elasticache "Session Cache" datastore
+db    = aws/aurora "Database" datastore {
+  subtitle: "Aurora · Postgres"
+}
 
-user -> alb  "HTTPS"
-alb  -> app
-app  -> cache "read/write"
-app  -> db    "read/write"
+user -> alb "HTTPS requests"
+alb -> app
+app -> cache "session data"
+app -> db "queries"

@@ -1,105 +1,120 @@
-// Online Boutique - e-commerce microservices demo
+// Online Boutique - Microservices E-Commerce Demo
 pack logos
+pack gcp
 
-person user "User"
+person user "Customer"
+load = sys/activity "Load Generator"
 
-// Frontend
-frontend = sys/app-window "Frontend" {
-  subtitle: "Go · HTTP server"
-  description: "Web interface for browsing and purchasing items"
+system boutique "Online Boutique" {
+  description: "Cloud-native microservices e-commerce application"
+
+  // Frontend
+  fe = sys/app-window "Frontend" {
+    subtitle: "Go · HTTP server"
+    description: "Serves website, session management"
+  }
+
+  // Core services
+  checkout = sys/shopping-bag "Checkout Service" {
+    subtitle: "Go · Orchestrator"
+    description: "Orchestrates order processing"
+  }
+
+  cart = sys/shopping-cart "Cart Service" {
+    subtitle: "C# · gRPC"
+    description: "Shopping cart operations"
+  }
+
+  product = sys/package-check "Product Catalog" {
+    subtitle: "Go · gRPC"
+    description: "Product listing and search"
+  }
+
+  currency = sys/coins "Currency Service" {
+    subtitle: "Node.js · gRPC"
+    description: "Currency conversion, highest QPS"
+  }
+
+  recommend = sys/heart "Recommendation Service" {
+    subtitle: "Python · gRPC"
+    description: "Product recommendations"
+  }
+
+  ad = sys/megaphone "Ad Service" {
+    subtitle: "Java · gRPC"
+    description: "Contextual text ads"
+  }
+
+  payment = sys/credit-card "Payment Service" {
+    subtitle: "Node.js · gRPC"
+    description: "Mock payment processing"
+  }
+
+  shipping = sys/truck "Shipping Service" {
+    subtitle: "Go · gRPC"
+    description: "Shipping cost and dispatch"
+  }
+
+  email = sys/headset "Email Service" {
+    subtitle: "Python · gRPC"
+    description: "Order confirmation emails"
+  }
+
+  // Shopping assistant (Gemini AI)
+  assistant = sys/workflow "Shopping Assistant" {
+    subtitle: "gRPC"
+    description: "AI-powered product suggestions"
+  }
+
+  // Data store
+  redis = logos/redis "Redis Cache" datastore {
+    subtitle: "In-memory store"
+    description: "Cart session data"
+  }
+
+  // User flows
+  user -> fe "browses, purchases"
+  load -> fe "simulates traffic"
+
+  // Frontend connections (synchronous gRPC)
+  fe -> product "get products"
+  fe -> currency "convert prices"
+  fe -> cart "manage cart"
+  fe -> recommend "get suggestions"
+  fe -> shipping "get quote"
+  fe -> checkout "place order"
+  fe -> ad "fetch ads"
+  fe -> assistant "AI suggestions"
+
+  // Checkout orchestration
+  checkout -> cart "retrieve cart"
+  checkout -> product "verify items"
+  checkout -> currency "get rates"
+  checkout -> payment "charge card"
+  checkout -> shipping "ship items"
+  checkout -> email "send confirmation"
+
+  // Cart storage
+  cart -> redis "read/write"
+
+  // Recommendation lookups
+  recommend -> product "get catalog"
+
+  layout {
+    rows [fe] [checkout] [currency cart ad assistant payment shipping email] [recommend] [product] [redis]
+  }
 }
-
-// Core shopping services
-productcatalog = sys/database "Product Catalog" {
-  subtitle: "Go · gRPC"
-  description: "Product list from JSON, search and retrieval"
-}
-
-cart = sys/code "Cart Service" {
-  subtitle: "C# · gRPC"
-  description: "Manages shopping cart items"
-}
-
-redis = logos/redis "Redis Cache" datastore {
-  description: "Shopping cart data storage"
-}
-
-recommendation = sys/code "Recommendation Service" {
-  subtitle: "Python · gRPC"
-  description: "Product recommendations based on cart"
-}
-
-ad = sys/code "Ad Service" {
-  subtitle: "Java · gRPC"
-  description: "Contextual text advertisements"
-}
-
-// Checkout orchestration
-checkout = sys/workflow "Checkout Service" {
-  subtitle: "Go · gRPC"
-  description: "Orchestrates order processing workflow"
-}
-
-currency = sys/code "Currency Service" {
-  subtitle: "Node.js · gRPC"
-  description: "Currency conversion with live ECB rates"
-}
-
-shipping = sys/code "Shipping Service" {
-  subtitle: "Go · gRPC"
-  description: "Shipping cost estimates and fulfillment"
-}
-
-payment = sys/code "Payment Service" {
-  subtitle: "Node.js · gRPC"
-  description: "Credit card payment processing"
-}
-
-email = sys/code "Email Service" {
-  subtitle: "Python · gRPC"
-  description: "Order confirmation emails"
-}
-
-// Load testing
-loadgen = sys/gauge "Load Generator" {
-  subtitle: "Python/Locust"
-  description: "Simulates realistic user traffic"
-}
-
-// User interactions
-user -> frontend "browses and shops"
-
-// Load generator
-loadgen -> frontend "simulates users"
-
-// Frontend connections
-frontend -> productcatalog "list and search products"
-frontend -> cart "manage cart"
-frontend -> recommendation "get suggestions"
-frontend -> ad "fetch ads"
-frontend -> checkout "place order"
-frontend -> currency "convert prices"
-frontend -> shipping "get shipping quote"
-
-// Cart data persistence
-cart -> redis "stores and retrieves cart data"
-
-// Recommendation service
-recommendation -> productcatalog "fetch product details"
-
-// Checkout orchestration
-checkout -> cart "retrieve cart"
-checkout -> productcatalog "get product info"
-checkout -> currency "convert amounts"
-checkout -> shipping "arrange shipping"
-checkout -> payment "process payment"
-checkout -> email "send confirmation"
 
 view landscape {
-  title "Online Boutique Architecture"
+  title "Online Boutique - Microservices Architecture"
   include *
+  expand boutique
   titleblock {
-    subtitle: "Microservices Demo"
-    version: "11 services"
+    subtitle: "E-commerce demo application"
+    version: "Google Cloud Platform"
   }
+  layout {
+    rows [user load] [boutique]
+  }
+  legend auto
 }

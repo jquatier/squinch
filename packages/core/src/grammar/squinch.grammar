@@ -31,7 +31,11 @@ FileTheme { kw<"theme"> Ident }
 // legalized the kind-position tag everywhere else, and `person vip "V" #gold`
 // erroring while `vip = person "V" #gold` parses is exactly the
 // "positional tags, except on X" exception that change existed to remove.
-PersonDecl { kw<"person"> Ident String? Tag* }
+// AttrBlock for the same reason again (round 30): `load = person "Load
+// Generator" { description: … }` parsed and `person load "Load Generator"
+// { description: … }` was three bare syntax errors. One node, two spellings,
+// and the model builder runs both through declareNode.
+PersonDecl { kw<"person"> Ident String? (AttrBlock | Tag)* }
 
 // A kind on the container itself: DESIGN §3 hangs the hatched surface off
 // `external`, and "someone else's system" is a property of the whole system,
@@ -105,13 +109,18 @@ ThemeStmt { kw<"theme"> Ident }
 ScopeStmt { kw<"scope"> Path }
 OnlyStmt { kw<"only"> TargetList }
 IncludeStmt { kw<"include"> (Star | TargetList) }
-DetailStmt { kw<"detail"> Path }
+// detail / expand / preview take a comma list, one entry per path, exactly as
+// if each were its own line. Round 30: an agent wrote `preview identity,
+// catalog, commerce` and got a bare syntax error; `exclude a, b` parses, and
+// a verb that takes one path where its neighbours take several is the
+// "except on X" exception the rest of this grammar exists to remove.
+DetailStmt { kw<"detail"> PathList }
 ExcludeStmt { kw<"exclude"> TargetList }
-ExpandStmt { kw<"expand"> (Star | Path) }
+ExpandStmt { kw<"expand"> (Star | PathList) }
 // preview <path> | preview * — draw a card detailed: the children its
 // `preview:` chose as readable rows, still one card, wires still landing on
 // it. The altitude between a card and a frame (SPEC §5).
-PreviewStmt { kw<"preview"> (Star | Path) }
+PreviewStmt { kw<"preview"> (Star | PathList) }
 ContextStmt { kw<"context"> (kw<"auto"> | kw<"off">) }
 HighlightStmt { kw<"highlight"> Tag (","? Tag)* }
 // one tag per statement, by design: `color #pci red` reads as a sentence, and

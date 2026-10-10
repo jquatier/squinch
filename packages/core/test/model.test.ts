@@ -782,3 +782,60 @@ describe("soundness: silent corners closed", () => {
     expect(errs[0].fix).toContain("channel x, y -> z");
   });
 });
+
+describe("round 30: one node, two spellings; one verb, one line or a list", () => {
+  // Prompt 38's agent wrote `person load "Load Generator" { description: … }`
+  // and got three bare syntax errors, while `load = person "…" { … }` had
+  // always parsed. The two forms are one declaration (SPEC §3), so they go
+  // through one code path and must build the same node.
+  it("`person id \"L\" { … }` builds exactly what `id = person \"L\" { … }` builds", () => {
+    const block = `{\n  description: "Python/Locust traffic simulator"\n  tags: #load\n  color: amber\n}`;
+    const a = buildModel(`person load "Load Generator" ${block}\nx = box "X"\nload -> x\n`);
+    const b = buildModel(`load = person "Load Generator" ${block}\nx = box "X"\nload -> x\n`);
+    expect(a.ok, JSON.stringify(a.diagnostics)).toBe(true);
+    expect(b.ok, JSON.stringify(b.diagnostics)).toBe(true);
+    const strip = (n: any) => ({ ...n, loc: undefined });
+    expect(strip(a.model.nodes.get("load"))).toEqual(strip(b.model.nodes.get("load")));
+    expect(a.model.nodes.get("load")!.description).toBe("Python/Locust traffic simulator");
+    expect(a.model.nodes.get("load")!.tags).toEqual(["load"]);
+    expect(a.model.nodes.get("load")!.color).toBe("amber");
+  });
+
+  it("the person block gets the node's own attr checks", () => {
+    const r = buildModel(`person who "Who" { subtitle: "ops", owner: "x" }\nx = box "X"\nwho -> x\n`);
+    expect(r.diagnostics.some((d) => d.message === "`subtitle` is a leaf attribute")).toBe(true);
+    expect(r.diagnostics.some((d) => d.message === "unknown node attribute `owner`")).toBe(true);
+    expect(r.diagnostics.some((d) => d.message.startsWith("syntax error"))).toBe(false);
+  });
+
+  it("a top-level person declared twice is a duplicate id, not a silent overwrite", () => {
+    const r = buildModel(`person a "A"\nperson a "Again"\nx = box "X"\na -> x\n`);
+    expect(r.diagnostics.some((d) => d.message === "duplicate id `a` in file")).toBe(true);
+    expect(r.model.nodes.get("a")!.label).toBe("A");
+  });
+
+  // Prompt 35's agent wrote `preview identity, catalog, commerce` — the shape
+  // `exclude a, b` already accepts — and got a bare syntax error. The three
+  // altitude verbs take a comma list, and the list is only a spelling.
+  const SYS = `system a "A" { x = box "X" }\nsystem b "B" { y = box "Y" }\nsystem c "C" { z = box "Z" }\na.x -> b.y\nb.y -> c.z\n`;
+  const views = (stmts: string) => buildModel(`${SYS}view v {\n  include *\n${stmts}}\n`);
+  for (const verb of ["expand", "preview", "detail"] as const) {
+    it(`\`${verb} a, b\` builds the same view as two \`${verb}\` lines`, () => {
+      const list = views(`  ${verb} a, b\n`);
+      const lines = views(`  ${verb} a\n  ${verb} b\n`);
+      expect(list.ok, JSON.stringify(list.diagnostics)).toBe(true);
+      const key = verb as "expand" | "preview" | "detail";
+      expect(list.model.views[0][key]).toEqual(["a", "b"]);
+      expect(list.model.views[0][key]).toEqual(lines.model.views[0][key]);
+    });
+  }
+
+  it("an unknown id inside a list points at the id, not the statement", () => {
+    const r = views(`  expand a, bogus\n`);
+    const d = r.diagnostics.find((x) => x.message === "unknown id `bogus`")!;
+    expect(d).toBeDefined();
+    expect(d.loc.line).toBe(8);
+    expect(d.loc.col).toBe(13);
+    expect(r.model.views[0].expand).toEqual(["a"]);
+  });
+});

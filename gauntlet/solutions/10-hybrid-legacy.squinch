@@ -3,23 +3,22 @@ pack aws
 person admin "Administrator"
 
 erp = sys/server "Legacy ERP" external {
-  description: "On-premises enterprise resource planning"
+  subtitle: "On-premises"
 }
 
 worker = aws/lambda "Sync Worker" {
-  description: "Syncs data from ERP to RDS"
+  subtitle: "Lambda · Node 20"
 }
 
 db = aws/rds "Admin Database" datastore {
-  description: "Stores synced ERP data"
+  subtitle: "Postgres 16"
 }
 
 dashboard = sys/app-window "Admin Dashboard" {
-  description: "Web application for administrators"
   subtitle: "Web App"
 }
 
 erp ~> worker "data feed"
 worker -> db "writes"
-dashboard -> db "queries"
-admin -> dashboard "uses"
+dashboard -> db "reads"
+admin -> dashboard "manages system"

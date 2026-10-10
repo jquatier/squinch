@@ -1,28 +1,34 @@
 pack aws
 pack logos
 
-person ops "Operators"
-
-erp = sys/database "Legacy ERP" {
-  subtitle: "Oracle-style"
+person operator "Operator"
+system erp "ERP System" external {
+  app = box "Legacy ERP" {
+    subtitle: "Oracle-style"
+  }
 }
 
 ingest = aws/lambda "Ingestion Handler"
 db = aws/aurora "Aurora DB" datastore
 
-ops -> erp "operates"
-erp -> ingest "feeds data"
-ingest -> db "writes"
+ingest -> db
 
-zone onprem "On-Premises Data Center" onprem {
-  contains erp
-  icon: sys/building-2
+operator -> erp.app "uses"
+erp.app -> ingest "feeds data"
+
+zone onprem "On-Premises" onprem {
+  contains operator, erp
 }
 
-zone aws_cloud "AWS Cloud" cloud {
+zone aws_cloud "AWS" cloud {
   contains ingest, db
 }
 
-zone vpc "Production VPC" vpc {
+zone vpc "VPC" vpc {
   contains db
+}
+
+view landscape {
+  title "Hybrid Estate Architecture"
+  include *
 }

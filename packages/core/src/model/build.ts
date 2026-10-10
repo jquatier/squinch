@@ -622,20 +622,14 @@ export function buildProject(input: ProjectFile[]): BuildResult {
       model.fileTheme = ctx.text(ftIdent);
       checkTheme(ctx, ftIdent, model.fileTheme);
     }
-    for (const p of top.getChildren("PersonDecl")) {
-      const identNode = p.getChild("Ident");
-      if (!identNode) continue; // partial node from error recovery
-      const name = ctx.text(identNode);
-      const labelNode = p.getChild("String");
-      model.nodes.set(name, {
-        path: name, name,
-        label: labelNode ? ctx.str(labelNode) : name,
-        icon: { pack: "builtin", id: "person" },
-        kinds: ["person"],
-        tags: p.getChildren("Tag").map((t: SyntaxNode) => ctx.text(t).slice(1)),
-        attrs: {}, loc: ctx.loc(p), file: ctx.name,
-      });
-    }
+    // `person id "Label"` is `id = person "Label"` with the words in the
+    // other order (SPEC §3), so it goes through the same declaration: the
+    // `person` keyword is a direct child of both shapes, there is no icon ref,
+    // and the attr block — which this form used to lack, so that a
+    // `description:` on a top-level actor was a syntax error (round 30) —
+    // is read, checked and stored exactly as on any node. A duplicate id is
+    // now an error here too, where it used to overwrite silently.
+    for (const p of top.getChildren("PersonDecl")) declareNode(p, "");
     for (const decl of top.getChildren("NodeDecl")) declareNode(decl, "");
     for (const decl of top.getChildren("Container")) walkContainerDecl(decl, "");
     for (const e of top.getChildren("EdgeStmt")) rawEdges.push({ node: e, scope: "", ctx });
@@ -1349,28 +1343,38 @@ export function buildProject(input: ProjectFile[]): BuildResult {
     }
     // `detail` carries what `include` used to smuggle: draw an outside element
     // at its own depth rather than as its top-level context card.
+    // The three altitude verbs take a comma list (grammar: PathList), and
+    // `detail a, b` builds the same view as `detail a` over `detail b` — one
+    // entry per path, in source order, so nothing downstream can tell the
+    // spellings apart. Each path is resolved at its own location, so an
+    // unknown id in a list points at the id, not the statement.
+    const paths = (stmt: SyntaxNode) => stmt.getChild("PathList")?.getChildren("Path") ?? [];
     for (const d of body.getChildren("DetailStmt")) {
-      const path = d.getChild("Path");
-      if (!path) {
+      const list = paths(d);
+      if (!list.length) {
         error(ctx, d, "`detail` needs a path", "detail web.app");
         continue;
       }
-      const r = resolve(ctx.text(path), inScope, d, ctx);
-      if (r) view.detail.push(r);
+      for (const path of list) {
+        const r = resolve(ctx.text(path), inScope, path, ctx);
+        if (r) view.detail.push(r);
+      }
     }
     for (const ex of body.getChildren("ExpandStmt")) {
       if (ex.getChild("Star")) { view.expandStar = true; continue; }
-      const path = ex.getChild("Path");
-      const r = path && resolve(ctx.text(path), inScope, ex, ctx);
-      if (r) view.expand.push(r);
+      for (const path of paths(ex)) {
+        const r = resolve(ctx.text(path), inScope, path, ctx);
+        if (r) view.expand.push(r);
+      }
     }
     // `preview` reads exactly as `expand` does; what it means of the target is
     // the view layer's call, beside the expand diagnostics it mirrors.
     for (const pv of body.getChildren("PreviewStmt")) {
       if (pv.getChild("Star")) { view.previewStar = true; continue; }
-      const path = pv.getChild("Path");
-      const r = path && resolve(ctx.text(path), inScope, pv, ctx);
-      if (r) view.preview.push(r);
+      for (const path of paths(pv)) {
+        const r = resolve(ctx.text(path), inScope, path, ctx);
+        if (r) view.preview.push(r);
+      }
     }
     const ctxStmt = body.getChildren("ContextStmt")[0];
     if (ctxStmt) view.context = ctxStmt.getChild("off") ? "off" : "auto";

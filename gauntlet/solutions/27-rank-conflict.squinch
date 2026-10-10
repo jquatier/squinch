@@ -1,14 +1,17 @@
-// Approval chain with rank conflict resolution
-system approval "Approval Chain" {
-  request  = box "Request Service"
-  policy   = box "Policy Engine"
-  approver = box "Approver Service"
-  audit    = box "Audit Log" datastore
+// Approval chain with policy engine and audit log on same row
 
-  request -> policy
-  policy -> approver
-  approver -> audit
+request  = sys/app-window "Request Service"
+policy   = sys/cog       "Policy Engine"
+approver = sys/shield    "Approver Service"
+audit    = sys/database  "Audit Log" datastore
 
+request -> policy
+policy  -> approver
+policy  -> audit
+approver -> audit
+
+view default {
+  title "Approval Chain"
   layout {
     rows [request] [policy approver audit]
   }

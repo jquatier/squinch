@@ -2,23 +2,33 @@ pack aws
 
 person client "Client App"
 
-api       = aws/api-gateway "API Gateway"
-inference = aws/lambda      "Inference Service" {
+api    = aws/api-gateway "API Gateway"
+infer  = aws/lambda      "Inference Handler" {
   subtitle: "Lambda · Python"
 }
-endpoint  = aws/sagemaker   "ML Endpoint" {
-  subtitle: "SageMaker"
+model  = aws/sagemaker   "ML Model" {
+  subtitle: "SageMaker Endpoint"
 }
-features  = aws/dynamodb    "Feature Store" datastore
+features = aws/dynamodb  "Feature Store" datastore
 
-training  = aws/batch       "Training Job" {
+training_data = aws/s3   "Training Data" datastore {
+  subtitle: "Model artifacts"
+}
+batch = aws/batch        "Retrain Job" {
   subtitle: "Nightly batch"
 }
-data      = aws/s3          "Training Data" datastore
 
-client -> api "inference request"
-api -> inference
-inference -> endpoint "predict"
-inference -> features "fetch features"
-training ~> endpoint "update model"
-training -> data "read training data"
+client -> api "prediction request"
+api -> infer
+infer -> model "inference"
+infer -> features "fetch features"
+batch ~> model "retrain"
+batch -> training_data "read training data"
+batch -> features "update features"
+
+view landscape {
+  title "ML Inference System"
+  layout {
+    rows [client] [api] [infer] [training_data batch] [model features]
+  }
+}

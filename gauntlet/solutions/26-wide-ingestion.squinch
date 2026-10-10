@@ -1,16 +1,16 @@
 // Ingestion estate - wide layout for slide presentation
 
-c1 = sys/server "Collector 1"
-c2 = sys/server "Collector 2"
-c3 = sys/server "Collector 3"
-c4 = sys/server "Collector 4"
-c5 = sys/server "Collector 5"
-c6 = sys/server "Collector 6"
+c1 = sys/container "Collector 1"
+c2 = sys/container "Collector 2"
+c3 = sys/container "Collector 3"
+c4 = sys/container "Collector 4"
+c5 = sys/container "Collector 5"
+c6 = sys/container "Collector 6"
 
-normaliser = sys/workflow "Normaliser"
+normaliser = sys/code "Normaliser"
 
 warehouse = sys/database "Warehouse" datastore
-search    = sys/database "Search Index" datastore
+search    = sys/search "Search Index" datastore
 alerting  = sys/siren "Alerting"
 
 c1 -> normaliser
@@ -20,16 +20,15 @@ c4 -> normaliser
 c5 -> normaliser
 c6 -> normaliser
 
-normaliser ~> warehouse
-normaliser ~> search
-normaliser ~> alerting
+normaliser -> warehouse
+normaliser -> search
+normaliser -> alerting
 
-view ingestion {
+view default {
   title "Ingestion Estate"
   layout {
     direction right
     density compact
-    rows [c1 c2 c3 c4 c5 c6] [normaliser] [warehouse alerting] [search]
-    cols [warehouse search]
+    rows [c1 c2 c3 c4 c5 c6] [normaliser] [warehouse search] [alerting]
   }
 }

@@ -1,27 +1,26 @@
 pack azure
 pack logos
 
-// On-premises infrastructure
-pg_old = logos/postgres "Legacy Database" datastore
-rabbit = logos/rabbitmq "Message Broker"
+// On-premises components
+pg = logos/postgres "PostgreSQL" datastore
+mq = logos/rabbitmq "RabbitMQ"
 
-// Azure infrastructure
+// Azure components
 aks = azure/aks "AKS Cluster"
-sql_new = azure/sql "Azure SQL" datastore
-sync = azure/functions "Sync Job"
+sql = azure/sql "Azure SQL" datastore
+sync = box "Sync Job"
 
 // Connections
-sync -> pg_old "reads nightly"
-sync ~> sql_new "async copy"
-rabbit -> aks "messages"
+sync -> pg "reads nightly"
+sync ~> sql "copies async"
 
 // Deployment boundaries
 zone onprem "On-Premises" onprem {
-  contains pg_old, rabbit
+  contains pg, mq
 }
 
 zone azure_cloud "Azure" cloud {
-  contains aks, sql_new, sync
+  contains aks, sql, sync
 }
 
 view migration {

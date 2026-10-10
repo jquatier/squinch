@@ -123,7 +123,9 @@ did-you-mean — `tech:` and `technology:` point at `subtitle:`, `owner:` and
   `system`/`container` as well as a node. `person` and `datastore` are
   semantic only — they are compared by `squinch diff` and read by humans, and
   do not change the drawing; the icon is what shows a human or a database.
-- `person customer "Customer"` is sugar for `customer = builtin/person "Customer"`.
+- `person customer "Customer"` is sugar for `customer = builtin/person "Customer"`,
+  and takes the same trailing tags and attr block — one declaration, two word
+  orders, one code path.
 
 ### Containers & nesting (C4-style)
 
@@ -404,7 +406,9 @@ too. Themes style them as callouts.
   never be a place: no `scope` can name "the PCI parts". `include` adds,
   `exclude` removes, and neither can narrow — `include` on a set that already
   contains its target is a no-op, which is why it warns.
-- `detail <path>` draws an outside element at its own depth instead of as the
+- `detail <path>` (or a comma list — `detail`, `expand` and `preview` all
+  take `a, b`, one entry per path, as `exclude` does) draws an outside
+  element at its own depth instead of as the
   top-level card standing in for its branch. This was once a second, silent
   meaning of `include`; separating it is what made `only` expressible, because a
   verb that also controls altitude cannot be redefined to control membership.
@@ -656,7 +660,7 @@ interior    = "layout" "{" { "rows" rank { rank } | "cols" rank { rank }
                            | "direction" ("down"|"right") } "}" ;   (* §3 *)
 node        = ident "=" iconref [ label ] { kind | tag | attrs }
                           (* leaf attrs: description, subtitle, tags, color, badge *)
-            | ("person") ident [ label ] ;
+            | "person" ident [ label ] { tag | attrs } ;
 iconref     = ident "/" ident | "box" ;
 kind        = "external" | "datastore" ;   (* `person` comes from the
                                               declaration forms, not a keyword *)
@@ -671,8 +675,8 @@ view        = "view" path "{" { viewstmt } "}" ;
 viewstmt    = "title" string | "theme" ident | "scope" path
             | "only" targets
             | "include" targets | "exclude" targets
-            | "detail" path | "expand" ( "*" | path )
-            | "preview" ( "*" | path )
+            | "detail" pathlist | "expand" ( "*" | pathlist )
+            | "preview" ( "*" | pathlist )
             | "context" ( "auto" | "off" )
             | "highlight" tag { tag }
             | "color" tag ident

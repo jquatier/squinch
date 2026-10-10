@@ -1,12 +1,12 @@
 pack aws
 
-gw = aws/api-gateway "API Gateway"
-create = aws/lambda "Create Handler"
-read = aws/lambda "Read Handler"
-update = aws/lambda "Update Handler"
-delete = aws/lambda "Delete Handler"
-search = aws/lambda "Search Handler"
-db = aws/dynamodb "Orders Table" datastore
+gw     = aws/api-gateway "API Gateway"
+create = aws/lambda      "Create Handler"
+read   = aws/lambda      "Read Handler"
+update = aws/lambda      "Update Handler"
+delete = aws/lambda      "Delete Handler"
+search = aws/lambda      "Search Handler"
+db     = aws/dynamodb    "Table" datastore
 
 gw -> create
 gw -> read
@@ -15,13 +15,13 @@ gw -> delete
 gw -> search
 
 create -> db
-read -> db
+read   -> db
 update -> db
 delete -> db
 search -> db
 
-view main {
-  title "Lambda Handlers with Channeled DynamoDB Access"
+view default {
+  title "CRUD API"
   layout {
     rows [gw] [create read update delete search] [db]
     channel create, read, update, delete, search -> db

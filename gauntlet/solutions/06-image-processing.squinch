@@ -2,18 +2,33 @@ pack aws
 
 person user "User"
 
-bucket    = aws/s3 "Image Uploads" datastore
-processor = aws/lambda "Image Processor" {
-  description: "Analyzes images and stores metadata"
-}
-rekognition = aws/rekognition "Rekognition" {
-  description: "Image labeling and analysis"
-}
-db        = aws/dynamodb "Metadata Store" datastore
-topic     = aws/sns "Notification Topic"
+system pipeline "Image Processing Pipeline" {
+  description: "Serverless image analysis and notification"
 
-user -> bucket "uploads image"
-bucket ~> processor "S3 event"
-processor -> rekognition "analyze image"
-processor -> db "write metadata"
-processor ~> topic "notify subscribers"
+  storage = aws/s3 "Upload Bucket" datastore
+  processor = aws/lambda "Image Processor" {
+    subtitle: "Lambda · Python"
+  }
+  rekognition = aws/rekognition "Rekognition"
+  metadata = aws/dynamodb "Image Metadata" datastore
+  notifications = aws/sns "Notification Topic"
+
+  storage ~> processor "S3 event"
+  processor -> rekognition "analyze image"
+  processor -> metadata "write labels"
+  processor ~> notifications "publish"
+}
+
+user -> pipeline.storage "uploads image"
+
+view landscape {
+  title "Image Processing Pipeline"
+  include *
+}
+
+view pipeline {
+  title "Pipeline Detail"
+  layout {
+    rows [storage] [processor rekognition] [metadata notifications]
+  }
+}

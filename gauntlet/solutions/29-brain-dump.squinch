@@ -2,39 +2,45 @@ pack aws
 pack logos
 
 person customer "Customer"
+person data_team "Data Team"
 
-mobile = sys/smartphone "Mobile App"
-web = sys/app-window "Website"
-gw = aws/api-gateway "API Gateway"
+system platform "Platform" {
+  gw = aws/api-gateway "API Gateway"
 
-account = aws/lambda "Account Service"
-billing = aws/lambda "Billing Service"
+  account = aws/lambda "Account Service" {
+    description: "Customer account management"
+  }
 
-account_db = aws/rds "Account DB" datastore {
-  subtitle: "Postgres"
+  billing = aws/lambda "Billing Service" {
+    description: "Payment processing and billing"
+  }
+
+  account_db = aws/rds "Account DB" datastore {
+    subtitle: "Postgres"
+  }
+
+  billing_db = aws/rds "Billing DB" datastore {
+    subtitle: "Postgres"
+  }
+
+  export = aws/s3 "Data Export" {
+    description: "Nightly export bucket"
+  }
+
+  gw -> account
+  gw -> billing
+  account -> account_db
+  account ~> export "nightly export"
+  billing -> billing_db
 }
-billing_db = aws/rds "Billing DB" datastore {
-  subtitle: "Postgres"
-}
 
-export = aws/s3 "Data Export" datastore {
-  subtitle: "Nightly export"
-}
+stripe = logos/stripe "Stripe" external
 
-stripe = box "Stripe" external
-
-customer -> mobile
-customer -> web
-mobile -> gw
-web -> gw
-gw -> account
-gw -> billing
-account -> account_db
-billing -> billing_db
-billing -> stripe
-account_db ~> export "nightly export"
+customer -> platform.gw "mobile app / website"
+platform.billing -> stripe
+platform.export ~> data_team "export access"
 
 view landscape {
-  title "System Architecture"
+  title "System Landscape"
   include *
 }

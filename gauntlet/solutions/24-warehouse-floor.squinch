@@ -1,38 +1,48 @@
-// Warehouse automation system - physical deployment
-pack logos
+// Warehouse floor automation system - physical automation stack
 
-supervisor = person "Shift Supervisor"
+person supervisor "Shift Supervisor"
 
-scanner1 = sys/smartphone "Scanner 1" { subtitle: "Bench A" }
-scanner2 = sys/smartphone "Scanner 2" { subtitle: "Bench B" }
-scanner3 = sys/smartphone "Scanner 3" { subtitle: "Bench C" }
+// Packing benches with barcode scanners
+scanner1 = sys/barcode "Scanner 1" { subtitle: "Packing Bench A" }
+scanner2 = sys/barcode "Scanner 2" { subtitle: "Packing Bench B" }
+scanner3 = sys/barcode "Scanner 3" { subtitle: "Packing Bench C" }
 
-controller = sys/server "Local Controller" { subtitle: "On-prem server" }
-
-sorter   = sys/router    "Conveyor Sorter"
-printer  = sys/printer   "Label Printer"
-board    = sys/monitor   "Status Board"
-erp      = box           "ERP" external { subtitle: "Corporate" }
-
-scanner1 -> controller "scan data"
-scanner2 -> controller "scan data"
-scanner3 -> controller "scan data"
-
-controller -> sorter   "sort commands"
-controller -> printer  "print labels"
-controller -> board    "status updates"
-controller ~> erp      "sync batch · 1 min"
-
-supervisor -> board    "monitors"
-
-zone floor "Warehouse Floor" onprem {
-  contains scanner1, scanner2, scanner3, controller, sorter, printer, board
-  icon: sys/warehouse
+// Local controller
+controller = sys/server "Floor Controller" {
+  subtitle: "Automation logic"
+  description: "Routes packages and manages devices"
 }
 
-view landscape {
-  title "Warehouse Automation"
+// Warehouse equipment
+sorter = sys/workflow "Conveyor Sorter" {
+  subtitle: "Automated routing"
+}
+printer = sys/printer "Label Printer"
+board = sys/monitor "Status Board"
+
+// External ERP
+erp = box "ERP System" external {
+  description: "Enterprise resource planning"
+}
+
+// Data flow
+scanner1 -> controller "scan events"
+scanner2 -> controller "scan events"
+scanner3 -> controller "scan events"
+
+controller -> sorter "routing commands"
+controller -> printer "print jobs"
+controller ~> erp "inventory sync · every 1 min"
+
+controller -> board "status updates"
+supervisor -> board "monitors"
+
+view floor {
+  title "Warehouse Floor Automation"
   layout {
-    rows [supervisor] [controller] [erp]
+    rows [scanner1 scanner2 scanner3] [controller] [sorter printer board] [erp]
+  }
+  titleblock {
+    subtitle: "Physical automation"
   }
 }

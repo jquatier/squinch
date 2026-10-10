@@ -1,48 +1,43 @@
 pack aws
 
-system payments "Payment Service" {
-  description: "Card processing, tokenization, and settlement"
+system payments "Payments Service" {
+  description: "Card payment processing and settlement"
+  icon: aws/lambda
 
-  api       = aws/lambda    "Payment API" #pci {
-    subtitle: "Lambda · Node 20"
-    description: "Receives payment requests with card data"
-  }
-
-  tokenizer = aws/lambda    "Tokenizer" #pci {
-    subtitle: "Lambda · Node 20"
+  api = aws/api-gateway "Payment API"
+  tokenizer = aws/lambda "Tokenizer" {
     description: "Tokenizes card data"
-  }
-
-  vault     = aws/dynamodb  "Card Vault" datastore #pci {
-    subtitle: "DynamoDB"
-    description: "Encrypted token-to-card mapping"
-  }
-
-  queue     = aws/sqs       "Settlement Queue" {
-    subtitle: "SQS FIFO"
-    description: "Settlement requests with tokens"
-  }
-
-  worker    = aws/lambda    "Settlement Worker" {
     subtitle: "Lambda · Node 20"
+    tags: #pci
+  }
+  vault = aws/dynamodb "Card Vault" datastore {
+    description: "Encrypted card tokens"
+    tags: #pci
+  }
+  queue = aws/sqs "Settlement Queue" {
+    description: "Pending settlements"
+    tags: #pci
+  }
+  worker = aws/lambda "Settlement Worker" {
     description: "Processes settlements"
+    subtitle: "Lambda · Node 20"
+    tags: #pci
   }
 
-  api       -> tokenizer "card data"
-  tokenizer -> vault     "store token"
-  tokenizer ~> queue     "settlement request"
-  queue     ~> worker
+  api -> tokenizer "tokenize card"
+  tokenizer -> vault "store token"
+  tokenizer ~> queue "queue settlement"
+  queue ~> worker "drain"
+
+  layout {
+    rows [api] [tokenizer] [vault queue] [worker]
+  }
 }
 
 view payments {
-  title "Payment Service"
-}
-
-view pci_surface {
-  title "PCI Compliance Surface"
-  scope payments
+  title "Payments Service"
   highlight #pci
-  note right-of vault "Tokens stored encrypted at rest; card data never persisted in plain text" {
+  note right-of vault "Card tokens stored encrypted; see security-compliance.md" {
     style: warning
   }
 }

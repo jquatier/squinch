@@ -7,7 +7,7 @@ must produce a clean diagram for each. **v1 ships at ≥ 16/20 with zero human
 layout fixes** (the original ≥ 8/10 bar, at the current prompt count).
 
 > **Current standing: the committed corpus scores 38/38 on the deep scorer; the
-> latest round itself scored 35/37, with 25 of 37 clean on the first `check`.** The
+> latest round itself scored 38/38, with 18 of 38 clean on the first `check`.** The
 > solutions those agents wrote are committed in `solutions/` and re-scored by CI
 > on every push, so the claim is inspectable rather than asserted.
 >
@@ -69,87 +69,53 @@ nothing.
 
 ## Latest round
 
-**Round 29 — 35/37 on the deep scorer; 25 of 37 clean on the first `check`**
-(2026-10-07, Sonnet). Run for the end of the loop rather than the language:
-what an agent does between a clean `check` and its last message. Three
-changes to the skill. Quality bar 3 said "look at the SVG", which no agent can
-do with markup, so it now says to rasterise each view beside the source, open
-the image, and delete it after. A new item 7 says nothing goes in the diagram
-that the request does not support — including glue, an API or worker put
-between two things the request names. And "What to hand over" now ends with
-three or four plain bullets: where to open it, what was guessed, what the
-agent saw when it looked.
+**Round 30 — 38/38 on the deep scorer; 18 of 38 clean on the first `check`**
+(2026-10-09, Sonnet). Run to check a restructuring of the skill rather than a
+change to it. An audit against the published skill-authoring guidance found
+one thing that mattered: Claude Code keeps only the first 5,000 tokens of an
+invoked skill after context compaction, and the quality bar — the one
+checklist the file has — sat last, past that cut. It now sits right after the
+loop, unchanged in wording, and the frontmatter gained a `compatibility`
+line naming the CLI it drives. The question was whether every agent would
+still do what the bar asks, and all 38 did: each rasterised a view and opened
+it, ran `--sync`, and wrote the HTML.
 
-**Six-prompt A/B rounds came first** (02, 09, 16, 25, 29, 34, against the
-old skill). On the old skill no agent rendered anything it could see, and no
-hand-over named a guess: all six listed their files and stopped. Four
-wordings later, all six looked at a PNG, cleaned it up, and said what they
-guessed. What the wordings taught:
+**First-check cleanliness fell, from 25 of 37 to 18 of 38.** Nothing in the
+checklist changed, so this is not attributed to the move, and the round is
+one sample; the number is recorded so the next one can say whether it was
+noise. The failures themselves were the usual ones and three new shapes:
 
-- **The path is the instruction.** The first draft said `-o /tmp/NAME.png`;
-  every agent rendered it and every `Read` was refused, because `/tmp` is
-  outside the working directory. Four of the six then described a layout
-  they had not seen. Beside the source, all of them could look.
-- **A list gets skipped; a form reads like a log.** Five bullets of things to
-  mention were followed once in six. A fixed `Open: / Assumed: / Looked:`
-  block was filled in twelve times of twelve and read like CI output. Plain
-  bullets with one worked example kept the coverage and lost the machine
-  voice.
-- **Agents copy the example's words, claims included.** An example that said
-  "no wires cross" came back three times as a claim about pictures nobody had
-  checked for crossings. The example now reports a rough spot it chose to
-  leave, which makes reporting one the normal thing to do.
+- **Bands against the arrows**, the "runs upward" conflict, on five prompts
+  (01, 09, 21, 27, 34) — still the largest single cause, as the skill's own
+  Layout-hints opening says. 27 took nine checks: the agent alternated
+  between the upward conflict and the unlisted-bus conflict three times before
+  leaving the band unhinted, each fix walking straight into the other error.
+- **Three bare syntax errors**, each a shape a cold agent reasonably writes.
+  38 wrote `person load "Load Generator" { description: "…" }`: the top-level
+  `person` form took no block while `load = person "…" { … }` did, so a
+  description on an actor was three syntax errors with no fix. 35 wrote
+  `preview identity, catalog, commerce` — the shape `exclude a, b` already
+  accepts — and got one. 24 wrapped `rows` across three lines, and the
+  dedicated diagnostic from round 23 did fire, so that one is already
+  handled.
+- **Self-explanatory diagnostics** fixed in one step: chained edges on 32,
+  bare ids from outside a system on 25, a zone whose members sat inside
+  collapsed cards on 11.
 
-**Looking fixed one layout in thirty-seven.** Every agent in the full run
-opened its render; one, 26, saw its collectors spread out and re-laid them.
-The rest approved what they saw, bad pictures included: one agent called a
-440×800 two-column strip "a landscape-oriented layout perfect for a 16:9
-slide", and in an A/B round another approved 34's sixteen crossing wires.
-The step makes the hand-over honest more often than not. It does not catch a
-bad picture — measured signals from the engine would.
+**Fixed since: the two syntax shapes.** `person id "Label"` now takes the
+same attr block and trailing tags as `id = person "Label"`, and both go
+through one declaration — which also made a duplicated top-level person a
+duplicate-id error where it used to overwrite silently. `expand`, `preview`
+and `detail` take a comma list, one entry per path, exactly as separate lines
+would; an unknown id inside the list is reported at the id. The goldens and
+every committed render are byte-identical, since none of this reaches the
+drawing.
 
-**Guesses are reported, not yet all of them.** Three of six named a real one
-(Lambda for an unnamed service, RDS for "Postgres", DynamoDB for "a
-database"). Agents rarely count a product choice as a guess, and 25 still
-invented an API between its auth service and ledger in one run of six, then
-said nothing was guessed. The glue sentence made that rarer; it did not end
-it.
+**34 varied again.** This run's answer lost the second view the scorer
+expects, so the corpus keeps round 27's, as it has since round 27. 38, the
+repository prompt, passed on its first run of this round — five checks, the
+first three spent on the person block above.
 
-**The round's misses were 34, again, and 32.** 34 is the prompt that varies;
-the corpus keeps round 27's answer for it. 32 — fourteen steps for a slide —
-had been passing on a lucky draw: on the old skill it failed two runs of
-three. Agents halve the chain, `wrap 7`, which is a 1432×248 ribbon, and with
-`direction right` it becomes two 440×800 columns, since `wrap` writes `rows`
-and under `direction right` a rank is a column. A Layout-hints bullet now says
-N ≈ √(nodes folded), rounded up, for a slide, and to leave `direction right`
-out of a wide fold. Its first wording said "steps", and 33 — twelve workers
-under one dispatcher — went back to hand-written bands with every wire
-detouring; naming the fan-out too fixed it. Confirmation runs on the final
-wording: 32 six of six and 33 three of three, every one at `wrap 4`.
-
-**Surfaced, and fixed since.** A file could check clean, `render --sync`
-cleanly, and still fail `render -o x.html`. 35 did: the interactive export
-lays out every auto view, and in `catalog`'s the band-split conflict — the
-one measured off the result rather than the graph — fired on a system
-`layout { }` block that no declared view opens. `check` laid out
-declared views only, so the agent met the error at the last step and fixed
-it there. `check` and the editor now lay out every view the export draws,
-and the error points at the block.
-
-**After the round, the first prompt about real code.** 38 checks out Google's
-Online Boutique at a pinned commit and asks for a picture to find your way
-around it, naming no service. Its expectations are the call graph read off
-the code — eleven services, and which calls which — so a diagram copied
-from a README's picture and one traced from the clients score alike, and
-one that skipped a service does not. Three cold runs passed one: both misses
-dropped the recommendation service's call to the product catalogue, because
-neither agent opened that service — they traced the frontend's and
-checkout's clients and stopped. The skill has nothing yet on tracing a
-repository, and this is the prompt that will measure it. One also invented a
-"Load Tester" who configures the load generator and reported nothing
-guessed. A run cost $0.56–0.68, inside the default budget.
-
-The corpus in `solutions/` is this round's full-run answers for thirty-three
-prompts, the confirmation runs' for 26, 32 and 33, and round 27's for 34 —
-plus the passing run of 38 — all cold-authored and deep-scored at 38/38,
-none re-authored.
+The corpus in `solutions/` is this round's answers for thirty-seven prompts
+and round 27's for 34, all cold-authored and deep-scored at 38/38, none
+re-authored.

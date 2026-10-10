@@ -1,45 +1,64 @@
-// Market data processing pipeline
 pack aws
+pack logos
 
-// External systems
-exchange      = box "Exchange" external
-clearing      = box "Clearing House" external
+person trader "Trader"
 
-// Core components
-feed_handler  = aws/lambda "Feed Handler" {
-  subtitle: "Lambda · Node 20"
-  description: "Ingests continuous price stream"
-}
-pricing       = aws/lambda "Pricing Engine" {
-  subtitle: "Lambda · Python"
-  description: "Normalises ticks and serves prices"
-}
-ui            = sys/app-window "Trading UI" {
-  description: "Real-time price display"
-}
-reconcile     = aws/batch "Reconciliation Job" {
-  subtitle: "Batch · Nightly"
-  description: "Validates fills against clearing house"
-}
-risk          = aws/lambda "Risk Service" {
-  subtitle: "Lambda · Java"
-  description: "Health monitoring"
-}
+system market "Market Data Platform" {
+  description: "Real-time pricing and reconciliation"
 
-// Connections
-exchange      ~> feed_handler "price stream" { animate: packets }
-feed_handler  ~> pricing "normalised ticks" { animate: fast }
-pricing       ~> ui "subscription"
-clearing      -> reconcile "daily fills" { color: amber }
-risk          -> pricing "health poll" { animate: pulse, style: dotted }
-
-view main {
-  title "Market Data Pipeline"
-  layout {
-    rows [exchange] [feed_handler] [pricing risk] [ui]
-    place reconcile right-of ui
+  exchange = box "Exchange" external {
+    subtitle: "Live price feed"
   }
+
+  feed = aws/lambda "Feed Handler" {
+    description: "Ingests and normalises price stream"
+    subtitle: "Node 20"
+  }
+
+  pricing = aws/lambda "Pricing Engine" {
+    description: "Processes ticks and serves prices"
+    subtitle: "Node 20"
+  }
+
+  ui = sys/app-window "Trading UI" {
+    description: "Real-time price display"
+  }
+
+  risk = aws/lambda "Risk Service" {
+    description: "Health monitoring"
+    subtitle: "Node 20"
+  }
+
+  clearing = box "Clearing House" external {
+    subtitle: "Daily settlement"
+  }
+
+  batch = aws/batch "Overnight Reconciliation" {
+    description: "Reconciles fills against clearing house"
+    subtitle: "Cron · 02:00 UTC"
+  }
+
+  fills = aws/dynamodb "Fills" datastore
+
+  exchange ~> feed "price stream" { animate: packets }
+  feed ~> pricing "ticks" { animate: fast }
+  pricing ~> ui "live prices" { animate: slow }
+  risk -> pricing "healthcheck" { animate: pulse, style: dotted }
+  clearing ~> batch "settlements" { animate: false }
+  batch -> fills "reconcile"
+
+  layout {
+    rows [exchange] [feed] [pricing] [ui] [batch] [fills]
+  }
+}
+
+trader -> market.ui "monitors prices"
+market.clearing -> market.batch
+
+view landscape {
+  title "Market Data Architecture"
+  expand market
   titleblock {
-    subtitle: "Data flow architecture"
+    subtitle: "Trading infrastructure"
   }
 }
