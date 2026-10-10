@@ -190,8 +190,24 @@ is an agent, never on stdout, never beside a failure, off under `CI`;
 `src/features.ts` is every piece of editor intelligence as pure functions (unit
 tested), `src/server.ts` a thin LSP shell over it, `src/extension.ts` the client
 plus preview webview; `test/server.test.ts` drives the *bundled* server over real
-stdio LSP. `packages/skill` — the canonical `SKILL.md` and **two plugin
-manifests off the one `skills/` dir**: `.claude-plugin/plugin.json` for Claude
+stdio LSP. `packages/skill` — the canonical skill **directory** and **two plugin
+manifests off the one `skills/` dir**. `skills/squinch/SKILL.md` is the body
+(loop, hand-over, quality bar, language, views, layout hints) and
+`skills/squinch/references/` the lookup material it points at one level deep —
+`cookbook.md` (symptom → fix) and `icons.md` (ids per pack, in full) — split
+(2026-10) because a harness keeps only a skill's first few thousand tokens
+after compaction. Round 31 measured the split: no cold agent opened either
+file in fifty sessions, the cookbook moved without a trace because the
+diagnostics carry their own fixes, and moving the icon lists out cost six
+first checks to guessed ids until compact per-pack id runs went back into the
+body — for a cold agent the inline lists are *vocabulary*, not lookup
+(`gauntlet/README.md`). Every consumer carries the directory, never the file:
+`scripts/gen-skill.mjs` bundles every file under it into `SKILL_FILES`,
+`squinch skill` writes the set (stamping SKILL.md, replacing `references/`
+whole), `--print` streams it under per-file comments, `update.ts` reads the
+stamp from SKILL.md alone, and `gauntlet/run.ts` plants the whole directory in
+each box and reports which reference files the agents opened. The two
+manifests: `.claude-plugin/plugin.json` for Claude
 Code, and `plugin.json` (Agent Plugins 1.0, `$schema`-declared, closed key set)
 for Codex, Cursor, Copilot and the rest. Each has a marketplace manifest at the
 repo root pointing back at `./packages/skill` —
@@ -211,7 +227,8 @@ extension + language server, six icon packs, and the light/dark pair. The accept
 bar — an agent producing clean diagrams from prose using only the skill + CLI —
 is certified at **38/38
 by independent cold agents** on the committed corpus; the latest full round scored
-38/38 with **18/38 clean on the first `check`** (round 30, run to check that
+38/38 with **20/38 clean on the first `check`** (round 31, which measured the
+skill becoming a directory — `gauntlet/README.md`; round 30 before it, 18/38, run to check that
 moving the quality bar above the language — Claude Code keeps only a skill's
 first 5,000 tokens after compaction, and the checklist sat last — left the
 hand-over intact: all 38 agents rasterised a view, ran `--sync` and wrote the

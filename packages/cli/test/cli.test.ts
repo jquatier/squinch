@@ -2,6 +2,7 @@ import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
 import { mkdtempSync, mkdirSync, rmSync, writeFileSync, readFileSync, existsSync, readdirSync, renameSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
+import { fileURLToPath } from "node:url";
 import { main } from "../src/index.js";
 import { BOOLEAN_FLAGS } from "../src/args.js";
 import { watchPaths } from "../src/watch.js";
@@ -60,6 +61,29 @@ describe("squinch cli", () => {
     expect(existsSync(join(dir, ".claude"))).toBe(false);
   });
 
+  it("skill installs the whole directory — every reference file, byte-equal and unstamped", async () => {
+    // SKILL.md points at references/; an install that wrote the body alone
+    // would leave every pointer dangling. The canonical set is read off disk
+    // rather than the generated constant, so a stale constant fails here too.
+    expect(await main(["skill", dir])).toBe(0);
+    const canonicalDir = fileURLToPath(new URL("../../skill/skills/squinch/references/", import.meta.url));
+    const refs = readdirSync(canonicalDir).sort();
+    expect(refs).toEqual(["cookbook.md", "icons.md"]);
+    const installed = join(dir, ".agents", "skills", "squinch", "references");
+    expect(readdirSync(installed).sort()).toEqual(refs);
+    for (const r of refs)
+      expect(readFileSync(join(installed, r), "utf8")).toBe(readFileSync(join(canonicalDir, r), "utf8"));
+  });
+
+  it("skill replaces references/ whole — a file an older install shipped does not linger", async () => {
+    const refs = join(dir, ".agents", "skills", "squinch", "references");
+    await main(["skill", dir]);
+    writeFileSync(join(refs, "retired.md"), "from an older squinch\n");
+    expect(await main(["skill", dir])).toBe(0);
+    expect(existsSync(join(refs, "retired.md"))).toBe(false);
+    expect(existsSync(join(refs, "cookbook.md"))).toBe(true);
+  });
+
   it("skill detects Claude Code in the project and installs there too", async () => {
     writeFileSync(join(dir, "CLAUDE.md"), "# project\n");
     expect(await main(["skill", dir])).toBe(0);
@@ -87,6 +111,24 @@ describe("squinch cli", () => {
     expect(await main(["skill", dir, "--print"])).toBe(0);
     expect(out.join("\n")).toContain("name: squinch");
     expect(readdirSync(dir)).toEqual([]);
+  });
+
+  it("skill --print carries every file — the body first, each reference under a comment naming it", async () => {
+    // One stream for a harness that pastes the skill into a prompt. The
+    // comment is how a reader splits it back into the directory.
+    expect(await main(["skill", dir, "--print"])).toBe(0);
+    const text = out.join("\n");
+    const canonicalDir = fileURLToPath(new URL("../../skill/skills/squinch/", import.meta.url));
+    const body = readFileSync(join(canonicalDir, "SKILL.md"), "utf8");
+    expect(text.indexOf("name: squinch")).toBeLessThan(text.indexOf("<!-- references/"));
+    for (const r of ["cookbook.md", "icons.md"]) {
+      const at = text.indexOf(`<!-- references/${r} -->\n`);
+      expect(at, r).toBeGreaterThan(0);
+      const content = readFileSync(join(canonicalDir, "references", r), "utf8").trimEnd();
+      expect(text.slice(at + `<!-- references/${r} -->\n`.length).startsWith(content), r).toBe(true);
+    }
+    // the body is whole: every pointer the stream's reader will follow is in it
+    for (const m of body.matchAll(/`(references\/[a-z-]+\.md)`/g)) expect(text).toContain(`<!-- ${m[1]} -->`);
   });
 
   // os.homedir() reads the env at call time, so pointing both platforms'

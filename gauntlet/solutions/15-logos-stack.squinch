@@ -1,12 +1,15 @@
 pack logos
 pack k8s
 
-person developer "Developer"
+person dev "Developer"
+
+github = logos/github "GitHub"
+k8s_cluster = logos/kubernetes "Kubernetes Cluster"
 
 system app "Application" {
   description: "Next.js + NestJS stack"
 
-  frontend = logos/nextdotjs "Frontend" {
+  frontend = logos/nextjs "Frontend" {
     subtitle: "Next.js"
   }
 
@@ -14,52 +17,40 @@ system app "Application" {
     subtitle: "NestJS"
   }
 
+  db = logos/postgresql "Database" datastore {
+    subtitle: "PostgreSQL"
+  }
+
   cache = logos/redis "Cache" datastore {
     subtitle: "Redis"
   }
 
-  db = logos/postgres "Database" datastore {
-    subtitle: "PostgreSQL"
-  }
-
-  events = logos/kafka "Events" {
+  events = logos/kafka "Event Bus" {
     subtitle: "Kafka"
   }
 
   frontend -> api
-  api -> cache
   api -> db
-  api ~> events "publishes"
-
-  layout {
-    rows [frontend] [api] [cache db] [events]
-  }
+  api -> cache
+  api ~> events "publishes events"
 }
 
-vcs = logos/github "GitHub" {
-  description: "Source control and CI/CD"
+monitor = logos/grafana "Monitoring" {
+  subtitle: "Grafana"
 }
 
-cluster = logos/kubernetes "Kubernetes" {
-  description: "Container orchestration"
-}
+dev -> github "pushes code"
+github -> k8s_cluster "deploys"
+k8s_cluster -> app.frontend
+k8s_cluster -> app.api
+app ~> monitor "metrics"
 
-monitoring = logos/grafana "Grafana" {
-  description: "Observability"
+zone cluster "Kubernetes Cluster" cloud {
+  contains app
 }
-
-developer -> vcs "pushes code"
-vcs -> cluster "deploys to"
-cluster -> app.frontend
-cluster -> app.api
-app.api -> monitoring "metrics"
-app.events -> monitoring "metrics"
 
 view landscape {
   title "Application Stack"
+  include *
   expand app
-
-  layout {
-    rows [developer] [vcs] [cluster] [app] [monitoring]
-  }
 }

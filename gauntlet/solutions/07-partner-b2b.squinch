@@ -1,22 +1,25 @@
 pack aws
 
-// External partner calls our B2B API
 partner = box "Partner System" external
 
-// Our B2B integration system
-system b2b "B2B Integration" {
-  description: "Partner request processing"
-
-  api = aws/api-gateway "API Gateway"
-  workflow = aws/step-functions "Request Orchestrator"
-  validate = aws/lambda "Validation"
-  billing = aws/lambda "Billing"
-  db = aws/aurora "Database" datastore
-
-  api -> workflow
-  workflow -> validate
-  workflow -> billing
-  billing -> db
+gw = aws/api-gateway "API Gateway"
+workflow = aws/step-functions "Partner Workflow" {
+  description: "Orchestrates validation and billing"
 }
+validate = aws/lambda "Validation Handler" {
+  subtitle: "Input validation"
+}
+billing = aws/lambda "Billing Handler" {
+  subtitle: "Transaction processing"
+}
+db = aws/aurora "Billing Database" datastore
 
-partner -> b2b.api "API request"
+partner -> gw "API request"
+gw -> workflow
+workflow -> validate
+workflow -> billing
+billing -> db "writes"
+
+view integration {
+  title "Partner B2B Integration"
+}

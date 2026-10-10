@@ -2,45 +2,42 @@ pack aws
 pack logos
 
 person customer "Customer"
-person data_team "Data Team"
 
-system platform "Platform" {
-  gw = aws/api-gateway "API Gateway"
+gw = aws/api-gateway "API Gateway"
 
-  account = aws/lambda "Account Service" {
-    description: "Customer account management"
+system account "Account Service" {
+  svc = aws/lambda "Account Handler"
+  db = aws/rds "Postgres" datastore {
+    subtitle: "Main database"
   }
-
-  billing = aws/lambda "Billing Service" {
-    description: "Payment processing and billing"
-  }
-
-  account_db = aws/rds "Account DB" datastore {
-    subtitle: "Postgres"
-  }
-
-  billing_db = aws/rds "Billing DB" datastore {
-    subtitle: "Postgres"
-  }
-
-  export = aws/s3 "Data Export" {
-    description: "Nightly export bucket"
-  }
-
-  gw -> account
-  gw -> billing
-  account -> account_db
-  account ~> export "nightly export"
-  billing -> billing_db
+  svc -> db
 }
 
-stripe = logos/stripe "Stripe" external
+system billing "Billing Service" {
+  svc = aws/lambda "Billing Handler"
+  db = aws/rds "Postgres" datastore {
+    subtitle: "Billing database"
+  }
+  stripe = box "Stripe" external {
+    badge: logos/stripe
+  }
+  svc -> db
+  svc -> stripe
+}
 
-customer -> platform.gw "mobile app / website"
-platform.billing -> stripe
-platform.export ~> data_team "export access"
+export = aws/s3 "Data Export" datastore {
+  subtitle: "Nightly export"
+}
+
+person data_team "Data Team"
+
+customer -> gw "mobile app / website"
+gw -> account.svc
+gw -> billing.svc
+account.db ~> export "nightly export"
+export -> data_team
 
 view landscape {
-  title "System Landscape"
+  title "System Overview"
   include *
 }

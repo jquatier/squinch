@@ -1,14 +1,15 @@
 pack aws
-pack logos
 
 person customer "Customer"
 
 cdn = aws/cloudfront "CloudFront"
 storefront = box "Storefront"
 
+gw = aws/api-gateway "API Gateway"
+
 system catalog "Catalog Service" {
-  icon: aws/lambda
   description: "Product catalog and search"
+  icon: aws/lambda
 
   api = aws/lambda "Catalog Handler"
   db = aws/dynamodb "Catalog DB" datastore
@@ -17,60 +18,50 @@ system catalog "Catalog Service" {
 }
 
 system orders "Orders Service" {
+  description: "Order management and processing"
   icon: aws/lambda
-  description: "Order management and checkout"
 
-  api = aws/lambda "Orders Handler" { tags: #sensitive }
-  db = aws/dynamodb "Orders DB" datastore { tags: #sensitive }
-  bus = aws/eventbridge "Order Events" { tags: #sensitive }
+  api = aws/lambda "Orders Handler"
+  db = aws/dynamodb "Orders DB" datastore
 
   api -> db
-  api ~> bus "order created"
+  api ~> bus "order events"
 }
 
 system payments "Payments Service" {
-  icon: aws/lambda
   description: "Payment processing"
+  icon: aws/lambda
+  tags: #sensitive
 
   api = aws/lambda "Payments Handler" { tags: #sensitive }
   db = aws/dynamodb "Payments DB" datastore { tags: #sensitive }
 
-  api -> db
+  api -> db { tags: #sensitive }
 }
 
-system fulfillment "Fulfillment Service" {
-  icon: aws/lambda
-  description: "Order fulfillment and shipping"
-
-  worker = aws/lambda "Fulfillment Worker"
-  db = aws/dynamodb "Fulfillment DB" datastore
-
-  worker -> db
-}
-
-gw = aws/api-gateway "API Gateway"
+bus = aws/eventbridge "Event Bus"
+fulfillment = aws/lambda "Fulfillment Worker"
 
 customer -> cdn "browses"
 cdn -> storefront
 storefront -> gw "API calls"
 gw -> catalog.api
 gw -> orders.api
-gw -> payments.api
-orders.bus ~> fulfillment.worker "order events"
+gw -> payments.api { tags: #sensitive }
+orders.api ~> bus
+bus ~> fulfillment "order events"
 
-zone prod_vpc "VPC Production" vpc {
-  contains gw, catalog, orders, payments, fulfillment
+zone prod_vpc "Production VPC" vpc {
+  contains gw, catalog, orders, payments, bus, fulfillment
 }
 
 view landscape {
-  title "Order Platform Landscape"
+  title "Order Platform - Landscape"
   include *
-  titleblock {
-    subtitle: "End-to-end architecture"
-  }
+  color #sensitive amber
 }
 
 view orders {
-  title "Orders Service Detail"
-  color #sensitive amber
+  title "Orders Service - Detail"
+  scope orders
 }

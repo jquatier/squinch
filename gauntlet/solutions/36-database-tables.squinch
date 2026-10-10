@@ -1,18 +1,13 @@
 pack aws
-pack logos
 
 system billing "Billing Service" {
-  description: "API and export for billing data"
+  description: "Invoice and payment processing with nightly export"
 
-  api = aws/ecs "Billing API" {
+  api = aws/fargate "Billing API" {
     subtitle: "ECS Fargate"
   }
 
-  export = aws/lambda "Export Job" {
-    subtitle: "Nightly batch"
-  }
-
-  container db "Billing DB" {
+  container db "Billing Database" {
     icon: aws/rds
     description: "Postgres · 5 tables"
 
@@ -22,29 +17,25 @@ system billing "Billing Service" {
     payments       = sys/table "payments" datastore
     refunds        = sys/table "refunds" datastore
 
-    invoices      -> customers      "customer_id"
-    invoice_lines -> invoices       "invoice_id"
-    payments      -> invoices       "invoice_id"
-    refunds       -> payments       "payment_id"
+    invoices      -> customers     "customer_id"
+    invoice_lines -> invoices      "invoice_id"
+    payments      -> invoices      "invoice_id"
+    refunds       -> payments      "payment_id"
   }
 
-  files = aws/s3 "Export Files"
-
-  api -> db.invoices "writes"
-  api -> db.payments "writes"
-  export -> db.invoices "reads"
-  export -> files "writes"
-
-  layout {
-    rows [api] [export] [db] [files]
+  export = aws/lambda "Export Job" {
+    subtitle: "Nightly batch"
   }
+
+  files = aws/s3 "Export Files" datastore
+
+  api -> db.invoices "writes invoices"
+  api -> db.payments "writes payments"
+  export -> db.invoices "reads invoices"
+  export -> files "writes export"
 }
 
 view landscape {
   title "Billing Service"
   include *
-}
-
-view billing {
-  title "Billing Service Detail"
 }

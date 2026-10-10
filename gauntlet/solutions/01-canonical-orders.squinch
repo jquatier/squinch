@@ -1,34 +1,33 @@
 pack aws
 
 system api "API Service" {
-  description: "Lambda-based API with storage backends"
-
   gw     = aws/api-gateway "API Gateway"
   create = aws/lambda      "Create Handler"
   get    = aws/lambda      "Get Handler"
   search = aws/lambda      "Search Handler"
-  sync   = aws/lambda      "Sync Handler" {
-    description: "Listens to DynamoDB stream and updates OpenSearch"
-  }
-
+  sync   = aws/lambda      "Stream Processor"
   db     = aws/dynamodb    "Orders Table" datastore
   files  = aws/s3          "Files Bucket" datastore
   idx    = aws/opensearch  "Search Index" datastore
 
-  gw -> create, get, search
+  gw -> create
+  gw -> get
+  gw -> search
 
   create -> db
-  create -> files
-
   get -> db
-
   search -> idx
+
+  create ~> files
 
   db ~> sync "DynamoDB stream"
   sync -> idx
 
   layout {
-    rows [gw] [create get search] [db files idx]
-    place sync right-of idx
+    rows [gw] [create get search] [db files] [sync idx]
   }
+}
+
+view api {
+  title "Lambda API Architecture"
 }

@@ -2,16 +2,18 @@ pack azure
 
 person customer "Customer"
 
-cdn     = azure/front-door        "Front Door"
-app     = azure/app-services      "Web App"
-db      = azure/sql               "Azure SQL Database" datastore
-cache   = azure/redis             "Redis Cache" datastore
-vault   = azure/key-vault         "Key Vault"
-insights = azure/application-insights "Application Insights"
+cdn = azure/front-door "Azure Front Door"
+app = azure/app-services "Web App" {
+  subtitle: "App Service"
+}
+db = azure/sql "SQL Database" datastore
+cache = azure/cache-redis "Redis Cache" datastore
+vault = azure/key-vault "Key Vault"
+insights = azure/monitor "Application Insights"
 
-customer -> cdn "browses"
+customer -> cdn "accesses"
 cdn -> app
 app -> db "reads/writes"
-app -> cache "reads/writes"
+app -> cache "caches"
 app -> vault "pulls secrets"
 app ~> insights "telemetry"

@@ -1,45 +1,25 @@
 pack aws
 
-person reviewer "Reviewer"
-
-system payments "Payments System" {
-  description: "Payment processing and settlement"
-
-  gw   = aws/api-gateway "API Gateway"
-  auth = aws/lambda      "Auth Service" {
-    subtitle: "Lambda · Node 20"
-  }
-  api  = aws/lambda      "Payment API" {
-    subtitle: "Lambda · Node 20"
-  }
-  ledger = aws/rds       "Ledger" datastore {
-    subtitle: "Postgres 16"
-  }
-  worker = aws/lambda    "Settlement Worker" {
-    subtitle: "Lambda · Batch job"
-    description: "Batches payments overnight"
-  }
-
-  gw -> auth
-  gw -> api
-  api -> ledger "read/write"
-  worker -> ledger "read settled"
-
-  layout {
-    rows [gw] [auth api] [ledger worker]
-  }
+gw = aws/api-gateway "API Gateway"
+auth = aws/lambda "Auth Service"
+ledger = aws/rds "Ledger" datastore {
+  subtitle: "Postgres"
 }
-
+settlement = aws/lambda "Settlement Worker" {
+  subtitle: "Nightly batch"
+}
 bank = box "Bank" external
 
-payments.worker ~> bank "batch settlement"
-reviewer -> payments.gw "design review"
+gw -> auth
+gw -> ledger
+settlement -> ledger "reads"
+settlement -> bank "batches"
 
 view payments {
   title "Payments Architecture"
   titleblock {
     version: "2.1"
     owner: "payments team"
-    subtitle: "Q4 2026"
+    date: "Q4 2026"
   }
 }

@@ -1,91 +1,62 @@
 pack aws
-pack logos
 
-person customer "Customer"
+person engineer "New Engineer"
 
-system orders "Orders" {
-  description: "Order lifecycle and fulfillment"
+system orders "Orders Service" {
+  description: "Order lifecycle management"
   icon: aws/api-gateway
 
   api = aws/api-gateway "Orders API"
-  create = aws/lambda "Create Order" {
+  handler = aws/lambda "Order Handler" {
     subtitle: "Lambda · Node 20"
   }
-  update = aws/lambda "Update Order" {
-    subtitle: "Lambda · Node 20"
-  }
-  query = aws/lambda "Query Handler" {
-    subtitle: "Lambda · Node 20"
-  }
-  db = aws/dynamodb "Orders Table" datastore
-  events = aws/eventbridge "Order Events"
+  validator = aws/lambda "Validator"
+  db = aws/dynamodb "Orders DB" datastore
+  queue = aws/sqs "Event Queue"
 
-  api -> create
-  api -> update
-  api -> query
-  create -> db
-  update -> db
-  query -> db
-  create ~> events "order.created"
-  update ~> events "order.updated"
+  api -> handler
+  handler -> validator
+  validator -> db
+  handler ~> queue
 
   layout {
-    rows [api] [create update query] [db events]
+    rows [api] [handler validator] [db queue]
   }
 }
 
-system inventory "Inventory" {
-  description: "Stock tracking and reservation"
+system inventory "Inventory Service" {
+  description: "Stock tracking and management"
   icon: aws/lambda
 
-  listener = aws/lambda "Event Listener"
-  reserve = aws/lambda "Reserve Stock"
-  release = aws/lambda "Release Stock"
-  db = aws/dynamodb "Inventory Table" datastore
+  api = aws/api-gateway "Inventory API"
+  svc = aws/lambda "Inventory Handler"
+  db = aws/dynamodb "Stock DB" datastore
 
-  listener -> reserve
-  listener -> release
-  reserve -> db
-  release -> db
-
-  layout {
-    rows [listener] [reserve release] [db]
-  }
+  api -> svc
+  svc -> db
 }
 
-system notifications "Notifications" {
-  description: "Customer and admin notifications"
+system notifications "Notifications Service" {
+  description: "Customer and internal alerts"
   icon: aws/sns
 
-  listener = aws/lambda "Event Listener"
-  email = aws/lambda "Email Sender" {
-    subtitle: "Lambda · SES"
-  }
-  sms = aws/lambda "SMS Sender" {
-    subtitle: "Lambda · SNS"
-  }
+  processor = aws/lambda "Notification Processor"
+  email = aws/sns "Email Topic"
+  sms = aws/sns "SMS Topic"
 
-  listener -> email
-  listener -> sms
-
-  layout {
-    rows [listener] [email sms]
-  }
+  processor ~> email
+  processor ~> sms
 }
 
-customer -> orders.api "places and checks orders"
-orders.events ~> inventory.listener "inventory events"
-orders.events ~> notifications.listener "notification events"
+engineer -> orders.api "manages orders"
+orders.queue ~> inventory.api "stock updates"
+orders.queue ~> notifications.processor "order events"
 
 view landscape {
   title "Order Platform"
   include *
-  preview orders
-  titleblock {
-    subtitle: "Platform overview"
-  }
 }
 
 view orders {
-  title "Orders Service"
+  title "Orders Service Detail"
 }

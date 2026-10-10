@@ -23,9 +23,11 @@
 //
 // ## The protocol (this file is its only specification)
 //
-// Each prompt gets `<tmp>/box/<id>/` holding exactly three things: `SKILL.md`,
-// `PROMPT.md`, and `bin/squinch` — four when the prompt names a `repo`, whose
-// checkout is copied in beside them (see `checkouts` below). cwd is that box
+// Each prompt gets `<tmp>/box/<id>/` holding exactly three things: the skill
+// directory (`SKILL.md` and the `references/` it points at, planted whole, as
+// `squinch skill` installs it), `PROMPT.md`, and `bin/squinch` — four when the
+// prompt names a `repo`, whose checkout is copied in beside them (see
+// `checkouts` below). cwd is that box
 // and *this* repo is not reachable
 // from it — not by relative path, and not by any path printed anywhere the
 // agent can look. That last part is why the CLI is **bundled** rather than
@@ -300,12 +302,17 @@ for (const p of selected) {
 }
 
 // ── one sandbox per prompt ─────────────────────────────────────────────────
-const skill = readFileSync(join(root, "packages/skill/skills/squinch/SKILL.md"), "utf8");
+const skillDir = join(root, "packages/skill/skills/squinch");
 mkdirSync(join(tmp, "logs"), { recursive: true });
 mkdirSync(join(runDir, "transcripts"), { recursive: true });
 
 /** Paths that would mean the agent looked outside its box. */
 const ESCAPES = [/\/Users\//, /~\//, /\.\.\//, /github\/squinch/];
+/** The reference files SKILL.md points at. Which of them an agent opened is
+ *  recorded per prompt: a cookbook nobody reads is lookup material that should
+ *  be back in the body, and the split's whole claim is that the body carries
+ *  the common case alone. */
+const REFERENCES = ["cookbook", "icons"];
 /** The serialized inputs of every tool call on one stream-json line — an
  *  assistant turn's `tool_use` blocks — and nothing else on it. */
 function toolInputs(line: string): string[] {
@@ -354,6 +361,8 @@ interface Result {
   sessionError?: string;
   /** tool calls the permission layer refused — harness fault, not skill signal */
   denials: number;
+  /** the `references/*.md` files the agent opened, by stem */
+  reads: string[];
   attempts: number;
   escapes: number;
   ms: number;
@@ -364,7 +373,7 @@ async function session(p: Prompt, box: string, log: string) {
   rmSync(box, { recursive: true, force: true });
   rmSync(log, { force: true });
   mkdirSync(join(box, "bin"), { recursive: true });
-  writeFileSync(join(box, "SKILL.md"), skill);
+  cpSync(skillDir, box, { recursive: true });
   writeFileSync(join(box, "PROMPT.md"), `${p.prompt}\n`);
   const checkout = checkouts.get(p.id);
   if (checkout && p.repo) cpSync(checkout, join(box, p.repo.dir), { recursive: true });
@@ -398,6 +407,7 @@ child.on("exit", (code) => {
   const transcript = join(runDir, "transcripts", `${p.id}.jsonl`);
   let escapes = 0;
   let denials = 0;
+  const reads = new Set<string>();
   let error: string | undefined;
 
   await new Promise<void>((resolve) => {
@@ -439,8 +449,10 @@ child.on("exit", (code) => {
         // Tool *inputs* only. A tool result carries whatever the tool printed
         // — the CLI's own usage text tripped this once — and that is not the
         // agent reaching outside the box.
-        for (const input of toolInputs(line))
+        for (const input of toolInputs(line)) {
           if (ESCAPES.some((re) => re.test(input))) escapes++;
+          for (const r of REFERENCES) if (input.includes(`references/${r}.md`)) reads.add(r);
+        }
         // A permission denial is a harness fault wearing an agent's clothes:
         // the run looks like "the agent never validated its work" when in fact
         // the tool was refused. Counted so it can never be read as a skill
@@ -458,7 +470,7 @@ child.on("exit", (code) => {
     child.stderr.on("data", () => {});
     child.on("close", () => resolve());
   });
-  return { escapes, denials, error, ms: Date.now() - t0 };
+  return { escapes, denials, reads: [...reads].sort(), error, ms: Date.now() - t0 };
 }
 
 async function runPrompt(p: Prompt): Promise<Result> {
@@ -476,7 +488,7 @@ async function runPrompt(p: Prompt): Promise<Result> {
     s = { ...retry, ms: s.ms + retry.ms };
     attempts = 2;
   }
-  const { escapes, denials, error, ms } = s;
+  const { escapes, denials, reads, error, ms } = s;
 
   // ── harvest ──────────────────────────────────────────────────────────────
   const produced = join(box, `${p.id}.squinch`);
@@ -495,6 +507,7 @@ async function runPrompt(p: Prompt): Promise<Result> {
     attempts,
     escapes,
     denials,
+    reads,
     ms,
   };
   if (!existsSync(produced)) return { ...base, status: "no-solution", warnings: 0 };
@@ -540,6 +553,7 @@ await Promise.all(
           `${r.warnings ? `, ${r.warnings} warning(s)` : ""}` +
           `${r.denials ? `, ${r.denials} PERMISSION DENIAL(S)` : ""}` +
           `${r.escapes ? `, ${r.escapes} outside-sandbox read(s)` : ""}` +
+          `${r.reads.length ? `, read ${r.reads.join("+")}` : ""}` +
           `  ${(r.ms / 1000).toFixed(0)}s`,
       );
     }
@@ -557,6 +571,8 @@ const clean = results.filter((r) => r.status === "ok" && r.checkCalls === 1 && !
 console.log(`\n── round ${stamp} ──`);
 console.log(`clean first try : ${clean.length}/${results.length}`);
 console.log(`produced a file : ${results.filter((r) => r.status !== "no-solution").length}/${results.length}`);
+for (const r of REFERENCES)
+  console.log(`read ${r.padEnd(12)}: ${results.filter((x) => x.reads.includes(r)).length}/${results.length}`);
 const leaked = results.filter((r) => r.escapes);
 console.log(
   `outside-sandbox : ${leaked.length ? `${leaked.map((r) => r.id).join(", ")} — discard these` : "none"}`,

@@ -1,28 +1,42 @@
 pack azure
 pack logos
 
-// On-premises components
-pg = logos/postgres "PostgreSQL" datastore
-mq = logos/rabbitmq "RabbitMQ"
+// On-premises systems
+postgres = logos/postgres "PostgreSQL" datastore {
+  subtitle: "Legacy database"
+}
+rabbitmq = logos/rabbitmq "RabbitMQ" {
+  subtitle: "Message broker"
+}
 
-// Azure components
-aks = azure/aks "AKS Cluster"
-sql = azure/sql "Azure SQL" datastore
-sync = box "Sync Job"
+// Azure systems
+aks = azure/aks "AKS Cluster" {
+  subtitle: "New services"
+}
+azuresql = azure/sql "Azure SQL" datastore {
+  subtitle: "Target database"
+}
+
+// Sync job
+sync = box "Sync Job" {
+  subtitle: "Nightly batch"
+}
 
 // Connections
-sync -> pg "reads nightly"
-sync ~> sql "copies async"
+postgres ~> sync "nightly sync"
+sync ~> azuresql "writes"
+aks -> azuresql
 
 // Deployment boundaries
 zone onprem "On-Premises" onprem {
-  contains pg, mq
+  contains postgres, rabbitmq
 }
 
-zone azure_cloud "Azure" cloud {
-  contains aks, sql, sync
+zone cloud "Azure" cloud {
+  contains aks, azuresql, sync
 }
 
 view migration {
   title "Multi-Cloud Migration"
+  include *
 }

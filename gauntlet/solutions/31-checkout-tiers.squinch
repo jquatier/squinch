@@ -1,5 +1,4 @@
 pack aws
-pack logos
 
 person shopper "Shopper"
 cdn = aws/cloudfront "CDN"
@@ -7,12 +6,12 @@ cdn = aws/cloudfront "CDN"
 system checkout "Checkout" {
   description: "Cart to confirmed order"
 
-  api     = aws/api-gateway "Checkout API"
-  service = aws/lambda      "Order Service"
-  cache   = aws/elasticache "Session Cache" datastore
-  queue   = aws/sqs         "Order Events"
-  worker  = aws/lambda      "Payment Worker"
-  db      = aws/dynamodb    "Orders" datastore
+  api     = aws/api-gateway    "Checkout API"
+  service = aws/lambda         "Order Service"
+  cache   = aws/elasticache    "Session Cache" datastore
+  queue   = aws/sqs            "Order Events"
+  worker  = aws/lambda         "Payment Worker"
+  db      = aws/dynamodb       "Orders" datastore
 
   api -> service
   service -> cache
@@ -32,16 +31,15 @@ fulfillment = box "Fulfillment" {
 
 shopper -> cdn
 cdn -> checkout.api
-checkout ~> fulfillment
+checkout.queue ~> fulfillment
 
 view landscape {
   title "System Landscape"
+  include *
   expand checkout
-  layout {
-    rows [cdn] [checkout fulfillment]
-  }
 }
 
 view checkout {
-  title "Checkout Detail"
+  title "Checkout Service"
+  scope checkout
 }

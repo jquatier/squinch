@@ -1,9 +1,9 @@
 pack azure
 
-gw  = azure/app-gateway  "Application Gateway"
-aks = azure/aks          "AKS Cluster"
-acr = azure/acr          "Container Registry"
-sql = azure/sql          "Azure SQL"
+gw  = azure/app-gateway "Application Gateway"
+aks = azure/aks "AKS Cluster"
+acr = azure/acr "Container Registry"
+sql = azure/sql "Azure SQL"
 
 gw -> aks
 aks -> acr "pulls images"
@@ -19,4 +19,9 @@ zone vnet "Virtual Network" network {
 
 zone subnet "Private Subnet" subnet {
   contains aks, acr
+}
+
+view main {
+  title "Azure Estate"
+  include *
 }

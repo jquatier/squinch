@@ -1,33 +1,37 @@
 pack aws
 
-system checkout "Checkout Service" {
-  api     = aws/api-gateway "API Gateway"
-  cart    = aws/lambda       "Cart Handler"
-  payment = aws/lambda       "Payment Handler"
-  db      = aws/dynamodb     "Orders" datastore
-  queue   = aws/sqs          "Fulfillment Queue"
-  worker  = aws/lambda       "Fulfillment Worker"
-
-  api -> cart
-  cart -> payment
-  payment -> db
-  payment ~> queue
-  queue ~> worker
+// Checkout flow components
+api = aws/api-gateway "API Gateway"
+cart = aws/lambda "Cart Service" {
+  subtitle: "Lambda · Node 20"
+}
+payment = aws/lambda "Payment Service" {
+  subtitle: "Lambda · Node 20"
+}
+db = aws/dynamodb "Orders" datastore
+queue = aws/sqs "Fulfillment Queue"
+fulfillment = aws/lambda "Fulfillment Worker" {
+  subtitle: "Lambda · Node 20"
 }
 
+// Edges defining the checkout path
+api -> cart
+cart -> payment
+payment -> db
+payment ~> queue
+queue -> fulfillment
+
+// Numbered flow showing the checkout journey
 flow checkout "Checkout Journey" {
-  checkout.api -> checkout.cart
-  checkout.cart -> checkout.payment
-  checkout.payment -> checkout.db
-  checkout.payment ~> checkout.queue
-  checkout.queue ~> checkout.worker
+  api -> cart -> payment -> db
+  payment ~> queue -> fulfillment
 }
 
-view checkout {
+view default {
   title "Checkout Flow"
   show flow checkout
   legend auto
   layout {
-    rows [api] [cart payment] [db queue] [worker]
+    direction right
   }
 }

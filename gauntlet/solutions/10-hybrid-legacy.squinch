@@ -6,19 +6,24 @@ erp = sys/server "Legacy ERP" external {
   subtitle: "On-premises"
 }
 
-worker = aws/lambda "Sync Worker" {
+sync_worker = aws/lambda "Sync Worker" {
   subtitle: "Lambda · Node 20"
 }
 
 db = aws/rds "Admin Database" datastore {
-  subtitle: "Postgres 16"
+  subtitle: "RDS · Postgres"
 }
 
-dashboard = sys/app-window "Admin Dashboard" {
+dashboard = aws/app-runner "Admin Dashboard" {
   subtitle: "Web App"
 }
 
-erp ~> worker "data feed"
-worker -> db "writes"
+erp ~> sync_worker "feeds data"
+sync_worker -> db "writes"
 dashboard -> db "reads"
-admin -> dashboard "manages system"
+admin -> dashboard "uses"
+
+view landscape {
+  title "Legacy ERP Integration"
+  include *
+}

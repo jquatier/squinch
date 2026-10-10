@@ -1,17 +1,16 @@
-// Ingestion estate - wide layout for slide presentation
+// Ingestion estate — wide layout for slide presentation
+c1 = box "Collector 1"
+c2 = box "Collector 2"
+c3 = box "Collector 3"
+c4 = box "Collector 4"
+c5 = box "Collector 5"
+c6 = box "Collector 6"
 
-c1 = sys/container "Collector 1"
-c2 = sys/container "Collector 2"
-c3 = sys/container "Collector 3"
-c4 = sys/container "Collector 4"
-c5 = sys/container "Collector 5"
-c6 = sys/container "Collector 6"
-
-normaliser = sys/code "Normaliser"
+normaliser = box "Normaliser"
 
 warehouse = sys/database "Warehouse" datastore
-search    = sys/search "Search Index" datastore
-alerting  = sys/siren "Alerting"
+search    = sys/database "Search Index" datastore
+alerting  = box "Alerting Service"
 
 c1 -> normaliser
 c2 -> normaliser

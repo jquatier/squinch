@@ -1,43 +1,44 @@
 pack aws
 
 system payments "Payments Service" {
-  description: "Card payment processing and settlement"
-  icon: aws/lambda
+  description: "Payment processing with card tokenization"
 
-  api = aws/api-gateway "Payment API"
+  api = aws/lambda "API Handler" {
+    subtitle: "Lambda · Node 20"
+    description: "Processes payment requests"
+  }
+
   tokenizer = aws/lambda "Tokenizer" {
+    subtitle: "Lambda · Node 20"
     description: "Tokenizes card data"
-    subtitle: "Lambda · Node 20"
     tags: #pci
   }
+
   vault = aws/dynamodb "Card Vault" datastore {
-    description: "Encrypted card tokens"
+    description: "Stores tokenized card data"
     tags: #pci
   }
+
   queue = aws/sqs "Settlement Queue" {
-    description: "Pending settlements"
+    description: "Settlement events"
     tags: #pci
   }
+
   worker = aws/lambda "Settlement Worker" {
-    description: "Processes settlements"
     subtitle: "Lambda · Node 20"
+    description: "Processes settlements"
     tags: #pci
   }
 
   api -> tokenizer "tokenize card"
-  tokenizer -> vault "store token"
-  tokenizer ~> queue "queue settlement"
-  queue ~> worker "drain"
-
-  layout {
-    rows [api] [tokenizer] [vault queue] [worker]
-  }
+  tokenizer -> vault "store token" { tags: #pci }
+  tokenizer ~> queue "settlement event"
+  queue ~> worker
 }
 
 view payments {
   title "Payments Service"
   highlight #pci
-  note right-of vault "Card tokens stored encrypted; see security-compliance.md" {
-    style: warning
-  }
+  note top-right "PCI Scope: Tokenizer, vault, queue, and settlement worker. Tokens are stored in the DynamoDB vault table." { style: warning }
+  legend auto
 }

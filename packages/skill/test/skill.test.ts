@@ -8,27 +8,56 @@
 // These tests check the guide against the engine rather than against a snapshot,
 // so they fail when the *tool* drifts away from the doc, which is the direction
 // drift actually travels.
+//
+// The skill is a directory (2026-10): SKILL.md is the body and `references/`
+// holds the lookup material it points at — the cookbook and the per-pack icon
+// lists. An agent can read any of it, so every check below that asks "is this
+// documented" reads the whole set; the checks about the body's own shape (its
+// frontmatter, its pointers) read SKILL.md alone.
 import { describe, it, expect } from "vitest";
 import { readFileSync, readdirSync, statSync } from "node:fs";
 import { fileURLToPath } from "node:url";
-import { dirname, join } from "node:path";
+import { dirname, join, relative, sep } from "node:path";
 import { buildModel, iconExists, packExists } from "@squinch/core";
 
 const pkg = join(dirname(fileURLToPath(import.meta.url)), "..");
-const SKILL = readFileSync(join(pkg, "skills", "squinch", "SKILL.md"), "utf8");
+const DIR = join(pkg, "skills", "squinch");
 const CORE = join(pkg, "..", "core", "src");
 
-/** Fenced ```squinch blocks, in document order. */
-const blocks = [...SKILL.matchAll(/```squinch\n([\s\S]*?)```/g)].map((m) => m[1]);
+function walk(d: string): string[] {
+  const out: string[] = [];
+  for (const e of readdirSync(d)) {
+    const p = join(d, e);
+    if (statSync(p).isDirectory()) out.push(...walk(p));
+    else out.push(p);
+  }
+  return out;
+}
+/** Every file in the skill directory, SKILL.md first, keyed by the
+ *  posix-relative path SKILL.md refers to it by. */
+const FILES: Record<string, string> = Object.fromEntries(
+  walk(DIR)
+    .map((p) => relative(DIR, p).split(sep).join("/"))
+    .sort((a, b) => (a === "SKILL.md" ? -1 : b === "SKILL.md" ? 1 : a.localeCompare(b)))
+    .map((f) => [f, readFileSync(join(DIR, f), "utf8")]),
+);
+const SKILL = FILES["SKILL.md"];
+const REFERENCES = Object.keys(FILES).filter((f) => f.startsWith("references/"));
+/** The whole set, as an agent that follows every pointer would have read it. */
+const ALL = Object.values(FILES).join("\n");
+const COOKBOOK = FILES["references/cookbook.md"];
 
-describe("SKILL.md — icon references", () => {
+/** Fenced ```squinch blocks, in document order — SKILL.md's first. */
+const blocks = [...ALL.matchAll(/```squinch\n([\s\S]*?)```/g)].map((m) => m[1]);
+
+describe("the skill — icon references", () => {
   // Icon ids are the single most rot-prone thing in the guide: packs regenerate
   // with `npm run fetch`, vendors rename, and a dead id sends an agent hunting
   // for a service that "does not exist". Round 3 watched two agents conclude
   // SKILL.md was wrong when it was `icons search` that was broken.
   const refs = [
     ...new Set(
-      [...SKILL.matchAll(/\b(aws|azure|gcp|logos|sys|builtin|k8s)\/([a-z0-9][a-z0-9-]*)\b/g)].map(
+      [...ALL.matchAll(/\b(aws|azure|gcp|logos|sys|builtin|k8s)\/([a-z0-9][a-z0-9-]*)\b/g)].map(
         (m) => `${m[1]}/${m[2]}`,
       ),
     ),
@@ -43,11 +72,11 @@ describe("SKILL.md — icon references", () => {
       const [p, id] = r.split("/");
       return !packExists(p) || !iconExists(p, id);
     });
-    expect(dead, `SKILL.md names icons that no longer exist: ${dead.join(", ")}`).toEqual([]);
+    expect(dead, `the skill names icons that no longer exist: ${dead.join(", ")}`).toEqual([]);
   });
 });
 
-describe("SKILL.md — example blocks", () => {
+describe("the skill — example blocks", () => {
   it("has the blocks this file assumes", () => {
     expect(blocks.length).toBeGreaterThanOrEqual(4);
   });
@@ -78,7 +107,7 @@ describe("SKILL.md — example blocks", () => {
   });
 });
 
-describe("SKILL.md — grammar coverage", () => {
+describe("the skill — grammar coverage", () => {
   const grammar = readFileSync(join(CORE, "grammar", "squinch.grammar"), "utf8");
   const keywords = [...new Set([...grammar.matchAll(/kw<"([a-z-]+)">/g)].map((m) => m[1]))];
   /** Statement *verbs* — the first keyword of a production. Their argument
@@ -92,23 +121,20 @@ describe("SKILL.md — grammar coverage", () => {
     // `cols` shipped implemented-but-undocumented and was therefore unusable —
     // no agent could reach for a word it had never been shown.
     expect(keywords.length).toBeGreaterThan(20);
-    const missing = keywords.filter((k) => !new RegExp(`\\b${k}\\b`).test(SKILL));
-    expect(missing, `grammar keywords absent from SKILL.md: ${missing.join(", ")}`).toEqual([]);
+    const missing = keywords.filter((k) => !new RegExp(`\\b${k}\\b`).test(ALL));
+    expect(missing, `grammar keywords absent from the skill: ${missing.join(", ")}`).toEqual([]);
   });
 
   it("shows every keyword the cookbook recommends in a fenced block", () => {
     // Round 4's lesson: fixing the prose was not enough, because agents copy the
     // reference block. A verb the cookbook names but no example shows is a verb
     // that will be spelled wrong.
-    // the table only — past it sit the icon sections, which name no verbs
-    // A renamed heading must fail loudly: indexOf's -1 would otherwise slice
-    // the last character of the file and the verb sweep would pass vacuously.
-    const cookbookAt = SKILL.indexOf("## Layout cookbook");
-    expect(cookbookAt, "the `## Layout cookbook` heading is load-bearing").toBeGreaterThanOrEqual(0);
-    const table = SKILL.slice(cookbookAt);
-    const cookbook = table.slice(0, table.indexOf("\n## ", 3) + 1 || undefined);
+    // The cookbook is its own file now, so "the table" is the whole of it; a
+    // verb it recommends may be shown in any file's block — the body's, or
+    // the cookbook's own.
+    expect(COOKBOOK, "references/cookbook.md is load-bearing").toBeTruthy();
     const shown = blocks.join("\n");
-    const named = verbs.filter((k) => new RegExp(`\`[^\`]*\\b${k}\\b`).test(cookbook));
+    const named = verbs.filter((k) => new RegExp(`\`[^\`]*\\b${k}\\b`).test(COOKBOOK));
     const unshown = named.filter((k) => !new RegExp(`\\b${k}\\b`).test(shown));
     expect(unshown, `recommended by the cookbook but in no example: ${unshown.join(", ")}`).toEqual(
       [],
@@ -116,7 +142,7 @@ describe("SKILL.md — grammar coverage", () => {
   });
 });
 
-describe("SKILL.md — diagnostic coverage", () => {
+describe("the skill — diagnostic coverage", () => {
   /** Every diagnostic the engine can emit, as its leading literal words. */
   function engineMessages(): string[] {
     const files: string[] = [];
@@ -301,10 +327,10 @@ describe("SKILL.md — diagnostic coverage", () => {
     expect(messages.length).toBeGreaterThan(20);
     const undocumented = messages
       .filter((m) => !SELF_EXPLANATORY.has(m))
-      .filter((m) => !SKILL.includes(m));
+      .filter((m) => !ALL.includes(m));
     expect(
       undocumented,
-      `engine diagnostics with no guidance in SKILL.md: ${undocumented.map((u) => JSON.stringify(u)).join(", ")}`,
+      `engine diagnostics with no guidance in the skill: ${undocumented.map((u) => JSON.stringify(u)).join(", ")}`,
     ).toEqual([]);
   });
 
@@ -316,6 +342,61 @@ describe("SKILL.md — diagnostic coverage", () => {
     expect(stale, `allowlisted messages the engine no longer emits: ${stale.join(", ")}`).toEqual(
       [],
     );
+  });
+});
+
+describe("the skill directory", () => {
+  // The body points at the references and nothing else does: a reference
+  // file no pointer names is unreachable to an agent that reads SKILL.md
+  // first, and a pointer to a file that is not there sends it hunting.
+  it("has the two reference files the split made", () => {
+    expect(REFERENCES).toEqual(["references/cookbook.md", "references/icons.md"]);
+  });
+
+  it("SKILL.md names every reference file, and names no file that is missing", () => {
+    const named = [...new Set([...SKILL.matchAll(/`(references\/[a-z-]+\.md)`/g)].map((m) => m[1]))];
+    expect(named.sort()).toEqual([...REFERENCES].sort());
+  });
+
+  it("every pointer says when to open the file", () => {
+    // The Agent Skills guidance: a reference is read on a condition the body
+    // states, not browsed. Each pointer sits in a sentence with its trigger.
+    expect(SKILL).toMatch(/not\s+self-explanatory, open `references\/cookbook\.md`/);
+    expect(SKILL).toMatch(/Read `references\/icons\.md` when you need an icon id outside the AWS basics/);
+  });
+
+  it("each reference file opens with a title, a when-to-read line and a table of contents", () => {
+    for (const f of REFERENCES) {
+      const text = FILES[f];
+      expect(text, f).toMatch(/^# .+\n\nOpen this when /);
+      const toc = /\n## Contents\n\n((?:- \[[^\]]+\]\(#[a-z0-9-]+\).*\n)+)/.exec(text);
+      expect(toc, `${f} has no table of contents`).toBeTruthy();
+      // every entry resolves to a heading in the same file, GitHub-slugged
+      const headings = new Set(
+        [...text.matchAll(/^## (.+)$/gm)].map((m) =>
+          m[1].toLowerCase().replace(/[^a-z0-9 -]/g, "").replace(/ /g, "-"),
+        ),
+      );
+      for (const m of toc![1].matchAll(/\(#([a-z0-9-]+)\)/g))
+        expect(headings.has(m[1]), `${f}: contents entry #${m[1]} has no heading`).toBe(true);
+    }
+  });
+
+  it("the body is shorter than the lookup material it shed", () => {
+    // The split exists so the body fits what a harness keeps after compaction.
+    // A hard token budget would be arbitrary; what must not quietly happen is
+    // the tables growing back into SKILL.md. The cookbook table and the
+    // per-pack lists live in references/ — the body may summarise, not list.
+    expect(SKILL).not.toMatch(/^\| Symptom \| Fix \|$/m);
+    expect(SKILL.length).toBeLessThan(ALL.length - SKILL.length + 20_000);
+  });
+
+  it("the cookbook keeps every row in a themed table", () => {
+    // Rows moved verbatim, grouped under headings the contents list. A row
+    // outside a table is a row no symptom search will find as a pair.
+    const rows = COOKBOOK.split("\n").filter((l) => l.startsWith("| ") && !l.startsWith("| Symptom"));
+    expect(rows.length).toBeGreaterThan(50);
+    for (const r of rows) expect(r.split(" | ").length, r.slice(0, 60)).toBeGreaterThanOrEqual(2);
   });
 });
 

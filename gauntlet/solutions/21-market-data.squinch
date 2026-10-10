@@ -1,64 +1,28 @@
-pack aws
-pack logos
+// Market data path diagram
 
-person trader "Trader"
+exchange = sys/network "Exchange"
+feed_handler = sys/server "Feed Handler"
+pricing_engine = sys/server "Pricing Engine"
+trading_ui = sys/app-window "Trading UI"
+batch_recon = sys/clock "Overnight Batch"
+clearing_house = sys/building-2 "Clearing House"
+risk_service = sys/shield "Risk Service"
 
-system market "Market Data Platform" {
-  description: "Real-time pricing and reconciliation"
+// Continuous data flow
+exchange ~> feed_handler "price stream" { animate: packets }
+feed_handler ~> pricing_engine "ticks" { animate: fast }
+pricing_engine ~> trading_ui "price updates" { animate: fast }
 
-  exchange = box "Exchange" external {
-    subtitle: "Live price feed"
-  }
+// Nightly batch job
+clearing_house -> batch_recon "fills data"
+batch_recon -> pricing_engine "reconcile" { style: dotted }
 
-  feed = aws/lambda "Feed Handler" {
-    description: "Ingests and normalises price stream"
-    subtitle: "Node 20"
-  }
+// Health polling
+risk_service -> pricing_engine "health check" { animate: pulse }
 
-  pricing = aws/lambda "Pricing Engine" {
-    description: "Processes ticks and serves prices"
-    subtitle: "Node 20"
-  }
-
-  ui = sys/app-window "Trading UI" {
-    description: "Real-time price display"
-  }
-
-  risk = aws/lambda "Risk Service" {
-    description: "Health monitoring"
-    subtitle: "Node 20"
-  }
-
-  clearing = box "Clearing House" external {
-    subtitle: "Daily settlement"
-  }
-
-  batch = aws/batch "Overnight Reconciliation" {
-    description: "Reconciles fills against clearing house"
-    subtitle: "Cron · 02:00 UTC"
-  }
-
-  fills = aws/dynamodb "Fills" datastore
-
-  exchange ~> feed "price stream" { animate: packets }
-  feed ~> pricing "ticks" { animate: fast }
-  pricing ~> ui "live prices" { animate: slow }
-  risk -> pricing "healthcheck" { animate: pulse, style: dotted }
-  clearing ~> batch "settlements" { animate: false }
-  batch -> fills "reconcile"
-
+view main {
+  title "Market Data Flow"
   layout {
-    rows [exchange] [feed] [pricing] [ui] [batch] [fills]
-  }
-}
-
-trader -> market.ui "monitors prices"
-market.clearing -> market.batch
-
-view landscape {
-  title "Market Data Architecture"
-  expand market
-  titleblock {
-    subtitle: "Trading infrastructure"
+    rows [exchange] [feed_handler] [pricing_engine batch_recon risk_service] [trading_ui]
   }
 }

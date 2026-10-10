@@ -145,7 +145,8 @@ npx squinch skill
 
 That writes `.agents/skills/` in your project (plus `.claude/skills/` when it
 detects Claude Code); `--global` does the same under your home directory, and
-`--print` emits SKILL.md for any other harness. macOS, Linux and Windows, on
+`--print` emits the skill — `SKILL.md` and its `references/` — as one stream
+for any other harness. macOS, Linux and Windows, on
 Node ≥ 22.
 
 The other surfaces, each its own one-liner:
@@ -413,7 +414,8 @@ Errors are built for the agent loop, not just for humans: every diagnostic
 carries a location, the problem, and a likely fix, with did-you-mean suggestions
 for unknown icons, views and identifiers. `squinch check --format json` emits
 exactly the same information a person sees.
-[`SKILL.md`](packages/skill/skills/squinch/SKILL.md) is the whole contract an
+[`SKILL.md`](packages/skill/skills/squinch/SKILL.md), with the `references/`
+beside it, is the whole contract an
 agent needs — `npx squinch skill` installs it for every skills-compatible agent
 (or paste it into whatever your harness calls context), then ask for a diagram
 in plain language; [the package README](packages/skill/) has the details.

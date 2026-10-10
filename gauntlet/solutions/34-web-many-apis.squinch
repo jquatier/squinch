@@ -2,155 +2,204 @@ pack logos
 
 person customer "Customer"
 
-web = logos/react "Web App" {
-  subtitle: "React SPA"
+web = logos/react "Web App"
+bff = logos/nodejs "BFF" {
+  subtitle: "Backend for Frontend"
 }
 
-bff = logos/nodedotjs "BFF" {
-  subtitle: "Node.js"
-  description: "Backend-for-frontend · API aggregation layer"
-}
+system user_mgmt "User Management" {
+  description: "Authentication and user profiles"
+  icon: sys/users
 
-system identity "Identity & Profile" {
-  description: "User authentication and profile management"
-  icon: sys/lock
-  users = sys/server "Users" { subtitle: "Postgres" }
-  auth = sys/server "Auth" { subtitle: "Redis sessions" }
-  profile = sys/server "Profile" { subtitle: "Postgres" }
+  users = logos/nodejs "Users Service" {
+    subtitle: "Node.js"
+  }
+  users_db = logos/postgres "Users DB" datastore
 
-  users_db = sys/database "Users DB" datastore
-  auth_cache = sys/database "Session Store" datastore
-  profile_db = sys/database "Profile DB" datastore
+  auth = logos/nodejs "Auth Service" {
+    subtitle: "Node.js"
+  }
+  auth_cache = logos/redis "Sessions" datastore
+
+  profile = logos/nodejs "Profile Service" {
+    subtitle: "Node.js"
+  }
+  profile_db = logos/postgres "Profiles DB" datastore
 
   users -> users_db
   auth -> auth_cache
   profile -> profile_db
+
+  layout {
+    rows [users auth profile] [users_db auth_cache profile_db]
+  }
 }
 
-system catalog_system "Catalog & Discovery" {
-  description: "Product catalog, search and recommendations"
+system discovery "Product Discovery" {
+  description: "Catalog, search and recommendations"
   icon: sys/search
-  catalog = sys/server "Catalog" { subtitle: "Postgres" }
-  search = sys/server "Search" { subtitle: "OpenSearch" }
-  recommendations = sys/server "Recommendations" { subtitle: "Redis" }
-  reviews = sys/server "Reviews" { subtitle: "MongoDB" }
 
-  catalog_db = sys/database "Catalog DB" datastore
-  search_idx = sys/database "Search Index" datastore
-  rec_cache = sys/database "Rec Cache" datastore
-  reviews_db = sys/database "Reviews DB" datastore
+  catalog = logos/nodejs "Catalog Service" {
+    subtitle: "Node.js"
+  }
+  catalog_db = logos/postgres "Catalog DB" datastore
+
+  search = logos/nodejs "Search Service" {
+    subtitle: "Node.js"
+  }
+  search_idx = logos/elasticsearch "Search Index" datastore
+
+  recommendations = logos/nodejs "Recommendations Service" {
+    subtitle: "Node.js"
+  }
+  rec_cache = logos/redis "Rec Cache" datastore
+
+  reviews = logos/nodejs "Reviews Service" {
+    subtitle: "Node.js"
+  }
+  reviews_db = logos/mongodb "Reviews DB" datastore
+
+  pricing = logos/nodejs "Pricing Service" {
+    subtitle: "Node.js"
+  }
+  pricing_cache = logos/redis "Pricing Cache" datastore
 
   catalog -> catalog_db
   search -> search_idx
+  search -> catalog_db "reads"
   recommendations -> rec_cache
+  recommendations -> catalog_db "reads"
+  recommendations -> reviews_db "reads"
   reviews -> reviews_db
+  pricing -> pricing_cache
 
-  search -> catalog "reads"
-  recommendations -> catalog "reads"
-  recommendations -> reviews "reads"
+  layout {
+    rows [catalog] [search reviews recommendations pricing] [catalog_db search_idx reviews_db rec_cache pricing_cache]
+  }
 }
 
-system commerce "Shopping & Checkout" {
-  description: "Cart, pricing, checkout and order placement"
-  icon: sys/shopping-cart
-  pricing = sys/server "Pricing" { subtitle: "Redis" }
-  cart = sys/server "Cart" { subtitle: "Redis" }
-  checkout = sys/server "Checkout" { subtitle: "Postgres" }
-  orders = sys/server "Orders" { subtitle: "Postgres" }
-  payments = sys/server "Payments" { subtitle: "Postgres" }
+system order_flow "Order Processing" {
+  description: "Cart, checkout, orders and payments"
+  icon: sys/cart
 
-  pricing_cache = sys/database "Price Cache" datastore
-  cart_cache = sys/database "Cart Store" datastore
-  checkout_db = sys/database "Checkout DB" datastore
-  orders_db = sys/database "Orders DB" datastore
-  payments_db = sys/database "Payments DB" datastore
+  cart = logos/nodejs "Cart Service" {
+    subtitle: "Node.js"
+  }
+  cart_cache = logos/redis "Cart Cache" datastore
 
-  stripe = box "Stripe" external
+  checkout = logos/nodejs "Checkout Service" {
+    subtitle: "Node.js"
+  }
+  checkout_db = logos/postgres "Checkout DB" datastore
 
-  pricing -> pricing_cache
+  orders = logos/nodejs "Orders Service" {
+    subtitle: "Node.js"
+  }
+  orders_db = logos/postgres "Orders DB" datastore
+
+  payments = logos/nodejs "Payments Service" {
+    subtitle: "Node.js"
+  }
+  payments_db = logos/postgres "Payments DB" datastore
+
+  inventory = logos/nodejs "Inventory Service" {
+    subtitle: "Node.js"
+  }
+  inventory_db = logos/postgres "Inventory DB" datastore
+
   cart -> cart_cache
   checkout -> checkout_db
+  checkout -> cart "reads cart"
+  checkout -> discovery.pricing "gets price"
+  checkout -> payments "processes payment"
+  checkout -> orders "creates order"
   orders -> orders_db
+  orders -> inventory "reserves stock"
   payments -> payments_db
+  inventory -> inventory_db
 
-  checkout -> cart
-  checkout -> pricing
-  checkout -> payments
-  checkout -> orders
-  orders -> fulfillment.inventory "reserves"
-  payments -> stripe
+  layout {
+    rows [cart checkout] [payments orders] [inventory]
+  }
 }
 
 system fulfillment "Fulfillment & Support" {
-  description: "Inventory, shipping, notifications and customer support"
-  icon: sys/truck
-  inventory = sys/server "Inventory" { subtitle: "Postgres" }
-  shipping = sys/server "Shipping" { subtitle: "Postgres" }
-  notifications = sys/server "Notifications" { subtitle: "SendGrid" }
-  support = sys/server "Support" { subtitle: "Postgres" }
+  description: "Shipping, notifications and support"
+  icon: sys/package
 
-  inventory_db = sys/database "Inventory DB" datastore
-  shipping_db = sys/database "Shipping DB" datastore
-  support_db = sys/database "Support DB" datastore
+  shipping = logos/nodejs "Shipping Service" {
+    subtitle: "Node.js"
+  }
+  shipping_db = logos/postgres "Shipping DB" datastore
 
-  sendgrid = box "SendGrid" external
-  carrier = box "Carrier API" external
+  notifications = logos/nodejs "Notifications Service" {
+    subtitle: "Node.js"
+  }
 
-  inventory -> inventory_db
+  support = logos/nodejs "Support Service" {
+    subtitle: "Node.js"
+  }
+  support_db = logos/postgres "Support DB" datastore
+
   shipping -> shipping_db
   support -> support_db
 
-  notifications -> sendgrid
-  shipping -> carrier
+  layout {
+    rows [shipping notifications support] [shipping_db support_db]
+  }
 }
 
 bus = logos/kafka "Event Bus" {
   subtitle: "Kafka"
 }
 
-customer -> web "browses, shops"
+stripe = box "Stripe" external {
+  badge: logos/stripe
+}
+
+carrier = box "Carrier API" external
+
+sendgrid = box "SendGrid" external
+
+customer -> web
 web -> bff
+bff -> user_mgmt
+bff -> discovery
+bff -> order_flow
+bff -> fulfillment
 
-bff -> identity.users
-bff -> identity.auth
-bff -> identity.profile
-bff -> catalog_system.catalog
-bff -> catalog_system.search
-bff -> catalog_system.recommendations
-bff -> catalog_system.reviews
-bff -> commerce.pricing
-bff -> commerce.cart
-bff -> commerce.checkout
-bff -> commerce.orders
-bff -> fulfillment.support
+order_flow.payments -> stripe "processes payment"
+fulfillment.shipping -> carrier "tracks shipment"
+fulfillment.notifications -> sendgrid "sends email"
 
-commerce.orders ~> bus "order events"
-commerce.payments ~> bus "payment events"
-bus ~> fulfillment.notifications "events"
-bus ~> fulfillment.shipping "events"
-bus ~> catalog_system.recommendations "events"
+order_flow.orders ~> bus "order events"
+order_flow.payments ~> bus "payment events"
+bus ~> fulfillment.notifications "order/payment events"
+bus ~> fulfillment.shipping "order events"
+bus ~> discovery.recommendations "order events"
 
 view landscape {
-  title "E-commerce Platform"
+  title "E-commerce Platform Overview"
   include *
+  preview user_mgmt, discovery, order_flow, fulfillment
+
   layout {
-    rows [customer] [web] [bff] [commerce] [bus] [catalog_system fulfillment]
+    rows [customer] [web] [bff] [user_mgmt order_flow] [discovery fulfillment bus] [stripe carrier sendgrid]
   }
 }
 
-view identity {
-  title "Identity & Profile Services"
+view user_mgmt {
+  title "User Management"
 }
 
-view catalog {
-  title "Catalog & Discovery Services"
-  scope catalog_system
+view discovery {
+  title "Product Discovery"
 }
 
-view commerce {
-  title "Shopping & Checkout Services"
+view order_flow {
+  title "Order Processing"
 }
 
 view fulfillment {
-  title "Fulfillment & Support Services"
+  title "Fulfillment & Support"
 }

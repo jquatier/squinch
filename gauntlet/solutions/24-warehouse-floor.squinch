@@ -1,48 +1,60 @@
-// Warehouse floor automation system - physical automation stack
+// Warehouse automation system
+pack sys
 
 person supervisor "Shift Supervisor"
 
-// Packing benches with barcode scanners
-scanner1 = sys/barcode "Scanner 1" { subtitle: "Packing Bench A" }
-scanner2 = sys/barcode "Scanner 2" { subtitle: "Packing Bench B" }
-scanner3 = sys/barcode "Scanner 3" { subtitle: "Packing Bench C" }
+system warehouse "Warehouse Floor" {
+  description: "Automated packing and sorting"
 
-// Local controller
-controller = sys/server "Floor Controller" {
-  subtitle: "Automation logic"
-  description: "Routes packages and manages devices"
+  bench1 = sys/barcode "Packing Bench 1"
+  bench2 = sys/barcode "Packing Bench 2"
+  bench3 = sys/barcode "Packing Bench 3"
+
+  controller = sys/server "Local Controller" {
+    subtitle: "PLC · site network"
+    description: "Coordinates packing stations and sorting"
+  }
+
+  sorter = sys/workflow "Conveyor Sorter" {
+    description: "Automated package routing"
+  }
+
+  printer = sys/printer "Label Printer"
+
+  board = sys/monitor "Status Board" {
+    description: "Real-time operations display"
+  }
+
+  bench1 -> controller "scan events"
+  bench2 -> controller "scan events"
+  bench3 -> controller "scan events"
+
+  controller -> sorter "routing commands"
+  controller -> printer "print jobs"
+  controller -> board "status updates"
 }
 
-// Warehouse equipment
-sorter = sys/workflow "Conveyor Sorter" {
-  subtitle: "Automated routing"
-}
-printer = sys/printer "Label Printer"
-board = sys/monitor "Status Board"
-
-// External ERP
-erp = box "ERP System" external {
+erp = sys/database "ERP System" {
+  subtitle: "on-premises"
   description: "Enterprise resource planning"
 }
 
-// Data flow
-scanner1 -> controller "scan events"
-scanner2 -> controller "scan events"
-scanner3 -> controller "scan events"
+warehouse.controller ~> erp "sync batch"
 
-controller -> sorter "routing commands"
-controller -> printer "print jobs"
-controller ~> erp "inventory sync · every 1 min"
-
-controller -> board "status updates"
-supervisor -> board "monitors"
+supervisor -> warehouse.board "monitors"
 
 view floor {
   title "Warehouse Floor Automation"
+  scope warehouse
   layout {
-    rows [scanner1 scanner2 scanner3] [controller] [sorter printer board] [erp]
+    rows [bench1 bench2 bench3] [controller] [sorter printer board]
   }
-  titleblock {
-    subtitle: "Physical automation"
+}
+
+view overview {
+  title "Warehouse System Overview"
+  include *
+  layout {
+    rows [supervisor] [warehouse] [erp]
   }
 }

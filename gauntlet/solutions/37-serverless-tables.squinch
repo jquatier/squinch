@@ -1,40 +1,23 @@
 pack aws
 
 system notifications "Notifications Service" {
-  description: "Email notifications via SES"
+  description: "Email notification pipeline with preferences and logging"
 
   api = aws/api-gateway "API Gateway"
-  receive = aws/lambda "Receive Handler" {
-    subtitle: "Lambda"
-  }
+  handler = aws/lambda "API Handler"
   queue = aws/sqs "Send Queue"
-  sender = aws/lambda "Sender Worker" {
-    subtitle: "Lambda"
-  }
+  sender = aws/lambda "Sender Worker"
   ses = aws/ses "SES"
 
-  container preferences_db "Preferences Table" {
-    icon: aws/dynamodb
-    preferences = sys/table "preferences" datastore
-  }
+  preferences = aws/dynamodb "preferences" datastore
+  delivery_log = aws/dynamodb "delivery-log" datastore
 
-  container delivery_db "Delivery Log Table" {
-    icon: aws/dynamodb
-    delivery_log = sys/table "delivery-log" datastore
-  }
-
-  api -> receive
-  receive -> preferences_db.preferences "reads"
-  receive ~> queue
+  api -> handler
+  handler -> preferences "read"
+  handler ~> queue "enqueue"
   queue ~> sender
-  sender -> ses "sends"
-  sender -> delivery_db.delivery_log "writes"
-
-  layout {
-    rows [api] [receive] [queue] [sender] [ses]
-    place preferences_db right-of receive
-    place delivery_db right-of sender
-  }
+  sender -> ses "send email"
+  sender -> delivery_log "write"
 }
 
 view notifications {

@@ -85,9 +85,17 @@ components or the layout: the diagram shows them.
    never need one. Your edges already say what the tiers are, and the engine
    ranks from them: a node sits below everything that points at it. Render it
    and look. Add hints only to fix something you can see is wrong, one at a
-   time, naming only the nodes you actually care about.
+   time, naming only the nodes you actually care about. Icon ids outside the
+   AWS basics — anything `azure/`, `gcp/`, `k8s/`, `logos/` or `sys/` — are
+   looked up before the first `check`, never written from memory: open
+   `references/icons.md`, which lists them per pack, or run `squinch icons
+   search` with every unknown in one call. An id guessed from the word you
+   would say — a `sys/` or `azure/` name that reads right and does not exist —
+   is the most common way a first `check` fails.
 2. `check` after every edit. Diagnostics tell you the location, the problem, and
-   usually the fix (`did you mean ...?`). Trust them.
+   usually the fix (`did you mean ...?`). Trust them. When one is not
+   self-explanatory, open `references/cookbook.md` — symptom → fix, keyed on
+   the diagnostic's own words.
 3. Exit code 0 and **no diagnostics at all** = clean. Errors block the render;
    warnings do not, which is exactly why they matter — a warning means the file
    is valid but probably not the diagram you were asked for. Fix warnings
@@ -597,71 +605,17 @@ view detail {
   the two on the same row, and same-rank edges route side to side
   automatically — a `from`/`to` on one is ignored, and says so.
 
-## Layout cookbook (symptom → fix)
+The cookbook in `references/cookbook.md` is the next step when a diagnostic is
+not self-explanatory or the render shows a shape you cannot name the hint for —
+symptom → fix, keyed on the diagnostic's own words.
 
-| Symptom | Fix |
-|---|---|
-| Layers feel arbitrary / related things scattered | Add `rows`, one group per conceptual tier (entry, handlers, storage) |
-| One node belongs beside another (stream sync, DLQ, cache) | `place X right-of Y` — that is all. The connecting edge routes itself; adding `route … from east to west` does nothing, because `place` makes them same-rank |
-| "`route x -> y` sides are ignored — it is a same-rank edge" warning | Drop the `from`/`to`. Sides only apply to edges that span rows |
-| "`x` is placed `right-of y`, but `rows` puts it somewhere else" error | The two hints disagree. Restating a band is fine — `rows [db bus]` alongside `place bus right-of db` is accepted, since both say the same thing — so fix whichever one is wrong, or drop `x` from the band |
-| "`x` is listed in `rows` but is placed relative to `y`, which is not" error | Put `y` in a band too, or take `x` out of its band. A banded node can only be placed against another banded one |
-| "cols `[a b c]` — all 3 sit on the same rank, so they cannot share an axis" warning | You wanted them side by side; that is `rows [a b c]`. `rows` is a **rank** — things drawn beside each other. `cols`/`align` stack a node onto another's axis *across* ranks. The confusion is worst with `direction right`, where a rank looks like a column on screen — the words describe the model, not the picture |
-| "an edge has one source — `x, y` cannot fan in" error | Fan-out exists (`a -> b, c`), fan-in does not: write one edge per source. If the point is the *drawing* — many arrows converging as one trunk — that is `channel x, y -> z` in the view's layout |
-| "`owner` has a tag value — tags live in `tags:`" error | Only the `tags:` key collects tags. A `#value` under any other key is either a tag that belongs in `tags:`, or plain text that needs quotes |
-| "N ids are missing their `sys` prefix" error | Ids declared inside a `system` are addressed from outside it by their full path. Inside `shop`, write `api`; from a `zone`, a `view` or another system, write `shop.api`. The error folds every id that made the same mistake into one line because it is one mistake |
-| "`x` appears in `rows` twice" error — likewise "appears in `cols` twice" | A node can hold only one rank position; remove one of the two occurrences |
-| "`datastore` on `system s` — only `external` applies to a system" error | Only `external` describes a whole system. The other kinds describe one node: put it on a node inside, or drop it |
-| "hint conflict: `a` → `b` runs upward — row 6 to row 4" error | Your bands contradict your arrows. `rows` runs top to bottom, so every edge must point down the list. Usually a monitor or feedback path: put it in the **same** band as what it points at (equal ranks are legal), or drop it from `rows` and let the engine rank it |
-| "zones `a` and `b` contain exactly the same members" error | Two names for one boundary. Neither can sit inside the other, so merge them into a single `zone`, or narrow one's `contains` so it is genuinely a sub-boundary |
-| "zones `a` and `b` partially overlap — visible zones must nest or stay disjoint" error | Boundaries must nest or stay apart, never half-lap. The fix line lists which members are shared and which are exclusive — either give the inner zone only members the outer one also has, or move the odd one out |
-| Several things all write to one store, crossing each other | `channel a, b, c -> db` — they merge into one trunk |
-| "`x` connects to itself — a self-edge is not drawn" warning | Squinch draws connections between things, not loops on one thing. Put it on the node: `note right-of x "retries"`, or fold it into the label |
-| "label is N characters — it will be cut off" warning | Labels wrap to two lines and then ellipsize, so the reader loses the tail. Keep it a short noun phrase and move the detail into `description:` |
-| "subtitle is N characters — it will be cut off" warning | A subtitle is one line and widens the card to fit it. Keep it to a few words — runtime, owner, region — and move the rest into `description:` |
-| "`show descriptions` no longer draws anything" warning | Descriptions are prose: they show as a system's card tagline and in hover, never inside a leaf. Drop the line, and give the leaves a short `subtitle:` — runtime, owner, region — for the line under the label |
-| "unknown zone attribute `description`" warning | A zone's chip holds its label and a mono `detail:` (a CIDR, an account id) — nothing else. Prose about the boundary goes in a `note` anchored to a member |
-| "edges do not chain — `a -> b -> c` is one statement per hop" error | Only a `flow` chains hops. Write each connection on its own line — `a -> b`, then `b -> c` — and, if the sequence itself is the point, declare a `flow` that walks them |
-| "`subtitle` is a leaf attribute" warning | Only a leaf draws a line under its name. On a system or container that line is `description:` (it shows on the collapsed card); a `person` has none |
-| "view `v` has nothing to draw" warning | Everything got filtered out. Check `scope` (a leaf has no insides — scope a system, not a node), then `include`/`only`/`exclude`. An empty `system x { }` does this too: make it a node instead |
-| "highlight #x: nothing visible here is tagged #x" warning | Everything would dim and nothing stand out. The tag is misspelled, or the things carrying it are not in this view — check the tag against your `tags:`, and the view's `include`/`only` |
-| "channel into `x`" warning — including "has no room for a trunk" | The trunk needs the whole picture: every member edge visible in this view, at least two of them, and the sources sitting *above* the target. Check `rows`, and that nothing is `exclude`d |
-| Edge exits a silly side | `route a -> b from south to north` (sides: north/south/east/west) |
-| A wire jogs slightly instead of running straight | `align a b` — b takes a's axis exactly (a is the anchor) |
-| Diagram too cramped / too airy | `density spacious` / `density compact` |
-| Too many boxes at once | Group into `system`s by area and let the landscape show their cards — see "When the system is big". Splitting into views alone does not help while everything is still top-level |
-| Everything open on one page, no clicking into containers | `view full { expand * }` — every container becomes a nested frame, every edge shows natively |
-| A full-detail view came out tall — want it wide | Add `layout { rows … }` banding the expanded systems side by side; calls between them route through the gutters and land on the cards |
-| An expanded system's insides are in the wrong order or tier | Give the system its own `layout { rows … }` in short names — it follows the system into every view. Or name the interior paths in the view's `rows` (`[app.api] [app.db app.cache]`), which replaces the system's block for that view |
-| A pipeline inside a system should read left to right while the view flows down | `layout { direction right }` inside that system — its interior becomes a row wherever it is opened; the view keeps its own direction |
-| A long chain renders as a tall strip, or a wide fan-out runs off the page | `layout { wrap 5 }` — folds one chain into a serpentine, or one source's fan-out into bands under it (the skipping edges become a bus). Two shapes only; anything else warns and names the `rows` line to write instead. Never beside `rows`/`cols`. For a 16:9 slide, N ≈ √(steps) rounded up, and no `direction right` |
-| "`wrap 5` has no effect — this view is not a single chain or a single fan-out (…)" warning | `wrap` folds exactly one chain (a → b → c …) or one source fanning out to leaves. Write the bands by hand: `rows [a b] [c d]` |
-| "`a` and `b` are asked to share a row inside `s`, but the edge between them cannot be routed there" warning | Same-rank edges route between systems, not inside one. Put `b` in the row below `a`, or collapse `s` in this view |
-| "hint conflict: `rows` puts `a` and `b` in one band, but `k` sits on the path between them and is in no band — `b` lands a tier later" error | Something you did not list sits between two things you put side by side — usually a shared bus or queue (`a ~> k ~> b`). A band is one tier, so `b` cannot be beside `a` and below `k` at once. Paste the `rows` line the fix writes out: it lists `k` too, in its own band or beside whichever side the arrows allow. On a big landscape, expect this the moment you band the areas and forget the bus |
-| "hint conflict: `a` → `b` runs upward inside `s`" error | The system's bands contradict its own arrows, same rule as the view's `rows`: put `b` in a row below `a`, or drop one of them from that block |
-| "expand `x` inside `x`'s own view — this view stands inside `x` already" warning | A view named after a container *is* that container's own view: you are already inside it. To draw `x` opened up among its neighbours, name the view something else: `view overview { expand x }` |
-| "`expand *` already opens every container — the explicit `expand` lines are redundant" warning | Drop the explicit `expand x` lines; the star covers them |
-| "`expand *` opened nothing — no containers are visible here" warning | The model (or this scope) has no containers to open — drop the line |
-| Show **only** one concern (an auditor's view: "only the PCI parts") | `only #pci`. Anything outside the scope that the survivors still talk to stays as a muted context card — that boundary crossing is usually the point of the view; `context off` drops those too |
-| Emphasise one concern while keeping its context | `highlight #pci` — spotlights matches, dims the rest, shows everything |
-| Tell two groups apart, or mark one path, without dimming anything | `color #team-a teal` in the view (tags inherit through containers), or `{ color: red }` on the element. Nine hues, never hex |
-| "color #x: nothing visible here is tagged #x" warning | Same cause as the `highlight` row: the tag is misspelled, or its carriers are not in this view — check `tags:` and the view's `include`/`only` |
-| "`x` is tagged #a (red) and #b (blue) — #b wins" warning | Two `color` lines landed on one element. Give both tags the same hue, or narrow one of them |
-| Narrow a view with `include #tag` | It does not narrow. `include` **adds**; an include that changes nothing warns and points at `only` |
-| Show one specific node from another system, not its whole card | `detail ledger.post` |
-| A neighbour system clutters a zoomed view | `exclude thatSystem` or `context off` |
-| "N edges match route …" error | Add the edge's label to the `route` statement |
-| "zone … cuts through expanded container" | The zone holds *some* children of a container you `expand`ed — contain the whole container, or drop the `expand` in that view |
-| "zone … has no visible members" | Its members are inside collapsed cards at this altitude — `expand` one, scope the view to them, or contain the container itself |
-| Need a VPC / network boundary / cloud-vs-on-prem split | `zone id "Label" vpc { contains a, b }` — kinds: account, region, vpc, subnet, network, cloud, onprem, custom |
-| Icon unknown | Collect every icon you're unsure of and search once: `squinch icons search "queue, vector search, llm"` — commas separate terms, spaces stay a phrase. `no exact match — closest:` rows are ranked next moves. The check error's `did you mean` is usually right |
-| Everything takes a long detour around the canvas | Check whether an edge points *against* the flow. Reversing one back-edge to face the direction traffic actually travels beats any hint |
-| "rank hints on … have no effect" warning | Those nodes are all inside one zone, which lays out as a single block. Order the zones instead, or drop the boundary |
-| "align skipped … outside zone" warning | The snap would have dragged a member out of its own boundary. Align it with something inside the zone |
-| A numbered step's badge sits past its target node | The edge label is too wide for that run — shorten it, or the badge gets evicted and the reading order looks wrong |
-| Not sure which views exist | `squinch check <path>` lists them (`--format json` puts them in `views`) |
+## Icons
 
-## Icons you'll use constantly (aws pack)
+**Read `references/icons.md` when you need an icon id outside the AWS basics**:
+it lists the ids and aliases per pack, the Google Cloud category rule in full,
+the Kubernetes short names, the `sys/` rows by theme, and the Databricks recipe
+worked out component by component. Open it before you write the node, not after
+`check` refuses the id.
 
 When the request names a **specific product**, search for it — don't write the id
 from memory. `check` only tells you an id exists, never that it's the one the
@@ -670,141 +624,65 @@ confusable pairs are the ones to watch: CloudFront (`aws/cloudfront`, a CDN) is
 not Cloudflare (`logos/cloudflare`, a different company); `aws/aurora` is not
 `aws/rds`. One `squinch icons search cloudfront` settles it.
 
-`lambda` · `dynamodb` · `s3` · `sqs` · `sns` · `api-gateway` · `opensearch` ·
-`aurora` · `rds` · `elasticache` · `cloudfront` · `eventbridge` · `kinesis` ·
-`step-functions` · `ecs` · `eks` · `fargate` · `ecr` · `athena` · `glue` ·
-`redshift` · `sagemaker` · `bedrock` · `rekognition` · `cognito` ·
-`secrets-manager` · `route-53` · `waf` · `elastic-load-balancing` (alias `elb`) ·
-`batch` · `efs` · `app-runner`
+The AWS ids you'll use constantly: `lambda` · `dynamodb` · `s3` · `sqs` · `sns` ·
+`api-gateway` · `opensearch` · `aurora` · `rds` · `elasticache` · `cloudfront` ·
+`eventbridge` · `kinesis` · `step-functions` · `ecs` · `eks` · `fargate` · `ecr` ·
+`athena` · `glue` · `redshift` · `sagemaker` · `bedrock` · `rekognition` ·
+`cognito` · `secrets-manager` · `route-53` · `waf` · `elastic-load-balancing`
+(alias `elb`) · `batch` · `efs` · `app-runner`.
 
-Short aliases exist for the famous ones (`s3`, `sqs`, `sns`, `eks`, `ecs`, `ecr`,
-`elb`, `glacier`, `opensearch`).
+Six packs, and the ids you'll reach for in each:
 
-**Azure** has its own pack (636 icons). Short forms exist for the ones everybody
-abbreviates: `azure/aks` · `azure/vm` · `azure/vnet` · `azure/cosmos` ·
-`azure/functions` · `azure/sql` · `azure/blob` · `azure/service-bus` ·
-`azure/event-hub` · `azure/key-vault` · `azure/front-door` · `azure/app-gateway` ·
-`azure/load-balancer` · `azure/aci` · `azure/acr` · `azure/api-management` ·
-`azure/log-analytics` · `azure/redis`. Canonical ids read like the portal —
-`azure/app-services`, `azure/storage-accounts`, `azure/monitor`,
-`azure/application-insights`; `squinch icons search --pack azure <term>` scopes
-the search. Pick one cloud's pack and stay with it — don't draw the same
-concept as `aws/…` in one box and `azure/…` in the next. Combining a cloud pack
-with `logos` is a different thing and completely normal: it's how you draw a
-hybrid estate, with `logos/postgres` on the on-prem side and `azure/sql` in the
-cloud.
+- **`aws/`** — 316 icons; the basics above.
+- **`azure/`** — 636 icons, named like the portal (`azure/app-services`,
+  `azure/storage-accounts`, `azure/monitor`), with short forms for the ones
+  everybody abbreviates: `azure/aks` · `azure/vm` · `azure/vnet` ·
+  `azure/cosmos` · `azure/functions` · `azure/sql` · `azure/blob` ·
+  `azure/service-bus` · `azure/event-hub` · `azure/key-vault` ·
+  `azure/front-door` · `azure/app-gateway` · `azure/load-balancer` ·
+  `azure/aci` · `azure/acr` · `azure/api-management` · `azure/log-analytics` ·
+  `azure/redis`.
+- **`gcp/`** — 45 icons, because Google's own system works that way: nineteen
+  products have a unique mark (`gcp/cloud-run`, `gcp/gke`, `gcp/bigquery`,
+  `gcp/cloud-sql`, `gcp/spanner`, `gcp/vertex-ai`…), and *every other product
+  draws its category's glyph* under the name you know it by (`gcp/pubsub`
+  draws Data Analytics). Put the product name in the label and let the icon
+  say the category.
+- **`k8s/`** — 39 icons under kubectl's short names, for what runs *inside* a
+  cluster: `k8s/pod` · `k8s/deploy` · `k8s/svc` · `k8s/sts` · `k8s/ds` ·
+  `k8s/cm` · `k8s/secret` · `k8s/ing` · `k8s/ns` · `k8s/sa` · `k8s/pv` ·
+  `k8s/pvc` · `k8s/hpa` · `k8s/job` · `k8s/cronjob` · `k8s/crd` · `k8s/node` ·
+  `k8s/etcd` · `k8s/control-plane` · `k8s/api` · `k8s/sched` · `k8s/kubelet`.
+  `logos/kubernetes` when the cluster is one box in a wider estate.
+- **`logos/`** — 147 product marks plated in their brand colour, the non-cloud
+  half of a stack: `logos/postgres` · `logos/mysql` · `logos/mongodb` ·
+  `logos/redis` · `logos/kafka` · `logos/rabbitmq` · `logos/elasticsearch` ·
+  `logos/docker` · `logos/terraform` · `logos/nginx` · `logos/github` ·
+  `logos/gitlab` · `logos/grafana` · `logos/prometheus` · `logos/datadog` ·
+  `logos/sentry` · `logos/stripe` · `logos/snowflake` · `logos/cloudflare` ·
+  `logos/vercel` · `logos/react` · `logos/python` · `logos/go` · `logos/rust`.
+  Slack, Twilio, Salesforce, Heroku, gRPC and dbt have no mark upstream — use
+  `box` or the label.
+- **`sys/`** — 195 generic Lucide icons for what no vendor draws, and it needs
+  no `pack` statement. Ids are Lucide's own names, so a word you would say
+  (`process`, `analytics`, `device`, `web`) is usually *not* one — pick from
+  these: compute `server` `container` `cpu` `code` `app-window` `terminal`
+  `cog` `webhook` `workflow`; hardware `laptop` `monitor` `smartphone`
+  `hard-drive` `printer`; network `network` `router` `wifi` `radio-tower`
+  `globe` `share-2`; security `lock` `key-round` `shield` `shield-check`;
+  data `database` `folder` `search` `archive` `table` `file`; places `factory`
+  `warehouse` `building-2` `house` `earth`; process and observability `clock`
+  `timer` `repeat` `activity` `gauge` `chart-line` `siren` `bug`; commerce
+  `shopping-cart` `credit-card` `wallet` `receipt-text` `truck`
+  `package-check` `barcode`; shapes `box` `circle` `square` `hexagon`
+  `diamond` `star`. Aliases: `gear`→`cog`, `db`→`database`,
+  `rack`/`vm`/`host`→`server`, `firewall`→`shield`, `vault`→`lock-keyhole`,
+  `cron`→`clock`, `lb`→`share-2`, `cart`, `payment`, `order`, `shipping`.
 
-**Google Cloud** has its own pack (45 icons), and it works differently from
-the other two clouds because Google's own icon system does: nineteen core
-products carry a unique four-colour mark, and *every other product draws as
-its category's glyph*. The unique marks: `gcp/cloud-run` (`run`) · `gcp/gke` ·
-`gcp/compute-engine` (`gce`, `vm`) · `gcp/cloud-storage` (`gcs`, `bucket`) ·
-`gcp/cloud-sql` (`sql`) · `gcp/spanner` · `gcp/alloydb` · `gcp/bigquery` (`bq`)
-· `gcp/vertex-ai` (`vertex`) · `gcp/looker` · `gcp/apigee` · `gcp/anthos` ·
-`gcp/distributed-cloud` (`gdc`) · `gcp/hyperdisk` (`persistent-disk`) ·
-`gcp/ai-hypercomputer` · `gcp/security-command-center` (`scc`) ·
-`gcp/security-operations` (`secops`) · `gcp/threat-intelligence` ·
-`gcp/mandiant`. Everything else resolves by the name you know it by and draws
-the category glyph: `gcp/pubsub`, `gcp/dataflow` and `gcp/dataproc` all draw
-the Data Analytics mark; `gcp/cloud-functions` (`functions`) and
-`gcp/app-engine` the Serverless one; `gcp/firestore`, `gcp/bigtable` and
-`gcp/memorystore` the Databases one; `gcp/load-balancer` (`lb`), `gcp/cloud-cdn`,
-`gcp/cloud-armor` and `gcp/cloud-nat` the Networking one; `gcp/iam`, `gcp/kms`
-and `gcp/secret-manager` the Security one; `gcp/cloud-build` and
-`gcp/artifact-registry` the DevOps one; `gcp/cloud-logging` and
-`gcp/cloud-monitoring` the Observability one. That is how Google draws them
-now, so it is not a shortfall to work around — **put the product name in the
-label** and let the icon say the category; don't borrow a look-alike from
-`aws/` or `azure/`. A VPC is a boundary: `zone net "prod-vpc" network {
-contains …, icon: gcp/vpc }`. The same one-cloud rule applies, and composing
-with `logos` is normal. Use `gcp/*` when the diagram is about what runs
-*inside* Google Cloud; use `logos/googlecloud` when Google Cloud is one box in
-a wider estate. `squinch icons search --pack gcp <term>` scopes the search;
-the bare word `gcp` lists the whole pack.
-
-**Kubernetes internals** come from the `k8s` pack (39 official community
-icons — the blue heptagons from the k8s docs). Canonical ids are kubectl's
-short names, and the long names alias to them, so both spellings check clean:
-`k8s/pod` · `k8s/deploy` (`deployment`) · `k8s/svc` (`service`) · `k8s/sts`
-(`statefulset`) · `k8s/ds` (`daemonset`) · `k8s/rs` (`replicaset`) · `k8s/cm`
-(`configmap`) · `k8s/secret` · `k8s/ing` (`ingress`) · `k8s/ns` (`namespace`) ·
-`k8s/sa` (`serviceaccount`) · `k8s/pv` · `k8s/pvc` · `k8s/sc` · `k8s/netpol` ·
-`k8s/hpa` · `k8s/job` · `k8s/cronjob` · `k8s/crd` · `k8s/node` · `k8s/etcd` ·
-`k8s/control-plane` · `k8s/api` (`apiserver`) · `k8s/sched` (`scheduler`) ·
-`k8s/kubelet` · `k8s/k-proxy` (`kubeproxy`).
-Use `k8s/*` when the diagram is about what runs *inside* a cluster; use
-`logos/kubernetes` when the cluster is one box in a wider estate. A namespace
-is a boundary, not a workload — prefer `zone team-a "team-a" custom { contains
-…, icon: k8s/ns }` over a `k8s/ns` node. Composing with a cloud pack is normal:
-`azure/aks` or `aws/eks` as the managed control plane, `k8s/*` for what it runs.
-
-**Non-AWS things** come from the `logos` pack (147 product marks, plated in
-their brand colour): `logos/postgres` · `logos/mysql` · `logos/mongodb` ·
-`logos/redis` · `logos/kafka` · `logos/rabbitmq` · `logos/elasticsearch` ·
-`logos/kubernetes` (`k8s`) · `logos/docker` · `logos/terraform` ·
-`logos/nginx` · `logos/github` · `logos/gitlab` · `logos/grafana` ·
-`logos/prometheus` · `logos/datadog` · `logos/sentry` · `logos/stripe` ·
-`logos/snowflake` · `logos/cloudflare` · `logos/vercel` · `logos/nextdotjs` ·
-`logos/react` · `logos/python` · `logos/nodedotjs` (`node`) · `logos/go` ·
-`logos/rust` · `logos/graphql`.
-Some brands (Slack, Twilio, Salesforce, Heroku, gRPC…) have no icon upstream —
-they were withdrawn on trademark request. Use `box` for those.
-
-`sys/*` is the generic set — 195 Lucide icons for anything no vendor draws, and
-it needs no `pack` statement. Use it for on-prem and physical things, and as the
-last resort when nothing else fits. Ids are Lucide's own names:
-
-- **compute / app** — `server`, `container`, `cpu`, `code`, `app-window`,
-  `hexagon`, `terminal`, `cog`, `webhook`, `workflow`, `route`
-- **hardware** — `laptop`, `monitor`, `smartphone`, `hard-drive`, `printer`
-- **network** — `network`, `router`, `wifi`, `radio-tower`, `globe`, `share-2`
-- **security** — `lock`, `lock-keyhole`, `key-round`, `shield`, `shield-check`
-- **data** — `database`, `folder`, `search`, `archive`, `table`, `file`
-- **places** — `factory`, `warehouse`, `building-2`, `house`, `earth`
-- **process / observability** — `clock`, `timer`, `repeat`, `activity`, `gauge`,
-  `chart-line`, `siren`, `bug`
-- **commerce** — `shopping-cart`, `shopping-bag`, `credit-card`, `wallet`,
-  `receipt-text`, `banknote`, `coins`, `badge-percent`, `ticket`, `truck`,
-  `package-check`, `barcode`, `calculator`, `gift`, `heart`, `headset`
-- **shapes, when nothing fits** — `box`, `circle`, `square`, `triangle`,
-  `diamond`, `hexagon`, `star`
-
-Short aliases exist for words you would type instead: `gear`→`cog`,
-`cube`→`box`, `db`→`database`, `rack`/`vm`/`host`→`server`, `disk`→`hard-drive`,
-`firewall`→`shield`, `vault`→`lock-keyhole`, `cron`→`clock`, `lb`→`share-2`,
-`cart`→`shopping-cart`, `checkout`→`shopping-bag`, `payment`→`credit-card`,
-`order`/`invoice`→`receipt-text`, `shipping`→`truck`, `ads`→`megaphone`.
-
-## Platforms with no icon pack
-
-Some vendors publish no icons anyone may redistribute, so no pack exists and none
-ever will — Databricks, Snowflake, dbt and Confluent are the ones that come up.
-Don't reach for a lookalike from another vendor and don't invent an id. Draw the
-*concept* from `sys/*` and mark it with the vendor's mark from `logos/*`:
-
-```squinch
-wh = sys/database "SQL warehouse" { badge: logos/databricks, subtitle: "Databricks SQL" }
-```
-
-The `subtitle:` is optional; it names the product where the mark alone only
-names the vendor.
-
-Databricks, worked out — every base below is a real `sys/` id or alias:
-
-| component | write |
-| --- | --- |
-| Delta table | `sys/table … { badge: logos/databricks }` |
-| Unity Catalog | `sys/catalog` |
-| SQL warehouse | `sys/database` |
-| Vector search | `sys/waypoints` |
-| Model serving | `sys/model` |
-| MLflow experiment | `sys/experiment` |
-| Notebook | `sys/notebook` |
-| Workflows job | `sys/workflow` |
-| Structured streaming | `sys/stream` |
-
-The same recipe covers any vendor whose mark is in the logos pack —
-`logos/snowflake` is there, dbt and Confluent are not. Search before writing a
-badge; if there's no mark, skip the badge and let the label carry the vendor.
-Badge only what the platform actually owns: a Kafka or S3 node keeps its own
-icon, and that contrast is what makes the platform boundary readable.
+Pick one cloud's pack and stay with it — don't draw the same concept as
+`aws/…` in one box and `azure/…` in the next. Composing a cloud pack with
+`logos` and `sys` is normal; it's how you draw a hybrid estate. A platform with
+no pack at all — Databricks, Snowflake, dbt, Confluent publish no icons anyone
+may redistribute — is drawn as the concept from `sys/*` with the vendor's mark as
+a `badge:` where `logos/*` has one; never a lookalike from another vendor, never
+an invented id.

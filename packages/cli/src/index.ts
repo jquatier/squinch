@@ -1,7 +1,7 @@
 // squinch CLI — check / render / icons / init / skill / watch.
 // Exit codes: 0 ok, 1 diagnostics-or-stale, 2 usage error.
 import { readFileSync, writeFileSync, mkdirSync, existsSync, rmSync } from "node:fs";
-import { join, relative, isAbsolute } from "node:path";
+import { join, relative, isAbsolute, dirname } from "node:path";
 import { homedir } from "node:os";
 import {
   buildProject, renderProject, formatDiagnostics, validateSVG, searchIconsDetailed, themes, packInfo,
@@ -9,7 +9,7 @@ import {
   type Diagnostic,
 } from "@squinch/core";
 import { parseArgs, str } from "./args.js";
-import { SKILL_MD } from "./skill.generated.js";
+import { SKILL_FILES } from "./skill.generated.js";
 import { loadInput, type Input } from "./project.js";
 import { isGitRepo, loadInputAtRef } from "./git.js";
 import { toPosix } from "./paths.js";
@@ -37,7 +37,7 @@ Usage
   squinch render <path> [options]             render SVG
   squinch icons search <q>[, <q>…] [--pack aws]  find icon ids, several terms at once
   squinch init [dir]                          scaffold a starter project
-  squinch skill [dir] [options]               install the agent skill (SKILL.md)
+  squinch skill [dir] [options]               install the agent skill (SKILL.md + references/)
   squinch watch <path> [options]              re-render on change
   squinch diff [<old>] [<new>] [options]      what changed in the architecture
 
@@ -545,10 +545,13 @@ function cmdInit(dir: string): number {
 }
 
 /**
- * Install the bundled SKILL.md where agents discover skills. Unlike `init`,
- * this *overwrites silently*: the installed file is a squinch-owned artifact
- * version-locked to this CLI, and refreshing it after an upgrade is the point —
- * there is nothing of the user's in it to protect.
+ * Install the bundled skill directory — SKILL.md and the `references/` files
+ * it points at — where agents discover skills. Unlike `init`, this
+ * *overwrites silently*: the installed files are a squinch-owned artifact
+ * version-locked to this CLI, and refreshing them after an upgrade is the
+ * point — there is nothing of the user's in them to protect. `references/` is
+ * replaced whole, so a file an older squinch shipped and this one does not
+ * cannot linger beside a SKILL.md that no longer names it.
  *
  * Both modes always write the cross-agent `.agents/skills/` dir (Cursor, Codex,
  * Gemini CLI, Copilot and friends read it — in the project, and under `$HOME`
@@ -564,22 +567,32 @@ function cmdSkill(positionals: string[], flags: Record<string, string | boolean>
   // could lag a release bump), as a comment right under the frontmatter:
   // invisible to skill loaders that render markdown, plain to anyone
   // diagnosing skill/CLI drift. `--print` carries it too.
-  const stamped = SKILL_MD.replace(
+  const stamped = SKILL_FILES["SKILL.md"].replace(
     /^(---\n[\s\S]*?\n---\n)/,
     `$1\n<!-- installed by squinch ${VERSION} — after upgrading squinch, re-run \`squinch skill\` so this guidance matches the CLI it drives -->\n`,
   );
+  const files: Record<string, string> = { ...SKILL_FILES, "SKILL.md": stamped };
+  const refs = Object.keys(files).filter((f) => f !== "SKILL.md");
   if (flags.print) {
-    console.log(stamped);
+    // One stream for a harness that pastes the skill into a prompt: the body,
+    // then each reference file under a comment naming the path SKILL.md
+    // refers to it by, so a reader can split it back into the directory.
+    console.log(
+      [stamped, ...refs.map((f) => `<!-- ${f} -->\n${files[f]}`)].map((s) => s.trimEnd()).join("\n\n"),
+    );
     return 0;
   }
   if (flags.global && positionals[0])
     throw new Error("--global installs to your home directory — drop the path, or drop the flag");
 
   const install = (dir: string): string => {
-    mkdirSync(dir, { recursive: true });
-    const file = join(dir, "SKILL.md");
-    writeFileSync(file, stamped);
-    return file;
+    rmSync(join(dir, "references"), { recursive: true, force: true });
+    for (const f of Object.keys(files)) {
+      const target = join(dir, ...f.split("/"));
+      mkdirSync(dirname(target), { recursive: true });
+      writeFileSync(target, files[f]);
+    }
+    return join(dir, "SKILL.md");
   };
 
   // The two scopes differ only in where they root and what announces Claude
@@ -600,7 +613,8 @@ function cmdSkill(positionals: string[], flags: Record<string, string | boolean>
           : "detected Claude Code in this project (CLAUDE.md or .claude/) — installing there too",
       );
   }
-  for (const file of wrote) console.error(`wrote ${file} (squinch ${VERSION})`);
+  for (const file of wrote)
+    console.error(`wrote ${file} + references/ (${refs.length} files) (squinch ${VERSION})`);
   console.error(
     `\nthe skill drives \`squinch check\` and \`squinch render\`, so keep squinch on\nPATH (\`npx squinch\` works too) — and re-run this after upgrading to refresh`,
   );
