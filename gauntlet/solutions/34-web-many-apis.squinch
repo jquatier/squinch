@@ -1,247 +1,156 @@
-// E-commerce platform architecture
-pack aws
 pack logos
 
 person customer "Customer"
 
-// Frontend & BFF
 web = logos/react "Web App" {
   subtitle: "React SPA"
 }
 
 bff = logos/nodedotjs "BFF" {
   subtitle: "Node.js"
-  description: "Backend for frontend - orchestrates all backend calls"
+  description: "Backend-for-frontend · API aggregation layer"
 }
 
-// Auth & User domain
-system auth_domain "Auth & Users" {
-  description: "Authentication, user management and profiles"
+system identity "Identity & Profile" {
+  description: "User authentication and profile management"
   icon: sys/lock
+  users = sys/server "Users" { subtitle: "Postgres" }
+  auth = sys/server "Auth" { subtitle: "Redis sessions" }
+  profile = sys/server "Profile" { subtitle: "Postgres" }
 
-  auth_svc = sys/server "Auth Service" {
-    subtitle: "Node.js"
-  }
-  auth_cache = logos/redis "Sessions" datastore
+  users_db = sys/database "Users DB" datastore
+  auth_cache = sys/database "Session Store" datastore
+  profile_db = sys/database "Profile DB" datastore
 
-  users_svc = sys/server "Users Service" {
-    subtitle: "Node.js"
-  }
-  users_db = logos/postgres "Users DB" datastore
-
-  profile_svc = sys/server "Profile Service" {
-    subtitle: "Node.js"
-  }
-  profile_db = logos/postgres "Profiles DB" datastore
-
-  auth_svc -> auth_cache
-  users_svc -> users_db
-  profile_svc -> profile_db
-
-  layout {
-    rows [auth_svc users_svc profile_svc] [auth_cache users_db profile_db]
-  }
+  users -> users_db
+  auth -> auth_cache
+  profile -> profile_db
 }
 
-// Catalog & Discovery
-system catalog_domain "Catalog & Discovery" {
+system catalog_system "Catalog & Discovery" {
   description: "Product catalog, search and recommendations"
   icon: sys/search
+  catalog = sys/server "Catalog" { subtitle: "Postgres" }
+  search = sys/server "Search" { subtitle: "OpenSearch" }
+  recommendations = sys/server "Recommendations" { subtitle: "Redis" }
+  reviews = sys/server "Reviews" { subtitle: "MongoDB" }
 
-  catalog_svc = sys/server "Catalog Service" {
-    subtitle: "Node.js"
-  }
-  catalog_db = logos/postgres "Catalog DB" datastore
+  catalog_db = sys/database "Catalog DB" datastore
+  search_idx = sys/database "Search Index" datastore
+  rec_cache = sys/database "Rec Cache" datastore
+  reviews_db = sys/database "Reviews DB" datastore
 
-  search_svc = sys/server "Search Service" {
-    subtitle: "Node.js"
-  }
-  search_idx = logos/elasticsearch "Search Index" datastore {
-    subtitle: "OpenSearch"
-  }
+  catalog -> catalog_db
+  search -> search_idx
+  recommendations -> rec_cache
+  reviews -> reviews_db
 
-  pricing_svc = sys/server "Pricing Service" {
-    subtitle: "Node.js"
-  }
-  pricing_cache = logos/redis "Pricing Cache" datastore
-
-  reviews_svc = sys/server "Reviews Service" {
-    subtitle: "Node.js"
-  }
-  reviews_db = logos/mongodb "Reviews DB" datastore
-
-  recommendations_svc = sys/server "Recommendations" {
-    subtitle: "Node.js"
-  }
-  recommendations_cache = logos/redis "Recommendations Cache" datastore
-
-  catalog_svc -> catalog_db
-  search_svc -> catalog_db "reads"
-  search_svc -> search_idx
-  pricing_svc -> pricing_cache
-  reviews_svc -> reviews_db
-  recommendations_svc -> catalog_db "reads"
-  recommendations_svc -> reviews_db "reads"
-  recommendations_svc -> recommendations_cache
-
-  layout {
-    rows [catalog_svc pricing_svc] [search_svc] [reviews_svc recommendations_svc] [catalog_db search_idx pricing_cache reviews_db recommendations_cache]
-  }
+  search -> catalog "reads"
+  recommendations -> catalog "reads"
+  recommendations -> reviews "reads"
 }
 
-// Order fulfillment
-system order_domain "Order Fulfillment" {
-  description: "Shopping cart, checkout, orders and payments"
+system commerce "Shopping & Checkout" {
+  description: "Cart, pricing, checkout and order placement"
   icon: sys/shopping-cart
+  pricing = sys/server "Pricing" { subtitle: "Redis" }
+  cart = sys/server "Cart" { subtitle: "Redis" }
+  checkout = sys/server "Checkout" { subtitle: "Postgres" }
+  orders = sys/server "Orders" { subtitle: "Postgres" }
+  payments = sys/server "Payments" { subtitle: "Postgres" }
 
-  cart_svc = sys/server "Cart Service" {
-    subtitle: "Node.js"
-  }
-  cart_cache = logos/redis "Cart Cache" datastore
+  pricing_cache = sys/database "Price Cache" datastore
+  cart_cache = sys/database "Cart Store" datastore
+  checkout_db = sys/database "Checkout DB" datastore
+  orders_db = sys/database "Orders DB" datastore
+  payments_db = sys/database "Payments DB" datastore
 
-  checkout_svc = sys/server "Checkout Service" {
-    subtitle: "Node.js"
-  }
-  checkout_db = logos/postgres "Checkout DB" datastore
+  stripe = box "Stripe" external
 
-  orders_svc = sys/server "Orders Service" {
-    subtitle: "Node.js"
-  }
-  orders_db = logos/postgres "Orders DB" datastore
+  pricing -> pricing_cache
+  cart -> cart_cache
+  checkout -> checkout_db
+  orders -> orders_db
+  payments -> payments_db
 
-  payments_svc = sys/server "Payments Service" {
-    subtitle: "Node.js"
-  }
-  payments_db = logos/postgres "Payments DB" datastore
-
-  inventory_svc = sys/server "Inventory Service" {
-    subtitle: "Node.js"
-  }
-  inventory_db = logos/postgres "Inventory DB" datastore
-
-  cart_svc -> cart_cache
-  checkout_svc -> checkout_db
-  checkout_svc -> cart_svc "reads cart"
-  checkout_svc -> catalog_domain.pricing_svc "gets pricing"
-  checkout_svc -> payments_svc "processes payment"
-  checkout_svc -> orders_svc "creates order"
-
-  orders_svc -> orders_db
-  orders_svc -> inventory_svc "reserves stock"
-
-  payments_svc -> payments_db
-
-  inventory_svc -> inventory_db
-
-  layout {
-    rows [cart_svc checkout_svc] [orders_svc payments_svc inventory_svc] [cart_cache checkout_db orders_db payments_db inventory_db]
-  }
+  checkout -> cart
+  checkout -> pricing
+  checkout -> payments
+  checkout -> orders
+  orders -> fulfillment.inventory "reserves"
+  payments -> stripe
 }
 
-// Operations
-system operations "Operations & Support" {
-  description: "Shipping, notifications and customer support"
-  icon: sys/headset
+system fulfillment "Fulfillment & Support" {
+  description: "Inventory, shipping, notifications and customer support"
+  icon: sys/truck
+  inventory = sys/server "Inventory" { subtitle: "Postgres" }
+  shipping = sys/server "Shipping" { subtitle: "Postgres" }
+  notifications = sys/server "Notifications" { subtitle: "SendGrid" }
+  support = sys/server "Support" { subtitle: "Postgres" }
 
-  shipping_svc = sys/server "Shipping Service" {
-    subtitle: "Node.js"
-  }
-  shipping_db = logos/postgres "Shipping DB" datastore
+  inventory_db = sys/database "Inventory DB" datastore
+  shipping_db = sys/database "Shipping DB" datastore
+  support_db = sys/database "Support DB" datastore
 
-  notifications_svc = sys/server "Notifications Service" {
-    subtitle: "Node.js"
-  }
+  sendgrid = box "SendGrid" external
+  carrier = box "Carrier API" external
 
-  support_svc = sys/server "Support Service" {
-    subtitle: "Node.js"
-  }
-  support_db = logos/postgres "Support DB" datastore
+  inventory -> inventory_db
+  shipping -> shipping_db
+  support -> support_db
 
-  shipping_svc -> shipping_db
-  support_svc -> support_db
-
-  layout {
-    rows [shipping_svc notifications_svc support_svc] [shipping_db support_db]
-  }
+  notifications -> sendgrid
+  shipping -> carrier
 }
 
-// Message bus
 bus = logos/kafka "Event Bus" {
   subtitle: "Kafka"
 }
 
-// External services
-stripe = box "Stripe" external {
-  description: "Payment processing"
-}
-
-sendgrid = box "SendGrid" external {
-  description: "Email delivery"
-}
-
-carrier = box "Carrier API" external {
-  description: "Shipping carrier"
-}
-
-// Frontend connections
-customer -> web "browses, orders"
+customer -> web "browses, shops"
 web -> bff
 
-// BFF to services
-bff -> auth_domain.auth_svc "authenticates"
-bff -> auth_domain.users_svc "manages users"
-bff -> auth_domain.profile_svc "manages profile"
-bff -> catalog_domain.catalog_svc "browses catalog"
-bff -> catalog_domain.search_svc "searches products"
-bff -> catalog_domain.pricing_svc "gets prices"
-bff -> catalog_domain.reviews_svc "reads/writes reviews"
-bff -> catalog_domain.recommendations_svc "gets recommendations"
-bff -> order_domain.cart_svc "manages cart"
-bff -> order_domain.checkout_svc "checkout"
-bff -> order_domain.orders_svc "views orders"
-bff -> operations.support_svc "submits tickets"
+bff -> identity.users
+bff -> identity.auth
+bff -> identity.profile
+bff -> catalog_system.catalog
+bff -> catalog_system.search
+bff -> catalog_system.recommendations
+bff -> catalog_system.reviews
+bff -> commerce.pricing
+bff -> commerce.cart
+bff -> commerce.checkout
+bff -> commerce.orders
+bff -> fulfillment.support
 
-// Kafka publishing
-order_domain.orders_svc ~> bus "order events"
-order_domain.payments_svc ~> bus "payment events"
+commerce.orders ~> bus "order events"
+commerce.payments ~> bus "payment events"
+bus ~> fulfillment.notifications "events"
+bus ~> fulfillment.shipping "events"
+bus ~> catalog_system.recommendations "events"
 
-// Kafka consuming
-bus ~> operations.shipping_svc "order events"
-bus ~> operations.notifications_svc "order & payment events"
-bus ~> catalog_domain.recommendations_svc "order events"
-
-// External integrations
-order_domain.payments_svc -> stripe "processes payment"
-operations.shipping_svc -> carrier "creates shipment"
-operations.notifications_svc -> sendgrid "sends email"
-
-// Landscape view
 view landscape {
-  title "E-commerce Platform - System Landscape"
+  title "E-commerce Platform"
   include *
-  preview auth_domain, catalog_domain, order_domain, operations
+  layout {
+    rows [customer] [web] [bff] [commerce] [bus] [catalog_system fulfillment]
+  }
 }
 
-// Auth & Users detailed view
-view auth {
-  title "Auth & Users - Detailed View"
-  scope auth_domain
+view identity {
+  title "Identity & Profile Services"
 }
 
-// Catalog & Discovery detailed view
 view catalog {
-  title "Catalog & Discovery - Detailed View"
-  scope catalog_domain
+  title "Catalog & Discovery Services"
+  scope catalog_system
 }
 
-// Order fulfillment detailed view
-view orders {
-  title "Order Fulfillment - Detailed View"
-  scope order_domain
+view commerce {
+  title "Shopping & Checkout Services"
 }
 
-// Operations detailed view
-view ops {
-  title "Operations & Support - Detailed View"
-  scope operations
+view fulfillment {
+  title "Fulfillment & Support Services"
 }

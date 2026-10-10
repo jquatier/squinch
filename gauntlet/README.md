@@ -131,6 +131,16 @@ that varies. What the prompt lost is the one thing round 26 kept it for — a
 large system with no steering at all — and the six runs say that test had
 only ever measured whether an agent counts automatic views as pages.
 
+**Surfaced and not fixed here: two of 34's three confirmation answers draw a
+pair of overlapping edge labels.** In one, the `orders` view lands a context
+card's label, `views orders`, on top of `reads cart`, the label of a
+same-rank wire between checkout and cart; in the other, the landscape stacks
+two Kafka labels along a shared dashed run. `check` and the scorer pass both
+— nothing in either measures label geometry — and core's invariant sweep over
+the corpus fails them, which is what turned CI red for one push. The corpus
+took the third answer. The placer's policy and its rejected approaches are in
+`docs/notes/edge-labels.md`; the next odd label starts there.
+
 38, the repository prompt, passed on its first run of this round — five
 checks, the first three spent on the person block above.
 
