@@ -49,9 +49,24 @@ jobs:
           # "/<repo>" from Pages config, "" on a custom domain — either way
           # the trailing slash makes it a valid Vite base.
           BASE_PATH: ${{ steps.pages.outputs.base_path }}/
-      - uses: actions/upload-pages-artifact@56afc609e74202658d3ffba0e8f6dda462b719fa # v3
+      # The two steps of actions/upload-pages-artifact, inlined. That composite
+      # calls `actions/upload-artifact@v4` by tag from inside its own
+      # action.yml, and the repository requires every action to be pinned to a
+      # full commit SHA — a rule that reaches nested references too, and that
+      # nothing in this file can satisfy on the composite's behalf. The tar
+      # flags and the artifact name are what deploy-pages expects.
+      - name: Archive the site
+        run: |
+          tar --dereference --hard-dereference \
+            --directory apps/spa/dist \
+            -cvf "$RUNNER_TEMP/artifact.tar" \
+            --exclude=.git --exclude=.github .
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         with:
-          path: apps/spa/dist
+          name: github-pages
+          path: ${{ runner.temp }}/artifact.tar
+          retention-days: 1
+          if-no-files-found: error
 
   deploy:
     if: ${{ !github.event.repository.private }}
