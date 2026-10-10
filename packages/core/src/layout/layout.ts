@@ -2242,6 +2242,77 @@ export async function layoutView(
   const coplanarById = new Map([...coplanarEdges, ...busEdges].map((e) => [e.id, e]));
   const pEdges: PEdge[] = edges.map((e) => elkPositioned.get(e.id) ?? coplanarById.get(e.id)!);
 
+  // ── two routers, one blind spot ──────────────────────────────────────────
+  // ELK reserves an inline label for every cross-rank edge; the router
+  // reserves a pill on every same-rank wire. Neither sees the other's
+  // reservation: ELK never sees a coplanar edge at all, and the router has no
+  // say in where ELK parks a label dummy. A cross-rank edge that threads the
+  // gutter a coplanar wire runs through gets its label at its own median
+  // layer — the layer that wire belongs to — so ELK's pill lands on the
+  // crossing: on the wire, or on the wire's pill when both centre on the same
+  // gutter. Round 30 found both, in two of three cold answers to prompt 34
+  // (`views orders` on top of `reads cart`; `send email` on `order events`
+  // along a shelf run), and the corpus sweep had never seen one.
+  //
+  // The ELK pill yields. It slides along its own hosting segment — space ELK
+  // did reserve, for the wire — to the nearest spot clear of every coplanar
+  // wire and pill, every node and every other pill. The coplanar pill stays
+  // centred on its run, which is where a same-rank label reads best. The
+  // trigger is sitting on a coplanar wire at all, not only overlapping its
+  // pill: a pill on the crossing reads as the crossing wire's label, which
+  // is the attachment failure the flow-badge work closed for badges. Measured
+  // before this went in: no view in the corpus has an ELK pill on a coplanar
+  // wire, so nothing committed moves. A pill with nowhere to go on its
+  // segment stays, and the invariant sweep reports it.
+  {
+    const drawn = (r: { x: number; y: number; w: number; h: number }) =>
+      ({ x: r.x, y: r.y + Math.round((r.h - 18) / 2), w: r.w, h: 18 });
+    const hit = (a: { x: number; y: number; w: number; h: number }, b: { x: number; y: number; w: number; h: number }, m: number) =>
+      a.x < b.x + b.w + m && a.x + a.w + m > b.x && a.y < b.y + b.h + m && a.y + a.h + m > b.y;
+    const segsOf = (e: PEdge) => e.points.slice(1).map((b, i) => {
+      const a = e.points[i];
+      return { x: Math.min(a.x, b.x), y: Math.min(a.y, b.y), w: Math.abs(b.x - a.x), h: Math.abs(b.y - a.y) };
+    });
+    const copWires = pEdges.filter((e) => e.coplanar).flatMap(segsOf);
+    const copPills = pEdges.filter((e) => e.coplanar && e.label && e.labelRect).map((e) => drawn(e.labelRect!));
+    if (copWires.length)
+      for (const e of pEdges) {
+        if (e.coplanar || !e.label || !e.labelRect) continue;
+        const r = e.labelRect;
+        const me = drawn(r);
+        if (!copWires.some((w) => hit(me, w, 0)) && !copPills.some((p) => hit(me, p, 0))) continue;
+        // the hosting segment: the one nearest the pill's centre — ELK draws
+        // an inline pill beside its wire, not necessarily on it
+        const cx = r.x + r.w / 2, cy = r.y + r.h / 2;
+        let host = 0, hostD = Infinity;
+        for (let i = 0; i < e.points.length - 1; i++) {
+          const a = e.points[i], b = e.points[i + 1];
+          const dx = b.x - a.x, dy = b.y - a.y, len2 = dx * dx + dy * dy;
+          const t = len2 ? Math.max(0, Math.min(1, ((cx - a.x) * dx + (cy - a.y) * dy) / len2)) : 0;
+          const d = Math.hypot(a.x + dx * t - cx, a.y + dy * t - cy);
+          if (d < hostD) { hostD = d; host = i; }
+        }
+        const a = e.points[host], b = e.points[host + 1];
+        const vertical = a.x === b.x;
+        const lo = vertical ? Math.min(a.y, b.y) : Math.min(a.x, b.x);
+        const hi = vertical ? Math.max(a.y, b.y) : Math.max(a.x, b.x);
+        const others = pEdges.filter((o) => o !== e && o.label && o.labelRect).map((o) => drawn(o.labelRect!));
+        const clear = (c: { x: number; y: number; w: number; h: number }) =>
+          !copWires.some((w) => hit(c, w, 4)) && !copPills.some((p) => hit(c, p, 4)) &&
+          !others.some((o) => hit(c, o, 4)) && !nodes.some((n) => hit(c, n, 4));
+        let moved = false;
+        for (let d = 8; d <= hi - lo && !moved; d += 8)
+          for (const sgn of [-1, 1]) {
+            const c = vertical ? { ...me, y: me.y + sgn * d } : { ...me, x: me.x + sgn * d };
+            const from = vertical ? c.y : c.x, to = vertical ? c.y + c.h : c.x + c.w;
+            if (from < lo + 4 || to > hi - 4 || !clear(c)) continue;
+            if (vertical) r.y += sgn * d; else r.x += sgn * d;
+            moved = true;
+            break;
+          }
+      }
+  }
+
   // ── annotation pass: chips and badges are layout citizens ────────────────
   // Moved verbatim from svg.ts (Positioned consolidation): placement is
   // geometry, geometry belongs here, and checkLayout can only assert what

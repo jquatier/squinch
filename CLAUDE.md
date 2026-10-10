@@ -219,7 +219,11 @@ HTML. Round 29 had put that hand-over in: the agent looks at a render, draws
 nothing the request does not support, and ends with plain bullets — where to
 open it, what it guessed, what it saw. Round 30's first failures became two
 grammar fixes, a block on top-level `person` and a comma list on
-`expand`/`preview`/`detail`. 34, the large-system prompt that had varied
+`expand`/`preview`/`detail`, and its confirmation runs surfaced a seam
+between the two edge routers — ELK parks a cross-rank edge's inline label at
+its median layer, which is the layer of any coplanar wire that edge threads
+the gutter of, so the pill landed on the crossing; a pass after the routers
+merge now slides that pill along its own run (`docs/notes/edge-labels.md`). 34, the large-system prompt that had varied
 since round 26, now says what it is for — "an overview page that fits on one
 screen, and then a page for each part of the system" — because six cold runs
 on the old wording passed none, every one declaring a single view and calling

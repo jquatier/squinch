@@ -131,15 +131,21 @@ that varies. What the prompt lost is the one thing round 26 kept it for — a
 large system with no steering at all — and the six runs say that test had
 only ever measured whether an agent counts automatic views as pages.
 
-**Surfaced and not fixed here: two of 34's three confirmation answers draw a
-pair of overlapping edge labels.** In one, the `orders` view lands a context
-card's label, `views orders`, on top of `reads cart`, the label of a
-same-rank wire between checkout and cart; in the other, the landscape stacks
-two Kafka labels along a shared dashed run. `check` and the scorer pass both
-— nothing in either measures label geometry — and core's invariant sweep over
-the corpus fails them, which is what turned CI red for one push. The corpus
-took the third answer. The placer's policy and its rejected approaches are in
-`docs/notes/edge-labels.md`; the next odd label starts there.
+**Surfaced, and fixed since: two of 34's three confirmation answers drew a
+pair of overlapping edge labels.** In one, the `orders` view landed a context
+leaf's label, `views orders`, on top of `reads cart`, the label of a
+same-rank wire between checkout and cart; in the other, the landscape parked
+`send email` on the shelf run carrying `order events`. `check` and the
+scorer pass both — nothing in either measures label geometry — and core's
+invariant sweep over the corpus fails them, which is what turned CI red for
+one push; the corpus took the third answer. The cause is a seam between the
+two edge routers: ELK reserves a cross-rank edge's inline label at its median
+layer, and when that edge threads the gutter a coplanar wire runs through,
+the median layer *is* the wire's, so the pill lands on the crossing. Neither
+router sees the other's reservation. A pass after they merge now slides the
+ELK pill along its own run to the nearest clear spot; no committed view had
+the shape, so nothing else moved. `docs/notes/edge-labels.md` has the
+measurements and what was rejected.
 
 38, the repository prompt, passed on its first run of this round — five
 checks, the first three spent on the person block above.

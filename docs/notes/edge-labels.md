@@ -101,6 +101,50 @@ only takes effect on the graph, not on the node or the label. Inflating the
 node was never on the table — ports would move to the inflated face. The
 invariant sweep now fails if a label pill overlaps a card's sheet strip.
 
+## Two routers, one blind spot (2026-10)
+
+Reservation has a seam. ELK reserves an inline label for every cross-rank
+edge; the coplanar router reserves a pill on every same-rank wire; and
+neither sees the other's reservation, because ELK never sees a coplanar edge
+at all and the router has no say in where ELK parks a label dummy. The case
+that falls through: a cross-rank edge that *threads the gutter a coplanar
+wire runs through*. ELK places that edge's inline label at its median layer —
+the layer the coplanar wire belongs to — so the pill lands on the crossing:
+on the wire, or on the wire's own pill when both centre on the same gutter.
+
+Gauntlet round 30 found it twice in three cold answers to one prompt, and
+the corpus sweep had never seen it: `views orders`, on a context leaf's
+edge down through the Cart–Checkout gutter, drawn on top of `reads cart`;
+and `send email` parked on the shelf run carrying `order events`. Neither
+`check` nor the gauntlet scorer measures label geometry, so both shipped as
+far as CI.
+
+The fix is a pass after the two edge sets merge and before the annotation
+pass, so chips and badges see the result. **The ELK pill yields**: it slides
+along its own hosting segment — the one nearest its centre, since ELK draws
+an inline pill beside a vertical wire rather than on it — in 8px steps,
+alternating sides, to the nearest position clear of every coplanar wire and
+pill, every node and every other pill (4px margins), staying 4px inside the
+segment's ends so it never rounds a bend. The coplanar pill stays centred on
+its run, which is where a same-rank label reads best. The trigger is sitting
+on a coplanar wire at all, not only overlapping its pill — a pill on the
+crossing reads as the crossing wire's label, the same attachment failure the
+flow-badge work closed for badges. A pill with nowhere to go on its segment
+stays, and the invariant sweep reports it.
+
+Measured before it went in, over the 240 views the corpus lays out: no ELK
+pill sat on a coplanar wire anywhere, so the pass moves nothing committed and
+every golden stayed byte-identical. On the two reproducers it moved
+`views orders` 24px up its run and `send email` 24px down.
+
+Rejected on the way, briefly: moving the *coplanar* pill instead (it then
+leaves the middle of its run, and the ELK pill still sits on the crossing,
+reading as that wire's label); widening the coplanar gutter further at graph
+build (ELK is free to route a long edge through any width of gutter, and the
+label dummy follows the edge, so width never separates them); and asking ELK
+to avoid the gutter (there is no obstacle concept for a label dummy, and the
+coplanar edge is hidden from ELK by design — docs/notes/coplanar.md).
+
 ## Flow badges (2026-08)
 
 A `show flow` view draws a numbered badge on each step. Those badges were the
