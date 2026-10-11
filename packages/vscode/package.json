@@ -126,12 +126,12 @@
     "@squinch/pack-sys": "workspace:*",
     "vscode-languageclient": "^9.0.1",
     "vscode-languageserver": "^9.0.1",
-    "vscode-languageserver-textdocument": "^1.0.12"
+    "vscode-languageserver-textdocument": "^1.0.15"
   },
   "devDependencies": {
     "@squinch/pack-k8s": "workspace:*",
-    "@types/vscode": "^1.90.0",
-    "esbuild": "^0.28.1",
+    "@types/vscode": "^1.140.0",
+    "esbuild": "^0.28.2",
     "typescript": "^7.0.2",
     "vitest": "^4.1.11"
   },
