@@ -10,9 +10,9 @@
     "typecheck": "tsc --noEmit"
   },
   "devDependencies": {
-    "esbuild": "^0.28.1",
-    "tsx": "^4.23.1",
-    "@types/node": "^26.1.1",
+    "esbuild": "^0.28.2",
+    "tsx": "^4.23.15",
+    "@types/node": "^26.6.4",
     "typescript": "^7.0.2"
   }
 }

@@ -16,7 +16,7 @@
     "test:e2e": "playwright test"
   },
   "devDependencies": {
-    "@playwright/test": "^1.62.1",
+    "@playwright/test": "^1.64.0",
     "@squinch/pack-aws": "workspace:*",
     "@squinch/pack-azure": "workspace:*",
     "@squinch/pack-gcp": "workspace:*",
@@ -24,25 +24,25 @@
     "@squinch/pack-logos": "workspace:*",
     "@squinch/pack-sys": "workspace:*",
     "@tailwindcss/vite": "^4.3.3",
-    "@types/react": "^19.2.17",
-    "@types/react-dom": "^19.2.3",
-    "@vitejs/plugin-react": "^6.0.4",
+    "@types/react": "^19.3.0",
+    "@types/react-dom": "^19.3.0",
+    "@vitejs/plugin-react": "^6.1.2",
     "tailwindcss": "^4.3.3",
-    "tsx": "^4.23.1",
+    "tsx": "^4.23.15",
     "typescript": "^7.0.2",
-    "vite": "^8.1.5",
+    "vite": "^8.3.3",
     "vitest": "^4.1.11"
   },
   "dependencies": {
-    "@codemirror/commands": "^6.10.4",
-    "@codemirror/language": "^6.12.4",
+    "@codemirror/commands": "^6.11.1",
+    "@codemirror/language": "^6.13.1",
     "@codemirror/lint": "^6.9.7",
-    "@codemirror/state": "^6.7.1",
-    "@codemirror/view": "^6.43.6",
-    "@lezer/highlight": "^1.2.3",
+    "@codemirror/state": "^6.7.6",
+    "@codemirror/view": "^6.43.14",
+    "@lezer/highlight": "^1.2.5",
     "@squinch/core": "workspace:*",
     "codemirror": "^6.0.2",
-    "react": "^19.2.8",
-    "react-dom": "^19.2.8"
+    "react": "^19.3.0",
+    "react-dom": "^19.3.0"
   }
 }

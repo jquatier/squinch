@@ -52,7 +52,7 @@
     "@squinch/core": "workspace:*"
   },
   "devDependencies": {
-    "tsx": "^4.23.1",
+    "tsx": "^4.23.15",
     "typescript": "^7.0.2",
     "vitest": "^4.1.11"
   }
