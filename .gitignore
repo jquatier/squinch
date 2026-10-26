@@ -10,6 +10,10 @@ coverage/
 !.env.example
 packages/*/out/
 
+# the npm package's README is the root one with absolute links, written at
+# pack time by scripts/npm-readme.mjs
+packages/cli/README.md
+
 # extension build output (bundler copies the icon pack beside dist/)
 packages/vscode/pack-*/
 *.vsix

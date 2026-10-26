@@ -7,7 +7,7 @@
 // CI already asserts the committed SVGs match their source; this asserts the
 // README matches it too.
 import { describe, it, expect } from "vitest";
-import { readFileSync } from "node:fs";
+import { existsSync, readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { dirname, join } from "node:path";
 
@@ -28,6 +28,34 @@ describe("README", () => {
       "utf8",
     );
     expect(block![1]).toBe(source.trim() + "\n");
+  });
+
+  // npm shows the package's own README, so `prepack` copies the root one in
+  // with its relative links made absolute (scripts/npm-readme.mjs). A link to
+  // a path that does not exist would ship as a GitHub 404 on npmjs.com, and
+  // nothing else would notice — GitHub's own rendering of a broken relative
+  // link is just as quiet.
+  it("ships to npm with every relative link absolute and resolving", async () => {
+    // @ts-expect-error — a plain .mjs script, no declarations
+    const { absolutize } = await import("../../../scripts/npm-readme.mjs");
+    const readme = readFileSync(join(root, "README.md"), "utf8");
+    const opts = { repo: "https://github.com/jquatier/squinch", ref: "v0.0.0" };
+
+    const targets: string[] = [];
+    const out: string = absolutize(readme, { ...opts, targets });
+    expect(targets.length, "no relative links found — has the README's shape changed?").toBeGreaterThan(0);
+    const missing = targets.filter((t) => !existsSync(join(root, t)));
+    expect(missing, "README links to paths that do not exist").toEqual([]);
+
+    const left: string[] = [];
+    absolutize(out, { ...opts, targets: left });
+    expect(left, "relative links survived the rewrite").toEqual([]);
+    expect(out).toContain('src="https://raw.githubusercontent.com/jquatier/squinch/v0.0.0/docs/assets/prompt-light.gif"');
+    expect(out).toContain("](https://github.com/jquatier/squinch/tree/v0.0.0/packages/skill)");
+    expect(out).toContain("](https://github.com/jquatier/squinch/blob/v0.0.0/docs/SPEC.md)");
+
+    const pkg = JSON.parse(readFileSync(join(root, "packages", "cli", "package.json"), "utf8"));
+    expect(pkg.scripts.prepack).toBe("node ../../scripts/npm-readme.mjs");
   });
 
   it("points that section at the render of the same view", () => {
