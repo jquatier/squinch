@@ -6,6 +6,18 @@ history too. Sections are drafted by `pnpm release` from the commits since the
 previous tag, then edited by a human before anything is written; the release
 workflow lifts the matching section verbatim into the GitHub Release notes.
 
+## 0.17.0 — 2026-10-31
+
+- A leaf's title can be a hyperlink. `link: "https://…"` on a leaf or person makes the title open in a new tab; hovering it shows a pointer and underlines it, and the rest of the leaf stays draggable. Only `http` and `https` are accepted, anything else is a check error, and a container warns because clicking a card zooms into it. A browser only follows a link in an SVG it opens or inlines, so one shown through `<img>` does not react, and a PNG carries no link. The skill teaches the attribute and tells agents never to compose a URL they were not given.
+- Long leaf names show in full. A long label widens its leaf to 280 or 320, then takes a second line, and only then is cut. A subtitle alone still stops at 240. In a left-to-right flow, a column of mixed widths keeps one left edge.
+- **Diagrams with long labels redraw**, so `render --check` reports them stale until you run `--sync`. Diagrams with no cut labels and no mixed-width columns in a left-to-right flow are unaffected, apart from a card name within 4px of its width limit, which used to be cut with a wider size free.
+- Cut text can still be read. A leaf, person or card that had to cut its text keeps the full text in a `<title>`.
+- The label warning now tells the truth. It fires when a label will really be cut, measured rather than counted, so it catches a card name cut at 27 characters and no longer flags a long name that fits two lines.
+- The interactive export's first breadcrumb no longer vanishes when clicked. With two unscoped views and a short path, opening its menu folded the hop away. The playground's same menu now closes on Escape and on a click outside it.
+- The export's home button draws the playground's icon rather than a character from whatever font the reader has.
+- Pan and zoom: tabbing to an off-screen link now pans the camera. It used to scroll the stage behind the camera's back, which threw off every later gesture.
+- The `squinch` npm package ships the root README, with its relative links pinned to the release tag.
+
 ## 0.16.0 — 2026-10-11
 
 - The language takes two shapes cold agents kept writing. `person id "Label" { description: "…" }` accepts the attr block the inline `id = person "…" { … }` form always did — one declaration, two word orders, the same checks on the block, and a duplicated top-level person is now a duplicate-id error instead of a silent overwrite. `expand`, `preview` and `detail` take a comma list, one entry per path, as `exclude` does; an unknown id in the list is reported at the id.
