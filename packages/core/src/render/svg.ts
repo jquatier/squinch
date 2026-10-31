@@ -1,7 +1,7 @@
 // Positioned + Theme (+ view annotations) → deterministic SVG string.
 // Integers, LF, fixed attribute order — the string is the artifact under
 // byte-identity tests.
-import { fit, measure, wrapText } from "../metrics.js";
+import { fit, measure, titleCut, titleLines, wrapText } from "../metrics.js";
 import { FONTS } from "../fonts.generated.js";
 import { iconMeta, packMonochrome, packFullBleed } from "../model/packs.js";
 import { iconAsset, symbolId } from "../packs/registry.js";
@@ -488,17 +488,31 @@ function surfaceRect(
 const LINK_CSS =
   "<style>.sq-link{cursor:pointer}.sq-link:hover text,.sq-link:focus-visible text{text-decoration:underline}</style>";
 
+/** Baseline to baseline when a title takes two lines. */
+const TITLE_LEAD = 16;
+
+/** The full text as a native tooltip, on a node whose drawing had to cut any of
+ *  it. Nothing at all when nothing was cut, not even a line, so an uncut node
+ *  stays byte-identical. The group's last child, because its first rect is what
+ *  the dive and the hover rule read. */
+function pushFullText(L: string[], cut: boolean, ...full: (string | undefined)[]) {
+  if (cut) L.push(`<title>${esc(full.filter(Boolean).join("\n"))}</title>`);
+}
+
 /** A leaf or person's title, drawn as a link when it has one. The rect is the
  *  hit area and paints nothing: WebKit does not reliably hit-test `<text>`, and
  *  a zoomed-out title is too small a target anyway. Without a link this is the
- *  bare `<text>`, so a render with none stays byte-identical. */
-function title(n: PNode, x: number, y: number, fill: string, maxW: number, rc: RC): string {
+ *  bare `<text>`, so a render with none stays byte-identical. A label only
+ *  reaches a second line once it has outgrown the widest tier. */
+function title(n: PNode, x: number, y: number, lines: string[], fill: string, rc: RC): string {
   const size = rc.fx(13);
-  const shown = fit(n.label, maxW, size, "500", rc.fam);
-  const text = `<text x="${x}" y="${y}" font-size="${size}" font-weight="500" fill="${fill}">${esc(shown)}</text>`;
+  const text = lines
+    .map((l, i) => `<text x="${x}" y="${y + i * TITLE_LEAD}" font-size="${size}" font-weight="500" fill="${fill}">${esc(l)}</text>`)
+    .join("");
   if (!n.link) return text;
-  const w = Math.ceil(measure(shown, size, "500", rc.fam));
-  const hit = `<rect x="${x}" y="${y - Math.ceil(size * 1.05)}" width="${w}" height="${Math.ceil(size * 1.4)}" fill="none" pointer-events="all"/>`;
+  const w = Math.ceil(Math.max(...lines.map((l) => measure(l, size, "500", rc.fam))));
+  const h = Math.ceil(size * 1.4) + (lines.length - 1) * TITLE_LEAD;
+  const hit = `<rect x="${x}" y="${y - Math.ceil(size * 1.05)}" width="${w}" height="${h}" fill="none" pointer-events="all"/>`;
   return `<a class="sq-link" href="${esc(n.link)}" target="_blank" rel="noopener noreferrer">${hit}${text}</a>`;
 }
 
@@ -528,12 +542,18 @@ function leaf(n: PNode, rc: RC, dimmed: boolean, L: string[]) {
   // here: it is prose, and one line at 11px held thirty characters of it
   // before the ellipsis. It stays the card's tagline and the hover card's text.
   const second = n.subtitle;
-  const labelY = second ? n.y + n.h / 2 - 1 : n.y + n.h / 2 + 5;
-  L.push(title(n, px + PLATE + PAD, labelY, ctx ? t.muted : t.ink, maxLabel, rc));
+  const lines = titleLines(n.label, maxLabel, rc.fx(13), "500", rc.fam);
+  const two = lines.length > 1;
+  const mid = n.y + n.h / 2;
+  // the block stays centred on the plate; a third line still fits 64 tall
+  const labelY = second ? mid + (two ? -11 : -1) : mid + (two ? -3 : 5);
+  L.push(title(n, px + PLATE + PAD, labelY, lines, ctx ? t.muted : t.ink, rc));
+  const shownSub = second && fit(second, maxLabel, rc.fx(11), "400", rc.fam);
   if (second)
     L.push(
-      `<text x="${px + PLATE + PAD}" y="${n.y + n.h / 2 + 15}" font-size="${rc.fx(11)}" fill="${t.faint}">${esc(fit(second, maxLabel, rc.fx(11), "400", rc.fam))}</text>`,
+      `<text x="${px + PLATE + PAD}" y="${mid + (two ? 20 : 15)}" font-size="${rc.fx(11)}" fill="${t.faint}">${esc(shownSub as string)}</text>`,
     );
+  pushFullText(L, titleCut(lines, n.label) || (!!second && shownSub !== second), n.label, second);
   L.push(`</g>`);
 }
 
@@ -568,7 +588,9 @@ function person(n: PNode, rc: RC, dimmed: boolean, L: string[]) {
   const tx = n.x + PAD + r * 2 + PAD;
   const maxLabel = n.w - (tx - n.x) - PAD;
   // a name and nothing under it: an actor tile carries no caption line
-  L.push(title(n, tx, cy + 5, t.ink, maxLabel, rc));
+  const lines = titleLines(n.label, maxLabel, rc.fx(13), "500", rc.fam);
+  L.push(title(n, tx, cy + (lines.length > 1 ? -3 : 5), lines, t.ink, rc));
+  pushFullText(L, titleCut(lines, n.label), n.label);
   L.push(`</g>`);
 }
 
@@ -687,12 +709,14 @@ function card(n: PNode, rc: RC, dimmed: boolean, L: string[]) {
   // as one block beside the icon rather than starting at an arbitrary height.
   // Alone, the title takes the centre itself.
   const mid = py + PLATE / 2;
+  const shownLabel = fit(n.label, maxText, rc.fx(15), "500", rc.fam);
+  const shownTagline = n.tagline && fit(n.tagline, maxText + GLYPH_CHIP, rc.fx(11), "400", rc.fam);
   L.push(
-    `<text x="${tx}" y="${n.tagline ? mid - 2 : mid + 5}" font-size="${rc.fx(15)}" font-weight="500" fill="${ctx ? t.muted : t.ink}">${esc(fit(n.label, maxText, rc.fx(15), "500", rc.fam))}</text>`,
+    `<text x="${tx}" y="${n.tagline ? mid - 2 : mid + 5}" font-size="${rc.fx(15)}" font-weight="500" fill="${ctx ? t.muted : t.ink}">${esc(shownLabel)}</text>`,
   );
   if (n.tagline)
     L.push(
-      `<text x="${tx}" y="${mid + 13}" font-size="${rc.fx(11)}" fill="${t.muted}">${esc(fit(n.tagline, maxText + GLYPH_CHIP, rc.fx(11), "400", rc.fam))}</text>`,
+      `<text x="${tx}" y="${mid + 13}" font-size="${rc.fx(11)}" fill="${t.muted}">${esc(shownTagline as string)}</text>`,
     );
   if (n.glyph) {
     // A bordered chip, not a bare mark: the glyph says what kind of thing the
@@ -787,6 +811,7 @@ function card(n: PNode, rc: RC, dimmed: boolean, L: string[]) {
       }
     }
   }
+  pushFullText(L, shownLabel !== n.label || shownTagline !== n.tagline, n.label, n.tagline);
   L.push(`</g>`);
 }
 

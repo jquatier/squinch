@@ -3,7 +3,7 @@
 // single model namespace: declarations are collected per file, resolution runs
 // across all of them (SPEC §2 "Projects").
 import type { SyntaxNode } from "@lezer/common";
-import { drawable } from "../metrics.js";
+import { drawable, labelFits } from "../metrics.js";
 // @ts-ignore generated
 import { parser } from "../grammar/parser.js";
 import { iconExists, packExists, iconIds, allPackNames } from "./packs.js";
@@ -1004,22 +1004,21 @@ export function buildProject(input: ProjectFile[]): BuildResult {
     return true;
   });
 
-  // DESIGN §3: "Lint nudges labels > ~40 chars." A label wraps to at most two
-  // lines and is then ellipsized, so past this it is not a styling preference —
-  // the reader loses text that is still in the source, and only a `<title>` or
-  // a hover recovers it. 40 is DESIGN's number and it is well chosen: across
-  // the 456 labels this repo owns, exactly 4 exceed it, all of them in the
-  // lookbook case that exists to stress long labels.
-  const LABEL_MAX = 40;
-  for (const n of [...model.nodes.values(), ...model.containers.values()]) {
-    const label = ("label" in n && n.label) || n.name;
-    if (label.length <= LABEL_MAX) continue;
+  // A label that outgrows its widest box is cut, and the picture alone no longer
+  // says what the thing is. Measured, because a count cannot tell: 40 characters
+  // missed a card cut at 27, and warned on leaves that fit two lines whole.
+  const cutLabel = (label: string, kind: "leaf" | "person" | "card", loc: Loc, file?: string) => {
+    if (labelFits(label, kind)) return;
     warn(
-      { name: n.file ?? "input" } as Ctx, n.loc,
+      { name: file ?? "input" } as Ctx, loc,
       `label is ${label.length} characters — it will be cut off`,
-      "labels wrap to two lines then ellipsize: shorten it and put the detail in `description:`",
+      kind === "card"
+        ? "a card's name is one line: shorten it and put the detail in `description:`"
+        : "a name gets a wider box, then two lines: shorten it and put the detail in `description:`",
     );
-  }
+  };
+  for (const n of model.nodes.values()) cutLabel(n.label, n.kinds.includes("person") ? "person" : "leaf", n.loc, n.file);
+  for (const c of model.containers.values()) cutLabel(c.label ?? c.name, "card", c.loc, c.file);
   // The same nudge for a subtitle. It is one line, never wrapped, ellipsized
   // past the widest leaf tier — and it widens the tier to fit, so a long one
   // costs the whole diagram width. The field exists to be short: a runtime,

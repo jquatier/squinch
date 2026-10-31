@@ -417,15 +417,15 @@ view land { include * }`;
   });
 
   it("warns on a label long enough to be cut off (DESIGN §3)", () => {
-    // Promised by DESIGN §3 ("lint nudges labels > ~40 chars") and never
-    // implemented. Not a style preference: a label wraps to two lines and is
-    // then ellipsized, so the reader loses text that is still in the source.
+    // Not a style preference: the reader loses text that is still in the source.
+    // Measured since long labels wrap (test/long-labels.test.ts holds it to the
+    // renderer), so a long name that fits two lines is not cut.
     const of = (label: string) =>
       buildModel(`pack aws\nsystem s "S" {\n a = aws/lambda "${label}"\n}`)
         .diagnostics.filter((d) => d.message.includes("cut off"));
     expect(of("Orders API")).toEqual([]);
-    expect(of("x".repeat(40))).toEqual([]);          // the boundary is inclusive
-    const long = of("Public Partner-Facing Integration Gateway With Rate Limiting");
+    expect(of("Public Partner-Facing Integration Gateway With Rate Limiting")).toEqual([]);
+    const long = of("x".repeat(60));
     expect(long.length).toBe(1);
     expect(long[0].severity).toBe("warning");        // a nudge, never a block
     expect(long[0].message).toContain("60 characters");

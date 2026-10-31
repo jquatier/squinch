@@ -165,9 +165,10 @@ it gets none of the marks that imply one.
 - Three things here are called badges and they are distinct: a **card glyph**
   is the identity of a collapsed system, a **flow badge** is a step number on
   an edge, a **node badge** is whose platform a leaf belongs to.
-- **Labels**: wrap at container width, max 2 lines, then ellipsis; full text on
-  hover (SPA/VSCode) and in `<title>` (static SVG). Lint nudges labels > ~40
-  chars, and a second lint names any character the bundled font subset cannot
+- **Labels**: a leaf's label earns a wider tier (`280`, `320`), then two lines,
+  then an ellipsis; a card's name is one line, then an ellipsis. Anything cut
+  keeps its full text in a `<title>`. Lint warns when a label will really be
+  cut, measured rather than counted, and a second lint names any character the bundled font subset cannot
   draw — it renders as a gap rather than a glyph, and nothing else would catch
   it (the SVG stays valid and deterministic either way).
 

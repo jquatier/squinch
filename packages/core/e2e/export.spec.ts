@@ -366,6 +366,38 @@ test("focusing an off-screen link pans the camera instead of scrolling the stage
   expect(end.y - start.y).toBeCloseTo(30, 0);
 });
 
+test("a two-line link answers on both lines, and a drag from it still pans", async ({ page }) => {
+  await page.context().route("https://example.test/**", (r) => r.fulfill({ contentType: "text/html", body: "ok" }));
+  const src = LINKED.replace(`"Handler"`, `"Public Partner-Facing Integration Gateway With Rate Limiting"`);
+  await open(page, { view: "s" }, "link-two-lines.html", src);
+  await expect(page.locator(".sq-link text")).toHaveCount(2);
+  const lines = await page.locator(".sq-link text").evaluateAll((ts) => ts.map((t) => {
+    const b = t.getBoundingClientRect();
+    return { x: b.x + b.width / 2, y: b.y + b.height / 2 };
+  }));
+  for (const p of lines) {
+    expect(await under(page, p)).toMatchObject({ cursor: "pointer" });
+    await page.mouse.move(p.x, p.y);
+    await expect.poll(() => under(page, p)).toEqual({ cursor: "pointer", underline: "underline" });
+  }
+  const [tab] = await Promise.all([page.context().waitForEvent("page"), page.mouse.click(lines[1].x, lines[1].y)]);
+  await expect.poll(() => tab.url()).toBe("https://example.test/runbook");
+  await tab.close();
+  await page.bringToFront();
+  let tabs = 0;
+  page.context().on("page", () => { tabs++; });
+  const before = await camOf(page);
+  await page.mouse.move(lines[0].x, lines[0].y);
+  await page.mouse.down();
+  await page.mouse.move(lines[0].x + 30, lines[0].y + 10, { steps: 4 });
+  await page.mouse.move(lines[0].x + 90, lines[0].y + 40, { steps: 5 });
+  await page.mouse.up();
+  await atRest(page);
+  const after = await camOf(page);
+  expect(after.x - before.x).toBeCloseTo(90, 0);
+  expect(tabs).toBe(0);
+});
+
 test("the top hop opens its menu on a short path", async ({ page }) => {
   // Two unscoped views give the top of the path a hop of its own. Its key was
   // once "", which reads as no menu open, so the fold measured the open menu as

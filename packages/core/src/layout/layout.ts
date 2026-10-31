@@ -202,7 +202,11 @@ function sizeOf(n: VNode, font: Pick<ThemeFont, "metrics" | "scale">): { w: numb
     // glyph chip, so both come out of the width rather than letting the label
     // run under either.
     const headNeed = PAD + PLATE + PAD + Math.max(
-      measure(n.label, fx(15), "500", fam),
+      // the 4 is what the renderer spends beside a name: the plate sits 5 in from
+      // the spine, the chip 1 closer to the edge. Without it a name within 4px
+      // of a tier was cut with a wider tier free. A tagline has the chip's column
+      // to run under, so it never needed it.
+      measure(n.label, fx(15), "500", fam) + 4,
       measure(n.tagline ?? "", fx(11), "400", fam),
     ) + PAD + GLYPH_CHIP + PAD;
     // A detailed card's rows widen the tier the way a tagline does: a 22 plate,

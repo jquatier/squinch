@@ -114,7 +114,9 @@ all its children match `#pci`).
 owns it or where it lives — drawn always, a step quieter than a description.
 Leaves only: a `person` has no line under its name and a card's is its
 `description`, so the check warns on both rather than drawing nothing. Keep it short:
-past 24 characters the check warns, and a leaf widens to fit what it holds.
+past 24 characters the check warns, and a leaf widens to fit what it holds, up to
+240 for a subtitle. A long label takes a wider leaf up to 320, then a second line,
+and only then is cut, with the check warning and the full text in a tooltip.
 `link` makes a leaf's or person's title a hyperlink that opens in a new tab:
 `api = aws/lambda "API" { link: "https://runbooks.example.com/api" }`. It takes
 an absolute `http` or `https` URL in quotes, and anything else is a check error.
