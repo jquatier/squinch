@@ -46,12 +46,11 @@ for (const [from, to] of FILES) copyFileSync(join(assetsDir, from), join(publicD
 // example. It is a committed example render, not a brand asset, and the
 // lookbook sync only copies lookbook/out/ — so it rides along here. Dark only:
 // the marketing pages never show the light palette — with one exception, the
-// "One file, both palettes" band, whose whole subject is the pair. It shows
-// the products example both ways under a comparison slider.
+// "One file, both palettes" band, whose whole subject is the pair. It shows the
+// Kubernetes lookbook case both ways under a comparison slider, and the lookbook
+// sync already copies both.
 const EXAMPLES: [string, string][] = [
   ["notifications/notifications.pipeline.dark.svg", "notifications-pipeline-dark.svg"],
-  ["products-api/products-api.products.dark.svg", "products-dark.svg"],
-  ["products-api/products-api.products.light.svg", "products-light.svg"],
   // /compare/ sets these beside five other tools' renders of the same system.
   // Theirs are committed (apps/spa/compare/img) because the build cannot
   // regenerate them; ours is the committed example, as ever.
