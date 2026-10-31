@@ -243,6 +243,129 @@ test("an open menu owns Escape", async ({ page }) => {
   await expect(nav.locator('[data-hop="#in"]')).toBeFocused();
 });
 
+// ── `link:` ─────────────────────────────────────────────────────────────────
+// Driven by the mouse at the title's real position, unlike `card()`: the title
+// is the whole affordance, and WebKit's hit-testing of it is what is in doubt.
+const LINKED = `system s "S" {
+  fn = sys/server "Handler" { link: "https://example.test/runbook" }
+  db = sys/database "Store"
+  fn -> db
+}
+view landscape { include * }
+view s { scope s }
+`;
+/** The page's own geometry: Playwright's `boundingBox()` puts an SVG `<text>`
+ *  in the wrong place under WebKit (96px off here), so it would aim at nothing. */
+const titleCentre = (page: Page, path: string) =>
+  page.locator(`[data-path="${path}"] text`).first().evaluate((t) => {
+    const b = t.getBoundingClientRect();
+    return { x: b.x + b.width / 2, y: b.y + b.height / 2 };
+  });
+const under = (page: Page, p: { x: number; y: number }) => page.evaluate(({ x, y }) => {
+  const el = document.elementFromPoint(x, y)!;
+  const text = el.closest("a")?.querySelector("text");
+  return { cursor: getComputedStyle(el).cursor, underline: text ? getComputedStyle(text).textDecorationLine : "" };
+}, p);
+const openLinked = async (page: Page, name: string) => {
+  await page.context().route("https://example.test/**", (r) => r.fulfill({ contentType: "text/html", body: "ok" }));
+  await open(page, { view: "s" }, name, LINKED);
+  await expect(page.locator("#sq-nav")).toHaveAttribute("data-view", "s");
+};
+
+test("a linked title invites the click; everything else stays grabbable", async ({ page }) => {
+  await openLinked(page, "link-hover.html");
+  const t = await titleCentre(page, "s.fn");
+  expect(await under(page, t)).toMatchObject({ cursor: "pointer" });
+  await page.mouse.move(t.x, t.y);
+  await expect.poll(() => under(page, t)).toEqual({ cursor: "pointer", underline: "underline" });
+  // the rest of that leaf, and a leaf with no link, are the stage's as before
+  const icon = await page.locator('[data-path="s.fn"]').boundingBox();
+  await page.mouse.move(icon!.x + 6, icon!.y + 6);
+  expect((await under(page, { x: icon!.x + 6, y: icon!.y + 6 })).cursor).toBe("grab");
+  const plain = await titleCentre(page, "s.db");
+  await page.mouse.move(plain.x, plain.y);
+  expect((await under(page, plain)).cursor).toBe("grab");
+});
+
+test("clicking a linked title opens it in a new tab and leaves the view alone", async ({ page }) => {
+  await openLinked(page, "link-click.html");
+  const t = await titleCentre(page, "s.fn");
+  const [tab] = await Promise.all([page.context().waitForEvent("page"), page.mouse.click(t.x, t.y)]);
+  await expect.poll(() => tab.url()).toBe("https://example.test/runbook");
+  await expect(page.locator("#sq-nav")).toHaveAttribute("data-view", "s");
+  await expect(page).toHaveURL(/link-click\.html/);
+});
+
+test("a drag that starts on a linked title pans, and does not navigate", async ({ page }) => {
+  await openLinked(page, "link-drag.html");
+  let tabs = 0;
+  page.context().on("page", () => { tabs++; });
+  const before = await camOf(page);
+  const t = await titleCentre(page, "s.fn");
+  await page.mouse.move(t.x, t.y);
+  await page.mouse.down();
+  await page.mouse.move(t.x + 30, t.y + 10, { steps: 4 });
+  await page.mouse.move(t.x + 140, t.y + 60, { steps: 6 });
+  await page.mouse.up();
+  await atRest(page);
+  const after = await camOf(page);
+  expect(after.x - before.x).toBeCloseTo(140, 0);
+  expect(after.y - before.y).toBeCloseTo(60, 0);
+  await page.waitForTimeout(150);
+  expect(tabs).toBe(0);
+  await expect(page.locator("#sq-nav")).toHaveAttribute("data-view", "s");
+});
+
+test("Enter on a focused link opens it rather than stepping the deck", async ({ page }) => {
+  await openLinked(page, "link-key.html");
+  await page.locator(".sq-link").evaluate((a) => (a as unknown as HTMLElement).focus());
+  const [tab] = await Promise.all([page.context().waitForEvent("page"), page.keyboard.press("Enter")]);
+  await expect.poll(() => tab.url()).toBe("https://example.test/runbook");
+  await expect(page.locator("#sq-nav")).toHaveAttribute("data-view", "s");
+});
+
+test("a mouse click on a link gives the keys back to the deck", async ({ page }) => {
+  await openLinked(page, "link-blur.html");
+  const t = await titleCentre(page, "s.fn");
+  const [tab] = await Promise.all([page.context().waitForEvent("page"), page.mouse.click(t.x, t.y)]);
+  await tab.close();
+  await page.bringToFront();
+  expect(await page.evaluate(() => document.activeElement?.closest("a") ?? null)).toBeNull();
+});
+
+test("focusing an off-screen link pans the camera instead of scrolling the stage", async ({ page }) => {
+  // The stage is overflow:hidden, but focus scrolls those too. Left alone, the
+  // picture moves without the camera knowing and every later gesture is off.
+  await openLinked(page, "link-focus.html");
+  for (let i = 0; i < 6; i++) await page.keyboard.press("+");
+  await atRest(page);
+  for (let i = 0; i < 30; i++) await page.keyboard.press("Shift+ArrowLeft");
+  for (let i = 0; i < 12; i++) await page.keyboard.press("Shift+ArrowUp");
+  await atRest(page);
+  const link = page.locator(".sq-link rect");
+  const onScreen = () => link.evaluate((r) => {
+    const b = r.getBoundingClientRect(), v = document.querySelector("#sq-stage")!.getBoundingClientRect();
+    return b.right > v.left && b.left < v.right && b.bottom > v.top && b.top < v.bottom;
+  });
+  expect(await onScreen()).toBe(false);
+  const before = await camOf(page);
+  await page.locator(".sq-link").evaluate((a) => (a as unknown as HTMLElement).focus());
+  await expect.poll(onScreen).toBe(true);
+  await atRest(page);
+  expect(await page.locator("#sq-stage").evaluate((s) => [s.scrollLeft, s.scrollTop])).toEqual([0, 0]);
+  expect((await camOf(page)).x).not.toBe(before.x);
+  // and the camera is still the truth: a drag moves by exactly what it should
+  const start = await camOf(page);
+  await page.mouse.move(640, 400);
+  await page.mouse.down();
+  await page.mouse.move(700, 430, { steps: 4 });
+  await page.mouse.up();
+  await atRest(page);
+  const end = await camOf(page);
+  expect(end.x - start.x).toBeCloseTo(60, 0);
+  expect(end.y - start.y).toBeCloseTo(30, 0);
+});
+
 test("the top hop opens its menu on a short path", async ({ page }) => {
   // Two unscoped views give the top of the path a hop of its own. Its key was
   // once "", which reads as no menu open, so the fold measured the open menu as

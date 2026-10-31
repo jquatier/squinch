@@ -315,6 +315,10 @@ export const Stage = forwardRef<StageHandle, StageProps>(function Stage(
 
   const click = useCallback(
     (e: React.MouseEvent) => {
+      // A `link:` title leaves; it never dives or climbs. A mouse click drops the
+      // focus it took, or the next Enter reopens the link instead of stepping.
+      const link = (e.target as Element).closest?.("a") as HTMLElement | null | undefined;
+      if (link) { if (e.detail) link.blur(); return; }
       const el = (e.target as Element).closest?.("[data-path]");
       const path = el?.getAttribute("data-path");
       const c = cam.current;

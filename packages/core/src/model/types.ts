@@ -41,6 +41,9 @@ export interface SNode {
    *  out of `attrs` like `description`; a person or container never carries
    *  one (check warns). */
   subtitle?: string;
+  /** `link:` — where the leaf's title goes. Only a valid http(s) URL lands here,
+   *  so a rejected one cannot reach the SVG. */
+  link?: string;
   tags: string[];
   attrs: Record<string, string>;
   /** `color:` — the node's spine, as a card's (DESIGN §3). Validated copy of `attrs.color`. */

@@ -316,6 +316,8 @@ describe("the skill — diagnostic coverage", () => {
     "is not among the cards this view shows — nothing to detail",
     "preview *` already details every card — the explicit `preview` lines are redundant",
     "preview *` detailed nothing — no cards are visible here",
+    // `link` (2026-10): the fix writes the URL form, or says where the link goes
+    "link` must be an http or https URL, not", "link` is a leaf attribute",
   ]);
 
   it("every diagnostic that needs a technique is in the cookbook", () => {

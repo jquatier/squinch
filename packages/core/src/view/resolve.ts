@@ -43,6 +43,9 @@ export interface VNode {
   /** A leaf's own second line, always drawn (DESIGN §3). Leaves only: a
    *  person has no line under its name, and a card's is its tagline. */
   subtitle?: string;
+  /** `link:` — where a leaf's or person's title goes. Never on a card, whose
+   *  click zooms. */
+  link?: string;
   frame?: string; // parent frame path when inside an expanded container
   /** Effective hue: the view's `color #tag` if one matches, else the element's
    *  own `color:`. Context cards ignore it — scenery stays muted. */
@@ -726,6 +729,8 @@ export function resolveView(model: SModel, view: SView): ViewGraph {
       // a context leaf is scenery and drops its subtitle the way a context
       // card drops its shelf; a person never had one
       subtitle: kind === "leaf" ? n.subtitle : undefined,
+      // kept on a context leaf: where it points is still true from out here
+      link: n.link,
       frame: frameOf.get(path),
       color: n.color,
     };

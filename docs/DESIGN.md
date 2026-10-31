@@ -104,7 +104,9 @@ it gets none of the marks that imply one.
   drawn. A description never draws here: it is prose, and one line held about
   thirty characters of it before the ellipsis, so it stays the card's tagline
   and the hover card's text. A subtitle widens the tier the way a card's
-  tagline does, which is why the check nudges past 24 characters. An optional
+  tagline does, which is why the check nudges past 24 characters. A `link:`
+  draws nothing at rest; hovering the title shows a pointer and underlines it,
+  and the rest of the leaf stays grabbable. An optional
   **node badge** (`badge:`) sits on the tile's bottom-right corner: `22×22`,
   radius 5, surface fill + border stroke, holding a `14×14` mark in its own
   brand colour, inset so it clears the card edge by 5. When that colour would

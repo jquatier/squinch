@@ -211,6 +211,17 @@ export function attachCamera(viewport: HTMLElement, cameraEl: HTMLElement, opts:
 
   const noDrag = (e: Event) => e.preventDefault(); // the browser's own image/text drag
 
+  // Focus scrolls an `overflow:hidden` box too. Tabbing to an off-screen `link:`
+  // title moved the picture behind the camera's back, and every gesture after
+  // that was measured against the wrong origin. So the scroll becomes a pan: it
+  // lands in the same frame, and the link stays where the browser brought it.
+  const scrolled = () => {
+    const dx = viewport.scrollLeft, dy = viewport.scrollTop;
+    if (!dx && !dy) return;
+    viewport.scrollLeft = viewport.scrollTop = 0;
+    if (!busy) { stopTween(); moveTo(panCam(cam, -dx, -dy)); }
+  };
+
   const bound: [string, EventListener, AddEventListenerOptions?][] = [
     ["click", click as EventListener, { capture: true }],
     ["pointerdown", down as EventListener],
@@ -223,6 +234,7 @@ export function attachCamera(viewport: HTMLElement, cameraEl: HTMLElement, opts:
     ["gesturechange", gChange, { passive: false }],
     ["gestureend", gEnd, { passive: false }],
     ["dragstart", noDrag],
+    ["scroll", scrolled],
   ];
   for (const [type, fn, o] of bound) viewport.addEventListener(type, fn, o);
 

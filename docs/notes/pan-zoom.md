@@ -71,6 +71,11 @@ meaning; the dive still *starts* from exactly what was on screen.
   next event had nothing to change, scheduled nothing, and the screen sat a
   frame behind the camera. Found by a probe whose screenshot said 125% when the
   state said 400%.
+- **A scroll of the viewport becomes a pan.** `overflow:hidden` stops the
+  scrollbars, not scrolling: focusing an off-screen `link:` title scrolled the
+  stage about 735px and left every later gesture measured from the wrong origin.
+  The controller resets the scroll and moves the camera by the same amount, so
+  the link stays where the browser brought it.
 - **Programmatic, non-animated sets are synchronous** and beat anything queued.
   The dive measures straight after `fit()`.
 - **Input is dropped while a dive is in flight** (`setBusy`). macOS keeps sending

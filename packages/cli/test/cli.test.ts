@@ -366,6 +366,16 @@ describe("png export", () => {
     expect(w).toBe(Number(svg.match(/<svg[^>]*\swidth="(\d+)"/)![1]));
   });
 
+  it("a `link:` changes no pixel: a PNG has nowhere to put one", async () => {
+    const plain = write();
+    const f = join(dir, "linked.squinch");
+    writeFileSync(f, GOOD.replace(`"Handler"`, `"Handler" { link: "https://example.com/a?b=1&c=2" }`));
+    expect(readFileSync(f, "utf8")).toContain("link:");
+    expect(await main(["render", plain, "-o", join(dir, "plain.png")])).toBe(0);
+    expect(await main(["render", f, "-o", join(dir, "linked.png")])).toBe(0);
+    expect(readFileSync(join(dir, "linked.png")).equals(readFileSync(join(dir, "plain.png")))).toBe(true);
+  });
+
   it("--scale and --width resize, keeping the aspect ratio", async () => {
     const f = write();
     await main(["render", f, "-o", join(dir, "1x.png")]);

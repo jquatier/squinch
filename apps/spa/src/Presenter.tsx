@@ -86,6 +86,8 @@ export function Presenter({
       if (e.metaKey || e.ctrlKey || e.altKey) return;
       if (e.shiftKey && k.startsWith("Arrow")) return;
       if (k === "Escape") return onExit();
+      // A focused `link:` title keeps its own activation keys.
+      if ((k === " " || k === "Enter") && (e.target as Element | null)?.closest?.("a[href]")) return;
       if (k === "ArrowRight" || k === "PageDown" || k === " " || k === "Enter") { e.preventDefault(); return step(1); }
       if (k === "ArrowLeft" || k === "PageUp") { e.preventDefault(); return step(-1); }
       // Stepping walks the deck; backing out climbs the model. They are

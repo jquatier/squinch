@@ -483,6 +483,25 @@ function surfaceRect(
   );
 }
 
+/** Hover for a `link:`, carried by the SVG itself so every surface gets it. A
+ *  direct rule beats the `grab` a host's stage hands down by inheritance. */
+const LINK_CSS =
+  "<style>.sq-link{cursor:pointer}.sq-link:hover text,.sq-link:focus-visible text{text-decoration:underline}</style>";
+
+/** A leaf or person's title, drawn as a link when it has one. The rect is the
+ *  hit area and paints nothing: WebKit does not reliably hit-test `<text>`, and
+ *  a zoomed-out title is too small a target anyway. Without a link this is the
+ *  bare `<text>`, so a render with none stays byte-identical. */
+function title(n: PNode, x: number, y: number, fill: string, maxW: number, rc: RC): string {
+  const size = rc.fx(13);
+  const shown = fit(n.label, maxW, size, "500", rc.fam);
+  const text = `<text x="${x}" y="${y}" font-size="${size}" font-weight="500" fill="${fill}">${esc(shown)}</text>`;
+  if (!n.link) return text;
+  const w = Math.ceil(measure(shown, size, "500", rc.fam));
+  const hit = `<rect x="${x}" y="${y - Math.ceil(size * 1.05)}" width="${w}" height="${Math.ceil(size * 1.4)}" fill="none" pointer-events="all"/>`;
+  return `<a class="sq-link" href="${esc(n.link)}" target="_blank" rel="noopener noreferrer">${hit}${text}</a>`;
+}
+
 function leaf(n: PNode, rc: RC, dimmed: boolean, L: string[]) {
   const { t } = rc;
   const op = dimmed ? ` opacity="${DIM}"` : "";
@@ -510,9 +529,7 @@ function leaf(n: PNode, rc: RC, dimmed: boolean, L: string[]) {
   // before the ellipsis. It stays the card's tagline and the hover card's text.
   const second = n.subtitle;
   const labelY = second ? n.y + n.h / 2 - 1 : n.y + n.h / 2 + 5;
-  L.push(
-    `<text x="${px + PLATE + PAD}" y="${labelY}" font-size="${rc.fx(13)}" font-weight="500" fill="${ctx ? t.muted : t.ink}">${esc(fit(n.label, maxLabel, rc.fx(13), "500", rc.fam))}</text>`,
-  );
+  L.push(title(n, px + PLATE + PAD, labelY, ctx ? t.muted : t.ink, maxLabel, rc));
   if (second)
     L.push(
       `<text x="${px + PLATE + PAD}" y="${n.y + n.h / 2 + 15}" font-size="${rc.fx(11)}" fill="${t.faint}">${esc(fit(second, maxLabel, rc.fx(11), "400", rc.fam))}</text>`,
@@ -551,9 +568,7 @@ function person(n: PNode, rc: RC, dimmed: boolean, L: string[]) {
   const tx = n.x + PAD + r * 2 + PAD;
   const maxLabel = n.w - (tx - n.x) - PAD;
   // a name and nothing under it: an actor tile carries no caption line
-  L.push(
-    `<text x="${tx}" y="${cy + 5}" font-size="${rc.fx(13)}" font-weight="500" fill="${t.ink}">${esc(fit(n.label, maxLabel, rc.fx(13), "500", rc.fam))}</text>`,
-  );
+  L.push(title(n, tx, cy + 5, t.ink, maxLabel, rc));
   L.push(`</g>`);
 }
 
@@ -1756,6 +1771,7 @@ export function renderSVG(p: Positioned, t: Theme, opts: RenderOpts = {}): strin
   if (lit || p.nodes.some((n) => n.kind === "person") || (p.notes ?? []).length)
     inline.push(def(rc, rc.shadow, shadowFilter(rc.t, rc.shadow)));
   if (p.nodes.some((n) => n.external)) inline.push(def(rc, rc.hatch, hatchPattern(rc.t, rc.hatch)));
+  if (p.nodes.some((n) => n.link)) inline.push(def(rc, "sq-link-css", LINK_CSS));
   for (const d of inline) if (d) L.push(`<defs>${d}</defs>`);
   const defs = iconDefs(p, rc);
   if (defs) L.push(defs);

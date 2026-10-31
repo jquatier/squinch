@@ -115,9 +115,16 @@ owns it or where it lives — drawn always, a step quieter than a description.
 Leaves only: a `person` has no line under its name and a card's is its
 `description`, so the check warns on both rather than drawing nothing. Keep it short:
 past 24 characters the check warns, and a leaf widens to fit what it holds.
+`link` makes a leaf's or person's title a hyperlink that opens in a new tab:
+`api = aws/lambda "API" { link: "https://runbooks.example.com/api" }`. It takes
+an absolute `http` or `https` URL in quotes, and anything else is a check error.
+A container warns instead, because clicking a card zooms into it. A browser only
+follows a link in an SVG it opens or inlines, so one shown through `<img>` (a
+GitHub README, for one) does not react, and a PNG carries no link at all.
 Any other key on a node, container, zone or note warns as unknown, with a
-did-you-mean — `tech:` and `technology:` point at `subtitle:`, `owner:` and
-`team:` at `domain:` — and a note's one attr takes one value, `style: warning`.
+did-you-mean — `tech:` and `technology:` point at `subtitle:`, `url:` and
+`href:` at `link:`, `owner:` and `team:` at `domain:` — and a note's one attr
+takes one value, `style: warning`.
 
 - `external` is drawn (hatched surface, DESIGN §3) and may sit on a whole
   `system`/`container` as well as a node. `person` and `datastore` are

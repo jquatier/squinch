@@ -412,5 +412,5 @@ const CHROME_CSS =
   "transition:opacity .3s;background:transparent}" +
   "body.presenting #sq-stage{padding:0}" +
   "body.presenting.idle #sq-bar,body.presenting.idle #sq-handle{opacity:0;pointer-events:none}" +
-  "body.presenting.idle,body.presenting.idle #sq-stage{cursor:none}" +
+  "body.presenting.idle,body.presenting.idle #sq-stage,body.presenting.idle .sq-link{cursor:none}" +
   "@media (prefers-reduced-motion:reduce){#sq-live,#sq-ghost{transition:none!important}}";

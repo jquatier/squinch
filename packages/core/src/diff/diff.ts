@@ -191,6 +191,12 @@ export function diffModels(before: SModel, after: SModel): DiffResult {
         detail: `${path} subtitle`,
         before: b.subtitle ?? "(none)", after: a.subtitle ?? "(none)",
       });
+    if ((b.link ?? "") !== (a.link ?? ""))
+      add({
+        kind: "changed", weight: "cosmetic", subject: "node", id: path,
+        detail: `${path} link`,
+        before: b.link ?? "(none)", after: a.link ?? "(none)",
+      });
     if ((b.color ?? "") !== (a.color ?? ""))
       add({
         kind: "changed", weight: "cosmetic", subject: "node", id: path,

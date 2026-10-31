@@ -133,6 +133,19 @@ export function buildProject(input: ProjectFile[]): BuildResult {
     }
     return undefined;
   };
+  /**
+   * A `link:` reaches the SVG as an `href`, and exported SVGs never carry JS, so
+   * this allows http(s) and nothing else. A regex rather than `new URL()`: that
+   * accepts `java\tscript:` and rewrites hosts, and a render must not depend on
+   * whichever URL parser the host has. `user@` is refused because it makes
+   * `https://good.example@evil.example` read as the wrong site.
+   */
+  const checkLink = (ctx: Ctx, at: SyntaxNode, value: string): string | undefined => {
+    if (/^[\x21-\x7e]+$/.test(value) && /^https?:\/\/[^\\/?#@]+(?:[/?#][^\\]*)?$/i.test(value)) return value;
+    error(ctx, at, `\`link\` must be an http or https URL, not \`${value}\``,
+      `write it in quotes as "https://example.com/runbook": plain ASCII, no backslashes, nothing before an @ in the host`);
+    return undefined;
+  };
 
   const attrsOf = (ctx: Ctx, block: SyntaxNode | null) => {
     const attrs: Record<string, string> = {};
@@ -410,17 +423,21 @@ export function buildProject(input: ProjectFile[]): BuildResult {
       // `subtitle:` is the leaf's own field, like `description`, not a bag entry
       const subtitle = meta.attrs["subtitle"];
       delete meta.attrs["subtitle"];
+      const link = meta.attrs["link"] === undefined ? undefined : checkLink(ctx, decl, meta.attrs["link"]);
+      delete meta.attrs["link"];
       // Attr keys, like the edge list at EDGE_ATTR_KEYS: a key nobody reads is
       // a silent no-op, which the check contract forbids. A warning, and the
       // key stays in `attrs` (hover cards still show it). The did-you-mean
       // carries the C4 prior — an agent that has written `technology` under a
       // container's name a thousand times reaches for it here first, and
       // levenshtein cannot get from there to `subtitle`.
-      const NODE_ATTR_KEYS = ["description", "subtitle", "tags", "color", "badge"];
+      const NODE_ATTR_KEYS = ["description", "subtitle", "link", "tags", "color", "badge"];
       const SUBTITLE_ALIASES = ["tech", "technology", "stack", "caption", "tagline", "sub"];
+      const LINK_ALIASES = ["url", "href", "hyperlink"];
       for (const key of Object.keys(meta.attrs)) {
         if (NODE_ATTR_KEYS.includes(key)) continue;
-        const sug = SUBTITLE_ALIASES.includes(key) ? "subtitle" : suggest(key, NODE_ATTR_KEYS);
+        const sug = SUBTITLE_ALIASES.includes(key) ? "subtitle"
+          : LINK_ALIASES.includes(key) ? "link" : suggest(key, NODE_ATTR_KEYS);
         warn(ctx, decl, `unknown node attribute \`${key}\``,
           sug ? `did you mean \`${sug}\`?` : `one of: ${NODE_ATTR_KEYS.join(", ")}`);
       }
@@ -465,6 +482,7 @@ export function buildProject(input: ProjectFile[]): BuildResult {
         icon, kinds,
         description: meta.description,
         subtitle: kinds.includes("person") ? undefined : subtitle,
+        link,
         tags: [...new Set([...headTags, ...meta.tags])],
         attrs: meta.attrs,
         color: meta.attrs["color"] ? checkHue(ctx, decl, meta.attrs["color"]) : undefined,
@@ -487,6 +505,9 @@ export function buildProject(input: ProjectFile[]): BuildResult {
         if (meta.attrs["subtitle"] !== undefined)
           warn(ctx, body, "`subtitle` is a leaf attribute",
             "on a container the line under the name is `description:`");
+        if (meta.attrs["link"] !== undefined)
+          warn(ctx, body, "`link` is a leaf attribute",
+            "clicking a card zooms into it; put the link on a leaf");
         // Attr keys, like the leaf and edge lists: a key nobody reads is a
         // silent no-op. `owner`/`team` are what people write for the shelf's
         // ownership chip, whose name is `domain:`; edit distance cannot get
@@ -494,7 +515,7 @@ export function buildProject(input: ProjectFile[]): BuildResult {
         const CONTAINER_ATTR_KEYS = ["description", "icon", "glyph", "domain", "preview", "tags", "color"];
         const DOMAIN_ALIASES = ["owner", "team", "squad"];
         for (const key of Object.keys(meta.attrs)) {
-          if (CONTAINER_ATTR_KEYS.includes(key) || key === "subtitle") continue;
+          if (CONTAINER_ATTR_KEYS.includes(key) || key === "subtitle" || key === "link") continue;
           const sug = DOMAIN_ALIASES.includes(key) ? "domain" : suggest(key, CONTAINER_ATTR_KEYS);
           warn(ctx, body, `unknown container attribute \`${key}\``,
             sug ? `did you mean \`${sug}\`?` : `one of: ${CONTAINER_ATTR_KEYS.join(", ")}`);

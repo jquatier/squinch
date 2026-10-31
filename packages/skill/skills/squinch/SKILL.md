@@ -140,8 +140,10 @@ components or the layout: the diagram shows them.
    the request implies is a guess presented as truth — leave it out. The same
    goes for glue: an API or worker you put between two things the request
    names, and a product you picked where it named only a kind ("Postgres" is
-   not "RDS"). When the picture cannot be drawn without filling a gap, draw
-   the plainest reading and say what you guessed in the hand-over.
+   not "RDS"). A `link:` is the same: use a URL the request or the code gives
+   you, never one you composed. When the picture cannot be drawn without
+   filling a gap, draw the plainest reading and say what you guessed in the
+   hand-over.
 
 ## Language
 
@@ -177,6 +179,10 @@ system shop "Order Service" {         // systems/containers nest arbitrarily
     description: "Validates and persists"
     subtitle: "Lambda · Node 20"      // a few words under the label, always
                                       // drawn: runtime, owner, region
+    link: "https://runbooks.acme.dev/create"  // makes the title a hyperlink, in
+                                      // quotes, http(s) only, leaves only: a
+                                      // card's click zooms. Only a URL you were
+                                      // given (quality bar 7)
     tags: #pci
   }
   db     = aws/dynamodb    "Orders Table" datastore #pci

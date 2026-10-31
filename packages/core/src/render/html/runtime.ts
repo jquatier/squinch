@@ -417,6 +417,10 @@ function boot() {
   // On the stage, not the live layer: the margin around the artwork is backdrop
   // too, and with a camera the artwork can be anywhere inside it.
   stage.addEventListener("click", (e) => {
+    // A `link:` title leaves; it never dives or climbs. A mouse click drops the
+    // focus it took, or the next Enter reopens the link instead of stepping.
+    const link = (e.target as Element).closest?.("a") as HTMLElement | null | undefined;
+    if (link) { if (e.detail) link.blur(); return; }
     const el = (e.target as Element).closest?.("[data-path]");
     const path = el?.getAttribute("data-path");
     if (path) {
@@ -495,10 +499,10 @@ function boot() {
     if (e.metaKey || e.ctrlKey || e.altKey) return;
     // An open menu owns Escape; it closes the menu, not the presentation.
     if (e.key === "Escape" && openHop) { e.preventDefault(); return closeMenu(true); }
-    // A focused button keeps its own activation keys. This handler used to
-    // swallow Space and Enter and step the deck instead, which made every
+    // A focused button or link keeps its own activation keys. This handler used
+    // to swallow Space and Enter and step the deck instead, which made every
     // button in the file — tabs, palette, Present — dead to the keyboard.
-    const onButton = !!(e.target as Element | null)?.closest?.("button");
+    const onButton = !!(e.target as Element | null)?.closest?.("button,a[href]");
     if (onButton && (e.key === " " || e.key === "Enter")) return;
     // Shift+Arrow pans. Checked before the switch, which reads `e.key` and so
     // cannot tell a shifted arrow from a plain one.
