@@ -14,6 +14,9 @@ import type { SModel, SView, Side, Diagnostic, Hue, RelPos, ZoneKind, ZoneLabelP
 import type { ThemeFont } from "../themes/index.js";
 
 const LEAF_TIERS = [120, 160, 200, 240];
+/** Past 240 only a label earns more room: a long subtitle on every leaf would
+ *  otherwise widen a whole view for text that can be shortened. */
+const LEAF_LABEL_TIERS = [240, 280, 320];
 const CARD_TIERS = [200, 240, 280, 320];
 const LEAF_H = 64;
 /** 88 → 96: the card grew a 30px shelf along its bottom, and 66 of body is
@@ -224,10 +227,23 @@ function sizeOf(n: VNode, font: Pick<ThemeFont, "metrics" | "scale">): { w: numb
     measure(n.label, fx(13), "500", fam),
     measure(n.subtitle ?? "", fx(11), "400", fam),
   ) + PAD;
-  const w = LEAF_TIERS.find((t) => t >= need) ?? LEAF_TIERS[LEAF_TIERS.length - 1];
+  const labelNeed = PAD + PLATE + PAD + measure(n.label, fx(13), "500", fam) + PAD;
+  const w = LEAF_TIERS.find((t) => t >= need)
+    ?? LEAF_LABEL_TIERS.find((t) => t >= labelNeed)
+    ?? LEAF_LABEL_TIERS[LEAF_LABEL_TIERS.length - 1];
   // An actor is shorter than a service: no description line, and its round
   // avatar reads at 34 where a service plate reads at 40.
   return { w, h: n.kind === "person" ? PERSON_H : LEAF_H };
+}
+
+/** In a rightward flow a layer is a column, and ELK centres a narrower node in
+ *  it, which reads as a mistake beside a wider one (DESIGN: nothing
+ *  almost-aligned). Per node because ELK does not inherit this option. */
+function alignColumnsLeft(graph: any) {
+  for (const c of graph.children ?? []) {
+    c.layoutOptions = { ...(c.layoutOptions ?? {}), "elk.alignment": "LEFT" };
+    alignColumnsLeft(c);
+  }
 }
 
 export async function layoutView(
@@ -1552,6 +1568,7 @@ export async function layoutView(
     const directed = [...frameDir.keys()].sort((a, b) => depth(b) - depth(a) || (a < b ? -1 : a > b ? 1 : 0));
     for (const p of directed) {
       const g = frameGraph(p);
+      if (frameDir.get(p) === "right") alignColumnsLeft(g);
       try {
         laidOut.set(p, (await new ELK().layout(g)).children[0]);
       } catch (err) {
@@ -1634,6 +1651,8 @@ export async function layoutView(
       })),
     ],
   };
+
+  if (flowsRight) alignColumnsLeft(elkGraph);
 
   let out: any;
   try {

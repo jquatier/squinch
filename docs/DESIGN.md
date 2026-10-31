@@ -34,7 +34,7 @@
 ## 2. Tokens
 
 - **Grid**: base unit `8px`, and it governs the numbers *we* choose: node
-  dimensions (tiers `120/160/200/240` and `200/240/280/320`, heights `64` leaf,
+  dimensions (tiers `120/160/200/240`, plus `280/320` a leaf's label can earn, and `200/240/280/320`, heights `64` leaf,
   `96` card, `56` actor), padding, radii, stroke widths, and the `16` minimum
   edge stub. Positions are ELK's and are whole pixels rather than multiples of
   8 — see §1.4.
