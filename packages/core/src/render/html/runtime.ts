@@ -218,7 +218,7 @@ function boot() {
     const bar = viewBar(data.views, view);
     nav.dataset.view = view; // where you are, for a test or a stylesheet to read
     const path = mk("div", "sq-path");
-    const home = btn("sq-home", "\u2302");
+    const home = btn("sq-home");
     home.setAttribute("aria-label", bar.home ?? "home");
     home.title = `Home \u2014 ${bar.home ?? ""}`;
     if (bar.atHome) home.setAttribute("aria-current", "page");

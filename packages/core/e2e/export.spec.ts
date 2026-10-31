@@ -65,8 +65,8 @@ const dir = mkdtempSync(join(tmpdir(), "squinch-e2e-"));
  *  winner over the canvas rect beneath it — WebKit hands the rect back where
  *  Chromium hands back the text, which cost a confusing half hour. */
 const card = (page: Page, path: string) => page.locator(`#sq-live [data-path="${path}"]`);
-async function open(page: Page, opts: HTMLExportOpts = {}, name = "d.html") {
-  const r = await exportHTML([{ name: "shop.squinch", src: SRC }], opts);
+async function open(page: Page, opts: HTMLExportOpts = {}, name = "d.html", src = SRC) {
+  const r = await exportHTML([{ name: "shop.squinch", src }], opts);
   expect(r.ok, r.diagnostics.map((d) => d.message).join("; ")).toBe(true);
   const file = join(dir, `${page.context().browser()?.browserType().name()}-${name}`);
   writeFileSync(file, r.html!);
@@ -241,6 +241,34 @@ test("an open menu owns Escape", async ({ page }) => {
   await page.keyboard.press("Escape");
   await expect(nav.locator(".sq-menu")).toHaveCount(0);
   await expect(nav.locator('[data-hop="#in"]')).toBeFocused();
+});
+
+test("the top hop opens its menu on a short path", async ({ page }) => {
+  // Two unscoped views give the top of the path a hop of its own. Its key was
+  // once "", which reads as no menu open, so the fold measured the open menu as
+  // overflow and hid the hop that had just been clicked. A long path contains
+  // the menu and never showed it, hence the short labels.
+  const src = `system a "A" {
+  x = box "X"
+}
+view top { include * }
+view full { expand * }
+view a { scope a }
+`;
+  await open(page, { view: "a" }, "top-hop.html", src);
+  const nav = page.locator("#sq-nav");
+  const hop = nav.locator(".sq-seg").first();
+  const menu = nav.locator(".sq-menu");
+  await hop.click();
+  await expect(hop).toBeVisible();
+  await expect(menu.getByRole("menuitemradio")).toHaveText([/^top/, /^full/]);
+  await expect(menu.getByRole("menuitemradio").first()).toBeFocused();
+  await page.keyboard.press("Escape");
+  await expect(menu).toHaveCount(0);
+  await expect(hop).toBeFocused();
+  await hop.click();
+  await menu.getByRole("menuitemradio", { name: /^full/ }).click();
+  await expect(nav).toHaveAttribute("data-view", "full");
 });
 
 test("reduced motion cuts straight through — no ghost, ever", async ({ page }) => {

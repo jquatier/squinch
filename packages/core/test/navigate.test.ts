@@ -313,6 +313,11 @@ describe("viewBar — home, a menu per hop, and the flows apart", () => {
     expect(shape(b)).toEqual([["b", "current", ["a", "*b"]]]);
   });
 
+  it("every hop's key is truthy, because a falsy open key reads as no menu open", () => {
+    for (const v of BAR)
+      for (const s of viewBar(BAR, v.name).segments) expect(s.key, `${v.name}: ${s.label}`).toBeTruthy();
+  });
+
   it("an unknown or missing active view falls back to the first", () => {
     expect(viewBar(BAR, "nope").atHome).toBe(true);
     expect(viewBar([], undefined)).toEqual({ home: undefined, atHome: false, segments: [], flows: [] });

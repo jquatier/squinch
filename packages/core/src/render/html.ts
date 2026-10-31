@@ -256,8 +256,8 @@ function document(a: {
   // The view bar leads the header: home, the path to where you stand with a
   // menu of the views beside each hop, and the flows (docs/notes/view-bar.md).
   // It is an empty <nav> the runtime fills, so a reader without script is not
-  // handed a row of dead controls, and it holds no <svg>: its glyphs are text.
-  // The zoom controls are text glyphs, not icons — every <svg> in this file is
+  // handed a row of dead controls, and it holds no <svg>: its glyphs are text,
+  // bar the home icon, which is a CSS mask (HOME_ICON). The zoom controls are text glyphs, not icons — every <svg> in this file is
   // a diagram body or the sprite, and the tests count them — and they are
   // hidden until the runtime says the camera exists: a reader without script
   // gets a static diagram, not three dead buttons.
@@ -296,6 +296,15 @@ function document(a: {
   L.push("</html>");
   return L.join("\n") + "\n";
 }
+
+// The playground's home icon (ViewBar.tsx), as a mask. The character it replaced
+// was drawn by whichever font the reader's machine had. Percent-encoded so the
+// document's only `<svg>` elements stay the diagram bodies and the sprite.
+const HOME_ICON =
+  `url('data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" fill="none" ` +
+  `stroke="%23000" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"%3E` +
+  `%3Cpath d="M2.5 7.25 8 2.75l5.5 4.5"/%3E` +
+  `%3Cpath d="M4 6.25v6.25a1 1 0 0 0 1 1h2V10h2v3.5h2a1 1 0 0 0 1-1V6.25"/%3E%3C/svg%3E')`;
 
 const CHROME_CSS =
   "*{box-sizing:border-box}" +
@@ -359,7 +368,9 @@ const CHROME_CSS =
   "#sq-nav button:hover{color:var(--sq-ink)}" +
   ".sq-path{display:flex;align-items:center;gap:1px;padding:2px;min-width:0;" +
   "border:1px solid var(--sq-border);border-radius:8px;background:var(--sq-surface)}" +
-  "#sq-nav .sq-home{width:26px;height:26px;font-size:15px;line-height:1;flex:none}" +
+  "#sq-nav .sq-home{width:26px;height:26px;display:flex;align-items:center;justify-content:center;flex:none}" +
+  `.sq-home::before{content:"";width:15px;height:15px;background:currentColor;` +
+  `-webkit-mask:${HOME_ICON} center/contain no-repeat;mask:${HOME_ICON} center/contain no-repeat}` +
   "#sq-nav .sq-home[aria-current]{background:var(--sq-canvas);color:var(--sq-ink)}" +
   ".sq-div{width:1px;height:14px;background:var(--sq-border);margin:0 4px;flex:none}" +
   ".sq-sep{color:var(--sq-border);padding:0 1px}" +

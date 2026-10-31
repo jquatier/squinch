@@ -200,7 +200,8 @@ export function viewBar(views: NavView[], activeView: string | undefined): ViewB
   if (roots.length > 1) {
     const here = !scope && !active.flow && roots.includes(active);
     segments.push({
-      key: "", label: labelOf(here ? active : roots[0]),
+      // never empty: both bars read a falsy open key as "no menu is open"
+      key: "#top", label: labelOf(here ? active : roots[0]),
       state: here ? "current" : "link",
       items: roots.map((v) => item(v, v === active)),
     });

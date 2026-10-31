@@ -100,6 +100,10 @@ the export hides its zoom buttons, since pinch-to-zoom covers them.
   leaves the deck. So "an open menu owns Escape" holds only where fullscreen
   was refused (an iframe) or never entered. The export e2e asserts it outside
   presentation for that reason.
+- A hop's key must be truthy, because both bars read a falsy open key as "no
+  menu open". The top hop's was once `""`. On a path narrower than its menu, the
+  export's fold measured the open menu as overflow and hid the hop just clicked,
+  so the bug came and went with the length of a view title.
 - The hidden bar's handle disappears the moment hovering it works. Playwright's
   own `hover()` reads that as a failure and retries until the timeout, so the
   tests move the mouse by hand.
