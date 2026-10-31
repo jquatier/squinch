@@ -552,6 +552,25 @@ describe("round-3 gauntlet findings", () => {
     expect(svg.startsWith("<svg")).toBe(true);
   });
 
+  it("an html export says when --theme cost it the palette switch", async () => {
+    const f = join(dir, "d.squinch");
+    writeFileSync(f, GOOD);
+    const o = join(dir, "x.html");
+    const render = async (...flags: string[]) => {
+      err.length = 0;
+      expect(await main(["render", f, ...flags, "-o", o])).toBe(0);
+      return { html: readFileSync(o, "utf8"), noted: err.some((l) => l.startsWith("note: --theme")) };
+    };
+    const themed = await render("--theme", "light");
+    expect(themed.html).not.toContain('id="sq-theme"');
+    expect(themed.noted).toBe(true);
+    // no flag keeps both; one name in --themes asked for exactly one palette
+    const plain = await render();
+    expect(plain.html).toContain('id="sq-theme"');
+    expect(plain.noted).toBe(false);
+    expect((await render("--themes", "light")).noted).toBe(false);
+  });
+
   it("--theme overrides the theme declared in the file", async () => {
     // the precedence `--theme dark` depends on: a file-level `theme` is the
     // default, the flag is the override

@@ -136,6 +136,12 @@ and most of `Stage.tsx` disappears:
 - **Not part of `--sync`.** That is the committed-artifact model; this
   is a share artifact, ~150–230 KB per project, and byte-gating it in CI before
   the format has settled would freeze it early.
+- **`--theme` on an export ships that palette alone, and says so.** It means the
+  same as on an SVG or PNG: you get the palette you named. Bundling the other one
+  anyway was tried. Either the reader's OS then overrode the flag, or the flag won
+  and the only gain was a switch, at 276 KB to 449 KB on one real project. So the
+  CLI prints a note instead, because a `--theme` carried over from an SVG command
+  otherwise removes the switch with nothing to say why.
 - **One body per (view × palette × flow hop).** A `show flow` view bakes one
   frame per hop *visible at that altitude* — `RenderResult.flow.steps` is
   already that number, and it is exactly what a presenter can walk to.

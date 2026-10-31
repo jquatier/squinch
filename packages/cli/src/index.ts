@@ -63,8 +63,9 @@ Render options
                     automatic view every container gets, so every card that
                     zooms in the playground zooms in the export; 'declared'
                     is smaller but leaves those cards dead
-  --themes <a,b>    html only: palettes to bundle (default: the theme and its
-                    prefers-color-scheme counterpart)
+  --themes <a,b>    html only: palettes to bundle (default: both, following the
+                    reader's prefers-color-scheme, with a switch; --theme or one
+                    name here ships that palette alone)
   --no-flow-steps   html only: skip the per-hop frames a 'show flow' view needs
                     for stepping in presentation mode
   --scale <n>       png only: multiply the diagram's natural size
@@ -392,6 +393,10 @@ async function cmdRender(path: string, flags: Record<string, string | boolean>):
       `${r.manifest.renders} renders, ${kb} KB` +
       (walked.length ? ` (${walked.map(([v, n]) => `${v}: ${n} hops`).join(", ")})` : ""),
     );
+    // Carried over from an svg command, --theme quietly costs the reader the
+    // switch. `--themes` asked for exactly this, so it needs no telling.
+    if (theme && !themesFlag)
+      console.error(`note: --theme ships ${theme} alone, with no palette switch; drop it to bundle both`);
     return 0;
   }
 
