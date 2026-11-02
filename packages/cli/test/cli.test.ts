@@ -6,6 +6,7 @@ import { fileURLToPath } from "node:url";
 import { main } from "../src/index.js";
 import { BOOLEAN_FLAGS } from "../src/args.js";
 import { watchPaths } from "../src/watch.js";
+import { BACKOFF_MS, GRACE_MS } from "../src/update.js";
 
 let dir: string;
 let out: string[];
@@ -911,6 +912,69 @@ describe("update notices through the CLI", () => {
     expect(await main(["skill", proj], { update: update({ cwd: proj }) })).toBe(0);
     expect(err.join("\n")).not.toContain("skill:");
     expect(readFileSync(file, "utf8")).toContain(`installed by squinch ${manifest.version} `);
+  });
+
+  describe("the registry refresh", () => {
+    // A stale cache with no `latest` — exactly what every `check` used to
+    // leave behind: the attempt stamp, and nothing it learned.
+    const stale = (fetchImpl: unknown) => {
+      const u = update({ fetch: fetchImpl });
+      writeFileSync(join(u.cacheDir, "update.json"), JSON.stringify({ checkedAt: NOW - BACKOFF_MS }));
+      return u;
+    };
+    const cached = () => JSON.parse(readFileSync(join(dir, "cache", "update.json"), "utf8"));
+    /** A registry that answers after the command is done — the command's work
+     *  is synchronous, so in the real CLI no fetch can answer sooner. */
+    const answersIn = (ms: number, version: string) =>
+      vi.fn(() => new Promise<Response>((r) =>
+        setTimeout(() => r({ ok: true, json: async () => ({ version }) } as unknown as Response), ms)));
+
+    it("a check that started one waits for its answer, so the next run can show the notice", async () => {
+      // Regression: `cli.ts` exits the moment `main` returns, and `main` used
+      // to return without waiting — `latest` was never written by a `check`.
+      const u = stale(answersIn(20, "9.9.9"));
+      expect(await main(["check", write()], { update: u })).toBe(0);
+      expect(u.fetch).toHaveBeenCalledTimes(1);
+      expect(cached()).toEqual({ checkedAt: NOW, latest: "9.9.9" });
+      err = [];
+      expect(await main(["check", write()], { update: update({ fetch: answersIn(20, "9.9.9") }) })).toBe(0);
+      expect(err.at(-1)).toMatch(/^update: squinch 9\.9\.9 is available/);
+    });
+
+    it("a failed command still lets its refresh finish", async () => {
+      const f = join(dir, "bad.squinch");
+      writeFileSync(f, `a = box "A"\na -> nope\nview v { include * }\n`);
+      expect(await main(["check", f], { update: stale(answersIn(20, "9.9.9")) })).toBe(1);
+      expect(cached().latest).toBe("9.9.9");
+    });
+
+    describe("costs", () => {
+      beforeEach(() => vi.useFakeTimers({ toFake: ["setTimeout", "clearTimeout"] }));
+      afterEach(() => vi.useRealTimers());
+      const track = (p: Promise<number>) => {
+        const s = { done: false, code: -1 };
+        void p.then((c) => Object.assign(s, { done: true, code: c }));
+        return s;
+      };
+
+      it("a hung registry costs at most GRACE_MS, and the exit code survives it", async () => {
+        const u = stale(vi.fn(() => new Promise<Response>(() => {})));
+        const run = track(main(["--version"], { update: u }));
+        await vi.advanceTimersByTimeAsync(GRACE_MS - 1);
+        expect(run.done).toBe(false);
+        await vi.advanceTimersByTimeAsync(1);
+        expect(run).toEqual({ done: true, code: 0 });
+        expect(cached()).toEqual({ checkedAt: NOW }); // the attempt, backing off
+      });
+
+      it("a fresh cache costs nothing: no fetch, no wait", async () => {
+        const u = update({ fetch: vi.fn(() => new Promise<Response>(() => {})) });
+        const run = track(main(["--version"], { update: u }));
+        await vi.advanceTimersByTimeAsync(0);
+        expect(run).toEqual({ done: true, code: 0 });
+        expect(u.fetch).not.toHaveBeenCalled();
+      });
+    });
   });
 
   it("is silent under CI", async () => {

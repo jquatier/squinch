@@ -7,10 +7,12 @@
 // why nothing here looks at whether stderr is a TTY: npm's convention of going
 // quiet off-terminal would make the feature invisible to its audience. The
 // notice is computed synchronously from a cache alone; the registry lookup
-// that refreshes that cache runs in the background and is never awaited — the
-// process exits when the command is done, a slow fetch dies with it, and the
-// *next* run reads what a completed one wrote. docs/notes/update-check.md has
-// the reasoning and the rejected alternatives.
+// that refreshes that cache starts before the command and, on the rare run that
+// started one, gets a short grace once the command is done (`settleRefresh`) —
+// a command's work is synchronous, so the fetch cannot progress while it runs.
+// A fetch slower than the grace dies with the process, and the *next* run reads
+// what a completed one wrote. docs/notes/update-check.md has the reasoning and
+// the rejected alternatives.
 import {
   closeSync,
   existsSync,
@@ -61,6 +63,15 @@ export const FRESH_MS = 24 * 60 * 60 * 1000;
  *  every notice until tomorrow. */
 export const BACKOFF_MS = 10 * 60 * 1000;
 export const TIMEOUT_MS = 3000;
+/** How long a finished command waits for a refresh it started. Every command
+ *  does synchronous work that blocks the event loop, so the fetch cannot even
+ *  resolve DNS until the command returns; without this, `process.exit` killed
+ *  it every time and `check` never recorded a `latest` (update-check.md).
+ *  Paid only by a run whose cache was stale — once a day after a success,
+ *  once per BACKOFF_MS after a failure — never by any other command. */
+export const GRACE_MS = 500;
+
+const DONE: Promise<void> = Promise.resolve();
 
 const VERSION_RE = /^(\d+)\.(\d+)\.(\d+)(?:-([0-9A-Za-z.-]+))?$/;
 const STAMP_RE = /<!-- installed by squinch ([0-9A-Za-z.+-]+) /;
@@ -247,20 +258,22 @@ export function collectNotices(pkg: Pkg, deps: UpdateDeps): Notices {
   return notices;
 }
 
-/** Fire-and-forget: refreshes the cache for the *next* run when this one's is
- *  stale. Never throws, never rejects, never keeps the process alive — an
- *  early `ENOTFOUND` reaching the unhandled-rejection handler would exit a
- *  clean `check` with 1, the one failure a gate must never have. */
-export function refreshCache(pkg: Pkg, deps: UpdateDeps): void {
-  if (isSkipped(deps.env)) return;
+/** Refreshes the cache for the *next* run when this one's is stale. The
+ *  returned promise settles when the attempt is over — already settled when
+ *  none started — and is for `settleRefresh`; nothing else needs to await it.
+ *  Never throws, never rejects — an early `ENOTFOUND` reaching the
+ *  unhandled-rejection handler would exit a clean `check` with 1, the one
+ *  failure a gate must never have. */
+export function refreshCache(pkg: Pkg, deps: UpdateDeps): Promise<void> {
+  if (isSkipped(deps.env)) return DONE;
   const fetchFn = deps.fetch;
-  if (typeof fetchFn !== "function") return;
+  if (typeof fetchFn !== "function") return DONE;
   let dir: string;
   let cache: Cache | undefined;
   try {
     dir = cacheDirOf(deps);
     cache = readCache(dir);
-    if (!isStale(cache, deps.now())) return;
+    if (!isStale(cache, deps.now())) return DONE;
     // Stamp the attempt first so concurrent processes don't all fetch, and a
     // failure backs off rather than retrying every call. A known `latest`
     // survives the attempt: a fact from yesterday beats none.
@@ -269,12 +282,12 @@ export function refreshCache(pkg: Pkg, deps: UpdateDeps): void {
       ...(cache?.latest ? { latest: cache.latest } : {}),
     });
   } catch {
-    return;
+    return DONE;
   }
   const ctrl = new AbortController();
   const timer = setTimeout(() => ctrl.abort(), TIMEOUT_MS);
   timer.unref?.();
-  void (async () => {
+  return (async () => {
     try {
       const res = await fetchFn(`${REGISTRY}/${pkg.name}/latest`, {
         signal: ctrl.signal,
@@ -291,6 +304,28 @@ export function refreshCache(pkg: Pkg, deps: UpdateDeps): void {
       clearTimeout(timer);
     }
   })().catch(() => {});
+}
+
+/** Waits for a refresh at most `ms` — the whole cost of the update check, and
+ *  zero when no refresh started (the promise is already settled). The grace
+ *  timer is deliberately *not* unref'd: with nothing else holding the loop,
+ *  Node would exit on its own with status 0 before `cli.ts` could pass on the
+ *  command's real exit code. It is cleared as soon as the race is decided. */
+export async function settleRefresh(
+  refresh: Promise<void>,
+  ms: number = GRACE_MS,
+): Promise<void> {
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  try {
+    await Promise.race([
+      refresh,
+      new Promise<void>((r) => {
+        timer = setTimeout(r, ms);
+      }),
+    ]);
+  } finally {
+    clearTimeout(timer);
+  }
 }
 
 /** The stderr lines. Prefixes are `update:` and `skill:` — lowercase word,

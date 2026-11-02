@@ -34,15 +34,30 @@ A coding agent, in tool output. That single fact decides most of the design:
   — an upgrade can change render bytes, which makes every committed SVG
   stale under `--check`, and that is the user's decision.
 
-## The mechanism: cache, then notice; never wait
+## The mechanism: cache, then notice; a short grace only when it fetched
 
 `collectNotices` is synchronous and reads only a cache file and a few
-SKILL.md heads. `refreshCache` starts a registry GET when the cache is stale
-and is **never awaited**: `cli.ts` calls `process.exit` the moment the
-command returns, a slow fetch dies with it, and the next run reads what a
-finished one wrote. The command's own runtime is the fetch's window — it
-starts before dispatch, and a `check` is ~0.7 s startup-bound — so the wall
-clock cost is zero.
+SKILL.md heads. `refreshCache` starts a registry GET when the cache is stale,
+before dispatch, and `main` gives it **`GRACE_MS` (500 ms) once the command is
+done** (`settleRefresh`) before `cli.ts` calls `process.exit`. A fetch slower
+than that dies with the process, and the next run reads what a finished one
+wrote. When the cache is fresh no fetch starts, the promise is already
+settled, and the wait costs nothing — so the grace is paid once a day after
+a success, once per backoff after a failure, and by no other run.
+
+This used to be "never awaited", on the theory that the command's own
+runtime was the fetch's window and a `check` (~0.5 s) was long enough. It is
+not a window at all: every command's work is synchronous, so the event loop
+does not turn while it runs and the fetch cannot so much as resolve DNS
+until the command returns — at which point `process.exit` killed it. Every
+`check`, `--version`, `icons` and single-view `render` wrote the attempt
+stamp and never a `latest`; only a multi-view `render --sync`, with enough
+`await`s inside it, let a fetch finish. Users saw `update.json` rewritten
+every ten minutes and never a notice. Measured against the real registry
+(~115 ms away), a stale-cache `check` now records `latest` every time, at
+~100 ms over a fresh-cache one. The grace timer is deliberately not
+`unref`'d: with nothing else holding the loop, Node would exit by itself
+with status 0 and swallow a failing command's exit code.
 
 Two consequences, both handled:
 
@@ -80,9 +95,12 @@ never flagged; the plugin updates itself.
 
 ## Rejected
 
-- **Await the fetch, with a short timeout.** Adds up to the timeout to every
-  command on a slow network, for a notice that is fine arriving one run
-  late.
+- **Await the fetch on every run, with a timeout.** What shipped awaits
+  only the run that *started* a fetch; awaiting on every run would add the
+  wait to commands that have nothing in flight. The notice still arrives
+  one run late — the JSON is printed during the command, and showing a
+  notice on stderr that the JSON of the same run lacks would break their
+  parity.
 - **A detached child process** (update-notifier's answer to the same
   problem). A second process per invocation, and the gauntlet bundles the
   CLI to one file, so there is no script path to hand it.

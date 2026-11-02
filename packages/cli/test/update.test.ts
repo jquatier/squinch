@@ -3,8 +3,8 @@ import { mkdtempSync, mkdirSync, rmSync, writeFileSync, readFileSync, readdirSyn
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import {
-  collectNotices, compareVersions, formatNotices, refreshCache, isSkipped,
-  BACKOFF_MS, FRESH_MS, REGISTRY, TIMEOUT_MS, type UpdateDeps,
+  collectNotices, compareVersions, formatNotices, refreshCache, settleRefresh, isSkipped,
+  BACKOFF_MS, FRESH_MS, GRACE_MS, REGISTRY, TIMEOUT_MS, type UpdateDeps,
 } from "../src/update.js";
 
 const PKG = { name: "squinch", version: "0.4.0" };
@@ -200,6 +200,42 @@ describe("the update notice", () => {
     const d2 = deps();
     refreshCache(PKG, d2);
     expect(d2.fetch).toHaveBeenCalledTimes(1);
+  });
+
+  it("returns a promise that settles once the answer is written, and never rejects", async () => {
+    await refreshCache(PKG, deps({ fetch: okFetch("0.6.0") }));
+    expect(readCache()).toEqual({ checkedAt: NOW, latest: "0.6.0" });
+    rmSync(cache, { recursive: true, force: true });
+    await expect(refreshCache(PKG, deps({ fetch: vi.fn(async () => { throw new Error("ENOTFOUND"); }) }))).resolves.toBeUndefined();
+  });
+
+  it("returns an already-settled promise when it starts nothing", async () => {
+    seed({ checkedAt: NOW, latest: "0.4.0" });
+    let settled = false;
+    void refreshCache(PKG, deps()).then(() => { settled = true; });
+    await Promise.resolve();
+    expect(settled).toBe(true);
+    void refreshCache(PKG, deps({ env: { CI: "1" } }));
+  });
+
+  it("settleRefresh waits for the refresh, but never past its grace", async () => {
+    vi.useFakeTimers({ toFake: ["setTimeout", "clearTimeout"] });
+    try {
+      let done = false;
+      void settleRefresh(new Promise(() => {})).then(() => { done = true; });
+      await vi.advanceTimersByTimeAsync(GRACE_MS - 1);
+      expect(done).toBe(false);
+      await vi.advanceTimersByTimeAsync(1);
+      expect(done).toBe(true);
+      expect(vi.getTimerCount()).toBe(0);
+      done = false;
+      void settleRefresh(Promise.resolve()).then(() => { done = true; });
+      await vi.advanceTimersByTimeAsync(0);
+      expect(done).toBe(true);
+      expect(vi.getTimerCount()).toBe(0); // a decided race leaves no timer behind
+    } finally {
+      vi.useRealTimers();
+    }
   });
 
   it("locates the cache by SQUINCH_CACHE_DIR, then XDG_CACHE_HOME, then ~/.cache", () => {

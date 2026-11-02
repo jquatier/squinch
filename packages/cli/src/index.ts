@@ -15,7 +15,7 @@ import { isGitRepo, loadInputAtRef } from "./git.js";
 import { toPosix } from "./paths.js";
 import { watchPaths } from "./watch.js";
 import {
-  collectNotices, defaultDeps, formatNotices, refreshCache, type Notices, type UpdateDeps,
+  collectNotices, defaultDeps, formatNotices, refreshCache, settleRefresh, type Notices, type UpdateDeps,
 } from "./update.js";
 import { createRequire } from "node:module";
 
@@ -659,19 +659,21 @@ export async function main(
     return command ? 0 : 2;
   }
   // Notices come from the cache and a few file reads, before dispatch; the
-  // registry refresh starts now too, so the command's own runtime is its
-  // window (never awaited — see update.ts). `watch` never returns, so it gets
-  // neither. They print last, on stderr, and only when the command succeeded:
-  // a notice beside a real error reads as part of it.
+  // registry refresh starts now too, and gets a short grace once the command
+  // is done — only when this run started one (see update.ts, GRACE_MS).
+  // `watch` never returns, so it gets neither. Notices print last, on stderr,
+  // and only when the command succeeded: a notice beside a real error reads as
+  // part of it.
   const deps: UpdateDeps = { ...defaultDeps(), ...opts.update };
   const notices = command === "watch" ? {} : collectNotices(PKG, deps);
-  if (command !== "watch") refreshCache(PKG, deps);
+  const refresh = command === "watch" ? Promise.resolve() : refreshCache(PKG, deps);
   const json = command === "check" && flags.format === "json";
   let code: number;
   try {
     code = bareVersion ? cmdVersion() : await dispatch(command!, positionals, flags, notices);
   } catch (e) {
     console.error(`error: ${(e as Error).message}`);
+    await settleRefresh(refresh);
     return 2;
   }
   // `skill` rewrites the very files the skill notice reads, so it reads them
@@ -679,6 +681,7 @@ export async function main(
   // copies `skill` had just replaced and told the reader to run it again.
   const shown = command === "skill" ? collectNotices(PKG, deps) : notices;
   if (code === 0 && !json) for (const line of formatNotices(shown)) console.error(line);
+  await settleRefresh(refresh);
   return code;
 }
 
