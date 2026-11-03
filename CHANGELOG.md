@@ -6,6 +6,12 @@ history too. Sections are drafted by `pnpm release` from the commits since the
 previous tag, then edited by a human before anything is written; the release
 workflow lifts the matching section verbatim into the GitHub Release notes.
 
+## 0.17.1 — 2026-11-03
+
+- Update notices appear again. The CLI never waited for its once-a-day registry lookup, and since every command's work is synchronous the lookup could not run before the process exited, so `check`, `--version`, `icons` and single-view renders never recorded a latest version and never said one was out. A started lookup now gets up to half a second after the command finishes; a fresh cache starts none and costs nothing, and a failing command keeps its exit code.
+- `render -o x.html --theme <name>` says that it shipped that palette alone, with no light/dark switch, and how to get both. `--help` now says what `--themes` defaults to: both palettes with a switch, unless one is named.
+- The site: the palettes band on the landing shows the Kubernetes cluster rather than the products API.
+
 ## 0.17.0 — 2026-10-31
 
 - A leaf's title can be a hyperlink. `link: "https://…"` on a leaf or person makes the title open in a new tab; hovering it shows a pointer and underlines it, and the rest of the leaf stays draggable. Only `http` and `https` are accepted, anything else is a check error, and a container warns because clicking a card zooms into it. A browser only follows a link in an SVG it opens or inlines, so one shown through `<img>` does not react, and a PNG carries no link. The skill teaches the attribute and tells agents never to compose a URL they were not given.
