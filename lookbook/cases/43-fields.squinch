@@ -1,0 +1,116 @@
+// A leaf's schema. A table, collection or topic carries its fields in a
+// `fields { }` block — a name, a type written the way the store spells it
+// (`numeric(10,2)`, `array<map<k, v>>`), then free words for keys and
+// constraints. Writing them changes no picture: the landscape below is what it
+// would be without them. Step into the database — a view scoped to the
+// container that holds the tables — and every field draws; anywhere else,
+// `preview` shows six, or the ones the table's `preview:` picks, with the rest
+// counted. Wires land on the table, never on a row, and `ref` is text: the
+// edge between two tables is the relationship, the ref names the column.
+pack aws
+
+person customer "Customer"
+
+system shop "Checkout" {
+  description: "Takes the order, holds the cart"
+  icon: aws/lambda
+
+  svc = aws/lambda "Order Service" { subtitle: "Lambda · Node 20" }
+
+  container pg "Postgres" {
+    description: "Orders database · 2 tables"
+    icon: logos/postgresql
+
+    orders = sys/table "orders" datastore {
+      preview: [id status total_cents]
+      fields {
+        id             uuid           pk
+        customer_id    uuid           fk ref crm.store.customers
+        status         enum(pending, paid, shipped, refunded)
+        total_cents    bigint
+        currency       char(3)
+        ship_to        "composite (line1, line2, city, postcode, country)"
+        notes          varchar(500)   nullable "free text from support"
+        created_at     timestamptz
+      }
+    }
+
+    order_items = sys/table "order_items" datastore {
+      fields {
+        order_id    uuid           pk fk ref orders.id
+        sku         text           pk
+        quantity    int
+        unit_price  numeric(10,2)
+      }
+    }
+
+    order_items -> orders "order_id"
+  }
+
+  carts = aws/dynamodb "Carts" datastore {
+    subtitle: "single-table design"
+    fields {
+      pk          string   partition  "CART#<cartId>"
+      sk          string   sort       "ITEM#<sku>"
+      gsi1pk      string   index gsi1 "CUSTOMER#<customerId>"
+      qty         number
+      expires_at  number   ttl
+    }
+  }
+
+  svc -> pg.orders "writes"
+  svc -> carts "reads / writes"
+}
+
+system crm "Customers" {
+  description: "Who is buying"
+  icon: aws/ecs
+
+  api = aws/ecs "Customer API" { subtitle: "ECS · Fargate" }
+
+  container store "MongoDB" {
+    icon: logos/mongodb
+    customers = sys/table "customers" datastore {
+      subtitle: "collection"
+      fields {
+        _id               ObjectId          pk
+        email             string            unique
+        address.city      string
+        address.postcode  string
+        tags              array<string>
+      }
+    }
+  }
+  api -> store.customers "reads / writes"
+}
+
+events = logos/apachekafka "order-events" {
+  subtitle: "Kafka topic"
+  fields {
+    order_id             string   key
+    type                 enum(OrderPlaced, OrderPaid)
+    payload.total_cents  long
+    payload.items        array<LineItem>
+  }
+}
+
+customer -> shop.svc "checks out"
+shop.svc -> crm.api "looks up"
+shop.svc ~> events "publishes"
+
+view landscape {
+  title "Checkout — landscape"
+  include *
+}
+
+view database {
+  title "Postgres — standing in the database"
+  scope shop.pg
+}
+
+view overview {
+  title "Checkout — opened, every table previewed"
+  scope shop
+  expand pg
+  preview *
+}

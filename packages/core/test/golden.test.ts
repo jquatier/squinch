@@ -16,6 +16,12 @@ const CASES: { file: string; themes: string[]; view?: string }[] = [
   { file: "examples/landscape.squinch", themes: ["light", "dark"], view: "orders-detail" },
   // the detailed card (`preview orders`): rows under the head, +N on the shelf
   { file: "examples/landscape.squinch", themes: ["light", "dark"], view: "landscape-preview" },
+  // a leaf's schema (docs/notes/fields.md): every field at home altitude, the
+  // `preview:` pick with `+N more fields` elsewhere, a drawn `ref` arrow
+  { file: "examples/fields.squinch", themes: ["light", "dark"], view: "postgres" },
+  { file: "examples/fields.squinch", themes: ["light"], view: "checkout" },
+  { file: "examples/fields.squinch", themes: ["light", "dark"], view: "overview" },
+  { file: "examples/fields.squinch", themes: ["light"], view: "topic" },
 ];
 
 describe("golden renders", () => {

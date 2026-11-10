@@ -25,6 +25,14 @@ system orders "Order Service" {
     subtitle: "DynamoDB"
     description: "Single-table design"
     tags: #pci
+    fields {
+      pk           string  partition  "ORDER#<orderId>"
+      sk           string  sort       "META, or ITEM#<sku>"
+      gsi1pk       string  index gsi1 "CUSTOMER#<customerId>"
+      status       string
+      total_cents  number
+      created_at   string
+    }
   }
   api -> handlers.create, handlers.get
   handlers.create -> db

@@ -517,6 +517,16 @@ A deterministic rule stack, evaluated in fixed order:
    row repeats the card. The card still draws detailed — the fix is the
    author's, usually the part moved up a level rather than wrapped in a system
    of its own, since only they know whether the boundary is meant.
+   **A leaf's `fields`** (§3) ride the same verb and change nothing visible
+   either. Rows are decided last, once every rule below has run, so `only`,
+   context, `detail` and `include` never narrow them. A leaf draws every field
+   at its **home altitude** — the view's scope is the leaf's own container —
+   and, anywhere else, its `preview:` pick (or the first six declared, the rest
+   counted) when `preview <leaf>` or `preview *` reaches it, including inside
+   an expanded frame. Never on a context leaf or a person. A `preview` naming a
+   leaf without fields warns as before; one naming a leaf this view does not
+   draw, or one already at home, warns too. `scope <leaf>` is an error that
+   names the container to scope.
 2. **`only` filters the interior** — the view's *which* axis, applied after
    `expand` so an expanded container's children are filtered too. A container
    survives if it, anything beneath it, or a visible ancestor above it matches

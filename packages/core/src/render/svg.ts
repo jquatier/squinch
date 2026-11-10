@@ -8,7 +8,7 @@ import { iconAsset, symbolId } from "../packs/registry.js";
 import type { Theme } from "../themes/index.js";
 // SHELF_H is layout's: the shelf is inside the card height it sets, so the
 // strip the renderer fills and the room the card reserves are one number.
-import { pillDims, NOTE_GUTTER, SHELF_H, ROW_H, CARD_HEAD_H } from "../layout/layout.js";
+import { pillDims, NOTE_GUTTER, SHELF_H, ROW_H, CARD_HEAD_H, FIELD_ROW_H, CHIP_PAD, CHIP_GAP, FIELD_GAP, REF_ARROW_W } from "../layout/layout.js";
 import type { Positioned, PEdge, PNode, PZone, PFrame } from "../layout/layout.js";
 import type { EdgeAnimate, Hue, SNote, ZoneKind } from "../model/types.js";
 import { hueOf } from "../themes/index.js";
@@ -544,7 +544,9 @@ function leaf(n: PNode, rc: RC, dimmed: boolean, L: string[]) {
   const second = n.subtitle;
   const lines = titleLines(n.label, maxLabel, rc.fx(13), "500", rc.fam);
   const two = lines.length > 1;
-  const mid = n.y + n.h / 2;
+  // centred on the 64px head: a leaf drawing its fields grows below it, and
+  // its head must sit exactly where the plain leaf's does
+  const mid = n.y + (n.fields ? LEAF_HEAD_H : n.h) / 2;
   // the block stays centred on the plate; a third line still fits 64 tall
   const labelY = second ? mid + (two ? -11 : -1) : mid + (two ? -3 : 5);
   L.push(title(n, px + PLATE + PAD, labelY, lines, ctx ? t.muted : t.ink, rc));
@@ -553,8 +555,81 @@ function leaf(n: PNode, rc: RC, dimmed: boolean, L: string[]) {
     L.push(
       `<text x="${px + PLATE + PAD}" y="${mid + (two ? 20 : 15)}" font-size="${rc.fx(11)}" fill="${t.faint}">${esc(shownSub as string)}</text>`,
     );
+  if (n.fields) fieldRowsMarkup(n, rc, L);
   pushFullText(L, titleCut(lines, n.label) || (!!second && shownSub !== second), n.label, second);
   L.push(`</g>`);
+}
+
+/** A plain leaf's height, and the head of one drawing its fields. */
+const LEAF_HEAD_H = 64;
+
+/**
+ * A leaf's schema rows (docs/notes/fields.md), under the head: per row a
+ * hairline, the name (a dotted prefix faint, the rest in ink), marker chips,
+ * `→ ref`, and the type right-aligned in mono. Nothing on a row is an edge
+ * target — wires land on the leaf's border, as on a detailed card. What cuts,
+ * in order: never the name or the chips; the ref, when the type would keep less
+ * than 48px; then the type. A row with anything cut, or with a caption, carries
+ * the full type and caption in a <title> — the one place a caption shows.
+ */
+function fieldRowsMarkup(n: PNode, rc: RC, L: string[]) {
+  const { t } = rc;
+  rc.faces.add("mono:400");
+  const MONO = ` font-family="${MONO_CSS}"`;
+  const left = n.x + PAD, right = n.x + n.w - PAD;
+  const rows = n.fields!;
+  const hair = (top: number) =>
+    `<line x1="${n.x + 1}" y1="${top}" x2="${n.x + n.w - 1}" y2="${top}" stroke="${t.shelfLine}" stroke-width="1"/>`;
+  rows.forEach((f, i) => {
+    const top = n.y + LEAF_HEAD_H + i * FIELD_ROW_H;
+    const base = top + 16;
+    const R: string[] = [hair(top)];
+    const prefix = f.prefix ?? "";
+    R.push(
+      `<text x="${left}" y="${base}" font-size="${rc.fx(12)}" font-weight="500" fill="${t.ink}">` +
+        (prefix ? `<tspan fill="${t.faint}">${esc(prefix)}</tspan>` : "") + `${esc(f.name)}</text>`,
+    );
+    let x = left + Math.ceil(measure(prefix + f.name, rc.fx(12), "500", rc.fam));
+    for (const m of f.markers) {
+      x += CHIP_GAP;
+      const w = Math.ceil(measure(m, rc.fx(10), "400", "mono")) + CHIP_PAD * 2;
+      R.push(`<rect x="${x}" y="${top + 5}" width="${w}" height="14" rx="3" fill="${t.plate}"/>`);
+      R.push(`<text x="${x + CHIP_PAD}" y="${top + 15}" font-size="${rc.fx(10)}"${MONO} fill="${t.muted}">${esc(m)}</text>`);
+      x += w;
+    }
+    const typeW = f.type ? Math.ceil(measure(f.type, rc.fx(11), "400", "mono")) : 0;
+    const typeKeep = f.type ? Math.min(typeW, 48) + FIELD_GAP : 0;
+    let cut = false;
+    if (f.ref) {
+      const room = right - (x + 8 + REF_ARROW_W) - typeKeep;
+      // under two dozen pixels a ref is an arrow and an ellipsis: drop it
+      const shown = room >= 24 ? fit(f.ref, room, rc.fx(11), "400", rc.fam) : "";
+      if (shown !== f.ref) cut = true;
+      if (shown) {
+        // a drawn arrow, mid-height of the type's x-height: shaft and head
+        const ax = x + 8, ay = base - 4;
+        R.push(`<path d="M${ax} ${ay}h7m-3-3l3 3l-3 3" fill="none" stroke="${t.muted}" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"/>`);
+        R.push(`<text x="${ax + REF_ARROW_W}" y="${base}" font-size="${rc.fx(11)}" fill="${t.muted}">${esc(shown)}</text>`);
+        x += 8 + REF_ARROW_W + Math.ceil(measure(shown, rc.fx(11), "400", rc.fam));
+      }
+    }
+    if (f.type) {
+      const room = right - x - FIELD_GAP;
+      const shown = room > 0 ? fit(f.type, room, rc.fx(11), "400", "mono") : "";
+      if (shown !== f.type) cut = true;
+      if (shown)
+        R.push(`<text x="${right}" y="${base}" font-size="${rc.fx(11)}"${MONO} text-anchor="end" fill="${t.faint}">${esc(shown)}</text>`);
+    }
+    if (cut || f.caption) {
+      const tip = [f.ref && cut ? `ref ${f.ref}` : "", f.type ?? "", f.caption ?? ""].filter(Boolean).join("\n");
+      L.push(`<g>${R.join("")}<title>${esc(tip)}</title></g>`);
+    } else L.push(...R);
+  });
+  if (n.moreFields) {
+    const top = n.y + LEAF_HEAD_H + rows.length * FIELD_ROW_H;
+    L.push(hair(top));
+    L.push(`<text x="${left}" y="${top + 16}" font-size="${rc.fx(11)}" font-weight="500" fill="${t.muted}">+${n.moreFields} more field${n.moreFields === 1 ? "" : "s"}</text>`);
+  }
 }
 
 /** The actor tile (docs/design): filled rather than outlined, so the human who

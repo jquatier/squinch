@@ -1,0 +1,117 @@
+// Golden fixture for `fields { }` (docs/notes/fields.md): the probe's checkout
+// platform, one store of each kind. Home altitude draws every field; `preview`
+// draws six, `preview:` picks them, and the rest count on a last row.
+pack aws
+
+system shop "Checkout" {
+  description: "Order Service and the stores it owns"
+
+  svc = aws/lambda "Order Service" { subtitle: "Lambda · Node 20" }
+
+  container pg "Postgres" {
+    description: "Orders database · 2 tables"
+    icon: logos/postgresql
+
+    orders = sys/table "orders" datastore {
+      preview: [id status total_cents]
+      fields {
+        id           uuid           pk
+        customer_id  uuid           fk ref customers.store.customers
+        status       enum(pending, paid, shipped)
+        total_cents  bigint
+        currency     char(3)
+        notes        varchar(500)   nullable "free text from support"
+        created_at   timestamptz
+      }
+    }
+
+    order_items = sys/table "order_items" datastore {
+      fields {
+        order_id    uuid           pk fk ref orders.id
+        sku         text           pk
+        quantity    int
+        unit_price  numeric(10,2)
+      }
+    }
+
+    order_items -> orders "order_id"
+  }
+
+  carts = aws/dynamodb "Carts" datastore {
+    subtitle: "single-table design"
+    fields {
+      pk          string   partition "CART#<cartId>"
+      sk          string   sort      "ITEM#<sku>"
+      gsi1pk      string   index gsi1 "CUSTOMER#<customerId>"
+      qty         number
+      expires_at  number   ttl
+    }
+  }
+
+  svc -> pg.orders "writes"
+  svc -> carts "reads / writes"
+}
+
+system customers "Customer Service" {
+  api = aws/ecs "Customer API" { subtitle: "ECS" }
+
+  container store "MongoDB" {
+    icon: logos/mongodb
+    customers = sys/table "customers" datastore {
+      subtitle: "collection"
+      fields {
+        _id               ObjectId    pk
+        email             string      unique
+        name              string
+        address.city      string
+        address.postcode  string
+        address.country   string
+        tags              array<string>
+        created_at        date
+      }
+    }
+  }
+  api -> store.customers "reads / writes"
+}
+
+events = logos/apachekafka "order-events" {
+  subtitle: "Kafka topic"
+  fields {
+    order_id             string   key
+    type                 enum(OrderPlaced, OrderPaid)
+    payload.total_cents  long
+    payload.items        array<LineItem>
+  }
+}
+
+shop.svc -> customers.api "look up customer"
+shop.svc ~> events "publishes"
+
+view postgres {
+  title "Postgres — the orders schema"
+  scope shop.pg
+}
+
+view checkout {
+  title "Checkout — its cart table at home"
+  scope shop
+}
+
+view overview {
+  title "Checkout — Postgres opened, tables previewed"
+  scope shop
+  expand pg
+  preview *
+}
+
+view topic {
+  title "Landscape — the topic's payload"
+  include *
+  preview events
+}
+
+view mongo {
+  title "MongoDB — customers"
+  scope customers.store
+  context off
+}

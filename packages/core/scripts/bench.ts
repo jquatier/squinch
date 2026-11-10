@@ -120,6 +120,39 @@ results.push([
 const valid = validateSVG(lastSVG);
 if (!valid.ok) throw new Error(`benchmark SVG invalid: ${valid.error}`);
 
+// A database of 40 tables × 8 fields (docs/notes/fields.md): the home view
+// draws every row of every table, and a `preview *` over the opened container
+// draws six of each. The same 500ms budget as a full view — a schema page is
+// one.
+function synthFields(): string {
+  const L = ["pack aws", "", "system app \"App\" {", "  svc = aws/lambda \"Service\"", "  container db \"Database\" {"];
+  for (let t = 0; t < 40; t++) {
+    L.push(`    t${t} = sys/table "table_${t}" datastore {`, "      fields {");
+    L.push(`        id uuid pk`, `        parent_id uuid fk ref t${(t + 1) % 40}`, `        status enum(new, open, closed)`);
+    L.push(`        amount numeric(10,2)`, `        label varchar(200) nullable "free text"`, `        tags array<string>`);
+    L.push(`        created_at timestamptz`, `        updated_at timestamptz`, "      }", "    }");
+    if (t) L.push(`    t${t} -> t${t - 1} "parent_id"`);
+  }
+  L.push("  }", "  svc -> db.t0", "}", "view home { scope app.db }", "view preview { scope app\n expand db\n preview * }");
+  return L.join("\n");
+}
+const fieldsModel = buildModel(synthFields());
+if (!fieldsModel.ok) throw new Error(`fields model failed to build: ${fieldsModel.diagnostics[0]?.message}`);
+for (const name of ["home", "preview"]) {
+  const v = fieldsModel.model.views.find((x) => x.name === name)!;
+  let svg = "";
+  results.push([
+    `fields ${name}: layout + render`,
+    await bench(`fields ${name}`, async () => {
+      const { positioned, diagnostics } = await layoutView(fieldsModel.model, v);
+      if (diagnostics.some((d) => d.severity === "error")) throw new Error("layout error");
+      svg = renderSVG(positioned, themes.light, {});
+    }),
+    500,
+  ]);
+  if (!validateSVG(svg).ok) throw new Error(`fields ${name} SVG invalid`);
+}
+
 console.log("");
 let fail = false;
 for (const [name, med, budget] of results) {

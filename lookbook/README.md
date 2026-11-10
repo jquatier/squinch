@@ -519,3 +519,27 @@ Source: [`cases/42-mutual-pair.squinch`](cases/42-mutual-pair.squinch)
 | light | dark |
 |---|---|
 | ![](out/42-mutual-pair.landscape.light.svg) | ![](out/42-mutual-pair.landscape.dark.svg) |
+
+## Fields
+
+A leaf's schema. A table, collection or topic carries its fields in a `fields { }` block — a name, a type written the way the store spells it (`numeric(10,2)`, `array<map<k, v>>`), then free words for keys and constraints. Writing them changes no picture: the landscape below is what it would be without them. Step into the database — a view scoped to the container that holds the tables — and every field draws; anywhere else, `preview` shows six, or the ones the table's `preview:` picks, with the rest counted. Wires land on the table, never on a row, and `ref` is text: the edge between two tables is the relationship, the ref names the column.
+
+Source: [`cases/43-fields.squinch`](cases/43-fields.squinch)
+
+**`landscape`**
+
+| light | dark |
+|---|---|
+| ![](out/43-fields.landscape.light.svg) | ![](out/43-fields.landscape.dark.svg) |
+
+**`database`**
+
+| light | dark |
+|---|---|
+| ![](out/43-fields.database.light.svg) | ![](out/43-fields.database.dark.svg) |
+
+**`overview`**
+
+| light | dark |
+|---|---|
+| ![](out/43-fields.overview.light.svg) | ![](out/43-fields.overview.dark.svg) |

@@ -9,7 +9,7 @@ import ELKModule from "elkjs/lib/elk.bundled.js";
 const ELK = ELKModule as unknown as { new (): { layout(graph: unknown): Promise<any> } };
 import { fit, measure, wrapText, type FontFamily } from "../metrics.js";
 import { resolveView } from "../view/resolve.js";
-import type { VNode, VEdge } from "../view/resolve.js";
+import type { VNode, VEdge, FieldRow } from "../view/resolve.js";
 import type { SModel, SView, Side, Diagnostic, Hue, RelPos, ZoneKind, ZoneLabelPos } from "../model/types.js";
 import type { ThemeFont } from "../themes/index.js";
 
@@ -35,6 +35,22 @@ export const ROW_H = 32;
  *  card keeps it at this height and grows below it, so the two altitudes of one
  *  card line up head to head in a rank. */
 export const CARD_HEAD_H = 66;
+/** One row of a leaf's schema (docs/notes/fields.md): a name, marker chips, a
+ *  ref and a type on one 12px line — no plate, so a third shorter than a card
+ *  row. 24 keeps 64 + 24·n on the 8px grid for every n, with no shelf needed. */
+export const FIELD_ROW_H = 24;
+/** A leaf drawing its fields: a row holds a name, chips and a type on one line,
+ *  which the plain leaf tiers cannot fit; 320 is the cap, past it a type cuts. */
+const DETAIL_LEAF_TIERS = [280, 320];
+/** Marker chips: mono 10 on a plate, 4 inside each side, 4 between. */
+export const CHIP_PAD = 4;
+export const CHIP_GAP = 4;
+/** Room between a row's name-and-chips and its right-aligned type. */
+export const FIELD_GAP = 12;
+/** A ref's arrow is drawn, not typed: `→` is outside the bundled Latin
+ *  subsets, so as text it was a gap in a PNG and a system-font fallback in a
+ *  browser. 7 of stroke and 4 of air before the ref's own text. */
+export const REF_ARROW_W = 11;
 /** How far the stacked sheets bleed below a container (they are inset at the
  *  sides, so nothing bleeds right). Not added to the node's size on purpose —
  *  see the comment at `canvasExtent`. */
@@ -193,6 +209,16 @@ export interface Positioned {
 // that dependency should be visible in the signature rather than assumed away.
 const INTER: Pick<ThemeFont, "metrics" | "scale"> = { metrics: "inter", scale: 1 };
 
+/** What one schema row needs, left to right: the name (its dotted prefix
+ *  included), each marker chip, `→ ref`, the gap, the type. The renderer spends
+ *  exactly these, so a row that fits here is never cut there. */
+export function fieldRowNeed(f: FieldRow, fx: (px: number) => number, fam: FontFamily): number {
+  const chips = f.markers.reduce((a, m) => a + CHIP_GAP + CHIP_PAD * 2 + measure(m, fx(10), "400", "mono"), 0);
+  return PAD + measure((f.prefix ?? "") + f.name, fx(12), "500", fam) + chips +
+    (f.ref ? 8 + REF_ARROW_W + measure(f.ref, fx(11), "400", fam) : 0) +
+    (f.type ? FIELD_GAP + measure(f.type, fx(11), "400", "mono") : 0) + PAD;
+}
+
 function sizeOf(n: VNode, font: Pick<ThemeFont, "metrics" | "scale">): { w: number; h: number } {
   const fam = font.metrics as FontFamily;
   const fx = (px: number) => Math.round(px * font.scale);
@@ -235,6 +261,14 @@ function sizeOf(n: VNode, font: Pick<ThemeFont, "metrics" | "scale">): { w: numb
   const w = LEAF_TIERS.find((t) => t >= need)
     ?? LEAF_LABEL_TIERS.find((t) => t >= labelNeed)
     ?? LEAF_LABEL_TIERS[LEAF_LABEL_TIERS.length - 1];
+  // Schema rows hang under the 64px head; "+N more fields" is one more row.
+  // The widest row picks the tier, never past 320 — beyond it the type cuts
+  // (with its full text in a <title>) rather than widening the whole view.
+  if (n.fields) {
+    const rowNeed = Math.max(...n.fields.map((f) => fieldRowNeed(f, fx, fam)));
+    const fieldW = DETAIL_LEAF_TIERS.find((t) => t >= Math.max(w, rowNeed)) ?? DETAIL_LEAF_TIERS[DETAIL_LEAF_TIERS.length - 1];
+    return { w: fieldW, h: LEAF_H + FIELD_ROW_H * (n.fields.length + (n.moreFields ? 1 : 0)) };
+  }
   // An actor is shorter than a service: no description line, and its round
   // avatar reads at 34 where a service plate reads at 40.
   return { w, h: n.kind === "person" ? PERSON_H : LEAF_H };

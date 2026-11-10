@@ -141,6 +141,20 @@ it gets none of the marks that imply one.
   shelf make `192`, exactly twice the small card. Wires
   land on the card, never on a row — the rows are a callout of what is inside,
   not a claim about which part a wire reaches (docs/notes/preview-card.md).
+- **Detailed leaf** (a leaf's `fields`, SPEC §3, §5): the leaf's own head,
+  unchanged at `64`, with one `24` row per field hung under it — a field row
+  is one line of text with no plate, a third shorter than a card's. Per row,
+  under a hairline in the shelf's tone: the name at 12/500 in ink (a dotted
+  prefix — `address.` — in `faint`), the markers as chips (mono 10 in `muted`
+  on a `14`-tall `plate`, radius 3), a drawn arrow and the `ref` at 11 in
+  `muted`, and the type right-aligned in mono 11, `faint`. `+N more fields`
+  is a last row at 11/500, not a shelf: `64 + 24·n` is on the 8px grid for
+  every n, and a 30px shelf would take it off. Width takes the `280` and `320`
+  tiers; past 320 the ref cuts first, then the type, with the full text and
+  the caption in the row's `<title>` — the one place a caption shows. The
+  arrow is a path, not `→`: the bundled subsets do not carry the glyph, and
+  text from a system font is environment in the output. Wires land on the
+  leaf's border, never on a row.
 - **Stacked sheets**: two solid sheets peeking out below every container, each
   `6` further down and `12` further in on both sides than the one in front, on
   the same contact shadow. "There is more inside", said by the shape before

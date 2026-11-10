@@ -4,7 +4,20 @@
 // `scope` is the view's *where*; `only` is its *which*. They are separate axes
 // because a tag is a cross-cutting concern and can never be a place.
 import type { Diagnostic, EdgeAnimate, Hue, SEdge, SModel, SView } from "../model/types.js";
-import { PREVIEW_MAX } from "../model/types.js";
+import { PREVIEW_MAX, PREVIEW_FIELDS_MAX } from "../model/types.js";
+
+/** One row of a leaf's schema, as drawn (docs/notes/fields.md). */
+export interface FieldRow {
+  /** The last segment of a dotted name, drawn in ink. */
+  name: string;
+  /** What comes before it (`address.`), drawn faint. */
+  prefix?: string;
+  type?: string;
+  markers: string[];
+  /** The ref as written, drawn as `→ customers` — text, never a wire. */
+  ref?: string;
+  caption?: string;
+}
 
 export interface VNode {
   path: string;
@@ -50,6 +63,12 @@ export interface VNode {
   /** Effective hue: the view's `color #tag` if one matches, else the element's
    *  own `color:`. Context cards ignore it — scenery stays muted. */
   color?: Hue;
+  /** A leaf's schema rows: every field at home altitude (the view is scoped to
+   *  the leaf's container), the `preview:` pick under `preview`. Never on a
+   *  context leaf or a person. Unset when there are none. */
+  fields?: FieldRow[];
+  /** Fields `preview` left out — the last row's `+N more fields`. */
+  moreFields?: number;
 }
 
 export interface VFrame {
@@ -296,6 +315,10 @@ export function resolveView(model: SModel, view: SView): ViewGraph {
   // after expand (an opened container has no card to detail) and before
   // `only`/context, which never see it: a detailed card is one visible unit.
   const detailedSet = new Set<string>();
+  /** Leaves with fields that `preview` named. Their rows are decided at the
+   *  leaf, after every visibility rule has run — rows never change what is
+   *  visible, and `only`/context/`include` never narrow rows. */
+  const fieldAsk = new Set<string>();
   // hosts and tests build SView literals by hand; a view written before the
   // verb existed simply previews nothing
   const previews = view.preview ?? [];
@@ -308,11 +331,13 @@ export function resolveView(model: SModel, view: SView): ViewGraph {
         loc: view.loc,
       });
     for (const p of visible) if (model.containers.has(p)) detailedSet.add(p);
-    if (detailedSet.size === 0)
+    // leaves with fields count too: `preview *` draws their rows (decided at
+    // the leaf, below, once the visible set is final)
+    if (detailedSet.size === 0 && !visible.some((p) => model.nodes.get(p)?.fields))
       diagnostics.push({
         severity: "warning",
         message: "`preview *` detailed nothing — no cards are visible here",
-        fix: "drop the line; a leaf has no inside to preview, and an opened container is a frame",
+        fix: "drop the line; a leaf without `fields` has no rows to preview, and an opened container is a frame",
         loc: view.loc,
       });
   } else {
@@ -325,10 +350,12 @@ export function resolveView(model: SModel, view: SView): ViewGraph {
           fix: `keep one: \`preview ${p}\` shows the card with its parts named, \`expand ${p}\` opens it`,
           loc: view.loc,
         });
+      } else if (!c && model.nodes.get(p)?.fields) {
+        fieldAsk.add(p);
       } else if (!c && model.nodes.has(p)) {
         diagnostics.push({
           severity: "warning",
-          message: `preview \`${p}\` targets a leaf — only a container has an inside to preview`,
+          message: `preview \`${p}\` targets a leaf with no fields — only a container or a leaf with \`fields\` has rows to preview`,
           fix: "drop the line; a leaf is already drawn whole",
           loc: view.loc,
         });
@@ -668,6 +695,42 @@ export function resolveView(model: SModel, view: SView): ViewGraph {
   const finalEdges = scopeEdges.filter((e) => drawable.has(e.from) && drawable.has(e.to));
 
   // ── 6. materialize nodes ──────────────────────────────────────────────────
+  /**
+   * A leaf's schema rows (docs/notes/fields.md). Home altitude — the view
+   * scoped to the leaf's own container — draws every field; `preview` draws
+   * the leaf's `preview:` pick, or the first PREVIEW_FIELDS_MAX declared, with
+   * the rest counted. Only a plain leaf: a context leaf is scenery and a
+   * person has no schema. A frame member is never home — the frame's container
+   * is opened, not stood in — but `preview` reaches it. Returns nothing at all
+   * when there are no rows, so a leaf without them is the object it always was.
+   */
+  const fieldRows = (path: string, kind: VNode["kind"]): Pick<VNode, "fields" | "moreFields"> => {
+    const all = model.nodes.get(path)?.fields;
+    if (!all?.length || kind !== "leaf") return {};
+    // a frame member's parent is the opened container, never the scope, so it
+    // is not home — but an explicit `preview` reaches it like any leaf
+    const home = scope !== "" && parentOf(path) === scope;
+    const pick = model.nodes.get(path)!.preview;
+    let shown = all;
+    if (!home) {
+      if (!(view.previewStar || fieldAsk.has(path)) || pick === "none") return {};
+      shown = pick ? all.filter((f) => pick.includes(f.name)).sort((a, b) => pick.indexOf(a.name) - pick.indexOf(b.name))
+        : all.slice(0, PREVIEW_FIELDS_MAX);
+    }
+    const rows = shown.map((f): FieldRow => {
+      const dot = f.name.lastIndexOf(".");
+      return {
+        name: dot < 0 ? f.name : f.name.slice(dot + 1),
+        ...(dot < 0 ? {} : { prefix: f.name.slice(0, dot + 1) }),
+        ...(f.type ? { type: f.type } : {}),
+        markers: f.markers,
+        ...(f.ref ? { ref: f.ref.text } : {}),
+        ...(f.caption ? { caption: f.caption } : {}),
+      };
+    });
+    const more = all.length - rows.length;
+    return { fields: rows, ...(more > 0 ? { moreFields: more } : {}) };
+  };
   const nodes: VNode[] = visible.map((path) => {
     const isContext = contextSet.has(path);
     const container = model.containers.get(path);
@@ -733,8 +796,28 @@ export function resolveView(model: SModel, view: SView): ViewGraph {
       link: n.link,
       frame: frameOf.get(path),
       color: n.color,
+      ...fieldRows(path, kind),
     };
   });
+  // a `preview <leaf>` that drew nothing, or nothing new, says so — the same
+  // contract as a container preview that misses
+  for (const p of fieldAsk) {
+    const drawn = nodes.find((x) => x.path === p);
+    if (!drawn || drawn.kind !== "leaf")
+      diagnostics.push({
+        severity: "warning",
+        message: `preview \`${p}\` is not among the leaves this view draws — no rows to show`,
+        fix: "`preview` shows the fields of a leaf the view already draws at its own depth; scope the view to its container to see every field",
+        loc: view.loc,
+      });
+    else if (scope && parentOf(p) === scope)
+      diagnostics.push({
+        severity: "warning",
+        message: `preview \`${p}\` is redundant — this view stands in its container, where every field already draws`,
+        fix: "drop the line",
+        loc: view.loc,
+      });
+  }
 
   // ── view colour lens (`color #tag hue`) ───────────────────────────────────
   // A lens over the model, so it wins over an element's own `color:`; among
