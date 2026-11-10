@@ -640,7 +640,8 @@
           "db|database|postgres|rds|sql",
           "refunds"
         ]
-      ]
+      ],
+      "forbidFields": true
     }
   },
   {
@@ -668,7 +669,8 @@
           "preferences",
           "queue|sqs"
         ]
-      ]
+      ],
+      "forbidFields": true
     }
   },
   {
@@ -736,6 +738,48 @@
           "redis|store|cache"
         ]
       ]
+    }
+  },
+  {
+    "id": "39-schemas",
+    "prompt": "Our checkout is one Order Service on Lambda. It writes orders to a Postgres database with two tables and keeps carts in DynamoDB; it publishes every order to a Kafka topic that an analytics Glue job consumes. Reviewers keep asking what is actually stored, so I want them to be able to open each store and see its schema. Postgres: orders has id (uuid, primary key), customer_id (uuid), status (pending, paid or shipped), total_cents (bigint) and created_at (timestamp with time zone); order_items has order_id and sku as a composite primary key, order_id referencing orders, plus quantity (int) and unit_price (numeric 10,2). The DynamoDB Carts table is a single-table design: partition key pk is CART#<cartId>, sort key sk is ITEM#<sku>, a GSI on gsi1pk = CUSTOMER#<customerId>, then qty (number) and expires_at as the TTL. The order-events topic is keyed by order_id (string), with a type (OrderPlaced or OrderPaid) and a payload of total_cents (long) and items (an array of line items).",
+    "expect": {
+      "minNodes": 6,
+      "inside": [
+        [
+          "db|database|postgres|rds|sql",
+          "^orders$|orders table"
+        ],
+        [
+          "db|database|postgres|rds|sql",
+          "order.?items"
+        ]
+      ],
+      "fields": [
+        [
+          "^orders$|orders table",
+          5
+        ],
+        [
+          "order.?items",
+          4
+        ],
+        [
+          "cart",
+          5
+        ],
+        [
+          "order.?events|topic|kafka",
+          3
+        ]
+      ],
+      "refs": [
+        [
+          "order_id",
+          "^orders$|orders table"
+        ]
+      ],
+      "requireFieldsShown": true
     }
   }
 ]

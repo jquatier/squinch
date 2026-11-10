@@ -306,3 +306,24 @@ describe("the Marketplace manifest", () => {
       expect(pkg[field], `manifest is missing ${field}`).toBeTruthy();
   });
 });
+
+describe("fields in the editor", () => {
+  const SCHEMA = `system s "S" {\n  customers = box "C"\n  orders = box "O" {\n    preview: [st|]\n    fields {\n      id uuid pk\n      status text\n    }\n  }\n}\nview v { scope s\n  preview |\n}\n`;
+  it("completes a leaf's own field names inside its `preview: [`", () => {
+    const src = SCHEMA.replace("  preview |\n", "  preview x\n");
+    const p = at(src);
+    expect(completionsAt(p.src, p.offset).map((c) => c.label)).toEqual(["status"]);
+  });
+  it("offers a leaf with fields to the `preview` verb, and not one without", () => {
+    const src = SCHEMA.replace("[st|]", "[st]");
+    const p = at(src);
+    const labels = completionsAt(p.src, p.offset).map((c) => c.label);
+    expect(labels).toContain("s.orders");
+    expect(labels).not.toContain("s.customers");
+  });
+  it("says how many fields a leaf has on hover", () => {
+    const src = SCHEMA.replace("[st|]", "[st]").replace("  preview |\n", "  preview orders\n");
+    const h = hoverAt(src, src.indexOf("preview orders") + "preview o".length)!;
+    expect(h.markdown).toContain("2 fields — drawn in a view scoped to its container");
+  });
+});

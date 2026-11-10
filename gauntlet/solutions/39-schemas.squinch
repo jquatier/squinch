@@ -1,0 +1,81 @@
+// 39 — schemas: every store carries its fields; standing in a store draws them.
+pack aws
+
+system checkout "Checkout" {
+  description: "Order Service and the stores it owns"
+  icon: aws/lambda
+
+  svc = aws/lambda "Order Service" { subtitle: "Lambda · Node 20" }
+
+  container pg "Orders DB" {
+    icon: logos/postgresql
+    description: "Postgres · 2 tables"
+
+    orders = sys/table "orders" datastore {
+      fields {
+        id           uuid          pk
+        customer_id  uuid
+        status       enum(pending, paid, shipped)
+        total_cents  bigint
+        created_at   timestamptz
+      }
+    }
+
+    order_items = sys/table "order_items" datastore {
+      fields {
+        order_id    uuid           pk fk ref orders.id
+        sku         text           pk
+        quantity    int
+        unit_price  numeric(10,2)
+      }
+    }
+
+    order_items -> orders "order_id"
+  }
+
+  carts = aws/dynamodb "Carts" datastore {
+    subtitle: "single-table design"
+    fields {
+      pk          string   partition  "CART#<cartId>"
+      sk          string   sort       "ITEM#<sku>"
+      gsi1pk      string   index gsi1 "CUSTOMER#<customerId>"
+      qty         number
+      expires_at  number   ttl
+    }
+  }
+
+  svc -> pg.orders      "writes orders"
+  svc -> pg.order_items "writes items"
+  svc -> carts          "reads / writes"
+}
+
+events = logos/apachekafka "order-events" {
+  subtitle: "Kafka topic"
+  fields {
+    order_id             string   key
+    type                 enum(OrderPlaced, OrderPaid)
+    payload.total_cents  long
+    payload.items        array<LineItem>
+  }
+}
+
+analytics = aws/glue "Analytics" { subtitle: "Glue job" }
+
+checkout.svc ~> events "publishes"
+events ~> analytics "consumes"
+
+view landscape {
+  title "Checkout"
+  include *
+  preview events
+}
+
+view checkout {
+  title "Checkout — the service and its cart table"
+  scope checkout
+}
+
+view orders-db {
+  title "Orders DB — schema"
+  scope checkout.pg
+}

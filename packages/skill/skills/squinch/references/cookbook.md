@@ -75,6 +75,11 @@ themselves.
 | "subtitle is N characters — it will be cut off" warning | A subtitle is one line and widens a leaf only up to 240. Keep it to a few words — runtime, owner, region — and move the rest into `description:` |
 | "`show descriptions` no longer draws anything" warning | Descriptions are prose: they show as a system's card tagline and in hover, never inside a leaf. Drop the line, and give the leaves a short `subtitle:` — runtime, owner, region — for the line under the label |
 | "unknown zone attribute `description`" warning | A zone's chip holds its label and a mono `detail:` (a CIDR, an account id) — nothing else. Prose about the boundary goes in a `note` anchored to a member |
+| A table's `fields` are written but nothing draws | Fields draw where you stand beside the table: a view scoped to its container (`view db { scope shop.db }`) shows every field; anywhere else, `preview <table>` shows six. The landscape never draws them, by design |
+| "`schema { }` is not a block a leaf takes" error | The block is `fields { }`, inside the table's own braces, one field per line: `id uuid pk` |
+| "comments are `//` — `--` is an arrow here" error | SQL's `--` is an arrow in squinch. Write `id uuid pk // primary key`, or put the note in a quoted caption: `id uuid pk "primary key"` |
+| "`?` is not squinch" / "`@` attributes are not squinch" error | Pasted Prisma or ORM syntax. An optional field says `nullable`, `@id` is `pk`, any other `@attr` is a bare marker word. The fix writes the whole corrected line |
+| "`scope x` names a leaf — a view stands inside a container" error | To see a table's fields, scope its container: `scope shop.db`. The table draws every field there |
 | "`subtitle` is a leaf attribute" warning | Only a leaf draws a line under its name. On a system or container that line is `description:` (it shows on the collapsed card); a `person` has none |
 
 ## Views and altitude

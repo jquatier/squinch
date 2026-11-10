@@ -312,12 +312,29 @@ describe("the skill — diagnostic coverage", () => {
     "preview lists", "children — a card calls out",
     "preview` is none, auto or a list of children",
     "in one view — a card is collapsed or open, not both",
-    "targets a leaf — only a container has an inside to preview",
+    "targets a leaf with no fields — only a container or a leaf with `fields` has rows to preview",
     "is not among the cards this view shows — nothing to detail",
     "preview *` already details every card — the explicit `preview` lines are redundant",
     "preview *` detailed nothing — no cards are visible here",
     // `link` (2026-10): the fix writes the URL form, or says where the link goes
     "link` must be an http or https URL, not", "link` is a leaf attribute",
+    // `fields` (2026-11, docs/notes/fields.md): every fix writes the corrected
+    // line — the `ref` spelling, the dotted names for a nested block, the type
+    // slot filled in, the block moved onto the table — or names the one line to
+    // drop. The SKILL's Columns paragraph teaches the construct; the cookbook
+    // carries the four that need a technique (nothing drawn, `schema {`, `--`,
+    // pasted ORM syntax, `scope <leaf>`).
+    ", which is not a field of", "a field reference is written `ref",
+    "a field reference is written `ref`, not an arrow", "a schema belongs to a leaf",
+    "duplicate field", "field tags are parsed but not drawn yet",
+    "fields — a previewed leaf shows", "fields` is a block, not an attribute", "fields` on",
+    "fields` on a person — a schema belongs to a store", "has a second `fields` block",
+    "has no meaning in a field line", "has no type", "has two captions — the second wins",
+    "is not among the leaves this view draws — no rows to show",
+    "is redundant — this view stands in its container, where every field already draws",
+    "lists something that reads as an endpoint", "needs the id it points at",
+    "picks fields, and it has none", "preview` is none, auto or a list of fields", "preview` on",
+    "{ }` nests fields — a nested field is a dotted name",
   ]);
 
   it("every diagnostic that needs a technique is in the cookbook", () => {

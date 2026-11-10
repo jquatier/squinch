@@ -1,13 +1,14 @@
 # The gauntlet (end-to-end acceptance)
 
-Thirty-eight architecture prompts — thirty-seven in prose, and one that hands
+Thirty-nine architecture prompts — thirty-eight in prose, and one that hands
 the agent a real repository. An agent, armed with only
 [`packages/skill/skills/squinch/SKILL.md`](../packages/skill/skills/squinch/SKILL.md) and the `squinch` CLI,
 must produce a clean diagram for each. **v1 ships at ≥ 16/20 with zero human
 layout fixes** (the original ≥ 8/10 bar, at the current prompt count).
 
-> **Current standing: the committed corpus scores 38/38 on the deep scorer; the
-> latest round itself scored 38/38, with 20 of 38 clean on the first `check`.** The
+> **Current standing: the committed corpus scores 39/39 on the deep scorer; the
+> latest round itself scored 38/38, with 20 of 38 clean on the first `check`**
+> (prompt 39, schemas, was added after it with a hand-written solution). The
 > solutions those agents wrote are committed in `solutions/` and re-scored by CI
 > on every push, so the claim is inspectable rather than asserted.
 >

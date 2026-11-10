@@ -799,6 +799,10 @@ squinch diff --format json|markdown   # agents and CI; markdown for PR comments
 squinch diff --fail-on structural     # exit 1 when topology changes
 ```
 
+A leaf's `fields` are structure, matched by name so a reorder is nothing: a field
+added, dropped or retyped, a marker or a `ref` changed, each reports on its own
+line. A field's caption and a leaf's `preview:` pick are cosmetic.
+
 Renames are reported as a removal plus an addition, with a *possible rename*
 note when the icon and neighbours match — a hint, never a silent assumption.
 

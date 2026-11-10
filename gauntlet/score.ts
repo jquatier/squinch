@@ -57,6 +57,19 @@ interface Expect {
   requireBadge?: string;
   /** a view must carry a titleblock */
   requireTitleblock?: boolean;
+  /** A leaf's schema (docs/notes/fields.md). Each pair is [label pattern, n]:
+   *  some leaf labelled like the first declares at least n fields. */
+  fields?: [string, number][];
+  /** Each pair is [field name pattern, target label pattern]: some field
+   *  matching the first has a `ref` that resolved to something labelled like
+   *  the second. */
+  refs?: [string, string][];
+  /** Some view — declared or a container's auto view — lays out a leaf with
+   *  its field rows: the schema can be seen, not just written. */
+  requireFieldsShown?: boolean;
+  /** No leaf may declare fields: the prompt asked for tables, not columns,
+   *  and an unasked schema is noise (the negative half of the probe). */
+  forbidFields?: boolean;
   icons?: string[][];
   /** Ownership, read off the model. Each pair is [container, thing]: something
    *  labelled like the second sits inside a container labelled like the first,
@@ -335,6 +348,34 @@ for (const p of prompts) {
         && !A.some((x) => B.some((y) => x.path !== y.path && parentOf(x.path) === parentOf(y.path)))
       )
         problems.push(`\`${named(A[0])}\` and \`${named(B[0])}\` do not share a parent`);
+    }
+  }
+
+  if (e.fields || e.refs || e.requireFieldsShown || e.forbidFields) {
+    const withFields = nodes.filter((n) => n.fields?.length);
+    if (e.forbidFields && withFields.length)
+      problems.push(`fields written unasked on ${withFields.map((n) => n.label ?? n.name).join(", ")}`);
+    for (const [pat, min] of e.fields ?? []) {
+      const re = new RegExp(pat, "i");
+      const hit = withFields.find((n) => re.test(n.label ?? n.name));
+      if (!hit) problems.push(`no leaf labelled like /${pat}/i declares fields`);
+      else if (hit.fields!.length < min) problems.push(`\`${hit.label ?? hit.name}\` declares ${hit.fields!.length} fields < ${min}`);
+    }
+    for (const [fieldPat, targetPat] of e.refs ?? []) {
+      const F = new RegExp(fieldPat, "i"), T = new RegExp(targetPat, "i");
+      const ok = withFields.some((n) => n.fields!.some((f) => {
+        const t = f.ref?.target && (m.nodes.get(f.ref.target) ?? m.containers.get(f.ref.target));
+        return F.test(f.name) && !!t && T.test(t.label ?? t.name);
+      }));
+      if (!ok) problems.push(`no field like /${fieldPat}/i refs something like /${targetPat}/i`);
+    }
+    if (e.requireFieldsShown) {
+      let shown = false;
+      for (const v of m.views) {
+        const { positioned } = await layoutView(m, v);
+        if (positioned.nodes.some((n) => n.fields?.length)) { shown = true; break; }
+      }
+      if (!shown) problems.push("fields are written but no view draws them");
     }
   }
 

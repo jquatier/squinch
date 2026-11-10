@@ -226,3 +226,28 @@ describe("styling attrs are visible to diff", () => {
     expect(hit!.after).toBe("packets");
   });
 });
+
+describe("diff — fields", () => {
+  const table = (lines: string, attrs = "") =>
+    `pack aws\ncustomers = sys/table "customers"\norders = sys/table "orders" {\n${attrs}  fields {\n${lines}\n  }\n}\n`;
+  const BASE_FIELDS = `    id uuid pk\n    customer_id uuid fk ref customers\n    status text "lifecycle"`;
+
+  it("a column added, dropped or retyped is structural; a reorder is nothing", () => {
+    const added = diff(table(BASE_FIELDS), table(BASE_FIELDS + "\n    total bigint"));
+    expect(added.changes).toEqual([expect.objectContaining({ kind: "added", weight: "structural", detail: "orders field total" })]);
+    const dropped = diff(table(BASE_FIELDS), table(BASE_FIELDS.replace("\n    status text \"lifecycle\"", "")));
+    expect(dropped.changes[0]).toMatchObject({ kind: "removed", weight: "structural", detail: "orders field status" });
+    const retyped = diff(table(BASE_FIELDS), table(BASE_FIELDS.replace("id uuid pk", "id bigint pk")));
+    expect(retyped.changes[0]).toMatchObject({ weight: "structural", detail: "orders field id", before: "uuid | pk |  | ", after: "bigint | pk |  | " });
+    const reordered = BASE_FIELDS.split("\n").reverse().join("\n");
+    expect(diff(table(BASE_FIELDS), table(reordered)).same).toBe(true);
+  });
+
+  it("a key or a reference moving is structural; a caption or a preview pick is cosmetic", () => {
+    expect(diff(table(BASE_FIELDS), table(BASE_FIELDS.replace("fk ref customers", "fk"))).changes[0].weight).toBe("structural");
+    const caption = diff(table(BASE_FIELDS), table(BASE_FIELDS.replace("lifecycle", "order lifecycle")));
+    expect(caption.changes).toEqual([expect.objectContaining({ weight: "cosmetic", detail: "orders field status caption" })]);
+    const pick = diff(table(BASE_FIELDS), table(BASE_FIELDS, "  preview: [id status]\n"));
+    expect(pick.changes).toEqual([expect.objectContaining({ weight: "cosmetic", detail: "orders preview", before: "auto", after: "id status" })]);
+  });
+});

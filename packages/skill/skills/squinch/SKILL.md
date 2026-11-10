@@ -242,8 +242,7 @@ one card where it sits, a dive opens it onto the tables, and a foreign key is
 an ordinary labelled edge. A caller points at the container (`svc -> db`) or
 at the table it touches (`svc -> db.orders`). `datastore` moves to the tables
 — on a container it is a check error — and `icon:` keeps the database's own
-mark on the card. Tables are as deep as it goes: nothing draws columns, so
-leave them out. A database nobody asked to open stays a node, and so does a
+mark on the card. A database nobody asked to open stays a node, and so does a
 table with no database above it. On a serverless or managed store where the
 table is itself the resource you deploy, write one node per table inside the
 service that owns it, with no container invented to hold them.
@@ -255,14 +254,35 @@ system shop "Order Service" {
     icon: aws/rds
     description: "Postgres 16 · 3 tables"
     customers = sys/table "customers" datastore
-    orders    = sys/table "orders" datastore { subtitle: "partitioned monthly" }
+    orders    = sys/table "orders" datastore {
+      subtitle: "partitioned monthly"
+      fields {
+        id           uuid           pk
+        customer_id  uuid           fk ref customers
+        status       enum(pending, paid, shipped)
+        total        numeric(10,2)
+      }
+    }
     payments  = sys/table "payments" datastore
     orders   -> customers "customer_id"   // a foreign key, child to parent
     payments -> orders    "order_id"
   }
   svc -> db.orders "writes"
 }
+view db { scope shop.db }                 // standing in the database: every field
 ```
+
+Columns — only when the request asks what is *in* a store. Any leaf takes a
+`fields { }` block (a table, a collection, a topic's payload): one field per
+line, the name, the type as the store spells it, then markers in its own words
+(`pk`, `hash`, `ttl`, `unique`, `index gsi1`) and an optional `"caption"`.
+Copy them from the repo's migrations, Prisma or proto files, never from memory,
+and translate the punctuation (`?` → `nullable`, `@id` → `pk`). A nested field
+is a dotted name (`address.city`). `ref <id>` names the column a foreign key
+points at — the edge between the two tables stays the relationship. Fields
+change no picture until you stand beside them: a view scoped to the table's
+container draws every field, `preview <table>` elsewhere draws six
+(`preview: [a b]` on the table picks), and the landscape is untouched.
 
 Edge motion — `~>` edges animate on their own (dashes drift toward the target,
 off under `prefers-reduced-motion`). Opt out with `{ animate: false }`, or pick

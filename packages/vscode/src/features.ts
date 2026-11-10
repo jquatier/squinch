@@ -207,7 +207,20 @@ export function completionsAt(src: string, offset: number): Completion[] {
     const star: Completion[] = partial === ""
       ? [{ label: "*", kind: "value", detail: starDetail, insert: "*" }]
       : [];
-    return [...star, ...pathCompletions(src, partial).filter((c) => c.detail === "container" || c.detail?.startsWith("container"))];
+    // `preview` also takes a leaf that has fields (docs/notes/fields.md)
+    const { model } = buildProject([{ name: "doc.squinch", src }]);
+    const keep = (p: string) => model.containers.has(p) || (verb === "preview" && !!model.nodes.get(p)?.fields?.length);
+    return [...star, ...pathCompletions(src, partial, keep)];
+  }
+
+  // 4b. `preview: [` inside a leaf's braces names its fields
+  const pick = /\bpreview:\s*\[[^\]]*?([\w.]*)$/.exec(line);
+  if (here === "attrs" && pick) {
+    const { model } = buildProject([{ name: "doc.squinch", src }]);
+    const owner = [...model.nodes.values()].find((n) => n.fields && n.loc.from <= offset && offset <= n.loc.to);
+    return (owner?.fields ?? [])
+      .filter((f) => f.name.startsWith(pick[1]))
+      .map((f) => ({ label: f.name, kind: "value" as const, detail: f.type ?? "field", insert: f.name.slice(pick[1].length) }));
   }
 
   // 5. a hue, after `color:` on any element or `color #tag` in a view — the
@@ -231,12 +244,16 @@ export function completionsAt(src: string, offset: number): Completion[] {
     .map((k) => ({ label: k, kind: "keyword" as const, insert: k.slice(partial.length) }));
 }
 
-function pathCompletions(src: string, partial: string): Completion[] {
+function pathCompletions(src: string, partial: string, keep?: (path: string) => boolean): Completion[] {
   const { model } = buildProject([{ name: "doc.squinch", src }]);
   const all = [
     ...[...model.containers.keys()].map((p) => ({ p, detail: "container" })),
-    ...[...model.nodes.keys()].map((p) => ({ p, detail: model.nodes.get(p)?.label ?? "node" })),
-  ];
+    ...[...model.nodes.keys()].map((p) => {
+      const n = model.nodes.get(p);
+      const fields = n?.fields?.length;
+      return { p, detail: `${n?.label ?? "node"}${fields ? ` · ${fields} field${fields === 1 ? "" : "s"}` : ""}` };
+    }),
+  ].filter(({ p }) => !keep || keep(p));
   const out: Completion[] = [];
   for (const { p, detail } of all) {
     const short = p.split(".").pop()!;
@@ -272,8 +289,11 @@ export function hoverAt(src: string, offset: number): { markdown: string; range:
   const desc = "description" in hit ? hit.description : hit.attrs?.["description"];
   const subtitle = "subtitle" in hit ? hit.subtitle : undefined;
   const tags = hit.tags?.length ? `\n\ntags: ${hit.tags.map((t) => `#${t}`).join(" ")}` : "";
+  // a schema's size, and where to see it drawn (docs/notes/fields.md)
+  const nf = "fields" in hit ? hit.fields?.length : undefined;
+  const fields = nf ? `\n\n${nf} field${nf === 1 ? "" : "s"} — drawn in a view scoped to its container, or under \`preview\`` : "";
   return {
-    markdown: `**${label ?? hit.name}**${subtitle ? ` — ${subtitle}` : ""}\n\n\`${hit.path}\`${desc ? `\n\n${desc}` : ""}${tags}`,
+    markdown: `**${label ?? hit.name}**${subtitle ? ` — ${subtitle}` : ""}\n\n\`${hit.path}\`${desc ? `\n\n${desc}` : ""}${tags}${fields}`,
     range,
   };
 }

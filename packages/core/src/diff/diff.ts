@@ -202,6 +202,40 @@ export function diffModels(before: SModel, after: SModel): DiffResult {
         kind: "changed", weight: "cosmetic", subject: "node", id: path,
         detail: `${path} color`, before: b.color ?? "(default)", after: a.color ?? "(default)",
       });
+    // A schema is structure: a column added, dropped or retyped, a key moved,
+    // a reference repointed — matched by field name, so a reorder is nothing.
+    // A caption is prose, cosmetic like a description; so is which fields a
+    // `preview` shows (docs/notes/fields.md).
+    const bf = new Map((b.fields ?? []).map((f) => [f.name, f]));
+    const af = new Map((a.fields ?? []).map((f) => [f.name, f]));
+    const shape = (f: NonNullable<SNode["fields"]>[number]) =>
+      [f.type ?? "", f.markers.join(" "), f.ref?.target ?? f.ref?.text ?? "", f.ref?.rest ?? ""].join(" | ");
+    for (const [name, f] of bf)
+      if (!af.has(name))
+        add({ kind: "removed", weight: "structural", subject: "node", id: path, detail: `${path} field ${name}`, before: shape(f) });
+    for (const [name, f] of af) {
+      const was = bf.get(name);
+      if (!was) {
+        add({ kind: "added", weight: "structural", subject: "node", id: path, detail: `${path} field ${name}`, after: shape(f) });
+        continue;
+      }
+      if (shape(was) !== shape(f))
+        add({
+          kind: "changed", weight: "structural", subject: "node", id: path,
+          detail: `${path} field ${name}`, before: shape(was), after: shape(f),
+        });
+      if ((was.caption ?? "") !== (f.caption ?? ""))
+        add({
+          kind: "changed", weight: "cosmetic", subject: "node", id: path,
+          detail: `${path} field ${name} caption`, before: was.caption ?? "(none)", after: f.caption ?? "(none)",
+        });
+    }
+    const pv = (n: SNode) => (n.preview === undefined ? "auto" : n.preview === "none" ? "none" : n.preview.join(" "));
+    if (pv(b) !== pv(a))
+      add({
+        kind: "changed", weight: "cosmetic", subject: "node", id: path,
+        detail: `${path} preview`, before: pv(b), after: pv(a),
+      });
   }
 
   // ── edges ────────────────────────────────────────────────────────────────
