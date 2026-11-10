@@ -18,28 +18,28 @@
 <line x1="33" y1="294" x2="351" y2="294" stroke="#E6E6E3" stroke-width="1"/>
 <text x="44" y="310" font-size="12" font-weight="500" fill="#111111">id</text>
 <rect x="59" y="299" width="20" height="14" rx="3" fill="#E4E4E1"/>
-<text x="63" y="309" font-size="10" font-family="SquinchMono, 'IBM Plex Mono', ui-monospace, monospace" fill="#474744">pk</text>
-<text x="340" y="310" font-size="11" font-family="SquinchMono, 'IBM Plex Mono', ui-monospace, monospace" text-anchor="end" fill="#6A6A66">uuid</text>
+<text x="63" y="309" font-size="10" font-family="SquinchMono, IBM Plex Mono, ui-monospace, monospace" fill="#474744">pk</text>
+<text x="340" y="310" font-size="11" font-family="SquinchMono, IBM Plex Mono, ui-monospace, monospace" text-anchor="end" fill="#6A6A66">uuid</text>
 <line x1="33" y1="318" x2="351" y2="318" stroke="#E6E6E3" stroke-width="1"/>
 <text x="44" y="334" font-size="12" font-weight="500" fill="#111111">customer_id</text>
 <rect x="119" y="323" width="20" height="14" rx="3" fill="#E4E4E1"/>
-<text x="123" y="333" font-size="10" font-family="SquinchMono, 'IBM Plex Mono', ui-monospace, monospace" fill="#474744">fk</text>
+<text x="123" y="333" font-size="10" font-family="SquinchMono, IBM Plex Mono, ui-monospace, monospace" fill="#474744">fk</text>
 <path d="M147 330h7m-3-3l3 3l-3 3" fill="none" stroke="#474744" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"/>
 <text x="158" y="334" font-size="11" fill="#474744">crm.store.customers</text>
-<text x="340" y="334" font-size="11" font-family="SquinchMono, 'IBM Plex Mono', ui-monospace, monospace" text-anchor="end" fill="#6A6A66">uuid</text>
-<g><line x1="33" y1="342" x2="351" y2="342" stroke="#E6E6E3" stroke-width="1"/><text x="44" y="358" font-size="12" font-weight="500" fill="#111111">status</text><text x="340" y="358" font-size="11" font-family="SquinchMono, 'IBM Plex Mono', ui-monospace, monospace" text-anchor="end" fill="#6A6A66">enum(pending, paid, shipped, refunde…</text><title>enum(pending, paid, shipped, refunded)</title></g>
+<text x="340" y="334" font-size="11" font-family="SquinchMono, IBM Plex Mono, ui-monospace, monospace" text-anchor="end" fill="#6A6A66">uuid</text>
+<g><line x1="33" y1="342" x2="351" y2="342" stroke="#E6E6E3" stroke-width="1"/><text x="44" y="358" font-size="12" font-weight="500" fill="#111111">status</text><text x="340" y="358" font-size="11" font-family="SquinchMono, IBM Plex Mono, ui-monospace, monospace" text-anchor="end" fill="#6A6A66">enum(pending, paid, shipped, refunde…</text><title>enum(pending, paid, shipped, refunded)</title></g>
 <line x1="33" y1="366" x2="351" y2="366" stroke="#E6E6E3" stroke-width="1"/>
 <text x="44" y="382" font-size="12" font-weight="500" fill="#111111">total_cents</text>
-<text x="340" y="382" font-size="11" font-family="SquinchMono, 'IBM Plex Mono', ui-monospace, monospace" text-anchor="end" fill="#6A6A66">bigint</text>
+<text x="340" y="382" font-size="11" font-family="SquinchMono, IBM Plex Mono, ui-monospace, monospace" text-anchor="end" fill="#6A6A66">bigint</text>
 <line x1="33" y1="390" x2="351" y2="390" stroke="#E6E6E3" stroke-width="1"/>
 <text x="44" y="406" font-size="12" font-weight="500" fill="#111111">currency</text>
-<text x="340" y="406" font-size="11" font-family="SquinchMono, 'IBM Plex Mono', ui-monospace, monospace" text-anchor="end" fill="#6A6A66">char(3)</text>
-<g><line x1="33" y1="414" x2="351" y2="414" stroke="#E6E6E3" stroke-width="1"/><text x="44" y="430" font-size="12" font-weight="500" fill="#111111">ship_to</text><text x="340" y="430" font-size="11" font-family="SquinchMono, 'IBM Plex Mono', ui-monospace, monospace" text-anchor="end" fill="#6A6A66">composite (line1, line2, city, post…</text><title>composite (line1, line2, city, postcode, country)</title></g>
-<g><line x1="33" y1="438" x2="351" y2="438" stroke="#E6E6E3" stroke-width="1"/><text x="44" y="454" font-size="12" font-weight="500" fill="#111111">notes</text><rect x="81" y="443" width="56" height="14" rx="3" fill="#E4E4E1"/><text x="85" y="453" font-size="10" font-family="SquinchMono, 'IBM Plex Mono', ui-monospace, monospace" fill="#474744">nullable</text><text x="340" y="454" font-size="11" font-family="SquinchMono, 'IBM Plex Mono', ui-monospace, monospace" text-anchor="end" fill="#6A6A66">varchar(500)</text><title>varchar(500)
+<text x="340" y="406" font-size="11" font-family="SquinchMono, IBM Plex Mono, ui-monospace, monospace" text-anchor="end" fill="#6A6A66">char(3)</text>
+<g><line x1="33" y1="414" x2="351" y2="414" stroke="#E6E6E3" stroke-width="1"/><text x="44" y="430" font-size="12" font-weight="500" fill="#111111">ship_to</text><text x="340" y="430" font-size="11" font-family="SquinchMono, IBM Plex Mono, ui-monospace, monospace" text-anchor="end" fill="#6A6A66">composite (line1, line2, city, post…</text><title>composite (line1, line2, city, postcode, country)</title></g>
+<g><line x1="33" y1="438" x2="351" y2="438" stroke="#E6E6E3" stroke-width="1"/><text x="44" y="454" font-size="12" font-weight="500" fill="#111111">notes</text><rect x="81" y="443" width="56" height="14" rx="3" fill="#E4E4E1"/><text x="85" y="453" font-size="10" font-family="SquinchMono, IBM Plex Mono, ui-monospace, monospace" fill="#474744">nullable</text><text x="340" y="454" font-size="11" font-family="SquinchMono, IBM Plex Mono, ui-monospace, monospace" text-anchor="end" fill="#6A6A66">varchar(500)</text><title>varchar(500)
 free text from support</title></g>
 <line x1="33" y1="462" x2="351" y2="462" stroke="#E6E6E3" stroke-width="1"/>
 <text x="44" y="478" font-size="12" font-weight="500" fill="#111111">created_at</text>
-<text x="340" y="478" font-size="11" font-family="SquinchMono, 'IBM Plex Mono', ui-monospace, monospace" text-anchor="end" fill="#6A6A66">timestamptz</text>
+<text x="340" y="478" font-size="11" font-family="SquinchMono, IBM Plex Mono, ui-monospace, monospace" text-anchor="end" fill="#6A6A66">timestamptz</text>
 </g>
 <g data-path="shop.pg.order_items" data-kind="leaf">
 <rect x="52" y="32" width="280" height="160" rx="4" fill="url(#sq-surface)" stroke="#C7C7C3" stroke-width="1" filter="url(#sq-shadow)"/>
@@ -48,23 +48,23 @@ free text from support</title></g>
 <line x1="53" y1="96" x2="331" y2="96" stroke="#E6E6E3" stroke-width="1"/>
 <text x="64" y="112" font-size="12" font-weight="500" fill="#111111">order_id</text>
 <rect x="115" y="101" width="20" height="14" rx="3" fill="#E4E4E1"/>
-<text x="119" y="111" font-size="10" font-family="SquinchMono, 'IBM Plex Mono', ui-monospace, monospace" fill="#474744">pk</text>
+<text x="119" y="111" font-size="10" font-family="SquinchMono, IBM Plex Mono, ui-monospace, monospace" fill="#474744">pk</text>
 <rect x="139" y="101" width="20" height="14" rx="3" fill="#E4E4E1"/>
-<text x="143" y="111" font-size="10" font-family="SquinchMono, 'IBM Plex Mono', ui-monospace, monospace" fill="#474744">fk</text>
+<text x="143" y="111" font-size="10" font-family="SquinchMono, IBM Plex Mono, ui-monospace, monospace" fill="#474744">fk</text>
 <path d="M167 108h7m-3-3l3 3l-3 3" fill="none" stroke="#474744" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"/>
 <text x="178" y="112" font-size="11" fill="#474744">orders.id</text>
-<text x="320" y="112" font-size="11" font-family="SquinchMono, 'IBM Plex Mono', ui-monospace, monospace" text-anchor="end" fill="#6A6A66">uuid</text>
+<text x="320" y="112" font-size="11" font-family="SquinchMono, IBM Plex Mono, ui-monospace, monospace" text-anchor="end" fill="#6A6A66">uuid</text>
 <line x1="53" y1="120" x2="331" y2="120" stroke="#E6E6E3" stroke-width="1"/>
 <text x="64" y="136" font-size="12" font-weight="500" fill="#111111">sku</text>
 <rect x="89" y="125" width="20" height="14" rx="3" fill="#E4E4E1"/>
-<text x="93" y="135" font-size="10" font-family="SquinchMono, 'IBM Plex Mono', ui-monospace, monospace" fill="#474744">pk</text>
-<text x="320" y="136" font-size="11" font-family="SquinchMono, 'IBM Plex Mono', ui-monospace, monospace" text-anchor="end" fill="#6A6A66">text</text>
+<text x="93" y="135" font-size="10" font-family="SquinchMono, IBM Plex Mono, ui-monospace, monospace" fill="#474744">pk</text>
+<text x="320" y="136" font-size="11" font-family="SquinchMono, IBM Plex Mono, ui-monospace, monospace" text-anchor="end" fill="#6A6A66">text</text>
 <line x1="53" y1="144" x2="331" y2="144" stroke="#E6E6E3" stroke-width="1"/>
 <text x="64" y="160" font-size="12" font-weight="500" fill="#111111">quantity</text>
-<text x="320" y="160" font-size="11" font-family="SquinchMono, 'IBM Plex Mono', ui-monospace, monospace" text-anchor="end" fill="#6A6A66">int</text>
+<text x="320" y="160" font-size="11" font-family="SquinchMono, IBM Plex Mono, ui-monospace, monospace" text-anchor="end" fill="#6A6A66">int</text>
 <line x1="53" y1="168" x2="331" y2="168" stroke="#E6E6E3" stroke-width="1"/>
 <text x="64" y="184" font-size="12" font-weight="500" fill="#111111">unit_price</text>
-<text x="320" y="184" font-size="11" font-family="SquinchMono, 'IBM Plex Mono', ui-monospace, monospace" text-anchor="end" fill="#6A6A66">numeric(10,2)</text>
+<text x="320" y="184" font-size="11" font-family="SquinchMono, IBM Plex Mono, ui-monospace, monospace" text-anchor="end" fill="#6A6A66">numeric(10,2)</text>
 </g>
 <g><rect x="128" y="202" width="54" height="18" rx="2" fill="#FFFFFF" stroke="#C7C7C3" stroke-width="1"/><text x="155" y="215" text-anchor="middle" font-size="11" fill="#474744">order_id</text></g>
 </g>

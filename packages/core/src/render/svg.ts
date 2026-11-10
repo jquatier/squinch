@@ -204,7 +204,12 @@ const BASE_FACES = ["inter:400", "inter:500"];
 /** Mono gets its own dedicated name for the same reason `SquinchInter` has
  *  one: the embedded face must win over whatever the page has installed, or
  *  text stops matching the metrics layout was computed from. */
-const MONO_CSS = "SquinchMono, 'IBM Plex Mono', ui-monospace, monospace";
+// Unquoted on purpose. CSS takes a multi-word family bare, and resvg — the
+// PNG path — did not resolve a *quoted* family after an unknown one: with
+// `'IBM Plex Mono'` here every mono run in every PNG (zone details, titleblock
+// commits, field types and chips) fell through to Inter while the metrics were
+// measured in Plex Mono. packages/cli/test/raster.test.ts holds it.
+const MONO_CSS = "SquinchMono, IBM Plex Mono, ui-monospace, monospace";
 
 // Dedicated family names: guarantee the embedded face wins over any
 // page-level font, so text width always matches the precomputed metrics.

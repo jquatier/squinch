@@ -38,6 +38,12 @@ export interface RasterOpts {
 }
 
 export function svgToPng(svg: string, opts: RasterOpts = {}): Buffer {
+  return rasterize(svg, opts).asPng();
+}
+
+/** The render behind `svgToPng`, pixels and all — exported so a test can look
+ *  at what resvg drew with exactly the fonts and options a PNG export uses. */
+export function rasterize(svg: string, opts: RasterOpts = {}) {
   const resvg = new Resvg(svg, {
     font: {
       loadSystemFonts: false, // non-negotiable: no environment in the output
@@ -47,5 +53,5 @@ export function svgToPng(svg: string, opts: RasterOpts = {}): Buffer {
     ...(opts.width ? { fitTo: { mode: "width" as const, value: opts.width } } : {}),
     ...(opts.background ? { background: opts.background } : {}),
   });
-  return resvg.render().asPng();
+  return resvg.render();
 }

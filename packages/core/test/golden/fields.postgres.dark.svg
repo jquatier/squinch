@@ -18,29 +18,29 @@
 <line x1="33" y1="294" x2="351" y2="294" stroke="#2E2E33" stroke-width="1"/>
 <text x="44" y="310" font-size="12" font-weight="500" fill="#EDEDEA">id</text>
 <rect x="59" y="299" width="20" height="14" rx="3" fill="#2F2F34"/>
-<text x="63" y="309" font-size="10" font-family="SquinchMono, 'IBM Plex Mono', ui-monospace, monospace" fill="#9C9B94">pk</text>
-<text x="340" y="310" font-size="11" font-family="SquinchMono, 'IBM Plex Mono', ui-monospace, monospace" text-anchor="end" fill="#7A796F">uuid</text>
+<text x="63" y="309" font-size="10" font-family="SquinchMono, IBM Plex Mono, ui-monospace, monospace" fill="#9C9B94">pk</text>
+<text x="340" y="310" font-size="11" font-family="SquinchMono, IBM Plex Mono, ui-monospace, monospace" text-anchor="end" fill="#7A796F">uuid</text>
 <line x1="33" y1="318" x2="351" y2="318" stroke="#2E2E33" stroke-width="1"/>
 <text x="44" y="334" font-size="12" font-weight="500" fill="#EDEDEA">customer_id</text>
 <rect x="119" y="323" width="20" height="14" rx="3" fill="#2F2F34"/>
-<text x="123" y="333" font-size="10" font-family="SquinchMono, 'IBM Plex Mono', ui-monospace, monospace" fill="#9C9B94">fk</text>
+<text x="123" y="333" font-size="10" font-family="SquinchMono, IBM Plex Mono, ui-monospace, monospace" fill="#9C9B94">fk</text>
 <path d="M147 330h7m-3-3l3 3l-3 3" fill="none" stroke="#9C9B94" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"/>
 <text x="158" y="334" font-size="11" fill="#9C9B94">customers.store.customers</text>
-<text x="340" y="334" font-size="11" font-family="SquinchMono, 'IBM Plex Mono', ui-monospace, monospace" text-anchor="end" fill="#7A796F">uuid</text>
+<text x="340" y="334" font-size="11" font-family="SquinchMono, IBM Plex Mono, ui-monospace, monospace" text-anchor="end" fill="#7A796F">uuid</text>
 <line x1="33" y1="342" x2="351" y2="342" stroke="#2E2E33" stroke-width="1"/>
 <text x="44" y="358" font-size="12" font-weight="500" fill="#EDEDEA">status</text>
-<text x="340" y="358" font-size="11" font-family="SquinchMono, 'IBM Plex Mono', ui-monospace, monospace" text-anchor="end" fill="#7A796F">enum(pending, paid, shipped)</text>
+<text x="340" y="358" font-size="11" font-family="SquinchMono, IBM Plex Mono, ui-monospace, monospace" text-anchor="end" fill="#7A796F">enum(pending, paid, shipped)</text>
 <line x1="33" y1="366" x2="351" y2="366" stroke="#2E2E33" stroke-width="1"/>
 <text x="44" y="382" font-size="12" font-weight="500" fill="#EDEDEA">total_cents</text>
-<text x="340" y="382" font-size="11" font-family="SquinchMono, 'IBM Plex Mono', ui-monospace, monospace" text-anchor="end" fill="#7A796F">bigint</text>
+<text x="340" y="382" font-size="11" font-family="SquinchMono, IBM Plex Mono, ui-monospace, monospace" text-anchor="end" fill="#7A796F">bigint</text>
 <line x1="33" y1="390" x2="351" y2="390" stroke="#2E2E33" stroke-width="1"/>
 <text x="44" y="406" font-size="12" font-weight="500" fill="#EDEDEA">currency</text>
-<text x="340" y="406" font-size="11" font-family="SquinchMono, 'IBM Plex Mono', ui-monospace, monospace" text-anchor="end" fill="#7A796F">char(3)</text>
-<g><line x1="33" y1="414" x2="351" y2="414" stroke="#2E2E33" stroke-width="1"/><text x="44" y="430" font-size="12" font-weight="500" fill="#EDEDEA">notes</text><rect x="81" y="419" width="56" height="14" rx="3" fill="#2F2F34"/><text x="85" y="429" font-size="10" font-family="SquinchMono, 'IBM Plex Mono', ui-monospace, monospace" fill="#9C9B94">nullable</text><text x="340" y="430" font-size="11" font-family="SquinchMono, 'IBM Plex Mono', ui-monospace, monospace" text-anchor="end" fill="#7A796F">varchar(500)</text><title>varchar(500)
+<text x="340" y="406" font-size="11" font-family="SquinchMono, IBM Plex Mono, ui-monospace, monospace" text-anchor="end" fill="#7A796F">char(3)</text>
+<g><line x1="33" y1="414" x2="351" y2="414" stroke="#2E2E33" stroke-width="1"/><text x="44" y="430" font-size="12" font-weight="500" fill="#EDEDEA">notes</text><rect x="81" y="419" width="56" height="14" rx="3" fill="#2F2F34"/><text x="85" y="429" font-size="10" font-family="SquinchMono, IBM Plex Mono, ui-monospace, monospace" fill="#9C9B94">nullable</text><text x="340" y="430" font-size="11" font-family="SquinchMono, IBM Plex Mono, ui-monospace, monospace" text-anchor="end" fill="#7A796F">varchar(500)</text><title>varchar(500)
 free text from support</title></g>
 <line x1="33" y1="438" x2="351" y2="438" stroke="#2E2E33" stroke-width="1"/>
 <text x="44" y="454" font-size="12" font-weight="500" fill="#EDEDEA">created_at</text>
-<text x="340" y="454" font-size="11" font-family="SquinchMono, 'IBM Plex Mono', ui-monospace, monospace" text-anchor="end" fill="#7A796F">timestamptz</text>
+<text x="340" y="454" font-size="11" font-family="SquinchMono, IBM Plex Mono, ui-monospace, monospace" text-anchor="end" fill="#7A796F">timestamptz</text>
 </g>
 <g data-path="shop.pg.order_items" data-kind="leaf">
 <rect x="52" y="32" width="280" height="160" rx="4" fill="url(#sq-surface)" stroke="#3B3B40" stroke-width="1" filter="url(#sq-shadow)"/>
@@ -49,23 +49,23 @@ free text from support</title></g>
 <line x1="53" y1="96" x2="331" y2="96" stroke="#2E2E33" stroke-width="1"/>
 <text x="64" y="112" font-size="12" font-weight="500" fill="#EDEDEA">order_id</text>
 <rect x="115" y="101" width="20" height="14" rx="3" fill="#2F2F34"/>
-<text x="119" y="111" font-size="10" font-family="SquinchMono, 'IBM Plex Mono', ui-monospace, monospace" fill="#9C9B94">pk</text>
+<text x="119" y="111" font-size="10" font-family="SquinchMono, IBM Plex Mono, ui-monospace, monospace" fill="#9C9B94">pk</text>
 <rect x="139" y="101" width="20" height="14" rx="3" fill="#2F2F34"/>
-<text x="143" y="111" font-size="10" font-family="SquinchMono, 'IBM Plex Mono', ui-monospace, monospace" fill="#9C9B94">fk</text>
+<text x="143" y="111" font-size="10" font-family="SquinchMono, IBM Plex Mono, ui-monospace, monospace" fill="#9C9B94">fk</text>
 <path d="M167 108h7m-3-3l3 3l-3 3" fill="none" stroke="#9C9B94" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"/>
 <text x="178" y="112" font-size="11" fill="#9C9B94">orders.id</text>
-<text x="320" y="112" font-size="11" font-family="SquinchMono, 'IBM Plex Mono', ui-monospace, monospace" text-anchor="end" fill="#7A796F">uuid</text>
+<text x="320" y="112" font-size="11" font-family="SquinchMono, IBM Plex Mono, ui-monospace, monospace" text-anchor="end" fill="#7A796F">uuid</text>
 <line x1="53" y1="120" x2="331" y2="120" stroke="#2E2E33" stroke-width="1"/>
 <text x="64" y="136" font-size="12" font-weight="500" fill="#EDEDEA">sku</text>
 <rect x="89" y="125" width="20" height="14" rx="3" fill="#2F2F34"/>
-<text x="93" y="135" font-size="10" font-family="SquinchMono, 'IBM Plex Mono', ui-monospace, monospace" fill="#9C9B94">pk</text>
-<text x="320" y="136" font-size="11" font-family="SquinchMono, 'IBM Plex Mono', ui-monospace, monospace" text-anchor="end" fill="#7A796F">text</text>
+<text x="93" y="135" font-size="10" font-family="SquinchMono, IBM Plex Mono, ui-monospace, monospace" fill="#9C9B94">pk</text>
+<text x="320" y="136" font-size="11" font-family="SquinchMono, IBM Plex Mono, ui-monospace, monospace" text-anchor="end" fill="#7A796F">text</text>
 <line x1="53" y1="144" x2="331" y2="144" stroke="#2E2E33" stroke-width="1"/>
 <text x="64" y="160" font-size="12" font-weight="500" fill="#EDEDEA">quantity</text>
-<text x="320" y="160" font-size="11" font-family="SquinchMono, 'IBM Plex Mono', ui-monospace, monospace" text-anchor="end" fill="#7A796F">int</text>
+<text x="320" y="160" font-size="11" font-family="SquinchMono, IBM Plex Mono, ui-monospace, monospace" text-anchor="end" fill="#7A796F">int</text>
 <line x1="53" y1="168" x2="331" y2="168" stroke="#2E2E33" stroke-width="1"/>
 <text x="64" y="184" font-size="12" font-weight="500" fill="#EDEDEA">unit_price</text>
-<text x="320" y="184" font-size="11" font-family="SquinchMono, 'IBM Plex Mono', ui-monospace, monospace" text-anchor="end" fill="#7A796F">numeric(10,2)</text>
+<text x="320" y="184" font-size="11" font-family="SquinchMono, IBM Plex Mono, ui-monospace, monospace" text-anchor="end" fill="#7A796F">numeric(10,2)</text>
 </g>
 <g><rect x="128" y="202" width="54" height="18" rx="2" fill="#212124" stroke="#3B3B40" stroke-width="1"/><text x="155" y="215" text-anchor="middle" font-size="11" fill="#9C9B94">order_id</text></g>
 </g>
