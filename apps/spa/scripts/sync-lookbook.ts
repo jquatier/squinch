@@ -112,6 +112,8 @@ const REPRESENTATIVE: Record<string, string> = {
   "22-channel": "bussed",
   "25-edge-routing": "curved",
   "34-view-axes": "audit",
+  // the case's first view is the landscape that draws no fields, on purpose
+  "43-fields": "database",
 };
 const representative = (c: Case): Shot =>
   c.shots.find((s) => s.view === REPRESENTATIVE[c.slug]) ?? c.shots[0];
