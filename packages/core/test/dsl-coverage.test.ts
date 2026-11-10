@@ -446,8 +446,13 @@ view land { include * }`;
       return (r.diagnostics ?? []).find((d) => d.message.includes("nothing to draw"));
     };
     expect(await emptied(`view v { include *\n exclude a, b }`)).toBeDefined();
-    // scoping to a leaf: a node has no insides, so the view is empty
-    expect(await emptied(`view v { scope a }`)).toBeDefined();
+    // Scoping to a leaf used to land here too — an empty page with this
+    // warning. It is an error now that names what to scope instead
+    // (docs/notes/fields.md: a probe agent scoped a table to show its columns).
+    const leafScope = await render(base + `view v { scope a }`, { theme: "light", view: "v" });
+    expect(leafScope.ok).toBe(false);
+    expect(leafScope.diagnostics?.find((d) => d.severity === "error")?.message)
+      .toBe("`scope a` names a leaf — a view stands inside a container");
     // and a healthy view says nothing
     expect(await emptied(`view v { include * }`)).toBeUndefined();
   });

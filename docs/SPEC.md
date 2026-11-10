@@ -215,6 +215,53 @@ licensed: a generic `sys/*` concept for *what the thing is* and a brand mark for
 The ref is checked like `glyph:` — an unknown pack or icon is a check error with a
 did-you-mean, never a silently blank plate.
 
+### Fields (a leaf's schema)
+
+A leaf — a table, a collection, a topic, a message — may carry its schema in a
+`fields { }` block inside its braces, one field per line:
+
+```squinch
+orders = sys/table "orders" datastore {
+  preview: [id status total_cents]       // optional: which fields `preview` shows
+  fields {
+    id           uuid           pk
+    customer_id  uuid           fk ref customers
+    status       enum(pending, paid, shipped)
+    total_cents  bigint
+    notes        varchar(500)   nullable "free text from support"
+    address.city string                  // nested: a dotted name
+  }
+}
+```
+
+A line is a **name**, then words. The first word is the **type**, brackets and
+all — `numeric(10,2)`, `array<map<k, v>>` and `enum [a b]` are each one type,
+written the way the store spells it; a quoted string there is a quoted type.
+After the type, in any order:
+
+| word | meaning |
+| --- | --- |
+| a bare word (`pk`, `fk`, `unique`, `nullable`, `hash`, `range`, `ttl`, `index gsi1`) | a **marker** — one word each, free vocabulary, so every store's terms fit |
+| `ref <path>` | a **reference**, resolved like an edge endpoint (its longest prefix that names a node; `.id` after it is kept as text). Drawn as text, never a wire — the edge between the two tables is the relationship, `ref` names the column |
+| `"…"` | a **caption** — a key pattern (`"CART#<cartId>"`), a note |
+| `#tag` | parsed, not drawn yet (the check says so) |
+
+A comma between words is optional and never ends a line (`pk, fk` is two
+markers); newline or `;` does. Comments are `//`. Field names are unique within
+the block, and a name may be quoted.
+
+Fields never change a picture by being written. A leaf with fields draws as it
+always did, except in two places (§5): a view scoped to the leaf's own container —
+standing beside it, its **home altitude** — draws every field, and `preview <leaf>`
+draws up to six at any other altitude. `preview:` on the leaf is the container
+attr of the same name pointed at fields: `none | auto | [names]`, `auto` being
+the first six declared.
+
+The block belongs to a leaf: on a container, edge, note or person it is a check
+error naming where it goes, as are `schema { }` / `columns { }` (did you mean
+`fields`), a nested sub-block (write dotted names), and `--` comments. More than
+thirty fields warns — list what a reader needs; the full schema lives in the repo.
+
 **Altitude rendering:** a collapsed system/container renders as a **system card** —
 kind-driven silhouette, label, optional `glyph` badge, optional `preview` strip —
 never as a grid of its inner provider icons. Zooming/`expand` swaps the card for the
@@ -668,7 +715,8 @@ interior    = "layout" "{" { "rows" rank { rank } | "cols" rank { rank }
                            | "place" path relpos path
                            | "direction" ("down"|"right") } "}" ;   (* §3 *)
 node        = ident "=" iconref [ label ] { kind | tag | attrs }
-                          (* leaf attrs: description, subtitle, tags, color, badge *)
+                          (* leaf attrs: description, subtitle, tags, color, badge,
+                             preview (none|auto|rank of field names) *)
             | "person" ident [ label ] { tag | attrs } ;
 iconref     = ident "/" ident | "box" ;
 kind        = "external" | "datastore" ;   (* `person` comes from the
@@ -708,7 +756,10 @@ relpos      = "right-of" | "left-of" | "above" | "below" ;
 routemod    = "from" side | "to" side ;
 side        = "north" | "south" | "east" | "west" ;
 
-label       = string ;  attrs = "{" { ident ":" value [sep] } "}" ;
+label       = string ;  attrs = "{" { ( ident ":" value | fields ) [sep] } "}" ;
+fields      = "fields" "{" { fieldline nl } "}" ;      (* §3 Fields; leaves only *)
+fieldline   = ( path | string ) [ ":" ] { word | string | tag | "ref" path | "," } ;
+word        = path [ "(" args ")" | "<" args ">" | "[" args "]" ] ;   (* args nest *)
 sep         = nl | ";" | "," ;                (* interchangeable *)
 ```
 

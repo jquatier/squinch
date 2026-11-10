@@ -105,7 +105,7 @@ export async function allDiagnosticsFor(src: string): Promise<FeatureDiagnostic[
 }
 
 // ── block context ─────────────────────────────────────────────────────────
-const BLOCK_KEYWORDS = ["view", "layout", "system", "container", "zone", "flow"] as const;
+const BLOCK_KEYWORDS = ["view", "layout", "system", "container", "zone", "flow", "fields"] as const;
 export type BlockKind = (typeof BLOCK_KEYWORDS)[number] | "file" | "attrs";
 
 /** Which `{ }` block the offset sits in — innermost last. Brace scanning, not
@@ -152,6 +152,14 @@ export function completionsAt(src: string, offset: number): Completion[] {
   const line = src.slice(src.lastIndexOf("\n", Math.max(0, offset - 1)) + 1, offset);
   const stack = blockStack(src, offset);
   const here = stack[stack.length - 1];
+
+  // 0. a `fields { }` line is a name, a type and free words — no keyword, icon
+  // or edge target belongs there, and a comma in `enum(a, b)` is not a fan-out.
+  // The one thing to complete is the node a `ref` points at.
+  if (here === "fields") {
+    const ref = /\bref\s+([\w.]*)$/.exec(line);
+    return ref ? pathCompletions(src, ref[1]) : [];
+  }
 
   // 1. icon reference: `aws/lam|`
   const iconRef = /(^|[\s=,])([a-zA-Z][\w-]*)\/([\w-]*)$/.exec(line);

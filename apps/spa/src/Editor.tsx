@@ -19,7 +19,12 @@ const squinchLanguage = LRLanguage.define({
   parser: parser.configure({
     props: [
       styleTags({
-        "pack system container view person layout": t.definitionKeyword,
+        "pack system container view person layout fields": t.definitionKeyword,
+        // a leaf's `fields { }`: the head is a plain Ident in the grammar (the
+        // model checks the word), and each line's name reads as a property
+        "BlockName/Ident": t.definitionKeyword,
+        "FieldName/...": t.propertyName,
+        "< >": t.angleBracket,
         "rows cols place align route channel wrap from to direction lines density": t.keyword,
         "scope only include exclude detail expand context highlight color show note title theme": t.keyword,
         "right-of left-of above below north south east west": t.atom,

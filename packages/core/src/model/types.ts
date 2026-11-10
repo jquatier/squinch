@@ -30,6 +30,31 @@ export type Hue = (typeof HUES)[number];
  *  altitudes of a card never disagree about what is inside. */
 export const PREVIEW_MAX = 3;
 
+/** How many fields a leaf shows under `preview` (docs/notes/fields.md). Its own
+ *  number, not `PREVIEW_MAX`: a field row is one line of text, a card row is a
+ *  child's whole face. At home altitude — a view scoped to the leaf's own
+ *  container — every field draws and no cap applies. */
+export const PREVIEW_FIELDS_MAX = 6;
+
+/** One line of a leaf's `fields { }` block. The grammar hands the model a name
+ *  and a run of words; build.ts assigns these roles. */
+export interface SField {
+  /** Dotted for nested document fields (`address.city`). */
+  name: string;
+  /** The first word, brackets and all (`numeric(10,2)`), whitespace collapsed. */
+  type?: string;
+  /** Free words after the type — `pk`, `hash`, `ttl` — in source order. */
+  markers: string[];
+  /** `ref <path>`: `target` is the node the longest prefix resolved to, `rest`
+   *  what followed it (`.id`), kept as text. Never a wire. */
+  ref?: { text: string; target?: string; rest?: string };
+  /** A quoted string after the type. */
+  caption?: string;
+  /** Parsed for the next release; not drawn yet (the check says so). */
+  tags: string[];
+  loc: Loc;
+}
+
 export interface SNode {
   path: string; // full dotted path — the stable identity
   name: string; // last segment
@@ -48,6 +73,12 @@ export interface SNode {
   attrs: Record<string, string>;
   /** `color:` — the node's spine, as a card's (DESIGN §3). Validated copy of `attrs.color`. */
   color?: Hue;
+  /** `fields { }` — the schema. Unset when the block is absent, so a model
+   *  without one is exactly what it was before the feature existed. */
+  fields?: SField[];
+  /** `preview:` on a leaf: which fields `preview` shows (names), or none. Unset
+   *  means auto — the first PREVIEW_FIELDS_MAX declared. */
+  preview?: string[] | "none";
   loc: Loc;
   file?: string;
 }

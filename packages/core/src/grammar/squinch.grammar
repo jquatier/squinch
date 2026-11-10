@@ -55,7 +55,11 @@ ZoneDecl { kw<"zone"> Ident String? ZoneKind? ZoneBody }
 ZoneKind { Ident }
 ZoneBody { "{" list<ContainsStmt | Attr> "}" }
 ContainsStmt { kw<"contains"> PathList }
-ContainerBody { "{" list<NodeDecl | Container | EdgeStmt | Attr | LayoutBlock> "}" }
+ContainerBody { "{" list<NodeDecl | Container | EdgeStmt | Attr | LayoutBlock | StrayFields> "}" }
+// `fields { }` is a leaf's (a table's columns, a topic's payload). Parsed on a
+// container only so the model can say so and name the fix, instead of a bare
+// syntax error at the brace.
+StrayFields { kw<"fields"> FieldsBody }
 
 // Kind and attr block in either order. The model builder reads them with
 // getChildren/getChild and never cared about the sequence; only the grammar
@@ -91,8 +95,30 @@ Path { Ident ("." Ident)* }
 // A separate separator set, NOT `s`: a comma as a *statement* separator
 // conflicts with PathList's commas in edge fan-out. Trailing comma legal.
 as { nl | ";" | "," }
-AttrBlock { "{" as* (Attr as+)* Attr? "}" }
+AttrBlock { "{" as* (attrItem as+)* attrItem? "}" }
+attrItem { Attr | FieldsBlock }
 Attr { Ident ":" Value }
+
+// fields { name type word* "caption"? } — a leaf's schema (docs/notes/fields.md).
+// The grammar is deliberately dumb: a line is a name and a run of words, and
+// the model assigns the roles (first word the type, `ref <path>`, a later
+// string the caption, the rest markers). Doing that here is not LR(1) — type
+// and marker are both identifiers, and a string is a type in one position and
+// a caption in another. The block head is a plain Ident, not a keyword:
+// `Ident "{"` against Attr's `Ident ":"` is decided by one token, and the model
+// names the fix for `schema {` / `columns {`. A comma is a word here, never a
+// separator, so `pk, fk` stays on its line; newline or `;` ends a line.
+FieldsBlock { BlockName FieldsBody }
+BlockName { Ident }
+FieldsBody { "{" list<FieldLine> "}" }
+FieldLine { FieldName ":"? fieldWord* FieldsBody? }
+FieldName { Path | String }
+fieldWord { Word | String | Arrow | Tag | Number | "/" | "," }
+// numeric(10,2), array<map<k, v>>, enum [a b] — five of five probe agents
+// wrote engine types bare. Brackets nest, so this is grammar, not a token.
+Word { Path TypeArgs? }
+TypeArgs { "(" argItem* ")" | "<" argItem* ">" | "[" argItem* "]" }
+argItem { Word | String | Number | "," | ":" }
 // `Rank` is the bracket list `rows` uses — reused here so a card's
 // `preview: [api db]` is the same shape as every other list of members.
 Value { String | Number | Tag+ | IconRef | Path | Rank }
@@ -175,7 +201,7 @@ Side { kw<"north"> | kw<"south"> | kw<"east"> | kw<"west"> }
   Number { $[0-9]+ ("." $[0-9]+)? }
   Tag { "#" $[a-zA-Z0-9_-]+ }
   Arrow { "->" | "~>" | "<->" | "--" }
-  "{" "}" "[" "]" "," "=" ":" "/" "*" ";"
+  "{" "}" "[" "]" "," "=" ":" "/" "*" ";" "(" ")" "<" ">"
   @precedence { Comment, "/" }
 }
 

@@ -11,9 +11,9 @@ import { suggest } from "./suggest.js";
 import { normalizeFiles } from "./source.js";
 import { themes } from "../themes/index.js";
 import type {
-  ArrowKind, BuildResult, Diagnostic, Hue, Loc, RelPos, SContainer, SEdge, SModel, SNode, SNote, SView, Side, SFlow, SZone, ZoneKind, ZoneLabelPos,
+  ArrowKind, BuildResult, Diagnostic, Hue, Loc, RelPos, SContainer, SEdge, SField, SModel, SNode, SNote, SView, Side, SFlow, SZone, ZoneKind, ZoneLabelPos,
 } from "./types.js";
-import { ZONE_KINDS, HUES, EDGE_STYLES, EDGE_ANIMATE, PREVIEW_MAX } from "./types.js";
+import { ZONE_KINDS, HUES, EDGE_STYLES, EDGE_ANIMATE, PREVIEW_MAX, PREVIEW_FIELDS_MAX } from "./types.js";
 
 export interface ProjectFile {
   name: string;
@@ -41,6 +41,11 @@ function textsInModel(model: SModel): [string, string, Loc, string | undefined][
     out.push([`label \`${n.name}\``, n.label, n.loc, n.file]);
     if (n.description) out.push([`description of \`${n.name}\``, n.description, n.loc, n.file]);
     if (n.subtitle) out.push([`subtitle of \`${n.name}\``, n.subtitle, n.loc, n.file]);
+    for (const f of n.fields ?? []) {
+      out.push([`field \`${f.name}\` of \`${n.name}\``, f.name, f.loc, n.file]);
+      if (f.type) out.push([`type of field \`${f.name}\``, f.type, f.loc, n.file]);
+      if (f.caption) out.push([`caption of field \`${f.name}\``, f.caption, f.loc, n.file]);
+    }
   }
   for (const c of model.containers.values()) {
     if (c.label) out.push([`label \`${c.name}\``, c.label, c.loc, c.file]);
@@ -193,6 +198,153 @@ export function buildProject(input: ProjectFile[]): BuildResult {
     return { attrs, tags, description };
   };
 
+  /** `ref <path>` on a field, resolved in phase B once every node exists —
+   *  the order edges are resolved in, for the same reason. */
+  const rawFieldRefs: { field: SField; text: string; scope: string; at: SyntaxNode; ctx: Ctx }[] = [];
+
+  /**
+   * A leaf's `fields { }` (docs/notes/fields.md). The grammar hands over a name
+   * and a run of words per line; this assigns the roles. The first word is the
+   * type — brackets and all, so `numeric(10,2)` and `array<map<k, v>>` are one
+   * type — and a string in that place is a quoted type. After it: `ref <path>`
+   * is a reference, a later string the caption, a `#tag` a tag, and every other
+   * word a marker, in whatever order the author wrote them.
+   */
+  const FIELD_BLOCK_ALIASES = ["schema", "columns", "attributes", "props", "properties", "attrs"];
+  // Words that mean a key or a constraint. One in the type's place means the
+  // type was left out — `order_id pk` — and the line says so, rather than
+  // drawing `pk` as the type.
+  const MARKER_WORDS = new Set([
+    "pk", "fk", "key", "unique", "nullable", "index", "partition", "sort", "hash",
+    "range", "ttl", "ref", "primary", "required", "optional", "partition-key", "sort-key",
+  ]);
+  const readFields = (ctx: Ctx, nodeName: string, scope: string, blocks: SyntaxNode[]): SField[] | undefined => {
+    let fields: SField[] | undefined;
+    for (const block of blocks) {
+      const nameNode = block.getChild("BlockName");
+      const word = nameNode ? ctx.text(nameNode) : "fields";
+      if (word !== "fields") {
+        const alias = FIELD_BLOCK_ALIASES.includes(word.toLowerCase());
+        error(ctx, nameNode ?? block,
+          `\`${word} { }\` is not a block a leaf takes`,
+          alias
+            ? "did you mean `fields`? A leaf's schema is `fields { id uuid pk }`, one field per line"
+            : "the one block inside a leaf's braces is `fields { }`; everything else is `key: value`");
+        // `schema { }` is plainly a fields block under another name: read it
+        // anyway, so the lines inside get their own diagnostics in this same
+        // check rather than one round trip later
+        if (!alias) continue;
+      }
+      if (fields) {
+        error(ctx, block, `\`${nodeName}\` has a second \`fields\` block`,
+          "one block holds every field — merge them");
+        continue;
+      }
+      fields = [];
+      const body = block.getChild("FieldsBody");
+      const lines = body?.getChildren("FieldLine") ?? [];
+      if (!lines.length)
+        warn(ctx, block, `\`fields\` on \`${nodeName}\` is empty`,
+          "write one field per line — `id uuid pk` — or drop the block");
+      let endpoint: SyntaxNode | undefined;
+      let tagged: SyntaxNode | undefined;
+      for (const line of lines) {
+        const fn = line.getChild("FieldName");
+        if (!fn) continue;
+        const str = fn.getChild("String");
+        const name = str ? ctx.str(str) : ctx.text(fn);
+        if (/[\s/]/.test(name)) endpoint ??= line;
+        const field: SField = { name, markers: [], tags: [], loc: ctx.loc(line) };
+        // the words after the name, in order; `:` after the name and commas
+        // between words carry nothing
+        const words: SyntaxNode[] = [];
+        let sub: SyntaxNode | undefined;
+        for (let c = fn.nextSibling; c; c = c.nextSibling) {
+          if (c.type.isError || c.name === ":" || c.name === ",") continue;
+          if (c.name === "FieldsBody") { sub = c; continue; }
+          words.push(c);
+        }
+        const flat = (n: SyntaxNode) => ctx.text(n).replace(/\s+/g, " ");
+        const bare = (n: SyntaxNode) => n.name === "Word" && !n.getChild("TypeArgs");
+        let i = 0;
+        const first = words[0];
+        if (first && bare(first) && MARKER_WORDS.has(ctx.text(first))) {
+          warn(ctx, first, `\`${name}\` has no type — \`${ctx.text(first)}\` is a marker`,
+            `did you mean \`${name} <type> ${ctx.text(first)}\`? The type comes first: \`${name} uuid ${ctx.text(first)}\``);
+        } else if (first && (first.name === "Word" || first.name === "Number")) {
+          field.type = flat(first); i = 1;
+        } else if (first && first.name === "String") {
+          field.type = ctx.str(first); i = 1;
+        }
+        for (; i < words.length; i++) {
+          const w = words[i];
+          const text = ctx.text(w);
+          if (bare(w) && (text === "ref" || text === "references")) {
+            const target = words[i + 1];
+            if (!target || target.name !== "Word") {
+              error(ctx, w, `\`${text}\` needs the id it points at`, `write \`ref customers\` — the node this field refers to`);
+              continue;
+            }
+            if (text === "references")
+              warn(ctx, w, "a field reference is written `ref`",
+                `write \`ref ${ctx.text(target)}\``);
+            field.ref = { text: ctx.text(target) };
+            i++;
+          } else if (w.name === "Arrow") {
+            const target = words[i + 1];
+            if (text === "--") {
+              const rest = ctx.src.slice(w.to, line.to).trim();
+              error(ctx, w, "comments are `//` — `--` is an arrow here",
+                `write \`${ctx.src.slice(line.from, w.from).trim()} // ${rest}\``);
+              break;
+            }
+            if (text === "->" && target?.name === "Word") {
+              warn(ctx, w, "a field reference is written `ref`, not an arrow",
+                `write \`ref ${ctx.text(target)}\` — an arrow on a field line draws nothing`);
+              field.ref = { text: ctx.text(target) };
+              i++;
+            } else {
+              error(ctx, w, `\`${text}\` has no meaning in a field line`,
+                "a field points at another node with `ref <id>`; edges go between nodes, outside the block");
+            }
+          } else if (w.name === "String") {
+            if (field.caption !== undefined)
+              warn(ctx, w, `\`${name}\` has two captions — the second wins`, "keep one quoted string per field");
+            field.caption = ctx.str(w);
+          } else if (w.name === "Tag") {
+            field.tags.push(text.slice(1));
+            tagged ??= w;
+          } else if (w.name === "/") {
+            endpoint ??= line;
+          } else {
+            field.markers.push(flat(w));
+          }
+        }
+        if (sub) {
+          const kids = sub.getChildren("FieldLine").slice(0, 3).map((l) => `\`${name}.${ctx.text(l).trim().replace(/\s+/g, " ")}\``);
+          error(ctx, sub, `\`${name} { }\` nests fields — a nested field is a dotted name`,
+            kids.length ? `write ${kids.join(", ")} as lines of their own` : `write \`${name}.child type\``);
+        }
+        if (fields.some((x) => x.name === name)) {
+          error(ctx, line, `duplicate field \`${name}\` in \`${nodeName}\``, "each field appears once — merge the two lines");
+          continue;
+        }
+        if (field.ref) rawFieldRefs.push({ field, text: field.ref.text, scope, at: line, ctx });
+        fields.push(field);
+      }
+      if (endpoint)
+        warn(ctx, endpoint, `\`${nodeName}\` lists something that reads as an endpoint`,
+          "fields are data — columns, attributes, payload — not routes; put an API's paths in its description");
+      if (tagged)
+        warn(ctx, tagged, "field tags are parsed but not drawn yet",
+          "they will light rows under `highlight` and `color`; until then they change nothing");
+      if (fields.length > 30)
+        warn(ctx, block, `\`${nodeName}\` lists ${fields.length} fields`,
+          "list the ones a reader needs — keys, and what the diagram is about; the full schema lives in the repo");
+    }
+    return fields;
+  };
+
   // ── phase A: declarations, per file ───────────────────────────────────────
   const rawEdges: { node: SyntaxNode; scope: string; ctx: Ctx }[] = [];
   /** `layout { }` blocks found inside container bodies, resolved after every
@@ -212,9 +364,28 @@ export function buildProject(input: ProjectFile[]): BuildResult {
     // legitimately read "Orders [US, EU]", and suppressing a real syntax error
     // because of one would be strictly worse than staying quiet.
     const strings: [number, number][] = [];
+    // `fields { }` bodies. A field line is free text by design — `id: uuid pk`,
+    // `a -> b` as a ref, `pk, fk` — and the heuristics below read source text
+    // with regexes written for statements. Run over a field line, the
+    // unquoted-space one matched `id: uuid pk` and deleted the real errors in
+    // its range. Every heuristic skips these spans; the last one speaks for them.
+    const fieldSpans: [number, number][] = [];
     tree.iterate({
       enter(n: any) {
         if (n.name === "String") strings.push([n.from, n.to]);
+        if (n.name === "FieldsBlock" || n.name === "FieldsBody") fieldSpans.push([n.from, n.to]);
+        // A fields block parses in any attr block — an edge's, a note's, a
+        // titleblock's — and only a node reads one. Anywhere else it would be
+        // dropped without a word, which the check contract forbids.
+        if (n.name === "FieldsBlock") {
+          const owner = n.node.parent?.parent;
+          if (owner && owner.name !== "NodeDecl" && owner.name !== "PersonDecl") {
+            const what = owner.name === "EdgeStmt" ? "an edge" : owner.name === "NoteStmt" ? "a note"
+              : owner.name === "TitleBlockStmt" ? "a titleblock" : "this block";
+            error(ctx, n.node, `\`fields\` on ${what} — a schema belongs to a leaf`,
+              "put it in the braces of the table, topic or collection it describes");
+          }
+        }
         if (n.type.isError) {
           sawSyntaxError = true;
           const line = f.src.slice(0, n.from).split("\n").length;
@@ -225,12 +396,13 @@ export function buildProject(input: ProjectFile[]): BuildResult {
         }
       },
     });
+    const inFields = (at: number) => fieldSpans.some(([a, b]) => at >= a && at < b);
     if (sawSyntaxError) {
       // An opening brace on its own line. The C#/Java habit; statements end
       // at newline, so `system s "S"` terminates and the lone `{` is noise.
       for (const m of f.src.matchAll(/^([ \t]*(?:system|container|zone|view|flow)\b[^{\n]*?)[ \t]*\n[ \t]*\{/gm)) {
         const at = m.index! + m[0].lastIndexOf("{");
-        if (strings.some(([a2, b2]) => at >= a2 && at < b2)) continue;
+        if (strings.some(([a2, b2]) => at >= a2 && at < b2) || inFields(at)) continue;
         error(ctx, ctx.loc({ from: at, to: at + 1 } as SyntaxNode),
           "the `{` must sit on the declaration's own line — statements end at newline",
           `write \`${m[1].trim()} {\``);
@@ -247,7 +419,7 @@ export function buildProject(input: ProjectFile[]): BuildResult {
       // round-23 agents (and this author) wrote it — long band lists invite
       // wrapping.
       for (const m of f.src.matchAll(/^([ \t]*(?:rows|cols)\b[^\n]*\])[ \t]*\n(?:[ \t]*\n)*([ \t]*)\[/gm)) {
-        if (strings.some(([a2, b2]) => m.index! >= a2 && m.index! < b2)) continue;
+        if (strings.some(([a2, b2]) => m.index! >= a2 && m.index! < b2) || inFields(m.index!)) continue;
         const word = /rows|cols/.exec(m[1])![0];
         const at = m.index! + m[0].length - 1;
         error(ctx, ctx.loc({ from: at, to: at + 1 } as SyntaxNode),
@@ -264,7 +436,7 @@ export function buildProject(input: ProjectFile[]): BuildResult {
       // wrote a pipeline the same way as edges; the second arrow is garbage to
       // the parser and the bare syntax error said nothing about why.
       for (const m of f.src.matchAll(/^[ \t]*([\w.]+)[ \t]*(->|~>|<->|--)[ \t]*([\w.]+)((?:[ \t]*(?:->|~>|<->|--)[ \t]*[\w.]+)+)/gm)) {
-        if (strings.some(([a2, b2]) => m.index! >= a2 && m.index! < b2)) continue;
+        if (strings.some(([a2, b2]) => m.index! >= a2 && m.index! < b2) || inFields(m.index!)) continue;
         if ([...tree.topNode.getChildren("Flow")].some((n) => m.index! >= n.from && m.index! < n.to)) continue;
         const hops = [m[1], m[3], ...[...m[4].matchAll(/[\w.]+/g)].map((x) => x[0])];
         const arrows = [m[2], ...[...m[4].matchAll(/->|~>|<->|--/g)].map((x) => x[0])];
@@ -283,7 +455,7 @@ export function buildProject(input: ProjectFile[]): BuildResult {
       // image invites — but an edge has one source, and the comma list on the
       // left parses as garbage.
       for (const m of f.src.matchAll(/^[ \t]*([\w.]+(?:[ \t]*,[ \t]*[\w.]+)+)[ \t]*(->|~>|<->|--)[ \t]*([\w.]+)/gm)) {
-        if (strings.some(([a2, b2]) => m.index! >= a2 && m.index! < b2)) continue;
+        if (strings.some(([a2, b2]) => m.index! >= a2 && m.index! < b2) || inFields(m.index!)) continue;
         const sources = m[1].split(",").map((x) => x.trim());
         error(ctx, ctx.loc({ from: m.index!, to: m.index! + m[0].length } as SyntaxNode),
           `an edge has one source — \`${m[1]}\` cannot fan in`,
@@ -302,7 +474,7 @@ export function buildProject(input: ProjectFile[]): BuildResult {
       // at once — and got a bare syntax error. Either form alone is right.
       for (const m of f.src.matchAll(/^[ \t]*([\w-]+)[ \t]*=[ \t]*person[ \t]+([\w-]+)[ \t]+(?=")/gm)) {
         const at = m.index! + m[0].length - m[2].length - 1;
-        if (strings.some(([a, b]) => at >= a && at < b)) continue;
+        if (strings.some(([a, b]) => at >= a && at < b) || inFields(at)) continue;
         error(ctx, ctx.loc({ from: at, to: at + m[2].length } as SyntaxNode),
           `\`${m[1]} = person ${m[2]}\` names the person twice`,
           `write \`${m[1]} = person\` and keep the label, or \`person ${m[2]}\` on its own`);
@@ -322,7 +494,7 @@ export function buildProject(input: ProjectFile[]): BuildResult {
       for (const m of f.src.matchAll(
         /([\w-]+)[ \t]*:[ \t]*([A-Za-z][\w.-]*(?:[ \t]+[A-Za-z][\w.-]*)+)[ \t]*(?=[\n;,}])/g,
       )) {
-        if (strings.some(([a, b]) => m.index! >= a && m.index! < b)) continue;
+        if (strings.some(([a, b]) => m.index! >= a && m.index! < b) || inFields(m.index!)) continue;
         error(ctx, ctx.loc({ from: m.index!, to: m.index! + m[0].length } as SyntaxNode),
           `\`${m[1]}\` has a space in its value, so it needs quotes`,
           `write \`${m[1]}: "${m[2]}"\``);
@@ -341,7 +513,7 @@ export function buildProject(input: ProjectFile[]): BuildResult {
       // this one stays illegal and says so instead. (The rank-group version of
       // this diagnostic is gone — `rows [a, b]` parses now.)
       for (const m of f.src.matchAll(/[\w-]+[ \t]*:[ \t]*#[\w-]+(?:[ \t]*,[ \t]*#[\w-]+)+/g)) {
-        if (strings.some(([a, b]) => m.index! >= a && m.index! < b)) continue;
+        if (strings.some(([a, b]) => m.index! >= a && m.index! < b) || inFields(m.index!)) continue;
         const comma = m.index! + m[0].indexOf(",");
         error(ctx, ctx.loc({ from: comma, to: comma + 1 } as SyntaxNode),
           "comma splits the tag list — tags separate with spaces",
@@ -389,6 +561,62 @@ export function buildProject(input: ProjectFile[]): BuildResult {
             diagnostics.splice(i, 1);
         }
       }
+      // A schema block somewhere the grammar does not take one. Inside a leaf's
+      // `{ }` any `name {` parses and the model names the fix; on a container
+      // `fields {` parses as StrayFields. What is left is a `schema` or
+      // `columns` block at the top level or in a container body, and `fields:`
+      // written as an attribute — the `key: value` line just above invites it.
+      for (const m of f.src.matchAll(/^[ \t]*(schema|columns|attributes|fields)[ \t]*(:)?[ \t]*\{/gm)) {
+        const at = m.index! + (m[0].length - m[0].trimStart().length);
+        if (strings.some(([a, b]) => at >= a && at < b) || inFields(at)) continue;
+        const word = m[1];
+        error(ctx, ctx.loc({ from: at, to: at + word.length } as SyntaxNode),
+          m[2]
+            ? "`fields` is a block, not an attribute"
+            : `\`${word} { }\` belongs inside a leaf — a table, topic or collection`,
+          m[2]
+            ? "drop the colon: `fields {`, one field per line"
+            : `move it into the leaf's own braces: \`orders = sys/table "orders" { fields { id uuid pk } }\``);
+        const end = f.src.indexOf("\n}", at);
+        const stop = end === -1 ? f.src.length : end + 2;
+        for (let i = diagnostics.length - 1; i >= 0; i--) {
+          const d = diagnostics[i];
+          if (d.file === ctx.name && d.message.startsWith("syntax error near")
+              && d.loc.from >= at && d.loc.from <= stop)
+            diagnostics.splice(i, 1);
+        }
+      }
+      // Inside a fields block, the syntax errors that are left come from text
+      // pasted out of another schema language. Each bare `syntax error near`
+      // whose line sits in a fields span is replaced by what that line most
+      // likely did, read off the characters the grammar has no token for.
+      for (const d of diagnostics) {
+        if (d.file !== ctx.name || !d.message.startsWith("syntax error near") || !inFields(d.loc.from)) continue;
+        const ls = f.src.lastIndexOf("\n", d.loc.from - 1) + 1;
+        const le = f.src.indexOf("\n", d.loc.from);
+        const line = f.src.slice(ls, le === -1 ? f.src.length : le).trim();
+        const opens = (line.match(/[(<[]/g) ?? []).length;
+        const closes = (line.match(/[)>\]]/g) ?? []).length - (line.match(/->/g) ?? []).length;
+        // the fix rewrites every foreign habit on the line at once, so pasting
+        // it back parses; the message names the first one found
+        let fixed = line;
+        if (/\s--(\s|$)/.test(fixed)) fixed = fixed.replace(/\s--\s*/, " // ");
+        const code = fixed.split(" // ")[0], note = fixed.slice(code.length);
+        let body = code.replace(/'/g, '"').replace(/@id\b/g, "pk").replace(/@(\w+)/g, "$1");
+        if (/\w\?/.test(body)) body = body.replace(/(\w)\?/g, "$1") + " nullable";
+        fixed = body + note;
+        const message =
+          /(^|\s)--(\s|$)/.test(line) ? "comments are `//` — `--` is an arrow here"
+          : line.includes("'") ? "a field line quotes with double quotes"
+          : /\w\?/.test(line) ? "`?` is not squinch — an optional field says `nullable`"
+          : /@\w/.test(line) ? "`@` attributes are not squinch — markers are bare words"
+          : opens !== closes ? "a type's brackets must close on the same line"
+          : "a field line is a name, a type, then words — `name type marker… \"caption\"`";
+        d.message = message;
+        d.fix = fixed !== line ? `write \`${fixed}\``
+          : opens !== closes ? "keep the whole type on one line: `status enum(pending, paid, shipped)`"
+          : "quote anything with punctuation the grammar does not take: `price \"decimal(10,2) unsigned\"`";
+      }
     }
 
     /** Declare one node; works at any depth, including the file top level. */
@@ -431,7 +659,14 @@ export function buildProject(input: ProjectFile[]): BuildResult {
       // carries the C4 prior — an agent that has written `technology` under a
       // container's name a thousand times reaches for it here first, and
       // levenshtein cannot get from there to `subtitle`.
-      const NODE_ATTR_KEYS = ["description", "subtitle", "link", "tags", "color", "badge"];
+      const NODE_ATTR_KEYS = ["description", "subtitle", "link", "tags", "color", "badge", "preview"];
+      // `fields:` written as an attribute — `fields: [id name]` parses as a
+      // Rank and would otherwise be one more unknown key. It is the block.
+      if (meta.attrs["fields"] !== undefined) {
+        error(ctx, decl, "`fields` is a block, not an attribute",
+          "drop the colon: `fields {`, one field per line — `id uuid pk`");
+        delete meta.attrs["fields"];
+      }
       const SUBTITLE_ALIASES = ["tech", "technology", "stack", "caption", "tagline", "sub"];
       const LINK_ALIASES = ["url", "href", "hyperlink"];
       for (const key of Object.keys(meta.attrs)) {
@@ -472,6 +707,50 @@ export function buildProject(input: ProjectFile[]): BuildResult {
       if (subtitle !== undefined && kinds.includes("person"))
         warn(ctx, decl, "`subtitle` is a leaf attribute",
           "a person has no subtitle line; put it in `description:`");
+      // `fields { }` may sit in any of the node's attr blocks (the grammar takes
+      // several), so every one is read; `attrsOf` above only reads the first.
+      const fieldBlocks = decl.getChildren("AttrBlock").flatMap((b) => b.getChildren("FieldsBlock"));
+      let fields: SField[] | undefined;
+      if (fieldBlocks.length && kinds.includes("person"))
+        error(ctx, fieldBlocks[0], `\`fields\` on a person — a schema belongs to a store`,
+          "put it on the table, topic or collection the person uses");
+      else if (fieldBlocks.length) fields = readFields(ctx, name, parentPath, fieldBlocks);
+      // `preview:` on a leaf names the fields `preview` shows — the container
+      // attr of the same name, pointed at the leaf's own rows (SPEC §3).
+      let preview: SNode["preview"];
+      const raw = meta.attrs["preview"];
+      if (raw !== undefined) {
+        delete meta.attrs["preview"];
+        const previewAttr = decl.getChildren("AttrBlock").flatMap((b) => b.getChildren("Attr"))
+          .find((a) => { const k = a.getChild("Ident"); return k && ctx.text(k) === "preview"; })!;
+        const rank = previewAttr.getChild("Value")?.getChild("Rank");
+        const names = (fields ?? []).map((x) => x.name);
+        if (!fields)
+          warn(ctx, previewAttr, `\`preview\` on \`${name}\` picks fields, and it has none`,
+            "add a `fields { }` block, or drop the line");
+        else if (rank) {
+          const picks: string[] = [];
+          for (const p of rank.getChildren("Path")) {
+            const pick = ctx.text(p);
+            if (!names.includes(pick)) {
+              const sug = suggest(pick, names);
+              error(ctx, p, `preview names \`${pick}\`, which is not a field of \`${name}\``,
+                sug ? `did you mean \`${sug}\`?` : `one of: ${names.join(", ")}`);
+              continue;
+            }
+            if (!picks.includes(pick)) picks.push(pick);
+          }
+          if (picks.length > PREVIEW_FIELDS_MAX)
+            warn(ctx, previewAttr,
+              `preview lists ${picks.length} fields — a previewed leaf shows ${PREVIEW_FIELDS_MAX}; ` +
+                `${picks.slice(PREVIEW_FIELDS_MAX).map((n) => `\`${n}\``).join(", ")} fold into +N`,
+              `keep the ${PREVIEW_FIELDS_MAX} worth showing; a view scoped to \`${name}\`'s container shows every field`);
+          preview = picks.slice(0, PREVIEW_FIELDS_MAX);
+        } else if (raw === "none") preview = "none";
+        else if (raw !== "auto")
+          error(ctx, previewAttr, "`preview` is none, auto or a list of fields",
+            `preview: [${names.slice(0, 3).join(" ")}]`);
+      }
       const labelNode = decl.getChild("String");
       // `#tag` written in kind position (grammar: NodeDecl). Merged with any
       // block `tags:` and de-duped, so both spellings compose on one node.
@@ -486,6 +765,9 @@ export function buildProject(input: ProjectFile[]): BuildResult {
         tags: [...new Set([...headTags, ...meta.tags])],
         attrs: meta.attrs,
         color: meta.attrs["color"] ? checkHue(ctx, decl, meta.attrs["color"]) : undefined,
+        // both unset when absent: a model without them is the model before them
+        ...(fields ? { fields } : {}),
+        ...(preview ? { preview } : {}),
         loc: ctx.loc(decl),
         file: ctx.name,
       });
@@ -497,6 +779,9 @@ export function buildProject(input: ProjectFile[]): BuildResult {
       for (const sub of body.getChildren("Container")) walkContainerDecl(sub, parentPath);
       for (const e of body.getChildren("EdgeStmt")) rawEdges.push({ node: e, scope: parentPath, ctx });
       for (const lb of body.getChildren("LayoutBlock")) rawLayouts.push({ node: lb, scope: parentPath, ctx });
+      for (const sf of body.getChildren("StrayFields"))
+        error(ctx, sf, `\`fields\` on \`${parentPath.split(".").pop()}\` — a schema belongs to a leaf`,
+          `move the block into the table's own braces: \`orders = sys/table "orders" { fields { id uuid pk } }\``);
       const meta = attrsOf(ctx, body);
       const c = model.containers.get(parentPath);
       if (c) {
@@ -694,22 +979,24 @@ export function buildProject(input: ProjectFile[]): BuildResult {
    *  documented capability a hard error and cost agents a `check` in three
    *  separate rounds. Everywhere else a zone id is still wrong: you cannot draw
    *  an edge to a boundary, and `contains` takes nodes. */
+  /** The scope walk alone: the innermost declaration `ref` names from `scope`,
+   *  or undefined — no diagnostics, so a caller can try several spellings
+   *  (a field `ref` tries its longest prefix first) before reporting one. */
+  function lookup(ref: string, scope: string): string | undefined {
+    for (let s = scope; ; s = s.includes(".") ? s.slice(0, s.lastIndexOf(".")) : "") {
+      const candidate = s ? `${s}.${ref}` : ref;
+      if (model.nodes.has(candidate) || model.containers.has(candidate)) return candidate;
+      if (!s) return undefined;
+    }
+  }
+
   function resolve(
     ref: string, scope: string, at: SyntaxNode, ctx: Ctx,
     opts: { zones?: boolean } = {},
   ): string | undefined {
     if (opts.zones && zoneMemberNames.has(ref)) return ref;
-    const scopes: string[] = [];
-    let s = scope;
-    while (s) {
-      scopes.push(s);
-      s = s.includes(".") ? s.slice(0, s.lastIndexOf(".")) : "";
-    }
-    scopes.push("");
-    for (const sc of scopes) {
-      const candidate = sc ? `${sc}.${ref}` : ref;
-      if (model.nodes.has(candidate) || model.containers.has(candidate)) return candidate;
-    }
+    const hit = lookup(ref, scope);
+    if (hit) return hit;
     // Naming a zone where a node belongs is the one wrong guess that reads as
     // right: zones nest by *sharing members*, so the outer one repeats the
     // inner one's leaves rather than naming it. Two of twenty round-5 agents
@@ -907,6 +1194,25 @@ export function buildProject(input: ProjectFile[]): BuildResult {
   }
 
   let edgeN = 0;
+  // Field refs: `ref customers.mongo.customers._id` names a node and then,
+  // perhaps, one of its fields. The longest prefix that resolves is the target;
+  // what follows is kept as text. Nothing is drawn between them — a ref is a
+  // fact on the row, never a wire (docs/notes/preview-card.md).
+  for (const { field, text, scope, at, ctx } of rawFieldRefs) {
+    const segs = text.split(".");
+    let k = segs.length;
+    for (; k > 0; k--) {
+      const target = lookup(segs.slice(0, k).join("."), scope);
+      if (target) {
+        field.ref = { text, target, ...(k < segs.length ? { rest: segs.slice(k).join(".") } : {}) };
+        break;
+      }
+    }
+    // nothing resolved: report the path without its last segment when there is
+    // one — `orders.id` is a node and a field, and the node is what is missing
+    if (!k) resolve(segs.length > 1 ? segs.slice(0, -1).join(".") : text, scope, at, ctx);
+  }
+
   for (const { node, scope, ctx } of rawEdges) {
     const pathNode = node.getChild("Path");
     const arrowNode = node.getChild("Arrow");
@@ -1311,7 +1617,22 @@ export function buildProject(input: ProjectFile[]): BuildResult {
     if (scopeStmt && !scopePath)
       error(ctx, scopeStmt, "`scope` needs a single container path",
         "scope narrows a view to one container; to widen a view to everything use `include *`");
-    else if (scopePath) view.scope = resolve(ctx.text(scopePath), "", scopeStmt!, ctx);
+    else if (scopePath) {
+      view.scope = resolve(ctx.text(scopePath), "", scopeStmt!, ctx);
+      // A view stands *inside* a container. Scoped to a leaf it used to draw an
+      // empty page with a "nothing to draw" warning. One probe agent wrote
+      // exactly this to show a table's columns — which is what scoping the
+      // table's container does (docs/notes/fields.md) — so the error names it.
+      const leaf = view.scope ? model.nodes.get(view.scope) : undefined;
+      if (leaf) {
+        const parent = leaf.path.includes(".") ? leaf.path.slice(0, leaf.path.lastIndexOf(".")) : "";
+        error(ctx, scopePath, `\`scope ${ctx.text(scopePath)}\` names a leaf — a view stands inside a container`,
+          parent
+            ? `write \`scope ${parent}\`${leaf.fields ? ` — \`${leaf.name}\` draws every field there` : ""}`
+            : `drop the line — \`${leaf.name}\` sits at the top level${leaf.fields ? `; \`preview ${leaf.name}\` shows its fields` : ""}`);
+        view.scope = parent || undefined;
+      }
+    }
     else if (model.containers.has(name)) view.scope = name; // auto: view <container>
     const title = body.getChildren("TitleStmt")[0];
     const titleStr = title?.getChild("String");

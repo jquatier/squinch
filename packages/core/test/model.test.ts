@@ -839,3 +839,177 @@ describe("round 30: one node, two spellings; one verb, one line or a list", () =
     expect(r.model.views[0].expand).toEqual(["a"]);
   });
 });
+
+// docs/notes/fields.md. Every line shape here is one a cold probe agent wrote
+// unprompted; the grammar is dumb (a name and a run of words) and the model
+// assigns the roles, so these pin the assignment.
+describe("fields: a leaf's schema", () => {
+  const table = (lines: string, extra = "") =>
+    buildModel(
+      `pack aws\nsystem shop "Shop" {\n  container pg "Postgres" {\n` +
+        `    customers = sys/table "customers" datastore\n` +
+        `    orders = sys/table "orders" datastore {\n${extra}      fields {\n${lines}\n      }\n    }\n  }\n}\n`,
+    );
+  const fieldsOf = (r: ReturnType<typeof buildModel>) => r.model.nodes.get("shop.pg.orders")!.fields!;
+  const errors = (r: ReturnType<typeof buildModel>) => r.diagnostics.filter((d) => d.severity === "error");
+
+  it("reads the probe's line shapes: type first, brackets nested, then markers", () => {
+    const r = table([
+      "id uuid pk",
+      "status enum(pending, paid, shipped)",
+      "price numeric(10,2)",
+      "tags array<map<string, int>>",
+      "kind enum [a b]",
+      "order_id uuid pk, fk",
+      "gsi1pk string index gsi1",
+      `pk string partition "CART#<cartId>"`,
+      "address.city string",
+      `created_at "timestamp with time zone"`,
+    ].join("\n"));
+    expect(errors(r)).toEqual([]);
+    const f = Object.fromEntries(fieldsOf(r).map((x) => [x.name, x]));
+    expect(f["id"]).toMatchObject({ type: "uuid", markers: ["pk"] });
+    expect(f["status"].type).toBe("enum(pending, paid, shipped)");
+    expect(f["price"].type).toBe("numeric(10,2)");
+    expect(f["tags"].type).toBe("array<map<string, int>>");
+    expect(f["kind"].type).toBe("enum [a b]");
+    expect(f["order_id"].markers).toEqual(["pk", "fk"]); // a comma is a word, not a line break
+    expect(f["gsi1pk"].markers).toEqual(["index", "gsi1"]); // a marker is one word
+    expect(f["pk"]).toMatchObject({ type: "string", markers: ["partition"], caption: "CART#<cartId>" });
+    expect(f["address.city"].type).toBe("string");
+    expect(f["created_at"].type).toBe("timestamp with time zone"); // a string right after the name is the type
+    // declared order is kept
+    expect(fieldsOf(r).map((x) => x.name)[0]).toBe("id");
+  });
+
+  it("accepts a colon after the name and markers in any order", () => {
+    const r = table("id: uuid pk\ncustomer_id uuid nullable ref customers fk");
+    expect(errors(r)).toEqual([]);
+    expect(fieldsOf(r)[0]).toMatchObject({ name: "id", type: "uuid", markers: ["pk"] });
+    expect(fieldsOf(r)[1]).toMatchObject({ markers: ["nullable", "fk"], ref: { target: "shop.pg.customers" } });
+  });
+
+  it("a ref resolves its longest prefix, lexically, and keeps the rest as text", () => {
+    const r = table("customer_id uuid ref customers.id\nother uuid ref pg.customers");
+    expect(errors(r)).toEqual([]);
+    expect(fieldsOf(r)[0].ref).toEqual({ text: "customers.id", target: "shop.pg.customers", rest: "id" });
+    expect(fieldsOf(r)[1].ref).toEqual({ text: "pg.customers", target: "shop.pg.customers" });
+  });
+
+  it("an unknown ref is an error with a did-you-mean, as an edge endpoint is", () => {
+    const r = table("customer_id uuid ref customer.id");
+    const e = errors(r)[0];
+    expect(e.message).toBe("unknown id `customer`");
+    expect(e.fix).toBe("did you mean `shop.pg.customers`?");
+  });
+
+  it("`references` and `fk -> x` are read as a ref, and say how it is written", () => {
+    const r = table("a uuid references customers\nb uuid fk -> customers");
+    expect(errors(r)).toEqual([]);
+    expect(fieldsOf(r).map((x) => x.ref?.target)).toEqual(["shop.pg.customers", "shop.pg.customers"]);
+    const w = r.diagnostics.filter((d) => d.message.startsWith("a field reference is written `ref`"));
+    expect(w.map((d) => d.fix)).toEqual(["write `ref customers`", "write `ref customers` — an arrow on a field line draws nothing"]);
+  });
+
+  it("`--` is a comment habit, not squinch — the error writes the line", () => {
+    const r = table("id uuid pk -- primary key");
+    const e = errors(r)[0];
+    expect(e.message).toBe("comments are `//` — `--` is an arrow here");
+    expect(e.fix).toBe("write `id uuid pk // primary key`");
+  });
+
+  it("a marker in the type's place warns that the type is missing", () => {
+    const r = table("order_id pk");
+    const w = r.diagnostics.find((d) => d.message.includes("has no type"))!;
+    expect(w.severity).toBe("warning");
+    expect(w.message).toBe("`order_id` has no type — `pk` is a marker");
+    expect(fieldsOf(r)[0].type).toBeUndefined();
+    expect(fieldsOf(r)[0].markers).toEqual(["pk"]);
+  });
+
+  it("a nested sub-block is an error that writes the dotted lines", () => {
+    const r = table("payload {\n  total long\n  items list\n}");
+    const e = errors(r).find((d) => d.message.includes("nests fields"))!;
+    expect(e.message).toBe("`payload { }` nests fields — a nested field is a dotted name");
+    expect(e.fix).toBe("write `payload.total long`, `payload.items list` as lines of their own");
+  });
+
+  it("duplicate fields, a second block and a wrong block name are errors", () => {
+    expect(errors(table("id uuid\nid int"))[0].message).toBe("duplicate field `id` in `orders`");
+    const two = buildModel(`a = sys/table "A" { fields { x int } } { fields { y int } }`);
+    expect(two.diagnostics.map((d) => d.message)).toContain("`a` has a second `fields` block");
+    const schema = buildModel(`a = sys/table "A" { schema { x int } }`);
+    expect(schema.diagnostics[0]).toMatchObject({
+      severity: "error",
+      message: "`schema { }` is not a block a leaf takes",
+      fix: "did you mean `fields`? A leaf's schema is `fields { id uuid pk }`, one field per line",
+    });
+  });
+
+  it("fields belong on a leaf: a container, an edge or a person is told where", () => {
+    const onContainer = buildModel(`system s "S" {\n  fields { id uuid }\n  a = sys/table "A"\n}`);
+    expect(onContainer.diagnostics[0].message).toBe("`fields` on `s` — a schema belongs to a leaf");
+    const onEdge = buildModel(`a = sys/table "A"\nb = sys/table "B"\na -> b { fields { x int } }`);
+    expect(onEdge.diagnostics[0].message).toBe("`fields` on an edge — a schema belongs to a leaf");
+    const onPerson = buildModel(`person p "P" { fields { x int } }`);
+    expect(onPerson.diagnostics[0].message).toBe("`fields` on a person — a schema belongs to a store");
+    const asAttr = buildModel(`a = sys/table "A" { fields: [x y] }`);
+    expect(asAttr.diagnostics[0].message).toBe("`fields` is a block, not an attribute");
+  });
+
+  it("schema blocks the grammar cannot take get a fix, not a bare syntax error", () => {
+    const r = buildModel(`system s "S" {\n  schema {\n    id uuid\n  }\n}`);
+    expect(r.diagnostics.some((d) => d.message.startsWith("syntax error near"))).toBe(false);
+    expect(r.diagnostics[0].message).toBe("`schema { }` belongs inside a leaf — a table, topic or collection");
+    const pasted = table(`email String? @unique`);
+    expect(pasted.diagnostics.some((d) => d.message.startsWith("syntax error near"))).toBe(false);
+    expect(pasted.diagnostics[0].message).toBe("`?` is not squinch — an optional field says `nullable`");
+    expect(pasted.diagnostics[0].fix).toBe("write `email String unique nullable`");
+  });
+
+  it("the statement heuristics stay out of fields blocks", () => {
+    // the unquoted-space heuristic matched `id: uuid pk` as `key: two words` and
+    // deleted the real error's diagnostics in its range; it must not fire here
+    const r = buildModel(
+      `a = sys/table "A" {\n  fields {\n    id: uuid pk\n  }\n}\nb -> -> c\n`,
+    );
+    expect(r.diagnostics.some((d) => d.message.includes("has a space in its value"))).toBe(false);
+    expect(r.diagnostics.some((d) => d.severity === "error")).toBe(true);
+  });
+
+  it("a leaf's `preview:` picks fields, checked like a container's children", () => {
+    const r = table("id uuid pk\nstatus text\ntotal bigint", "      preview: [status totl]\n");
+    const e = errors(r)[0];
+    expect(e.message).toBe("preview names `totl`, which is not a field of `orders`");
+    expect(e.fix).toBe("did you mean `total`?");
+    expect(r.model.nodes.get("shop.pg.orders")!.preview).toEqual(["status"]);
+    expect(table("id uuid", "      preview: none\n").model.nodes.get("shop.pg.orders")!.preview).toBe("none");
+    const many = table(Array.from({ length: 8 }, (_, i) => `f${i} int`).join("\n"),
+      "      preview: [f0 f1 f2 f3 f4 f5 f6 f7]\n");
+    expect(many.diagnostics.find((d) => d.message.startsWith("preview lists 8 fields"))?.severity).toBe("warning");
+    expect(many.model.nodes.get("shop.pg.orders")!.preview).toHaveLength(6);
+  });
+
+  it("warns on endpoints, on 30+ fields and on field tags it cannot draw yet", () => {
+    const msgs = (r: ReturnType<typeof buildModel>) => r.diagnostics.map((d) => d.message);
+    expect(msgs(table(`"GET /orders" route`))).toContain("`orders` lists something that reads as an endpoint");
+    expect(msgs(table(Array.from({ length: 31 }, (_, i) => `f${i} int`).join("\n")))).toContain("`orders` lists 31 fields");
+    const tagged = table("email text #pii");
+    expect(msgs(tagged)).toContain("field tags are parsed but not drawn yet");
+    expect(fieldsOf(tagged)[0].tags).toEqual(["pii"]);
+  });
+
+  it("a model with no fields is the model it was: no new keys on any node", () => {
+    const r = buildModel(canonical);
+    for (const n of r.model.nodes.values()) {
+      expect("fields" in n).toBe(false);
+      expect("preview" in n).toBe(false);
+    }
+  });
+
+  it("edges and arrows elsewhere still parse — the new `<` `>` tokens take nothing", () => {
+    const r = buildModel(`pack aws\na = aws/lambda "A"\nb = aws/lambda "B"\na -> b\na <-> b\na -- b\na ~> b\n`);
+    expect(r.ok).toBe(true);
+    expect(r.model.edges).toHaveLength(4);
+  });
+});

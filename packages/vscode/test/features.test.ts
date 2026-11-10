@@ -110,6 +110,16 @@ describe("block context", () => {
     expect(stack.slice(-2)).toEqual(["system", "layout"]);
   });
 
+  it("knows a leaf's fields block, and completes only a ref target inside it", () => {
+    const src = `system s "S" {\n  customers = box "C"\n  orders = box "O" {\n    fields {\n      status enum(a, |\n    }\n  }\n}\n`;
+    const p = at(src);
+    expect(blockStack(p.src, p.offset).slice(-2)).toEqual(["attrs", "fields"]);
+    // the comma inside a type is not an edge fan-out: no path completions
+    expect(completionsAt(p.src, p.offset)).toEqual([]);
+    const ref = at(src.replace("status enum(a, |", "customer_id uuid ref cust|"));
+    expect(completionsAt(ref.src, ref.offset).map((c) => c.label)).toContain("customers");
+  });
+
   it("ignores braces inside strings and comments", () => {
     const src = `system s "a { b" {\n  // } not a close\n  x = box "X"\n`;
     expect(blockStack(src, src.length).pop()).toBe("system");
