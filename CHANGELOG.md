@@ -6,6 +6,14 @@ history too. Sections are drafted by `pnpm release` from the commits since the
 previous tag, then edited by a human before anything is written; the release
 workflow lifts the matching section verbatim into the GitHub Release notes.
 
+## 0.18.0 — 2026-11-10
+
+- Tables can show their schema. Give any leaf a `fields { }` block, one field per line — `id uuid pk`, `status enum(pending, paid)`, `customer_id uuid fk ref customers`. Fields draw in a view scoped to the table's container, or under `preview <table>`; every other view is unchanged. See lookbook case 43.
+- `check` fixes what agents write by habit — `schema {`, nested blocks, SQL `--` comments, pasted Prisma syntax — and `scope` on a table now points at its container. `squinch diff` reports schema changes; the editor completes field names. Re-run `squinch skill` to teach agents.
+- PNG exports draw mono text in the mono face; it was falling back to Inter. **Views with a zone `detail:` or a titleblock `commit:` redraw**, so run `--sync` after upgrading. Browsers are unaffected.
+- Gauntlet round 32: 39/39, 28 of 39 clean on the first `check`, with a new schema prompt.
+- The site's icon card shows a row per pack instead of a count.
+
 ## 0.17.1 — 2026-11-03
 
 - Update notices appear again. The CLI never waited for its once-a-day registry lookup, and since every command's work is synchronous the lookup could not run before the process exited, so `check`, `--version`, `icons` and single-view renders never recorded a latest version and never said one was out. A started lookup now gets up to half a second after the command finishes; a fresh cache starts none and costs nothing, and a failing command keeps its exit code.
