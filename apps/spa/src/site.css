@@ -700,6 +700,37 @@ pre code { background: none; padding: 0; font-size: inherit; }
    meant to prove. 240px is the point where the node labels become legible
    without the card outgrowing the row. */
 .pcard-well img { display: block; max-width: 100%; max-height: 240px; width: auto; height: auto; }
+/* The icon card's pack shelf (site-shell.ts builds it): a row per pack in
+   the well's place, held to the wells' height — 16 + 240 + 20 and the 1px rule — so
+   the card never outgrows its neighbours and the three top rules stay level. */
+.pcard-text code { font-size: 12.5px; color: var(--fg); }
+.pcard-shelf {
+  margin-top: auto;
+  min-height: 277px;
+  border-top: 1px solid var(--line);
+  background: var(--canvas);
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+}
+.shelf { list-style: none; margin: 0; padding: 6px 0; }
+.shelf li {
+  display: grid;
+  grid-template-columns: 60px 1fr;
+  align-items: center;
+  gap: 10px;
+  padding: 6px 22px;
+}
+.shelf li + li { border-top: 1px solid var(--line-soft); }
+/* the prefix as you'd type it, bare: the global code chip reads as a button
+   in a column of them, and the slash recedes so the pack name leads */
+.shelf code { font: 600 12px/1 var(--font-mono); color: var(--fg); background: none; padding: 0; border-radius: 0; }
+.shelf code span { color: var(--text-3); font-weight: 500; }
+/* spread across the row so the grid of marks squares up at any column width */
+.shelf-icons { display: flex; gap: 4px; justify-content: space-between; overflow: hidden; }
+.shelf-icons img, .shelf-mono svg { display: block; width: 24px; height: 24px; }
+.shelf-mono { color: var(--muted); }
+.shelf-mono svg { width: 22px; height: 22px; padding: 1px; }
 /* the wells open large on click (script at the end of the page) */
 .pcard-well { cursor: zoom-in; transition: background 180ms ease; }
 .pcard-well:hover { background: color-mix(in srgb, var(--fg) 3%, transparent); }

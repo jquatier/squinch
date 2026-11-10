@@ -20,11 +20,13 @@
 //                       .foot-meta — the CTA beside it is the page's own.
 //   <!--rail-spy-->     src/rail.js as an inline script.
 //   <!--icon-count-->   marks across every installed pack ("1,358").
+//   <!--icon-shelf-->   the landing's icon card: a row per pack with seven
+//                       of its marks.
 //   <!--case-count-->   lookbook cases.
 import type { Plugin } from "vite";
 import { readdirSync, readFileSync } from "node:fs";
 import { createRequire } from "node:module";
-import { join, resolve } from "node:path";
+import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
 const here = fileURLToPath(new URL(".", import.meta.url));
@@ -53,6 +55,62 @@ const iconCount = (): string => {
     if (pkg.startsWith("@squinch/pack-"))
       n += Object.keys(JSON.parse(readFileSync(require.resolve(`${pkg}/pack.json`), "utf8")).icons).length;
   return n.toLocaleString("en-US");
+};
+
+/** The landing's icon card: one row per pack — its prefix and seven of its
+ *  marks — so the reader sees the artwork rather than a number. Built off
+ *  the manifests for the reason `iconCount` is: a renamed icon fails the
+ *  build here instead of drawing a broken image. Seven is what fits the
+ *  narrowest column (three-up at 1180px) beside the prefix. */
+const SHELF: Record<string, string[]> = {
+  aws: ["lambda", "simple-storage-service", "dynamodb", "simple-queue-service", "api-gateway", "cloudfront", "rds"],
+  azure: ["function-apps", "azure-cosmos-db", "kubernetes-services", "storage-accounts", "app-services", "key-vaults", "event-hubs"],
+  gcp: ["bigquery", "gke", "cloud-run", "spanner", "vertex-ai", "cloud-sql", "compute-engine"],
+  k8s: ["pod", "deploy", "svc", "ing", "sts", "cm", "secret"],
+  logos: ["apachekafka", "postgresql", "datadog", "stripe", "redis", "snowflake", "terraform"],
+  sys: ["server", "database", "cpu", "router", "shield", "globe", "smartphone"],
+};
+
+const esc = (s: string): string => s.replaceAll("&", "&amp;").replaceAll('"', "&quot;").replaceAll("<", "&lt;");
+
+/** A brand colour too dark to read on the site's ground falls back to the
+ *  text colour — the same call the renderer makes by plating such marks. */
+const legible = (hex: string | undefined): string | undefined => {
+  if (!hex) return undefined;
+  const n = parseInt(hex.slice(1), 16);
+  const l = (0.2126 * (n >> 16) + 0.7152 * ((n >> 8) & 255) + 0.0722 * (n & 255)) / 255;
+  return l < 0.25 ? undefined : hex;
+};
+
+const iconShelf = (): string => {
+  const rows = Object.entries(SHELF).map(([name, picks]) => {
+    const dir = dirname(require.resolve(`@squinch/pack-${name}/pack.json`));
+    const manifest = JSON.parse(readFileSync(join(dir, "pack.json"), "utf8"));
+    const marks = picks.map((id) => {
+      const icon = manifest.icons[id];
+      if (!icon) throw new Error(`site-shell: the icon shelf names ${name}/${id}, which the pack no longer has`);
+      const title = esc(icon.title ?? id);
+      if (!manifest.monochrome)
+        return `<img src="/${name}-icons/${icon.file}" alt="${title}" width="24" height="24" loading="lazy" />`;
+      // Monochrome marks carry no paint of their own (currentColor, or none
+      // at all), so an <img> would draw them black: inline them and tint.
+      // Only the root tag is rewritten: Lucide's <rect>s carry width/height too.
+      const svg = readFileSync(join(dir, "icons", icon.file), "utf8")
+        .replace(/<!--[\s\S]*?-->/g, "")
+        .replace(/<title>[\s\S]*?<\/title>/, "")
+        .replace(/<svg\b[^>]*>/, (tag) => {
+          const kept = tag.replace(/\s(class|width|height|role)="[^"]*"/g, "");
+          const fill = /\sfill="/.test(kept) ? "" : ' fill="currentColor"';
+          return kept.replace("<svg", `<svg${fill} role="img" aria-label="${title}"`);
+        })
+        .replace(/\s+/g, " ")
+        .trim();
+      const colour = legible(icon.color);
+      return `<span class="shelf-mono"${colour ? ` style="color:${colour}"` : ""}>${svg}</span>`;
+    });
+    return `<li><code>${name}<span>/</span></code><span class="shelf-icons">${marks.join("")}</span></li>`;
+  });
+  return `<ul class="shelf" aria-label="Icon packs">\n${rows.map((r) => `            ${r}`).join("\n")}\n          </ul>`;
 };
 
 const caseCount = (): string =>
@@ -109,6 +167,7 @@ export const siteShell = ({ version }: { version: string }): Plugin => ({
         .replace("<!--foot-meta-->", () => footMeta(version))
         .replace("<!--rail-spy-->", () => `<script>\n${readFileSync(RAIL, "utf8")}    </script>`)
         .replaceAll("<!--icon-count-->", iconCount)
+        .replace("<!--icon-shelf-->", iconShelf)
         .replaceAll("<!--case-count-->", caseCount);
     },
   },

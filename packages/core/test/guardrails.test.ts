@@ -161,6 +161,10 @@ describe("pack registration stays consistent across its five sites", () => {
         "packages/vscode/scripts/bundle.mjs", /"pack-([\w-]+)"/g),
       "gauntlet/run.ts": namesIn(
         "gauntlet/run.ts", /"pack-([\w-]+)"/g),
+      // the landing's icon shelf: miss it and a new pack ships without a row
+      // on the card that is meant to show every pack
+      "spa/site-shell.ts": namesIn(
+        "apps/spa/site-shell.ts", /^ {2}([\w-]+): \[/gm),
     };
     // the SPA's runtime list is bare names in one array; intersect against the
     // known pack set rather than every string literal in the file

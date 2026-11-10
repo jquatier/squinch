@@ -144,11 +144,13 @@ row — cart, payment, order, shipping — that round 26 agents reached for and
 missed) plus plain shapes as a last resort. Also `monochrome: true`. It is the `sys/*` prefix, and like `builtin` it
 resolves with **no `pack` statement** — which is a property of being registered,
 not of the DSL: `model.packs` is recorded and never read, so `pack` is a
-declaration of intent. Registration is hardcoded in six places, all one-liners:
+declaration of intent. Registration is hardcoded in seven places, all one-liners:
 `core/src/packs/node-fs.ts`, `apps/spa/scripts/sync-packs.ts` +
 `apps/spa/src/squinch.ts`, `packages/vscode/scripts/bundle.mjs` (miss it and
-`packExists` is false in the bundled extension), and `gauntlet/run.ts` (miss
-it and cold agents silently run without the pack), plus the `PUBLIC` allowlist
+`packExists` is false in the bundled extension), `gauntlet/run.ts` (miss
+it and cold agents silently run without the pack), and `SHELF` in
+`apps/spa/site-shell.ts` — the landing's icon card, a row per pack with seven
+picked marks, where a pick the pack no longer has fails the build — plus the `PUBLIC` allowlist
 in `guardrails.test.ts`. The guardrails test asserts all of them agree.
 A pack name must never appear in **both** `BUILTIN_GLYPHS` and the pack registry:
 `iconIds` short-circuits on the former, so the disk icons would vanish from
