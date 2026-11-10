@@ -1,41 +1,39 @@
 pack aws
 
 system billing "Billing Service" {
-  description: "Invoice and payment processing with nightly export"
-
+  description: "Billing API, database and nightly export"
   api = aws/fargate "Billing API" {
     subtitle: "ECS Fargate"
   }
-
-  container db "Billing Database" {
+  export = aws/lambda "Nightly Export" {
+    subtitle: "Lambda"
+  }
+  files = aws/s3 "Export File"
+  container db "Billing DB" {
     icon: aws/rds
-    description: "Postgres · 5 tables"
-
-    customers      = sys/table "customers" datastore
-    invoices       = sys/table "invoices" datastore
-    invoice_lines  = sys/table "invoice_lines" datastore
-    payments       = sys/table "payments" datastore
-    refunds        = sys/table "refunds" datastore
-
-    invoices      -> customers     "customer_id"
-    invoice_lines -> invoices      "invoice_id"
-    payments      -> invoices      "invoice_id"
-    refunds       -> payments      "payment_id"
+    description: "Postgres on RDS · 5 tables"
+    customers     = sys/table "customers" datastore
+    invoices      = sys/table "invoices" datastore
+    invoice_lines = sys/table "invoice_lines" datastore
+    payments      = sys/table "payments" datastore
+    refunds       = sys/table "refunds" datastore
+    invoices      -> customers "customer"
+    invoice_lines -> invoices "invoice"
+    payments      -> invoices "invoice"
+    refunds       -> payments "payment"
   }
-
-  export = aws/lambda "Export Job" {
-    subtitle: "Nightly batch"
-  }
-
-  files = aws/s3 "Export Files" datastore
-
-  api -> db.invoices "writes invoices"
-  api -> db.payments "writes payments"
-  export -> db.invoices "reads invoices"
-  export -> files "writes export"
+  api -> db.invoices "writes"
+  api -> db.payments "writes"
+  export -> db.invoices "reads"
+  export -> files "writes file"
 }
 
 view landscape {
-  title "Billing Service"
+  title "Billing"
   include *
+}
+
+view db {
+  title "Billing database"
+  scope billing.db
 }

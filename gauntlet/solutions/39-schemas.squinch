@@ -1,81 +1,75 @@
-// 39 — schemas: every store carries its fields; standing in a store draws them.
 pack aws
 
 system checkout "Checkout" {
   description: "Order Service and the stores it owns"
-  icon: aws/lambda
-
-  svc = aws/lambda "Order Service" { subtitle: "Lambda · Node 20" }
-
-  container pg "Orders DB" {
-    icon: logos/postgresql
+  svc = aws/lambda "Order Service" {
+    subtitle: "Lambda"
+  }
+  container orders_db "Orders DB" {
+    icon: logos/postgres
     description: "Postgres · 2 tables"
-
     orders = sys/table "orders" datastore {
       fields {
-        id           uuid          pk
+        id           uuid                      pk
         customer_id  uuid
         status       enum(pending, paid, shipped)
         total_cents  bigint
         created_at   timestamptz
       }
     }
-
     order_items = sys/table "order_items" datastore {
       fields {
-        order_id    uuid           pk fk ref orders.id
+        order_id    uuid           pk fk ref orders
         sku         text           pk
         quantity    int
         unit_price  numeric(10,2)
       }
     }
-
     order_items -> orders "order_id"
   }
-
   carts = aws/dynamodb "Carts" datastore {
     subtitle: "single-table design"
     fields {
-      pk          string   partition  "CART#<cartId>"
-      sk          string   sort       "ITEM#<sku>"
-      gsi1pk      string   index gsi1 "CUSTOMER#<customerId>"
+      pk          string  hash "CART#<cartId>"
+      sk          string  range "ITEM#<sku>"
+      gsi1pk      string  index gsi1 "CUSTOMER#<customerId>"
       qty         number
-      expires_at  number   ttl
+      expires_at  number  ttl
     }
   }
-
-  svc -> pg.orders      "writes orders"
-  svc -> pg.order_items "writes items"
-  svc -> carts          "reads / writes"
+  svc -> orders_db.orders "writes orders"
+  svc -> orders_db.order_items "writes items"
+  svc -> carts "keeps carts"
 }
 
-events = logos/apachekafka "order-events" {
+events = logos/kafka "order-events" datastore {
   subtitle: "Kafka topic"
   fields {
-    order_id             string   key
-    type                 enum(OrderPlaced, OrderPaid)
+    key              string   pk "order_id"
+    type             enum(OrderPlaced, OrderPaid)
     payload.total_cents  long
-    payload.items        array<LineItem>
+    payload.items    array    "line items"
   }
 }
 
-analytics = aws/glue "Analytics" { subtitle: "Glue job" }
+analytics = aws/glue "Analytics Job"
 
-checkout.svc ~> events "publishes"
+checkout.svc ~> events "publishes every order"
 events ~> analytics "consumes"
 
 view landscape {
-  title "Checkout"
+  title "Checkout stores"
   include *
+  expand checkout
   preview events
 }
 
 view checkout {
-  title "Checkout — the service and its cart table"
+  title "Checkout"
   scope checkout
 }
 
-view orders-db {
-  title "Orders DB — schema"
-  scope checkout.pg
+view orders_db {
+  title "Orders DB schema"
+  scope checkout.orders_db
 }

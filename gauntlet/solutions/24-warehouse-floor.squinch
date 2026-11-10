@@ -1,60 +1,24 @@
-// Warehouse automation system
-pack sys
-
 person supervisor "Shift Supervisor"
 
-system warehouse "Warehouse Floor" {
-  description: "Automated packing and sorting"
+b1 = sys/barcode "Bench 1 Scanner" { subtitle: "Packing bench" }
+b2 = sys/barcode "Bench 2 Scanner" { subtitle: "Packing bench" }
+b3 = sys/barcode "Bench 3 Scanner" { subtitle: "Packing bench" }
+ctrl = sys/cpu "Local Controller"
+sorter = sys/workflow "Conveyor Sorter"
+printer = sys/printer "Label Printer"
+board = sys/monitor "Status Board"
+erp = box "ERP" external
 
-  bench1 = sys/barcode "Packing Bench 1"
-  bench2 = sys/barcode "Packing Bench 2"
-  bench3 = sys/barcode "Packing Bench 3"
+b1 -> ctrl
+b2 -> ctrl
+b3 -> ctrl
+ctrl -> sorter
+ctrl -> printer
+ctrl -> board
+ctrl ~> erp "syncs every minute · site network"
+supervisor -> board "watches"
 
-  controller = sys/server "Local Controller" {
-    subtitle: "PLC · site network"
-    description: "Coordinates packing stations and sorting"
-  }
-
-  sorter = sys/workflow "Conveyor Sorter" {
-    description: "Automated package routing"
-  }
-
-  printer = sys/printer "Label Printer"
-
-  board = sys/monitor "Status Board" {
-    description: "Real-time operations display"
-  }
-
-  bench1 -> controller "scan events"
-  bench2 -> controller "scan events"
-  bench3 -> controller "scan events"
-
-  controller -> sorter "routing commands"
-  controller -> printer "print jobs"
-  controller -> board "status updates"
-}
-
-erp = sys/database "ERP System" {
-  subtitle: "on-premises"
-  description: "Enterprise resource planning"
-}
-
-warehouse.controller ~> erp "sync batch"
-
-supervisor -> warehouse.board "monitors"
-
-view floor {
-  title "Warehouse Floor Automation"
-  scope warehouse
-  layout {
-    rows [bench1 bench2 bench3] [controller] [sorter printer board]
-  }
-}
-
-view overview {
-  title "Warehouse System Overview"
+view landscape {
+  title "Warehouse Floor"
   include *
-  layout {
-    rows [supervisor] [warehouse] [erp]
-  }
 }

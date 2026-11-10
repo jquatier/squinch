@@ -1,29 +1,18 @@
 pack aws
 
-person admin "Administrator"
+person admins "Administrators"
 
-erp = sys/server "Legacy ERP" external {
-  subtitle: "On-premises"
-}
+erp    = sys/server     "Legacy ERP" external { subtitle: "On-premises" }
+sync   = aws/lambda     "Sync Worker"
+db     = aws/rds        "Database" datastore
+dash   = sys/app-window "Admin Dashboard" { subtitle: "Web app" }
 
-sync_worker = aws/lambda "Sync Worker" {
-  subtitle: "Lambda · Node 20"
-}
-
-db = aws/rds "Admin Database" datastore {
-  subtitle: "RDS · Postgres"
-}
-
-dashboard = aws/app-runner "Admin Dashboard" {
-  subtitle: "Web App"
-}
-
-erp ~> sync_worker "feeds data"
-sync_worker -> db "writes"
-dashboard -> db "reads"
-admin -> dashboard "uses"
+erp ~> sync "changes"
+sync -> db "writes"
+dash -> db "reads"
+admins -> dash "use"
 
 view landscape {
-  title "Legacy ERP Integration"
+  title "Legacy ERP to Admin Dashboard"
   include *
 }

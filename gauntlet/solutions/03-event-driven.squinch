@@ -1,29 +1,19 @@
 pack aws
 
-bus = aws/eventbridge "Event Bus"
-dlq = aws/sqs "Dead Letter Queue"
+bus       = aws/eventbridge "Order Events"
+notifier  = aws/lambda "Email Notifier"
+topic     = aws/sns "Email Topic"
+analytics = aws/lambda "Analytics Writer"
+lake      = aws/s3 "Data Lake" datastore
+dlq       = aws/sqs "Dead-Letter Queue"
 
-system notifications "Email Notifications" {
-  notifier = aws/lambda "Email Notifier"
-  sns = aws/sns "Email Topic"
-
-  notifier -> sns
-}
-
-system analytics "Analytics Pipeline" {
-  writer = aws/lambda "Analytics Writer"
-  lake = aws/s3 "Data Lake" datastore
-
-  writer -> lake
-}
-
-bus ~> notifications.notifier "order events"
-bus ~> analytics.writer "order events"
+bus ~> notifier "order events"
+notifier ~> topic "publishes"
+bus ~> analytics "order events"
+analytics ~> lake "writes"
 bus ~> dlq "failed events"
 
-view architecture {
-  title "Event-Driven Architecture"
-  layout {
-    rows [bus] [notifications analytics] [dlq]
-  }
+view landscape {
+  title "Order Event Flow"
+  include *
 }

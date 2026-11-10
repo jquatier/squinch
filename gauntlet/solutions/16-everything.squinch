@@ -2,66 +2,52 @@ pack aws
 
 person customer "Customer"
 
-cdn = aws/cloudfront "CloudFront"
-storefront = box "Storefront"
-
-gw = aws/api-gateway "API Gateway"
+store = aws/cloudfront "Storefront" { subtitle: "CloudFront" }
+api   = aws/api-gateway "API Gateway"
+bus   = aws/eventbridge "Order Events"
+worker = sys/cog "Fulfilment Worker"
 
 system catalog "Catalog Service" {
-  description: "Product catalog and search"
-  icon: aws/lambda
-
-  api = aws/lambda "Catalog Handler"
-  db = aws/dynamodb "Catalog DB" datastore
-
-  api -> db
+  description: "Product catalog"
+  fn = aws/lambda "Catalog Lambda"
+  db = sys/database "Catalog DB" datastore
+  fn -> db
 }
 
 system orders "Orders Service" {
-  description: "Order management and processing"
-  icon: aws/lambda
-
-  api = aws/lambda "Orders Handler"
-  db = aws/dynamodb "Orders DB" datastore
-
-  api -> db
-  api ~> bus "order events"
+  description: "Order intake and events"
+  fn = aws/lambda "Orders Lambda"
+  db = sys/database "Orders DB" datastore
+  fn -> db
 }
 
 system payments "Payments Service" {
   description: "Payment processing"
-  icon: aws/lambda
   tags: #sensitive
-
-  api = aws/lambda "Payments Handler" { tags: #sensitive }
-  db = aws/dynamodb "Payments DB" datastore { tags: #sensitive }
-
-  api -> db { tags: #sensitive }
+  fn = aws/lambda "Payments Lambda"
+  db = sys/database "Payments DB" datastore
+  fn -> db
 }
 
-bus = aws/eventbridge "Event Bus"
-fulfillment = aws/lambda "Fulfillment Worker"
-
-customer -> cdn "browses"
-cdn -> storefront
-storefront -> gw "API calls"
-gw -> catalog.api
-gw -> orders.api
-gw -> payments.api { tags: #sensitive }
-orders.api ~> bus
-bus ~> fulfillment "order events"
+customer -> store "browses"
+store -> api
+api -> catalog.fn
+api -> orders.fn
+api -> payments.fn { tags: #sensitive }
+orders.fn ~> bus "publishes order events"
+bus ~> worker "consumes"
 
 zone prod_vpc "Production VPC" vpc {
-  contains gw, catalog, orders, payments, bus, fulfillment
+  contains api, catalog, orders, payments, bus, worker
 }
 
 view landscape {
-  title "Order Platform - Landscape"
+  title "Order Platform"
   include *
-  color #sensitive amber
+  color #sensitive red
+  legend auto
 }
 
 view orders {
-  title "Orders Service - Detail"
-  scope orders
+  title "Orders Service"
 }

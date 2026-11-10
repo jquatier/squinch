@@ -1,87 +1,58 @@
-pack sys
+pack logos
 
-person analyst "Data Analyst"
+person analyst "Analyst"
 
 kafka = logos/kafka "Kafka" external {
-  description: "Order events stream"
+  subtitle: "Order events"
 }
 
-system lakehouse "Databricks Lakehouse" {
-  description: "Medallion architecture with Unity Catalog governance"
-  icon: sys/database
-  glyph: sys/workflow
+system dbx "Databricks Lakehouse" {
+  description: "Everything inside this frame is Databricks"
+  icon: logos/databricks
 
-  loader = sys/code "Auto Loader" {
-    description: "Incremental ingestion from Kafka"
-    subtitle: "Databricks"
+  loader = sys/stream "Auto Loader" {
     badge: logos/databricks
   }
-
   bronze = sys/table "Bronze Orders" datastore {
-    description: "Raw order events"
-    subtitle: "Delta Lake"
     badge: logos/databricks
+    subtitle: "Delta table"
   }
-
-  job = sys/cog "Merge Job" {
-    description: "Nightly aggregation and transformation"
-    subtitle: "Databricks Job"
+  job = sys/job "Nightly Merge" {
     badge: logos/databricks
+    subtitle: "Databricks job"
   }
-
   silver = sys/table "Silver Customers" datastore {
-    description: "Aggregated customer data"
-    subtitle: "Delta Lake"
+    badge: logos/databricks
+    subtitle: "Delta table"
+  }
+  uc = sys/catalog "Unity Catalog" {
+    badge: logos/databricks
+  }
+  wh = sys/database "SQL Warehouse" {
+    badge: logos/databricks
+    subtitle: "Databricks SQL"
+  }
+  vs = sys/vector-search "Vector Search Index" {
+    badge: logos/databricks
+  }
+  serving = sys/model "Model Serving Endpoint" {
     badge: logos/databricks
   }
 
-  catalog = sys/database "Unity Catalog" {
-    description: "Data governance and access control"
-    subtitle: "Databricks"
-    badge: logos/databricks
-  }
-
-  warehouse = sys/server "SQL Warehouse" {
-    description: "Query engine for analytics"
-    subtitle: "Databricks"
-    badge: logos/databricks
-  }
-
-  index = sys/search "Vector Search Index" {
-    description: "Embedding-based search"
-    subtitle: "Databricks"
-    badge: logos/databricks
-  }
-
-  serving = sys/network "Model Serving" {
-    description: "ML inference endpoint"
-    subtitle: "Databricks"
-    badge: logos/databricks
-  }
-
-  kafka ~> loader "order events"
-  loader ~> bronze "append"
-  bronze -> job "read"
-  job -> silver "merge"
-  catalog -> silver "governs"
-  silver -> warehouse "query"
-  silver -> index "embeds"
-  index -> serving "vector lookup"
-
-  layout {
-    rows [loader] [bronze] [job] [catalog] [silver] [warehouse index] [serving]
-    place index right-of warehouse
-  }
+  loader -> bronze "lands"
+  job -> bronze "reads"
+  job -> silver "merges"
+  uc -> silver "governs"
+  wh -> silver "queries"
+  vs ~> serving "feeds"
 }
 
-analyst -> lakehouse.warehouse "runs queries"
+kafka ~> dbx.loader "order events"
+analyst -> dbx.wh "SQL"
 
 view landscape {
-  title "Databricks Lakehouse Architecture"
+  title "Databricks Lakehouse"
   include *
-  expand lakehouse
-  titleblock {
-    subtitle: "Medallion architecture"
-    version: "2026-10"
-  }
+  expand dbx
+  legend auto
 }

@@ -1,42 +1,25 @@
 pack aws
-pack sys
 
-// On-premises components
-person operator "Operators"
-erp = sys/database "Legacy ERP" datastore {
-  subtitle: "Oracle-style"
-}
+person ops "Operators"
+erp    = box "Legacy ERP" { subtitle: "Oracle-style" }
+ingest = aws/lambda "Ingestion Function"
+db     = aws/aurora "Aurora Database" datastore
 
-// AWS cloud components
-ingest = aws/lambda "Ingestion Service" {
-  subtitle: "Lambda · Python 3.11"
-}
-db = aws/aurora "Aurora Database" datastore {
-  subtitle: "PostgreSQL 15"
-}
-
-// Connections
-operator -> erp
-erp -> ingest "data feed"
+ops -> erp "use"
+erp ~> ingest "feeds data"
 ingest -> db "writes"
 
-// Deployment boundaries
-zone onprem "On-Premises Data Centre" onprem {
-  icon: aws/corporate-data-center
-  contains operator, erp
+zone dc "On-Premises Data Centre" onprem {
+  contains ops, erp
 }
-
 zone cloud "AWS Cloud" cloud {
-  icon: aws/cloud
   contains ingest, db
 }
-
-zone vpc "VPC" vpc {
-  icon: aws/vpc
+zone vpc "Database VPC" vpc {
   contains db
 }
 
 view landscape {
-  title "Hybrid Estate Architecture"
+  title "Hybrid Estate"
   include *
 }

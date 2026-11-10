@@ -1,62 +1,41 @@
-pack aws
-
-person engineer "New Engineer"
-
-system orders "Orders Service" {
-  description: "Order lifecycle management"
-  icon: aws/api-gateway
-
-  api = aws/api-gateway "Orders API"
-  handler = aws/lambda "Order Handler" {
-    subtitle: "Lambda · Node 20"
-  }
-  validator = aws/lambda "Validator"
-  db = aws/dynamodb "Orders DB" datastore
-  queue = aws/sqs "Event Queue"
-
-  api -> handler
-  handler -> validator
-  validator -> db
-  handler ~> queue
-
-  layout {
-    rows [api] [handler validator] [db queue]
-  }
+system orders "Orders" {
+  description: "Takes and tracks customer orders"
+  preview: [api workflow store]
+  api      = sys/webhook  "Orders API" { subtitle: "entry point" }
+  workflow = sys/workflow "Order Workflow" { subtitle: "order lifecycle" }
+  store    = sys/database "Orders Store" datastore
+  events   = sys/radio-tower "Order Events" { subtitle: "publishes changes" }
+  api -> workflow
+  workflow -> store
+  workflow ~> events
 }
 
-system inventory "Inventory Service" {
-  description: "Stock tracking and management"
-  icon: aws/lambda
-
-  api = aws/api-gateway "Inventory API"
-  svc = aws/lambda "Inventory Handler"
-  db = aws/dynamodb "Stock DB" datastore
-
-  api -> svc
-  svc -> db
+system inventory "Inventory" {
+  description: "Stock levels and reservations"
+  preview: [api stock]
+  api   = sys/webhook  "Inventory API"
+  stock = sys/database "Stock Store" datastore
+  api -> stock
 }
 
-system notifications "Notifications Service" {
-  description: "Customer and internal alerts"
-  icon: aws/sns
-
-  processor = aws/lambda "Notification Processor"
-  email = aws/sns "Email Topic"
-  sms = aws/sns "SMS Topic"
-
-  processor ~> email
-  processor ~> sms
+system notifications "Notifications" {
+  description: "Tells customers about their orders"
+  preview: [handler sender]
+  handler = sys/cog  "Event Handler"
+  sender  = sys/send "Message Sender"
+  handler -> sender
 }
 
-engineer -> orders.api "manages orders"
-orders.queue ~> inventory.api "stock updates"
-orders.queue ~> notifications.processor "order events"
+orders.workflow -> inventory.api "reserve stock"
+orders.events ~> notifications.handler "order events"
 
 view landscape {
   title "Order Platform"
   include *
+  preview *
 }
 
 view orders {
-  title "Orders Service Detail"
+  title "Orders"
+  scope orders
 }

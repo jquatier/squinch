@@ -1,169 +1,140 @@
 pack aws
 pack logos
 
-// Actors
 person customer "Customer"
 person staff "Staff"
 
-// Entry points
-gateway = logos/kong "API Gateway"
-
-// Frontend applications
-system apps "Client Applications" {
-  description: "Customer and staff-facing applications"
-  storefront = logos/nextjs "Storefront" { subtitle: "Next.js" }
-  admin = logos/react "Admin Portal" { subtitle: "React" }
-  mobile = logos/react "Mobile App" { subtitle: "React Native" }
+system apps "Apps" {
+  description: "Customer and staff front ends"
+  preview: [storefront admin mobile]
+  storefront = logos/nextjs "Storefront" { subtitle: "Next.js · customers" }
+  admin      = logos/react "Admin" { subtitle: "React · staff" }
+  mobile     = sys/smartphone "Mobile" { subtitle: "React Native · customers" }
 }
 
-// Backend services
-system identity "Identity" {
-  description: "Authentication and authorization"
-  icon: sys/user
-  accounts = sys/server "Accounts API"
-  sessions = sys/server "Sessions API"
-  mfa = sys/server "MFA Worker"
-  db = logos/postgres "Identity DB" datastore
-  cache = logos/redis "Sessions Cache" datastore
+gateway = logos/kong "API Gateway" { subtitle: "infra/gateway · Kong" }
+kafka   = logos/kafka "Kafka" { subtitle: "event backbone" }
 
-  accounts -> db
+system identity "Identity" {
+  description: "Accounts, sessions and MFA"
+  preview: [accounts sessions mfa]
+  accounts = sys/server "accounts-api" { subtitle: "accounts" }
+  sessions = sys/server "sessions-api" { subtitle: "sessions" }
+  mfa      = sys/cog "mfa-worker" { subtitle: "worker" }
+  pg    = logos/postgres "Postgres" datastore
+  cache = logos/redis "Redis" datastore
+  accounts -> pg
   sessions -> cache
-  mfa -> db
+  mfa -> pg
 }
 
 system catalog "Catalog" {
-  description: "Product catalog and search"
-  icon: sys/catalog
-  products = sys/server "Products API"
-  media = sys/server "Media API"
-  search = sys/server "Search API"
-  indexer = sys/server "Indexer Worker"
-  files = aws/s3 "Media Storage" datastore
-  searchdb = logos/elasticsearch "Search Index" datastore
-
-  products ~> indexer
+  description: "Products, media and search"
+  preview: [products media search]
+  products = sys/server "products-api" { subtitle: "products" }
+  media    = sys/server "media-api" { subtitle: "media" }
+  search   = sys/server "search-api" { subtitle: "search" }
+  indexer  = sys/cog "indexer" { subtitle: "worker" }
+  files = aws/s3 "S3" datastore
+  es    = logos/elasticsearch "Elasticsearch" datastore
   media -> files
-  search -> searchdb
-  indexer -> searchdb
+  search -> es
+  indexer -> search "keeps search in step"
 }
 
 system commerce "Commerce" {
-  description: "Shopping cart, checkout and orders"
-  icon: sys/cart
-  cart = sys/server "Cart API"
-  checkout = sys/server "Checkout API"
-  orders = sys/server "Orders API"
-  payments = sys/server "Payments API"
-  tax = sys/server "Tax API"
-  cartcache = logos/redis "Cart Cache" datastore
-  ordersdb = logos/postgres "Orders DB" datastore
-  paymentsdb = logos/postgres "Payments DB" datastore
-
+  description: "Cart, checkout, orders and payments"
+  preview: [cart checkout orders]
+  cart     = sys/server "cart-api" { subtitle: "cart" }
+  checkout = sys/server "checkout-api" { subtitle: "checkout" }
+  orders   = sys/server "orders-api" { subtitle: "orders" }
+  payments = sys/server "payments-api" { subtitle: "payments" }
+  tax      = sys/server "tax-api" { subtitle: "tax" }
+  cartcache = logos/redis "Cart Redis" datastore
+  ordersdb  = logos/postgres "Orders Postgres" datastore
+  paydb     = logos/postgres "Payments Postgres" datastore
+  stripe  = logos/stripe "Stripe" external
+  avalara = box "Avalara" external
   cart -> cartcache
-  checkout -> cart
-  checkout -> tax
-  checkout -> payments
-  checkout -> orders
   orders -> ordersdb
-  orders ~> kafka
-  payments -> paymentsdb
+  payments -> paydb
   payments -> stripe
-  payments ~> kafka
   tax -> avalara
+  checkout -> cart, tax, payments, orders
 }
 
 system fulfilment "Fulfilment" {
   description: "Warehouse, shipping and returns"
-  icon: sys/package
-  warehouse = sys/server "Warehouse API"
-  shipping = sys/server "Shipping API"
-  returns = sys/server "Returns API"
-  labels = sys/server "Label Worker"
-  warehousedb = logos/postgres "Warehouse DB" datastore
-  returnsdb = logos/postgres "Returns DB" datastore
-
-  warehouse -> warehousedb
+  preview: [warehouse shipping returns]
+  warehouse = sys/server "warehouse-api" { subtitle: "warehouse" }
+  shipping  = sys/server "shipping-api" { subtitle: "shipping" }
+  returns   = sys/server "returns-api" { subtitle: "returns" }
+  label     = sys/cog "label-worker" { subtitle: "worker" }
+  whdb  = logos/postgres "Warehouse Postgres" datastore
+  retdb = logos/postgres "Returns Postgres" datastore
+  carriers = box "Carrier APIs" external
+  warehouse -> whdb
+  returns -> retdb
   shipping -> carriers
-  returns -> returnsdb
-  returns ~> kafka
-  labels -> shipping
 }
 
 system engagement "Engagement" {
-  description: "Customer communications"
-  icon: sys/bell
-  email = sys/server "Email Worker"
-  push = sys/server "Push Worker"
-  campaigns = sys/server "Campaigns API"
-  campaignsdb = logos/postgres "Campaigns DB" datastore
-
+  description: "Email, push and campaigns"
+  preview: [email push campaigns]
+  email     = sys/cog "email-worker" { subtitle: "worker" }
+  push      = sys/cog "push-worker" { subtitle: "worker" }
+  campaigns = sys/server "campaigns-api" { subtitle: "campaigns" }
+  campdb   = logos/postgres "Campaigns Postgres" datastore
+  sendgrid = box "SendGrid" external
+  firebase = box "Firebase" external
+  campaigns -> campdb
   email -> sendgrid
   push -> firebase
-  campaigns -> campaignsdb
 }
 
 system analytics "Analytics" {
-  description: "Data warehouse and analytics"
-  icon: sys/chart-bar
-  collector = sys/server "Events Collector"
-  warehouse = logos/snowflake "Data Warehouse" datastore
-  dbt = sys/server "DBT Job" { badge: logos/python }
-  dashboards = sys/chart-bar "Metabase Dashboards"
-
+  description: "Event collection, warehouse and dashboards"
+  preview: [collector warehouse metabase]
+  collector = sys/cog "events-collector" { subtitle: "consumer" }
+  warehouse = logos/snowflake "Snowflake" datastore
+  dbt       = sys/clock "dbt job" { subtitle: "nightly" }
+  metabase  = sys/chart-line "Metabase" { subtitle: "dashboards" }
   collector -> warehouse
   dbt -> warehouse
-  dashboards -> warehouse
+  metabase -> warehouse
 }
 
-// External services
-stripe = box "Stripe" external
-avalara = box "Avalara" external
-carriers = box "Carrier APIs" external
-sendgrid = box "SendGrid" external
-firebase = box "Firebase" external
-
-// Central message bus
-kafka = logos/kafka "Kafka Cluster"
-
-// Kafka consumers
-kafka ~> catalog.indexer "product events"
-kafka ~> fulfilment.labels "order events"
-kafka ~> engagement.email "notification events"
-kafka ~> engagement.push "notification events"
-kafka ~> analytics.collector "all events"
-
-// Kafka producers - accounts
-identity.accounts ~> kafka "account events"
-
-// Gateway to services
-gateway -> identity.sessions "auth check"
-gateway -> apps.storefront
-gateway -> apps.admin
-gateway -> apps.mobile
-
-// Client connections
 customer -> apps.storefront
 customer -> apps.mobile
 staff -> apps.admin
+staff -> analytics.metabase "views dashboards"
 
-// API calls through gateway
 apps.storefront -> gateway
 apps.admin -> gateway
 apps.mobile -> gateway
+gateway -> identity.sessions "checks every request"
 
-// Cross-service calls
 commerce.orders -> fulfilment.warehouse
 
-view landscape {
-  title "Monorepo Architecture"
-  include *
-  preview apps, identity, catalog, commerce, fulfilment, engagement, analytics
-}
+identity.accounts ~> kafka "publishes"
+commerce.orders ~> kafka "publishes"
+commerce.payments ~> kafka "publishes"
+fulfilment.returns ~> kafka "publishes"
 
-view commerce_detail {
-  title "Commerce Services Detail"
-  expand commerce
-  layout {
-    rows [gateway] [commerce.checkout] [commerce.cart commerce.tax commerce.orders] [commerce.payments] [commerce.cartcache commerce.ordersdb commerce.paymentsdb] [kafka stripe avalara]
-  }
+kafka ~> catalog.indexer
+kafka ~> fulfilment.label
+kafka ~> engagement.email
+kafka ~> engagement.push
+kafka ~> analytics.collector
+
+view landscape {
+  title "System Landscape"
+  include *
+  preview *
 }
+view identity { title "Identity" }
+view catalog { title "Catalog" }
+view commerce { title "Commerce" }
+view fulfilment { title "Fulfilment" }
+view engagement { title "Engagement" }
+view analytics { title "Analytics" }

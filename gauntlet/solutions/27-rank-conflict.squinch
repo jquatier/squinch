@@ -1,15 +1,13 @@
-request  = box "Request Service"
+req      = box "Request Service"
 policy   = box "Policy Engine"
 approver = box "Approver Service"
-audit    = box "Audit Log" datastore
+audit    = sys/database "Audit Log" datastore
 
-request -> policy
-policy -> approver
-approver -> audit
+req -> policy "hands off"
+policy -> approver "calls"
+approver -> audit "writes"
 
-view main {
+view landscape {
   title "Approval Chain"
-  layout {
-    rows [request] [policy approver audit]
-  }
+  include *
 }

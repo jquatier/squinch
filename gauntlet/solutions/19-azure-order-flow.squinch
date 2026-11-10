@@ -2,36 +2,36 @@ pack azure
 
 person shopper "Shopper"
 
-system orders "Order System" {
-  description: "Order processing and fulfillment"
+system orders "Order Processing" {
+  apim    = azure/api-management "API Management"
+  create  = azure/functions "Order Function" { subtitle: "Azure Functions" }
+  cosmos  = azure/cosmos "Orders" datastore { subtitle: "Cosmos DB" }
+  bus     = azure/service-bus "Service Bus"
+  fulfil  = azure/functions "Fulfilment Function" { subtitle: "Azure Functions" }
 
-  apim = azure/api-management "API Management"
-  order_fn = azure/functions "Order Function" {
-    subtitle: "Validates and persists"
-  }
-  db = azure/cosmos "Orders DB" datastore
-  bus = azure/service-bus "Service Bus"
-  fulfillment_fn = azure/functions "Fulfillment Function" {
-    subtitle: "Fulfillment handler"
-  }
-
-  apim -> order_fn
-  order_fn -> db
-  order_fn ~> bus "order created"
-  bus ~> fulfillment_fn
+  apim -> create "calls"
+  create -> cosmos "writes order"
+  create ~> bus "publishes message"
+  bus ~> fulfil "picks up"
 }
 
 shopper -> orders.apim "places order"
 
-flow checkout "Order Flow" {
-  shopper -> orders.apim -> orders.order_fn -> orders.db
-  orders.order_fn ~> orders.bus ~> orders.fulfillment_fn
+flow order "Order path" {
+  shopper -> orders.apim
+  orders.apim -> orders.create
+  orders.create -> orders.cosmos
+  orders.create ~> orders.bus
+  orders.bus ~> orders.fulfil
 }
 
-view orders {
-  title "Azure Order Flow"
-  show flow checkout
-  layout {
-    rows [apim] [order_fn] [db bus] [fulfillment_fn]
-  }
+view landscape {
+  title "Order flow"
+  include *
+}
+
+view order_flow {
+  title "Order path, step by step"
+  scope orders
+  show flow order
 }

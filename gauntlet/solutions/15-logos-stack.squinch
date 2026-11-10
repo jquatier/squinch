@@ -1,56 +1,30 @@
 pack logos
-pack k8s
 
-person dev "Developer"
+person dev "Developers"
 
-github = logos/github "GitHub"
-k8s_cluster = logos/kubernetes "Kubernetes Cluster"
+web   = logos/nextdotjs "Next.js Frontend"
+api   = logos/nestjs "NestJS API"
+db    = logos/postgresql "PostgreSQL" datastore
+cache = logos/redis "Redis Cache" datastore
+bus   = logos/apachekafka "Kafka"
+graf  = logos/grafana "Grafana"
+gh    = logos/github "GitHub"
+k8s   = logos/kubernetes "Kubernetes"
 
-system app "Application" {
-  description: "Next.js + NestJS stack"
+web -> api
+api -> db
+api -> cache "caching"
+api ~> bus "events"
 
-  frontend = logos/nextjs "Frontend" {
-    subtitle: "Next.js"
-  }
+dev -> gh "push"
+gh -> k8s "deploys"
 
-  api = logos/nestjs "API" {
-    subtitle: "NestJS"
-  }
-
-  db = logos/postgresql "Database" datastore {
-    subtitle: "PostgreSQL"
-  }
-
-  cache = logos/redis "Cache" datastore {
-    subtitle: "Redis"
-  }
-
-  events = logos/kafka "Event Bus" {
-    subtitle: "Kafka"
-  }
-
-  frontend -> api
-  api -> db
-  api -> cache
-  api ~> events "publishes events"
-}
-
-monitor = logos/grafana "Monitoring" {
-  subtitle: "Grafana"
-}
-
-dev -> github "pushes code"
-github -> k8s_cluster "deploys"
-k8s_cluster -> app.frontend
-k8s_cluster -> app.api
-app ~> monitor "metrics"
-
-zone cluster "Kubernetes Cluster" cloud {
-  contains app
-}
+graf -> web, api, db, cache, bus "monitors"
 
 view landscape {
-  title "Application Stack"
+  title "Logos Stack"
   include *
-  expand app
+  layout {
+    rows [dev web graf] [gh api] [k8s db cache bus]
+  }
 }

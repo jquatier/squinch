@@ -1,22 +1,20 @@
 pack aws
 
-person user "User"
+person subscribers "Subscribers"
 
-bucket  = aws/s3         "Image Uploads" datastore
-process = aws/lambda     "Image Processor"
-vision  = aws/rekognition "Rekognition"
-meta    = aws/dynamodb   "Image Metadata" datastore
-notify  = aws/sns        "Notification Topic"
+bucket = aws/s3 "Image Bucket"
+fn     = aws/lambda "Image Processor"
+rek    = aws/rekognition "Rekognition"
+db     = aws/dynamodb "Image Metadata" datastore
+topic  = aws/sns "Notifications"
 
-user   -> bucket  "uploads image"
-bucket ~> process "S3 event"
-process -> vision "detect labels"
-process -> meta   "write metadata"
-process ~> notify "publish result"
+bucket ~> fn "object created"
+fn -> rek "detect labels"
+fn -> db "write metadata"
+fn ~> topic "publish"
+topic ~> subscribers "notify"
 
-view pipeline {
+view landscape {
   title "Image Processing Pipeline"
-  layout {
-    rows [user] [bucket] [process] [vision meta notify]
-  }
+  include *
 }

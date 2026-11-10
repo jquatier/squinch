@@ -7,8 +7,7 @@ must produce a clean diagram for each. **v1 ships at ≥ 16/20 with zero human
 layout fixes** (the original ≥ 8/10 bar, at the current prompt count).
 
 > **Current standing: the committed corpus scores 39/39 on the deep scorer; the
-> latest round itself scored 38/38, with 20 of 38 clean on the first `check`**
-> (prompt 39, schemas, was added after it with a hand-written solution). The
+> latest round itself scored 39/39, with 28 of 39 clean on the first `check`.** The
 > solutions those agents wrote are committed in `solutions/` and re-scored by CI
 > on every push, so the claim is inspectable rather than asserted.
 >
@@ -70,76 +69,30 @@ nothing.
 
 ## Latest round
 
-**Round 31 — 38/38 on the deep scorer; 20 of 38 clean on the first `check`**
-(2026-10-10, Sonnet). Run to measure the skill becoming a directory rather
-than a file: the body, `SKILL.md`, went from 810 lines to about 690, and the
-lookup material moved one level deep into `references/` — the whole layout
-cookbook into `cookbook.md`, and the per-pack icon sections into `icons.md`
-— each with a contents list at the top and a pointer in the body saying when
-to open it. The box now holds the directory as `squinch skill` installs it,
-and `run.ts` records which reference files each agent opened. The question
-was whether a cold agent follows a pointer, and the answer is **no, not
-once in fifty sessions**: 0 of 38 opened either file in the round, and 0 of
-12 in the two confirmation runs below. Every agent read `SKILL.md`,
-`PROMPT.md`, and nothing else in the box.
+**Round 32 — 39/39 on the deep scorer; 28 of 39 clean on the first `check`**
+(2026-11-10, Sonnet). Run because the skill learned `fields` — a leaf's
+schema, one field per line, drawn where a view stands in the table's
+container or under `preview` (docs/notes/fields.md) — and lost the line that
+said "nothing draws columns, so leave them out". The round added prompt 39,
+schemas: Postgres tables with keys and a reference, a single-table DynamoDB
+design, a Kafka payload. Prompts 36 and 37 ask for tables and not columns,
+and now fail an agent that writes `fields` unasked.
 
-**Clean first checks rose from 18 to 20, and the rise hides a regression
-the split caused.** Hint conflicts fell from five first failures to three
-(01, 09, 27 — 23 hit one second), the two syntax shapes round 30 fixed did
-not recur, and the two `rows`-across-lines errors of round 30 became one.
-But **six prompts failed first on a guessed icon id** — 18 (`azure/
-application-gateway`, `azure/container-registry`), 21 (`sys/process`), 22
-(`sys/analytics`, `sys/ml`), 23 (`k8s/cron`), 24 (`sys/conveyor`,
-`sys/display`), 35 (`sys/notification`, `logos/dbt`) — a category that was
-empty in rounds 29 and 30 and held one prompt in round 27. Every guess is a
-pack outside the AWS basics, which is exactly the material that had moved,
-and none of the guessed words was ever in the lists: with the lists in the
-body an agent picks `monitor` or `chart-line` from them; without, it writes
-the word it would say and lets `check` refuse it. The misses are cheap —
-each is one `did you mean` or one `icons search` away, and 5 of the 38 ran
-the search, up from 0 in round 30 — but first-check cleanliness is the
-number this file tracks, and the split cost six of them.
+**The feature carried on the first try.** 39's agent wrote `numeric(10,2)`,
+`enum(pending, paid, shipped)`, `hash`/`range`/`index gsi1`/`ttl` markers,
+the `"CART#<cartId>"` key patterns as captions, `ref orders` and dotted
+`payload.*` names, and its first `check` had **no errors**. Its three calls
+were two warnings: a 26-character subtitle, and `preview carts` in the view
+already scoped to Carts' own system — "redundant, every field already draws
+there" — which it dropped as told. 36 and 37 were clean in one check each,
+and neither agent wrote a field.
 
-**Measured on the six prompts, two shapes.** First the pointer sharpened:
-loop step 1 now says an id outside the AWS basics is looked up before the
-first `check`, naming the file and the search, and the Icons section opens
-with the pointer instead of closing with it. Six cold runs: none clean, none
-opened the file, five of six failed first on a guessed id again (`sys/batch`,
-`sys/ai`, `sys/device`, `sys/web`, and 18's `azure/container-registry` a
-second time). Rewording the skill moved nobody, as rounds 26 and 30 had
-found of other sections. Then the compact id lists restored to the body —
-the Azure short forms, the k8s short names, two dozen `logos/` marks, and
-the `sys/` names by theme, as `·`-separated runs under the six-pack bullets
-rather than the prose and tables of `icons.md` — about thirty lines. Six
-cold runs: **no icon first failure at all**; the first failures were hint
-conflicts on 21, 22 and 23, `rows` wrapped across lines on 35, and a
-warning on 24, with 18 clean. That is the shape that ships: the cookbook is
-entirely in `references/`, `icons.md` keeps the full material (the Google
-Cloud marks and category rule, the Databricks table, the aliases), and the
-body carries the id lists it turns out to need as *vocabulary* rather than
-lookup. The sharpened pointer stays too, since it states the true rule and
-costs six lines, but nothing here says it is read.
+**Clean first checks rose from 20 to 28**, with the round-31 icon-guess
+category empty again. The first failures that remain are the old classes,
+each fixed in one step from its diagnostic: hint conflicts (01, 27), a fan-in
+(26), chained edges (32), a `preview:` naming a grandchild (34), and a
+one-line view writing `title "…" include *` with no separator (23). 15, 21,
+30 and 35 re-ran on warnings.
 
-The lesson, recorded so the next audit does not relearn it: for a cold
-agent the inline lists are not reference material, they are the vocabulary
-it writes from, and a pointer to a sibling file is a sentence it agrees
-with and does not act on. What can move out of the body is what the
-diagnostics already carry — the cookbook moved without a trace, because a
-`hint conflict` writes its own `rows` line and nobody had needed the row.
-
-**The rest of the first failures**, all fixed in one step: 16 wrote `contains
-gw catalog orders` with spaces — the comma-optional rule covers `rows [a b]`
-and `align a b` and the skill says so, and a path list is the one place a
-comma is still required; worth a grammar look. 29 wrote `actor` for
-`person`. 34 put `icon:` on a leaf. 28 and 32 chained edges. 19, 26, 30 and
-31 re-ran on a warning.
-
-**35 in the lists-restored run declared one view** for a two-area monorepo
-and failed the scorer's `views ≥ 2`, as it had in round 26. The corpus
-keeps the full round's answer for 35 (six checks, two views, passing); the
-other five confirmation answers are committed, since they came from the
-shape that ships.
-
-The corpus in `solutions/` is this round's answers for thirty-three prompts
-and the lists-restored confirmation's for 18, 21, 22, 23 and 24 — all
-cold-authored and deep-scored at 38/38, none re-authored.
+The corpus in `solutions/` is this round's answers for all thirty-nine
+prompts — cold-authored and deep-scored at 39/39, none re-authored.

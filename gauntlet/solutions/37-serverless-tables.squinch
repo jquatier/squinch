@@ -1,23 +1,27 @@
 pack aws
 
 system notifications "Notifications Service" {
-  description: "Email notification pipeline with preferences and logging"
+  description: "Accepts send requests and delivers them by email"
 
-  api = aws/api-gateway "API Gateway"
-  handler = aws/lambda "API Handler"
-  queue = aws/sqs "Send Queue"
-  sender = aws/lambda "Sender Worker"
-  ses = aws/ses "SES"
+  api      = aws/api-gateway "API Gateway"
+  intake   = aws/lambda "Intake Lambda"
+  queue    = aws/sqs "Send Queue"
+  sender   = aws/lambda "Sender Lambda"
+  ses      = aws/ses "SES"
+  prefs    = aws/dynamodb "preferences" datastore
+  log      = aws/dynamodb "delivery-log" datastore
 
-  preferences = aws/dynamodb "preferences" datastore
-  delivery_log = aws/dynamodb "delivery-log" datastore
+  api -> intake "send request"
+  intake -> prefs "reads"
+  intake ~> queue "enqueues"
+  queue ~> sender "triggers"
+  sender -> ses "sends"
+  sender -> log "writes"
+}
 
-  api -> handler
-  handler -> preferences "read"
-  handler ~> queue "enqueue"
-  queue ~> sender
-  sender -> ses "send email"
-  sender -> delivery_log "write"
+view landscape {
+  title "Notifications Service"
+  include *
 }
 
 view notifications {

@@ -1,43 +1,30 @@
-pack aws
-pack logos
-
 person customer "Customer"
-
-gw = aws/api-gateway "API Gateway"
-
-system account "Account Service" {
-  svc = aws/lambda "Account Handler"
-  db = aws/rds "Postgres" datastore {
-    subtitle: "Main database"
-  }
-  svc -> db
-}
-
-system billing "Billing Service" {
-  svc = aws/lambda "Billing Handler"
-  db = aws/rds "Postgres" datastore {
-    subtitle: "Billing database"
-  }
-  stripe = box "Stripe" external {
-    badge: logos/stripe
-  }
-  svc -> db
-  svc -> stripe
-}
-
-export = aws/s3 "Data Export" datastore {
-  subtitle: "Nightly export"
-}
-
 person data_team "Data Team"
 
-customer -> gw "mobile app / website"
-gw -> account.svc
-gw -> billing.svc
-account.db ~> export "nightly export"
-export -> data_team
+mobile = sys/smartphone "Mobile App"
+web = sys/globe "Website"
+gw = sys/router "Gateway"
+
+account = sys/server "Account Service"
+billing = sys/server "Billing Service"
+main_db = logos/postgres "Main Postgres" datastore
+billing_db = logos/postgres "Billing Database" datastore
+stripe = logos/stripe "Stripe" external
+export = aws/s3 "Data Export" datastore
+
+customer -> mobile
+customer -> web
+mobile -> gw
+web -> gw
+gw -> account
+gw -> billing
+account -> main_db "writes"
+billing -> billing_db
+billing -> stripe
+main_db ~> export "nightly export"
+data_team -> export "reads"
 
 view landscape {
-  title "System Overview"
+  title "System Landscape"
   include *
 }

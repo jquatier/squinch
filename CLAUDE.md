@@ -227,10 +227,11 @@ visibility/lifting → layout → themed SVG), the CLI (check/render/diff/icons/
 init/watch + sync/check model + Actions), the SPA playground, the VS Code
 extension + language server, six icon packs, and the light/dark pair. The acceptance
 bar — an agent producing clean diagrams from prose using only the skill + CLI —
-is certified at **38/38
+is certified at **39/39
 by independent cold agents** on the committed corpus; the latest full round scored
-38/38 with **20/38 clean on the first `check`** (round 31, which measured the
-skill becoming a directory — `gauntlet/README.md`; round 30 before it, 18/38, run to check that
+39/39 with **28/39 clean on the first `check`** (round 32, which added a leaf's
+`fields` and a schema prompt — `gauntlet/README.md`, `docs/notes/fields.md`;
+round 31 before it, 20/38, measured the skill becoming a directory; round 30 before it, 18/38, run to check that
 moving the quality bar above the language — Claude Code keeps only a skill's
 first 5,000 tokens after compaction, and the checklist sat last — left the
 hand-over intact: all 38 agents rasterised a view, ran `--sync` and wrote the

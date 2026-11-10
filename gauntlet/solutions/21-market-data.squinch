@@ -1,28 +1,20 @@
-// Market data path diagram
+exchange = sys/building-2 "Exchange" external
+feed     = sys/activity "Feed Handler" { subtitle: "ingest · normalise" }
+pricing  = sys/cpu "Pricing Engine"
+ui       = sys/app-window "Trading UI"
+risk     = sys/shield-check "Risk Service"
+recon    = sys/clock "Reconciliation Batch" { subtitle: "overnight" }
+clearing = sys/building-2 "Clearing House" external
 
-exchange = sys/network "Exchange"
-feed_handler = sys/server "Feed Handler"
-pricing_engine = sys/server "Pricing Engine"
-trading_ui = sys/app-window "Trading UI"
-batch_recon = sys/clock "Overnight Batch"
-clearing_house = sys/building-2 "Clearing House"
-risk_service = sys/shield "Risk Service"
+exchange ~> feed "price stream" { color: teal, animate: packets, tags: #continuous }
+feed ~> pricing "normalised ticks" { color: teal, animate: packets, tags: #continuous }
+pricing ~> ui "tick subscription" { color: teal, animate: packets, tags: #continuous }
+risk -> pricing "health poll, every few seconds" { color: violet, style: dotted, animate: pulse }
+recon -> clearing "nightly fills reconciliation" { color: amber }
 
-// Continuous data flow
-exchange ~> feed_handler "price stream" { animate: packets }
-feed_handler ~> pricing_engine "ticks" { animate: fast }
-pricing_engine ~> trading_ui "price updates" { animate: fast }
-
-// Nightly batch job
-clearing_house -> batch_recon "fills data"
-batch_recon -> pricing_engine "reconcile" { style: dotted }
-
-// Health polling
-risk_service -> pricing_engine "health check" { animate: pulse }
-
-view main {
-  title "Market Data Flow"
-  layout {
-    rows [exchange] [feed_handler] [pricing_engine batch_recon risk_service] [trading_ui]
-  }
+view landscape {
+  title "Market Data Path"
+  include *
+  legend auto
+  note bottom-right "Teal: continuous stream · Violet dotted: periodic poll · Amber solid: nightly batch"
 }

@@ -1,25 +1,22 @@
-pack aws
-
-gw = aws/api-gateway "API Gateway"
-auth = aws/lambda "Auth Service"
-ledger = aws/rds "Ledger" datastore {
+gw     = sys/network "API Gateway"
+auth   = sys/key-round "Auth Service"
+ledger = logos/postgres "Ledger" datastore {
   subtitle: "Postgres"
 }
-settlement = aws/lambda "Settlement Worker" {
-  subtitle: "Nightly batch"
-}
-bank = box "Bank" external
+settle = sys/cog "Settlement Worker"
+bank   = sys/bank "Bank" external
 
 gw -> auth
 gw -> ledger
-settlement -> ledger "reads"
-settlement -> bank "batches"
+settle -> ledger "reads"
+settle ~> bank "nightly batch"
 
-view payments {
+view landscape {
   title "Payments Architecture"
+  include *
   titleblock {
     version: "2.1"
+    date: "2026 Q4"
     owner: "payments team"
-    date: "Q4 2026"
   }
 }

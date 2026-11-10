@@ -1,103 +1,37 @@
-pack gcp
 pack logos
+pack gcp
 
-// Users
-person customer "Customer"
+person shopper "Shopper"
 
-// Frontend
-frontend = gcp/app-engine "Frontend" {
-  subtitle: "Go · HTTP server"
-  description: "Web UI for browsing and purchasing"
-}
+loadgen = box "Load Generator" { subtitle: "Python · Locust" }
+fe = sys/app-window "Frontend" { subtitle: "Go · HTTP"; description: "Serves the website" }
 
-// Core services
-productcatalog = gcp/app-engine "Product Catalog Service" {
-  subtitle: "Go"
-  description: "Product list and search"
-}
+checkout = sys/shopping-cart "Checkout Service" { subtitle: "Go" ; description: "Orchestrates an order" }
+cart = sys/shopping-cart "Cart Service" { subtitle: "C#" }
+cartdb = logos/redis "Redis Cart" datastore { description: "Cart contents" }
+catalog = sys/package-check "Product Catalog Service" { subtitle: "Go"; description: "Products from a JSON file" }
+currency = sys/currency "Currency Service" { subtitle: "Node.js" }
+payment = sys/credit-card "Payment Service" { subtitle: "Node.js · mock" }
+shipping = sys/shipping "Shipping Service" { subtitle: "Go · mock" }
+email = sys/mail "Email Service" { subtitle: "Python · mock" }
+reco = gcp/recommendations-ai "Recommendation Service" { subtitle: "Python" }
+ads = sys/megaphone "Ad Service" { subtitle: "Java" }
+assistant = sys/bot "Shopping Assistant Service" { subtitle: "Python · optional" }
+vectors = gcp/alloydb "AlloyDB" datastore { description: "Vector store for the assistant" }
+gemini = gcp/gemini "Gemini" external
 
-currency = gcp/app-engine "Currency Service" {
-  subtitle: "Node.js"
-  description: "Currency conversion"
-}
+shopper -> fe "browses, buys"
+loadgen -> fe "simulated shopping"
 
-cart = gcp/app-engine "Cart Service" {
-  subtitle: "C#"
-  description: "Shopping cart management"
-}
-
-recommendation = gcp/app-engine "Recommendation Service" {
-  subtitle: "Python"
-  description: "Product recommendations"
-}
-
-checkout = gcp/app-engine "Checkout Service" {
-  subtitle: "Go"
-  description: "Order orchestration"
-}
-
-payment = gcp/app-engine "Payment Service" {
-  subtitle: "Node.js"
-  description: "Payment processing"
-}
-
-shipping = gcp/app-engine "Shipping Service" {
-  subtitle: "Go"
-  description: "Shipping cost estimates"
-}
-
-email = gcp/app-engine "Email Service" {
-  subtitle: "Python"
-  description: "Order confirmation emails"
-}
-
-ad = gcp/app-engine "Ad Service" {
-  subtitle: "Java"
-  description: "Contextual ads"
-}
-
-// Data store
-redis = logos/redis "Redis" datastore {
-  description: "Cart session storage"
-}
-
-// Load generator
-loadgen = sys/code "Load Generator" {
-  subtitle: "Python · Locust"
-  description: "Simulates user traffic"
-}
-
-// User interactions
-customer -> frontend "browses and purchases"
-loadgen -> frontend "simulates traffic"
-
-// Frontend calls
-frontend -> productcatalog
-frontend -> currency
-frontend -> cart
-frontend -> recommendation
-frontend -> shipping
-frontend -> checkout
-frontend -> ad
-
-// Cart service
-cart -> redis
-
-// Recommendation service
-recommendation -> productcatalog
-
-// Checkout service orchestration
-checkout -> productcatalog
-checkout -> shipping
-checkout -> payment
-checkout -> email
-checkout -> currency
-checkout -> cart
+fe -> catalog, currency, cart, reco, shipping, checkout, ads, assistant
+checkout -> catalog, shipping, payment, email, currency, cart
+reco -> catalog
+cart -> cartdb
+assistant -> vectors
+assistant -> gemini
 
 view landscape {
-  title "Online Boutique - Microservices Architecture"
+  title "Online Boutique"
   include *
-  layout {
-    rows [customer loadgen] [frontend] [productcatalog currency cart recommendation shipping checkout ad] [payment email] [redis]
-  }
+  legend auto
 }

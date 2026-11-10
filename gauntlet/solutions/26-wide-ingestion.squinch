@@ -1,33 +1,29 @@
-// Ingestion estate — wide layout for slide presentation
-c1 = box "Collector 1"
-c2 = box "Collector 2"
-c3 = box "Collector 3"
-c4 = box "Collector 4"
-c5 = box "Collector 5"
-c6 = box "Collector 6"
+c1 = sys/radio-tower "Collector 1"
+c2 = sys/radio-tower "Collector 2"
+c3 = sys/radio-tower "Collector 3"
+c4 = sys/radio-tower "Collector 4"
+c5 = sys/radio-tower "Collector 5"
+c6 = sys/radio-tower "Collector 6"
+norm = sys/workflow "Normaliser"
+wh = sys/database "Warehouse" datastore
+search = sys/search "Search Index" datastore
+alerts = sys/siren "Alerting Service"
 
-normaliser = box "Normaliser"
+c1 -> norm
+c2 -> norm
+c3 -> norm
+c4 -> norm
+c5 -> norm
+c6 -> norm
+norm -> wh, search, alerts
 
-warehouse = sys/database "Warehouse" datastore
-search    = sys/database "Search Index" datastore
-alerting  = box "Alerting Service"
-
-c1 -> normaliser
-c2 -> normaliser
-c3 -> normaliser
-c4 -> normaliser
-c5 -> normaliser
-c6 -> normaliser
-
-normaliser -> warehouse
-normaliser -> search
-normaliser -> alerting
-
-view default {
+view landscape {
   title "Ingestion Estate"
+  include *
   layout {
-    direction right
     density compact
-    rows [c1 c2 c3 c4 c5 c6] [normaliser] [warehouse search] [alerting]
+    place search below wh
+    cols [wh search]
+    route norm -> search from east to east
   }
 }
