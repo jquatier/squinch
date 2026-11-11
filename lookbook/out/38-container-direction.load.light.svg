@@ -68,7 +68,7 @@
 <g data-kind="flow-step"><circle cx="144" cy="115" r="9" fill="#4C47C2"/><text x="144" y="119" text-anchor="middle" font-size="10" font-weight="500" fill="#FFFFFF">1</text></g>
 <g data-kind="flow-step"><circle cx="711" cy="399" r="9" fill="#4C47C2"/><text x="711" y="403" text-anchor="middle" font-size="10" font-weight="500" fill="#FFFFFF">4</text></g>
 <g data-note="on:src-&gt;pipe.ingest">
-<line x1="179" y1="178" x2="163" y2="228" stroke="#C7C7C3" stroke-width="1" stroke-dasharray="2 3"/>
+<line x1="179" y1="165" x2="163" y2="165" stroke="#C7C7C3" stroke-width="1" stroke-dasharray="2 3"/>
 <rect x="179" y="151" width="121" height="27" rx="4" fill="#FFFFFF" stroke="#C7C7C3" stroke-width="1" filter="url(#sq-shadow)"/>
 <g fill="none" stroke="#6A6A66" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="196.5" cy="164.5" r="4.9"/><path d="M196.5 164 L196.5 167"/><path d="M196.5 162.2 L196.5 162.3"/></g>
 <text x="210" y="168" font-size="11" fill="#111111">batches hourly</text>

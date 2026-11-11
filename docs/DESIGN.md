@@ -267,10 +267,13 @@ it gets none of the marks that imply one.
   carries "this is commentary, not a diagram object"; an amber fill used to,
   and it was the only third hue in a two-hue palette, reading as a sticky note
   stuck onto the drawing rather than part of it. Max width `200`, three lines.
-  Placement: the anchor's own side, sliding past every obstacle (nodes, pills,
-  chips, badges, the footer band, notes already placed) before standing further
-  off; a corner note hugs its corner and grows the canvas rather than
-  overlapping (`docs/notes/note-placement.md`).
+  Placement: the anchor's own side, in room the layout reserved for it — so a
+  note on a node inside an expanded container or a zone stays inside it, beside
+  its node, and the container grows to hold it. Where that room is taken, it
+  slides past every obstacle (nodes, wires, pills, chips, badges, the footer
+  band, notes already placed) before standing further off, and never straddles
+  a frame or zone border; a corner note hugs its corner and grows the canvas
+  rather than overlapping (`docs/notes/note-placement.md`).
 
 ### Chrome — what frames the drawing
 

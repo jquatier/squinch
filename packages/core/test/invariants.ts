@@ -247,6 +247,27 @@ export function checkLayout(p: Positioned, ctx: Ctx = {}): string[] {
           && r.y < e.labelRect.y + e.labelRect.h && r.y + r.h > e.labelRect.y)
         bad.push(`note ${i} overlaps label of ${e.id}`);
 
+  // ── a note is inside a compound or outside it, and off every wire ───────
+  // Frames and zones used to be solid obstacles to the note resolver, so a
+  // note on a framed node was evicted over the wall — and wires were not
+  // obstacles at all, so where it landed was often on one. Neither showed up
+  // in any check: the corpus had no note inside a compound, and nothing here
+  // compared a note with an edge.
+  for (const n of p.notes ?? []) {
+    for (const c of [...p.frames.map((f) => ({ ...f, what: `frame ${f.path}` })), ...p.zones.map((z) => ({ ...z, what: `zone ${z.id}` }))])
+      if (overlaps(n, c) && !contains(c, n)) bad.push(`note ${n.i} straddles the wall of ${c.what}`);
+    for (const e of p.edges)
+      for (let i = 0; i + 1 < e.points.length; i++) {
+        const a = e.points[i], b = e.points[i + 1];
+        const seg = { x: Math.min(a.x, b.x), y: Math.min(a.y, b.y), w: Math.abs(b.x - a.x), h: Math.abs(b.y - a.y) };
+        // a segment is a degenerate rect: test the closed intervals by hand
+        if (seg.x < n.x + n.w && seg.x + seg.w > n.x && seg.y < n.y + n.h && seg.y + seg.h > n.y
+            || (seg.w === 0 && seg.x > n.x && seg.x < n.x + n.w && seg.y < n.y + n.h && seg.y + seg.h > n.y)
+            || (seg.h === 0 && seg.y > n.y && seg.y < n.y + n.h && seg.x < n.x + n.w && seg.x + seg.w > n.x))
+          bad.push(`note ${n.i} sits on the wire ${e.id}`);
+      }
+  }
+
   // ── chips and badges never collide with nodes ───────────────────────────
   // They are typed geometry now (Positioned consolidation), so the rule is
   // assertable. A chip legitimately straddles its own zone border; it must not

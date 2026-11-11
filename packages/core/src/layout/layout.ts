@@ -75,6 +75,15 @@ export const NOTE_GUTTER = 19;
  *  wrap runs against; the box is the column plus padding plus the gutter, so
  *  the two can never disagree about whether the text fits. */
 const NOTE_MAX_W = 200;
+/** A note stands this far off its anchor; the dotted leader spans it. */
+const NOTE_GAP = 24;
+/** …and this far past the last wire on a face it shares with wires. */
+const NOTE_CLEAR = 8;
+/** The ELK label-placement word for each face of a node. */
+const NOTE_AT: Record<Side, string> = { north: "V_TOP", south: "V_BOTTOM", east: "H_RIGHT", west: "H_LEFT" };
+/** A frame's title strip (a 24px chip at +9, or the bare title): a note inside
+ *  the frame stays below it. */
+const FRAME_HEAD = 36;
 const NOTE_TEXT_W = NOTE_MAX_W - 24 - NOTE_GUTTER;
 /** The pill a label will render as, measured with the layout's font — the
  *  single source of truth shared by the ELK reservation (here) and the
@@ -196,9 +205,11 @@ export interface Positioned {
    *  now. Text lines are pre-wrapped (font-derived, theme-free); style/colour
    *  stay the renderer's. */
   notes?: { i: number; x: number; y: number; w: number; h: number; lines: string[]; leader?: { x1: number; y1: number; x2: number; y2: number } }[];
-  /** Layout-reserved note boxes by view-note index — today the edge-anchored
-   *  ones (second inline labels on their own elk edge). The resolver draws a
-   *  reserved note exactly here and skips its candidate ladder. */
+  /** The inline label ELK reserved for each edge-anchored note, by view-note
+   *  index (a second label on the note's own elk edge). It sits on the wire;
+   *  the resolver stands the note beside the wire inside the gap this made,
+   *  and falls back to the box itself. Node-anchored notes reserve their room
+   *  as a label on the anchor instead, and never appear here. */
   noteBoxes?: Map<number, { x: number; y: number; w: number; h: number }>;
 }
 
@@ -288,7 +299,11 @@ export async function layoutView(
   model: SModel,
   view: SView,
   font: Pick<ThemeFont, "metrics" | "scale"> = INTER,
+  /** @internal Note margins the row-mates of an anchor carry too, by node
+   *  path then face — found by a first pass, see `noteLabels` in leafChild. */
+  shared: ReadonlyMap<string, Partial<Record<Side, number>>> = new Map(),
 ): Promise<{ positioned: Positioned; diagnostics: Diagnostic[] }> {
+  const authored = view;
   // A view scoped to a container (its auto view, or `scope c`) stands *inside*
   // it, so the container's own `layout { }` is the root layout there — unless
   // the view brings any rows/cols/place/direction of its own, in which case
@@ -1134,6 +1149,48 @@ export async function layoutView(
       portOrder = { "elk.portConstraints": "FIXED_ORDER" };
     }
     const gutter = coplanarGutter.get(p);
+    // A note's room (sideNotes, above). On a face no wire uses, the label is
+    // the note plus its gap, centred on the face. On a face wires do use —
+    // `above` a node fed from the top — a centred note would sit on them, so
+    // the label runs from the face's start to one note-width past its end:
+    // wherever the last port lands, there is reserved room beyond it, and the
+    // resolver draws the note there once the ports are known.
+    const noteLabels = sideNotes.filter((nt) => nt.anchor === p).map((nt) => {
+      const busy = ports.some((port) => port.layoutOptions["elk.port.side"] === SIDE_UP[nt.side]);
+      const along = nt.side === "north" || nt.side === "south";
+      const at = NOTE_AT[nt.side];
+      return {
+        text: `note:${nt.i}`,
+        // Centred, the room is never wider than the face: a note 15px wider
+        // than its node reserved 8px a side, and ELK paid for them by jogging
+        // the node's own wire rather than moving the next column (measured on
+        // lookbook 10). The overhang is at most 40 a side, inside the spacing
+        // every node already has; where it is not, the resolver's check sees it.
+        width: along ? (busy ? w + NOTE_CLEAR + nt.w : Math.min(nt.w, w)) : NOTE_GAP + nt.w,
+        height: along ? NOTE_GAP + nt.h : busy ? h + NOTE_CLEAR + nt.h : Math.min(nt.h, h),
+        layoutOptions: {
+          "elk.nodeLabels.placement": `OUTSIDE ${at} ${along ? (busy ? "H_LEFT" : "H_CENTER") : busy ? "V_TOP" : "V_CENTER"}`,
+        },
+      };
+    });
+    // Along the flow, a margin on one node only breaks its row: ELK sizes a
+    // layer to its deepest node-plus-margins and clamps each node inside its
+    // own, so a node with a note below it sat 26px above its row-mates
+    // (measured). The mates carry an empty label of the same depth on the
+    // same face, and the row moves as one — no room is spent that the note
+    // does not use. Who the mates are is ELK's decision, so a first pass finds
+    // them and this is the second (`shared`, after the harvest).
+    for (const [side, depth] of Object.entries(shared.get(p) ?? {}) as [Side, number][]) {
+      const along = side === "north" || side === "south";
+      const own = noteLabels
+        .filter((l) => l.layoutOptions["elk.nodeLabels.placement"].split(" ")[1] === NOTE_AT[side])
+        .reduce((sum, l) => sum + (along ? l.height : l.width), 0);
+      if (depth > own)
+        noteLabels.push({
+          text: " ", width: along ? 1 : depth - own, height: along ? depth - own : 1,
+          layoutOptions: { "elk.nodeLabels.placement": `OUTSIDE ${NOTE_AT[side]} ${along ? "H_CENTER" : "V_CENTER"}` },
+        });
+    }
     return {
       id: p, width: w, height: h, ports,
       layoutOptions: {
@@ -1151,8 +1208,11 @@ export async function layoutView(
       // and ports and a value set on it is discarded (measured, elkjs 0.12).
       // Without this every label under a card sat LABEL_GAP below the card
       // edge, inside the sheets — all 32 such labels in the corpus.
-      ...(n.kind === "card"
-        ? { labels: [{ text: " ", width: 1, height: SHEET_BLEED, layoutOptions: { "elk.nodeLabels.placement": "OUTSIDE V_BOTTOM H_CENTER" } }] }
+      ...(n.kind === "card" || noteLabels.length
+        ? { labels: [
+            ...(n.kind === "card" ? [{ text: " ", width: 1, height: SHEET_BLEED, layoutOptions: { "elk.nodeLabels.placement": "OUTSIDE V_BOTTOM H_CENTER" } }] : []),
+            ...noteLabels,
+          ] }
         : {}),
     };
   };
@@ -1205,21 +1265,21 @@ export async function layoutView(
   // become one): `note on a -> b` rides its own edge into ELK as a second
   // inline label, so the gap is sized for the pill *and* the note and the two
   // can never fight over the midpoint — which is exactly where both used to be
-  // placed. The other anchors stay on the render-time resolver: `right-of`/
-  // `left-of` provably cannot be side-controlled in ELK (comment boxes ignore
-  // port sides; in-layer edges re-rank), corners are canvas chrome, and
-  // `above`/`below` would insert whole layers — deferred, recorded in
-  // docs/notes/note-placement.md.
+  // placed. Node-anchored notes reserve room too (sideNotes, below); corners
+  // are canvas chrome and stay on the resolver — docs/notes/note-placement.md.
   const noteDims = (text: string) => noteBox(text, font);
   const edgeNotes: { i: number; edgeId: string; w: number; h: number }[] = [];
-  // `above`/`below` on a bare anchor join the layout as layer nodes: a plain
-  // node with a directed invisible edge (note→anchor places it above,
-  // anchor→note below — spiked before adoption). The note gets a real layer,
-  // so it can never collide and the next rank makes room instead of being
-  // dodged around. Framed/zoned anchors keep the resolver: a note node inside
-  // a compound would join the compound's layering, which is not what a
-  // human-facing annotation should do to a container's interior.
-  const layerNotes: { i: number; id: string; anchor: string; above: boolean; w: number; h: number }[] = [];
+  // Node-anchored notes (`right-of`/`left-of`/`above`/`below`) reserve their
+  // room the way a card reserves its sheets: an invisible label hung outside
+  // the anchor's edge, which is how ELK learns a node's margins (leafChild).
+  // The room is part of the node, so it exists wherever the node is — at the
+  // root, inside an expanded frame, inside a zone — and the compound grows to
+  // hold it. Before this the resolver had to find a gap after the fact, and a
+  // frame or a zone is packed to its padding: there never was one, so every
+  // note on a framed or zoned anchor was evicted over the wall
+  // (docs/notes/note-placement.md).
+  const sideNotes: { i: number; anchor: string; side: Side; w: number; h: number }[] = [];
+  const NOTE_FACE: Record<string, Side> = { "right-of": "east", "left-of": "west", above: "north", below: "south" };
   (view.notes ?? []).forEach((note, i) => {
     if (note.anchor.kind === "edge") {
       const e = edges.find((x) => x.from === (note.anchor as any).from && x.to === (note.anchor as any).to);
@@ -1227,18 +1287,14 @@ export async function layoutView(
       return;
     }
     if (note.anchor.kind !== "relpos") return;
-    const rp = note.anchor.relpos;
-    if (rp !== "above" && rp !== "below") return;
-    const target = note.anchor.target;
-    const n = byPath.get(target);
-    if (!n || n.frame) return;
-    layerNotes.push({ i, id: `note:${i}`, anchor: target, above: rp === "above", ...noteDims(note.text) });
+    if (!byPath.get(note.anchor.target)) return;
+    sideNotes.push({ i, anchor: note.anchor.target, side: NOTE_FACE[note.anchor.relpos], ...noteDims(note.text) });
   });
   // Badges deliberately do NOT switch this on. A flow view with no labels at
   // all has nothing for a badge to collide with, and its badge sits at the
   // midpoint of its own run; turning the scheme on just to anchor one rewrote
   // the layout of `12-flow-checkout`, which had no pills in it to begin with.
-  const hasElkLabels = elkEdges.some((e) => !!e.label) || edgeNotes.length > 0 || layerNotes.length > 0;
+  const hasElkLabels = elkEdges.some((e) => !!e.label) || edgeNotes.length > 0;
 
   // ── per-container direction (`direction right` in the container's own
   //    layout block, SPEC §3) ──────────────────────────────────────────────
@@ -1629,8 +1685,6 @@ export async function layoutView(
     children.forEach((c, i) => {
       c.layoutOptions = { ...(c.layoutOptions ?? {}), "elk.position": flowsRight ? `(0,${i * 1000})` : `(${i * 1000},0)` };
     });
-  for (const n of layerNotes)
-    children.push({ id: n.id, width: n.w, height: n.h, layoutOptions: {} });
 
   const elkGraph = {
     id: "root",
@@ -1681,12 +1735,6 @@ export async function layoutView(
       ...scaffold.map((s) => ({ id: s.id, sources: [s.from], targets: [s.to], ...(hasElkLabels ? { labels: [{ text: " ", width: 2, height: spacerH(false) }] } : {}) })),
       // interior scaffolds live in a frame, so their spacer is the frame's
       ...innerScaffold.map((s) => ({ id: s.id, sources: [s.from], targets: [s.to], ...(hasElkLabels ? { labels: [{ text: " ", width: 2, height: spacerH(true) }] } : {}) })),
-      ...layerNotes.map((n) => ({
-        id: `noteedge.${n.i}`,
-        sources: [n.above ? n.id : n.anchor],
-        targets: [n.above ? n.anchor : n.id],
-        ...(hasElkLabels ? { labels: [{ text: " ", width: 2, height: spacerH(false) }] } : {}),
-      })),
     ],
   };
 
@@ -1712,6 +1760,8 @@ export async function layoutView(
   // for edges living fully inside an expanded frame, that's the frame, so we
   // need every compound's absolute origin to translate them.
   const containerOffset = new Map<string, { x: number; y: number }>([["root", { x: 0, y: 0 }]]);
+  /** The label ELK placed for each node-anchored note, relative to its anchor. */
+  const noteRoom = new Map<number, { dx: number; dy: number; w: number; h: number }>();
   const walk = (c: any, ox: number, oy: number, depth = 0) => {
     const x = q(ox + c.x), y = q(oy + c.y);
     if (zoneById.has(c.id)) {
@@ -1760,6 +1810,10 @@ export async function layoutView(
       // them as one rank and route coplanar wires straight through zones.
       rank: rank.get(unitOf(c.id))!,
     });
+    // Relative to the node, not absolute: `align` can still move it.
+    for (const l of c.labels ?? [])
+      if (String(l.text).startsWith("note:"))
+        noteRoom.set(+String(l.text).slice(5), { dx: q(l.x), dy: q(l.y), w: q(l.width), h: q(l.height) });
     for (const p of c.ports ?? []) {
       if (p.id.startsWith("scaffold.")) continue;
       if (reservedPorts.has(p.id)) { busPort = { x: q(x + p.x), y: q(y + p.y) }; continue; }
@@ -1773,12 +1827,39 @@ export async function layoutView(
     }
   };
   const noteBoxes = new Map<number, { x: number; y: number; w: number; h: number }>();
-  for (const c of out.children) {
-    if (c.id?.startsWith("note:")) {
-      noteBoxes.set(+c.id.slice(5), { x: q(c.x), y: q(c.y), w: q(c.width), h: q(c.height) });
-      continue;
+  for (const c of out.children) walk(c, 0, 0);
+  // Row-mates share a note's margin (leafChild, `shared`): every sibling in
+  // the layer of an anchor whose note lies along the flow. Layers are read off
+  // the result — a sibling overlapping the anchor-plus-note along the flow is
+  // in its layer — and the layout is run again with the margins in. Bounded:
+  // the margins only grow, and a layer's membership does not depend on them.
+  {
+    const zoneOf = (n: { x: number; y: number; w: number; h: number }) =>
+      pZones.filter((z) => z.x <= n.x && z.y <= n.y && z.x + z.w >= n.x + n.w && z.y + z.h >= n.y + n.h)
+        .sort((a, b) => b.depth - a.depth)[0]?.id;
+    const want = new Map<string, Partial<Record<Side, number>>>([...shared].map(([k, v]) => [k, { ...v }]));
+    let grew = false;
+    for (const a of nodes) {
+      const mine = sideNotes.filter((nt) => nt.anchor === a.path && noteRoom.has(nt.i));
+      if (!mine.length) continue;
+      const down = dirOf(a.frame ?? "root") === "down";
+      for (const side of (down ? ["north", "south"] : ["west", "east"]) as Side[]) {
+        const rooms = mine.filter((nt) => nt.side === side).map((nt) => noteRoom.get(nt.i)!);
+        if (!rooms.length) continue;
+        const depth = rooms.reduce((sum, r) => sum + (down ? r.h : r.w), 0);
+        const lo = down ? Math.min(a.y, ...rooms.map((r) => a.y + r.dy)) : Math.min(a.x, ...rooms.map((r) => a.x + r.dx));
+        const hi = down ? Math.max(a.y + a.h, ...rooms.map((r) => a.y + r.dy + r.h)) : Math.max(a.x + a.w, ...rooms.map((r) => a.x + r.dx + r.w));
+        const z = zoneOf(a);
+        for (const m of nodes) {
+          if (m === a || m.frame !== a.frame || zoneOf(m) !== z) continue;
+          if (!(down ? m.y < hi && m.y + m.h > lo : m.x < hi && m.x + m.w > lo)) continue;
+          const w = want.get(m.path) ?? {};
+          if ((w[side] ?? 0) >= depth) continue;
+          w[side] = depth; want.set(m.path, w); grew = true;
+        }
+      }
     }
-    walk(c, 0, 0);
+    if (grew) return layoutView(model, authored, font, want);
   }
   const nodeById = new Map(nodes.map((n) => [n.path, n]));
 
@@ -1792,7 +1873,7 @@ export async function layoutView(
   for (const [p, o] of laidOut) gatherEdges(o, p);
   const elkPositioned = new Map<string, PEdge>(
     allOutEdges
-      .filter((e: any) => !e.id.startsWith("scaffold.") && !e.id.startsWith("noteedge."))
+      .filter((e: any) => !e.id.startsWith("scaffold."))
       .map((e: any) => {
         const s = e.sections[0];
         const off = containerOffset.get(e.container ?? "root") ?? { x: 0, y: 0 };
@@ -2769,21 +2850,53 @@ export async function layoutView(
   const list = view.notes ?? [];
   const p = { width, height: heightForNotes, nodes, edges: pEdges, noteBoxes } as any;
   const obstacles: { x: number; y: number; w: number; h: number }[] = [
-    ...nodes, ...frames, ...pZones, ...pillRects, ...chips, ...badges, ...footer,
+    ...nodes, ...pillRects, ...chips, ...badges, ...footer,
   ];
   const byPath = new Map(nodes.map((n) => [n.path, n]));
   // Notes are placed in declaration order and each joins the obstacle set, so
   // an earlier note wins a contested spot — the same tie-break pills use
   // (docs/notes/edge-labels.md), and what makes the output deterministic.
   const placed: Rect[] = [];
-  const clear = (r: Rect) =>
-    !obstacles.some((o) => hitR(o, r)) && !placed.some((q) => hitR(q, r));
+  // A frame or a zone is a wall, not a slab. It used to sit in the obstacle
+  // list as a filled rect, so nothing inside one was ever clear and a note on
+  // a framed node slid until it was over the wall — up to 240px, onto
+  // whatever was there. A note may be wholly inside a compound or wholly
+  // outside it; it may not straddle the border, or cover a frame's title.
+  const walls: (Rect & { head: number })[] = [
+    ...frames.map((f) => ({ x: f.x, y: f.y, w: f.w, h: f.h, head: FRAME_HEAD })),
+    ...pZones.map((z) => ({ x: z.x, y: z.y, w: z.w, h: z.h, head: 0 })),
+  ];
+  const inside = (c: Rect & { head: number }, r: Rect, m = 4) =>
+    r.x >= c.x + m && r.y >= c.y + Math.max(m, c.head) && r.x + r.w <= c.x + c.w - m && r.y + r.h <= c.y + c.h - m;
+  // …and a wire is an obstacle. Nothing checked them, so a note dodging a
+  // card could land squarely on the wire beside it and hide a run of it.
+  const wires = pEdges.flatMap((e) => e.points.slice(1).map((b, i) => [e.points[i], b] as const));
+  const onWire = (r: Rect, m = 4) => {
+    const x0 = r.x - m, y0 = r.y - m, x1 = r.x + r.w + m, y1 = r.y + r.h + m;
+    return wires.some(([a, b]) => {
+      // Liang–Barsky: the segment's parameter range inside the grown box
+      let t0 = 0, t1 = 1;
+      const dx = b.x - a.x, dy = b.y - a.y;
+      for (const [pp, qq] of [[-dx, a.x - x0], [dx, x1 - a.x], [-dy, a.y - y0], [dy, y1 - a.y]]) {
+        if (pp === 0) { if (qq <= 0) return false; continue; }
+        const t = qq / pp;
+        if (pp < 0) t0 = Math.max(t0, t); else t1 = Math.min(t1, t);
+      }
+      return t0 < t1;
+    });
+  };
+  /** `strict` holds a note clear of wires too — relaxed last, since a note on
+   *  a wire still beats one that travelled across the diagram to avoid it. */
+  const clear = (r: Rect, strict = true) =>
+    !obstacles.some((o) => hitR(o, r)) && !placed.some((q) => hitR(q, r))
+    && walls.every((c) => inside(c, r) || !hitR(c, r))
+    && !(strict && onWire(r));
 
   let noteIdx = -1;
   for (const note of list) {
     noteIdx++;
-    // A note the layout reserved space for draws exactly there — the same
-    // contract as labelRect. The candidate ladder never runs for it.
+    // An edge note's inline label, where ELK put it: the room the ladder
+    // below works in, and where the note goes if no rung of it is clear.
     const reserved = p.noteBoxes?.get(noteIdx);
     // `noteBox`, not a second copy of its arithmetic — see the comment there.
     // Integers, like every other rect (DESIGN §8): `measure` returns a float
@@ -2795,11 +2908,16 @@ export async function layoutView(
     // author who wrote `right-of` gets right-of, further out or slid along it,
     // never flipped to the other side of the node.
     const cands: { x: number; y: number }[] = [];
-    let anchor: PNode | undefined;
+    let anchor: (Rect & { path: string }) | undefined;
     let mid: { x: number; y: number } | undefined;
+    let run: { x: number; y: number }[] | undefined;
 
     if (note.anchor.kind === "relpos") {
-      const n = byPath.get(note.anchor.target);
+      // A node — or an expanded container, whose frame is the thing on the
+      // page. That second lookup was missing, so `note right-of svc` in a view
+      // that also said `expand svc` drew nothing and said nothing.
+      const target = note.anchor.target;
+      const n = byPath.get(target) ?? frames.find((f) => f.path === target);
       if (!n) continue;
       anchor = n;
       const rp = note.anchor.relpos;
@@ -2852,6 +2970,7 @@ export async function layoutView(
         return pts[pts.length - 1];
       };
       mid = at(0.5);
+      run = e.points;
       // slide along the wire before standing further off it — same ladder the
       // edge-label pills walk, so a note and its pill spread rather than stack
       for (const off of [16, 40, 64])
@@ -2900,15 +3019,44 @@ export async function layoutView(
     ];
     let x = Math.round(cands[0]?.x ?? 16), y = Math.round(cands[0]?.y ?? 16);
     let found = false;
-    if (reserved) { x = reserved.x; y = reserved.y; found = true; }
-    for (const fit of fits) {
-      for (const c of cands) {
-        const r = { x: Math.round(c.x), y: Math.round(c.y), w, h };
-        if (!fit(r) || !clear(r)) continue;
-        x = r.x; y = r.y; found = true;
-        break;
+    // The room a node-anchored note reserved (sideNotes) is where it goes —
+    // unless something the layout could not see is in it: a coplanar wire off
+    // that face, an earlier note. Then the ladder runs as it would have.
+    const room = noteRoom.get(noteIdx);
+    if (room && anchor) {
+      const L = { x: anchor.x + room.dx, y: anchor.y + room.dy, w: room.w, h: room.h };
+      const rp = (note.anchor as any).relpos as string;
+      const face = NOTE_FACE[rp];
+      const along = face === "north" || face === "south";
+      const at = ports.filter((pt) => pt.node === anchor!.path && pt.side === face);
+      // centred on a room that may be narrower than the note (leafChild)
+      const r = along
+        ? { x: L.x + Math.round((L.w - w) / 2), y: L.y, w, h }
+        : { x: L.x, y: L.y + Math.round((L.h - h) / 2), w, h };
+      if (along) {
+        if (face === "south") r.y = L.y + L.h - h;
+        // past the last wire on the face, never past the room
+        if (at.length) r.x = Math.min(Math.max(...at.map((pt) => pt.x)) + NOTE_CLEAR, L.x + L.w - w);
+      } else {
+        if (face === "east") r.x = L.x + L.w - w;
+        if (at.length) r.y = Math.min(Math.max(...at.map((pt) => pt.y)) + NOTE_CLEAR, L.y + L.h - h);
       }
-      if (found) break;
+      if (clear(r)) { x = r.x; y = r.y; found = true; }
+    }
+    // An edge note's reservation is inline on its own wire; the ladder's
+    // first rung stands it beside that wire instead, inside the room the
+    // label made. The reservation is what is left when no rung is clear.
+    for (const strict of [true, false]) {
+      for (const fit of found ? [] : fits) {
+        for (const c of cands) {
+          const r = { x: Math.round(c.x), y: Math.round(c.y), w, h };
+          if (!fit(r) || !clear(r, strict)) continue;
+          x = r.x; y = r.y; found = true;
+          break;
+        }
+        if (found) break;
+      }
+      if (!found && reserved) { x = reserved.x; y = reserved.y; found = true; }
     }
     // Nothing on the ladder was free. Keep travelling in the authored
     // direction until it is: a note may leave the cluster entirely because its
@@ -2926,7 +3074,7 @@ export async function layoutView(
           : { dx: 24, dy: 0 };
       const last = cands[cands.length - 1] ?? { x, y };
       x = Math.round(last.x); y = Math.round(last.y);
-      for (let guard = 0; guard < 50 && !clear({ x, y, w, h }); guard++) {
+      for (let guard = 0; guard < 50 && !clear({ x, y, w, h }, false); guard++) {
         x += step.dx; y += step.dy;
       }
     }
@@ -2955,8 +3103,21 @@ export async function layoutView(
       const to = clamp(noteMid, n);
       leader = { x1: from.x, y1: from.y, x2: to.x, y2: to.y };
     } else if (mid) {
-      const from = clamp(mid, noteRect);
-      leader = { x1: from.x, y1: from.y, x2: mid.x, y2: mid.y };
+      // To the nearest point of the wire, not its midpoint. They were the
+      // same while a note always stood beside the midpoint; on a dog-leg the
+      // midpoint is on the cross run, and a note standing beside the last
+      // vertical run reached back to it with a long diagonal.
+      let to = mid, best = Infinity;
+      for (let i = 0; i + 1 < (run?.length ?? 0); i++) {
+        const a = run![i], b = run![i + 1];
+        const dx = b.x - a.x, dy = b.y - a.y, len = dx * dx + dy * dy;
+        const t = len === 0 ? 0 : Math.max(0, Math.min(1, ((noteMid.x - a.x) * dx + (noteMid.y - a.y) * dy) / len));
+        const pt = { x: a.x + dx * t, y: a.y + dy * t };
+        const d = Math.hypot(pt.x - noteMid.x, pt.y - noteMid.y);
+        if (d < best) { best = d; to = pt; }
+      }
+      const from = clamp(to, noteRect);
+      leader = { x1: from.x, y1: from.y, x2: to.x, y2: to.y };
     }
 
     // canvas pad/shift is the renderer's: it recomputes the extent from these
