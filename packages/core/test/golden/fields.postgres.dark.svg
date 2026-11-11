@@ -36,8 +36,7 @@
 <line x1="33" y1="390" x2="351" y2="390" stroke="#2E2E33" stroke-width="1"/>
 <text x="44" y="406" font-size="12" font-weight="500" fill="#EDEDEA">currency</text>
 <text x="340" y="406" font-size="11" font-family="SquinchMono, IBM Plex Mono, ui-monospace, monospace" text-anchor="end" fill="#7A796F">char(3)</text>
-<g><line x1="33" y1="414" x2="351" y2="414" stroke="#2E2E33" stroke-width="1"/><text x="44" y="430" font-size="12" font-weight="500" fill="#EDEDEA">notes</text><rect x="81" y="419" width="56" height="14" rx="3" fill="#2F2F34"/><text x="85" y="429" font-size="10" font-family="SquinchMono, IBM Plex Mono, ui-monospace, monospace" fill="#9C9B94">nullable</text><text x="340" y="430" font-size="11" font-family="SquinchMono, IBM Plex Mono, ui-monospace, monospace" text-anchor="end" fill="#7A796F">varchar(500)</text><title>varchar(500)
-free text from support</title></g>
+<g><line x1="33" y1="414" x2="351" y2="414" stroke="#2E2E33" stroke-width="1"/><text x="44" y="430" font-size="12" font-weight="500" fill="#EDEDEA">notes</text><rect x="81" y="419" width="56" height="14" rx="3" fill="#2F2F34"/><text x="85" y="429" font-size="10" font-family="SquinchMono, IBM Plex Mono, ui-monospace, monospace" fill="#9C9B94">nullable</text><text x="340" y="430" font-size="11" font-family="SquinchMono, IBM Plex Mono, ui-monospace, monospace" text-anchor="end" fill="#7A796F">varchar(500)</text><title>free text from support</title></g>
 <line x1="33" y1="438" x2="351" y2="438" stroke="#2E2E33" stroke-width="1"/>
 <text x="44" y="454" font-size="12" font-weight="500" fill="#EDEDEA">created_at</text>
 <text x="340" y="454" font-size="11" font-family="SquinchMono, IBM Plex Mono, ui-monospace, monospace" text-anchor="end" fill="#7A796F">timestamptz</text>

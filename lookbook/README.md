@@ -522,7 +522,7 @@ Source: [`cases/42-mutual-pair.squinch`](cases/42-mutual-pair.squinch)
 
 ## Fields
 
-A leaf's schema. A table, collection or topic carries its fields in a `fields { }` block — a name, a type written the way the store spells it (`numeric(10,2)`, `array<map<k, v>>`), then free words for keys and constraints. Writing them changes no picture: the landscape below is what it would be without them. Step into the database — a view scoped to the container that holds the tables — and every field draws; anywhere else, `preview` shows six, or the ones the table's `preview:` picks, with the rest counted. Wires land on the table, never on a row, and `ref` is text: the edge between two tables is the relationship, the ref names the column.
+A leaf's schema. A table, collection or topic carries its fields in a `fields { }` block — a name, a type written the way the store spells it (`numeric(10,2)`, `array<map<k, v>>`), then free words for keys and constraints, and a quoted caption. Fields draw where the table's container is open: every field in a view scoped to it, a compact list — six, or the ones the table's `preview:` picks, the rest counted — wherever it is expanded. A table inside a collapsed card changes nothing, and one at the top level, like the topic below, shows its fields when the view asks with `preview`. A caption sits on its row when it fits, and a wire lands on the table's head, never on a row; `ref` is text — the edge between two tables is the relationship, the ref names the column.
 
 Source: [`cases/43-fields.squinch`](cases/43-fields.squinch)
 

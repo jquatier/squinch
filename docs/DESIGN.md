@@ -147,14 +147,18 @@ it gets none of the marks that imply one.
   under a hairline in the shelf's tone: the name at 12/500 in ink (a dotted
   prefix — `address.` — in `faint`), the markers as chips (mono 10 in `muted`
   on a `14`-tall `plate`, radius 3), a drawn arrow and the `ref` at 11 in
-  `muted`, and the type right-aligned in mono 11, `faint`. `+N more fields`
-  is a last row at 11/500, not a shelf: `64 + 24·n` is on the 8px grid for
-  every n, and a 30px shelf would take it off. Width takes the `280` and `320`
-  tiers; past 320 the ref cuts first, then the type, with the full text and
-  the caption in the row's `<title>` — the one place a caption shows. The
-  arrow is a path, not `→`: the bundled subsets do not carry the glyph, and
-  text from a system font is environment in the output. Wires land on the
-  leaf's border, never on a row.
+  `muted`, the caption at 11 in `faint` when it fits whole, and the type
+  right-aligned in mono 11, `faint`. Every marker draws alike: the
+  renderer reads no word list. `+N more fields` is a last row at 11/500, not a shelf: `64 + 24·n` is on the
+  8px grid for every n, and a 30px shelf would take it off. Width takes the
+  `280` and `320` tiers. Nothing leaves the card: past 320 a row gives up, in
+  order, its caption, its ref, its type (to 48px, then whole), its trailing
+  markers (folded into a `+N` chip) and last its name — and whatever it could
+  not show goes in the row's `<title>`. The arrow is a path, not `→`: the
+  bundled subsets do not carry the glyph, and text from a system font is
+  environment in the output. **Wires land on the head, never on a row**, on
+  every wall: a wire that meets a row reads as pointing at that field
+  (docs/notes/coplanar.md).
 - **Stacked sheets**: two solid sheets peeking out below every container, each
   `6` further down and `12` further in on both sides than the one in front, on
   the same contact shadow. "There is more inside", said by the shape before

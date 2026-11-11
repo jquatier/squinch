@@ -227,6 +227,8 @@ export function fieldRowNeed(f: FieldRow, fx: (px: number) => number, fam: FontF
   const chips = f.markers.reduce((a, m) => a + CHIP_GAP + CHIP_PAD * 2 + measure(m, fx(10), "400", "mono"), 0);
   return PAD + measure((f.prefix ?? "") + f.name, fx(12), "500", fam) + chips +
     (f.ref ? 8 + REF_ARROW_W + measure(f.ref, fx(11), "400", fam) : 0) +
+    // a caption earns the wider tier when that lets it draw on its row
+    (f.caption ? 8 + measure(f.caption, fx(11), "400", fam) : 0) +
     (f.type ? FIELD_GAP + measure(f.type, fx(11), "400", "mono") : 0) + PAD;
 }
 

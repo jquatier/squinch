@@ -572,44 +572,68 @@ const LEAF_HEAD_H = 64;
  * A leaf's schema rows (docs/notes/fields.md), under the head: per row a
  * hairline, the name (a dotted prefix faint, the rest in ink), marker chips,
  * `→ ref`, and the type right-aligned in mono. Nothing on a row is an edge
- * target — wires land on the leaf's border, as on a detailed card. What cuts,
- * in order: never the name or the chips; the ref, when the type would keep less
- * than 48px; then the type. A row with anything cut, or with a caption, carries
- * the full type and caption in a <title> — the one place a caption shows.
+ * target — wires land on the leaf's head. A caption draws on the row when it
+ * fits whole; a row that cannot hold everything cuts in the order written
+ * below, and whatever it could not show goes in a <title>.
  */
 function fieldRowsMarkup(n: PNode, rc: RC, L: string[]) {
   const { t } = rc;
   rc.faces.add("mono:400");
   const MONO = ` font-family="${MONO_CSS}"`;
   const left = n.x + PAD, right = n.x + n.w - PAD;
+  const budget = right - left;
   const rows = n.fields!;
   const hair = (top: number) =>
     `<line x1="${n.x + 1}" y1="${top}" x2="${n.x + n.w - 1}" y2="${top}" stroke="${t.shelfLine}" stroke-width="1"/>`;
+  const chipW = (m: string) => Math.ceil(measure(m, rc.fx(10), "400", "mono")) + CHIP_PAD * 2;
   rows.forEach((f, i) => {
     const top = n.y + LEAF_HEAD_H + i * FIELD_ROW_H;
     const base = top + 16;
     const R: string[] = [hair(top)];
     const prefix = f.prefix ?? "";
+    const full = prefix + f.name;
+    const fullW = Math.ceil(measure(full, rc.fx(12), "500", rc.fam));
+    const typeW = f.type ? Math.ceil(measure(f.type, rc.fx(11), "400", "mono")) : 0;
+
+    // What a row gives up when it cannot hold everything, in order: the
+    // caption, the ref, the type (to 48px, then whole), the trailing markers
+    // (folded into a `+N` chip), and last the name. Nothing ever leaves the
+    // card: before this the name and chips were never cut, and a long name
+    // pushed its chips out over the canvas.
+    let chips = [...f.markers];
+    const chipsW = (cs: typeof chips) => cs.reduce((a, c) => a + CHIP_GAP + chipW(c), 0);
+    let typeKeep = f.type ? Math.min(typeW, 48) + FIELD_GAP : 0;
+    let keepType = !!f.type;
+    if (fullW + chipsW(chips) > budget - typeKeep) { keepType = false; typeKeep = 0; }
+    let folded = 0;
+    while (chips.length && fullW + chipsW(chips) > budget) {
+      folded++;
+      chips = [...f.markers.slice(0, f.markers.length - folded), `+${folded}`];
+      if (folded === f.markers.length) break;
+    }
+    const nameRoom = Math.max(64, budget - chipsW(chips) - typeKeep);
+    const shownName = fullW <= nameRoom ? full : fit(full, nameRoom, rc.fx(12), "500", rc.fam);
+    const nameCut = shownName !== full;
+    // the dotted prefix stays faint for as much of it as survived the cut
+    const shownPrefix = shownName.startsWith(prefix) ? prefix : "";
     R.push(
       `<text x="${left}" y="${base}" font-size="${rc.fx(12)}" font-weight="500" fill="${t.ink}">` +
-        (prefix ? `<tspan fill="${t.faint}">${esc(prefix)}</tspan>` : "") + `${esc(f.name)}</text>`,
+        (shownPrefix ? `<tspan fill="${t.faint}">${esc(shownPrefix)}</tspan>` : "") + `${esc(shownName.slice(shownPrefix.length))}</text>`,
     );
-    let x = left + Math.ceil(measure(prefix + f.name, rc.fx(12), "500", rc.fam));
-    for (const m of f.markers) {
+    let x = left + Math.ceil(measure(shownName, rc.fx(12), "500", rc.fam));
+    for (const c of chips) {
       x += CHIP_GAP;
-      const w = Math.ceil(measure(m, rc.fx(10), "400", "mono")) + CHIP_PAD * 2;
+      const w = chipW(c);
       R.push(`<rect x="${x}" y="${top + 5}" width="${w}" height="14" rx="3" fill="${t.plate}"/>`);
-      R.push(`<text x="${x + CHIP_PAD}" y="${top + 15}" font-size="${rc.fx(10)}"${MONO} fill="${t.muted}">${esc(m)}</text>`);
+      R.push(`<text x="${x + CHIP_PAD}" y="${top + 15}" font-size="${rc.fx(10)}"${MONO} fill="${t.muted}">${esc(c)}</text>`);
       x += w;
     }
-    const typeW = f.type ? Math.ceil(measure(f.type, rc.fx(11), "400", "mono")) : 0;
-    const typeKeep = f.type ? Math.min(typeW, 48) + FIELD_GAP : 0;
-    let cut = false;
+    let refCut = false;
     if (f.ref) {
       const room = right - (x + 8 + REF_ARROW_W) - typeKeep;
       // under two dozen pixels a ref is an arrow and an ellipsis: drop it
       const shown = room >= 24 ? fit(f.ref, room, rc.fx(11), "400", rc.fam) : "";
-      if (shown !== f.ref) cut = true;
+      refCut = shown !== f.ref;
       if (shown) {
         // a drawn arrow, mid-height of the type's x-height: shaft and head
         const ax = x + 8, ay = base - 4;
@@ -618,17 +642,38 @@ function fieldRowsMarkup(n: PNode, rc: RC, L: string[]) {
         x += 8 + REF_ARROW_W + Math.ceil(measure(shown, rc.fx(11), "400", rc.fam));
       }
     }
-    if (f.type) {
+    let shownType = "";
+    if (keepType) {
       const room = right - x - FIELD_GAP;
-      const shown = room > 0 ? fit(f.type, room, rc.fx(11), "400", "mono") : "";
-      if (shown !== f.type) cut = true;
-      if (shown)
-        R.push(`<text x="${right}" y="${base}" font-size="${rc.fx(11)}"${MONO} text-anchor="end" fill="${t.faint}">${esc(shown)}</text>`);
+      shownType = room > 0 ? fit(f.type!, room, rc.fx(11), "400", "mono") : "";
+      if (shownType)
+        R.push(`<text x="${right}" y="${base}" font-size="${rc.fx(11)}"${MONO} text-anchor="end" fill="${t.faint}">${esc(shownType)}</text>`);
     }
-    if (cut || f.caption) {
-      const tip = [f.ref && cut ? `ref ${f.ref}` : "", f.type ?? "", f.caption ?? ""].filter(Boolean).join("\n");
-      L.push(`<g>${R.join("")}<title>${esc(tip)}</title></g>`);
-    } else L.push(...R);
+    const typeCut = !!f.type && shownType !== f.type;
+    // The caption sits on the row when it fits whole between what came before
+    // and the type — a README image and a PNG have no tooltip, and the caption
+    // is where a key pattern or "null means all gates" lives. It never cuts
+    // and never costs anything else its place: when it does not fit it stays
+    // in the <title>.
+    let captionShown = false;
+    if (f.caption) {
+      const capW = Math.ceil(measure(f.caption, rc.fx(11), "400", rc.fam));
+      const typeLeft = shownType ? right - Math.ceil(measure(shownType, rc.fx(11), "400", "mono")) - FIELD_GAP : right;
+      if (!typeCut && !refCut && !nameCut && !folded && x + 8 + capW <= typeLeft) {
+        R.push(`<text x="${x + 8}" y="${base}" font-size="${rc.fx(11)}" fill="${t.faint}">${esc(f.caption)}</text>`);
+        captionShown = true;
+      }
+    }
+    // whatever the row could not show, in full, as a native tooltip
+    const tip = [
+      nameCut ? full : "",
+      folded ? f.markers.join(" ") : "",
+      f.ref && refCut ? `ref ${f.ref}` : "",
+      typeCut ? f.type! : "",
+      f.caption && !captionShown ? f.caption : "",
+    ].filter(Boolean).join("\n");
+    if (tip) L.push(`<g>${R.join("")}<title>${esc(tip)}</title></g>`);
+    else L.push(...R);
   });
   if (n.moreFields) {
     const top = n.y + LEAF_HEAD_H + rows.length * FIELD_ROW_H;

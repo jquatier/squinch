@@ -133,12 +133,34 @@ describe("fields: where a leaf's schema draws", () => {
     expect((svg.match(/data-edge=/g) ?? []).length).toBeLessThanOrEqual(1);
   });
 
-  it("keeps the caption in a <title> on its row, and a cut type's full text with it", async () => {
-    const src = model(`{\n    fields {\n      notes text nullable "free text"\n      shape "a very long type name that cannot possibly fit on one row of a leaf"\n    }\n  }`);
+  it("draws a caption on its row when it fits, and keeps it in a <title> when it does not", async () => {
+    const src = model(`{\n    fields {\n      notes text nullable "free text"\n      shape "a very long type name that cannot possibly fit on one row of a leaf" "why"\n    }\n  }`);
     const g = leafOf(await draw(src, "db"), "shop.db.orders");
-    expect(g).toContain("<title>text\nfree text</title>");
-    expect(g).toContain("<title>a very long type name that cannot possibly fit on one row of a leaf</title>");
+    expect(g).toContain(">free text<");
+    expect(g).not.toContain("<title>text");
+    // the long type is cut, so its row's caption gives way and both go to the tooltip
+    expect(g).toContain("<title>a very long type name that cannot possibly fit on one row of a leaf\nwhy</title>");
     expect(g).toContain("…");
+  });
+
+  it("never lets a row leave the card: type, then extra markers, then the name give way", async () => {
+    const src = model(`{\n    fields {\n      a_really_long_field_name_that_goes_on_and_on_forever string pk nullable unique index\n    }\n  }`);
+    const svg = await draw(src, "db");
+    const g = leafOf(svg, "shop.db.orders");
+    // a row's hairline runs to one pixel inside the card's right edge
+    const rightEdge = Number(/<line x1="\d+" y1="\d+" x2="(\d+)"/.exec(g)![1]) + 1;
+    // every chip rect ends inside the card
+    for (const r of g.matchAll(/<rect x="([\d.]+)" y="[\d.]+" width="([\d.]+)" height="1[34]"/g))
+      expect(Number(r[1]) + Number(r[2])).toBeLessThanOrEqual(rightEdge - 12);
+    expect(g).toContain(">+4<"); // the four markers folded
+    expect(g).toContain("…"); // and the name cut
+    expect(g).toContain("<title>a_really_long_field_name_that_goes_on_and_on_forever\npk nullable unique index\nstring</title>");
+  });
+
+  it("draws every marker alike — no word list", async () => {
+    const g = leafOf(await draw(model(`{\n    fields {\n      id uuid pk\n      gate text nullable\n    }\n  }`), "db"), "shop.db.orders");
+    expect((g.match(/height="14" rx="3"/g) ?? []).length).toBe(2);
+    expect(g).not.toMatch(/rx="2.5"/);
   });
 
   it("sits on the 8px grid at every row count", async () => {
