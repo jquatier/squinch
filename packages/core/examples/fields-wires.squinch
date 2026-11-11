@@ -1,0 +1,91 @@
+// Golden fixture: wires and a table's rows (docs/notes/fields.md). A wire lands
+// on the 64px head, never on a row — sideways flows, same-row edges, a pinned
+// side, a folded fan — and a note or a short neighbour keeps its place beside it.
+pack aws
+
+system s "Scoring" {
+  picker  = sys/app-window "Picker" { subtitle: "React" }
+  backend = aws/lambda "Backend" { subtitle: "FastAPI" }
+  latest = sys/table "score_latest" datastore {
+    fields {
+      style_color  string  pk
+      gate         string  pk nullable
+      score        double
+      scored_at    timestamp
+    }
+  }
+  history = sys/table "score_history" datastore {
+    fields {
+      style_color  string  pk
+      gate         string  pk nullable
+      run_id       string  pk
+      score        double
+      model        string
+      scored_at    timestamp
+    }
+  }
+  audit = sys/table "audit" datastore {
+    fields {
+      id  uuid  pk
+      at  timestamp
+    }
+  }
+  picker -> backend "REST"
+  backend -> latest "reads"
+  backend -> history "appends"
+  history -> latest "rolls up"
+  history ~> audit "logs"
+}
+lake = sys/database "Lakebase" external
+
+system f "Fan" {
+  hub = aws/lambda "Loader"
+  t1 = sys/table "t1" { fields { id uuid pk
+ a int
+ b int } }
+  t2 = sys/table "t2" { fields { id uuid pk
+ a int
+ b int } }
+  t3 = sys/table "t3" { fields { id uuid pk
+ a int
+ b int } }
+  t4 = sys/table "t4" { fields { id uuid pk
+ a int
+ b int } }
+  hub -> t1, t2, t3, t4
+}
+s.latest ~> lake "synced"
+
+view right {
+  title "Left to right — wires on the heads"
+  scope s
+  layout { direction right }
+}
+
+view row {
+  title "One row — a short neighbour beside two tables"
+  scope s
+  layout { rows [picker] [backend] [history latest audit] }
+}
+
+view pinned {
+  title "A pinned side"
+  scope s
+  layout { route backend -> history to east }
+}
+
+view noted {
+  title "Notes beside and below a table"
+  scope s
+  note below latest "Synced every five minutes"
+  note right-of history "Append-only"
+}
+
+view fan {
+  title "A folded fan, left to right"
+  scope f
+  layout {
+    direction right
+    wrap 2
+  }
+}

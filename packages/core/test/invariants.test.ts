@@ -87,6 +87,15 @@ describe("the invariants themselves", () => {
     expect(checkLayout(base({ nodes: [node("a", 0, 0, 121, 64)] })).join()).toContain("off the 8px grid");
   });
 
+  it("catches a wire that lands on a table's field row", () => {
+    // `b` is a table: a 64px head and four 24px rows. A wire into its west wall
+    // at mid-height meets a row; one at the head's own middle is fine.
+    const table = { ...node("b", 200, 0, 280, 160), fields: [{ name: "id", markers: [] }] } as any;
+    const at = (y: number) => base({ nodes: [node("a", 0, 0), table], edges: [edge([{ x: 120, y }, { x: 200, y }])] });
+    expect(checkLayout(at(80)).join()).toContain("lands on a field row of b");
+    expect(checkLayout(at(32)).join()).not.toContain("field row");
+  });
+
   it("catches a diagonal segment", () => {
     const p = base({ edges: [edge([{ x: 0, y: 0 }, { x: 40, y: 40 }])] });
     expect(checkLayout(p).join()).toContain("diagonal");

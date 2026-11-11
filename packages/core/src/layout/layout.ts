@@ -1107,9 +1107,20 @@ export async function layoutView(
   /** ELK port ids that carry no edge (a bus spine's reserved slot): kept out
    *  of the ports registry by id, never by naming convention. */
   const reservedPorts = new Set<string>();
+  // A leaf drawing its fields is a 64px head with rows hung under it, and a
+  // wire must land on the head: one that meets a row reads as pointing at that
+  // field (docs/notes/fields.md, coplanar.md). ELK is told the head alone —
+  // every port it places is then on the head — and the rows are an invisible
+  // label outside the bottom edge, the way a card reserves its sheets, so the
+  // spacing below still clears them. The harvest restores the full height.
+  // `elk.portAlignment` was the obvious lever and does nothing (measured).
+  const rowsOf = (p: string) => (byPath.get(p)?.fields ? sizeOf(byPath.get(p)!, font).h - LEAF_H : 0);
+  const anyRows = graph.nodes.some((n) => n.fields);
   const leafChild = (p: string) => {
     const n = byPath.get(p)!;
-    const { w, h } = sizeOf(n, font);
+    const { w, h: fullH } = sizeOf(n, font);
+    const rowsH = rowsOf(p);
+    const h = fullH - rowsH;
     const ports = elkEdges.flatMap((e) => {
       const out: any[] = [];
       if (e.from === p)
@@ -1198,6 +1209,13 @@ export async function layoutView(
         ...portOrder,
         ...(gutter ? { "elk.spacing.individual": `elk.spacing.nodeNode:${gutter}` } : {}),
         ...interiorSlot(p),
+        // A row holding a table and a plain leaf: ELK centres each node in its
+        // layer, and the layer is as deep as the table with its rows, so the
+        // plain leaf sat beside the fields and a same-row wire could not run
+        // straight between two heads. Heads line up along the top instead —
+        // only in a view that draws rows, and only across the flow (a
+        // rightward flow already sets this option to LEFT).
+        ...(anyRows && dirOf(n.frame ?? "root") === "down" ? { "elk.alignment": "TOP" } : {}),
       },
       // A card's stacked sheets peek SHEET_BLEED out of its bottom, and ELK
       // must space the next thing down — a node, or the inline label on the
@@ -1208,9 +1226,10 @@ export async function layoutView(
       // and ports and a value set on it is discarded (measured, elkjs 0.12).
       // Without this every label under a card sat LABEL_GAP below the card
       // edge, inside the sheets — all 32 such labels in the corpus.
-      ...(n.kind === "card" || noteLabels.length
+      ...(n.kind === "card" || noteLabels.length || rowsH
         ? { labels: [
             ...(n.kind === "card" ? [{ text: " ", width: 1, height: SHEET_BLEED, layoutOptions: { "elk.nodeLabels.placement": "OUTSIDE V_BOTTOM H_CENTER" } }] : []),
+            ...(rowsH ? [{ text: " ", width: 1, height: rowsH, layoutOptions: { "elk.nodeLabels.placement": "OUTSIDE V_BOTTOM H_CENTER" } }] : []),
             ...noteLabels,
           ] }
         : {}),
@@ -1762,6 +1781,8 @@ export async function layoutView(
   const containerOffset = new Map<string, { x: number; y: number }>([["root", { x: 0, y: 0 }]]);
   /** The label ELK placed for each node-anchored note, relative to its anchor. */
   const noteRoom = new Map<number, { dx: number; dy: number; w: number; h: number }>();
+  /** South ports on a leaf with rows, by ELK port id → how far they moved. */
+  const portDrop = new Map<string, number>();
   const walk = (c: any, ox: number, oy: number, depth = 0) => {
     const x = q(ox + c.x), y = q(oy + c.y);
     if (zoneById.has(c.id)) {
@@ -1801,9 +1822,11 @@ export async function layoutView(
       for (const child of interior) walk(child, x, y, depth + 1);
       return;
     }
+    // the rows ELK saw only as a margin come back as part of the node
+    const rowsH = rowsOf(c.id);
     nodes.push({
       ...byPath.get(c.id)!,
-      x, y, w: q(c.width), h: q(c.height),
+      x, y, w: q(c.width), h: q(c.height) + rowsH,
       // unitOf, not entityOf: rank is keyed by unit, and for a *zoned* leaf the
       // entity is the leaf itself — entityOf handed every zoned node
       // `rank: undefined`, which made the router's blocker test treat all of
@@ -1817,12 +1840,16 @@ export async function layoutView(
     for (const p of c.ports ?? []) {
       if (p.id.startsWith("scaffold.")) continue;
       if (reservedPorts.has(p.id)) { busPort = { x: q(x + p.x), y: q(y + p.y) }; continue; }
+      // a port on the bottom of the head moves to the bottom of the rows,
+      // and so does the wire end that meets it (elkPositioned, below)
+      const drop = rowsH && (p.layoutOptions?.["elk.port.side"] ?? "SOUTH") === "SOUTH" ? rowsH : 0;
+      if (drop) portDrop.set(p.id, drop);
       ports.push({
         edge: p.id.replace(/\.(src|dst)$/, ""),
         node: c.id,
         side: SIDE_DOWN[p.layoutOptions?.["elk.port.side"] ?? "SOUTH"],
         x: q(x + p.x),
-        y: q(y + p.y),
+        y: q(y + p.y) + drop,
       });
     }
   };
@@ -1880,6 +1907,11 @@ export async function layoutView(
         const pts = [s.startPoint, ...(s.bendPoints ?? []), s.endPoint].map(
           (p: any) => ({ x: q(p.x + off.x), y: q(p.y + off.y) }),
         );
+        // a wire into the bottom of a table's head runs on to the bottom of
+        // its rows: straight down, so the segment only lengthens
+        const d0 = portDrop.get(e.sources?.[0]), d1 = portDrop.get(e.targets?.[0]);
+        if (d0) pts[0] = { x: pts[0].x, y: pts[0].y + d0 };
+        if (d1) pts[pts.length - 1] = { x: pts[pts.length - 1].x, y: pts[pts.length - 1].y + d1 };
         const m = edges.find((me) => me.id === e.id.replace(/~\d+$/, ""))!;
         const noteLabels = (e.labels ?? []).filter((l: any) => String(l.text).startsWith("note:"));
         for (const l of noteLabels)
@@ -1950,8 +1982,14 @@ export async function layoutView(
   // east/west in y, whichever way the diagram flows.
   const SIDE_AXIS = { north: "x", south: "x", east: "y", west: "y" } as const;
   const AXIS_SIZE = { x: "w", y: "h" } as const;
-  const freePort = (n: { path: string; x: number; y: number; w: number; h: number }, side: Side, want: number): number => {
+  /** The part of a node a wire may land on along an east/west wall: the head,
+   *  for a leaf drawing rows. Every pick of a y on a side wall goes through
+   *  this, so the router holds the same rule ELK was given in leafChild. */
+  const faceOf = <R extends { path: string; x: number; y: number; w: number; h: number }>(n: R): R =>
+    rowsOf(n.path) ? { ...n, h: LEAF_H } : n;
+  const freePort = (n0: { path: string; x: number; y: number; w: number; h: number }, side: Side, want: number): number => {
     const ax = SIDE_AXIS[side];
+    const n = ax === "y" ? faceOf(n0) : n0;
     const taken = ports.filter((p) => p.node === n.path && p.side === side).map((p) => p[ax]);
     const clear = (c: number) => taken.every((t) => Math.abs(t - c) >= 16);
     if (clear(want)) return want;
@@ -2129,7 +2167,8 @@ export async function layoutView(
      *  the corridor below from ever reaching it. */
     const wantCross = (p: string, own: RRect): number => {
       const leaf = byPath.has(p) ? nodeById.get(p) : undefined;
-      const raw = leaf ? midCross(leaf) : midCross(own);
+      // across a downward flow the cross axis is y: aim at the head
+      const raw = leaf ? midCross(flowsRight ? leaf : faceOf(leaf)) : midCross(flowsRight ? own : faceOf(own));
       return Math.min(Math.max(raw, own[cross] + 12), own[cross] + own[crossSize] - 12);
     };
     /** Approach #6: walk a unit-wall entry inward to the leaf's own wall when
@@ -2200,7 +2239,7 @@ export async function layoutView(
       // 1 of 2, which is the centre it always had.
       const pair = coplanar.filter((o) =>
         (o.from === e.from && o.to === e.to) || (o.from === e.to && o.to === e.from));
-      const ref = routeRect(pair[0].from);
+      const ref = flowsRight ? routeRect(pair[0].from) : faceOf(routeRect(pair[0].from));
       const c = ref[cross] + Math.round((ref[crossSize] * (pair.indexOf(e) + 1)) / (pair.length + 1));
       const first = a[along] <= b[along];
       const pts = first
@@ -2269,7 +2308,9 @@ export async function layoutView(
     // reads as belonging to the thing it serves
     const wantAlong = (p: string, own: RRect) => {
       const leaf = byPath.has(p) ? nodeById.get(p) : undefined;
-      const raw = leaf ? leaf[along] + Math.round(leaf[alongSize] / 2) : own[along] + Math.round(own[alongSize] / 2);
+      // in a rightward flow the shelf leaves an east wall, so "along" is y
+      const lf = leaf && flowsRight ? faceOf(leaf) : leaf, ow = flowsRight ? faceOf(own) : own;
+      const raw = lf ? lf[along] + Math.round(lf[alongSize] / 2) : ow[along] + Math.round(ow[alongSize] / 2);
       return Math.min(Math.max(raw, own[along] + 8), own[along] + own[alongSize] - 8);
     };
     const aA = freePort(a, bandSide, wantAlong(e.from, a));
@@ -2347,14 +2388,17 @@ export async function layoutView(
     const inside = inGap && onFace && portClear && corridorClear && !crossed;
     // outside lane: past the widest band, at gutter distance
     const lane = Math.max(...nodes.map((r) => r[along] + r[alongSize])) + 48;
+    // the bus leaves, and its drops arrive, on a head too
+    const gf = flowsRight ? g : faceOf(g);
     const start = inside
       ? pt(spine, g[cross] + g[crossSize])
-      : pt(g[along] + g[alongSize], freePort(g, highSide, g[cross] + Math.round(g[crossSize] / 2)));
+      : pt(g[along] + g[alongSize], freePort(g, highSide, gf[cross] + Math.round(gf[crossSize] / 2)));
     const spineAlong = inside ? spine : lane;
     for (const e of bus) {
       const t = nodeById.get(e.to)!;
       const trunk = trunkOf.get(wrapBand.get(e.to)!)!;
-      const tc = t[along] + Math.round(t[alongSize] / 2);
+      const tf = flowsRight ? faceOf(t) : t;
+      const tc = tf[along] + Math.round(tf[alongSize] / 2);
       const pts = inside
         ? tc === spineAlong
           ? [start, pt(tc, t[cross])]

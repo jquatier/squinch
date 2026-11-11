@@ -77,6 +77,23 @@ export function checkLayout(p: Positioned, ctx: Ctx = {}): string[] {
     if (n.w % GRID || n.h % GRID)
       bad.push(`node ${n.path}: ${n.w}×${n.h} is off the ${GRID}px grid`);
 
+  // ── wires land on a table's head, never on a row ────────────────────────
+  // docs/notes/fields.md, preview-card.md: a leaf drawing its fields is a 64px
+  // head with rows under it, and a wire that meets a row on a side wall reads
+  // as pointing at that field. Held on the wire's own end, so it covers ELK's
+  // ports and every router path alike.
+  const HEAD = 64;
+  for (const e of p.edges) {
+    const ends: [{ x: number; y: number }, string][] = [[e.points[0], e.from], [e.points[e.points.length - 1], e.to]];
+    for (const [pt, path] of ends) {
+      const n = nodes.find((x) => x.path === path);
+      if (!n?.fields || !pt) continue;
+      const onSide = (pt.x === n.x || pt.x === n.x + n.w) && pt.y > n.y && pt.y < n.y + n.h;
+      if (onSide && pt.y > n.y + HEAD)
+        bad.push(`edge ${e.id}: lands on a field row of ${path} (y ${pt.y - n.y} past its ${HEAD}px head)`);
+    }
+  }
+
   // ── orthogonality ───────────────────────────────────────────────────────
   if (p.lines === "orthogonal")
     for (const e of p.edges)

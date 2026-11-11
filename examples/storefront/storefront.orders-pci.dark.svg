@@ -82,11 +82,11 @@ CUSTOMER#&lt;customerId&gt;</title></g>
 <g opacity="0.35"><rect x="156" y="386" width="26" height="18" rx="2" fill="#212124" stroke="#3B3B40" stroke-width="1"/><text x="169" y="399" text-anchor="middle" font-size="11" fill="#9C9B94">×2</text></g>
 <g opacity="0.35"><rect x="142" y="138" width="40" height="18" rx="2" fill="#212124" stroke="#3B3B40" stroke-width="1"/><text x="162" y="151" text-anchor="middle" font-size="11" fill="#9C9B94">REST</text></g>
 <g data-note="right-of:orders.db">
-<line x1="356" y1="518" x2="332" y2="518" stroke="#3B3B40" stroke-width="1" stroke-dasharray="2 3"/>
-<rect x="356" y="497" width="193" height="42" rx="4" fill="#212124" stroke="#3B3B40" stroke-width="1" filter="url(#sq-shadow)"/>
-<g fill="none" stroke="#7A796F" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="373.5" cy="510.5" r="4.9"/><path d="M373.5 510 L373.5 513"/><path d="M373.5 508.2 L373.5 508.3"/></g>
-<text x="387" y="514" font-size="11" fill="#EDEDEA">Encrypted at rest (KMS); see</text>
-<text x="387" y="529" font-size="11" fill="#EDEDEA">ADR-31</text>
+<line x1="356" y1="467" x2="332" y2="446" stroke="#3B3B40" stroke-width="1" stroke-dasharray="2 3"/>
+<rect x="356" y="425" width="193" height="42" rx="4" fill="#212124" stroke="#3B3B40" stroke-width="1" filter="url(#sq-shadow)"/>
+<g fill="none" stroke="#7A796F" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="373.5" cy="438.5" r="4.9"/><path d="M373.5 438 L373.5 441"/><path d="M373.5 436.2 L373.5 436.3"/></g>
+<text x="387" y="442" font-size="11" fill="#EDEDEA">Encrypted at rest (KMS); see</text>
+<text x="387" y="457" font-size="11" fill="#EDEDEA">ADR-31</text>
 </g>
 <g data-note="top-right">
 <rect x="408" y="16" width="157" height="27" rx="4" fill="#212124" stroke="#3B3B40" stroke-width="1" filter="url(#sq-shadow)"/>

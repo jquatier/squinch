@@ -22,6 +22,12 @@ const CASES: { file: string; themes: string[]; view?: string }[] = [
   { file: "examples/fields.squinch", themes: ["light"], view: "checkout" },
   { file: "examples/fields.squinch", themes: ["light", "dark"], view: "overview" },
   { file: "examples/fields.squinch", themes: ["light"], view: "topic" },
+  // wires land on a table's 64px head, never on a row: a sideways flow, a row
+  // of mixed heights, notes beside and below (the folded fan in the same file
+  // has no label pill for this harness; the invariant sweep holds it)
+  { file: "examples/fields-wires.squinch", themes: ["light"], view: "right" },
+  { file: "examples/fields-wires.squinch", themes: ["light", "dark"], view: "row" },
+  { file: "examples/fields-wires.squinch", themes: ["light"], view: "noted" },
 ];
 
 describe("golden renders", () => {

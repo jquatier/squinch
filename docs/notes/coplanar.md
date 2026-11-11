@@ -345,3 +345,40 @@ stays straight and the group sits centred. A lone wire is slot 1 of 2, which
 is the centre it always had, and the gallery gate held all 225 corpus views
 byte-identical. The go-around branches were already spreading through
 `freePort`, so a pinned pair of *frames* never stacked.
+
+## A table's rows: wires land on the head (2026-11)
+
+A leaf drawing its `fields` is a 64px head with 24px rows under it
+(`fields.md`). Both engines picked a side-wall landing from the node's full
+height, so in a rightward flow, on a same-row wire, and on a `route … to east`,
+the wire met a row — and a wire on a row reads as pointing at that field. The
+first outside tester's left-to-right view had three of three wires on rows.
+
+**What shipped.** ELK is told the head alone: `leafChild` hands it
+`height: 64` and hangs the rows as an invisible `OUTSIDE V_BOTTOM` label, the
+trick a card's sheets and a note's room already use, so every port ELK places
+is on the head and the spacing below still clears the rows. The harvest
+restores the full height and moves south ports — and the wire ends on them,
+keyed by ELK port id — down past the rows. The router goes through one
+`faceOf(rect)` wherever it picks a y on an east/west wall: `freePort`,
+`wantCross`, the straight path's reference rect, the shelf's `wantAlong`, the
+bus's source and drops. `checkLayout` holds it on the wire's own end
+("lands on a field row"), since no corpus view exercised the case before
+`packages/core/examples/fields-wires.squinch`.
+
+**Rows of mixed height.** ELK centres each node in its layer, and a layer is
+as deep as its tallest node plus margins, so a plain leaf beside a table sat
+level with the fields and a same-row wire could not run head to head. In a
+view that draws rows, nodes take `elk.alignment: TOP` across a downward flow
+(a rightward flow already sets the option to `LEFT`). Heads line up.
+
+| Tried | Result |
+|---|---|
+| `elk.portAlignment.east/west: BEGIN`, with `spacing.portPort` / `portsSurrounding` | Ports land 0/10/20 from the corner whatever the spacing says; no way to centre them on a 64px band. |
+| `FIXED_POS` on every port | Same coordinates as the label trick, but ELK loses port ordering and we would compute north and south ports too. |
+| Spilling a fourth wire into the rows | Defeats the rule. A 64px face holds three wires at 16px pitch, exactly as a plain leaf does; a fourth stacks there as it always has. |
+
+**Found on the way, not fixed here:** two labelled wires between one pair of
+row-mates take two shelf lanes under the row, and the second lane's label can
+reach the node below — the layer gap is sized for one. It fails with or
+without this change.
