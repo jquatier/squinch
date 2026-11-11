@@ -773,6 +773,18 @@
           3
         ]
       ],
+      "keyed": [
+        [
+          "order.?items",
+          "^(pk|primary|key)",
+          2
+        ],
+        [
+          "cart",
+          "^(pk|hash|partition|sort|range|key)",
+          2
+        ]
+      ],
       "refs": [
         [
           "order_id",

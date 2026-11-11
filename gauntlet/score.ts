@@ -60,6 +60,10 @@ interface Expect {
   /** A leaf's schema (docs/notes/fields.md). Each pair is [label pattern, n]:
    *  some leaf labelled like the first declares at least n fields. */
   fields?: [string, number][];
+  /** Key columns carry their marker. Each triple is [label pattern, marker
+   *  pattern, n]: the leaf has at least n fields with a marker like the
+   *  second — a composite key marks every column of it, never one. */
+  keyed?: [string, string, number][];
   /** Each pair is [field name pattern, target label pattern]: some field
    *  matching the first has a `ref` that resolved to something labelled like
    *  the second. */
@@ -351,7 +355,7 @@ for (const p of prompts) {
     }
   }
 
-  if (e.fields || e.refs || e.requireFieldsShown || e.forbidFields) {
+  if (e.fields || e.keyed || e.refs || e.requireFieldsShown || e.forbidFields) {
     const withFields = nodes.filter((n) => n.fields?.length);
     if (e.forbidFields && withFields.length)
       problems.push(`fields written unasked on ${withFields.map((n) => n.label ?? n.name).join(", ")}`);
@@ -360,6 +364,13 @@ for (const p of prompts) {
       const hit = withFields.find((n) => re.test(n.label ?? n.name));
       if (!hit) problems.push(`no leaf labelled like /${pat}/i declares fields`);
       else if (hit.fields!.length < min) problems.push(`\`${hit.label ?? hit.name}\` declares ${hit.fields!.length} fields < ${min}`);
+    }
+    for (const [pat, markPat, min] of e.keyed ?? []) {
+      const re = new RegExp(pat, "i"), M = new RegExp(markPat, "i");
+      const hit = withFields.find((n) => re.test(n.label ?? n.name));
+      const got = hit ? hit.fields!.filter((f) => f.markers.some((x) => M.test(x))).length : 0;
+      if (hit && got < min)
+        problems.push(`\`${hit.label ?? hit.name}\` marks ${got} field${got === 1 ? "" : "s"} like /${markPat}/i < ${min}`);
     }
     for (const [fieldPat, targetPat] of e.refs ?? []) {
       const F = new RegExp(fieldPat, "i"), T = new RegExp(targetPat, "i");

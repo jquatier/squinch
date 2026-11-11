@@ -93,6 +93,44 @@ edges that crossed the boundary re-anchor themselves, aggregating behind a count
 badge when several collapse into one. Nothing is duplicated, so nothing can
 drift — see [examples/microservices](examples/microservices) for the source.
 
+## Tables and fields
+
+A table, collection or topic can carry its schema. Write a `fields { }` block
+inside the leaf, one field per line: a name, the type as your store spells it,
+then free words for keys and constraints, and an optional quoted caption.
+
+```squinch
+container db "Orders DB" {
+  orders = sys/table "orders" datastore {
+    fields {
+      id           uuid           pk
+      customer_id  uuid           fk ref customers.id
+      gate         text           nullable "null = all gates"
+      total        numeric(10,2)
+    }
+  }
+}
+```
+
+- **Markers are your vocabulary, not the language's.** `pk`, `fk`, `nullable`,
+  `unique`, `hash`, `sort`, `ttl`, `index gsi1` — any word draws as a chip, so
+  Postgres, DynamoDB, MongoDB and Kafka all fit. A composite key is `pk` on
+  each of its columns.
+- **`ref <path>`** names the column or table a field points at. It is text on
+  the row; the relationship itself is an edge between the two tables.
+- **Fields draw where the table's container is open.** A view scoped to the
+  database (`view db { scope shop.db }`) shows every field. Wherever the
+  database is expanded (`expand db`, `expand *`) each table shows a compact
+  list: the first six, or the ones its `preview: [id status]` names. A table
+  at the top level shows them when the view says `preview <table>`.
+- **The landscape never changes.** A collapsed card looks the same with or
+  without fields, and `preview: none` keeps a table plain everywhere but its
+  own database view.
+
+`squinch check` warns when fields are written that no view can draw. The full
+rules are in [docs/SPEC.md](docs/SPEC.md); the lookbook's
+[Fields case](lookbook/cases/43-fields.squinch) shows all three placements.
+
 ## Features
 
 - **LLMs write it fluently.** Give your coding agent the bundled

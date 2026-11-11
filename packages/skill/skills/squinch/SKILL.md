@@ -277,7 +277,10 @@ Columns — only when the request asks what is *in* a store. Any leaf takes a
 line, the name, the type as the store spells it, then markers in its own words
 (`pk`, `hash`, `ttl`, `unique`, `index gsi1`) and an optional `"caption"`.
 Copy them from the repo's migrations, Prisma or proto files, never from memory,
-and translate the punctuation (`?` → `nullable`, `@id` → `pk`). A nested field
+and translate the punctuation (`?` → `nullable`, `@id` → `pk`). Mark every key
+column — each column of a composite key carries `pk` — and say what a null or
+a key pattern *means* in the caption (`gate text nullable "null = all gates"`);
+a caption that fits is drawn on the row. A nested field
 is a dotted name (`address.city`). `ref <id>` names the column a foreign key
 points at — the edge between the two tables stays the relationship. Fields
 draw where the table's container is open: every field in a view scoped to it,
