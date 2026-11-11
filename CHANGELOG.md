@@ -6,6 +6,16 @@ history too. Sections are drafted by `pnpm release` from the commits since the
 previous tag, then edited by a human before anything is written; the release
 workflow lifts the matching section verbatim into the GitHub Release notes.
 
+## 0.19.0 — 2026-11-11
+
+- Tables show their fields wherever their container is open. Inside an expanded container (`expand db`, `expand *`) each table draws a compact list with no `preview` needed; a view scoped to the container still shows every field. `preview <table>` is now only for a table at the top level.
+- `preview <table>` beside `expand *` no longer errors. A seven-field table shows all seven instead of six and "+1 more field", a `preview: [...]` list holds up to twelve, and `preview: none` keeps a table plain outside its own view.
+- Wires land on a table's head, never on a field row.
+- Nothing on a row leaves the card: long names and marker runs are cut, with the full text in the tooltip. A caption draws on its row when it fits.
+- `check` warns when fields are written that no view can draw, and names the line to add.
+- **Views that draw fields redraw**, so run `--sync` after upgrading. The README has a new "Tables and fields" section; re-run `squinch skill` to teach agents.
+- Gauntlet round 33: 38/39, 29 of 39 clean on the first `check`.
+
 ## 0.18.0 — 2026-11-10
 
 - Tables can show their schema. Give any leaf a `fields { }` block, one field per line — `id uuid pk`, `status enum(pending, paid)`, `customer_id uuid fk ref customers`. Fields draw in a view scoped to the table's container, or under `preview <table>`; every other view is unchanged. See lookbook case 43.
