@@ -1,7 +1,9 @@
 pack k8s
 pack logos
 
-ing = k8s/ing "nginx Ingress" { badge: logos/nginx }
+person user "User"
+
+ing = logos/nginx "NGINX Ingress" { subtitle: "Ingress" }
 
 web_svc    = k8s/svc "web" { subtitle: "Service" }
 api_svc    = k8s/svc "api" { subtitle: "Service" }
@@ -11,24 +13,28 @@ web    = k8s/deploy "web" { subtitle: "Deployment" }
 api    = k8s/deploy "api" { subtitle: "Deployment" }
 worker = k8s/deploy "worker" { subtitle: "Deployment" }
 
-pg    = k8s/sts "Postgres" datastore { subtitle: "StatefulSet"; badge: logos/postgres }
-redis = logos/redis "Redis" datastore { subtitle: "Cache" }
-prune = k8s/cronjob "Prune old records" { subtitle: "CronJob · nightly" }
+pg = k8s/statefulset "Postgres" datastore {
+  subtitle: "StatefulSet"
+  badge: logos/postgresql
+}
+cache = logos/redis "Redis" datastore
+prune = k8s/cronjob "Prune Old Records" { subtitle: "CronJob · nightly" }
 
+user -> ing
 ing -> web_svc, api_svc, worker_svc
 web_svc -> web
 api_svc -> api
 worker_svc -> worker
 api -> pg "reads / writes"
-api -> redis "caches"
+api -> cache "caches"
 prune -> pg "prunes"
 
-zone cluster "Kubernetes cluster" custom {
+zone cluster "Kubernetes Cluster" custom {
   icon: logos/kubernetes
-  contains ing, web_svc, api_svc, worker_svc, web, api, worker, pg, redis, prune
+  contains ing, web_svc, api_svc, worker_svc, web, api, worker, pg, cache, prune
 }
 
 view landscape {
-  title "Kubernetes cluster"
+  title "Kubernetes Cluster"
   include *
 }

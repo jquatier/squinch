@@ -1,20 +1,19 @@
 pack aws
 
 system notifications "Notifications Service" {
-  description: "Accepts send requests and delivers them by email"
+  description: "Accepts send requests and delivers them"
+  api   = aws/api-gateway "API Gateway"
+  intake = aws/lambda "API Lambda" { subtitle: "takes send requests" }
+  queue = aws/sqs "Send Queue"
+  sender = aws/lambda "Sender Lambda" { subtitle: "works the queue" }
+  ses   = aws/ses "SES"
+  prefs = aws/dynamodb "preferences" datastore
+  log   = aws/dynamodb "delivery-log" datastore
 
-  api      = aws/api-gateway "API Gateway"
-  intake   = aws/lambda "Intake Lambda"
-  queue    = aws/sqs "Send Queue"
-  sender   = aws/lambda "Sender Lambda"
-  ses      = aws/ses "SES"
-  prefs    = aws/dynamodb "preferences" datastore
-  log      = aws/dynamodb "delivery-log" datastore
-
-  api -> intake "send request"
+  api -> intake
   intake -> prefs "reads"
   intake ~> queue "enqueues"
-  queue ~> sender "triggers"
+  queue ~> sender
   sender -> ses "sends"
   sender -> log "writes"
 }

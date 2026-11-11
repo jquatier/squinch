@@ -1,7 +1,7 @@
 req      = box "Request Service"
 policy   = box "Policy Engine"
 approver = box "Approver Service"
-audit    = sys/database "Audit Log" datastore
+audit    = box "Audit Log" datastore
 
 req -> policy "hands off"
 policy -> approver "calls"

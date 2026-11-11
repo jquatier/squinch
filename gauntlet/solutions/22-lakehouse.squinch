@@ -6,41 +6,21 @@ kafka = logos/kafka "Kafka" external {
   subtitle: "Order events"
 }
 
-system dbx "Databricks Lakehouse" {
-  description: "Everything inside this frame is Databricks"
+system dbx "Databricks" {
+  description: "Lakehouse platform"
   icon: logos/databricks
 
-  loader = sys/stream "Auto Loader" {
-    badge: logos/databricks
-  }
-  bronze = sys/table "Bronze Orders" datastore {
-    badge: logos/databricks
-    subtitle: "Delta table"
-  }
-  job = sys/job "Nightly Merge" {
-    badge: logos/databricks
-    subtitle: "Databricks job"
-  }
-  silver = sys/table "Silver Customers" datastore {
-    badge: logos/databricks
-    subtitle: "Delta table"
-  }
-  uc = sys/catalog "Unity Catalog" {
-    badge: logos/databricks
-  }
-  wh = sys/database "SQL Warehouse" {
-    badge: logos/databricks
-    subtitle: "Databricks SQL"
-  }
-  vs = sys/vector-search "Vector Search Index" {
-    badge: logos/databricks
-  }
-  serving = sys/model "Model Serving Endpoint" {
-    badge: logos/databricks
-  }
+  loader  = sys/stream    "Auto Loader" { badge: logos/databricks }
+  bronze  = sys/table     "Bronze Orders" datastore { badge: logos/databricks, subtitle: "Delta table" }
+  job     = sys/workflow  "Nightly Merge" { badge: logos/databricks, subtitle: "Workflows job" }
+  silver  = sys/table     "Silver Customers" datastore { badge: logos/databricks, subtitle: "Delta table" }
+  uc      = sys/catalog   "Unity Catalog" { badge: logos/databricks }
+  wh      = sys/database  "SQL Warehouse" { badge: logos/databricks, subtitle: "Databricks SQL" }
+  vs      = sys/waypoints "Vector Search Index" { badge: logos/databricks }
+  serving = sys/model     "Model Serving Endpoint" { badge: logos/databricks }
 
-  loader -> bronze "lands"
-  job -> bronze "reads"
+  loader ~> bronze "lands"
+  bronze -> job "reads"
   job -> silver "merges"
   uc -> silver "governs"
   wh -> silver "queries"
@@ -48,11 +28,12 @@ system dbx "Databricks Lakehouse" {
 }
 
 kafka ~> dbx.loader "order events"
-analyst -> dbx.wh "SQL"
+analyst -> dbx.wh "queries"
 
-view landscape {
+view lakehouse {
   title "Databricks Lakehouse"
   include *
   expand dbx
   legend auto
+  note right-of kafka "Hatched = not Databricks; badge = Databricks-owned"
 }

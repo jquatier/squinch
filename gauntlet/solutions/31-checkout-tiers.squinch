@@ -2,22 +2,22 @@ person shopper "Shopper"
 cdn = sys/globe "CDN"
 
 system checkout "Checkout" {
-  description: "Checkout API, order handling and payment"
+  description: "Checkout API through to the Orders table"
   api    = sys/app-window "Checkout API"
   svc    = sys/server "Order Service"
   cache  = sys/database "Session Cache" datastore
-  queue  = sys/workflow "Order Events"
+  events = sys/workflow "Order Events"
   worker = sys/cog "Payment Worker"
   orders = sys/table "Orders" datastore
 
   api -> svc
   svc -> cache
-  svc ~> queue
-  queue ~> worker
+  svc ~> events
+  events ~> worker
   svc -> orders "writes"
   worker -> orders "writes"
 
-  layout { rows [api] [svc] [cache queue] [worker] [orders] }
+  layout { rows [api] [svc] [cache events] [worker] [orders] }
 }
 
 fulfillment = box "Fulfillment"

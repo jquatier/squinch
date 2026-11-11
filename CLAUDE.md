@@ -229,8 +229,10 @@ extension + language server, six icon packs, and the light/dark pair. The accept
 bar — an agent producing clean diagrams from prose using only the skill + CLI —
 is certified at **39/39
 by independent cold agents** on the committed corpus; the latest full round scored
-39/39 with **28/39 clean on the first `check`** (round 32, which added a leaf's
-`fields` and a schema prompt — `gauntlet/README.md`, `docs/notes/fields.md`;
+38/39 with **29/39 clean on the first `check`** (round 33, run after the first
+outside test of `fields` changed where they draw — `gauntlet/README.md`,
+`docs/notes/fields.md`; round 32 before it, 28/39, added a leaf's `fields` and
+a schema prompt;
 round 31 before it, 20/38, measured the skill becoming a directory; round 30 before it, 18/38, run to check that
 moving the quality bar above the language — Claude Code keeps only a skill's
 first 5,000 tokens after compaction, and the checklist sat last — left the

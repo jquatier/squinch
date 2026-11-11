@@ -1,27 +1,26 @@
 pack aws
 
-system orders "Orders API" {
-  api    = aws/api-gateway "API Gateway"
+system api "Orders API" {
+  gw     = aws/api-gateway "API Gateway"
   create = aws/lambda "Create Handler"
   get    = aws/lambda "Get Handler"
   search = aws/lambda "Search Handler"
+  sync   = aws/lambda "Index Sync"
   db     = aws/dynamodb "DynamoDB Table" datastore
   files  = aws/s3 "S3 Bucket" datastore
   idx    = aws/opensearch "OpenSearch Index" datastore
-  sync   = aws/lambda "Index Sync" {
-    subtitle: "Stream listener"
-  }
 
-  api -> create, get, search
+  gw -> create, get, search
   create -> db
   create -> files
   get -> db
   search -> idx
   db ~> sync "DynamoDB stream"
-  sync -> idx "updates"
+  sync -> idx "updates index"
 }
 
 view landscape {
-  title "Lambda API"
-  expand orders
+  title "Orders API"
+  include *
+  expand api
 }

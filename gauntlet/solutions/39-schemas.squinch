@@ -1,75 +1,73 @@
 pack aws
+pack logos
 
-system checkout "Checkout" {
-  description: "Order Service and the stores it owns"
-  svc = aws/lambda "Order Service" {
-    subtitle: "Lambda"
-  }
-  container orders_db "Orders DB" {
-    icon: logos/postgres
-    description: "Postgres · 2 tables"
-    orders = sys/table "orders" datastore {
-      fields {
-        id           uuid                      pk
-        customer_id  uuid
-        status       enum(pending, paid, shipped)
-        total_cents  bigint
-        created_at   timestamptz
-      }
-    }
-    order_items = sys/table "order_items" datastore {
-      fields {
-        order_id    uuid           pk fk ref orders
-        sku         text           pk
-        quantity    int
-        unit_price  numeric(10,2)
-      }
-    }
-    order_items -> orders "order_id"
-  }
-  carts = aws/dynamodb "Carts" datastore {
-    subtitle: "single-table design"
-    fields {
-      pk          string  hash "CART#<cartId>"
-      sk          string  range "ITEM#<sku>"
-      gsi1pk      string  index gsi1 "CUSTOMER#<customerId>"
-      qty         number
-      expires_at  number  ttl
-    }
-  }
-  svc -> orders_db.orders "writes orders"
-  svc -> orders_db.order_items "writes items"
-  svc -> carts "keeps carts"
+orders_svc = aws/lambda "Order Service" {
+  subtitle: "Lambda"
 }
 
-events = logos/kafka "order-events" datastore {
+container pg "Postgres" {
+  icon: logos/postgres
+  description: "Orders database · 2 tables"
+  orders = sys/table "orders" datastore {
+    fields {
+      id          uuid                    pk
+      customer_id uuid
+      status      enum(pending, paid, shipped)
+      total_cents bigint
+      created_at  timestamptz
+    }
+  }
+  order_items = sys/table "order_items" datastore {
+    fields {
+      order_id   uuid          pk fk ref orders
+      sku        text          pk
+      quantity   int
+      unit_price numeric(10,2)
+    }
+  }
+  order_items -> orders "order_id"
+}
+
+carts = aws/dynamodb "Carts" datastore {
+  subtitle: "single-table design"
+  fields {
+    pk         string  pk "CART#<cartId>"
+    sk         string  pk "ITEM#<sku>"
+    gsi1pk     string  index gsi1 "CUSTOMER#<customerId>"
+    qty        number
+    expires_at number  ttl
+  }
+}
+
+events = logos/kafka "order-events" {
   subtitle: "Kafka topic"
   fields {
-    key              string   pk "order_id"
-    type             enum(OrderPlaced, OrderPaid)
-    payload.total_cents  long
-    payload.items    array    "line items"
+    key           string  pk "order_id"
+    type          enum(OrderPlaced, OrderPaid)
+    payload.total_cents long
+    payload.items array   "line items"
   }
 }
 
-analytics = aws/glue "Analytics Job"
+analytics = aws/glue "Analytics Job" {
+  subtitle: "Glue"
+}
 
-checkout.svc ~> events "publishes every order"
+orders_svc -> pg.orders "writes orders"
+orders_svc -> pg.order_items "writes items"
+orders_svc -> carts "keeps carts"
+orders_svc ~> events "publishes orders"
 events ~> analytics "consumes"
 
 view landscape {
-  title "Checkout stores"
-  include *
-  expand checkout
-  preview events
-}
-
-view checkout {
   title "Checkout"
-  scope checkout
+  include *
+  expand pg
+  preview carts, events
 }
-
-view orders_db {
-  title "Orders DB schema"
-  scope checkout.orders_db
-}
+view pg { title "Postgres schema"
+  scope pg }
+view carts { title "Carts table"
+  preview carts }
+view events { title "order-events topic"
+  preview events }

@@ -69,30 +69,31 @@ nothing.
 
 ## Latest round
 
-**Round 32 — 39/39 on the deep scorer; 28 of 39 clean on the first `check`**
-(2026-11-10, Sonnet). Run because the skill learned `fields` — a leaf's
-schema, one field per line, drawn where a view stands in the table's
-container or under `preview` (docs/notes/fields.md) — and lost the line that
-said "nothing draws columns, so leave them out". The round added prompt 39,
-schemas: Postgres tables with keys and a reference, a single-table DynamoDB
-design, a Kafka payload. Prompts 36 and 37 ask for tables and not columns,
-and now fail an agent that writes `fields` unasked.
+**Round 33 — 38/39 on the deep scorer; 29 of 39 clean on the first `check`**
+(2026-11-11, Sonnet). Run because the first outside test of `fields` changed
+where they draw (docs/notes/fields.md): a table inside an expanded container
+shows a compact list with no verb, `preview` is only for the leaves nothing
+else reaches, and fields no view can draw are a check warning. The skill
+gained two sentences — mark every key column, say what a null or a key
+pattern means in the caption — and the scorer gained `keyed`, which holds
+prompt 39 to a marker on both columns of its composite key and both DynamoDB
+keys.
 
-**The feature carried on the first try.** 39's agent wrote `numeric(10,2)`,
-`enum(pending, paid, shipped)`, `hash`/`range`/`index gsi1`/`ttl` markers,
-the `"CART#<cartId>"` key patterns as captions, `ref orders` and dotted
-`payload.*` names, and its first `check` had **no errors**. Its three calls
-were two warnings: a 26-character subtitle, and `preview carts` in the view
-already scoped to Carts' own system — "redundant, every field already draws
-there" — which it dropped as told. 36 and 37 were clean in one check each,
-and neither agent wrote a field.
+**The new warning did the work it was written for.** 39's agent declared the
+DynamoDB table and the Kafka topic at the top level and its first `check`
+said both tables' fields "are never drawn — no view shows them", with
+`preview carts` as the fix. It added the previews; its final landscape
+expands Postgres with no `preview` on the tables inside, and both columns of
+`order_items`' key carry `pk`. Three calls, no errors. 36 and 37, tables with
+no columns asked for, were clean in one check each and neither wrote a field.
 
-**Clean first checks rose from 20 to 28**, with the round-31 icon-guess
-category empty again. The first failures that remain are the old classes,
-each fixed in one step from its diagnostic: hint conflicts (01, 27), a fan-in
-(26), chained edges (32), a `preview:` naming a grandchild (34), and a
-one-line view writing `title "…" include *` with no separator (23). 15, 21,
-30 and 35 re-ran on warnings.
+**The one scoring miss is not about fields**: 21 distinguished its three
+kinds of link with one `animate:` value where the prompt wants two. First
+failures elsewhere are the old classes, each fixed in one step from its
+diagnostic: hint conflicts (01, 27), chained edges (32), a `preview:` naming
+a non-child (34). 16, 24, 30 and 35 re-ran on warnings.
 
-The corpus in `solutions/` is this round's answers for all thirty-nine
-prompts — cold-authored and deep-scored at 39/39, none re-authored.
+The corpus in `solutions/` is this round's answers for thirty-seven prompts.
+Two are round 32's, kept: 21, which missed above, and 38, whose agent read a
+file outside its sandbox and was discarded. Deep-scored at 39/39, none
+re-authored.

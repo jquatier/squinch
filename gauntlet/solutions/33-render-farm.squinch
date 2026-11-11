@@ -1,23 +1,23 @@
 pack aws
 
-disp = sys/workflow "Dispatcher" {
-  description: "Hands out frames to the render workers"
+disp = sys/server "Dispatcher" {
+  description: "Hands frames out to the workers"
 }
 
-w01 = aws/ec2 "Render Worker 01" { subtitle: "EC2" }
-w02 = aws/ec2 "Render Worker 02" { subtitle: "EC2" }
-w03 = aws/ec2 "Render Worker 03" { subtitle: "EC2" }
-w04 = aws/ec2 "Render Worker 04" { subtitle: "EC2" }
-w05 = aws/ec2 "Render Worker 05" { subtitle: "EC2" }
-w06 = aws/ec2 "Render Worker 06" { subtitle: "EC2" }
-w07 = aws/ec2 "Render Worker 07" { subtitle: "EC2" }
-w08 = aws/ec2 "Render Worker 08" { subtitle: "EC2" }
-w09 = aws/ec2 "Render Worker 09" { subtitle: "EC2" }
-w10 = aws/ec2 "Render Worker 10" { subtitle: "EC2" }
-w11 = aws/ec2 "Render Worker 11" { subtitle: "EC2" }
-w12 = aws/ec2 "Render Worker 12" { subtitle: "EC2" }
+w1  = aws/ec2 "Worker 1"
+w2  = aws/ec2 "Worker 2"
+w3  = aws/ec2 "Worker 3"
+w4  = aws/ec2 "Worker 4"
+w5  = aws/ec2 "Worker 5"
+w6  = aws/ec2 "Worker 6"
+w7  = aws/ec2 "Worker 7"
+w8  = aws/ec2 "Worker 8"
+w9  = aws/ec2 "Worker 9"
+w10 = aws/ec2 "Worker 10"
+w11 = aws/ec2 "Worker 11"
+w12 = aws/ec2 "Worker 12"
 
-disp -> w01, w02, w03, w04, w05, w06, w07, w08, w09, w10, w11, w12 "frames"
+disp -> w1, w2, w3, w4, w5, w6, w7, w8, w9, w10, w11, w12
 
 view landscape {
   title "Render Farm"

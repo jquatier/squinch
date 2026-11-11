@@ -1,20 +1,19 @@
 pack aws
 
-person subscribers "Subscribers"
-
-bucket = aws/s3 "Image Bucket"
-fn     = aws/lambda "Image Processor"
-rek    = aws/rekognition "Rekognition"
-db     = aws/dynamodb "Image Metadata" datastore
-topic  = aws/sns "Notifications"
+bucket  = aws/s3          "Upload Bucket"
+fn      = aws/lambda      "Image Processor"
+rek     = aws/rekognition "Rekognition"
+db      = aws/dynamodb    "Metadata Table" datastore
+topic   = aws/sns         "Notifications"
+subs    = box             "Subscribers"
 
 bucket ~> fn "object created"
 fn -> rek "detect labels"
 fn -> db "write metadata"
 fn ~> topic "publish"
-topic ~> subscribers "notify"
+topic ~> subs "notify"
 
 view landscape {
-  title "Image Processing Pipeline"
+  title "Serverless Image Pipeline"
   include *
 }

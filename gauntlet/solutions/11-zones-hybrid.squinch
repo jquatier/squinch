@@ -1,16 +1,17 @@
 pack aws
 
-person ops "Operators"
+person operators "Operators"
+
 erp    = box "Legacy ERP" { subtitle: "Oracle-style" }
-ingest = aws/lambda "Ingestion Function"
+ingest = aws/lambda "Ingestion Lambda"
 db     = aws/aurora "Aurora Database" datastore
 
-ops -> erp "use"
+operators -> erp "use"
 erp ~> ingest "feeds data"
 ingest -> db "writes"
 
 zone dc "On-Premises Data Centre" onprem {
-  contains ops, erp
+  contains operators, erp
 }
 zone cloud "AWS Cloud" cloud {
   contains ingest, db

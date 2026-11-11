@@ -1,19 +1,34 @@
 pack azure
 pack logos
 
-pg     = logos/postgresql "PostgreSQL" datastore { subtitle: "Source database" }
-rabbit = logos/rabbitmq   "RabbitMQ" { subtitle: "Message broker" }
-sync   = sys/repeat       "Sync Job" { subtitle: "Nightly copy" }
-aks    = azure/aks        "AKS Cluster" { subtitle: "New services" }
-sql    = azure/sql        "Azure SQL" datastore { subtitle: "Target database" }
+pg   = logos/postgresql "PostgreSQL" datastore {
+  subtitle: "On-premises"
+}
+mq   = logos/rabbitmq "RabbitMQ" {
+  subtitle: "On-premises"
+}
+sync = sys/repeat "Sync Job" {
+  subtitle: "Nightly copy"
+}
+aks  = azure/aks "AKS Cluster" {
+  subtitle: "New services"
+}
+sql  = azure/sql-database "Azure SQL" datastore {
+  subtitle: "Migration target"
+}
 
-pg -> sync "reads"
-sync ~> sql "nightly copy"
+pg   -> sync "reads"
+sync ~> sql  "nightly copy"
 
-zone onprem "On-Premises" onprem { contains pg, rabbit }
-zone azure "Azure" cloud { contains aks, sql }
+zone onprem "On-Premises" onprem {
+  contains pg, mq
+}
+zone azure "Azure" cloud {
+  contains aks, sql
+}
 
 view landscape {
   title "Multicloud Migration"
   include *
+  legend auto
 }

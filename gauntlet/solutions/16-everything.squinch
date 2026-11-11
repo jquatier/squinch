@@ -2,42 +2,45 @@ pack aws
 
 person customer "Customer"
 
-store = aws/cloudfront "Storefront" { subtitle: "CloudFront" }
-api   = aws/api-gateway "API Gateway"
-bus   = aws/eventbridge "Order Events"
+cdn = aws/cloudfront "CloudFront"
+store = sys/app-window "Storefront"
+
+api = aws/api-gateway "API Gateway"
+bus = aws/eventbridge "EventBridge"
 worker = sys/cog "Fulfilment Worker"
 
-system catalog "Catalog Service" {
-  description: "Product catalog"
+system catalog "Catalog" {
+  description: "Product catalog service"
   fn = aws/lambda "Catalog Lambda"
   db = sys/database "Catalog DB" datastore
   fn -> db
 }
 
-system orders "Orders Service" {
-  description: "Order intake and events"
+system orders "Orders" {
+  description: "Order service"
   fn = aws/lambda "Orders Lambda"
   db = sys/database "Orders DB" datastore
   fn -> db
 }
 
-system payments "Payments Service" {
-  description: "Payment processing"
+system payments "Payments" {
+  description: "Payment service"
   tags: #sensitive
   fn = aws/lambda "Payments Lambda"
   db = sys/database "Payments DB" datastore
   fn -> db
 }
 
-customer -> store "browses"
+customer -> cdn "browses"
+cdn -> store
 store -> api
 api -> catalog.fn
 api -> orders.fn
-api -> payments.fn { tags: #sensitive }
-orders.fn ~> bus "publishes order events"
+api -> payments.fn "payments path" { tags: #sensitive }
+orders.fn ~> bus "order events"
 bus ~> worker "consumes"
 
-zone prod_vpc "Production VPC" vpc {
+zone prod "Production VPC" vpc {
   contains api, catalog, orders, payments, bus, worker
 }
 
@@ -50,4 +53,5 @@ view landscape {
 
 view orders {
   title "Orders Service"
+  scope orders
 }

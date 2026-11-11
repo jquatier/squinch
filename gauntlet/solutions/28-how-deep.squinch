@@ -1,17 +1,17 @@
 system orders "Orders" {
   description: "Takes and tracks customer orders"
-  preview: [api workflow store]
+  preview: [api workflow db]
   api      = sys/webhook  "Orders API" { subtitle: "entry point" }
-  workflow = sys/workflow "Order Workflow" { subtitle: "order lifecycle" }
-  store    = sys/database "Orders Store" datastore
-  events   = sys/radio-tower "Order Events" { subtitle: "publishes changes" }
+  workflow = sys/workflow "Order Workflow" { subtitle: "placement and status" }
+  db       = sys/database "Orders Store" datastore
+  events   = sys/radio-tower "Order Events"
   api -> workflow
-  workflow -> store
-  workflow ~> events
+  workflow -> db
+  workflow ~> events "order changes"
 }
 
 system inventory "Inventory" {
-  description: "Stock levels and reservations"
+  description: "Tracks stock levels"
   preview: [api stock]
   api   = sys/webhook  "Inventory API"
   stock = sys/database "Stock Store" datastore
@@ -19,15 +19,15 @@ system inventory "Inventory" {
 }
 
 system notifications "Notifications" {
-  description: "Tells customers about their orders"
-  preview: [handler sender]
-  handler = sys/cog  "Event Handler"
-  sender  = sys/send "Message Sender"
-  handler -> sender
+  description: "Tells customers what happened"
+  preview: [consumer sender]
+  consumer = sys/radio-tower "Event Consumer"
+  sender   = sys/send "Sender"
+  consumer -> sender
 }
 
 orders.workflow -> inventory.api "reserve stock"
-orders.events ~> notifications.handler "order events"
+orders.events ~> notifications.consumer "order events"
 
 view landscape {
   title "Order Platform"
@@ -37,5 +37,4 @@ view landscape {
 
 view orders {
   title "Orders"
-  scope orders
 }

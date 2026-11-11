@@ -1,7 +1,6 @@
 pack aws
 
 system billing "Billing Service" {
-  description: "Billing API, database and nightly export"
   api = aws/fargate "Billing API" {
     subtitle: "ECS Fargate"
   }
@@ -29,11 +28,11 @@ system billing "Billing Service" {
 }
 
 view landscape {
-  title "Billing"
+  title "Billing Landscape"
   include *
 }
 
 view db {
-  title "Billing database"
+  title "Billing Database"
   scope billing.db
 }

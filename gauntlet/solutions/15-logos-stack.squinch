@@ -2,29 +2,24 @@ pack logos
 
 person dev "Developers"
 
-web   = logos/nextdotjs "Next.js Frontend"
-api   = logos/nestjs "NestJS API"
-db    = logos/postgresql "PostgreSQL" datastore
+gh   = logos/github "GitHub"
+k8s  = logos/kubernetes "Kubernetes"
+web  = logos/nextdotjs "Next.js Frontend"
+api  = logos/nestjs "NestJS API"
+pg   = logos/postgresql "PostgreSQL" datastore
 cache = logos/redis "Redis Cache" datastore
-bus   = logos/apachekafka "Kafka"
-graf  = logos/grafana "Grafana"
-gh    = logos/github "GitHub"
-k8s   = logos/kubernetes "Kubernetes"
-
-web -> api
-api -> db
-api -> cache "caching"
-api ~> bus "events"
+kafka = logos/apachekafka "Kafka"
+graf = logos/grafana "Grafana"
 
 dev -> gh "push"
 gh -> k8s "deploys"
-
-graf -> web, api, db, cache, bus "monitors"
+web -> api
+api -> pg
+api -> cache "caching"
+api ~> kafka "events"
+graf -> web, api, pg, cache, kafka "monitors"
 
 view landscape {
-  title "Logos Stack"
+  title "Product Stack"
   include *
-  layout {
-    rows [dev web graf] [gh api] [k8s db cache bus]
-  }
 }

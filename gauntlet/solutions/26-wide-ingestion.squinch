@@ -6,7 +6,7 @@ c5 = sys/radio-tower "Collector 5"
 c6 = sys/radio-tower "Collector 6"
 norm = sys/workflow "Normaliser"
 wh = sys/database "Warehouse" datastore
-search = sys/search "Search Index" datastore
+idx = sys/search "Search Index" datastore
 alerts = sys/siren "Alerting Service"
 
 c1 -> norm
@@ -15,15 +15,12 @@ c3 -> norm
 c4 -> norm
 c5 -> norm
 c6 -> norm
-norm -> wh, search, alerts
+norm -> wh, idx, alerts
 
 view landscape {
   title "Ingestion Estate"
   include *
   layout {
     density compact
-    place search below wh
-    cols [wh search]
-    route norm -> search from east to east
   }
 }

@@ -1,63 +1,62 @@
 pack aws
 pack logos
 
-person customer "Customer"
-person staff "Staff"
+person customer "Customer" { description: "Shops via web and mobile" }
+person staff "Staff" { description: "Runs the admin app and reads dashboards" }
 
 system apps "Apps" {
-  description: "Customer and staff front ends"
+  description: "Client applications"
   preview: [storefront admin mobile]
   storefront = logos/nextjs "Storefront" { subtitle: "Next.js · customers" }
   admin      = logos/react "Admin" { subtitle: "React · staff" }
   mobile     = sys/smartphone "Mobile" { subtitle: "React Native · customers" }
 }
 
-gateway = logos/kong "API Gateway" { subtitle: "infra/gateway · Kong" }
-kafka   = logos/kafka "Kafka" { subtitle: "event backbone" }
+gateway = logos/kong "API Gateway" { subtitle: "Kong · infra/gateway" }
+kafka   = logos/kafka "Kafka" { subtitle: "Event cluster" }
 
 system identity "Identity" {
   description: "Accounts, sessions and MFA"
   preview: [accounts sessions mfa]
-  accounts = sys/server "accounts-api" { subtitle: "accounts" }
-  sessions = sys/server "sessions-api" { subtitle: "sessions" }
-  mfa      = sys/cog "mfa-worker" { subtitle: "worker" }
-  pg    = logos/postgres "Postgres" datastore
-  cache = logos/redis "Redis" datastore
+  accounts = sys/server "accounts-api"
+  sessions = sys/server "sessions-api"
+  mfa      = sys/cog "mfa-worker"
+  pg       = logos/postgres "Postgres" datastore
+  redis    = logos/redis "Redis" datastore
   accounts -> pg
-  sessions -> cache
-  mfa -> pg
+  sessions -> redis
 }
 
 system catalog "Catalog" {
   description: "Products, media and search"
   preview: [products media search]
-  products = sys/server "products-api" { subtitle: "products" }
-  media    = sys/server "media-api" { subtitle: "media" }
-  search   = sys/server "search-api" { subtitle: "search" }
-  indexer  = sys/cog "indexer" { subtitle: "worker" }
-  files = aws/s3 "S3" datastore
-  es    = logos/elasticsearch "Elasticsearch" datastore
-  media -> files
+  products = sys/server "products-api"
+  media    = sys/server "media-api"
+  search   = sys/server "search-api"
+  indexer  = sys/cog "indexer"
+  s3       = aws/s3 "Media bucket" datastore
+  es       = logos/elasticsearch "Elasticsearch" datastore
+  media -> s3
   search -> es
-  indexer -> search "keeps search in step"
+  indexer -> es "keeps search in step"
 }
 
 system commerce "Commerce" {
   description: "Cart, checkout, orders and payments"
-  preview: [cart checkout orders]
-  cart     = sys/server "cart-api" { subtitle: "cart" }
-  checkout = sys/server "checkout-api" { subtitle: "checkout" }
-  orders   = sys/server "orders-api" { subtitle: "orders" }
-  payments = sys/server "payments-api" { subtitle: "payments" }
-  tax      = sys/server "tax-api" { subtitle: "tax" }
+  preview: [checkout orders payments]
+  cart     = sys/server "cart-api"
+  checkout = sys/server "checkout-api"
+  orders   = sys/server "orders-api"
+  payments = sys/server "payments-api"
+  tax      = sys/server "tax-api"
   cartcache = logos/redis "Cart Redis" datastore
   ordersdb  = logos/postgres "Orders Postgres" datastore
-  paydb     = logos/postgres "Payments Postgres" datastore
+  paymentsdb = logos/postgres "Payments Postgres" datastore
   stripe  = logos/stripe "Stripe" external
   avalara = box "Avalara" external
   cart -> cartcache
   orders -> ordersdb
-  payments -> paydb
+  payments -> paymentsdb
   payments -> stripe
   tax -> avalara
   checkout -> cart, tax, payments, orders
@@ -66,28 +65,28 @@ system commerce "Commerce" {
 system fulfilment "Fulfilment" {
   description: "Warehouse, shipping and returns"
   preview: [warehouse shipping returns]
-  warehouse = sys/server "warehouse-api" { subtitle: "warehouse" }
-  shipping  = sys/server "shipping-api" { subtitle: "shipping" }
-  returns   = sys/server "returns-api" { subtitle: "returns" }
-  label     = sys/cog "label-worker" { subtitle: "worker" }
-  whdb  = logos/postgres "Warehouse Postgres" datastore
-  retdb = logos/postgres "Returns Postgres" datastore
+  warehouse = sys/server "warehouse-api"
+  shipping  = sys/server "shipping-api"
+  returns   = sys/server "returns-api"
+  label     = sys/cog "label-worker"
+  warehousedb = logos/postgres "Warehouse Postgres" datastore
+  returnsdb   = logos/postgres "Returns Postgres" datastore
   carriers = box "Carrier APIs" external
-  warehouse -> whdb
-  returns -> retdb
+  warehouse -> warehousedb
+  returns -> returnsdb
   shipping -> carriers
 }
 
 system engagement "Engagement" {
   description: "Email, push and campaigns"
   preview: [email push campaigns]
-  email     = sys/cog "email-worker" { subtitle: "worker" }
-  push      = sys/cog "push-worker" { subtitle: "worker" }
-  campaigns = sys/server "campaigns-api" { subtitle: "campaigns" }
-  campdb   = logos/postgres "Campaigns Postgres" datastore
+  email     = sys/cog "email-worker"
+  push      = sys/cog "push-worker"
+  campaigns = sys/server "campaigns-api"
+  campaignsdb = logos/postgres "Campaigns Postgres" datastore
   sendgrid = box "SendGrid" external
   firebase = box "Firebase" external
-  campaigns -> campdb
+  campaigns -> campaignsdb
   email -> sendgrid
   push -> firebase
 }
@@ -95,13 +94,10 @@ system engagement "Engagement" {
 system analytics "Analytics" {
   description: "Event collection, warehouse and dashboards"
   preview: [collector warehouse metabase]
-  collector = sys/cog "events-collector" { subtitle: "consumer" }
-  warehouse = logos/snowflake "Snowflake" datastore
-  dbt       = sys/clock "dbt job" { subtitle: "nightly" }
+  collector = sys/server "events-collector"
+  warehouse = logos/snowflake "Snowflake warehouse" datastore
+  dbt       = sys/cog "dbt job" { subtitle: "nightly" }
   metabase  = sys/chart-line "Metabase" { subtitle: "dashboards" }
-  collector -> warehouse
-  dbt -> warehouse
-  metabase -> warehouse
 }
 
 customer -> apps.storefront
@@ -116,10 +112,10 @@ gateway -> identity.sessions "checks every request"
 
 commerce.orders -> fulfilment.warehouse
 
-identity.accounts ~> kafka "publishes"
 commerce.orders ~> kafka "publishes"
 commerce.payments ~> kafka "publishes"
 fulfilment.returns ~> kafka "publishes"
+identity.accounts ~> kafka "publishes"
 
 kafka ~> catalog.indexer
 kafka ~> fulfilment.label
@@ -132,9 +128,9 @@ view landscape {
   include *
   preview *
 }
-view identity { title "Identity" }
-view catalog { title "Catalog" }
 view commerce { title "Commerce" }
+view catalog { title "Catalog" }
 view fulfilment { title "Fulfilment" }
+view identity { title "Identity" }
 view engagement { title "Engagement" }
 view analytics { title "Analytics" }

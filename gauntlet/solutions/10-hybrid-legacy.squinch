@@ -2,17 +2,20 @@ pack aws
 
 person admins "Administrators"
 
-erp    = sys/server     "Legacy ERP" external { subtitle: "On-premises" }
-sync   = aws/lambda     "Sync Worker"
-db     = aws/rds        "Database" datastore
-dash   = sys/app-window "Admin Dashboard" { subtitle: "Web app" }
+erp       = sys/server     "Legacy ERP" external { subtitle: "On-premises" }
+worker    = aws/lambda     "Sync Worker"
+db        = aws/rds        "Admin Database" datastore
+dashboard = sys/app-window "Admin Dashboard"
 
-erp ~> sync "changes"
-sync -> db "writes"
-dash -> db "reads"
-admins -> dash "use"
+zone onprem "On-premises" onprem { contains erp }
+zone cloud  "AWS" cloud { contains worker, db }
+
+erp ~> worker "ERP changes"
+worker -> db "writes"
+dashboard -> db "reads"
+admins -> dashboard "use"
 
 view landscape {
-  title "Legacy ERP to Admin Dashboard"
+  title "Hybrid ERP Sync"
   include *
 }

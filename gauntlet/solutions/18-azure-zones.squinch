@@ -8,11 +8,15 @@ sql = azure/sql "Azure SQL" datastore
 gw -> aks
 aks -> acr "pulls images"
 
-zone sub "Azure Subscription" account { contains gw, aks, acr, sql }
-zone vnet "Virtual Network" network { contains aks, acr, sql }
+zone sub "Azure Subscription" account {
+  contains gw, aks, acr, sql
+}
+zone vnet "Virtual Network" network {
+  contains aks, acr, sql
+}
 zone snet "Private Subnet" subnet {
-  color: teal
   contains aks, acr
+  color: teal
 }
 
 view landscape {

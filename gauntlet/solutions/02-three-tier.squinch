@@ -3,7 +3,9 @@ pack aws
 person user "User"
 
 alb   = aws/elastic-load-balancing "Application Load Balancer"
-app   = aws/ecs "ECS Service" { subtitle: "Fargate" }
+app   = aws/fargate "ECS Service" {
+  subtitle: "ECS · Fargate"
+}
 db    = aws/aurora "Aurora Database" datastore
 cache = aws/elasticache "ElastiCache" datastore
 
