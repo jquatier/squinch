@@ -18,14 +18,16 @@ control to choose what shows.
   then free words. Markers are free vocabulary (`pk`, `hash`, `ttl`, `index
   gsi1`), so every store's terms fit without the language knowing any of them.
   `ref <path>` names what a column points at; a quoted string is a caption.
-- **Writing fields changes no picture.** The landscape, and every view that
-  does not stand beside the leaf, is byte-identical with or without them.
-- **They draw at home altitude**: a view scoped to the leaf's own container
-  draws every field, in declared order. Opening the database card *is*
-  drilling into its tables — the dive affordance the container already has.
-- **Anywhere else, `preview <leaf>` / `preview *`** draws up to six, with
-  `+N more fields`; `preview:` on the leaf picks which (`none | auto | [names]`,
-  the container attr pointed at fields).
+- **A view that opens no container never changes.** The landscape, a
+  collapsed card and a context card are byte-identical with or without fields.
+- **Scoped to the table's container, every field draws.** Opening the
+  database card *is* drilling into its tables.
+- **Inside an expanded frame, the compact list draws with no verb** — the
+  table's `preview: [names]` (up to twelve), or the first six with `+N more
+  fields`; seven fields show all seven. `preview: none` keeps a table plain
+  there.
+- **`preview <leaf>` / `preview *`** is for the leaves nothing else reaches:
+  one at the top level, or one `detail` brought in. It never shrinks.
 
 ## How it was decided
 
@@ -110,6 +112,33 @@ diagnostic that writes the fix.
   The skill tells agents to copy fields from the repo's migration, Prisma or
   proto files, never from memory.
 
+## What the first outside test changed (0.18.0 → next)
+
+0.18.0 drew fields only in the scoped view and under `preview`; a member of an
+expanded frame was "not home" and drew plain. The first tester expanded their
+system, saw plain tables, added `preview <table>` beside `expand *` and got an
+error naming an expand they never wrote, then got "+1 more field" on a
+seven-field table. Two of the five probe agents had drilled in with `expand`
+too; it had been miscounted as scoping.
+
+- **Frames draw the compact list.** Not every field: an `expand *` over forty
+  tables would be a wall, and an architecture view wants the keys, not the
+  schema. Not nothing: a table drawn at its own depth inside its own opened
+  container, with a schema in the source, and no rows, read as a bug to
+  everyone who met it.
+- **Rejected: `preview` shrinks a table where it already draws in full.** One
+  verb enlarging a card and shrinking a table; worse, `view db { scope shop.db
+  preview * }` checks clean today and would silently lose fields, and a cold
+  agent adds `preview` to *get* fields. `preview` only ever adds.
+- **Rejected: a `preview: { fields: 10, scroll: true }` object.** The list is
+  the count, and an SVG does not scroll.
+- **Rejected: typed field keywords, a grain/key model.** `pk` on each column
+  of a composite key, `nullable`, `grain` — free markers already say it, for
+  every store, with nothing for the language to know.
+- **The never-drawn warning resolves views rather than guessing**, and counts
+  auto views as drawing: recording a schema inside a container stays silent,
+  which is the "keep the default look" the feature promised.
+
 ## Things the code taught
 
 - **The regex syntax heuristics read field lines as statements.** The
@@ -125,9 +154,12 @@ diagnostic that writes the fix.
 
 ## Diagnosing the next odd schema
 
-- Fields written, nothing drawn: the view does not stand in the leaf's
-  container and does not `preview` it — or the leaf is a context leaf (scenery
-  is never detailed) or a member of an expanded frame (not home).
+- Fields written, nothing drawn: the table's container is not open in this
+  view (neither scoped nor expanded) and nothing previews it; or it says
+  `preview: none`; or it is context the view earned itself.
+- Fewer fields than written: it is a frame member or a previewed leaf, so the
+  compact list draws. Scope the view to its container for all of them, or
+  name them in `preview: [...]`.
 - A `ref` that does not resolve: it is looked up from the leaf's container
   outward, like an edge endpoint; only its longest prefix must be a node.
 - A type drawn as a marker, or the reverse: the first word after the name is

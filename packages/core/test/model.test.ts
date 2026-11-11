@@ -984,10 +984,15 @@ describe("fields: a leaf's schema", () => {
     expect(e.fix).toBe("did you mean `total`?");
     expect(r.model.nodes.get("shop.pg.orders")!.preview).toEqual(["status"]);
     expect(table("id uuid", "      preview: none\n").model.nodes.get("shop.pg.orders")!.preview).toBe("none");
-    const many = table(Array.from({ length: 8 }, (_, i) => `f${i} int`).join("\n"),
+    // a list is the author's: honoured as written up to twelve
+    const eight = table(Array.from({ length: 8 }, (_, i) => `f${i} int`).join("\n"),
       "      preview: [f0 f1 f2 f3 f4 f5 f6 f7]\n");
-    expect(many.diagnostics.find((d) => d.message.startsWith("preview lists 8 fields"))?.severity).toBe("warning");
-    expect(many.model.nodes.get("shop.pg.orders")!.preview).toHaveLength(6);
+    expect(eight.diagnostics.some((d) => d.message.startsWith("preview lists"))).toBe(false);
+    expect(eight.model.nodes.get("shop.pg.orders")!.preview).toHaveLength(8);
+    const names = Array.from({ length: 14 }, (_, i) => `f${i}`);
+    const many = table(names.map((n) => `${n} int`).join("\n"), `      preview: [${names.join(" ")}]\n`);
+    expect(many.diagnostics.find((d) => d.message.startsWith("preview lists 14 fields"))?.severity).toBe("warning");
+    expect(many.model.nodes.get("shop.pg.orders")!.preview).toHaveLength(12);
   });
 
   it("warns on endpoints, on 30+ fields and on field tags it cannot draw yet", () => {
@@ -997,6 +1002,27 @@ describe("fields: a leaf's schema", () => {
     const tagged = table("email text #pii");
     expect(msgs(tagged)).toContain("field tags are parsed but not drawn yet");
     expect(fieldsOf(tagged)[0].tags).toEqual(["pii"]);
+  });
+
+  it("warns when a leaf's fields can never be drawn, and only then", () => {
+    const never = (src: string) => buildModel(src).diagnostics.filter((d) => d.message.includes("fields are never drawn"));
+    // a top-level leaf draws fields only on request
+    const top = `t = sys/table "t" { fields { id uuid } }\nview v { include * }`;
+    expect(never(top)[0]).toMatchObject({
+      severity: "warning",
+      message: "`t`'s fields are never drawn — no view shows them",
+      fix: "add `preview t` to a view that shows `t` — a top-level leaf draws its fields only on request",
+    });
+    expect(never(top.replace("include *", "include *\n preview t"))).toEqual([]);
+    // `preview: none` on a leaf with no container can never show
+    expect(never(`t = sys/table "t" { preview: none\n fields { id uuid } }\nview v { include *\n preview t }`)[0].fix)
+      .toContain("has no container");
+    // inside a container the auto view draws them: recording a schema is silent
+    const held = `system s "S" {\n a = box "A"\n t = sys/table "t" { fields { id uuid } }\n}\nview v { include * }`;
+    expect(never(held)).toEqual([]);
+    // …unless the container's declared view filters the table out and nothing else shows it
+    expect(never(held + `\nview s { exclude t }`)[0].fix).toContain("leaves `t` out");
+    expect(never(held + `\nview s { exclude t }\nview w { include *\n expand s }`)).toEqual([]);
   });
 
   it("a model with no fields is the model it was: no new keys on any node", () => {

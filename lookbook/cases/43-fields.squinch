@@ -112,5 +112,4 @@ view overview {
   title "Checkout — opened, every table previewed"
   scope shop
   expand pg
-  preview *
 }

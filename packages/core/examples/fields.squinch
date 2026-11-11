@@ -101,7 +101,6 @@ view overview {
   title "Checkout — Postgres opened, tables previewed"
   scope shop
   expand pg
-  preview *
 }
 
 view topic {

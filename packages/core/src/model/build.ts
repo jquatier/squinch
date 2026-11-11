@@ -13,7 +13,8 @@ import { themes } from "../themes/index.js";
 import type {
   ArrowKind, BuildResult, Diagnostic, Hue, Loc, RelPos, SContainer, SEdge, SField, SModel, SNode, SNote, SView, Side, SFlow, SZone, ZoneKind, ZoneLabelPos,
 } from "./types.js";
-import { ZONE_KINDS, HUES, EDGE_STYLES, EDGE_ANIMATE, PREVIEW_MAX, PREVIEW_FIELDS_MAX } from "./types.js";
+import { ZONE_KINDS, HUES, EDGE_STYLES, EDGE_ANIMATE, PREVIEW_MAX, PREVIEW_FIELDS_PICK_MAX } from "./types.js";
+import { resolveView } from "../view/resolve.js";
 
 export interface ProjectFile {
   name: string;
@@ -740,12 +741,12 @@ export function buildProject(input: ProjectFile[]): BuildResult {
             }
             if (!picks.includes(pick)) picks.push(pick);
           }
-          if (picks.length > PREVIEW_FIELDS_MAX)
+          if (picks.length > PREVIEW_FIELDS_PICK_MAX)
             warn(ctx, previewAttr,
-              `preview lists ${picks.length} fields — a previewed leaf shows ${PREVIEW_FIELDS_MAX}; ` +
-                `${picks.slice(PREVIEW_FIELDS_MAX).map((n) => `\`${n}\``).join(", ")} fold into +N`,
-              `keep the ${PREVIEW_FIELDS_MAX} worth showing; a view scoped to \`${name}\`'s container shows every field`);
-          preview = picks.slice(0, PREVIEW_FIELDS_MAX);
+              `preview lists ${picks.length} fields — a compact table shows ${PREVIEW_FIELDS_PICK_MAX}; ` +
+                `${picks.slice(PREVIEW_FIELDS_PICK_MAX).map((n) => `\`${n}\``).join(", ")} fold into +N`,
+              `keep the ${PREVIEW_FIELDS_PICK_MAX} worth showing; a view scoped to \`${name}\`'s container shows every field`);
+          preview = picks.slice(0, PREVIEW_FIELDS_PICK_MAX);
         } else if (raw === "none") preview = "none";
         else if (raw !== "auto")
           error(ctx, previewAttr, "`preview` is none, auto or a list of fields",
@@ -1971,6 +1972,35 @@ export function buildProject(input: ProjectFile[]): BuildResult {
   // recover — but a wall of twenty-eight errors hides that it is a single
   // misunderstanding about scope, which is the thing worth telling them.
   collapseUnknownIds(diagnostics);
+
+  // Fields nothing can ever show. A schema inside a container is always drawn
+  // by that container's own view — the auto one counts, which is what lets an
+  // author record a schema without changing a picture — so this fires only
+  // where no view reaches the leaf's rows at all: a top-level leaf nobody
+  // previews, `preview: none` on a leaf with no container, or a leaf its
+  // container's declared view filters out. Resolved, not guessed: the rule
+  // stack decides what draws. Only on a clean build, and only when some leaf
+  // has fields, so every other project pays nothing.
+  const fielded = [...model.nodes.values()].filter((n) => n.fields?.length);
+  if (fielded.length && !diagnostics.some((d) => d.severity === "error")) {
+    const drawn = new Set<string>();
+    for (const v of model.views)
+      for (const n of resolveView(model, v).nodes) if (n.fields) drawn.add(n.path);
+    for (const n of fielded) {
+      if (drawn.has(n.path)) continue;
+      const parent = n.path.includes(".") ? n.path.slice(0, n.path.lastIndexOf(".")) : "";
+      diagnostics.push({
+        severity: "warning",
+        message: `\`${n.name}\`'s fields are never drawn — no view shows them`,
+        fix: !parent
+          ? n.preview === "none"
+            ? `\`preview: none\` keeps rows to a container's own view, and \`${n.name}\` has no container — drop it, then \`preview ${n.path}\` in a view`
+            : `add \`preview ${n.path}\` to a view that shows \`${n.name}\` — a top-level leaf draws its fields only on request`
+          : `the view of \`${parent}\` leaves \`${n.name}\` out (\`only\` or \`exclude\`) — its fields draw wherever \`${parent}\` is scoped or expanded with \`${n.name}\` in it`,
+        loc: n.loc, file: n.file,
+      });
+    }
+  }
 
   return {
     model,

@@ -35,6 +35,10 @@ export const PREVIEW_MAX = 3;
  *  child's whole face. At home altitude — a view scoped to the leaf's own
  *  container — every field draws and no cap applies. */
 export const PREVIEW_FIELDS_MAX = 6;
+/** …and how many an explicit `preview: [names]` list may hold. The automatic
+ *  six is a guess at what matters; a list is the author saying so, up to the
+ *  point a compact card stops being one. */
+export const PREVIEW_FIELDS_PICK_MAX = 12;
 
 /** One line of a leaf's `fields { }` block. The grammar hands the model a name
  *  and a run of words; build.ts assigns these roles. */

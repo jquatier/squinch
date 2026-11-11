@@ -56,30 +56,63 @@ describe("fields: where a leaf's schema draws", () => {
     expect(g).toMatch(/height="256"/);
   });
 
-  it("is byte-identical to the leaf without fields in every view that neither stands beside nor previews it", async () => {
+  it("is byte-identical to the leaf without fields in every view that opens no container holding it", async () => {
+    // the restated invariant: writing fields never changes a view that does
+    // not open the table's container (scoped or expanded) or preview it
     const plain = model(`{ }`);
     for (const view of ["landscape", "shop"])
       expect(await draw(model(), view)).toBe(await draw(plain, view));
-    // and a frame member (its container opened, not stood in) is not home
-    expect(await draw(model(), "opened")).toBe(await draw(plain, "opened"));
   });
 
-  it("`preview` draws the first six declared, and counts the rest on a last row", async () => {
-    const svg = await draw(model(undefined, "view p { scope shop\n expand db\n preview db.orders }"), "p");
-    const g = leafOf(svg, "shop.db.orders");
+  it("a member of an expanded frame draws the compact list with no verb", async () => {
+    const g = leafOf(await draw(model(), "opened"), "shop.db.orders");
     expect(rowsIn(g)).toBe(7); // six fields and the "+N more" row
     expect(g).toContain(">+2 more fields<");
     expect(g).not.toContain(">created_at<");
     expect(g).toMatch(/height="232"/); // 64 + 7 × 24
+    // and `expand *` is the same frame
+    const star = leafOf(await draw(model(undefined, "view star { include *\n expand * }"), "star"), "shop.db.orders");
+    expect(rowsIn(star)).toBe(7);
   });
 
-  it("`preview:` on the leaf picks the rows, in its order; `none` keeps the leaf plain", async () => {
-    const picked = model(`{\n    preview: [status id]\n    ${FIELDS}\n  }`, "view p { scope shop\n expand db\n preview db.orders }");
-    const g = leafOf(await draw(picked, "p"), "shop.db.orders");
+  it("never folds a single field: one over the automatic six shows them all", async () => {
+    const seven = Array.from({ length: 7 }, (_, i) => `f${i} int`).join("\n      ");
+    const g = leafOf(await draw(model(`{\n    fields {\n      ${seven}\n    }\n  }`), "opened"), "shop.db.orders");
+    expect(rowsIn(g)).toBe(7);
+    expect(g).not.toContain("more field");
+  });
+
+  it("`preview:` on the leaf picks the rows, in its order and as many as it lists; `none` keeps rows to the scoped view", async () => {
+    const picked = model(`{\n    preview: [status id]\n    ${FIELDS}\n  }`);
+    const g = leafOf(await draw(picked, "opened"), "shop.db.orders");
     expect(g.indexOf(">status<")).toBeLessThan(g.indexOf(">id<"));
     expect(g).toContain(">+6 more fields<");
-    const none = model(`{\n    preview: none\n    ${FIELDS}\n  }`, "view p { scope shop\n expand db\n preview db.orders }");
-    expect(rowsIn(leafOf(await draw(none, "p"), "shop.db.orders"))).toBe(0);
+    // a seven-name list of eight keeps its "+1": the count is the author's
+    const seven = model(`{\n    preview: [id customer_id status total_cents currency notes created_at]\n    ${FIELDS}\n  }`);
+    expect(leafOf(await draw(seven, "opened"), "shop.db.orders")).toContain(">+1 more field<");
+    const none = model(`{\n    preview: none\n    ${FIELDS}\n  }`);
+    expect(rowsIn(leafOf(await draw(none, "opened"), "shop.db.orders"))).toBe(0);
+    expect(rowsIn(leafOf(await draw(none, "db"), "shop.db.orders"))).toBe(8);
+  });
+
+  it("`preview` reaches a top-level leaf and a `detail`ed one, and nothing else needs it", async () => {
+    const top = `pack aws\nt = sys/table "t" { fields { id uuid pk\n n text } }\nx = aws/lambda "X"\nx -> t\n`;
+    expect(rowsIn(leafOf(await draw(top + "view v { include * }", "v"), "t"))).toBe(0);
+    expect(rowsIn(leafOf(await draw(top + "view v { include *\n preview t }", "v"), "t"))).toBe(2);
+    expect(rowsIn(leafOf(await draw(top + "view v { include *\n preview * }", "v"), "t"))).toBe(2);
+    // brought in at its own depth by `detail`, an explicit preview shows its rows
+    const det = model(undefined, "view d { include *\n detail shop.db.orders\n preview shop.db.orders }");
+    expect(rowsIn(leafOf(await draw(det, "d"), "shop.db.orders"))).toBe(7);
+  });
+
+  it("`preview <table>` beside `expand *` is not a conflict — only a container can be both", async () => {
+    const r = await render(model(undefined, "view p { include *\n expand *\n preview shop.db.orders }"), { view: "p", theme: "light" });
+    expect(r.ok, JSON.stringify(r.diagnostics)).toBe(true);
+    expect(r.diagnostics?.map((d) => d.message)).toContain(
+      "preview `shop.db.orders` is redundant — its container is open here, where its fields already draw");
+    const c = await render(model(undefined, "view p { include *\n expand *\n preview shop }"), { view: "p", theme: "light" });
+    expect(c.diagnostics?.find((d) => d.severity === "error")?.message)
+      .toBe("preview `shop` and `expand *` in one view — a card is collapsed or open, not both");
   });
 
   it("never draws rows on a context leaf", async () => {
@@ -133,6 +166,8 @@ describe("fields: where a leaf's schema draws", () => {
     return Promise.all([
       warns("view p { include *\n preview shop.db.orders }").then((m) =>
         expect(m).toContain("preview `shop.db.orders` is not among the leaves this view draws — no rows to show")),
+      warns("view p { scope shop.db\n preview * }").then((m) =>
+        expect(m).toContain("`preview *` detailed nothing — no cards are visible here")),
       warns("view p { scope shop.db\n preview orders }").then((m) =>
         expect(m).toContain("preview `shop.db.orders` is redundant — this view stands in its container, where every field already draws")),
       warns("view p { scope shop\n preview api }").then((m) =>

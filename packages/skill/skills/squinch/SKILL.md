@@ -280,9 +280,11 @@ Copy them from the repo's migrations, Prisma or proto files, never from memory,
 and translate the punctuation (`?` → `nullable`, `@id` → `pk`). A nested field
 is a dotted name (`address.city`). `ref <id>` names the column a foreign key
 points at — the edge between the two tables stays the relationship. Fields
-change no picture until you stand beside them: a view scoped to the table's
-container draws every field, `preview <table>` elsewhere draws six
-(`preview: [a b]` on the table picks), and the landscape is untouched.
+draw where the table's container is open: every field in a view scoped to it,
+and a compact list (the first six, or the table's `preview: [a b]`) wherever
+it is expanded. A table at the top level needs `preview <table>`; the
+landscape and collapsed cards never change. `preview: none` keeps a table
+plain inside an expanded system.
 
 Edge motion — `~>` edges animate on their own (dashes drift toward the target,
 off under `prefers-reduced-motion`). Opt out with `{ animate: false }`, or pick

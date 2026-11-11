@@ -250,12 +250,25 @@ A comma between words is optional and never ends a line (`pk, fk` is two
 markers); newline or `;` does. Comments are `//`. Field names are unique within
 the block, and a name may be quoted.
 
-Fields never change a picture by being written. A leaf with fields draws as it
-always did, except in two places (§5): a view scoped to the leaf's own container —
-standing beside it, its **home altitude** — draws every field, and `preview <leaf>`
-draws up to six at any other altitude. `preview:` on the leaf is the container
-attr of the same name pointed at fields: `none | auto | [names]`, `auto` being
-the first six declared.
+A view that opens no container never changes because fields were written: the
+landscape, a collapsed card and a context card draw exactly as before. Where a
+leaf's rows draw is decided by where the leaf stands in the view (§5):
+
+| the leaf is… | draws |
+| --- | --- |
+| in a view scoped to its container | every field |
+| a direct member of an expanded frame (`expand c`, `expand *`) | the **compact** list, with no verb |
+| at the top level, or brought in by `detail` | the compact list, only under `preview <leaf>` / `preview *` |
+| collapsed inside a card, or context the view earned itself | nothing |
+
+**Compact** is the leaf's `preview: [names]` list, as written and up to twelve,
+or else the first six declared with `+N more fields` — and one field over six
+shows all seven, since the row that says "+1 more" costs the row it hides.
+`preview: none` keeps a leaf's rows to the view scoped to its container: the
+opt-out for a table that should stay plain inside an opened system. `preview`
+never shrinks anything; where rows already draw it warns that it is redundant.
+Fields no view can ever draw — a top-level leaf nobody previews, a leaf its
+container's declared view filters out — are a check warning naming the line to add.
 
 The block belongs to a leaf: on a container, edge, note or person it is a check
 error naming where it goes, as are `schema { }` / `columns { }` (did you mean
@@ -517,16 +530,16 @@ A deterministic rule stack, evaluated in fixed order:
    row repeats the card. The card still draws detailed — the fix is the
    author's, usually the part moved up a level rather than wrapped in a system
    of its own, since only they know whether the boundary is meant.
-   **A leaf's `fields`** (§3) ride the same verb and change nothing visible
-   either. Rows are decided last, once every rule below has run, so `only`,
-   context, `detail` and `include` never narrow them. A leaf draws every field
-   at its **home altitude** — the view's scope is the leaf's own container —
-   and, anywhere else, its `preview:` pick (or the first six declared, the rest
-   counted) when `preview <leaf>` or `preview *` reaches it, including inside
-   an expanded frame. Never on a context leaf or a person. A `preview` naming a
-   leaf without fields warns as before; one naming a leaf this view does not
-   draw, or one already at home, warns too. `scope <leaf>` is an error that
-   names the container to scope.
+   **A leaf's `fields`** (§3) change nothing visible either. Rows are decided
+   last, once every rule below has run, so `only`, context, `detail` and
+   `include` never narrow them: every field in a view scoped to the leaf's
+   container; the compact list on a direct member of an expanded frame; the
+   compact list under `preview <leaf>` / `preview *` for a leaf at the top
+   level or one `detail` brought in. Never on a person, or on context the view
+   earned itself. `preview` on a leaf whose rows already draw, on one with
+   `preview: none`, on one without fields, or on one this view does not draw
+   each warn; `preview` beside `expand` is an error for a container only.
+   `scope <leaf>` is an error that names the container to scope.
 2. **`only` filters the interior** — the view's *which* axis, applied after
    `expand` so an expanded container's children are filtered too. A container
    survives if it, anything beneath it, or a visible ancestor above it matches

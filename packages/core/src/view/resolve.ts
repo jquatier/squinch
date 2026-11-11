@@ -282,7 +282,11 @@ export function resolveView(model: SModel, view: SView): ViewGraph {
         diagnostics.push({
           severity: "warning",
           message: `expand \`${ex}\` targets a leaf — only containers open`,
-          fix: `drop the line; a leaf is already drawn at full depth`,
+          // someone who wrote this on a table wants its fields, and those draw
+          // where its container is open, not by opening the table
+          fix: !model.nodes.get(ex)?.fields ? `drop the line; a leaf is already drawn at full depth`
+            : parentOf(ex) ? `drop the line; \`${ex.split(".").pop()}\`'s fields draw in a view scoped to \`${parentOf(ex)}\`, or wherever \`${parentOf(ex)}\` is expanded`
+            : `drop the line; \`preview ${ex}\` shows its fields`,
           loc: view.loc,
         });
       } else if (c && ex === view.scope) {
@@ -331,23 +335,24 @@ export function resolveView(model: SModel, view: SView): ViewGraph {
         loc: view.loc,
       });
     for (const p of visible) if (model.containers.has(p)) detailedSet.add(p);
-    // leaves with fields count too: `preview *` draws their rows (decided at
-    // the leaf, below, once the visible set is final)
-    if (detailedSet.size === 0 && !visible.some((p) => model.nodes.get(p)?.fields))
-      diagnostics.push({
-        severity: "warning",
-        message: "`preview *` detailed nothing — no cards are visible here",
-        fix: "drop the line; a leaf without `fields` has no rows to preview, and an opened container is a frame",
-        loc: view.loc,
-      });
+    // Whether the star did anything is only known once the leaves are
+    // materialized: it also reaches a leaf with fields that nothing else
+    // draws rows for (below, `starIdle`).
   } else {
     for (const p of previews) {
       const c = model.containers.get(p);
-      if (view.expandStar || view.expand.includes(p)) {
+      // Containers only. This ran for every target once, so `preview <table>`
+      // beside `expand *` was refused as "preview and expand `<table>`" — an
+      // expand nobody wrote, on a thing that cannot open.
+      if (c && (view.expandStar || view.expand.includes(p))) {
+        const how = view.expand.includes(p) ? `expand \`${p}\`` : "`expand *`";
         diagnostics.push({
           severity: "error",
-          message: `preview \`${p}\` and expand \`${p}\` in one view — a card is collapsed or open, not both`,
-          fix: `keep one: \`preview ${p}\` shows the card with its parts named, \`expand ${p}\` opens it`,
+          message: `preview \`${p}\` and ${how} in one view — a card is collapsed or open, not both`,
+          fix: view.expand.includes(p)
+            ? `keep one: \`preview ${p}\` shows the card with its parts named, \`expand ${p}\` opens it` +
+              (c.children.some((ch) => model.nodes.get(ch)?.fields) ? " — and opened, its tables draw their fields with no `preview`" : "")
+            : `\`expand *\` opens every container, \`${p}\` included: drop \`preview ${p}\`, or name the containers to open instead of \`*\``,
           loc: view.loc,
         });
       } else if (!c && model.nodes.get(p)?.fields) {
@@ -696,26 +701,38 @@ export function resolveView(model: SModel, view: SView): ViewGraph {
 
   // ── 6. materialize nodes ──────────────────────────────────────────────────
   /**
-   * A leaf's schema rows (docs/notes/fields.md). Home altitude — the view
-   * scoped to the leaf's own container — draws every field; `preview` draws
-   * the leaf's `preview:` pick, or the first PREVIEW_FIELDS_MAX declared, with
-   * the rest counted. Only a plain leaf: a context leaf is scenery and a
-   * person has no schema. A frame member is never home — the frame's container
-   * is opened, not stood in — but `preview` reaches it. Returns nothing at all
-   * when there are no rows, so a leaf without them is the object it always was.
+   * A leaf's schema rows (docs/notes/fields.md, SPEC §5). Where the leaf is:
+   *   - the view is scoped to its container → every field;
+   *   - a direct member of an expanded frame → the compact list, no verb;
+   *   - anywhere else it is drawn at its own depth (top level, or brought in
+   *     by `detail`) → the compact list, only when `preview` names it;
+   *   - auto context, a person → nothing.
+   * Compact is the leaf's `preview:` list as written, else the first
+   * PREVIEW_FIELDS_MAX declared — and one field over that cap shows them all,
+   * since a "+1 more field" row costs the row it hides. `preview: none` keeps
+   * rows to the scoped view. Returns nothing at all when there are no rows, so
+   * a leaf without them is the object it always was.
    */
+  const fieldPlace = (path: string): "scoped" | "frame" | "elsewhere" =>
+    scope !== "" && parentOf(path) === scope ? "scoped"
+      : frameOf.get(path) === parentOf(path) && parentOf(path) !== "" ? "frame" : "elsewhere";
   const fieldRows = (path: string, kind: VNode["kind"]): Pick<VNode, "fields" | "moreFields"> => {
-    const all = model.nodes.get(path)?.fields;
-    if (!all?.length || kind !== "leaf") return {};
-    // a frame member's parent is the opened container, never the scope, so it
-    // is not home — but an explicit `preview` reaches it like any leaf
-    const home = scope !== "" && parentOf(path) === scope;
-    const pick = model.nodes.get(path)!.preview;
+    const node = model.nodes.get(path);
+    const all = node?.fields;
+    if (!all?.length) return {};
+    // `detail` draws an outside leaf at its own depth, as a context leaf; an
+    // explicit `preview` reaches it. Context the view earned on its own is
+    // scenery and stays plain.
+    const detailed = kind === "context-leaf" && fieldAsk.has(path) && (view.detail ?? []).includes(path);
+    if (kind !== "leaf" && !detailed) return {};
+    const place = fieldPlace(path);
+    const pick = node!.preview;
     let shown = all;
-    if (!home) {
-      if (!(view.previewStar || fieldAsk.has(path)) || pick === "none") return {};
-      shown = pick ? all.filter((f) => pick.includes(f.name)).sort((a, b) => pick.indexOf(a.name) - pick.indexOf(b.name))
-        : all.slice(0, PREVIEW_FIELDS_MAX);
+    if (place !== "scoped") {
+      if (pick === "none") return {};
+      if (place === "elsewhere" && !(view.previewStar || fieldAsk.has(path))) return {};
+      shown = pick ? pick.map((name) => all.find((f) => f.name === name)!).filter(Boolean)
+        : all.length <= PREVIEW_FIELDS_MAX + 1 ? all : all.slice(0, PREVIEW_FIELDS_MAX);
     }
     const rows = shown.map((f): FieldRow => {
       const dot = f.name.lastIndexOf(".");
@@ -803,21 +820,46 @@ export function resolveView(model: SModel, view: SView): ViewGraph {
   // contract as a container preview that misses
   for (const p of fieldAsk) {
     const drawn = nodes.find((x) => x.path === p);
-    if (!drawn || drawn.kind !== "leaf")
+    const short = p.split(".").pop();
+    const place = fieldPlace(p);
+    if (!drawn || (drawn.kind !== "leaf" && !drawn.fields))
       diagnostics.push({
         severity: "warning",
         message: `preview \`${p}\` is not among the leaves this view draws — no rows to show`,
-        fix: "`preview` shows the fields of a leaf the view already draws at its own depth; scope the view to its container to see every field",
+        fix: parentOf(p)
+          ? `its fields draw in a view scoped to \`${parentOf(p)}\`, or wherever \`${parentOf(p)}\` is expanded; \`detail ${p}\` brings it into this view at its own depth`
+          : `\`${short}\` is not in this view — \`include ${p}\` first`,
         loc: view.loc,
       });
-    else if (scope && parentOf(p) === scope)
+    else if (place !== "scoped" && model.nodes.get(p)?.preview === "none")
       diagnostics.push({
         severity: "warning",
-        message: `preview \`${p}\` is redundant — this view stands in its container, where every field already draws`,
+        message: `preview \`${p}\` shows nothing — \`${short}\` says \`preview: none\``,
+        fix: parentOf(p)
+          ? `\`preview: none\` keeps a leaf's rows to the view scoped to \`${parentOf(p)}\`; drop one of the two lines`
+          : `\`preview: none\` keeps a leaf's rows to its container's own view, and \`${short}\` has no container — drop it`,
+        loc: view.loc,
+      });
+    else if (place !== "elsewhere")
+      diagnostics.push({
+        severity: "warning",
+        message: place === "scoped"
+          ? `preview \`${p}\` is redundant — this view stands in its container, where every field already draws`
+          : `preview \`${p}\` is redundant — its container is open here, where its fields already draw`,
         fix: "drop the line",
         loc: view.loc,
       });
   }
+  // `preview *` that changed nothing: no card to detail, and no leaf whose
+  // rows it — rather than an open container — is the reason for.
+  if (view.previewStar && detailedSet.size === 0
+      && !nodes.some((x) => x.fields && fieldPlace(x.path) === "elsewhere"))
+    diagnostics.push({
+      severity: "warning",
+      message: "`preview *` detailed nothing — no cards are visible here",
+      fix: "drop the line; a table in an open container already draws its fields, a leaf without `fields` has no rows, and an opened container is a frame",
+      loc: view.loc,
+    });
 
   // ── view colour lens (`color #tag hue`) ───────────────────────────────────
   // A lens over the model, so it wins over an element's own `color:`; among
