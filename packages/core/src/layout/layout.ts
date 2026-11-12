@@ -232,7 +232,7 @@ export function fieldRowNeed(f: FieldRow, fx: (px: number) => number, fam: FontF
     (f.type ? FIELD_GAP + measure(f.type, fx(11), "400", "mono") : 0) + PAD;
 }
 
-function sizeOf(n: VNode, font: Pick<ThemeFont, "metrics" | "scale">): { w: number; h: number } {
+export function sizeOf(n: VNode, font: Pick<ThemeFont, "metrics" | "scale">): { w: number; h: number } {
   const fam = font.metrics as FontFamily;
   const fx = (px: number) => Math.round(px * font.scale);
   const isCard = n.kind === "card" || n.kind === "context-card";

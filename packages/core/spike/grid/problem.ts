@@ -1,0 +1,225 @@
+// A Squinch view → a `Problem` the grid engine can solve.
+//
+// This file is the only place that knows both vocabularies. It decides three
+// things and nothing else: the tree (which boxes sit in which container), the
+// hints (what `rows`/`cols`/`place`/`wrap`/`direction` mean for each
+// container), and the sizes. There is no geometry here.
+//
+// One rule covers every container — root, zone, expanded frame: project the
+// hints onto that container's direct children and hand the engine the result.
+// The ELK engine needed a separate mechanism per kind of container, and had
+// none at all for a zone's inside.
+
+import type { SModel, SView, RelPos } from "../../src/model/types.js";
+import { resolveView, type ViewGraph, type VNode } from "../../src/view/resolve.js";
+import { pillDims, sizeOf, SHEET_BLEED, CHIP_H } from "../../src/layout/layout.js";
+import { measure } from "../../src/metrics.js";
+import type { ThemeFont } from "../../src/themes/index.js";
+import { assignRanks, type Edge } from "./rank.js";
+import type { Box, Dir, Group, Problem, Wire } from "./engine.js";
+
+type Font = Pick<ThemeFont, "metrics" | "scale">;
+export interface Hints { rows?: string[][]; cols?: string[][]; place: { node: string; relpos: RelPos; target: string }[] }
+export interface PlannedZone { id: string; box: string; depth: number }
+export interface Plan {
+  problem: Problem;
+  graph: ViewGraph;
+  view: SView;
+  zones: PlannedZone[];
+  /** box id → the top-level box that holds it (itself when top-level) */
+  unitOf: Map<string, string>;
+}
+
+const SPACING = { compact: [32, 40], comfortable: [48, 56], spacious: [72, 80] } as const;
+const zoneBoxId = (id: string) => `zone:${id}`;
+
+/** Rank pins and in-rank order for one container's direct children. */
+export function arrange(
+  members: readonly string[],
+  hints: Hints,
+  edges: readonly Edge[],
+  down: boolean,
+): { order: string[]; pins: Map<string, number> } {
+  const pins = new Map<string, number>();
+  hints.rows?.forEach((band, i) => band.forEach((m) => pins.set(m, i)));
+  // `below`/`above` change band under a downward flow; `left-of`/`right-of`
+  // do under a rightward one. The other pair orders within the band.
+  const changesBand = (rp: RelPos) => (down ? rp === "above" || rp === "below" : rp === "left-of" || rp === "right-of");
+  const towardsStart = (rp: RelPos) => rp === "above" || rp === "left-of";
+  if (hints.place.length) {
+    const natural = assignRanks(members, edges, pins);
+    for (const pl of hints.place) {
+      const t = pins.get(pl.target) ?? natural.get(pl.target);
+      if (t === undefined) continue;
+      pins.set(pl.node, changesBand(pl.relpos) ? t + (towardsStart(pl.relpos) ? -1 : 1) : t);
+    }
+  }
+
+  const order: string[] = [];
+  for (const m of (hints.rows ?? []).flat()) if (!order.includes(m)) order.push(m);
+  for (const m of members) if (!order.includes(m)) order.push(m);
+  for (const pl of hints.place) {
+    const from = order.indexOf(pl.node);
+    if (from < 0 || !order.includes(pl.target)) continue;
+    order.splice(from, 1);
+    const i = order.indexOf(pl.target);
+    order.splice(!changesBand(pl.relpos) && towardsStart(pl.relpos) ? i : i + 1, 0, pl.node);
+  }
+  if (hints.cols?.length) {
+    const col = new Map<string, number>();
+    hints.cols.forEach((c, i) => c.forEach((m) => col.set(m, i)));
+    const slots = order.flatMap((m, i) => (col.has(m) ? [i] : []));
+    const sorted = slots.map((i) => order[i]).sort((a, b) => col.get(a)! - col.get(b)! || order.indexOf(a) - order.indexOf(b));
+    slots.forEach((slot, i) => { order[slot] = sorted[i]; });
+  }
+  return { order, pins };
+}
+
+/** `wrap N` as the rows the author could have typed, or nothing when the
+ *  view is neither one chain nor one fan-out. */
+export function wrapRows(nodes: readonly string[], edges: readonly Edge[], n: number): string[][] | undefined {
+  const outs = new Map<string, string[]>(), ins = new Map<string, number>();
+  for (const [a, b] of edges) { outs.set(a, [...(outs.get(a) ?? []), b]); ins.set(b, (ins.get(b) ?? 0) + 1); }
+  const heads = nodes.filter((p) => !ins.get(p));
+  if (edges.length !== nodes.length - 1 || heads.length !== 1) return undefined;
+  const head = heads[0];
+  const out = (p: string) => outs.get(p) ?? [];
+  if (nodes.every((p) => out(p).length <= 1 && (ins.get(p) ?? 0) <= 1)) {
+    const chain: string[] = [];
+    for (let p: string | undefined = head; p && !chain.includes(p); p = out(p)[0]) chain.push(p);
+    if (chain.length <= n) return undefined;
+    // a serpentine: every other band runs backwards, so each fold is one step down
+    const bands: string[][] = [];
+    for (let i = 0; i * n < chain.length; i++) {
+      const band = chain.slice(i * n, (i + 1) * n);
+      bands.push(i % 2 ? band.reverse() : band);
+    }
+    return bands;
+  }
+  const targets = nodes.filter((p) => p !== head);
+  if (out(head).length === targets.length && targets.every((p) => !out(p).length) && targets.length > n) {
+    const bands: string[][] = [[head]];
+    for (let i = 0; i * n < targets.length; i++) bands.push(targets.slice(i * n, (i + 1) * n));
+    return bands;
+  }
+  return undefined;
+}
+
+export function plan(model: SModel, view: SView, font: Font): Plan {
+  // a view standing inside a container inherits that container's own layout
+  // block, unless it brings hints of its own (SPEC §6: all or nothing)
+  const own = view.scope ? model.containers.get(view.scope)?.layout : undefined;
+  const L = view.layout;
+  if (own && !(L.rows || L.cols || L.place.length || L.direction || L.wrap))
+    view = { ...view, layout: { ...L, rows: own.rows, cols: own.cols, place: own.place, direction: own.direction } };
+
+  const graph = resolveView(model, view);
+  const fx = (px: number) => Math.round(px * font.scale);
+  const nodeAt = new Map(graph.nodes.map((n) => [n.path, n]));
+  const frameAt = new Map(graph.frames.map((f) => [f.path, f]));
+  const frameParent = (p: string) => nodeAt.get(p)?.frame ?? frameAt.get(p)?.frame;
+
+  // ── the tree: root ⊃ zones ⊃ frames ⊃ leaves ──────────────────────────────
+  const entities = [...graph.frames.filter((f) => !f.frame).map((f) => f.path), ...graph.nodes.filter((n) => !n.frame).map((n) => n.path)];
+  const within = (path: string, member: string) => path === member || path.startsWith(member + ".");
+  const zones = model.zones
+    .map((z) => ({ z, set: new Set(entities.filter((e) => z.members.some((m) => within(e, m)))) }))
+    .filter((x) => x.set.size > 0);
+  /** The smallest zone that satisfies `covers` — a zone's parent, an entity's home. */
+  const smallest = (covers: (set: Set<string>) => boolean) =>
+    zones.filter((c) => covers(c.set)).sort((a, b) => a.set.size - b.set.size)[0]?.z.id;
+  const zoneParent = new Map(zones.map((x) => [x.z.id,
+    smallest((set) => set.size > x.set.size && [...x.set].every((e) => set.has(e)))]));
+  const entityZone = new Map(entities.map((e) => [e, smallest((set) => set.has(e))]));
+
+  const parent = new Map<string, string>(); // box id → container box id ("" = root)
+  for (const e of entities) parent.set(e, entityZone.get(e) ? zoneBoxId(entityZone.get(e)!) : "");
+  for (const x of zones) parent.set(zoneBoxId(x.z.id), zoneParent.get(x.z.id) ? zoneBoxId(zoneParent.get(x.z.id)!) : "");
+  for (const p of [...nodeAt.keys(), ...frameAt.keys()]) if (frameParent(p)) parent.set(p, frameParent(p)!);
+  const childrenOf = (container: string): string[] => [
+    ...zones.filter((x) => parent.get(zoneBoxId(x.z.id)) === container).map((x) => zoneBoxId(x.z.id)),
+    ...graph.frames.filter((f) => parent.get(f.path) === container).map((f) => f.path),
+    ...graph.nodes.filter((n) => parent.get(n.path) === container).map((n) => n.path),
+  ];
+  /** The direct child of `container` that holds `path`. */
+  const memberOf = (container: string, path: string): string | undefined => {
+    for (let cur: string | undefined = path; cur !== undefined && parent.has(cur); cur = parent.get(cur))
+      if (parent.get(cur) === container) return cur;
+    return undefined;
+  };
+  const unitOf = new Map([...parent.keys()].map((p) => [p, memberOf("", p)!]));
+
+  // ── hints, projected onto one container ───────────────────────────────────
+  const project = (container: string, h: Hints): Hints & { named: number } => {
+    const band = (paths: string[][] | undefined) =>
+      paths?.map((b) => b.map((p) => memberOf(container, p)).filter((m): m is string => !!m)).filter((b) => b.length);
+    const place = h.place.flatMap((pl) => {
+      const node = memberOf(container, pl.node), target = memberOf(container, pl.target);
+      return node && target && node !== target ? [{ node, relpos: pl.relpos, target }] : [];
+    });
+    const rows = band(h.rows), cols = band(h.cols);
+    const named = new Set([...(rows ?? []).flat(), ...(cols ?? []).flat(), ...place.flatMap((p) => [p.node, p.target])]).size;
+    return { rows: rows?.length ? rows : undefined, cols: cols?.length ? cols : undefined, place, named };
+  };
+  const liftedEdges = (container: string): Edge[] => graph.edges.flatMap((e) => {
+    const a = memberOf(container, e.from), b = memberOf(container, e.to);
+    return a && b && a !== b ? [[a, b] as const] : [];
+  });
+  const rootDir: Dir = view.layout.direction ?? "down";
+  const dirOf = (container: string): Dir => {
+    for (let c: string | undefined = container; c; c = parent.get(c)) {
+      const d = model.containers.get(c)?.layout?.direction;
+      if (d) return d;
+    }
+    return rootDir;
+  };
+  const viewHints: Hints = { rows: view.layout.rows, cols: view.layout.cols, place: view.layout.place };
+  if (view.layout.wrap && !graph.frames.length && !zones.length)
+    viewHints.rows ??= wrapRows(graph.nodes.map((n) => n.path), graph.edges.map((e) => [e.from, e.to]), view.layout.wrap.n);
+
+  const [gapLane, gapRank] = SPACING[view.layout.density ?? "comfortable"];
+  const group = (container: string): Group => {
+    const dir = container === "" ? rootDir : dirOf(container);
+    const fromView = project(container, viewHints);
+    // a container's own block applies unless the view relates two of its members
+    const block = model.containers.get(container)?.layout;
+    const hints = container === "" || fromView.named >= 2 || !block
+      ? (container === "" || fromView.named >= 2 ? fromView : { place: [] })
+      : project(container, block);
+    const members = childrenOf(container);
+    const { order, pins } = arrange(members, hints, liftedEdges(container), dir === "down");
+    const isFrame = frameAt.has(container), isZone = container.startsWith("zone:");
+    return {
+      dir, pins,
+      boxes: order.map(box),
+      pad: isFrame ? { top: 44, right: 16, bottom: 16, left: 16 }
+        : isZone ? { top: 28, right: 20, bottom: 20, left: 20 }
+        : { top: 32, right: 32, bottom: 32, left: 32 },
+      gap: isFrame ? { lane: 32, rank: 40 } : { lane: gapLane, rank: gapRank },
+    };
+  };
+  const leaf = (n: VNode): Box => {
+    const { w, h } = sizeOf(n, font);
+    return { id: n.path, w, h, face: n.fields ? 64 : undefined, bleed: n.kind === "card" ? SHEET_BLEED : undefined };
+  };
+  const box = (id: string): Box => {
+    const n = nodeAt.get(id);
+    if (n) return leaf(n);
+    const f = frameAt.get(id);
+    const z = zones.find((x) => zoneBoxId(x.z.id) === id)?.z;
+    const title = f
+      ? 16 + (f.icon ? 28 : 0) + Math.ceil(measure(f.label, fx(13), "600", font.metrics)) + 16
+      : 24 + (z!.icon ? CHIP_H : 0) + Math.ceil(measure(z!.label ?? z!.id, fx(11), "500", font.metrics)) + 16 + 24;
+    return { id, w: 0, h: 0, minW: title, group: group(id) };
+  };
+
+  const wires: Wire[] = graph.edges.map((e) => ({
+    id: e.id, from: e.from, to: e.to,
+    label: e.label ? { w: pillDims(e.label, font).w, h: 18 } : undefined,
+  }));
+  const depthOf = (id: string): number => (zoneParent.get(id) ? 1 + depthOf(zoneParent.get(id)!) : 0);
+  return {
+    problem: { root: group(""), wires }, graph, view, unitOf,
+    zones: zones.map((x) => ({ id: x.z.id, box: zoneBoxId(x.z.id), depth: depthOf(x.z.id) })),
+  };
+}

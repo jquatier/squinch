@@ -1,0 +1,148 @@
+// The engine's parts are plain functions, so each is tested on its own with
+// a few lines of input — no view, no model, no font, no layout call.
+import { describe, it, expect } from "vitest";
+import { acyclic, assignRanks, dense } from "./rank.js";
+import { spread } from "./isotonic.js";
+import { assignTracks } from "./channel.js";
+import { median, solve, type Box, type Group, type Problem, type Dir } from "./engine.js";
+
+const ranks = (ids: string, edges: string[], pins: Record<string, number> = {}) =>
+  Object.fromEntries(dense(assignRanks(ids.split(" "), edges.map((e) => e.split(">") as [string, string]), new Map(Object.entries(pins)))));
+
+describe("rank", () => {
+  it("puts a target below its source", () => {
+    expect(ranks("a b c", ["a>b", "b>c"])).toEqual({ a: 0, b: 1, c: 2 });
+  });
+  it("keeps a pinned band whole when an unlisted member sits between two band-mates", () => {
+    // ELK: scaffolds are lower bounds, the band splits, and the author gets an error
+    expect(ranks("a k b", ["a>k", "k>b"], { a: 0, b: 0 })).toEqual({ a: 0, b: 0, k: 1 });
+  });
+  it("breaks a mutual pair once, first edge wins", () => {
+    expect(acyclic([["a", "b"], ["b", "a"]])).toEqual([["a", "b"]]);
+    expect(ranks("a b", ["a>b", "b>a"])).toEqual({ a: 0, b: 1 });
+  });
+  it("lets two members joined by an edge share a pinned rank", () => {
+    expect(ranks("a b", ["a>b"], { a: 0, b: 0 })).toEqual({ a: 0, b: 0 });
+  });
+  it("floats an unpinned feeder above a pinned target", () => {
+    expect(ranks("ctx a b", ["ctx>a", "a>b"], { a: 0, b: 1 })).toEqual({ ctx: 0, a: 1, b: 2 });
+  });
+  it("drops a lone source to just above what it feeds", () => {
+    expect(ranks("a b c mon", ["a>b", "b>c", "mon>c"])).toEqual({ a: 0, b: 1, mon: 1, c: 2 });
+  });
+});
+
+describe("spread", () => {
+  it("leaves everything where it wants to be when nothing collides", () => {
+    expect(spread([0, 100, 300], [1, 1, 1], [50, 50, 0])).toEqual([0, 100, 300]);
+  });
+  it("splits a collision around its weighted centre", () => {
+    expect(spread([100, 100], [1, 1], [40, 0])).toEqual([80, 120]);
+    expect(spread([100, 100], [3, 1], [40, 0])).toEqual([90, 130]);
+  });
+  it("never reorders", () => {
+    const out = spread([300, 0], [1, 1], [10, 0]);
+    expect(out[1] - out[0]).toBe(10);
+  });
+});
+
+describe("median", () => {
+  it("follows one wire, centres between two on a side, follows the middle of three", () => {
+    expect(median([{ value: 7, weight: 1 }])).toBe(7);
+    expect(median([{ value: 0, weight: 1 }, { value: 10, weight: 1 }])).toBe(5);
+    expect(median([{ value: 0, weight: 1 }, { value: 4, weight: 1 }, { value: 10, weight: 1 }])).toBe(4);
+  });
+  it("gives an even split between two sides to the side being followed", () => {
+    expect(median([{ value: 0, weight: 1, side: 1 }, { value: 10, weight: 1, side: 0 }])).toBe(10);
+  });
+});
+
+describe("tracks", () => {
+  const lo = (pos: number) => ({ at: "lo" as const, pos }), hi = (pos: number) => ({ at: "hi" as const, pos });
+  it("shares a track between runs that do not overlap", () => {
+    const t = assignTracks([{ id: "a", a: lo(0), b: hi(50) }, { id: "b", a: lo(100), b: hi(150) }]);
+    expect([t.get("a"), t.get("b")]).toEqual([0, 0]);
+  });
+  it("nests a short go-around inside a long one", () => {
+    const t = assignTracks([{ id: "long", a: lo(0), b: lo(300) }, { id: "short", a: lo(100), b: lo(200) }]);
+    expect(t.get("short")).toBeLessThan(t.get("long")!);
+  });
+  it("never draws one wire's stub along another's", () => {
+    // a comes down at 100 and b goes down from 100: a's track must be the upper
+    const t = assignTracks([{ id: "b", a: lo(0), b: hi(100) }, { id: "a", a: lo(100), b: hi(200) }]);
+    expect(t.get("a")).toBeLessThan(t.get("b")!);
+  });
+});
+
+// ── the whole engine, on problems small enough to read ───────────────────────
+const leaf = (id: string, w = 120, h = 64): Box => ({ id, w, h });
+const group = (boxes: Box[], over: Partial<Group> = {}): Group => ({
+  dir: "down", pad: { top: 32, right: 32, bottom: 32, left: 32 }, gap: { lane: 48, rank: 56 }, boxes, pins: new Map(), ...over,
+});
+const wire = (s: string) => { const [from, to] = s.split(">"); return { id: s, from, to }; };
+const problem = (boxes: Box[], wires: string[], over: Partial<Group> = {}): Problem => ({ root: group(boxes, over), wires: wires.map(wire) });
+const pin = (o: Record<string, number>) => ({ pins: new Map(Object.entries(o)) });
+
+describe("solve", () => {
+  it("draws a wire between two ranks as one straight line", () => {
+    const s = solve(problem([leaf("a"), leaf("b")], ["a>b"]));
+    expect(s.wires.get("a>b")!.points).toEqual([{ x: 92, y: 96 }, { x: 92, y: 152 }]);
+    expect(s.boxes.get("b")).toEqual({ x: 32, y: 152, w: 120, h: 64 });
+  });
+  it("draws a same-rank wire straight across the gutter", () => {
+    const s = solve(problem([leaf("a"), leaf("b")], ["a>b"], pin({ a: 0, b: 0 })));
+    const [p, q] = s.wires.get("a>b")!.points;
+    expect([p.y, q.y, q.x - p.x]).toEqual([64, 64, 48]);
+  });
+  it("takes a same-rank wire round whatever stands between its ends", () => {
+    const s = solve(problem([leaf("a"), leaf("mid"), leaf("b")], ["a>b"], pin({ a: 0, mid: 0, b: 0 })));
+    const pts = s.wires.get("a>b")!.points;
+    expect(pts).toHaveLength(4);
+    const mid = s.boxes.get("mid")!;
+    expect(pts[1].y).toBeGreaterThan(mid.y + mid.h); // under the row, not through it
+  });
+  it("passes a long wire between the boxes of the rank it crosses", () => {
+    const s = solve(problem([leaf("a"), leaf("b"), leaf("c")], ["a>b", "b>c", "a>c"]));
+    const b = s.boxes.get("b")!;
+    for (const p of s.wires.get("a>c")!.points) expect(p.x < b.x || p.x > b.x + b.w || p.y <= b.y || p.y >= b.y + b.h).toBe(true);
+  });
+  it("gives a label room on its own wire", () => {
+    const p = problem([leaf("a"), leaf("b")], ["a>b"]);
+    p.wires[0].label = { w: 60, h: 18 };
+    const s = solve(p);
+    const { points, label } = s.wires.get("a>b")!;
+    expect(label!.x + 30).toBe(points[0].x);           // centred on the wire
+    expect(label!.y).toBeGreaterThan(96);              // clear of the source
+    expect(label!.y + 18).toBeLessThan(s.boxes.get("b")!.y);
+  });
+  it("lays out `direction right` as the same picture with the axes swapped", () => {
+    const build = (dir: Dir) => solve(problem([leaf("a", 64, 64), leaf("b", 64, 64), leaf("c", 64, 64)], ["a>b", "a>c"], { dir }));
+    const down = build("down"), right = build("right");
+    for (const id of ["a", "b", "c"]) {
+      const d = down.boxes.get(id)!, r = right.boxes.get(id)!;
+      expect([r.x, r.y]).toEqual([d.y, d.x]);
+    }
+    expect(right.wires.get("a>c")!.points).toEqual(down.wires.get("a>c")!.points.map((p) => ({ x: p.y, y: p.x })));
+  });
+  it("carries a wire through a container wall to the box inside", () => {
+    const inner: Box = { id: "sys", w: 0, h: 0, group: group([leaf("sys.x"), leaf("sys.y")], { pad: { top: 44, right: 16, bottom: 16, left: 16 } }) };
+    const s = solve(problem([leaf("a"), inner], ["a>sys.y", "sys.x>sys.y"]));
+    const y = s.boxes.get("sys.y")!, pts = s.wires.get("a>sys.y")!.points;
+    const end = pts[pts.length - 1];
+    expect(end.y).toBe(y.y);                                     // on its top wall
+    expect(end.x).toBeGreaterThan(y.x); expect(end.x).toBeLessThan(y.x + y.w);
+    const x = s.boxes.get("sys.x")!;                             // and round the box above it
+    for (const p of pts) expect(p.x > x.x && p.x < x.x + x.w && p.y > x.y && p.y < x.y + x.h).toBe(false);
+  });
+  it("gives a container its own direction with no special case", () => {
+    const pipe: Box = { id: "p", w: 0, h: 0, group: group([leaf("p.a"), leaf("p.b"), leaf("p.c")], { dir: "right" }) };
+    const s = solve(problem([leaf("src"), pipe], ["src>p.a", "p.a>p.b", "p.b>p.c"]));
+    const [a, b, c] = ["p.a", "p.b", "p.c"].map((id) => s.boxes.get(id)!);
+    expect(a.y).toBe(b.y); expect(b.y).toBe(c.y);                // one baseline
+    expect(a.x).toBeLessThan(b.x); expect(b.x).toBeLessThan(c.x);
+  });
+  it("is a pure function", () => {
+    const make = () => problem([leaf("a"), leaf("b"), leaf("c"), leaf("d")], ["a>b", "a>c", "b>d", "c>d", "a>d"]);
+    expect(JSON.stringify([...solve(make()).wires])).toBe(JSON.stringify([...solve(make()).wires]));
+  });
+});
