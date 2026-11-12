@@ -77,7 +77,7 @@ export function arrange(
 
 /** `wrap N` as the rows the author could have typed, or nothing when the
  *  view is neither one chain nor one fan-out. */
-export function wrapRows(nodes: readonly string[], edges: readonly Edge[], n: number): string[][] | undefined {
+export function wrapRows(nodes: readonly string[], edges: readonly Edge[], n: number): { bands: string[][]; fan?: string } | undefined {
   const outs = new Map<string, string[]>(), ins = new Map<string, number>();
   for (const [a, b] of edges) { outs.set(a, [...(outs.get(a) ?? []), b]); ins.set(b, (ins.get(b) ?? 0) + 1); }
   const heads = nodes.filter((p) => !ins.get(p));
@@ -94,13 +94,13 @@ export function wrapRows(nodes: readonly string[], edges: readonly Edge[], n: nu
       const band = chain.slice(i * n, (i + 1) * n);
       bands.push(i % 2 ? band.reverse() : band);
     }
-    return bands;
+    return { bands };
   }
   const targets = nodes.filter((p) => p !== head);
   if (out(head).length === targets.length && targets.every((p) => !out(p).length) && targets.length > n) {
     const bands: string[][] = [[head]];
     for (let i = 0; i * n < targets.length; i++) bands.push(targets.slice(i * n, (i + 1) * n));
-    return bands;
+    return { bands, fan: head };
   }
   return undefined;
 }
@@ -174,8 +174,16 @@ export function plan(model: SModel, view: SView, font: Font): Plan {
     return rootDir;
   };
   const viewHints: Hints = { rows: view.layout.rows, cols: view.layout.cols, place: view.layout.place };
-  if (view.layout.wrap && !graph.frames.length && !zones.length)
-    viewHints.rows ??= wrapRows(graph.nodes.map((n) => n.path), graph.edges.map((e) => [e.from, e.to]), view.layout.wrap.n);
+  const wrap = view.layout.wrap && !view.layout.rows && !graph.frames.length && !zones.length
+    ? wrapRows(graph.nodes.map((n) => n.path), graph.edges.map((e) => [e.from, e.to]), view.layout.wrap.n) : undefined;
+  if (wrap) viewHints.rows = wrap.bands;
+  /** Wires drawn as one trunk: a folded fan-out's edges past its first band,
+   *  and every `channel a, b -> c`. */
+  const bundleOf = (from: string, to: string): string | undefined => {
+    if (wrap?.fan === from && wrap.bands.findIndex((b) => b.includes(to)) >= 2) return "wrap";
+    const ch = view.layout.channels.find((c) => c.target === to && c.sources.includes(from));
+    return ch ? `channel:${ch.target}` : undefined;
+  };
 
   const [gapLane, gapRank] = SPACING[view.layout.density ?? "comfortable"];
   const group = (container: string): Group => {
@@ -183,14 +191,13 @@ export function plan(model: SModel, view: SView, font: Font): Plan {
     const fromView = project(container, viewHints);
     // a container's own block applies unless the view relates two of its members
     const block = model.containers.get(container)?.layout;
-    const hints = container === "" || fromView.named >= 2 || !block
-      ? (container === "" || fromView.named >= 2 ? fromView : { place: [] })
-      : project(container, block);
+    const hints: Hints = container === "" || fromView.named >= 2 ? fromView : block ? project(container, block) : { place: [] };
     const members = childrenOf(container);
     const { order, pins } = arrange(members, hints, liftedEdges(container), dir === "down");
     const isFrame = frameAt.has(container), isZone = container.startsWith("zone:");
+    const arranged = !!(hints.rows || hints.cols || hints.place.length);
     return {
-      dir, pins,
+      dir, pins, free: container !== "" && !arranged,
       boxes: order.map(box),
       pad: isFrame ? { top: 44, right: 16, bottom: 16, left: 16 }
         : isZone ? { top: 28, right: 20, bottom: 20, left: 20 }
@@ -216,6 +223,7 @@ export function plan(model: SModel, view: SView, font: Font): Plan {
   const wires: Wire[] = graph.edges.map((e) => ({
     id: e.id, from: e.from, to: e.to,
     label: e.label ? { w: pillDims(e.label, font).w, h: 18 } : undefined,
+    bundle: bundleOf(e.from, e.to),
   }));
   const depthOf = (id: string): number => (zoneParent.get(id) ? 1 + depthOf(zoneParent.get(id)!) : 0);
   return {

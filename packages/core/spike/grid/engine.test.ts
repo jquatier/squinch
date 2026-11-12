@@ -4,6 +4,7 @@ import { describe, it, expect } from "vitest";
 import { acyclic, assignRanks, dense } from "./rank.js";
 import { spread } from "./isotonic.js";
 import { assignTracks } from "./channel.js";
+import { crossings, orderBoxes } from "./order.js";
 import { median, solve, type Box, type Group, type Problem, type Dir } from "./engine.js";
 
 const ranks = (ids: string, edges: string[], pins: Record<string, number> = {}) =>
@@ -29,6 +30,33 @@ describe("rank", () => {
   });
   it("drops a lone source to just above what it feeds", () => {
     expect(ranks("a b c mon", ["a>b", "b>c", "mon>c"])).toEqual({ a: 0, b: 1, mon: 1, c: 2 });
+  });
+});
+
+describe("rank is the least total wire", () => {
+  // every DAG on five nodes drawn from a fixed sequence, against brute force
+  it("matches exhaustive search on small graphs", () => {
+    let seed = 7;
+    const next = () => (seed = (seed * 1103515245 + 12345) % 2147483648) / 2147483648;
+    const ids = ["a", "b", "c", "d", "e"];
+    for (let trial = 0; trial < 60; trial++) {
+      const edges: [string, string][] = [];
+      for (let i = 0; i < 5; i++) for (let j = i + 1; j < 5; j++) if (next() < 0.4) edges.push([ids[i], ids[j]]);
+      const got = assignRanks(ids, edges);
+      const length = (r: (id: string) => number) => edges.reduce((a, [x, y]) => a + r(y) - r(x), 0);
+      for (const [x, y] of edges) expect(got.get(y)!).toBeGreaterThan(got.get(x)!);
+      let best = Infinity;
+      const r = [0, 0, 0, 0, 0];
+      const walk = (i: number) => {
+        if (i === 5) {
+          if (edges.every(([x, y]) => r[ids.indexOf(y)] > r[ids.indexOf(x)])) best = Math.min(best, length((id) => r[ids.indexOf(id)]));
+          return;
+        }
+        for (r[i] = 0; r[i] < 5; r[i]++) walk(i + 1);
+      };
+      walk(0);
+      expect(length((id) => got.get(id)!)).toBe(best);
+    }
   });
 });
 
@@ -71,6 +99,29 @@ describe("tracks", () => {
     // a comes down at 100 and b goes down from 100: a's track must be the upper
     const t = assignTracks([{ id: "b", a: lo(0), b: hi(100) }, { id: "a", a: lo(100), b: hi(200) }]);
     expect(t.get("a")).toBeLessThan(t.get("b")!);
+  });
+});
+
+describe("order", () => {
+  const rank = new Map([["a", 0], ["b", 0], ["x", 1], ["y", 1]]);
+  it("counts a crossing and removes it", () => {
+    const edges: [string, string][] = [["a", "y"], ["b", "x"]];
+    expect(crossings(["a", "b", "x", "y"], rank, edges)).toBe(1);
+    const order = orderBoxes(["a", "b", "x", "y"], rank, edges);
+    expect(crossings(order, rank, edges)).toBe(0);
+  });
+  it("leaves an order alone when nothing crosses", () => {
+    expect(orderBoxes(["a", "b", "x", "y"], rank, [["a", "x"], ["b", "y"]])).toEqual(["a", "b", "x", "y"]);
+  });
+});
+
+describe("a net", () => {
+  it("shares one track however its branches overlap", () => {
+    const lo = (pos: number) => ({ at: "lo" as const, pos }), hi = (pos: number) => ({ at: "hi" as const, pos });
+    const t = assignTracks([
+      { id: "p", a: lo(100), b: hi(0), net: "n" }, { id: "q", a: lo(100), b: hi(200), net: "n" }, { id: "r", a: lo(100), b: hi(50), net: "n" },
+    ]);
+    expect(new Set(t.values()).size).toBe(1);
   });
 });
 
@@ -140,6 +191,23 @@ describe("solve", () => {
     const [a, b, c] = ["p.a", "p.b", "p.c"].map((id) => s.boxes.get(id)!);
     expect(a.y).toBe(b.y); expect(b.y).toBe(c.y);                // one baseline
     expect(a.x).toBeLessThan(b.x); expect(b.x).toBeLessThan(c.x);
+  });
+  it("draws a bundle as one trunk: one port, one lane through the rank between", () => {
+    const boxes = [leaf("hub"), leaf("n1"), leaf("n2"), leaf("f1"), leaf("f2")];
+    const p = problem(boxes, ["hub>n1", "hub>n2", "hub>f1", "hub>f2"], pin({ hub: 0, n1: 1, n2: 1, f1: 2, f2: 2 }));
+    for (const w of p.wires) if (w.to.startsWith("f")) w.bundle = "far";
+    const s = solve(p);
+    const [a, b] = ["hub>f1", "hub>f2"].map((id) => s.wires.get(id)!.points);
+    expect(a[0]).toEqual(b[0]);                       // one port on the hub
+    const through = (pts: typeof a) => pts.find((q) => q.y > s.boxes.get("n1")!.y)!.x;
+    expect(through(a)).toBe(through(b));              // one lane past n1 and n2
+  });
+  it("reorders a container nobody arranged, and leaves an arranged one alone", () => {
+    const build = (free: boolean) => solve(problem([leaf("a"), leaf("b"), leaf("x"), leaf("y")], ["a>y", "b>x"], { free }));
+    const x = (s: ReturnType<typeof build>, id: string) => s.boxes.get(id)!.x;
+    const kept = build(false), freed = build(true);
+    expect(x(kept, "x")).toBeLessThan(x(kept, "y"));   // declaration order, wires cross
+    expect((x(freed, "a") - x(freed, "b")) * (x(freed, "y") - x(freed, "x"))).toBeGreaterThan(0); // uncrossed
   });
   it("is a pure function", () => {
     const make = () => problem([leaf("a"), leaf("b"), leaf("c"), leaf("d")], ["a>b", "a>c", "b>d", "c>d", "a>d"]);

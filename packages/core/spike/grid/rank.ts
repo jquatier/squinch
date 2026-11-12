@@ -2,8 +2,10 @@
 //
 // The author's `rows`/`place` arrive as `pins` and are *hard* — a pinned
 // member is on its row, full stop. Everything else follows the edges: a
-// target sits below its source. Nothing here predicts what a later stage will
-// do, because no later stage may move a rank.
+// target sits below its source, and among all the ways to do that the one
+// with the least total wire is chosen (network simplex — Gansner et al.,
+// the same objective ELK's layering has). Nothing here predicts what a later
+// stage will do, because no later stage may move a rank.
 //
 // Three consequences the ELK engine could not offer, each of which is a
 // diagnostic or a workaround there:
@@ -16,25 +18,38 @@ export type Edge = readonly [from: string, to: string];
 
 /** `edges` minus each one that would close a cycle with those before it. */
 export function acyclic(edges: readonly Edge[]): Edge[] {
-  const next = new Map<string, Set<string>>();
-  const reaches = (from: string, to: string): boolean => {
-    const seen = new Set([from]);
-    const stack = [from];
-    for (let cur = stack.pop(); cur !== undefined; cur = stack.pop()) {
-      if (cur === to) return true;
-      for (const n of next.get(cur) ?? []) if (!seen.has(n)) { seen.add(n); stack.push(n); }
+  return feasible(edges.map(([a, b]) => ({ tail: a, head: b, min: 1 }))).map((c) => [c.tail, c.head] as const);
+}
+
+/** head ≥ tail + min. Pins make `min` anything; a plain edge is 1. */
+interface Constraint { tail: string; head: string; min: number }
+
+/** The constraints that can all hold at once, taken in order: one that
+ *  contradicts those before it is left out. (A cycle is the simplest case; a
+ *  feeder held both above and below a pinned row is the other.) */
+function feasible(all: readonly Constraint[]): Constraint[] {
+  const kept: Constraint[] = [];
+  // longest path from `from` to `to` over what is kept so far
+  const longest = (from: string, to: string): number => {
+    const dist = new Map([[from, 0]]);
+    for (let pass = 0; pass <= kept.length; pass++) {
+      let moved = false;
+      for (const c of kept) {
+        const d = dist.get(c.tail);
+        if (d !== undefined && d + c.min > (dist.get(c.head) ?? -Infinity)) { dist.set(c.head, d + c.min); moved = true; }
+      }
+      if (!moved) break;
     }
-    return false;
+    return dist.get(to) ?? -Infinity;
   };
-  const kept: Edge[] = [];
-  for (const e of edges) {
-    const [a, b] = e;
-    if (a === b || reaches(b, a)) continue;
-    kept.push(e);
-    (next.get(a) ?? next.set(a, new Set()).get(a)!).add(b);
+  for (const c of all) {
+    if (c.tail === c.head ? c.min > 0 : longest(c.head, c.tail) + c.min > 0) continue;
+    if (c.tail !== c.head) kept.push(c);
   }
   return kept;
 }
+
+const PINNED = "\u0000pinned"; // every pinned member, as one node at rank 0
 
 /**
  * A rank for every id. Pinned ids keep their pin exactly; the numbers are
@@ -45,53 +60,23 @@ export function assignRanks(
   edges: readonly Edge[],
   pins: ReadonlyMap<string, number> = new Map(),
 ): Map<string, number> {
-  // an edge between two pinned members constrains nothing: the pins decide
-  const dag = acyclic(edges.filter(([a, b]) => !(pins.has(a) && pins.has(b))));
-  const preds = new Map<string, string[]>(ids.map((id) => [id, []]));
-  const succs = new Map<string, string[]>(ids.map((id) => [id, []]));
-  for (const [a, b] of dag) { succs.get(a)!.push(b); preds.get(b)!.push(a); }
-  const order = topological(ids, succs);
+  // Pinned members move together or not at all, so they are one node: an
+  // edge into a member pinned at row 3 says "at least 1 above row 3".
+  const node = (id: string) => (pins.has(id) ? PINNED : id);
+  const constraints = feasible(edges
+    .filter(([a, b]) => a !== b && !(pins.has(a) && pins.has(b)))
+    .map(([a, b]) => ({ tail: node(a), head: node(b), min: 1 + (pins.get(a) ?? 0) - (pins.get(b) ?? 0) })));
+  const nodes = [...new Set([...(pins.size ? [PINNED] : []), ...ids.filter((id) => !pins.has(id))])];
 
-  // 1. below every source: longest path, pins fixed
-  const rank = new Map<string, number>(ids.map((id) => [id, pins.get(id) ?? 0]));
-  for (const id of order)
-    for (const s of succs.get(id)!)
-      if (!pins.has(s)) rank.set(s, Math.max(rank.get(s)!, rank.get(id)! + 1));
-
-  // 2. above a pinned target: an unpinned feeder floats up to sit over it,
-  //    unless something pinned above already holds it down — then it stays
-  //    below and that one edge runs upward
-  const ceiling = new Map<string, number>();
-  const floor = new Map<string, number>();
-  for (const id of order) {
-    const held = preds.get(id)!.map((p) => (pins.has(p) ? pins.get(p)! : floor.get(p)!) + 1);
-    floor.set(id, Math.max(-Infinity, ...held));
+  const rank = new Map<string, number>();
+  for (const part of components(nodes, constraints)) {
+    const own = constraints.filter((c) => part.has(c.tail));
+    const solved = shortest([...part], own);
+    // a part holding the pinned rows is measured from them; any other starts at row 0
+    const shift = part.has(PINNED) ? -solved.get(PINNED)! : -Math.min(...solved.values());
+    for (const [id, r] of solved) rank.set(id, r + shift);
   }
-  for (const id of [...order].reverse()) {
-    const caps = succs.get(id)!.map((s) => (pins.has(s) ? pins.get(s)! : ceiling.get(s)!) - 1);
-    ceiling.set(id, Math.min(Infinity, ...caps));
-    if (!pins.has(id) && rank.get(id)! > ceiling.get(id)! && floor.get(id)! <= ceiling.get(id)!)
-      rank.set(id, ceiling.get(id)!);
-  }
-
-  // 3. shorten: a member with more edges on one side moves toward that side,
-  //    as far as its other neighbours allow. Each member only ever moves one
-  //    way, so this terminates.
-  for (let pass = 0; pass < ids.length; pass++) {
-    let moved = false;
-    for (const id of ids) {
-      if (pins.has(id)) continue;
-      const r = rank.get(id)!;
-      const above = preds.get(id)!.map((p) => rank.get(p)!).filter((x) => x < r);
-      const below = succs.get(id)!.map((s) => rank.get(s)!).filter((x) => x > r);
-      const lo = Math.max(-Infinity, ...above) + 1, hi = Math.min(Infinity, ...below) - 1;
-      const to = below.length > above.length && hi !== Infinity ? hi
-        : above.length > below.length && lo !== -Infinity ? lo : r;
-      if (to !== r) { rank.set(id, to); moved = true; }
-    }
-    if (!moved) break;
-  }
-  return rank;
+  return new Map(ids.map((id) => [id, pins.get(id) ?? rank.get(id)!]));
 }
 
 /** Ranks renumbered 0,1,2… with no gaps, order kept. */
@@ -100,15 +85,78 @@ export function dense(rank: ReadonlyMap<string, number>): Map<string, number> {
   return new Map([...rank].map(([id, r]) => [id, values.indexOf(r)]));
 }
 
-function topological(ids: readonly string[], succs: ReadonlyMap<string, string[]>): string[] {
-  const seen = new Set<string>();
-  const out: string[] = [];
-  const visit = (id: string) => {
-    if (seen.has(id)) return;
-    seen.add(id);
-    for (const s of succs.get(id)!) visit(s);
-    out.push(id);
+function components(nodes: readonly string[], cs: readonly Constraint[]): Set<string>[] {
+  const next = new Map<string, string[]>(nodes.map((n) => [n, []]));
+  for (const c of cs) { next.get(c.tail)!.push(c.head); next.get(c.head)!.push(c.tail); }
+  const seen = new Set<string>(), out: Set<string>[] = [];
+  for (const n of nodes) {
+    if (seen.has(n)) continue;
+    const part = new Set<string>(), stack = [n];
+    for (let cur = stack.pop(); cur !== undefined; cur = stack.pop()) {
+      if (seen.has(cur)) continue;
+      seen.add(cur); part.add(cur);
+      stack.push(...next.get(cur)!);
+    }
+    out.push(part);
+  }
+  return out;
+}
+
+/**
+ * Network simplex on one connected part: ranks that satisfy every constraint
+ * with the least Σ (head − tail). Graphs here are a few dozen nodes, so cut
+ * values are recomputed from scratch each pivot — clarity over speed.
+ */
+function shortest(nodes: readonly string[], cs: readonly Constraint[]): Map<string, number> {
+  const rank = new Map<string, number>(nodes.map((n) => [n, 0]));
+  // any feasible start: longest path
+  for (let pass = 0; pass <= nodes.length; pass++)
+    for (const c of cs) rank.set(c.head, Math.max(rank.get(c.head)!, rank.get(c.tail)! + c.min));
+  if (nodes.length < 2) return rank;
+  const slack = (c: Constraint) => rank.get(c.head)! - rank.get(c.tail)! - c.min;
+
+  // a spanning tree of tight constraints, pulling the rest of the graph in
+  const inTree = new Set<string>([nodes[0]]);
+  const tree = new Set<Constraint>();
+  while (inTree.size < nodes.length) {
+    const grow = cs.find((c) => !tree.has(c) && slack(c) === 0 && inTree.has(c.tail) !== inTree.has(c.head));
+    if (grow) { tree.add(grow); inTree.add(grow.tail); inTree.add(grow.head); continue; }
+    // nothing tight reaches out: slide the tree up to the nearest outsider
+    const reach = cs.filter((c) => inTree.has(c.tail) !== inTree.has(c.head)).sort((a, b) => slack(a) - slack(b))[0];
+    const delta = inTree.has(reach.head) ? -slack(reach) : slack(reach);
+    for (const n of inTree) rank.set(n, rank.get(n)! + delta);
+  }
+
+  /** The nodes on `c`'s tail side once `c` is cut out of the tree. */
+  const tailSide = (c: Constraint): Set<string> => {
+    const side = new Set([c.tail]), stack = [c.tail];
+    for (let cur = stack.pop(); cur !== undefined; cur = stack.pop())
+      for (const t of tree) {
+        if (t === c) continue;
+        const other = t.tail === cur ? t.head : t.head === cur ? t.tail : undefined;
+        if (other !== undefined && !side.has(other)) { side.add(other); stack.push(other); }
+      }
+    return side;
   };
-  for (const id of ids) visit(id);
-  return out.reverse();
+  for (let pivot = 0; pivot < cs.length * nodes.length; pivot++) {
+    // a tree edge with more wire crossing it backwards than forwards is wrong
+    let leave: Constraint | undefined, tails: Set<string> | undefined;
+    for (const t of tree) {
+      const side = tailSide(t);
+      let cut = 0;
+      for (const c of cs) {
+        if (side.has(c.tail) && !side.has(c.head)) cut++;
+        else if (!side.has(c.tail) && side.has(c.head)) cut--;
+      }
+      if (cut < 0) { leave = t; tails = side; break; }
+    }
+    if (!leave || !tails) break;
+    // replace it with the least-slack constraint running the other way
+    const enter = cs.filter((c) => !tails!.has(c.tail) && tails!.has(c.head)).sort((a, b) => slack(a) - slack(b))[0];
+    if (!enter) break;
+    const delta = slack(enter);
+    for (const n of tails) rank.set(n, rank.get(n)! - delta);
+    tree.delete(leave); tree.add(enter);
+  }
+  return rank;
 }

@@ -19,7 +19,10 @@ it("grid vs ELK over the corpus", async () => {
   for (const f of corpus()) {
     const built = buildProject([{ name: f.name, src: f.src }]);
     if (built.diagnostics.some((d) => d.severity === "error")) continue;
-    const ctx = { zoneMembers: new Map(built.model.zones.map((z) => [z.id, z.members])) };
+    const ctx = {
+      zoneMembers: new Map(built.model.zones.map((z) => [z.id, z.members])),
+      channelTargets: new Set(built.model.views.flatMap((v) => v.layout.channels.map((c) => c.target))),
+    };
     for (const view of built.model.views) {
       let t = performance.now();
       const elk = (await layoutView(built.model, view)).positioned;
