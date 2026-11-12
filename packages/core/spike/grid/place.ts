@@ -11,7 +11,7 @@ import type { Gutter } from "./gutters.js";
 import { spread } from "./isotonic.js";
 import type { Ports } from "./ports.js";
 import type { Sheet } from "./sheet.js";
-import { LABEL_PAD, WIRE_BOX, WIRE_WIRE, type Layer, type Slot } from "./types.js";
+import { CORNER, LABEL_PAD, WIRE_BOX, WIRE_WIRE, type Layer, type Slot } from "./types.js";
 
 /** Weighted median. When the weight splits evenly between two values: their
  *  midpoint if they are on the same `side` (a parent centres over two
@@ -34,10 +34,10 @@ export function median(items: { value: number; weight: number; side?: number }[]
 }
 
 const SWEEPS = 5;  // down, up, down, up, down — the last word to the reading direction
-const NEAR = 8;    // a jog this short is slid straight rather than drawn
+const NEAR = 15;   // a jog shorter than two corner radii is slid straight rather than drawn
 
-export function place(sh: Sheet, ports: Ports, gutters: ReadonlyMap<Slot, Gutter>): void {
-  const { layers, chains, g } = sh;
+export function place(sh: Sheet, ports: Ports, gutters: ReadonlyMap<Slot, Gutter>, title?: { w: number; h: number }): void {
+  const { layers, chains, g, ax } = sh;
 
   /** The least distance from the end of `s` to the start of `next`. */
   const gapAfter = (s: Slot, next: Slot): number => {
@@ -54,6 +54,14 @@ export function place(sh: Sheet, ports: Ports, gutters: ReadonlyMap<Slot, Gutter
   // several ranks should not wobble, a wall port only follows — and on how
   // crowded the far wall is: one of eleven wires leaving a hub cannot be
   // straight anyway, so it gives way to the end it has to itself.
+  // …and on whether the far end goes on anywhere: a stage with a successor
+  // and a side lookup stays in line with the successor, and the lookup hangs
+  // beside it. Two equal children still share their parent evenly.
+  const degree = new Map<string, number>();
+  for (const l of sh.links)
+    for (const id of l.type === "chain" ? [l.top, l.bottom] : l.type === "side" ? [l.box] : [l.a, l.b])
+      degree.set(id, (degree.get(id) ?? 0) + 1);
+  const deadEnd = (s: Slot) => (s.kind === "box" && degree.get(s.id) === 1 ? 0.5 : 1);
   interface Pull { other: Slot; mine: number; theirs: number; weight: number }
   const pulls = new Map<Slot, Pull[]>();
   const pullsOn = (s: Slot) => pulls.get(s) ?? pulls.set(s, []).get(s)!;
@@ -64,8 +72,18 @@ export function place(sh: Sheet, ports: Ports, gutters: ReadonlyMap<Slot, Gutter
       const ou = ports.lane(u, c.wire, "end") - u.pos, ov = ports.lane(v, c.wire, "start") - v.pos;
       const base = u.kind === "port" || v.kind === "port" ? 0.25
         : u.kind === "pass" && v.kind === "pass" ? 8 : u.kind === "pass" || v.kind === "pass" ? 2 : 3;
-      pullsOn(u).push({ other: v, mine: ou, theirs: ov, weight: base / ports.crowd(v, "start") });
+      const boxes = u.kind === "box" && v.kind === "box";
+      pullsOn(u).push({ other: v, mine: ou, theirs: ov, weight: (base * (boxes ? deadEnd(v) : 1)) / ports.crowd(v, "start") });
       pullsOn(v).push({ other: u, mine: ov, theirs: ou, weight: base / ports.crowd(u, "end") });
+    }
+
+  // boxes the author aligned pull hard on each other, centre to centre
+  const ALIGN = 24;
+  for (const set of g.aligned ?? [])
+    for (let i = 0; i + 1 < set.length; i++) {
+      const a = sh.slotOf(set[i]), b = sh.slotOf(set[i + 1]);
+      pullsOn(a).push({ other: b, mine: a.lsize / 2, theirs: b.lsize / 2, weight: ALIGN });
+      pullsOn(b).push({ other: a, mine: b.lsize / 2, theirs: a.lsize / 2, weight: ALIGN });
     }
 
   // start packed
@@ -136,6 +154,23 @@ export function place(sh: Sheet, ports: Ports, gutters: ReadonlyMap<Slot, Gutter
     return (!prev || pos >= prev.pos + prev.lsize + gapAfter(prev, s)) && (!next || next.pos >= pos + s.lsize + gapAfter(s, next));
   };
 
+  // Aligned boxes share a centre exactly. Take a centre every member's row
+  // has room for; failing that, the first-named member's, and its row-mates
+  // make way.
+  const force = (s: Slot, pos: number) => {
+    const row = layers[sh.layerOf(s)].slots, i = row.indexOf(s);
+    s.pos = pos;
+    for (let k = i - 1; k >= 0; k--) row[k].pos = Math.min(row[k].pos, row[k + 1].pos - gapAfter(row[k], row[k + 1]) - row[k].lsize);
+    for (let k = i + 1; k < row.length; k++) row[k].pos = Math.max(row[k].pos, row[k - 1].pos + row[k - 1].lsize + gapAfter(row[k - 1], row[k]));
+  };
+  for (const set of g.aligned ?? []) {
+    const members = set.map((id) => sh.slotOf(id));
+    const at = (s: Slot, centre: number) => Math.round(centre - s.lsize / 2);
+    const centres = members.map((s) => s.pos + s.lsize / 2);
+    const centre = centres.find((c) => members.every((s) => fits(s, at(s, c)))) ?? centres[0];
+    for (const s of members) force(s, at(s, centre));
+  }
+
   // A wire through several ranks runs in one line if it can. Each of its
   // slots was placed in its own row, among its own neighbours; where one lane
   // is free in every row, take it — preferring one that meets a box head-on.
@@ -154,6 +189,27 @@ export function place(sh: Sheet, ports: Ports, gutters: ReadonlyMap<Slot, Gutter
     if (lane !== undefined) for (const s of run) s.pos = lane - Math.round(s.lsize / 2);
   }
 
+  // Lanes are measured from the container's low wall from here on: boxes one
+  // padding in, ports clear of the corners.
+  const all = layers.flatMap((l) => l.slots);
+  const clear = (s: Slot) => (s.kind === "port" ? CORNER : ax.pad.low);
+  if (all.length) {
+    const first = Math.min(...all.map((s) => s.pos - clear(s)));
+    for (const s of all) s.pos -= first;
+  }
+  // No wire enters through the title. Under a downward flow the title lies
+  // along the start wall, so a port there keeps to its right; under a
+  // rightward flow it lies along the low wall, and a port keeps below it.
+  if (title) {
+    const wallRow = layers[0]?.kind === "wall" ? layers[0].slots : [];
+    if (ax.down) {
+      let least = title.w + CORNER;
+      for (const s of wallRow) { s.pos = Math.max(s.pos, least); least = s.pos + WIRE_WIRE; }
+    } else {
+      for (const s of all) if (s.kind === "port") s.pos = Math.max(s.pos, title.h + CORNER);
+    }
+  }
+
   // A wire a few pixels off straight is slid onto the line: the lower end
   // gives way — a port along its wall, a pass-through slot along its row.
   const shift = (s: Slot, d: number) => {
@@ -161,11 +217,13 @@ export function place(sh: Sheet, ports: Ports, gutters: ReadonlyMap<Slot, Gutter
     s.pos += d;
     return true;
   };
-  for (const c of chains)
-    for (let i = 0; i + 1 < c.path.length; i++) {
-      const u = c.path[i], v = c.path[i + 1];
-      const d = ports.lane(u, c.wire, "end") - ports.lane(v, c.wire, "start");
-      if (!d || Math.abs(d) > NEAR) continue;
-      if (!(ports.slide(v, c.wire, "start", d) || shift(v, d))) ports.slide(u, c.wire, "end", -d) || shift(u, -d);
-    }
+  // twice: sliding one wire's port can leave its neighbour a few pixels off
+  for (let round = 0; round < 2; round++)
+    for (const c of chains)
+      for (let i = 0; i + 1 < c.path.length; i++) {
+        const u = c.path[i], v = c.path[i + 1];
+        const d = ports.lane(u, c.wire, "end") - ports.lane(v, c.wire, "start");
+        if (!d || Math.abs(d) > NEAR) continue;
+        if (!(ports.slide(v, c.wire, "start", d) || shift(v, d))) ports.slide(u, c.wire, "end", -d) || shift(u, -d);
+      }
 }

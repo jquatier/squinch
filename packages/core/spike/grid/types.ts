@@ -17,6 +17,10 @@ export interface Box {
   bleed?: number;
   /** A container is never narrower than this (its title has to fit). */
   minW?: number;
+  /** A container's title, as the corner of its top-left it occupies. No wire
+   *  enters through it: a port keeps clear, and a wire that has to pass under
+   *  it turns below it. */
+  title?: { w: number; h: number };
   group?: Group;
 }
 export interface Group {
@@ -29,6 +33,8 @@ export interface Group {
    *  them within each rank to uncross wires. */
   free?: boolean;
   pins: Map<string, number>;
+  /** Sets of boxes, in different ranks, that share one centre line. */
+  aligned?: string[][];
 }
 export interface Wire {
   id: string; from: string; to: string;

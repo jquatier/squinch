@@ -12,8 +12,9 @@ export interface Ports {
   lane(s: Slot, wire: Wire, face: Face): number;
   /** How many wires share that wall of `s`. */
   crowd(s: Slot, face: Face): number;
-  /** Move a plain box's port by `d` along its wall, if it stays clear of the
-   *  corners and of its neighbours. */
+  /** Move a plain box's port by `d` along its wall: alone if it stays clear
+   *  of its neighbours, else together with every port on that wall. Never
+   *  into a corner. */
   slide(s: Slot, wire: Wire, face: Face, d: number): boolean;
 }
 
@@ -69,11 +70,17 @@ export function assignPorts(sh: Sheet): Ports {
     slide: (s, wire, face, d) => {
       const key = `${s.id}|${face}|${portId(wire)}`;
       if (s.kind !== "box" || !offset.has(key)) return false; // a container's port is its inside's
+      const keys = (wanted.get(`${s.id}|${face}`) ?? []).map((p) => `${s.id}|${face}|${portId(p.wire)}`);
+      const inside = (v: number) => v >= CORNER && v <= ax.flowFace(s.box!) - CORNER;
       const to = offset.get(key)! + d;
-      const others = (wanted.get(`${s.id}|${face}`) ?? []).filter((p) => portId(p.wire) !== portId(wire))
-        .map((p) => offset.get(`${s.id}|${face}|${portId(p.wire)}`)!);
-      if (to < CORNER || to > ax.flowFace(s.box!) - CORNER || others.some((o) => Math.abs(o - to) < 12)) return false;
-      offset.set(key, to);
+      // on its own, if it stays clear of its neighbours…
+      if (inside(to) && keys.every((k) => k === key || Math.abs(offset.get(k)! - to) >= 12)) {
+        offset.set(key, to);
+        return true;
+      }
+      // …otherwise every port on the wall moves with it, spacing kept
+      if (!keys.every((k) => inside(offset.get(k)! + d))) return false;
+      for (const k of keys) offset.set(k, offset.get(k)! + d);
       return true;
     },
   };

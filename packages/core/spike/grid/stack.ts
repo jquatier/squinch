@@ -14,7 +14,7 @@ export interface Stacked {
   L: number; F: number;
 }
 
-export function stack(sh: Sheet, ports: Ports, minW: number): Stacked {
+export function stack(sh: Sheet, ports: Ports, minW: number, title?: { w: number; h: number }): Stacked {
   const { ax, g, layers, chains, links } = sh;
 
   // ── every run that turns, by channel ──────────────────────────────────────
@@ -42,8 +42,9 @@ export function stack(sh: Sheet, ports: Ports, minW: number): Stacked {
   // ── flow positions ────────────────────────────────────────────────────────
   const channels = new Map<number, Channel>();
   const halfLabelGap = Math.max(LABEL_PAD, Math.round((g.gap.rank - 18) / 2));
-  /** Open channel `i` at `f`, at least `least` deep; returns where it ends. */
-  const open = (i: number, f: number, least: number): number => {
+  /** Open channel `i` at `f`, at least `least` deep, its first track at least
+   *  `below` in; returns where it ends. */
+  const open = (i: number, f: number, least: number, below = 0): number => {
     const here = runs.get(i) ?? [];
     const track = assignTracks(here);
     const count = Math.max(0, ...[...track.values()].map((t) => t + 1));
@@ -53,8 +54,8 @@ export function stack(sh: Sheet, ports: Ports, minW: number): Stacked {
     const centre: number[] = [];
     half.forEach((h, t) => centre.push(t ? centre[t - 1] + half[t - 1] + TRACK + h : h));
     const used = count ? centre[count - 1] + half[count - 1] : 0;
-    const depth = Math.ceil(Math.max(least, count ? used + 2 * STUB : 0));
-    const first = f + Math.round((depth - used) / 2);
+    const depth = Math.ceil(Math.max(least, count ? Math.max(STUB, below) + used + STUB : 0));
+    const first = f + Math.max(Math.round((depth - used) / 2), count ? below : 0);
     channels.set(i, { f, depth, trackF: new Map(here.map((r) => [r.id, first + Math.round(centre[track.get(r.id)!])])) });
     return f + depth;
   };
@@ -79,15 +80,12 @@ export function stack(sh: Sheet, ports: Ports, minW: number): Stacked {
     }
     const least = layer.kind === "wall" ? ax.pad.start : next.kind === "wall" ? ax.pad.end
       : layer.kind === "label" || next.kind === "label" ? halfLabelGap : g.gap.rank;
-    f = open(i, f, least);
+    // a wire turning just inside the start wall turns below the title
+    f = open(i, f, least, layer.kind === "wall" && i === 0 && title && ax.down ? title.h + CORNER : 0);
   });
 
-  // ── lane extent: boxes one padding in from the wall, ports clear of corners
+  // ── the container's own size ──────────────────────────────────────────────
   const all = layers.flatMap((l) => l.slots);
-  if (all.length) {
-    const first = Math.min(...all.map((s) => s.pos - (s.kind === "port" ? CORNER : ax.pad.low)));
-    for (const s of all) s.pos -= first;
-  }
   let L = Math.max(ax.pad.low, ...all.map((s) => s.pos + s.lsize + s.after)) + ax.pad.high;
   let F = f;
   // a container is at least as wide as its title

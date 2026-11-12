@@ -41,7 +41,7 @@ export function layoutViewGrid(model: SModel, view: SView, font: Font = INTER): 
     return {
       id: e.id, from: e.from, to: e.to, label: e.label, async: e.async, animate: e.animate, style: e.style,
       count: e.count, tags: e.tags, color: e.color, heads: e.heads, points: w.points, labelRect: w.label,
-      ...(p.problem.wires.find((x) => x.id === e.id)?.bundle === "wrap" ? { via: "bus" as const } : {}),
+      ...(p.problem.wires.find((x) => x.id === e.id)?.bundle?.startsWith("wrap") ? { via: "bus" as const } : {}),
     };
   });
 

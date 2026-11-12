@@ -92,7 +92,7 @@ export function solve(problem: Problem): Solution {
       const inner = layGroup(b.id);
       b.w = inner.w; b.h = inner.h;
     }
-    const out = layoutGroup(id, g, boxes.get(id)?.minW ?? 0, problem.wires, routes, ranks, laid);
+    const out = layoutGroup(id, g, boxes.get(id), problem.wires, routes, ranks, laid);
     laid.set(id, out);
     return out;
   };

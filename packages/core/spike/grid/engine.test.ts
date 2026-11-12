@@ -209,6 +209,13 @@ describe("solve", () => {
     expect(x(kept, "x")).toBeLessThan(x(kept, "y"));   // declaration order, wires cross
     expect((x(freed, "a") - x(freed, "b")) * (x(freed, "y") - x(freed, "x"))).toBeGreaterThan(0); // uncrossed
   });
+  it("puts aligned boxes on one centre line, whatever their widths", () => {
+    const boxes = [leaf("a", 200), leaf("b"), leaf("c"), leaf("d", 160)];
+    const s = solve(problem(boxes, ["a>b", "a>c", "b>d", "c>d"], { aligned: [["a", "c", "d"]] }));
+    const centre = (id: string) => s.boxes.get(id)!.x + s.boxes.get(id)!.w / 2;
+    expect(centre("c")).toBe(centre("a"));
+    expect(centre("d")).toBe(centre("a"));
+  });
   it("is a pure function", () => {
     const make = () => problem([leaf("a"), leaf("b"), leaf("c"), leaf("d")], ["a>b", "a>c", "b>d", "c>d", "a>d"]);
     expect(JSON.stringify([...solve(make()).wires])).toBe(JSON.stringify([...solve(make()).wires]));

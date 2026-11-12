@@ -15,7 +15,7 @@ import { resolveView, type ViewGraph, type VNode } from "../../src/view/resolve.
 import { pillDims, sizeOf, SHEET_BLEED, CHIP_H } from "../../src/layout/layout.js";
 import { measure } from "../../src/metrics.js";
 import type { ThemeFont } from "../../src/themes/index.js";
-import { assignRanks, type Edge } from "./rank.js";
+import { assignRanks, dense, type Edge } from "./rank.js";
 import type { Box, Dir, Group, Problem, Wire } from "./engine.js";
 
 type Font = Pick<ThemeFont, "metrics" | "scale">;
@@ -75,34 +75,53 @@ export function arrange(
   return { order, pins };
 }
 
-/** `wrap N` as the rows the author could have typed, or nothing when the
- *  view is neither one chain nor one fan-out. */
-export function wrapRows(nodes: readonly string[], edges: readonly Edge[], n: number): { bands: string[][]; fan?: string } | undefined {
+/**
+ * `wrap N` as the rows the author could have typed, for any graph: no row
+ * holds more than N boxes.
+ *
+ * One chain folds as a serpentine — every other band runs backwards, so each
+ * fold is a single step down. Anything else keeps its ranks and folds each
+ * one that is too wide into bands of N; the wires from one source into the
+ * later bands of a folded rank are a `bundle`, drawn as one trunk.
+ *
+ * (The ELK engine could fold exactly two shapes, one chain or one fan-out,
+ * and warned on every other.)
+ */
+export function wrapRows(
+  nodes: readonly string[], edges: readonly Edge[], n: number,
+): { bands: string[][]; bundle(from: string, to: string): string | undefined } | undefined {
   const outs = new Map<string, string[]>(), ins = new Map<string, number>();
   for (const [a, b] of edges) { outs.set(a, [...(outs.get(a) ?? []), b]); ins.set(b, (ins.get(b) ?? 0) + 1); }
-  const heads = nodes.filter((p) => !ins.get(p));
-  if (edges.length !== nodes.length - 1 || heads.length !== 1) return undefined;
-  const head = heads[0];
   const out = (p: string) => outs.get(p) ?? [];
-  if (nodes.every((p) => out(p).length <= 1 && (ins.get(p) ?? 0) <= 1)) {
+  const heads = nodes.filter((p) => !ins.get(p));
+  if (edges.length === nodes.length - 1 && heads.length === 1 && nodes.every((p) => out(p).length <= 1 && (ins.get(p) ?? 0) <= 1)) {
     const chain: string[] = [];
-    for (let p: string | undefined = head; p && !chain.includes(p); p = out(p)[0]) chain.push(p);
+    for (let p: string | undefined = heads[0]; p && !chain.includes(p); p = out(p)[0]) chain.push(p);
     if (chain.length <= n) return undefined;
-    // a serpentine: every other band runs backwards, so each fold is one step down
     const bands: string[][] = [];
     for (let i = 0; i * n < chain.length; i++) {
       const band = chain.slice(i * n, (i + 1) * n);
       bands.push(i % 2 ? band.reverse() : band);
     }
-    return { bands };
+    return { bands, bundle: () => undefined };
   }
-  const targets = nodes.filter((p) => p !== head);
-  if (out(head).length === targets.length && targets.every((p) => !out(p).length) && targets.length > n) {
-    const bands: string[][] = [[head]];
-    for (let i = 0; i * n < targets.length; i++) bands.push(targets.slice(i * n, (i + 1) * n));
-    return { bands, fan: head };
+
+  const rank = dense(assignRanks(nodes, edges));
+  const bands: string[][] = [];
+  const fold = new Map<string, number>(); // box → which band of its folded rank
+  for (let r = 0; r <= Math.max(...rank.values()); r++) {
+    const row = nodes.filter((p) => rank.get(p) === r);
+    for (let i = 0; i * n < row.length; i++) {
+      const band = row.slice(i * n, (i + 1) * n);
+      band.forEach((p) => fold.set(p, i));
+      bands.push(band);
+    }
   }
-  return undefined;
+  if (bands.length === Math.max(...rank.values()) + 1) return undefined; // nothing was too wide
+  return {
+    bands,
+    bundle: (from, to) => (rank.get(from)! < rank.get(to)! && fold.get(to)! >= 1 ? `wrap:${from}>${rank.get(to)}` : undefined),
+  };
 }
 
 export function plan(model: SModel, view: SView, font: Font): Plan {
@@ -177,12 +196,10 @@ export function plan(model: SModel, view: SView, font: Font): Plan {
   const wrap = view.layout.wrap && !view.layout.rows && !graph.frames.length && !zones.length
     ? wrapRows(graph.nodes.map((n) => n.path), graph.edges.map((e) => [e.from, e.to]), view.layout.wrap.n) : undefined;
   if (wrap) viewHints.rows = wrap.bands;
-  /** Wires drawn as one trunk: a folded fan-out's edges past its first band,
-   *  and every `channel a, b -> c`. */
+  /** Wires drawn as one trunk: those `wrap` bundled, and every `channel a, b -> c`. */
   const bundleOf = (from: string, to: string): string | undefined => {
-    if (wrap?.fan === from && wrap.bands.findIndex((b) => b.includes(to)) >= 2) return "wrap";
     const ch = view.layout.channels.find((c) => c.target === to && c.sources.includes(from));
-    return ch ? `channel:${ch.target}` : undefined;
+    return ch ? `channel:${ch.target}` : wrap?.bundle(from, to);
   };
 
   const [gapLane, gapRank] = SPACING[view.layout.density ?? "comfortable"];
@@ -196,8 +213,14 @@ export function plan(model: SModel, view: SView, font: Font): Plan {
     const { order, pins } = arrange(members, hints, liftedEdges(container), dir === "down");
     const isFrame = frameAt.has(container), isZone = container.startsWith("zone:");
     const arranged = !!(hints.rows || hints.cols || hints.place.length);
+    // `align a b c` and, under a downward flow, each `cols` column: one axis.
+    // Only what lands in different ranks can share a lane.
+    const sets = [
+      ...view.layout.align.map((a) => a.nodes.map((p) => memberOf(container, p)).filter((m): m is string => !!m)),
+      ...(dir === "down" ? hints.cols ?? [] : []),
+    ].map((set) => [...new Set(set)]).filter((set) => set.length > 1);
     return {
-      dir, pins, free: container !== "" && !arranged,
+      dir, pins, free: container !== "" && !arranged, aligned: sets,
       boxes: order.map(box),
       pad: isFrame ? { top: 44, right: 16, bottom: 16, left: 16 }
         : isZone ? { top: 28, right: 20, bottom: 20, left: 20 }
@@ -214,10 +237,13 @@ export function plan(model: SModel, view: SView, font: Font): Plan {
     if (n) return leaf(n);
     const f = frameAt.get(id);
     const z = zones.find((x) => zoneBoxId(x.z.id) === id)?.z;
-    const title = f
-      ? 16 + (f.icon ? 28 : 0) + Math.ceil(measure(f.label, fx(13), "600", font.metrics)) + 16
-      : 24 + (z!.icon ? CHIP_H : 0) + Math.ceil(measure(z!.label ?? z!.id, fx(11), "500", font.metrics)) + 16 + 24;
-    return { id, w: 0, h: 0, minW: title, group: group(id) };
+    if (f) {
+      // the header, as the renderer draws it: a 24px chip then the name, 34 deep
+      const w = (f.icon ? 12 + 24 + 8 : 14) + Math.ceil(measure(f.label, fx(13), "500", font.metrics));
+      return { id, w: 0, h: 0, minW: w + 16, title: { w, h: 34 }, group: group(id) };
+    }
+    const chip = 24 + (z!.icon ? CHIP_H : 0) + Math.ceil(measure(z!.label ?? z!.id, fx(11), "500", font.metrics)) + 16 + 24;
+    return { id, w: 0, h: 0, minW: chip, group: group(id) };
   };
 
   const wires: Wire[] = graph.edges.map((e) => ({

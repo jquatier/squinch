@@ -51,6 +51,38 @@ view v { expand s
     expect(wire.points).toHaveLength(2);
   });
 
+  it("draws an edge that runs upward between two declared rows", async () => {
+    const { elk, grid } = await both(`a = box "A"
+b = box "B"
+c = box "C"
+a -> b
+b -> c
+c -> a "feedback"
+view v { include *
+  layout { rows [a] [b] [c] } }`);
+    expect(elk.diagnostics.some((d) => d.severity === "error" && /runs upward/.test(d.message))).toBe(true);
+    const rect = (p: string) => grid.nodes.find((n) => n.path === p)!;
+    const wire = grid.edges.find((e) => e.from === "c" && e.to === "a")!;
+    const first = wire.points[0], last = wire.points[wire.points.length - 1];
+    expect(first.y).toBe(rect("c").y);                 // leaves the top of the lower box
+    expect(last.y).toBe(rect("a").y + rect("a").h);    // enters the bottom of the upper one
+    expect(wire.labelRect).toBeDefined();
+  });
+
+  it("folds any over-wide row with `wrap`, not only a chain or a fan-out", async () => {
+    const workers = Array.from({ length: 8 }, (_, i) => `w${i}`);
+    const { elk, grid, y } = await both(`a = box "A"
+b = box "B"
+${workers.map((w) => `${w} = box "${w}"`).join("\n")}
+sink = box "Sink"
+${workers.map((w, i) => `${i % 2 ? "a" : "b"} -> ${w}\n${w} -> sink`).join("\n")}
+view v { include *
+  layout { wrap 4 } }`);
+    expect(elk.diagnostics.some((d) => /wrap 4. has no effect/.test(d.message))).toBe(true);
+    expect(new Set(workers.map(y)).size).toBe(2);                    // eight workers, two rows of four
+    expect(Math.max(...grid.nodes.map((n) => n.x + n.w)) - Math.min(...grid.nodes.map((n) => n.x))).toBeLessThan(800);
+  });
+
   it("applies rank hints between the members of one zone", async () => {
     const { elk, y } = await both(`a = box "A"
 b = box "B"
