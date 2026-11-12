@@ -94,7 +94,7 @@ export function draft(
       if (end !== undefined && end !== "wall") { path.push(boxSlot.get(end)!); continue; }
       const isLabel = i === labelAt;
       // a bundle goes through a rank as one wire
-      const shareKey = c.wire.bundle && end === undefined && !isLabel ? `${c.wire.bundle}@${i}` : undefined;
+      const shareKey = c.wire.bundle && !isLabel ? `${c.wire.bundle}@${i}` : undefined;
       const sharedSlot = shareKey ? shared.get(shareKey) : undefined;
       if (sharedSlot) { path.push(sharedSlot); continue; }
       const s: Slot = {

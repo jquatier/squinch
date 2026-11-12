@@ -208,6 +208,42 @@ both fixed: `place b right-of a` moved `a` away when nothing else had pinned
 it, and `cols` only ordered boxes within a rank where the spec says columns.
 Columns are now bands across the ranks.
 
+### `wrap` inside containers
+
+Containers get too wide: a dispatcher and nine workers is one row of nine. The
+ELK engine can fold a view only when it holds nothing but one chain or one
+fan-out — a view with an expanded container or a zone gets "`wrap` has no
+effect". `spike/grid/wrap-containers.test.ts` asks for the fold in ten such
+views and checks that no row holds more than was asked.
+
+| | ELK engine | Grid engine |
+|---|---|---|
+| Rows folded as asked | 1 of 11 (a chain that was already one per row) | 11 of 11 |
+| A dispatcher and nine workers, expanded, `wrap 3` | 1,432 × 634 | 584 × 764 |
+| Ten stores in a zone, `wrap 5` | 1,736 × 333 | 920 × 456 |
+| Wide inside wide, `wrap 4` at both levels | 2,464 × 425 | 1,347 × 584 |
+| A chain of eight stages, expanded, `wrap 4` | 224 × 1,166 | 676 × 532 |
+
+How it works: each container folds its own direct children, by the same rule
+as the root — a chain becomes a serpentine, anything else keeps its ranks and
+splits each over-wide one into bands. Three things make the result a grid
+rather than a staircase, all found by looking at the first attempt:
+
+- the bands of one rank stand in columns (the `align` constraint);
+- wires from one source into the later bands are one trunk, as are wires from
+  the earlier bands to one target;
+- the same holds across the container's wall — nine workers writing to one
+  store outside are a trunk, not nine lanes threading the bands below.
+
+Two ways to ask. The view's `wrap N` reaches every container the view opens,
+which works in today's language. A single container can also be folded
+(`layoutViewGrid(…, { wrap: { farm: 4 } })`) — that stands in for a `wrap`
+line in the container's own `layout { }`, which is where the fact belongs
+(it should follow the container into every view) but which the grammar
+refuses today. Accepting it is a few lines in `model/build.ts` and one test
+that pins the refusal; it was left alone because it changes the shipping
+language.
+
 ### What ELK made us work around, and what happens instead
 
 The goal changed in the third pass: not to reproduce the corpus, but to draw
@@ -260,7 +296,7 @@ the product's acceptance number is first-check passes.
 | Edge labels with reserved room | yes | a label is a slot in a layer; pills sit on their wire |
 | Cards (sheets), people, `preview` cards, `fields` heads | yes | `bleed` and `face` on a box |
 | `wrap` on a chain | yes | no special code — it is just `rows` |
-| `wrap` on any graph | yes | folds every over-wide row; trunks are bundles — no bus router |
+| `wrap` on any graph, in any container | yes | folds every over-wide row at every level; trunks are bundles — no bus router |
 | `channel` | yes | the same bundle, shared at the target |
 | `align`, `cols` as columns | yes | a placement constraint: one centre line, and each column wholly before the next |
 | `route … from/to <side>` | no | 2 uses in the corpus |

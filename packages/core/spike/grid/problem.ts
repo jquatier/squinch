@@ -92,7 +92,7 @@ export function arrange(
  */
 export function wrapRows(
   nodes: readonly string[], edges: readonly Edge[], n: number,
-): { bands: string[][]; bundle(from: string, to: string): string | undefined } | undefined {
+): Fold | undefined {
   const outs = new Map<string, string[]>(), ins = new Map<string, number>();
   for (const [a, b] of edges) { outs.set(a, [...(outs.get(a) ?? []), b]); ins.set(b, (ins.get(b) ?? 0) + 1); }
   const out = (p: string) => outs.get(p) ?? [];
@@ -106,7 +106,7 @@ export function wrapRows(
       const band = chain.slice(i * n, (i + 1) * n);
       bands.push(i % 2 ? band.reverse() : band);
     }
-    return { bands, bundle: () => undefined };
+    return { bands, columns: columnsOf(bands), bundle: () => undefined, band: () => undefined };
   }
 
   const rank = dense(assignRanks(nodes, edges));
@@ -123,8 +123,10 @@ export function wrapRows(
     }
   }
   if (bands.length === Math.max(...rank.values()) + 1) return undefined; // nothing was too wide
+  const band = (id: string) => (fold.has(id) ? { rank: rank.get(id)!, index: fold.get(id)!, last: fold.get(id) === lastFold.get(rank.get(id)!) } : undefined);
   return {
-    bands,
+    bands, band,
+    columns: [...new Set(rank.values())].flatMap((r) => columnsOf(bands.filter((b) => rank.get(b[0]) === r))),
     // one trunk from a source into the later bands of a folded rank, and one
     // from its earlier bands on to a shared target
     bundle: (from, to) => {
@@ -135,7 +137,27 @@ export function wrapRows(
   };
 }
 
-export function plan(model: SModel, view: SView, font: Font): Plan {
+/** What `wrap` made of one container. */
+export interface Fold {
+  bands: string[][];
+  /** The boxes that stand one under another across the bands of one rank. */
+  columns: string[][];
+  /** The trunk a wire between two members belongs to, if any. */
+  bundle(from: string, to: string): string | undefined;
+  /** Where a member sits in its folded rank. */
+  band(id: string): { rank: number; index: number; last: boolean } | undefined;
+}
+const columnsOf = (bands: string[][]): string[][] =>
+  Array.from({ length: Math.max(0, ...bands.map((b) => b.length)) }, (_, k) => bands.flatMap((b) => (b[k] ? [b[k]] : []))).filter((c) => c.length > 1);
+
+export interface PlanOptions {
+  /** `wrap N` for one container's inside, by container path — what a
+   *  `wrap` line in that container's own `layout { }` would say. The grammar
+   *  refuses the line there today, so the spike takes it from here. */
+  wrap?: Record<string, number>;
+}
+
+export function plan(model: SModel, view: SView, font: Font, options: PlanOptions = {}): Plan {
   // a view standing inside a container inherits that container's own layout
   // block, unless it brings hints of its own (SPEC §6: all or nothing)
   const own = view.scope ? model.containers.get(view.scope)?.layout : undefined;
@@ -204,13 +226,32 @@ export function plan(model: SModel, view: SView, font: Font): Plan {
     return rootDir;
   };
   const viewHints: Hints = { rows: view.layout.rows, cols: view.layout.cols, place: view.layout.place };
-  const wrap = view.layout.wrap && !view.layout.rows && !graph.frames.length && !zones.length
-    ? wrapRows(graph.nodes.map((n) => n.path), graph.edges.map((e) => [e.from, e.to]), view.layout.wrap.n) : undefined;
-  if (wrap) viewHints.rows = wrap.bands;
-  /** Wires drawn as one trunk: those `wrap` bundled, and every `channel a, b -> c`. */
+  // `wrap N` folds whatever it is asked of: the view's reaches every
+  // container the view opens, a container's own reaches that container.
+  // (Under ELK a view holding an expanded container or a zone could not be
+  // folded at all.) Each container folds its own direct children.
+  const folds = new Map<string, Fold>();
+  const foldOf = (container: string, members: readonly string[], edges: readonly Edge[]) => {
+    const n = options.wrap?.[container] ?? view.layout.wrap?.n;
+    const fold = n ? wrapRows(members, edges, n) : undefined;
+    if (fold) folds.set(container, fold);
+    return fold;
+  };
+  /** Wires drawn as one trunk: every `channel a, b -> c`, and those a fold
+   *  bundled in the container where the wire's two ends part company. */
   const bundleOf = (from: string, to: string): string | undefined => {
     const ch = view.layout.channels.find((c) => c.target === to && c.sources.includes(from));
-    return ch ? `channel:${ch.target}` : wrap?.bundle(from, to);
+    if (ch) return `channel:${ch.target}`;
+    for (const [container, fold] of folds) {
+      const a = memberOf(container, from), b = memberOf(container, to);
+      // between two members; out of an earlier band to one place outside;
+      // into a later band from one place outside
+      const bundle = a && b ? (a !== b ? fold.bundle(a, b) : undefined)
+        : a ? (fold.band(a)?.last === false ? `wrap:${fold.band(a)!.rank}>${to}` : undefined)
+        : b ? ((fold.band(b)?.index ?? 0) >= 1 ? `wrap:${from}>${fold.band(b)!.rank}` : undefined) : undefined;
+      if (bundle) return `${bundle}@${container}`;
+    }
+    return undefined;
   };
 
   const [gapLane, gapRank] = SPACING[view.layout.density ?? "comfortable"];
@@ -221,6 +262,9 @@ export function plan(model: SModel, view: SView, font: Font): Plan {
     const block = model.containers.get(container)?.layout;
     const hints: Hints = container === "" || fromView.named >= 2 ? fromView : block ? project(container, block) : { place: [] };
     const members = childrenOf(container);
+    // a fold is the rows line the author did not have to write
+    const fold = !hints.rows && !hints.cols ? foldOf(container, members, liftedEdges(container)) : undefined;
+    if (fold) hints.rows = fold.bands;
     const { order, pins } = arrange(members, hints, liftedEdges(container), dir === "down");
     const isFrame = frameAt.has(container), isZone = container.startsWith("zone:");
     const held = [...new Set([...(hints.rows ?? []).flat(), ...(hints.cols ?? []).flat(), ...hints.place.flatMap((pl) => [pl.node, pl.target])])];
@@ -229,6 +273,7 @@ export function plan(model: SModel, view: SView, font: Font): Plan {
     const sets = [
       ...view.layout.align.map((a) => a.nodes.map((p) => memberOf(container, p)).filter((m): m is string => !!m)),
       ...(dir === "down" ? hints.cols ?? [] : []),
+      ...(fold?.columns ?? []), // the bands of a fold stand in columns
     ].map((set) => [...new Set(set)]).filter((set) => set.length > 1);
     return {
       dir, pins, held, aligned: sets, columns: dir === "down" && hints.cols && hints.cols.length > 1 ? hints.cols : undefined,
@@ -257,6 +302,7 @@ export function plan(model: SModel, view: SView, font: Font): Plan {
     return { id, w: 0, h: 0, minW: chip, group: group(id) };
   };
 
+  const root = group(""); // before the wires: folding decides which of them are trunks
   const wires: Wire[] = graph.edges.map((e) => ({
     id: e.id, from: e.from, to: e.to,
     label: e.label ? { w: pillDims(e.label, font).w, h: 18 } : undefined,
@@ -264,7 +310,7 @@ export function plan(model: SModel, view: SView, font: Font): Plan {
   }));
   const depthOf = (id: string): number => (zoneParent.get(id) ? 1 + depthOf(zoneParent.get(id)!) : 0);
   return {
-    problem: { root: group(""), wires }, graph, view, unitOf,
+    problem: { root, wires }, graph, view, unitOf,
     zones: zones.map((x) => ({ id: x.z.id, box: zoneBoxId(x.z.id), depth: depthOf(x.z.id) })),
   };
 }
