@@ -5,7 +5,7 @@ outside `src/`, and nothing ships from it. The ELK engine is untouched apart
 from `sizeOf` gaining an `export`.
 
 The question was whether to keep extending the ELK-based engine or to own the
-layout. This note records what a one-session prototype showed, so the decision
+layout. This note records what a two-session prototype showed, so the decision
 can be made on measurements rather than on the feel of the last bug.
 
 ## Why ask
@@ -37,16 +37,20 @@ boxes in ranks, wires in channels, containers laid out inside-first.
 
 | File | Lines | What it is |
 |---|---|---|
-| `rank.ts` | 114 | Ranks for one container. Pins are hard; cycles broken once. |
+| `rank.ts` | 162 | Ranks for one container: pins are hard, the rest is the least total wire (network simplex). |
+| `order.ts` | 59 | Box order within a rank, for a container nobody arranged. |
 | `isotonic.ts` | 33 | Positions along a rank — an exact solve, no iteration. |
-| `channel.ts` | 74 | Track assignment. The only routing primitive. |
-| `engine.ts` | 793 | Ties them together; knows nothing about Squinch. |
-| `problem.ts` | 225 | A Squinch view → the engine's input. No geometry. |
-| `layout.ts` | 87 | The engine's output → `Positioned`. |
+| `channel.ts` | 94 | Track assignment. The only routing primitive. |
+| `engine.ts` | 142 | What spans containers: ranks, which wall each wire uses, stitching. |
+| `group.ts` | 30 | One container: seven stages, each a function of the ones before. |
+| `sheet.ts` `order-slots.ts` `ports.ts` `gutters.ts` `place.ts` `stack.ts` `emit.ts` | 57–171 each | The stages. |
+| `types.ts` `axes.ts` | 110, 58 | Vocabulary; the one place that knows which axis is x. |
+| `problem.ts` | 233 | A Squinch view → the engine's input. No geometry. |
+| `layout.ts` | 88 | The engine's output → `Positioned`. |
 
-About 1,000 lines of engine and 300 of adapter, no dependency. It returns the
-same `Positioned` the renderer and `checkLayout` consume, so both engines can
-be drawn and checked by the same code.
+About 1,400 lines of engine and 320 of adapter, no dependency, no file over
+180 lines. It returns the same `Positioned` the renderer and `checkLayout`
+consume, so both engines can be drawn and checked by the same code.
 
 Three ideas carry it:
 
@@ -66,26 +70,46 @@ Three ideas carry it:
 `npx vitest run spike/grid/compare.test.ts --disable-console-intercept`, over
 all 259 views in the corpus:
 
-| Measure | ELK | Grid | |
+| Measure | ELK | Grid, first pass | Grid, now |
 |---|---|---|---|
-| Layout time, whole corpus | 3,555 ms | 171 ms | 20× faster |
-| Invariant violations (`checkLayout`) | 0 | 0 | |
-| …with *every* wire held to "crosses no foreign box" | not asserted | 0 | stricter than today |
-| Total area | 81.3 M | 81.0 M | ×1.00 |
-| Total wire length | 230 k | 239 k | ×1.04 |
-| Bends | 1,174 | 1,565 | **×1.33 — worse** |
-| Wire crossings | 73 | 120 | **×1.64 — worse** |
-| Jogs under 16 px | 12 | 47 | **worse** |
-| Wires that bend though their ends face | 22 | 10 | better |
-| Wires through an unrelated node | 2 | 0 | better |
+| Layout time, whole corpus | 3,485 ms | 171 ms | 210 ms |
+| Invariant violations (`checkLayout`) | 0 | 0 | 0 |
+| …with *every* wire held to "crosses no foreign box" | not asserted | 0 | 0 |
+| Total area | 81.3 M | 81.0 M | 79.9 M (×0.98) |
+| Total wire length | 230 k | 239 k | 230 k (×1.00) |
+| Wire crossings | 73 | 120 | 78 (×1.07) |
+| Bends | 1,174 | 1,565 | 1,331 (×1.13) |
+| Jogs under 16 px | 12 | 47 | 19 |
+| Wires that bend though their ends face | 22 | 10 | 8 |
+| Wires through an unrelated node | 2 | 0 | 0 |
 
-ELK's 70 "overlaps" in the raw output are almost all deliberate shared trunks
-(`wrap` buses and `channel`s), which the spike does not draw, so that row is
-left out as not comparable.
+The first pass was one session; "now" is a second session spent on the gaps
+the first one named. What moved the numbers, in order of effect:
 
-Read plainly: the spike is **legal everywhere on the first full run** and much
-faster, and it is **not yet as tidy as ELK**. It is level or better on small
-and medium views, and visibly worse on large unhinted ones.
+- **Boxes reorder inside a container nobody arranged** (`order.ts`). ELK does
+  this inside compounds and the spike did not; it was most of the crossing gap.
+- **Pass-through wires ordered by one-sided sweeps**, keeping the best
+  arrangement seen, then straightened as a whole where one lane is free in
+  every rank they cross.
+- **Bundles** — a folded fan-out and a `channel` are one trunk with branches:
+  one port, one lane, one track. `39-wrap#fan` went from 2,143 px wide to
+  1,264, matching ELK's hand-built bus router to within four pixels, with no
+  bus router.
+- **Ranking is network simplex**, tested against exhaustive search on sixty
+  small graphs. It fixed the stranded card in `35-monorepo#landscape`, which
+  now has 0 crossings to ELK's 0.
+
+**The remaining bend gap is a style choice, not a defect.** A parent with two
+children is centred over them (four bends, symmetric); ELK lines it up with
+the first child (two bends, lopsided). Switching the spike to ELK's convention
+gives 1,211 bends (×1.03) but costs area and wire. It is one line in
+`place.ts` (`median`), and it is a design decision for DESIGN.md, not for the
+engine.
+
+Read plainly: the spike is legal everywhere, seventeen times faster, level on
+area and wire, within a few percent on crossings, and — convention aside —
+on bends. It is no longer visibly worse on the large views that failed the
+first pass.
 
 ### What it honours that ELK cannot
 
@@ -100,26 +124,21 @@ and medium views, and visibly worse on large unhinted ones.
 Each is a first-`check` failure a cold agent can no longer hit. That matters
 more than the geometry: the product's acceptance number is first-check passes.
 
-### Where it is worse, and why
+### Where it is still worse, and why
 
 Seen in side-by-side renders (`spike/grid/render-pair.ts`):
 
-- **Large unhinted graphs** (`35-monorepo#landscape`: 3 crossings to ELK's 0,
-  a source card stranded top-right). Ranking uses a local "move toward the
-  busier side" pass; ELK uses network simplex, which moves whole chains.
-- **Crossings generally.** Pass-through wires are inserted one at a time where
-  they cross least. ELK sweeps layers repeatedly. Boxes never reorder in the
-  spike, including inside containers, where ELK does reorder.
-- **A folded fan-out** (`39-wrap#fan`: 2,143 px wide to ELK's 1,264). There is
-  no shared trunk, so twelve wires each take their own lane through band one.
-- **Container wall ports** are chosen by the inside alone. A wire can enter
-  through the frame's title strip or meet the wall away from where the outside
-  would like it.
-
-The first three are textbook algorithms (network-simplex ranking, layer-sweep
-crossing reduction, hyperedge merging), each a few hundred lines. The fourth is
-the real design question — it is the trade ELK's global `INCLUDE_CHILDREN`
-makes the other way.
+- **Container wall ports** are chosen by the inside alone. A wire can meet a
+  wall away from where the outside would like it and take an extra jog on the
+  way in (`27-k8s#cluster`, the `reconciles` wire). This is the trade ELK's
+  global `INCLUDE_CHILDREN` makes the other way, and the one open design
+  question.
+- **Root order is declaration order**, as it is under ELK
+  (`forceNodeModelOrder`). Where that order crosses wires, both engines cross
+  them; the spike a little more (`34-web-many-apis#landscape`, 4 to 3).
+- **A wire entering a box beside a second wire** lands on a port a third of
+  the wall from centre, so a short chain can sit a few pixels off one
+  baseline (`38-container-direction#pipe`). ELK shows the same jog, smaller.
 
 ## Feature coverage
 
@@ -133,8 +152,8 @@ makes the other way.
 | Edge labels with reserved room | yes | a label is a slot in a layer; pills sit on their wire |
 | Cards (sheets), people, `preview` cards, `fields` heads | yes | `bleed` and `face` on a box |
 | `wrap` on a chain | yes | no special code — it is just `rows` |
-| `wrap` on a fan-out | partly | lays out, no shared trunk |
-| `channel` | no | needs the same shared trunk |
+| `wrap` on a fan-out | yes | a bundle: one trunk, branches — no bus router |
+| `channel` | yes | the same bundle, shared at the target |
 | `align` | no | would be a placement constraint, not a post-pass |
 | `route … from/to <side>` | no | 2 uses in the corpus |
 | Notes, flow badges, zone-chip avoidance | no | placed after layout from nodes, wires and pills; engine-independent |
@@ -143,45 +162,52 @@ makes the other way.
 
 ## Clean code, testability, simplicity
 
-- **Testable in parts.** `engine.test.ts` tests ranking, placement, the median
-  and track assignment each on a few lines of input, with no view, model or
-  font. The ELK engine has no seam to test below `layoutView`.
-- **Properties, not snapshots.** "`direction right` is the transpose of `down`"
-  and "a long wire avoids the rank it passes" are one-line assertions.
+- **Testable in parts.** `engine.test.ts` tests ranking, box order, placement,
+  the median and track assignment each on a few lines of input, with no view,
+  model or font. The ELK engine has no seam to test below `layoutView`.
+- **Properties, not snapshots.** "Ranks are the least total wire" is checked
+  against brute force; "`direction right` is the transpose of `down`" and "a
+  long wire avoids the rank it passes" are one-line assertions.
+- **Stages, not a closure.** One container is seven functions in seven files
+  (`group.ts` lists them). The split was made after the algorithms settled and
+  verified by a digest of every box and wire in the corpus, identical before
+  and after.
 - **Synchronous and dependency-free.** No `await`, no 1.6 MB bundle.
-- **Not yet clean enough.** `layoutGroup` in `engine.ts` is one 450-line
-  function. It has clear internal stages (links, layers, ports, place, stack,
-  route, emit) and should be split along them before anything is built on it.
-  Placement also has three tuning choices (sweep order, pull weights, an 8 px
-  straightening pass) found by measuring this corpus; they need the same
-  recorded-measurement discipline the ELK notes have.
+- **Tuning is recorded, not hidden.** Placement has four constants found by
+  measuring this corpus: five sweeps, pull weights of 8 / 3 / 2 / 0.25
+  (through-wire, box-to-box, wire-to-box, wall port), a pull divided by how
+  crowded the far wall is, and an 8 px straightening threshold. Each was kept
+  because the corpus totals improved; none has been tried against diagrams
+  outside the corpus.
 
 ## What this does and does not show
 
-It shows the *mechanism* works across every feature that shapes geometry, that
-it is small, and that it removes the three bug classes by construction rather
-than by another pass. One session produced a legal layout for the whole corpus;
-the ELK engine took months of fixes to reach the same sweep.
+It shows the mechanism works across every feature that shapes geometry, that
+it is small, that it removes the three bug classes by construction, and that
+its quality reaches ELK's on this corpus with two sessions of work.
 
-It does not show the *quality* is there. The gaps are specific and understood,
-but "understood" is not "closed", and the long tail of a new engine is unknown
-until agents write diagrams against it.
+It does not show how it behaves on diagrams it has not seen. Every tuning
+choice was made against these 259 views, which is exactly the over-fitting
+risk; the gauntlet is the test for that, and it has not been run.
 
 ## Recommendation
 
-Continue, behind a gate, without touching the shipping path:
+The spike has met the numeric part of the gate set after the first pass
+(area, wire and crossings at ELK's level; bends pending the centring
+decision). What remains before a gauntlet round:
 
-1. Close the three algorithmic gaps (network-simplex ranking, layer-sweep
-   ordering including boxes inside unhinted containers, shared trunks).
-2. Decide wall-port placement — let the outside inform the inside's port order.
-3. Split `layoutGroup`; move the annotation pass (notes, badges, chips) out of
-   `layout.ts` into a function both engines call. That split is worth doing
-   even if the answer is to stay on ELK.
-4. **Gate:** bends, crossings and area at or below ELK's corpus totals, zero
-   strict violations, and a lookbook review. Only then run a gauntlet round.
+1. **Decide the centring convention** (DESIGN.md) — it settles the bend count.
+2. **Wall ports**: let the outside inform the order of a container's ports.
+3. **The rest of the surface**: `align` as a placement constraint,
+   `route … from/to <side>`, and the hint diagnostics the ELK engine gives.
+4. **Share the annotation pass.** Move notes, badges and chips out of
+   `layout.ts` into a function both engines call. Worth doing even if the
+   answer is to stay on ELK.
+5. **Lookbook review** of all views side by side, then one gauntlet round
+   with the engine swapped in.
 
-If the gate is not met after that work, stop: keep ELK, keep the split from
-step 3, and keep the three language wins as the list of what ELK costs us.
+If the gauntlet round fails on shapes the corpus never had, that is the
+long tail showing itself, and the question becomes how long it is.
 
 The timing argument stands either way. After launch, `render --check` makes
 layout output something users have committed, and any engine change makes their

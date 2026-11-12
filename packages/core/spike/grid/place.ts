@@ -63,7 +63,7 @@ export function place(sh: Sheet, ports: Ports, gutters: ReadonlyMap<Slot, Gutter
       if (pulls.get(u)?.some((x) => x.other === v)) continue; // a bundle's shared stretch pulls once
       const ou = ports.lane(u, c.wire, "end") - u.pos, ov = ports.lane(v, c.wire, "start") - v.pos;
       const base = u.kind === "port" || v.kind === "port" ? 0.25
-        : u.kind === "pass" && v.kind === "pass" ? 8 : u.kind === "pass" || v.kind === "pass" ? 2 : 1;
+        : u.kind === "pass" && v.kind === "pass" ? 8 : u.kind === "pass" || v.kind === "pass" ? 2 : 3;
       pullsOn(u).push({ other: v, mine: ou, theirs: ov, weight: base / ports.crowd(v, "start") });
       pullsOn(v).push({ other: u, mine: ov, theirs: ou, weight: base / ports.crowd(u, "end") });
     }
