@@ -8,12 +8,13 @@ import { layoutView } from "../../src/layout/layout.js";
 import { checkLayout } from "../../test/invariants.js";
 import { layoutViewGrid } from "./layout.js";
 
-const both = async (src: string) => {
+/** `trunkTargets`: boxes where a trunk arrives on one shared port by design. */
+const both = async (src: string, trunkTargets: string[] = []) => {
   const built = buildModel(src);
   expect(built.diagnostics.filter((d) => d.severity === "error")).toEqual([]);
   const view = built.model.views.find((v) => v.name === "v")!;
   const grid = layoutViewGrid(built.model, view).positioned;
-  expect(checkLayout(grid)).toEqual([]);
+  expect(checkLayout(grid, { channelTargets: new Set(trunkTargets) })).toEqual([]);
   return { elk: await layoutView(built.model, view), grid, y: (p: string) => grid.nodes.find((n) => n.path === p)!.y };
 };
 
@@ -77,10 +78,10 @@ ${workers.map((w) => `${w} = box "${w}"`).join("\n")}
 sink = box "Sink"
 ${workers.map((w, i) => `${i % 2 ? "a" : "b"} -> ${w}\n${w} -> sink`).join("\n")}
 view v { include *
-  layout { wrap 4 } }`);
+  layout { wrap 4 } }`, ["sink"]);
     expect(elk.diagnostics.some((d) => /wrap 4. has no effect/.test(d.message))).toBe(true);
     expect(new Set(workers.map(y)).size).toBe(2);                    // eight workers, two rows of four
-    expect(Math.max(...grid.nodes.map((n) => n.x + n.w)) - Math.min(...grid.nodes.map((n) => n.x))).toBeLessThan(800);
+    expect(Math.max(...grid.nodes.map((n) => n.x + n.w)) - Math.min(...grid.nodes.map((n) => n.x))).toBeLessThan(1100); // eight in a row would be 1296
   });
 
   it("applies rank hints between the members of one zone", async () => {

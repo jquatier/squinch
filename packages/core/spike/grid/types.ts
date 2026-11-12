@@ -87,6 +87,10 @@ export interface Laid {
   pieces: Map<string, Pt[]>;    // wire → its run here, from → to
   labels: Map<string, Rect>;
   wall: Map<string, Pt>;        // wire → where it meets this container's wall
+  /** child container → wire → the lane, in the child's own coordinates, the
+   *  wire arrives on from this side of its wall. What the outside would like;
+   *  the child may take it on a second pass. */
+  approach: Map<string, Map<string, number>>;
 }
 
 /** What a wire does inside one container. */

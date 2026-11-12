@@ -36,7 +36,10 @@ export function median(items: { value: number; weight: number; side?: number }[]
 const SWEEPS = 5;  // down, up, down, up, down — the last word to the reading direction
 const NEAR = 15;   // a jog shorter than two corner radii is slid straight rather than drawn
 
-export function place(sh: Sheet, ports: Ports, gutters: ReadonlyMap<Slot, Gutter>, title?: { w: number; h: number }): void {
+export function place(
+  sh: Sheet, ports: Ports, gutters: ReadonlyMap<Slot, Gutter>,
+  title?: { w: number; h: number }, approach: ReadonlyMap<string, number> = new Map(),
+): void {
   const { layers, chains, g, ax } = sh;
 
   /** The least distance from the end of `s` to the start of `next`. */
@@ -171,6 +174,17 @@ export function place(sh: Sheet, ports: Ports, gutters: ReadonlyMap<Slot, Gutter
     for (const s of members) force(s, at(s, centre));
   }
 
+  // Lanes are measured from the container's low wall from here on: boxes one
+  // padding in, ports clear of the corners.
+  const all = layers.flatMap((l) => l.slots);
+  const clear = (s: Slot) => (s.kind === "port" ? CORNER : ax.pad.low);
+  const settleWall = () => {
+    if (!all.length) return;
+    const first = Math.min(...all.map((s) => s.pos - clear(s)));
+    for (const s of all) s.pos -= first;
+  };
+  settleWall();
+
   // A wire through several ranks runs in one line if it can. Each of its
   // slots was placed in its own row, among its own neighbours; where one lane
   // is free in every row, take it — preferring one that meets a box head-on.
@@ -183,23 +197,18 @@ export function place(sh: Sheet, ports: Ports, gutters: ReadonlyMap<Slot, Gutter
     const lanes = [
       ...(bottom.kind === "box" ? [ports.lane(bottom, c.wire, "start")] : []),
       ...(top.kind === "box" ? [ports.lane(top, c.wire, "end")] : []),
+      // failing a straight run to the box, the lane it arrives on from outside
+      ...(approach.has(c.wire.id) && run.some((s) => s.kind === "port") ? [approach.get(c.wire.id)!] : []),
       ...[...run].sort((a, b) => Math.abs(centre(a) - centre(mid)) - Math.abs(centre(b) - centre(mid))).map(centre),
     ].map(Math.round);
     const lane = lanes.find((l) => run.every((s) => fits(s, l - Math.round(s.lsize / 2))));
     if (lane !== undefined) for (const s of run) s.pos = lane - Math.round(s.lsize / 2);
   }
 
-  // Lanes are measured from the container's low wall from here on: boxes one
-  // padding in, ports clear of the corners.
-  const all = layers.flatMap((l) => l.slots);
-  const clear = (s: Slot) => (s.kind === "port" ? CORNER : ax.pad.low);
-  if (all.length) {
-    const first = Math.min(...all.map((s) => s.pos - clear(s)));
-    for (const s of all) s.pos -= first;
-  }
   // No wire enters through the title. Under a downward flow the title lies
   // along the start wall, so a port there keeps to its right; under a
   // rightward flow it lies along the low wall, and a port keeps below it.
+  settleWall();
   if (title) {
     const wallRow = layers[0]?.kind === "wall" ? layers[0].slots : [];
     if (ax.down) {

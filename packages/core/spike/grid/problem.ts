@@ -109,18 +109,26 @@ export function wrapRows(
   const rank = dense(assignRanks(nodes, edges));
   const bands: string[][] = [];
   const fold = new Map<string, number>(); // box → which band of its folded rank
+  const lastFold = new Map<number, number>(); // rank → its last band
   for (let r = 0; r <= Math.max(...rank.values()); r++) {
     const row = nodes.filter((p) => rank.get(p) === r);
     for (let i = 0; i * n < row.length; i++) {
       const band = row.slice(i * n, (i + 1) * n);
       band.forEach((p) => fold.set(p, i));
+      lastFold.set(r, i);
       bands.push(band);
     }
   }
   if (bands.length === Math.max(...rank.values()) + 1) return undefined; // nothing was too wide
   return {
     bands,
-    bundle: (from, to) => (rank.get(from)! < rank.get(to)! && fold.get(to)! >= 1 ? `wrap:${from}>${rank.get(to)}` : undefined),
+    // one trunk from a source into the later bands of a folded rank, and one
+    // from its earlier bands on to a shared target
+    bundle: (from, to) => {
+      if (rank.get(from)! >= rank.get(to)!) return undefined;
+      if (fold.get(to)! >= 1) return `wrap:${from}>${rank.get(to)}`;
+      return fold.get(from)! < lastFold.get(rank.get(from)!)! ? `wrap:${rank.get(from)}>${to}` : undefined;
+    },
   };
 }
 

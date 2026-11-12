@@ -60,15 +60,28 @@ export function layoutViewGrid(model: SModel, view: SView, font: Font = INTER): 
   }
 
   // zone chips: on the border, at the corner the zone asked for
-  const chips = zones.map((z) => {
+  // …slid along it, 16 at a time, to the first spot no wire, node or label is under
+  const under = [
+    ...edges.flatMap((e) => e.points.slice(1).map((b, k) => {
+      const a = e.points[k];
+      return { x: Math.min(a.x, b.x), y: Math.min(a.y, b.y), w: Math.abs(b.x - a.x), h: Math.abs(b.y - a.y) };
+    })),
+    ...nodes, ...edges.flatMap((e) => (e.labelRect ? [e.labelRect] : [])),
+  ];
+  const chips: Positioned["chips"] = [];
+  for (const z of [...zones].sort((a, b) => a.depth - b.depth)) {
     const detailW = z.detail ? Math.round(measure(z.detail, fx(11), "400", "mono")) + 16 : 0;
     const w = Math.round(measure(z.label, fx(11), "500", font.metrics)) + 16 + (z.icon ? CHIP_H : 0) + detailW;
-    return {
-      x: z.labelPos.endsWith("right") ? z.x + z.w - 12 - w : z.x + 12,
-      y: z.labelPos.startsWith("top") ? z.y - CHIP_H / 2 : z.y + z.h - CHIP_H / 2,
-      w, h: CHIP_H, label: z.label, zone: z.id, icon: z.icon, ...(z.detail ? { detail: z.detail, detailW } : {}),
-    };
-  });
+    const y = z.labelPos.startsWith("top") ? z.y - CHIP_H / 2 : z.y + z.h - CHIP_H / 2;
+    const lo = z.x + 12, hi = Math.max(lo, z.x + z.w - 12 - w), fromRight = z.labelPos.endsWith("right");
+    const hits = (x: number) => [...under, ...chips].filter((o) => o.x < x + w + 6 && o.x + o.w + 6 > x && o.y < y + CHIP_H + 6 && o.y + o.h + 6 > y).length;
+    let best = fromRight ? hi : lo;
+    for (let x = best; x >= lo && x <= hi; x += fromRight ? -16 : 16) {
+      if (hits(x) < hits(best)) best = x;
+      if (!hits(best)) break;
+    }
+    chips.push({ x: best, y, w, h: CHIP_H, label: z.label, zone: z.id, icon: z.icon, ...(z.detail ? { detail: z.detail, detailW } : {}) });
+  }
 
   return {
     positioned: {

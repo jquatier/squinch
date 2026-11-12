@@ -5,15 +5,22 @@
 // slot is put where it crosses the fewest other wires, nearest to straight on
 // a tie.
 
-import type { Chain, Layer, Slot } from "./types.js";
+import type { Chain, Layer, Slot, Wire } from "./types.js";
 
-export function orderSlots(layers: Layer[], chains: readonly Chain[], neighbours: readonly (readonly [string, string])[]): void {
-  const where = new Map<Slot, number>();
-  const hops: [Slot, Slot][][] = layers.map(() => []); // hops[i]: between layer i and i+1
+export function orderSlots(
+  layers: Layer[], chains: readonly Chain[], neighbours: readonly (readonly [string, string])[],
+  /** Where on a container's wall a wire's port already is, as a fraction of
+   *  the wall — its inside decided. Two wires into one container cross or
+   *  not by this; two wires into a plain box never do, their ports follow. */
+  fixed: (s: Slot, wire: Wire) => number = () => 0,
+): void {
+  // hops[i]: between layer i and i+1, each end carrying its place within its slot
+  type Hop = [u: Slot, v: Slot, fu: number, fv: number];
+  const hops: Hop[][] = layers.map(() => []);
   chains.forEach((c) => c.path.forEach((s, i) => {
-    where.set(s, c.first + i);
     const next = c.path[i + 1];
-    if (next && !hops[c.first + i].some(([u, v]) => u === s && v === next)) hops[c.first + i].push([s, next]);
+    if (next && !hops[c.first + i].some(([u, v]) => u === s && v === next && !fixed(s, c.wire) && !fixed(next, c.wire)))
+      hops[c.first + i].push([s, next, fixed(s, c.wire), fixed(next, c.wire)]);
   }));
   const beside = new Set(neighbours.flatMap(([a, b]) => [`${a}|${b}`, `${b}|${a}`]));
 
@@ -24,20 +31,21 @@ export function orderSlots(layers: Layer[], chains: readonly Chain[], neighbours
     const above = li > 0 ? index(layers[li - 1].slots) : new Map<Slot, number>();
     const below = li + 1 < layers.length ? index(layers[li + 1].slots) : new Map<Slot, number>();
     const here = index(layer);
-    const up = useAbove && li > 0 ? hops[li - 1].find(([, v]) => v === s)?.[0] : undefined;
-    const dn = useBelow ? hops[li]?.find(([u]) => u === s)?.[1] : undefined;
+    const upHop = useAbove && li > 0 ? hops[li - 1].find(([, v]) => v === s) : undefined;
+    const dnHop = useBelow ? hops[li]?.find(([u]) => u === s) : undefined;
+    const up = upHop?.[0], dn = dnHop?.[1];
     let best = 0, bestCost = Infinity, bestOff = Infinity;
     for (let p = 0; p <= layer.length; p++) {
       let cost = 0;
       // an inserted slot at p sits left of here-index ≥ p
       const side = (x: Slot) => (here.get(x)! < p ? -1 : 1);
-      if (up) for (const [u, v] of hops[li - 1]) {
-        if (v === s || u === up || !here.has(v)) continue;
-        if (Math.sign(above.get(u)! - above.get(up)!) !== side(v)) cost++;
+      if (upHop) for (const [u, v, fu] of hops[li - 1]) {
+        const far = above.get(u)! + fu - above.get(up!)! - upHop[2];
+        if (v !== s && far && here.has(v) && Math.sign(far) !== side(v)) cost++;
       }
-      if (dn) for (const [u, v] of hops[li]) {
-        if (u === s || v === dn || !here.has(u)) continue;
-        if (Math.sign(below.get(v)! - below.get(dn)!) !== side(u)) cost++;
+      if (dnHop) for (const [u, v, , fv] of hops[li]) {
+        const far = below.get(v)! + fv - below.get(dn!)! - dnHop[3];
+        if (u !== s && far && here.has(u) && Math.sign(far) !== side(u)) cost++;
       }
       // never between two boxes a same-rank wire joins directly
       const l = layer[p - 1], r = layer[p];
@@ -58,8 +66,8 @@ export function orderSlots(layers: Layer[], chains: readonly Chain[], neighbours
     let n = 0;
     for (let a = 0; a < hops[i].length; a++)
       for (let b = a + 1; b < hops[i].length; b++) {
-        const [u1, v1] = hops[i][a], [u2, v2] = hops[i][b];
-        if ((up.get(u1)! - up.get(u2)!) * (dn.get(v1)! - dn.get(v2)!) < 0) n++;
+        const [u1, v1, fu1, fv1] = hops[i][a], [u2, v2, fu2, fv2] = hops[i][b];
+        if ((up.get(u1)! + fu1 - up.get(u2)! - fu2) * (dn.get(v1)! + fv1 - dn.get(v2)! - fv2) < 0) n++;
       }
     return n;
   };

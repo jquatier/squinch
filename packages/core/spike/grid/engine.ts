@@ -84,19 +84,27 @@ export function solve(problem: Problem): Solution {
     }
   }
 
-  // ── lay out, innermost first ──────────────────────────────────────────────
+  // ── lay out, innermost first — twice ──────────────────────────────────────
+  // A container is laid out before its surroundings, so the first time it
+  // puts each wall port where its own inside would like it. The second time
+  // it knows which lane each wire arrives on and may meet it there.
   const laid = new Map<string, Laid>();
+  let approach = new Map<string, Map<string, number>>();
   const layGroup = (id: string): Laid => {
     const g = groups.get(id)!;
     for (const b of g.boxes) if (b.group) {
       const inner = layGroup(b.id);
       b.w = inner.w; b.h = inner.h;
     }
-    const out = layoutGroup(id, g, boxes.get(id), problem.wires, routes, ranks, laid);
+    const out = layoutGroup(id, g, boxes.get(id), problem.wires, routes, ranks, laid, approach.get(id));
     laid.set(id, out);
     return out;
   };
-  const top = layGroup(ROOT);
+  let top = layGroup(ROOT);
+  if (groups.size > 1) {
+    approach = new Map([...laid.values()].flatMap((l) => [...l.approach]));
+    top = layGroup(ROOT);
+  }
 
   // ── absolute positions, and each wire stitched from its pieces ────────────
   const origin = new Map<string, Pt>([[ROOT, { x: 0, y: 0 }]]);

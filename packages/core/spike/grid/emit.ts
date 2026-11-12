@@ -99,6 +99,19 @@ export function emit(sh: Sheet, ports: Ports, gutters: ReadonlyMap<Slot, Gutter>
     }
   }
 
+  // where each wire into a child container comes from, for that child's second pass
+  const approach = new Map<string, Map<string, number>>();
+  for (const c of chains)
+    for (let i = 0; i + 1 < c.path.length; i++) {
+      const u = c.path[i], v = c.path[i + 1];
+      const note = (box: Slot, lane: number) => {
+        if (!box.box?.group || box.box.group.dir !== g.dir) return; // only where the two share a lane axis
+        (approach.get(box.id) ?? approach.set(box.id, new Map()).get(box.id)!).set(c.wire.id, lane - box.pos);
+      };
+      note(v, ports.lane(u, c.wire, "end"));
+      note(u, ports.lane(v, c.wire, "start"));
+    }
+
   const size = ax.toScreen(st.L, st.F);
-  return { w: size.x, h: size.y, rects, pieces, labels, wall };
+  return { w: size.x, h: size.y, rects, pieces, labels, wall, approach };
 }
