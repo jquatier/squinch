@@ -36,6 +36,9 @@ export interface Group {
   pins: Map<string, number>;
   /** Sets of boxes, in different ranks, that share one centre line. */
   aligned?: string[][];
+  /** Bands across the ranks, low to high: every box of one stands wholly
+   *  before every box of the next, whichever ranks they are in. */
+  columns?: string[][];
 }
 export interface Wire {
   id: string; from: string; to: string;

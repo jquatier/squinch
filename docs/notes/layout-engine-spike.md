@@ -168,6 +168,46 @@ unarranged root is a change in what the language promises (declaration order
 was the root's order under ELK), made here because the picture is better —
 it should be confirmed in SPEC rather than assumed.
 
+### Zones and expanded containers: is it where the author put it?
+
+The complaint that started this: asking for zones side by side and not
+getting them. `spike/grid/zones.test.ts` states an arrangement in each source
+and checks the rectangles for it — 28 hand-written cases and 60 random rows
+of two to four zones, each an expanded system, wires anywhere between them.
+
+| | ELK engine | Grid engine |
+|---|---|---|
+| Hand-written: arranged as asked | 20 of 28 | 28 of 28 |
+| Hand-written: a row's tops on one line | 8 of 28 | 28 of 28 |
+| Random rows: arranged as asked | 60 of 60 | 60 of 60 |
+| Random rows: tops on one line | 21 of 60 | 60 of 60 |
+
+Two different things are wrong under ELK, and they explain the complaint.
+
+**Top-level zones do go side by side — unevenly.** ELK centres each zone in
+its layer, so three zones of different heights sit at three different tops.
+Nothing is refused; it just never looks like the row that was asked for.
+
+**Anything inside another boundary is not arranged at all.** A zone is one
+block to the ELK engine and its members are ranked inside it by ELK, so all
+eight failures are the same failure:
+
+- two VPCs inside a cloud zone, asked side by side → stacked;
+- two regions inside a cloud, with replication between their databases →
+  stacked, 1,087 px tall, where side by side is 612;
+- two expanded systems inside one zone → stacked;
+- `rows` between the members of one zone → ignored, with a warning;
+- an on-premises zone beside a cloud holding two VPCs → the VPCs stacked;
+- zones stacked on purpose against an upward wire → an error, and reversed;
+- side by side by `cols`, or by `place … right-of` → stacked.
+
+The grid engine has one rule — project the hints onto each container's direct
+children — so a zone inside a zone is arranged exactly as one at the root is.
+The suite also found two bugs in the spike's own reading of the language,
+both fixed: `place b right-of a` moved `a` away when nothing else had pinned
+it, and `cols` only ordered boxes within a rank where the spec says columns.
+Columns are now bands across the ranks.
+
 ### What ELK made us work around, and what happens instead
 
 The goal changed in the third pass: not to reproduce the corpus, but to draw
@@ -222,7 +262,7 @@ the product's acceptance number is first-check passes.
 | `wrap` on a chain | yes | no special code — it is just `rows` |
 | `wrap` on any graph | yes | folds every over-wide row; trunks are bundles — no bus router |
 | `channel` | yes | the same bundle, shared at the target |
-| `align`, `cols` as an axis | yes | a placement constraint: one centre line, exactly |
+| `align`, `cols` as columns | yes | a placement constraint: one centre line, and each column wholly before the next |
 | `route … from/to <side>` | no | 2 uses in the corpus |
 | Zone-chip avoidance | yes | slid along the border, as today |
 | Notes, flow badges | no | placed after layout from nodes, wires and pills; engine-independent |

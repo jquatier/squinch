@@ -185,6 +185,15 @@ export function place(
   };
   settleWall();
 
+  // Columns are bands across the ranks: each begins past the end of the one
+  // before, in every rank at once.
+  let edge = -Infinity;
+  for (const column of g.columns ?? []) {
+    const members = column.map((id) => sh.slotOf(id));
+    for (const s of members) if (s.pos < edge) force(s, edge);
+    edge = Math.max(edge, ...members.map((s) => s.pos + s.lsize + s.after)) + g.gap.lane;
+  }
+
   // A wire through several ranks runs in one line if it can. Each of its
   // slots was placed in its own row, among its own neighbours; where one lane
   // is free in every row, take it — preferring one that meets a box head-on.
@@ -230,7 +239,7 @@ export function place(
       for (const s of [hop.u, hop.v]) (hopsOf.get(s) ?? hopsOf.set(s, []).get(s)!).push(hop);
     }
   const off = (h: { u: Slot; v: Slot; wire: Wire }) => ports.lane(h.u, h.wire, "end") - ports.lane(h.v, h.wire, "start");
-  const onAxis = new Set((g.aligned ?? []).flat().map((id) => sh.slotOf(id))); // the author's alignment stands
+  const onAxis = new Set([...(g.aligned ?? []), ...(g.columns ?? [])].flat().map((id) => sh.slotOf(id))); // the author's alignment stands
   const anchoredElsewhere = (s: Slot, except?: object) => onAxis.has(s) || (hopsOf.get(s) ?? []).some((h) => h !== except && off(h) === 0);
   /** Move `s` by `d`, pushing row-mates ahead of it; false if that would
    *  bend a straight wire. */

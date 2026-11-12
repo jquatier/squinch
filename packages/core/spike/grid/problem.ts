@@ -51,6 +51,9 @@ export function arrange(
     for (const pl of hints.place) {
       const t = pins.get(pl.target) ?? natural.get(pl.target);
       if (t === undefined) continue;
+      // the target stays where it stands: "beside it" must not be answered
+      // by moving the target away
+      pins.set(pl.target, t);
       pins.set(pl.node, changesBand(pl.relpos) ? t + (towardsStart(pl.relpos) ? -1 : 1) : t);
     }
   }
@@ -228,7 +231,7 @@ export function plan(model: SModel, view: SView, font: Font): Plan {
       ...(dir === "down" ? hints.cols ?? [] : []),
     ].map((set) => [...new Set(set)]).filter((set) => set.length > 1);
     return {
-      dir, pins, held, aligned: sets,
+      dir, pins, held, aligned: sets, columns: dir === "down" && hints.cols && hints.cols.length > 1 ? hints.cols : undefined,
       boxes: order.map(box),
       pad: isFrame ? { top: 44, right: 16, bottom: 16, left: 16 }
         : isZone ? { top: 28, right: 20, bottom: 20, left: 20 }
