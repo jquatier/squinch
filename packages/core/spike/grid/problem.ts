@@ -220,7 +220,7 @@ export function plan(model: SModel, view: SView, font: Font): Plan {
     const members = childrenOf(container);
     const { order, pins } = arrange(members, hints, liftedEdges(container), dir === "down");
     const isFrame = frameAt.has(container), isZone = container.startsWith("zone:");
-    const arranged = !!(hints.rows || hints.cols || hints.place.length);
+    const held = [...new Set([...(hints.rows ?? []).flat(), ...(hints.cols ?? []).flat(), ...hints.place.flatMap((pl) => [pl.node, pl.target])])];
     // `align a b c` and, under a downward flow, each `cols` column: one axis.
     // Only what lands in different ranks can share a lane.
     const sets = [
@@ -228,7 +228,7 @@ export function plan(model: SModel, view: SView, font: Font): Plan {
       ...(dir === "down" ? hints.cols ?? [] : []),
     ].map((set) => [...new Set(set)]).filter((set) => set.length > 1);
     return {
-      dir, pins, free: container !== "" && !arranged, aligned: sets,
+      dir, pins, held, aligned: sets,
       boxes: order.map(box),
       pad: isFrame ? { top: 44, right: 16, bottom: 16, left: 16 }
         : isZone ? { top: 28, right: 20, bottom: 20, left: 20 }

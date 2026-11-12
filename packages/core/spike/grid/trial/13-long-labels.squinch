@@ -1,0 +1,13 @@
+// Trial diagram for the grid engine — not part of the corpus, never tuned against.
+a = box "Customer identity and access management"
+b = box "Order orchestration service"
+c = box "Payments"
+d = box "Fulfilment and logistics coordination"
+e = box "Ledger"
+a -> b "validates the session token on every request"
+b -> c "authorise, then capture on dispatch"
+b -> d "allocate stock and book a carrier"
+c -> e "double-entry postings"
+d -> e "cost of goods sold"
+d -> b "delivery status"
+view labels { include * }

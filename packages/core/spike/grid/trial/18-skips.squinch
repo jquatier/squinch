@@ -1,0 +1,22 @@
+// Trial diagram for the grid engine — not part of the corpus, never tuned against.
+s1 = box "Stage 1"
+s2 = box "Stage 2"
+s3 = box "Stage 3"
+s4 = box "Stage 4"
+s5 = box "Stage 5"
+s6 = box "Stage 6"
+s7 = box "Stage 7"
+s1 -> s2
+s2 -> s3
+s3 -> s4
+s4 -> s5
+s5 -> s6
+s6 -> s7
+s1 -> s4
+s2 -> s5
+s3 -> s6
+s4 -> s7
+s1 -> s7 "audit"
+view skips { include * }
+view sideways { include *
+  layout { direction right } }

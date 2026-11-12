@@ -1,0 +1,33 @@
+// Trial diagram for the grid engine — not part of the corpus, never tuned against.
+system org "Platform" {
+  container edge "Edge" {
+    cdn = box "CDN"
+    waf = box "WAF"
+    cdn -> waf
+  }
+  container apps "Applications" {
+    container web "Web" {
+      ssr = box "SSR"
+      assets = box "Assets"
+      ssr -> assets
+    }
+    container api "API" {
+      rest = box "REST"
+      graph = box "GraphQL"
+      graph -> rest
+    }
+    web.ssr -> api.graph
+  }
+  container data "Data" {
+    pg = box "Postgres"
+    s3 = box "Object store"
+  }
+  edge.waf -> apps.web.ssr
+  apps.api.rest -> data.pg
+  apps.web.assets -> data.s3
+  apps.api.rest -> data.s3 "uploads"
+}
+view deep { scope org
+  expand * }
+view mid { scope org
+  expand apps }

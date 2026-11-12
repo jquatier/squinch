@@ -1,0 +1,25 @@
+// Trial diagram for the grid engine — not part of the corpus, never tuned against.
+a = box "Gateway"
+b = box "Users"
+c = box "Orders"
+d = box "Payments"
+e = box "Inventory"
+f = box "Pricing"
+g = box "Promotions"
+h = box "Audit"
+a -> b
+a -> c
+a -> f
+c -> d "charge"
+d -> c "result"
+c -> e "reserve"
+e -> c "confirmed"
+c -> f
+f -> g
+g -> f "rules changed"
+b -> h
+c -> h
+d -> h
+e -> h
+d -> b "billing profile"
+view mesh { include * }

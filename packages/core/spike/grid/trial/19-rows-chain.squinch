@@ -1,0 +1,21 @@
+// Trial diagram for the grid engine — not part of the corpus, never tuned against.
+in = box "Inbox"
+a = box "Parse"
+b = box "Classify"
+c = box "Route"
+d = box "Reply"
+x = box "Rules"
+y = box "Models"
+z = box "Templates"
+out = box "Outbox"
+in -> a
+a -> b "tokens"
+b -> c "label"
+c -> d
+d -> out
+a -> x
+b -> y
+d -> z
+c -> a "reprocess"
+view line { include *
+  layout { rows [in] [a b c d] [x y z] [out] } }

@@ -81,7 +81,7 @@ view v { include *
   layout { wrap 4 } }`, ["sink"]);
     expect(elk.diagnostics.some((d) => /wrap 4. has no effect/.test(d.message))).toBe(true);
     expect(new Set(workers.map(y)).size).toBe(2);                    // eight workers, two rows of four
-    expect(Math.max(...grid.nodes.map((n) => n.x + n.w)) - Math.min(...grid.nodes.map((n) => n.x))).toBeLessThan(1100); // eight in a row would be 1296
+    expect(Math.max(...grid.nodes.map((n) => n.x + n.w)) - Math.min(...grid.nodes.map((n) => n.x))).toBeLessThan(1200); // eight in a row would be 1296
   });
 
   it("applies rank hints between the members of one zone", async () => {

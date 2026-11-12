@@ -202,8 +202,8 @@ describe("solve", () => {
     const through = (pts: typeof a) => pts.find((q) => q.y > s.boxes.get("n1")!.y)!.x;
     expect(through(a)).toBe(through(b));              // one lane past n1 and n2
   });
-  it("reorders a container nobody arranged, and leaves an arranged one alone", () => {
-    const build = (free: boolean) => solve(problem([leaf("a"), leaf("b"), leaf("x"), leaf("y")], ["a>y", "b>x"], { free }));
+  it("reorders boxes to uncross wires, except the ones the author placed", () => {
+    const build = (free: boolean) => solve(problem([leaf("a"), leaf("b"), leaf("x"), leaf("y")], ["a>y", "b>x"], { held: free ? [] : ["a", "b", "x", "y"] }));
     const x = (s: ReturnType<typeof build>, id: string) => s.boxes.get(id)!.x;
     const kept = build(false), freed = build(true);
     expect(x(kept, "x")).toBeLessThan(x(kept, "y"));   // declaration order, wires cross

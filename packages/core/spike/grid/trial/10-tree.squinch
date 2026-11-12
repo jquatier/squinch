@@ -1,0 +1,33 @@
+// Trial diagram for the grid engine — not part of the corpus, never tuned against.
+n1 = box "Root"
+n2 = box "Node 2"
+n3 = box "Node 3"
+n4 = box "Node 4"
+n5 = box "Node 5"
+n6 = box "Node 6"
+n7 = box "Node 7"
+n8 = box "Node 8"
+n9 = box "Node 9"
+n10 = box "Node 10"
+n11 = box "Node 11"
+n12 = box "Node 12"
+n13 = box "Node 13"
+n14 = box "Node 14"
+n15 = box "Node 15"
+n1 -> n2
+n1 -> n3
+n2 -> n4
+n2 -> n5
+n3 -> n6
+n3 -> n7
+n4 -> n8
+n4 -> n9
+n5 -> n10
+n5 -> n11
+n6 -> n12
+n6 -> n13
+n7 -> n14
+n7 -> n15
+view tree { include * }
+view sideways { include *
+  layout { direction right } }

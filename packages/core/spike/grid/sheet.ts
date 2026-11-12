@@ -47,6 +47,7 @@ function linksOf(gid: string, ax: Axes, wires: readonly Wire[], routes: Readonly
 export function draft(
   gid: string, g: Group, wires: readonly Wire[],
   routes: ReadonlyMap<string, Route>, ranks: ReadonlyMap<string, number>, laid: ReadonlyMap<string, Laid>,
+  approach: ReadonlyMap<string, number> = new Map(),
 ): Sheet {
   const ax = axes(g);
   const links = linksOf(gid, ax, wires, routes);
@@ -76,7 +77,7 @@ export function draft(
 
   const boxSlot = new Map<string, Slot>();
   for (const b of g.boxes) {
-    const s: Slot = { kind: "box", id: b.id, box: b, lsize: ax.lsize(b), fsize: ax.fsize(b), after: ax.down ? 0 : b.bleed ?? 0, pos: 0 };
+    const s: Slot = { kind: "box", id: b.id, box: b, lsize: ax.lsize(b), fsize: ax.fsize(b), after: ax.down ? 0 : b.bleed ?? 0, pos: 0, pinned: true };
     boxSlot.set(b.id, s);
     layers[layerOfRank.get(ranks.get(b.id)!)!].slots.push(s);
   }
@@ -106,6 +107,16 @@ export function draft(
     }
     return { wire: c.wire, path, first: from, flipped: c.flipped };
   });
+
+  // A container follows the flow: once the outside has said which lane each
+  // wire arrives on, the ports of its start wall stand in that order and the
+  // inside arranges itself to suit. (Its end wall stays the inside's to
+  // order — the next container down follows it in turn.)
+  const entry = layers[0];
+  if (entry?.kind === "wall" && entry.slots.every((s) => approach.has(s.id))) {
+    entry.slots.sort((a, b) => approach.get(a.id)! - approach.get(b.id)!);
+    for (const s of entry.slots) s.pinned = true;
+  }
 
   const layerIndex = new Map<Slot, number>();
   layers.forEach((layer, i) => layer.slots.forEach((s) => layerIndex.set(s, i)));

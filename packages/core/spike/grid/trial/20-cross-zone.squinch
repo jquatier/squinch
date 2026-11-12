@@ -1,0 +1,29 @@
+// Trial diagram for the grid engine — not part of the corpus, never tuned against.
+system shop "Shop" {
+  web = box "Web"
+  api = box "API"
+  web -> api
+}
+system pay "Payments" {
+  gw = box "Gateway"
+  vault = box "Vault"
+  gw -> vault
+}
+system ops "Back office" {
+  admin = box "Admin"
+  jobs = box "Jobs"
+  admin -> jobs
+}
+shop.api -> pay.gw "charge"
+pay.gw -> shop.api "webhook"
+ops.admin -> shop.api "manage"
+ops.jobs -> pay.gw "settlement"
+ops.jobs -> shop.api "cleanup"
+zone pub "Public subnet" vpc { contains shop }
+zone pci "PCI subnet" vpc { contains pay }
+zone corp "Corporate" onprem { contains ops }
+view row { include *
+  expand shop, pay, ops
+  layout { rows [ops shop pay] } }
+view stacked { include *
+  expand shop, pay, ops }

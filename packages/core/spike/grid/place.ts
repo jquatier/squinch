@@ -11,7 +11,7 @@ import type { Gutter } from "./gutters.js";
 import { spread } from "./isotonic.js";
 import type { Ports } from "./ports.js";
 import type { Sheet } from "./sheet.js";
-import { CORNER, LABEL_PAD, WIRE_BOX, WIRE_WIRE, type Layer, type Slot } from "./types.js";
+import { CORNER, LABEL_PAD, WIRE_BOX, WIRE_WIRE, type Layer, type Slot, type Wire } from "./types.js";
 
 /** Weighted median. When the weight splits evenly between two values: their
  *  midpoint if they are on the same `side` (a parent centres over two
@@ -218,6 +218,45 @@ export function place(
       for (const s of all) if (s.kind === "port") s.pos = Math.max(s.pos, title.h + CORNER);
     }
   }
+
+  // Settling splits a disagreement evenly, which leaves both sides a little
+  // bent. Where a slot — with whatever it pushes along — can move the whole
+  // way and put a wire dead straight without bending one that already is,
+  // it does. Box-to-box wires first: they are the lines the eye follows.
+  const hopsOf = new Map<Slot, { u: Slot; v: Slot; wire: Wire }[]>();
+  for (const c of chains)
+    for (let i = 0; i + 1 < c.path.length; i++) {
+      const hop = { u: c.path[i], v: c.path[i + 1], wire: c.wire };
+      for (const s of [hop.u, hop.v]) (hopsOf.get(s) ?? hopsOf.set(s, []).get(s)!).push(hop);
+    }
+  const off = (h: { u: Slot; v: Slot; wire: Wire }) => ports.lane(h.u, h.wire, "end") - ports.lane(h.v, h.wire, "start");
+  const onAxis = new Set((g.aligned ?? []).flat().map((id) => sh.slotOf(id))); // the author's alignment stands
+  const anchoredElsewhere = (s: Slot, except?: object) => onAxis.has(s) || (hopsOf.get(s) ?? []).some((h) => h !== except && off(h) === 0);
+  /** Move `s` by `d`, pushing row-mates ahead of it; false if that would
+   *  bend a straight wire. */
+  const carry = (s: Slot, d: number, hop: object): boolean => {
+    const row = layers[sh.layerOf(s)].slots, step = d > 0 ? 1 : -1;
+    const moves: [Slot, number][] = [[s, d]];
+    for (let i = row.indexOf(s), by = d; row[i + step]; i += step) {
+      const [a, b] = step > 0 ? [row[i], row[i + step]] : [row[i + step], row[i]];
+      const slack = b.pos - (a.pos + a.lsize + gapAfter(a, b));
+      by = step * Math.max(0, Math.abs(by) - slack);
+      if (!by) break;
+      moves.push([row[i + step], by]);
+    }
+    if (anchoredElsewhere(s, hop) || moves.slice(1).some(([m]) => anchoredElsewhere(m))) return false;
+    for (const [m, by] of moves) m.pos += by;
+    return true;
+  };
+  for (const boxesOnly of [true, false])
+    for (const c of chains)
+      for (let i = 0; i + 1 < c.path.length; i++) {
+        const hop = hopsOf.get(c.path[i])!.find((h) => h.v === c.path[i + 1] && h.wire === c.wire)!;
+        if (boxesOnly !== (hop.u.kind === "box" && hop.v.kind === "box")) continue;
+        const d = off(hop);
+        if (d) carry(hop.v, d, hop) || carry(hop.u, -d, hop);
+      }
+  settleWall();
 
   // A wire a few pixels off straight is slid onto the line: the lower end
   // gives way — a port along its wall, a pass-through slot along its row.

@@ -7,12 +7,17 @@
 
 import type { Chain, Layer, Slot, Wire } from "./types.js";
 
+const SWEEPS = 12;
+
 export function orderSlots(
   layers: Layer[], chains: readonly Chain[], neighbours: readonly (readonly [string, string])[],
   /** Where on a container's wall a wire's port already is, as a fraction of
    *  the wall — its inside decided. Two wires into one container cross or
    *  not by this; two wires into a plain box never do, their ports follow. */
   fixed: (s: Slot, wire: Wire) => number = () => 0,
+  /** Where along the wall a port's wire is headed once outside, 0 to 1, if
+   *  known: the tie-break among places that cross nothing. */
+  headed: (s: Slot) => number | undefined = () => undefined,
 ): void {
   // hops[i]: between layer i and i+1, each end carrying its place within its slot
   type Hop = [u: Slot, v: Slot, fu: number, fv: number];
@@ -52,7 +57,7 @@ export function orderSlots(
       if (l?.kind === "box" && r?.kind === "box" && beside.has(`${l.id}|${r.id}`)) cost += 100;
       // nearest to where its neighbours are, as a fraction of the row
       const fr = (m: Map<Slot, number>, x: Slot | undefined) => (x && m.size ? (m.get(x)! + 0.5) / m.size : undefined);
-      const targets = [fr(above, up), fr(below, dn)].filter((x): x is number => x !== undefined);
+      const targets = [fr(above, up), fr(below, dn), headed(s)].filter((x): x is number => x !== undefined);
       const target = targets.length ? targets.reduce((a, b) => a + b, 0) / targets.length : 0.5;
       const off = Math.abs(p / Math.max(1, layer.length) - target);
       if (cost < bestCost || (cost === bestCost && off < bestOff - 1e-9)) { best = p; bestCost = cost; bestOff = off; }
@@ -76,13 +81,23 @@ export function orderSlots(
   // sweep down following the layer above, up following the layer below, and
   // keep the best arrangement seen — a wire through several ranks only moves
   // as a whole when each sweep looks one way
-  const free = (li: number) => layers[li].slots.filter((s) => s.kind !== "box");
+  const free = (li: number) => layers[li].slots.filter((s) => !s.pinned);
   for (let li = 0; li < layers.length; li++) for (const s of free(li)) reinsert(li, s, true, li === 0);
   let best = layers.map((l) => [...l.slots]), bestCost = total();
-  for (let sweep = 0; sweep < 6 && bestCost > 0; sweep++) {
+  // within a layer, slots are re-placed in the order of what they follow, so
+  // each lands beside the neighbours it will keep
+  const following = (li: number, down: boolean) => {
+    const facing = new Map((down ? layers[li - 1] : layers[li + 1])?.slots.map((x, k) => [x, k]) ?? []);
+    const key = (s: Slot) => {
+      const hop = down ? hops[li - 1]?.find(([, v]) => v === s) : hops[li]?.find(([u]) => u === s);
+      return hop ? facing.get(down ? hop[0] : hop[1])! + (down ? hop[2] : hop[3]) : Infinity;
+    };
+    return free(li).map((s, i) => ({ s, i, k: key(s) })).sort((a, b) => a.k - b.k || a.i - b.i).map((x) => x.s);
+  };
+  for (let sweep = 0; sweep < SWEEPS && bestCost > 0; sweep++) {
     const down = sweep % 2 === 1;
     for (const li of down ? layers.keys() : [...layers.keys()].reverse())
-      for (const s of free(li)) reinsert(li, s, down || li === layers.length - 1, !down || li === 0);
+      for (const s of following(li, down)) reinsert(li, s, down || li === layers.length - 1, !down || li === 0);
     const cost = total();
     if (cost < bestCost) { best = layers.map((l) => [...l.slots]); bestCost = cost; }
   }
@@ -98,7 +113,7 @@ export function orderSlots(
     for (let li = 0; li < layers.length; li++) {
       const row = layers[li].slots;
       for (let i = 0; i + 1 < row.length; i++) {
-        if (row[i].kind === "box" && row[i + 1].kind === "box") continue;
+        if (row[i].pinned && row[i + 1].pinned) continue;
         const before = crossings(li - 1) + crossings(li);
         [row[i], row[i + 1]] = [row[i + 1], row[i]];
         if (crossings(li - 1) + crossings(li) < before && !splits(row, i) && !splits(row, i + 1)) improved = true;

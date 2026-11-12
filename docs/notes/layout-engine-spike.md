@@ -48,8 +48,8 @@ boxes in ranks, wires in channels, containers laid out inside-first.
 | `problem.ts` | 233 | A Squinch view → the engine's input. No geometry. |
 | `layout.ts` | 88 | The engine's output → `Positioned`. |
 
-About 1,550 lines of engine and 370 of adapter, no dependency, no file over
-240 lines. It returns the same `Positioned` the renderer and `checkLayout`
+About 1,700 lines of engine and 380 of adapter, no dependency, no file over
+290 lines. It returns the same `Positioned` the renderer and `checkLayout`
 consume, so both engines can be drawn and checked by the same code.
 
 Three ideas carry it:
@@ -70,19 +70,22 @@ Three ideas carry it:
 `npx vitest run spike/grid/compare.test.ts --disable-console-intercept`, over
 all 259 views in the corpus:
 
-| Measure | ELK | Grid, pass 1 | Grid, pass 2 | Grid, now |
-|---|---|---|---|---|
-| Layout time, whole corpus | 3,445 ms | 171 ms | 210 ms | 230 ms |
-| Invariant violations (`checkLayout`) | 0 | 0 | 0 | 0 |
-| …with *every* wire held to "crosses no foreign box" | not asserted | 0 | 0 | 0 |
-| Total area | 81.3 M | 81.0 M | 79.9 M | 79.6 M (×0.98) |
-| Total wire length | 230 k | 239 k | 230 k | 229 k (×0.99) |
-| Wire crossings | 73 | 120 | 78 | 73 (×1.00) |
-| Bends | 1,174 | 1,565 | 1,331 | 1,337 (×1.14) |
-| Jogs under 16 px | 12 | 47 | 19 | 11 |
-| Wires that bend though their ends face | 22 | 10 | 8 | 8 |
-| Wires through an unrelated node | 2 | 0 | 0 | 0 |
-| Frame titles a wire runs through | 3 flagged in shipped views | — | 17 of 35 | 5 of 35 |
+| Measure | ELK | Grid, pass 1 | Grid, pass 2 | Grid, pass 3 | Grid, now |
+|---|---|---|---|---|---|
+| Layout time, whole corpus | 3,331 ms | 171 ms | 210 ms | 230 ms | 301 ms |
+| Invariant violations (`checkLayout`) | 0 | 0 | 0 | 0 | 0 |
+| …with *every* wire held to "crosses no foreign box" | not asserted | 0 | 0 | 0 | 0 |
+| Total area | 81.3 M | 81.0 M | 79.9 M | 79.6 M | 79.9 M (×0.98) |
+| Total wire length | 230 k | 239 k | 230 k | 229 k | 219 k (×0.95) |
+| Wire crossings | 73 | 120 | 78 | 73 | **38 (×0.52)** |
+| Bends | 1,174 | 1,565 | 1,331 | 1,337 | **1,113 (×0.95)** |
+| Jogs under 16 px | 12 | 47 | 19 | 11 | **4** |
+| Wires that bend though their ends face | 22 | 10 | 8 | 8 | 8 |
+| Wires through an unrelated node | 2 | 0 | 0 | 0 | 0 |
+| Frame titles a wire runs through | 3 flagged in shipped views | — | 17 of 35 | 5 of 35 | 5 of 35 |
+
+"Now" is after the trial below: the two changes that moved it came from
+diagrams outside the corpus, not from the corpus.
 
 Pass 1 was one session; pass 2 went after the gaps it named; the third stopped
 matching ELK and went after what ELK made the engine work around (next
@@ -108,10 +111,62 @@ gives 1,211 bends (×1.03) but costs area and wire. It is one line in
 `place.ts` (`median`), and it is a design decision for DESIGN.md, not for the
 engine.
 
-Read plainly: the spike is legal everywhere, fifteen times faster, level on
-area, wire and crossings, ahead on short jogs, and — convention aside — level
-on bends. On several views it is now the better picture (`27-k8s#cluster`: 0
-crossings to ELK's 2, 806 px tall to 878, every label on its wire).
+Read plainly: on the corpus the spike is legal everywhere, eleven times
+faster, level on area, and ahead on wire, bends, short jogs and crossings
+(half of ELK's). Several views are now the better picture (`27-k8s#cluster`:
+0 crossings to ELK's 2, 806 px tall to 878, every label on its wire).
+
+### Diagrams neither engine had seen
+
+Every number above was earned on the corpus the engine was tuned against. So
+`spike/grid/trial/` holds twenty diagrams written afterwards, on purpose
+unlike the corpus — a hub with ten services, a saga with compensations, a
+lattice, a tree, a dense bipartite graph, nested containers three deep, zones
+side by side — and `trial.test.ts` adds eighty seeded random ones (flat,
+grouped into expanded systems, with `rows`, `wrap` or a rightward flow).
+115 views in all:
+
+| | ELK engine | Grid engine |
+|---|---|---|
+| Check errors | 17 | — (plans and solves; no diagnostics yet) |
+| Check warnings | 18 | — |
+| Invariant violations in what was drawn | 31 | 0 |
+| Wires through an unrelated node | 11 | 0 |
+| Total area | 117.7 M | 106.6 M (×0.91) |
+| Total wire | 856 k | 773 k (×0.90) |
+| Bends | 4,328 | 3,957 (×0.91) |
+| Jogs under 16 px | 119 | 125 |
+| Wire crossings | 607 | 772 (**×1.27 — worse**) |
+
+What the trial found, and what was done about it:
+
+- **A label overlap** — two labelled wires between one pair of neighbours.
+  Fixed: one labelled wire has the gutter, a second goes round.
+- **Crossings at ×1.8.** Two causes. Flat graphs: the root kept declaration
+  order however many wires that crossed. Now **every container reorders the
+  boxes the author did not place, when and only when declaration order
+  crosses wires** — which also halved crossings on the corpus (73 → 38).
+  Nested graphs: two neighbouring containers each ordered their wall ports to
+  suit themselves. Now a container follows the flow — its entry ports take
+  the order the wires arrive in — over up to three further passes.
+- **Everything a little bent.** Placement splits a disagreement evenly, which
+  leaves both wires slightly off. A final pass moves a box the whole way,
+  pushing row-mates along, wherever that makes one wire dead straight without
+  bending another. Bends fell below ELK's on both sets.
+
+What it still shows: **crossings between nested containers.** Flat random
+graphs now cross less than ELK (107 to 138); graphs with expanded systems
+cross about twice as much. A container's inside is still ordered before its
+surroundings are known and only partly corrected afterwards; ELK lays the
+whole hierarchy out at once. That is the remaining structural gap, and the
+next thing to work on.
+
+Two caveats on reading the table. The random `rows` cases pin six boxes
+regardless of their edges; the grid engine honours that and pays in crossings,
+where the ELK engine reports an error and ignores the hint. And reordering an
+unarranged root is a change in what the language promises (declaration order
+was the root's order under ELK), made here because the picture is better —
+it should be confirmed in SPEC rather than assumed.
 
 ### What ELK made us work around, and what happens instead
 
@@ -147,9 +202,7 @@ the product's acceptance number is first-check passes.
 - **A turn under a title is tight.** The wire enters beside the title and
   turns 8 px below it to reach a box underneath. Legal and legible; a frame a
   little wider would read better.
-- **Root order is declaration order**, as under ELK. Where that crosses wires
-  both engines cross them. Whether an unarranged *root* should reorder too is
-  a language question, not an engine one.
+- **Crossings between nested containers** — see the trial above.
 - **Spacing is the nominal density.** A labelled view under ELK comes out
   about 10% tighter between ranks than DESIGN's numbers say, an artefact of
   the spacer scheme. The spike draws the documented 56 px, so some simple
@@ -209,23 +262,24 @@ risk; the gauntlet is the test for that, and it has not been run.
 
 ## Recommendation
 
-On this corpus the spike now matches ELK on area, wire and crossings, beats it
-on short jogs and crossed titles, and draws five things the ELK engine
-refuses. What remains before a gauntlet round:
+On the corpus the spike now beats ELK on every measure but area, where it is
+level. On diagrams it had never seen it draws 115 views with no violation
+where the ELK engine reports 17 errors and leaves 31 violations, and it is
+ahead on area, wire and bends — and behind on crossings wherever containers
+nest. What remains before a gauntlet round:
 
-1. **Decide the centring convention** (DESIGN.md) — it is the whole of the
-   remaining bend gap.
-2. **The rest of the surface**: `route … from/to <side>`, notes and flow
+1. **Crossings between nested containers.** The one measured weakness.
+2. **Confirm two conventions**: a parent centred over two children
+   (DESIGN.md), and reordering unplaced boxes when declaration order crosses
+   wires (SPEC.md).
+3. **The rest of the surface**: `route … from/to <side>`, notes and flow
    badges (share the annotation pass with `layout.ts`), and the hint
    diagnostics — fewer than today, because five of them describe things that
    now simply work.
-3. **Titles under a rightward flow**, and a look at root reordering.
-4. **Lookbook review** of every view side by side, then one gauntlet round
-   with the engine swapped in. Every tuning constant was chosen against these
-   259 views; the gauntlet is the test for over-fitting, and it has not run.
-
-If the gauntlet round fails on shapes the corpus never had, that is the long
-tail showing itself, and the question becomes how long it is.
+4. **Titles under a rightward flow.**
+5. **Lookbook review** of every view side by side, then one gauntlet round
+   with the engine swapped in. The trial set is a start on the over-fitting
+   question; cold agents are the real answer.
 
 The timing argument stands either way. After launch, `render --check` makes
 layout output something users have committed, and any engine change makes their

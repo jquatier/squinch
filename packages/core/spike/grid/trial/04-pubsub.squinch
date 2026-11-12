@@ -1,0 +1,29 @@
+// Trial diagram for the grid engine — not part of the corpus, never tuned against.
+p0 = box "Checkout"
+p1 = box "Inventory"
+p2 = box "Payments"
+p3 = box "Accounts"
+p4 = box "Shipping"
+bus = box "Event bus"
+c0 = box "Email"
+c1 = box "Analytics"
+c2 = box "Search indexer"
+c3 = box "Fraud"
+c4 = box "Ledger"
+c5 = box "Webhooks"
+p0 ~> bus
+p1 ~> bus
+p2 ~> bus
+p3 ~> bus
+p4 ~> bus
+bus ~> c0
+bus ~> c1
+bus ~> c2
+bus ~> c3
+bus ~> c4
+bus ~> c5
+c3 -> p2 "hold payment"
+c4 -> p2 "reconcile"
+view flow { include * }
+view band { include *
+  layout { rows [p0 p1 p2 p3 p4 c0 c1 c2] } }

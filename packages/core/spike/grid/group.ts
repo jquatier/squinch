@@ -22,8 +22,10 @@ export function layoutGroup(
   routes: ReadonlyMap<string, Route>, ranks: ReadonlyMap<string, number>, laid: ReadonlyMap<string, Laid>,
   /** wire → the lane it arrives on from outside, if a first pass found out */
   approach: ReadonlyMap<string, number> = new Map(),
+  /** this container's size along its lane axis on the previous pass */
+  extent = 0,
 ): Laid {
-  const sheet = draft(gid, g, wires, routes, ranks, laid);
+  const sheet = draft(gid, g, wires, routes, ranks, laid, approach);
   orderSlots(
     sheet.layers, sheet.chains, sheet.links.flatMap((l) => (l.type === "beside" ? [[l.a, l.b] as const] : [])),
     // a child container's wall port, as a fraction of its wall
@@ -31,6 +33,7 @@ export function layoutGroup(
       const port = s.box && sheet.childPort(s.box, wire);
       return port ? sheet.ax.laneOf(port) / (sheet.ax.lsize(s.box!) + 1) : 0;
     },
+    (s) => (s.kind === "port" && approach.has(s.id) && extent ? approach.get(s.id)! / extent : undefined),
   );
   const ports = assignPorts(sheet);
   const gutters = buildGutters(sheet);

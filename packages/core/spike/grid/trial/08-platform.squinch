@@ -1,0 +1,43 @@
+// Trial diagram for the grid engine — not part of the corpus, never tuned against.
+person analyst "Analysts"
+system ingest "Ingestion" {
+  api = box "Collector API"
+  queue = box "Queue"
+  worker = box "Parser"
+  api -> queue
+  queue -> worker
+}
+system lake "Lake" {
+  raw = box "Raw zone"
+  clean = box "Clean zone"
+  catalog = box "Catalog"
+  raw -> clean "compaction"
+  clean -> catalog "register"
+}
+system compute "Compute" {
+  sched = box "Scheduler"
+  spark = box "Batch jobs"
+  stream = box "Stream jobs"
+  sched -> spark
+  sched -> stream
+}
+system serve "Serving" {
+  sql = box "SQL endpoint"
+  cache = box "Result cache"
+  dash = box "Dashboards"
+  dash -> sql
+  sql -> cache
+}
+ingest.worker -> lake.raw "land"
+compute.spark -> lake.clean "read"
+compute.spark -> lake.clean "write"
+compute.stream -> lake.raw "append"
+serve.sql -> lake.clean "query"
+serve.sql -> lake.catalog "schema"
+analyst -> serve.dash
+view landscape { include * }
+view everything { include *
+  expand * }
+view two { include *
+  expand lake, compute
+  layout { rows [ingest] [lake compute] [serve] } }

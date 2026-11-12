@@ -1,0 +1,44 @@
+// Trial diagram for the grid engine — not part of the corpus, never tuned against.
+person user "Users"
+dns = box "Global DNS"
+system east "App (east)" {
+  lb = box "Load balancer"
+  app = box "App servers"
+  db = box "Primary DB"
+  cache = box "Cache"
+  lb -> app
+  app -> db
+  app -> cache
+}
+system west "App (west)" {
+  lb = box "Load balancer"
+  app = box "App servers"
+  db = box "Replica DB"
+  cache = box "Cache"
+  lb -> app
+  app -> db
+  app -> cache
+}
+system obs "Observability" {
+  metrics = box "Metrics"
+  logs = box "Logs"
+}
+user -> dns
+dns -> east.lb "primary"
+dns -> west.lb "failover"
+east.db ~> west.db "replication"
+east.app ~> obs.metrics
+west.app ~> obs.metrics
+east.app ~> obs.logs
+west.app ~> obs.logs
+zone cloud "Cloud" cloud { contains east, west, obs }
+zone ra "us-east-1" region { contains east }
+zone rb "us-west-2" region { contains west }
+view landscape { include * }
+view open { include *
+  expand east, west }
+view all { include *
+  expand * }
+view side { include *
+  expand east, west
+  layout { rows [east west] } }

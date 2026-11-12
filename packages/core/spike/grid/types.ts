@@ -27,11 +27,12 @@ export interface Group {
   dir: Dir;
   pad: { top: number; right: number; bottom: number; left: number };
   gap: { lane: number; rank: number };
-  /** In the order they sit within a rank… */
+  /** In the order they sit within a rank, as declared. The engine reorders
+   *  them only to uncross wires, and never the ones in `held`. */
   boxes: Box[];
-  /** …unless nobody arranged this container: then the engine may reorder
-   *  them within each rank to uncross wires. */
-  free?: boolean;
+  /** Boxes whose place in their rank the author arranged (`rows`, `cols`,
+   *  `place`): each keeps its slot. */
+  held?: string[];
   pins: Map<string, number>;
   /** Sets of boxes, in different ranks, that share one centre line. */
   aligned?: string[][];
@@ -112,6 +113,9 @@ export interface Slot {
   after: number;              // extra room on the lane-high side (a bleed, sideways)
   pos: number;                // lane start
   label?: boolean;
+  /** Its place in its layer is settled: every box, and a wall port once the
+   *  outside has said which lane its wire arrives on. */
+  pinned?: boolean;
 }
 export interface Layer { kind: "rank" | "label" | "wall"; slots: Slot[]; f: number; depth: number }
 

@@ -1,0 +1,23 @@
+// Trial diagram for the grid engine — not part of the corpus, never tuned against.
+person buyer "Buyers"
+person seller "Sellers"
+person support "Support"
+person finance "Finance"
+market = box "Marketplace"
+seller_hub = box "Seller hub"
+desk = box "Help desk"
+books = box "Accounting"
+core = box "Core API"
+db = box "Database"
+buyer -> market
+seller -> seller_hub
+seller -> market "preview listing"
+support -> desk
+support -> seller_hub "impersonate"
+finance -> books
+market -> core
+seller_hub -> core
+desk -> core
+books -> core "exports"
+core -> db
+view who { include * }
