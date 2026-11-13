@@ -782,3 +782,41 @@ is wrong.
 384 views: 178 better, 191 level, 15 worse; total penalty −32%. Two more
 views count as worse than before these fixes, because their wires had been
 slipping under a title to run straight where they should have turned.
+
+### Dense diagrams: a sketch of the whole picture
+
+The dense random diagrams lose on crossings because each container is laid
+out on its own and can only guess where the wires through its walls end up.
+Two things were tried.
+
+**Looking for one bug.** The two worst (`random-21`, `random-66`) are both a
+rightward flow with every group expanded. Listing which wires cross where in
+`random-21` (37 crossings to ELK's 8) found no single defect. The crossings
+come from two places no row order can reach: boxes in *different* ranks of
+one container (whose lanes are a matter of placement, not order), and wires
+that pass a whole container on their way to a later one — which side they
+pass on, and where among the first container's exits they leave.
+
+**Ordering globally** (`sketch.ts`). Before layout the picture is sketched
+whole — every box at its size, rows centred, each wire one straight stroke
+between the middles of its ends — and row-mates nobody placed trade places
+wherever that uncrosses strokes. The result only seeds each container's own
+ordering. It is not reliably the better start (it knows nothing of
+routing: corpus crossings went 25 → 29 with it alone), so the engine draws
+from both starts, declared and sketched, and keeps the one that crosses
+less; a picture with no crossing the first time is not drawn again.
+
+| | Before | Now | ELK |
+|---|---|---|---|
+| Trial set: crossings | 587 | 566 | 607 |
+| Corpus: crossings | 25 | 25 | 73 |
+| Random views scoring worse | 9 | 8 | — |
+| 259 corpus views | 1.0 s | 0.9 s | 3.5 s |
+
+384 views: 179 better, 191 level, 14 worse. `random-21` is unchanged.
+
+What would close the rest is what ELK does: one crossing minimisation over
+the whole hierarchy, in which a wire passing a rank is a node in that rank's
+order — inside containers and across their walls alike — rather than each
+container ordering its own slots with a hint from outside. That is a
+different ordering stage, not a tweak to this one.
