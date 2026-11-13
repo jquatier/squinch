@@ -37,7 +37,7 @@ const up8 = (v: number) => Math.ceil(v / GRID) * GRID;
 
 const W: Record<string, number> = {
   balance: 12,  // a box and the box its wire reaches: centres in line
-  deadEnd: 6,   // …half as hard if one of them goes nowhere else
+  deadEnd: 8,   // …less hard if one of them goes nowhere else
   back: 2,      // …and barely at all for a wire running back against the flow
   fixed: 12,    // a wire between two ports that cannot move: straight
   lane: 8,      // a wire passing a rank: straight
