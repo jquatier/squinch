@@ -681,3 +681,14 @@ pixels off the middle, the box moves onto the wire — or, where it has no
 room, the straight stretch of the wire slides over to the box
 (`tidy.ts`, `recentre`). The ten that remain cannot be centred: the wire's
 other end is at the corner limit of a box that does not reach that far.
+
+### Boxes with no wires stand aside
+
+Decided: a box no wire touches, inside or out, stands after its row-mates
+that have one. Where it stands means nothing to the wires, and every
+container then keeps its wired boxes to the same side — so two zones one
+above the other line up with the wire between them straight
+(`20-multicloud-migration#landscape`: 688 px wide and staggered before, 480
+and in line now). `rows`, `cols` and `place` hold a box where the author put
+it, wired or not; that is the way to say otherwise. Seven views in the
+corpus and trial sets change; none scores worse.

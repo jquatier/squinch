@@ -62,11 +62,14 @@ export function solve(problem: Problem): Solution {
   // ── order, and which wall each wire uses where its ends part company ──────
   // Both depend on where a container's wires go once they leave it, which is
   // only known after a first layout — so this runs before each pass.
+  // boxes no wire touches, inside or out: free to stand aside (order.ts)
+  const wired = new Set(problem.wires.flatMap((w) => [w.from, w.to, ...(chainOf.get(w.from) ?? []), ...(chainOf.get(w.to) ?? [])]));
+  const idle = new Set([...boxes.keys()].filter((id) => !wired.has(id)));
   const routes = new Map<string, Route>();
   const arrange = (outside: ReadonlyMap<string, Map<string, Leaving>>) => {
     for (const [id, g] of groups) {
       const byId = new Map(declared.get(id)!.map((b) => [b.id, b]));
-      g.boxes = orderBoxes([...byId.keys()], ranks, edgesOf(id), outside.get(id), new Set(g.held)).map((b) => byId.get(b)!);
+      g.boxes = orderBoxes([...byId.keys()], ranks, edgesOf(id), outside.get(id), new Set(g.held), idle).map((b) => byId.get(b)!);
     }
     routes.clear();
     for (const [home, list] of lifted) {

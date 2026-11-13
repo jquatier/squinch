@@ -150,7 +150,8 @@ describe("solve", () => {
     expect([p.y, q.y, q.x - p.x]).toEqual([64, 64, 48]);
   });
   it("takes a same-rank wire round whatever stands between its ends", () => {
-    const s = solve(problem([leaf("a"), leaf("mid"), leaf("b")], ["a>b"], pin({ a: 0, mid: 0, b: 0 })));
+    // the author put `mid` between them (`rows [a mid b]`), so it stays there
+    const s = solve(problem([leaf("a"), leaf("mid"), leaf("b")], ["a>b"], { ...pin({ a: 0, mid: 0, b: 0 }), held: ["a", "mid", "b"] }));
     const pts = s.wires.get("a>b")!.points;
     expect(pts).toHaveLength(4);
     const mid = s.boxes.get("mid")!;
@@ -295,6 +296,21 @@ describe("solve", () => {
     const y = s.boxes.get("sys.y")!, pts = s.wires.get("sys.x>t")!.points;
     expect(crossed(s)).toBe(0);
     expect(Math.min(...pts.map((p) => p.y))).toBeLessThan(y.y); // over `y`, not under it
+  });
+  it("stands a box no wire touches after its row-mates that have one, unless the author placed it", () => {
+    const x = (s: ReturnType<typeof solve>, id: string) => s.boxes.get(id)!.x;
+    const free = solve(problem([leaf("idle"), leaf("a"), leaf("b")], ["a>b"], pin({ idle: 0, a: 0, b: 1 })));
+    expect(x(free, "a")).toBeLessThan(x(free, "idle"));
+    const placed = solve(problem([leaf("idle"), leaf("a"), leaf("b")], ["a>b"], { ...pin({ idle: 0, a: 0, b: 1 }), held: ["idle", "a"] }));
+    expect(x(placed, "idle")).toBeLessThan(x(placed, "a"));
+  });
+  it("lines up two containers whose wired boxes were declared on opposite sides", () => {
+    const pad = { top: 44, right: 16, bottom: 16, left: 16 };
+    const top: Box = { id: "top", w: 0, h: 0, group: group([leaf("top.pg"), leaf("top.mq")], { pad, ...pin({ "top.pg": 0, "top.mq": 0 }) }) };
+    const bottom: Box = { id: "bottom", w: 0, h: 0, group: group([leaf("bottom.aks"), leaf("bottom.sql")], { pad, ...pin({ "bottom.aks": 0, "bottom.sql": 0 }) }) };
+    const s = solve(problem([top, leaf("sync"), bottom], ["top.pg>sync", "sync>bottom.sql"]));
+    expect(s.boxes.get("top")!.x).toBe(s.boxes.get("bottom")!.x);
+    for (const w of s.wires.values()) expect(w.points).toHaveLength(2);
   });
   it("is a pure function", () => {
     const make = () => problem([leaf("a"), leaf("b"), leaf("c"), leaf("d")], ["a>b", "a>c", "b>d", "c>d", "a>d"]);

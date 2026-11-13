@@ -1,7 +1,7 @@
 // Order: which box stands where within its rank, when the author has not said.
 //
 // Declaration order is the default, and it is kept whenever it crosses no
-// wires. Where it does, the boxes the author did not place (`rows`, `cols`,
+// wires — among boxes that have wires. A box with none stands after them. Where it does, the boxes the author did not place (`rows`, `cols`,
 // `place` hold a box to its slot) are sorted to cross as little as possible,
 // by the classic sweep — order each rank by the average position of what it
 // connects to in the ranks above, then by the ranks below, and keep the best
@@ -38,9 +38,17 @@ export function orderBoxes(
   outside: ReadonlyMap<string, Leaving> = new Map(),
   /** Members the author placed: each keeps its slot in its rank. */
   held: ReadonlySet<string> = new Set(),
+  /** Members no wire touches. Where one stands means nothing to the wires,
+   *  so each stands after the row-mates that have one: every container then
+   *  keeps its wired boxes to the same side, and two of them one above the
+   *  other line up with the wire between them straight. (`rows`, `cols` and
+   *  `place` hold a box where the author put it, wired or not.) */
+  idle: ReadonlySet<string> = new Set(),
 ): string[] {
   const ranks = [...new Set(initial.map((id) => rank.get(id)!))].sort((a, b) => a - b);
-  let rows = ranks.map((r) => initial.filter((id) => rank.get(id) === r));
+  const last = (id: string) => idle.has(id) && !held.has(id);
+  let rows = ranks.map((r) => initial.filter((id) => rank.get(id) === r))
+    .map((row) => (row.some((id) => held.has(id)) ? row : [...row.filter((id) => !last(id)), ...row.filter(last)]));
   const flat = (rs: string[][]) => rs.flat();
   // wires to the outside cross too: two row-mates standing the other way
   // round from where their wires leave is one crossing at the wall
