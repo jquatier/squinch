@@ -20,7 +20,7 @@ const folder = (name: string) => readdirSync(join(here, name)).filter((f) => f.e
   .map((f) => ({ name: f.replace(".squinch", ""), src: readFileSync(join(here, name, f), "utf8") }));
 
 describe("score", () => {
-  const m = (over: Partial<Metrics>): Metrics => ({ area: 0, width: 0, height: 0, wire: 0, bends: 0, crossings: 0, overlaps: 0, throughNode: 0, throughFrame: 0, kinks: 0, unstraight: 0, nearMiss: 0, lopsided: 0, ...over });
+  const m = (over: Partial<Metrics>): Metrics => ({ area: 0, width: 0, height: 0, wire: 0, bends: 0, crossings: 0, overlaps: 0, throughNode: 0, throughFrame: 0, kinks: 0, unstraight: 0, nearMiss: 0, lopsided: 0, offCentre: 0, ...over });
   it("ranks what a reviewer would: illegal over crossed over bent over long", () => {
     expect(penalty(m({}), 1)).toBeGreaterThan(penalty(m({ crossings: 5 }), 0));
     expect(penalty(m({ crossings: 1 }), 0)).toBeGreaterThan(penalty(m({ bends: 9 }), 0));
@@ -95,7 +95,7 @@ it("grid vs ELK, view by view", async () => {
   // what the lost views lose on: each term's share of the penalty they gave away
   const terms: [string, (m: Metrics, illegal: number) => number][] = [
     ["illegal", (m, i) => WEIGHTS.illegal * (i + m.throughNode)], ["crossings", (m) => WEIGHTS.crossings * m.crossings],
-    ["kinks", (m) => WEIGHTS.kinks * m.kinks], ["nearMiss", (m) => WEIGHTS.nearMiss * m.nearMiss], ["lopsided", (m) => WEIGHTS.lopsided * m.lopsided], ["unstraight", (m) => WEIGHTS.unstraight * m.unstraight],
+    ["kinks", (m) => WEIGHTS.kinks * m.kinks], ["nearMiss", (m) => WEIGHTS.nearMiss * m.nearMiss], ["lopsided", (m) => WEIGHTS.lopsided * m.lopsided], ["unstraight", (m) => WEIGHTS.unstraight * m.unstraight], ["offCentre", (m) => WEIGHTS.offCentre * m.offCentre],
     ["bends", (m) => WEIGHTS.bends * m.bends], ["wire", (m) => WEIGHTS.wire * m.wire], ["area", (m) => WEIGHTS.area * m.area],
   ];
   for (const [label, pick] of [["lost", "worse"], ["won", "better"]] as const) {
@@ -105,7 +105,7 @@ it("grid vs ELK, view by view", async () => {
       return `  ${name.padEnd(11)} ${e.toFixed(0).padStart(6)} → ${g.toFixed(0).padStart(6)}   ${(g - e >= 0 ? "+" : "") + (g - e).toFixed(0)}`;
     }).join("\n"));
   }
-  console.log("\nTotals, everything but the random set (ELK → grid):\n" + (["crossings", "kinks", "nearMiss", "lopsided", "unstraight", "bends", "wire"] as const).map((k) => {
+  console.log("\nTotals, everything but the random set (ELK → grid):\n" + (["crossings", "kinks", "nearMiss", "lopsided", "unstraight", "offCentre", "bends", "wire"] as const).map((k) => {
     const list = rows.filter((r) => r.set !== "random");
     const e = list.reduce((a, r) => a + r.elk[k], 0), g = list.reduce((a, r) => a + r.grid[k], 0);
     return `  ${k.padEnd(11)} ${String(e).padStart(7)} → ${String(g).padStart(7)}   ×${(g / (e || 1)).toFixed(2)}`;

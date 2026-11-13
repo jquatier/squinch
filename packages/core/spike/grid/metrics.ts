@@ -19,6 +19,7 @@ export interface Metrics {
   unstraight: number;  // wires that turn although their ends face each other
   nearMiss: number;    // two boxes in one container almost, but not, on one line
   lopsided: number;    // a box off the middle of the boxes its wires fan out to
+  offCentre: number;   // a wall's only wire almost, but not, on the wall's middle
 }
 
 type Seg = { x1: number; y1: number; x2: number; y2: number; horizontal: boolean };
@@ -82,11 +83,28 @@ export function measureLayout(p: Positioned): Metrics {
       const k = `${me}|${wall}`;
       (fans.get(k) ?? fans.set(k, { vertical: wall === "n" || wall === "s", others: new Set() }).get(k)!).others.add(other);
     }
+  // DESIGN: nothing almost-centred either. The one wire on a wall sits on the
+  // wall's middle or clearly off it — 1–7 px to one side reads as a slip.
+  let offCentre = 0;
+  const alone = new Map<string, number[]>();
+  for (const e of p.edges)
+    for (const [me, pt] of [[e.from, e.points[0]], [e.to, e.points[e.points.length - 1]]] as const) {
+      const n = byId.get(me);
+      if (!n || !pt) continue;
+      const across = pt.y === n.y || pt.y === n.y + n.h;
+      const k = `${me}|${across ? (pt.y === n.y ? "n" : "s") : pt.x === n.x ? "w" : "e"}`;
+      (alone.get(k) ?? alone.set(k, []).get(k)!).push(across ? pt.x - (n.x + n.w / 2) : pt.y - (n.y + n.h / 2));
+    }
+  for (const [k, ds] of alone) {
+    const n = byId.get(k.split("|")[0])!;
+    const tall = !(k.endsWith("|n") || k.endsWith("|s")) && n.h > 80; // a table's wires meet its head, not its middle
+    if (ds.length === 1 && !tall && Math.abs(ds[0]) >= 1 && Math.abs(ds[0]) < 8) offCentre++;
+  }
   for (const [k, fan] of fans) {
     if (fan.others.size < 2) continue;
     const mid = (n: { x: number; y: number; w: number; h: number }) => (fan.vertical ? n.x + n.w / 2 : n.y + n.h / 2);
     const cs = [...fan.others].map((o) => mid(byId.get(o)!));
     if (Math.abs(mid(byId.get(k.split("|")[0])!) - (Math.min(...cs) + Math.max(...cs)) / 2) > 8) lopsided++;
   }
-  return { lopsided, area: p.width * p.height, width: p.width, height: p.height, wire, bends, crossings, overlaps, throughNode, throughFrame, kinks, unstraight, nearMiss };
+  return { lopsided, offCentre, area: p.width * p.height, width: p.width, height: p.height, wire, bends, crossings, overlaps, throughNode, throughFrame, kinks, unstraight, nearMiss };
 }

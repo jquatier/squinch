@@ -9,6 +9,7 @@
 //    5  a jog too short to draw cleanly; two boxes almost, but not, in line
 //    4  a box off the middle of the boxes its wires fan out to
 //    3  a wire that bends although its ends face each other
+//    2  a wall's only wire a few pixels off the wall's middle
 //    1  a bend
 //    1  per 200 px of wire
 //
@@ -27,12 +28,12 @@
 
 import type { Metrics } from "./metrics.js";
 
-export const WEIGHTS = { illegal: 60, crossings: 10, kinks: 5, nearMiss: 5, lopsided: 4, unstraight: 3, bends: 1, wire: 1 / 200, area: 0 };
+export const WEIGHTS = { illegal: 60, crossings: 10, kinks: 5, nearMiss: 5, lopsided: 4, unstraight: 3, offCentre: 2, bends: 1, wire: 1 / 200, area: 0 };
 export type Weights = typeof WEIGHTS;
 
 export function penalty(m: Metrics, illegal: number, w: Weights = WEIGHTS): number {
   return w.illegal * (illegal + m.throughNode) + w.crossings * m.crossings + w.kinks * m.kinks + w.nearMiss * m.nearMiss
-    + w.lopsided * m.lopsided + w.unstraight * m.unstraight + w.bends * m.bends + w.wire * m.wire + w.area * m.area;
+    + w.lopsided * m.lopsided + w.unstraight * m.unstraight + w.offCentre * m.offCentre + w.bends * m.bends + w.wire * m.wire + w.area * m.area;
 }
 
 /** Two views less than this apart are level, whatever the ratio: one point is

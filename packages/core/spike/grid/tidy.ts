@@ -1,13 +1,14 @@
 // Tidy: the last few pixels, once every slot has a lane.
 //
 // Settling splits a disagreement evenly, which leaves both sides a little
-// bent. Four passes clean that up without undoing it:
+// bent. Five passes clean that up without undoing it:
 //
 //   straighten  a wire with both its walls to itself runs dead straight, if
 //               a box can move the whole way without bending another
 //   snap        every box's centre line goes onto the design lattice
 //   centre      …except a box over exactly two wires, which stands between them
 //   nudge       a jog too short to draw is slid straight, or opened up
+//   recentre    a wall's only wire meets it in the middle, not just beside it
 //
 // The author's alignments (`align`, `cols`) are never moved.
 
@@ -73,6 +74,19 @@ export function tidy(sh: Sheet, ports: Ports, rows: Rows): void {
    *  never a few pixels. A box moves at most half a step; its ports then go
    *  to meet their wires again, which is what they are for. */
   const snap = () => {
+    // a passing wire that runs straight into a box goes with it: left where
+    // it was, both the box's ports would slide off-centre to reach it
+    const leader = new Map<Slot, Slot>();
+    const follow = (from: Slot, box: Slot) => {
+      for (const h of hopsOf.get(from) ?? []) {
+        const next = h.u === from ? h.v : h.u;
+        if (next.kind !== "pass" || leader.has(next) || off(h) !== 0) continue;
+        leader.set(next, box);
+        follow(next, box);
+      }
+    };
+    for (const s of rows.all) if (s.kind === "box") follow(s, s);
+    const was = new Map(rows.all.map((s) => [s, s.pos]));
     const onLattice = (v: number, least: number) => {
       let at = Math.round(v / LATTICE) * LATTICE;
       while (at < least) at += LATTICE;
@@ -96,6 +110,10 @@ export function tidy(sh: Sheet, ports: Ports, rows: Rows): void {
         else if (s.kind !== "box" || onAxis.has(s)) s.pos = Math.max(s.pos, least);
         else s.pos = Math.round(onLattice(s.pos + s.lsize / 2, least + s.lsize / 2) - s.lsize / 2);
       });
+    for (const [s, box] of leader) {
+      const d = box.pos - was.get(box)!;
+      if (d && s.pos === was.get(s) && rows.fits(s, s.pos + d)) s.pos += d;
+    }
     rows.settleWall();
     ports.meet();
   };
@@ -147,6 +165,38 @@ export function tidy(sh: Sheet, ports: Ports, rows: Rows): void {
         ports.slide(v, wire, "start", -more) || ports.slide(u, wire, "end", more) || shift(v, -more) || shift(u, more);
       }
   };
+  /** Nothing almost-centred. A wall's only wire meets it in the middle or
+   *  clearly to one side; a few pixels off reads as a slip. Where the wire
+   *  is straight the box goes to it (its other ports staying where their
+   *  wires are); where it bends anyway the port goes back to the middle. */
+  const recentre = () => {
+    for (const s of rows.all) {
+      if (s.kind !== "box" || s.box!.group || onAxis.has(s)) continue;
+      for (const face of ["start", "end"] as const) {
+        const mine = (hopsOf.get(s) ?? []).filter((h) => (face === "end" ? h.u : h.v) === s);
+        if (ports.crowd(s, face) !== 1 || !mine.length) continue;
+        const hop = mine[0];
+        const d = ports.lane(s, hop.wire, face) - (s.pos + Math.round(sh.ax.flowFace(s.box!) / 2));
+        if (!d || Math.abs(d) >= LATTICE) continue;
+        if (off(hop) !== 0) {
+          // bent already: back to the middle, unless that leaves a jog too short to draw
+          const after = Math.abs(off(hop) + (face === "end" ? -d : d));
+          if (after > NEAR) ports.slide(s, hop.wire, face, -d);
+          continue;
+        }
+        if (!rows.fits(s, s.pos + d)) continue;
+        // the box goes to the wire; every port of it stays on its own lane
+        const others = (hopsOf.get(s) ?? []).map((h) => ({ h, face: (h.u === s ? "end" : "start") as "start" | "end" }));
+        s.pos += d;
+        const done: typeof others = [];
+        const ok = others.every((o) => (ports.slide(s, o.h.wire, o.face, -d) ? (done.push(o), true) : false));
+        if (ok) continue;
+        for (const o of done) ports.slide(s, o.h.wire, o.face, d);
+        s.pos -= d;
+      }
+    }
+  };
+
   // boxes, then wires; and after the lattice has had its say, wires only —
   // the last word goes to the boxes' lines
   straighten();
@@ -154,4 +204,5 @@ export function tidy(sh: Sheet, ports: Ports, rows: Rows): void {
   snap();
   centre();
   nudge(false);
+  recentre();
 }
