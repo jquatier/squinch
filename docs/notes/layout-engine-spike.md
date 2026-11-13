@@ -742,8 +742,8 @@ closed, which is what was leaving a lone box stranded inside its container.
 
 | Set | Views | Better | Same | Worse |
 |---|---|---|---|---|
-| Corpus | 254 | 79 | 171 | 4 |
-| Trial | 33 | 22 | 9 | 2 |
+| Corpus | 254 | 79 | 172 | 3 |
+| Trial | 33 | 22 | 8 | 3 |
 | Round 2 | 33 | 30 | 3 | 0 |
 | Random | 64 | 47 | 9 | 8 |
 | **Everything** | **384** | **178** | **192** | **14** |
