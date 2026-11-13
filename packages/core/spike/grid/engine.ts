@@ -15,6 +15,7 @@ import { sideOf } from "./axes.js";
 import { layoutGroup } from "./group.js";
 import { orderBoxes, type Leaving } from "./order.js";
 import { assignRanks, dense, type Edge } from "./rank.js";
+import { tally } from "./tally.js";
 import type { Box, Group, Laid, Problem, Pt, Rect, Role, Route, Solution, Wire } from "./types.js";
 
 export type { Box, Dir, Group, Problem, Pt, Rect, Side, Solution, Wire } from "./types.js";
@@ -99,26 +100,8 @@ export function solve(problem: Problem): Solution {
     laid.set(id, out);
     return out;
   };
-  arrange(new Map());
-  let top = lay(ROOT);
-  // Two things are learned from each layout and they answer each other: the
-  // order of a container's boxes follows where its wires arrive from, and
-  // the order of the wires leaving a container follows where they end up.
-  // Refreshed together they swap places every pass and never agree — so
-  // they take turns.
-  let outside = new Map<string, Map<string, Leaving>>();
-  for (let pass = 0; pass < PASSES && groups.size > 1; pass++) {
-    approach = new Map([...laid.values()].flatMap((l) => [...l.approach]));
-    // …and the last pass refreshes neither: it only lets every container
-    // meet the lanes its wires now arrive on
-    if (pass === PASSES - 1) { /* settle */ }
-    else if (pass % 2 === 0) outside = leavings(approach, groups, laid, routes, wireById);
-    else heading = new Map([...laid.values()].flatMap((l) => [...l.heading]));
-    arrange(outside);
-    top = lay(ROOT);
-  }
-
   // ── absolute positions, and each wire stitched from its pieces ────────────
+  const assemble = (top: Laid): Solution => {
   const origin = new Map<string, Pt>([[ROOT, { x: 0, y: 0 }]]);
   const rects = new Map<string, Rect>();
   const settle = (id: string) => {
@@ -146,7 +129,38 @@ export function solve(problem: Problem): Solution {
     wires.set(wire.id, { points: simplify(pts), label });
   }
   return { width: top.w, height: top.h, boxes: rects, ranks, wires, skipped };
+  };
+
+  // Every pass draws a whole, legal picture, and a later one is usually but
+  // not always the better: the one with fewest crossings is kept, then
+  // fewest turns, and the later of two that are level.
+  let best: Solution | undefined, score = [Infinity, Infinity];
+  const consider = (top: Laid) => {
+    const sol = assemble(top), { crossings, bends } = tally(sol);
+    if (crossings < score[0] || (crossings === score[0] && bends <= score[1])) { best = sol; score = [crossings, bends]; }
+  };
+  arrange(new Map());
+  consider(lay(ROOT));
+  // Two things are learned from each layout and they answer each other: the
+  // order of a container's boxes follows where its wires arrive from, and
+  // the order of the wires leaving a container follows where they end up.
+  // Refreshed together they swap places every pass and never agree — so
+  // they take turns.
+  let outside = new Map<string, Map<string, Leaving>>();
+  for (let pass = 0; pass < PASSES && groups.size > 1; pass++) {
+    approach = new Map([...laid.values()].flatMap((l) => [...l.approach]));
+    // …and the last pass refreshes neither: it only lets every container
+    // meet the lanes its wires now arrive on
+    if (pass === PASSES - 1) { /* settle */ }
+    else if (pass % 2 === 0) outside = leavings(approach, groups, laid, routes, wireById);
+    else heading = new Map([...laid.values()].flatMap((l) => [...l.heading]));
+    arrange(outside);
+    consider(lay(ROOT));
+  }
+  return best!;
 }
+
+
 
 /** How a wire between two children of `g` crosses it: by which walls. */
 function wallsFor(
