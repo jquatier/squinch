@@ -137,8 +137,15 @@ const pin = (o: Record<string, number>) => ({ pins: new Map(Object.entries(o)) }
 describe("solve", () => {
   it("draws a wire between two ranks as one straight line", () => {
     const s = solve(problem([leaf("a"), leaf("b")], ["a>b"]));
-    expect(s.wires.get("a>b")!.points).toEqual([{ x: 92, y: 96 }, { x: 92, y: 152 }]);
-    expect(s.boxes.get("b")).toEqual({ x: 32, y: 152, w: 120, h: 64 });
+    const a = s.boxes.get("a")!, b = s.boxes.get("b")!, pts = s.wires.get("a>b")!.points;
+    expect(pts).toHaveLength(2);
+    expect(pts[0]).toEqual({ x: a.x + 60, y: a.y + 64 }); // out of the middle of a's bottom
+    expect(pts[1]).toEqual({ x: b.x + 60, y: b.y });      // into the middle of b's top
+    expect([a.x, b.y - (a.y + 64)]).toEqual([b.x, 56]);   // b under a, one rank gap below
+  });
+  it("puts every box's centre line on the 8-pixel grid", () => {
+    const s = solve(problem([leaf("a", 200), leaf("b"), leaf("c", 160), leaf("d")], ["a>b", "a>c", "b>d", "c>d"]));
+    for (const r of s.boxes.values()) expect((r.x + r.w / 2) % 8).toBe(0);
   });
   it("draws a same-rank wire straight across the gutter", () => {
     const s = solve(problem([leaf("a"), leaf("b")], ["a>b"], pin({ a: 0, b: 0 })));

@@ -10,7 +10,7 @@ import { layoutViewGrid } from "./layout.js";
 import { measureLayout, type Metrics } from "./metrics.js";
 
 it("grid vs ELK over the corpus", async () => {
-  const keys: (keyof Metrics)[] = ["area", "wire", "bends", "crossings", "overlaps", "throughNode", "kinks", "unstraight"];
+  const keys: (keyof Metrics)[] = ["area", "wire", "bends", "crossings", "overlaps", "throughNode", "kinks", "unstraight", "nearMiss"];
   const total = { elk: {} as Record<string, number>, grid: {} as Record<string, number> };
   const wins = {} as Record<string, [better: number, worse: number]>;
   for (const k of keys) { total.elk[k] = 0; total.grid[k] = 0; wins[k] = [0, 0]; }

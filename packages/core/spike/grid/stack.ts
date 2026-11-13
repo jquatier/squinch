@@ -2,6 +2,7 @@
 // between them has to be for the wires that turn in it.
 
 import { assignTracks, type Run } from "./channel.js";
+import { LATTICE } from "./place.js";
 import type { Ports } from "./ports.js";
 import type { Sheet } from "./sheet.js";
 import { CORNER, LABEL_PAD, STUB, TRACK } from "./types.js";
@@ -88,8 +89,11 @@ export function stack(sh: Sheet, ports: Ports, minW: number, title?: { w: number
   const all = layers.flatMap((l) => l.slots);
   let L = Math.max(ax.pad.low, ...all.map((s) => s.pos + s.lsize + s.after)) + ax.pad.high;
   let F = f;
+  // …a whole number of lattice steps either side of its centre line, so its
+  // inside stands on the same grid as its surroundings
+  L = Math.ceil(L / (2 * LATTICE)) * 2 * LATTICE;
   // a container is at least as wide as its title
-  if (ax.down) L = Math.max(L, minW);
+  if (ax.down) L = Math.ceil(Math.max(L, minW) / (2 * LATTICE)) * 2 * LATTICE;
   else if (layers[layers.length - 1]?.kind !== "wall") F = Math.max(F, minW);
   return { channels, L, F };
 }

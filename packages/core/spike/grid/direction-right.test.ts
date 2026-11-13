@@ -150,7 +150,7 @@ it("left to right: does it read rightward, is it arranged as asked, and is every
     ...corpus(),
     ...readdirSync(join(here, "trial")).filter((f) => f.endsWith(".squinch")).sort().map((f) => ({ name: `trial/${f}`, src: readFileSync(join(here, "trial", f), "utf8") })),
   ];
-  const keys: (keyof Metrics)[] = ["area", "wire", "bends", "crossings", "kinks", "throughNode"];
+  const keys: (keyof Metrics)[] = ["area", "wire", "bends", "crossings", "kinks", "throughNode", "nearMiss"];
   const total = { elk: {} as Record<string, number>, grid: {} as Record<string, number> };
   for (const k of keys) { total.elk[k] = 0; total.grid[k] = 0; }
   let views = 0, elkBad = 0, elkErr = 0, elkCrash = 0;

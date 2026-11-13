@@ -33,7 +33,8 @@ export function median(items: { value: number; weight: number; side?: number }[]
   return sorted[sorted.length - 1].value;
 }
 
-const HOLD = 20;   // how much harder a box holds its lane than a wire passing it
+const HOLD = 1e4;  // a box holds its lane outright against a wire passing it
+export const LATTICE = 8;   // the design grid: the step between the lines boxes may be centred on
 const SWEEPS = 5;  // down, up, down, up, down — the last word to the reading direction
 const NEAR = 15;   // a jog shorter than two corner radii is slid straight rather than drawn
 
@@ -189,7 +190,10 @@ export function place(
   const clear = (s: Slot) => (s.kind === "port" ? CORNER : ax.pad.low);
   const settleWall = () => {
     if (!all.length) return;
-    const first = Math.min(...all.map((s) => s.pos - clear(s)));
+    // in whole steps of the lattice, so a centre line on it stays on it — and,
+    // the container's size being a whole number of steps too (stack.ts), is
+    // on its parent's lattice as well: one grid for the whole picture
+    const first = Math.floor(Math.min(...all.map((s) => s.pos - clear(s))) / LATTICE) * LATTICE;
     for (const s of all) s.pos -= first;
   };
   settleWall();
@@ -294,8 +298,23 @@ export function place(
         const d = off(hop);
         if (d) carry(hop.v, d, hop) || carry(hop.u, -d, hop);
       }
-  settleWall();
-  meet();
+  // Nothing almost-aligned, by construction: every box's centre line sits on
+  // a lattice, so two of them are on one line or a clear step apart — never
+  // a few pixels. A box moves at most half a step; its ports then go to meet
+  // their wires again, which is what they are for.
+  const snap = () => {
+    for (const { slots: row } of layers)
+      row.forEach((s, i) => {
+        const prev = row[i - 1];
+        const least = prev ? prev.pos + prev.lsize + gapAfter(prev, s) : -Infinity;
+        if (s.kind !== "box" || onAxis.has(s)) { s.pos = Math.max(s.pos, least); return; }
+        let centre = Math.round((s.pos + s.lsize / 2) / LATTICE) * LATTICE;
+        while (centre - s.lsize / 2 < least) centre += LATTICE;
+        s.pos = Math.round(centre - s.lsize / 2);
+      });
+    settleWall();
+    meet();
+  };
 
   // A wire a few pixels off straight is slid onto the line: the lower end
   // gives way — a port along its wall, a pass-through slot along its row.
@@ -304,19 +323,27 @@ export function place(
     s.pos += d;
     return true;
   };
-  // twice: sliding one wire's port can leave its neighbour a few pixels off
-  for (let round = 0; round < 2; round++)
-    for (const c of chains)
-      for (let i = 0; i + 1 < c.path.length; i++) {
-        const u = c.path[i], v = c.path[i + 1];
-        const d = ports.lane(u, c.wire, "end") - ports.lane(v, c.wire, "start");
-        if (!d || Math.abs(d) > NEAR) continue;
-        if (ports.slide(v, c.wire, "start", d) || shift(v, d) || ports.slide(u, c.wire, "end", -d) || shift(u, -d)) continue;
-        // no port or passing wire could give: move a box, if nothing straight
-        // bends for it — and failing that, open the jog up to a full corner
-        const hop = hopsOf.get(u)!.find((h) => h.v === v && h.wire === c.wire)!;
-        if (carry(v, d, hop) || carry(u, -d, hop)) continue;
-        const more = Math.sign(d) * (NEAR + 1 - Math.abs(d));
-        ports.slide(v, c.wire, "start", -more) || ports.slide(u, c.wire, "end", more) || shift(v, -more) || shift(u, more);
-      }
+  /** `boxesToo`: where no port or passing wire can give, move a box — if
+   *  nothing straight bends for it — and failing that open the jog up to a
+   *  full corner. Twice: one wire's port sliding can leave its neighbour off. */
+  const nudge = (boxesToo: boolean) => {
+    for (let round = 0; round < 2; round++)
+      for (const c of chains)
+        for (let i = 0; i + 1 < c.path.length; i++) {
+          const u = c.path[i], v = c.path[i + 1];
+          const d = ports.lane(u, c.wire, "end") - ports.lane(v, c.wire, "start");
+          if (!d || Math.abs(d) > NEAR) continue;
+          // a port before a passing wire: moving the wire only hands the jog to its other end
+          if (ports.slide(v, c.wire, "start", d) || ports.slide(u, c.wire, "end", -d) || shift(v, d) || shift(u, -d)) continue;
+          const hop = hopsOf.get(u)!.find((h) => h.v === v && h.wire === c.wire)!;
+          if (boxesToo && (carry(v, d, hop) || carry(u, -d, hop))) continue;
+          const more = Math.sign(d) * (NEAR + 1 - Math.abs(d));
+          ports.slide(v, c.wire, "start", -more) || ports.slide(u, c.wire, "end", more) || shift(v, -more) || shift(u, more);
+        }
+  };
+  // tidy boxes, then wires; what the wires moved, tidy once more — and the
+  // last word goes to the boxes' lines, with only ports and wires giving
+  nudge(true);
+  snap();
+  nudge(false);
 }

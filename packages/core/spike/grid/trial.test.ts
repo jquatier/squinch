@@ -57,7 +57,7 @@ it("grid vs ELK on diagrams neither has seen", async () => {
     ...readdirSync(dir).filter((f) => f.endsWith(".squinch")).sort().map((f) => ({ name: f.replace(".squinch", ""), src: readFileSync(join(dir, f), "utf8") })),
     ...Array.from({ length: 80 }, (_, i) => ({ name: `random-${i}`, src: randomDiagram(i) })),
   ];
-  const keys: (keyof Metrics)[] = ["area", "wire", "bends", "crossings", "kinks", "throughNode"];
+  const keys: (keyof Metrics)[] = ["area", "wire", "bends", "crossings", "kinks", "throughNode", "nearMiss"];
   const total = { elk: {} as Record<string, number>, grid: {} as Record<string, number> };
   for (const k of keys) { total.elk[k] = 0; total.grid[k] = 0; }
   const lines: string[] = [], gridBad: string[] = [], broken: string[] = [];

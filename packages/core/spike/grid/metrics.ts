@@ -17,6 +17,7 @@ export interface Metrics {
   throughFrame: number;// a wire through a frame or zone neither end is inside
   kinks: number;       // a jog shorter than a corner radius can draw cleanly
   unstraight: number;  // wires that turn although their ends face each other
+  nearMiss: number;    // two boxes in one container almost, but not, on one line
 }
 
 type Seg = { x1: number; y1: number; x2: number; y2: number; horizontal: boolean };
@@ -54,5 +55,17 @@ export function measureLayout(p: Positioned): Metrics {
             overlaps++;
           }
         }
-  return { area: p.width * p.height, width: p.width, height: p.height, wire, bends, crossings, overlaps, throughNode, throughFrame, kinks, unstraight };
+  // DESIGN: nothing almost-aligned. Two boxes of one container whose centre
+  // lines are 1–7 px apart read as a mistake; 0 is aligned, 8 and more is a choice.
+  let nearMiss = 0;
+  const almost = (a: number, b: number) => Math.abs(a - b) > 0 && Math.abs(a - b) < 8;
+  for (let i = 0; i < p.nodes.length; i++)
+    for (let j = i + 1; j < p.nodes.length; j++) {
+      const a = p.nodes[i], b = p.nodes[j];
+      if (a.frame !== b.frame) continue;
+      const beside = a.x + a.w <= b.x || b.x + b.w <= a.x, stacked = a.y + a.h <= b.y || b.y + b.h <= a.y;
+      if (beside && !stacked && almost(a.y + a.h / 2, b.y + b.h / 2) && almost(a.y, b.y)) nearMiss++;
+      if (stacked && !beside && almost(a.x + a.w / 2, b.x + b.w / 2) && almost(a.x, b.x)) nearMiss++;
+    }
+  return { area: p.width * p.height, width: p.width, height: p.height, wire, bends, crossings, overlaps, throughNode, throughFrame, kinks, unstraight, nearMiss };
 }
