@@ -7,6 +7,7 @@
 // over children. The author's alignments are then made exact, and what is
 // left — a wire that wobbles, a jog a few pixels long — is `tidy.ts`'s.
 
+import { compact } from "./compact.js";
 import type { Gutter } from "./gutters.js";
 import { spread } from "./isotonic.js";
 import type { Ports } from "./ports.js";
@@ -28,6 +29,11 @@ export function place(
   const pulls = pullsOf(sh, ports);
   for (let pass = 0; pass < SWEEPS; pass++)
     for (const layer of pass % 2 ? [...sh.layers].reverse() : sh.layers) settle(sh, rows, pulls, layer, pass % 2 === 0, pass === 0);
+  wholePixels(sh, rows);
+  // close what settling left open, then let parents find their children again
+  compact(sh, ports, rows);
+  for (const fromAbove of [false, true])
+    for (const layer of fromAbove ? sh.layers : [...sh.layers].reverse()) settle(sh, rows, pulls, layer, fromAbove);
   wholePixels(sh, rows);
   alignExactly(sh, rows);
   rows.settleWall();

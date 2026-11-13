@@ -22,7 +22,7 @@ export type { Box, Dir, Group, Problem, Pt, Rect, Side, Solution, Wire } from ".
 export { median } from "./place.js";
 
 const ROOT = "";
-const PASSES = 5; // further layouts once the first has shown where wires come from
+const PASSES = 7; // further layouts once the first has shown where wires come from
 
 export function solve(problem: Problem): Solution {
   // ── index the tree ────────────────────────────────────────────────────────
