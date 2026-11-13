@@ -13,9 +13,17 @@ import { buildGutters } from "./gutters.js";
 import { orderSlots } from "./order-slots.js";
 import { place } from "./place.js";
 import { assignPorts } from "./ports.js";
-import { draft } from "./sheet.js";
+import { draft, type Sheet } from "./sheet.js";
 import { stack } from "./stack.js";
 import type { Box, Group, Laid, Route, Wire } from "./types.js";
+
+/** How many wires leave each box straight out of its side, by wall. */
+function sideways(sh: Sheet): Map<string, { low: number; high: number }> {
+  const out = new Map<string, { low: number; high: number }>();
+  for (const l of sh.links)
+    if (l.type === "side") (out.get(l.box) ?? out.set(l.box, { low: 0, high: 0 }).get(l.box)!)[l.wall]++;
+  return out;
+}
 
 export function layoutGroup(
   gid: string, g: Group, box: Box | undefined, wires: readonly Wire[],
@@ -39,6 +47,7 @@ export function layoutGroup(
     // for its port and for every rank it passes on the way there
     (s) => (s.kind !== "box" && heading.has(s.id) && extent ? heading.get(s.id)! / extent : undefined),
     !!box?.title,
+    sideways(sheet),
   );
   const ports = assignPorts(sheet);
   const gutters = buildGutters(sheet);

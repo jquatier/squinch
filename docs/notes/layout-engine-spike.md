@@ -593,3 +593,59 @@ Three things that are taste rather than defects, to be decided:
 - **Declared order.** A box with no wires keeps its declared place even
   where moving it would let two zones line up
   (`20-multicloud-migration#landscape`: 688 px wide to ELK's 472).
+
+### Looks, not size
+
+"I wouldn't worry about bigger or smaller, just what layout looks better."
+The score no longer counts canvas area (wire length stays: a wire taken the
+long way round is a looks matter), and two views less than two points apart
+— two bends' worth — are level whatever the ratio. That removes the eighty
+small views that "lost" by a fraction of a point for being 30 px taller.
+
+| Set | Views | Better | Same | Worse | Total penalty |
+|---|---|---|---|---|---|
+| Corpus | 259 | 88 | 162 | 9 | −31% |
+| Trial | 35 | 25 | 6 | 4 | −42% |
+| Round 2 | 35 | 31 | 2 | 2 | −55% |
+| Random | 80 | 46 | 13 | 21 | −9% |
+| **Everything** | **409** | **190** | **183** | **36** | **−22%** |
+
+Without the centring term: 147 better, 192 the same, 70 worse. On the 329
+views that are not random the grid is ahead on every measure in total:
+
+| | ELK | Grid |
+|---|---|---|
+| Illegal | 30 | 0 |
+| Crossings | 174 | 127 |
+| Jogs under 16 px | 36 | 6 |
+| Almost-aligned pairs | 34 | 2 |
+| Off-centre parents | 541 | 370 |
+| Bends | 2,470 | 2,198 |
+| Wire | 473 k | 383 k |
+
+Found by this round's losers:
+
+- **Aligned boxes followed each other and nothing else.** `align gw db`
+  made each the other's heaviest pull, so the pair agreed at once and stood
+  wherever it started, 44 px off the row between them. An aligned set now
+  stands where the wires of all its members together put the shared centre
+  line, and goes to the grid as one.
+- **Row-mates that started side by side drifted apart** when the first sweep
+  let them chase rows that had not been placed yet; every wire then ran
+  straight, so nothing brought them back. The first sweep follows only what
+  is above.
+- **A short last band of a wrapped chain stood under the wrong columns**
+  (it runs backwards, so it belongs under the end of the band above).
+- **A wire arriving at a box's side wall comes in level with where it left**
+  the box outside, instead of at the even spacing its own container chose.
+- **A wire passing between a box and the side wall that box's own wires
+  leave by** counts as the crossing it is when slots are ordered.
+
+Tried and not kept: holding wall ports to whole grid steps during the last
+jog removal (more bends and jogs than it removed).
+
+What still loses, and why: a wire whose pass-through lane cannot stand on the
+grid (it hugs a box 4 px off) leaves a 4 px step at the container wall
+(`17-nested#deep`); a wrapped fan-out pays eight more bends for its bus than
+ELK pays for ignoring `wrap` (`09-hub#wrapped`); and dense random graphs of
+several expanded systems (696 crossings to ELK's 607 on the trial set).

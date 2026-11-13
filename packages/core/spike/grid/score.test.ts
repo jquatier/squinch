@@ -105,6 +105,11 @@ it("grid vs ELK, view by view", async () => {
       return `  ${name.padEnd(11)} ${e.toFixed(0).padStart(6)} → ${g.toFixed(0).padStart(6)}   ${(g - e >= 0 ? "+" : "") + (g - e).toFixed(0)}`;
     }).join("\n"));
   }
+  console.log("\nTotals, everything but the random set (ELK → grid):\n" + (["crossings", "kinks", "nearMiss", "lopsided", "unstraight", "bends", "wire"] as const).map((k) => {
+    const list = rows.filter((r) => r.set !== "random");
+    const e = list.reduce((a, r) => a + r.elk[k], 0), g = list.reduce((a, r) => a + r.grid[k], 0);
+    return `  ${k.padEnd(11)} ${String(e).padStart(7)} → ${String(g).padStart(7)}   ×${(g / (e || 1)).toFixed(2)}`;
+  }).join("\n") + `\n  illegal     ${String(rows.filter((r) => r.set !== "random").reduce((a, r) => a + r.elkIllegal, 0)).padStart(7)} → ${String(rows.filter((r) => r.set !== "random").reduce((a, r) => a + r.gridIllegal, 0)).padStart(7)}`);
   const named = scored.filter((x) => x.r.set !== "random");
   console.log("\nWhere the new engine is furthest behind (ELK/grid):\n" + [...named].sort((a, b) => a.g - b.g).slice(0, 25).map(show).join("\n"));
   console.log("\nWhere it is furthest ahead:\n" + [...named].sort((a, b) => b.g - a.g).slice(0, 15).map(show).join("\n"));

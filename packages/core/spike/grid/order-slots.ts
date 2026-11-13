@@ -22,6 +22,9 @@ export function orderSlots(
    *  the row: in a titled container that is the side away from the title, so
    *  a wire going round the boxes does not open a band beneath it. */
   preferFar = false,
+  /** How many wires leave each box sideways, toward the low wall and the
+   *  high: a wire passing on that side of the box crosses every one. */
+  sideways: ReadonlyMap<string, { low: number; high: number }> = new Map(),
 ): void {
   // hops[i]: between layer i and i+1, each end carrying its place within its slot
   type Hop = [u: Slot, v: Slot, fu: number, fv: number];
@@ -56,6 +59,12 @@ export function orderSlots(
         const far = below.get(v)! + fv - below.get(dn!)! - dnHop[3];
         if (u !== s && far && here.has(u) && Math.sign(far) !== side(u)) cost++;
       }
+      // a wire passing between a box and the side wall its own wires leave by
+      if (s.kind !== "box")
+        for (const x of layer) {
+          const out = x.kind === "box" ? sideways.get(x.id) : undefined;
+          if (out) cost += side(x) > 0 ? out.low : out.high;
+        }
       // two wall ports standing the other way round from where their wires
       // end up cross once outside, where this container cannot see it
       if (s.kind === "port" && headed(s) !== undefined)
@@ -101,7 +110,19 @@ export function orderSlots(
     for (let a = 0; a < goals.length; a++) for (let b = a + 1; b < goals.length; b++) if (goals[a] > goals[b] + 1e-9) n++;
     return n;
   };
-  const total = () => layers.reduce((n, _, i) => n + crossings(i) + astray(i), 0);
+  /** Wires in layer `i` passing between a box and the side wall its own wires leave by. */
+  const barred = (i: number): number => {
+    const row = layers[i]?.slots ?? [];
+    let n = 0, passing = 0;
+    const all = row.filter((x) => x.kind !== "box").length;
+    for (const x of row) {
+      if (x.kind !== "box") { passing++; continue; }
+      const out = sideways.get(x.id);
+      if (out) n += passing * out.low + (all - passing) * out.high;
+    }
+    return n;
+  };
+  const total = () => layers.reduce((n, _, i) => n + crossings(i) + astray(i) + barred(i), 0);
 
   // sweep down following the layer above, up following the layer below, and
   // keep the best arrangement seen — a wire through several ranks only moves
@@ -142,7 +163,7 @@ export function orderSlots(
     for (let i = 0; i + 1 < row.length; i++) {
       const [a, b] = [row[i], row[i + 1]];
       if (a.pinned && b.pinned && !(boxesToo && a.loose && b.loose)) continue;
-      const around = () => crossings(li - 2) + crossings(li - 1) + crossings(li) + crossings(li + 1) + astray(li - 1) + astray(li) + astray(li + 1);
+      const around = () => crossings(li - 2) + crossings(li - 1) + crossings(li) + crossings(li + 1) + astray(li - 1) + astray(li) + astray(li + 1) + barred(li - 1) + barred(li) + barred(li + 1);
       const before = around();
       const boxes = a.kind === "box" && b.kind === "box";
       // two boxes trading take the wires beside them along: the rows either
