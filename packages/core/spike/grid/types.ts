@@ -66,6 +66,7 @@ export const WIRE_WIRE = 16;   // between two pass-through wires in a rank
 export const WIRE_BOX = 24;    // between a pass-through wire and a box
 export const LABEL_PAD = 10;   // between a label and anything beside it
 export const CORNER = 8;       // a port keeps this far from a box's corner
+export const LATTICE = 8;      // the design grid: the step between the lines boxes may be centred on
 
 // ── between the stages ──────────────────────────────────────────────────────
 

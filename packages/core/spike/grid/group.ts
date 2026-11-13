@@ -4,8 +4,8 @@
 //   order    where pass-through wires sit among the boxes
 //   ports    where on a wall each wire attaches
 //   gutters  wires between neighbours on one rank
-//   place    lane positions                                (isotonic.ts)
-//   stack    flow positions, and a track per turning wire  (channel.ts)
+//   place    lane positions            (pulls, rows, isotonic; then tidy)
+//   stack    flow positions, and a track per turning wire        (channel)
 //   emit     rectangles and polylines
 
 import { emit } from "./emit.js";
@@ -35,8 +35,9 @@ export function layoutGroup(
       const port = s.box && sheet.childPort(s.box, wire);
       return port ? sheet.ax.laneOf(port) / (sheet.ax.lsize(s.box!) + 1) : 0;
     },
-    // where a wall port's wire ends up, as a fraction along the wall
-    (s) => (s.kind === "port" && heading.has(s.id) && extent ? heading.get(s.id)! / extent : undefined),
+    // where a wire through the wall ends up, as a fraction along the wall —
+    // for its port and for every rank it passes on the way there
+    (s) => (s.kind !== "box" && heading.has(s.id) && extent ? heading.get(s.id)! / extent : undefined),
     !!box?.title,
   );
   const ports = assignPorts(sheet);

@@ -43,7 +43,7 @@ export function orderSlots(
     const upHop = useAbove && li > 0 ? hops[li - 1].find(([, v]) => v === s) : undefined;
     const dnHop = useBelow ? hops[li]?.find(([u]) => u === s) : undefined;
     const up = upHop?.[0], dn = dnHop?.[1];
-    let best = 0, bestCost = Infinity, bestOff = Infinity;
+    let best = { p: 0, key: [Infinity, Infinity, Infinity] };
     for (let p = 0; p <= layer.length; p++) {
       let cost = 0;
       // an inserted slot at p sits left of here-index ≥ p
@@ -61,13 +61,19 @@ export function orderSlots(
       if (l?.kind === "box" && r?.kind === "box" && beside.has(`${l.id}|${r.id}`)) cost += 100;
       // nearest to where its neighbours are, as a fraction of the row
       const fr = (m: Map<Slot, number>, x: Slot | undefined) => (x && m.size ? (m.get(x)! + 0.5) / m.size : undefined);
-      const targets = [fr(above, up), fr(below, dn), headed(s)].filter((x): x is number => x !== undefined);
-      const target = targets.length ? targets.reduce((a, b) => a + b, 0) / targets.length : 0.5;
-      const off = Math.abs(p / Math.max(1, layer.length) - target);
-      const tied = cost === bestCost && Math.abs(off - bestOff) <= 1e-9;
-      if (cost < bestCost || (cost === bestCost && off < bestOff - 1e-9) || (tied && preferFar)) { best = p; bestCost = cost; bestOff = off; }
+      // …and of those, nearest to where the wire is headed. For a wall port
+      // that is one more neighbour; for a wire only passing a rank on its
+      // way out it decides between places that are otherwise level — which
+      // side of the box below it goes round.
+      const place = p / Math.max(1, layer.length), goal = headed(s);
+      const near = [fr(above, up), fr(below, dn), s.kind === "port" ? goal : undefined].filter((x): x is number => x !== undefined);
+      const off = Math.abs(place - (near.length ? near.reduce((a, b) => a + b, 0) / near.length : 0.5));
+      const stray = goal === undefined ? 0 : Math.abs(place - goal);
+      const key = [cost, off, stray];
+      const order = key.reduce((d, v, i) => d || (Math.abs(v - best.key[i]) <= 1e-9 ? 0 : v - best.key[i]), 0);
+      if (order < 0 || (order === 0 && preferFar)) best = { p, key };
     }
-    layer.splice(best, 0, s);
+    layer.splice(best.p, 0, s);
   };
 
   const crossings = (i: number): number => {

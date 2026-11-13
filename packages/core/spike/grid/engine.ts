@@ -15,7 +15,7 @@ import { sideOf } from "./axes.js";
 import { layoutGroup } from "./group.js";
 import { orderBoxes, type Leaving } from "./order.js";
 import { assignRanks, dense, type Edge } from "./rank.js";
-import type { Box, Group, Laid, Problem, Pt, Rect, Role, Route, Side, Solution, Wire } from "./types.js";
+import type { Box, Group, Laid, Problem, Pt, Rect, Role, Route, Solution, Wire } from "./types.js";
 
 export type { Box, Dir, Group, Problem, Pt, Rect, Side, Solution, Wire } from "./types.js";
 export { median } from "./place.js";
@@ -36,6 +36,7 @@ export function solve(problem: Problem): Solution {
     }
   };
   index(problem.root, [ROOT]);
+  const wireById = new Map(problem.wires.map((w) => [w.id, w]));
 
   // ── rank every container (needs only who is joined to whom) ───────────────
   const lifted = new Map<string, { wire: Wire; a: string; b: string; fromChain: string[]; toChain: string[] }[]>();
@@ -63,72 +64,45 @@ export function solve(problem: Problem): Solution {
   // only known after a first layout — so this runs before each pass.
   const routes = new Map<string, Route>();
   const arrange = (outside: ReadonlyMap<string, Map<string, Leaving>>) => {
-  for (const [id, g] of groups) {
-    const byId = new Map(declared.get(id)!.map((b) => [b.id, b]));
-    g.boxes = orderBoxes([...byId.keys()], ranks, edgesOf(id), outside.get(id), new Set(g.held)).map((b) => byId.get(b)!);
-  }
-  routes.clear();
-  for (const [home, list] of lifted) {
-    const g = groups.get(home)!;
-    const at = new Map(g.boxes.map((b, i) => [b.id, i]));
-    for (const { wire, a, b, fromChain, toChain } of list) {
-      const ra = ranks.get(a)!, rb = ranks.get(b)!;
-      const side = (r: Role) => sideOf(g.dir, r);
-      let kind: Route["kind"], sideFrom: Side, sideTo: Side;
-      if (ra < rb) [kind, sideFrom, sideTo] = ["down", side("end"), side("start")];
-      else if (ra > rb) [kind, sideFrom, sideTo] = ["up", side("start"), side("end")];
-      else {
-        const [lo, hi] = at.get(a)! < at.get(b)! ? [at.get(a)!, at.get(b)!] : [at.get(b)!, at.get(a)!];
-        const blocked = g.boxes.some((x, i) => i > lo && i < hi && ranks.get(x.id) === ra);
-        if (blocked) [kind, sideFrom, sideTo] = ["around", side("end"), side("end")];
-        else if (at.get(a)! < at.get(b)!) [kind, sideFrom, sideTo] = ["beside", side("high"), side("low")];
-        else [kind, sideFrom, sideTo] = ["beside", side("low"), side("high")];
-      }
-      routes.set(wire.id, { home, a, b, kind, sideFrom, sideTo, fromChain, toChain });
+    for (const [id, g] of groups) {
+      const byId = new Map(declared.get(id)!.map((b) => [b.id, b]));
+      g.boxes = orderBoxes([...byId.keys()], ranks, edgesOf(id), outside.get(id), new Set(g.held)).map((b) => byId.get(b)!);
     }
-  }
+    routes.clear();
+    for (const [home, list] of lifted) {
+      const g = groups.get(home)!;
+      const at = new Map(g.boxes.map((b, i) => [b.id, i]));
+      for (const { wire, a, b, fromChain, toChain } of list)
+        routes.set(wire.id, { home, a, b, fromChain, toChain, ...wallsFor(g, ranks, at, a, b) });
+    }
   };
-  arrange(new Map());
 
-  // ── lay out, innermost first — twice ──────────────────────────────────────
+  // ── lay out, innermost first — and again ──────────────────────────────────
   // A container is laid out before its surroundings, so the first time it
-  // puts each wall port where its own inside would like it. The second time
-  // it knows which lane each wire arrives on and may meet it there.
+  // puts each wall port where its own inside would like it. On a further
+  // pass it knows which lane each wire arrives on and may meet it there —
+  // and each pass lets one more container down the flow follow the one above.
   const laid = new Map<string, Laid>();
   let approach = new Map<string, Map<string, number>>(), heading = new Map<string, Map<string, number>>();
-  const layGroup = (id: string): Laid => {
+  const lay = (id: string): Laid => {
     const g = groups.get(id)!;
     for (const b of g.boxes) if (b.group) {
-      const inner = layGroup(b.id);
+      const inner = lay(b.id);
       b.w = inner.w; b.h = inner.h;
     }
     const before = laid.get(id);
-    const out = layoutGroup(id, g, boxes.get(id), problem.wires, routes, ranks, laid, approach.get(id), before ? (g.dir === "down" ? before.w : before.h) : 0, heading.get(id));
+    const extent = before ? (g.dir === "down" ? before.w : before.h) : 0;
+    const out = layoutGroup(id, g, boxes.get(id), problem.wires, routes, ranks, laid, approach.get(id), extent, heading.get(id));
     laid.set(id, out);
     return out;
   };
-  let top = layGroup(ROOT);
-  // each further pass lets one more container down the flow follow the one above
+  arrange(new Map());
+  let top = lay(ROOT);
   for (let pass = 0; pass < PASSES && groups.size > 1; pass++) {
     approach = new Map([...laid.values()].flatMap((l) => [...l.approach]));
     heading = new Map([...laid.values()].flatMap((l) => [...l.heading]));
-    // where each box's wires leave its container, as a fraction of the wall
-    const outside = new Map<string, Map<string, Leaving>>();
-    for (const [c, lanes] of approach) {
-      const g = groups.get(c)!, size = g.dir === "down" ? laid.get(c)!.w : laid.get(c)!.h;
-      for (const [w, lane] of lanes) {
-        const r = routes.get(w)!, wire = problem.wires.find((x) => x.id === w)!;
-        const fi = r.fromChain.indexOf(c), ti = r.toChain.indexOf(c);
-        const box = fi >= 0 ? r.fromChain[fi + 1] ?? wire.from : r.toChain[ti + 1] ?? wire.to;
-        const side = fi >= 0 ? r.sideFrom : r.sideTo;
-        const where = side === sideOf(g.dir, "start") ? "above" : side === sideOf(g.dir, "end") ? "below" : undefined;
-        if (!where) continue;
-        const per = outside.get(c) ?? outside.set(c, new Map()).get(c)!;
-        (per.get(box) ?? per.set(box, { above: [], below: [] }).get(box)!)[where].push(lane / size);
-      }
-    }
-    arrange(outside);
-    top = layGroup(ROOT);
+    arrange(leavings(approach, groups, laid, routes, wireById));
+    top = lay(ROOT);
   }
 
   // ── absolute positions, and each wire stitched from its pieces ────────────
@@ -161,6 +135,42 @@ export function solve(problem: Problem): Solution {
   return { width: top.w, height: top.h, boxes: rects, ranks, wires, skipped };
 }
 
+/** How a wire between two children of `g` crosses it: by which walls. */
+function wallsFor(
+  g: Group, ranks: ReadonlyMap<string, number>, at: ReadonlyMap<string, number>, a: string, b: string,
+): Pick<Route, "kind" | "sideFrom" | "sideTo"> {
+  const side = (r: Role) => sideOf(g.dir, r);
+  const ra = ranks.get(a)!, rb = ranks.get(b)!, ia = at.get(a)!, ib = at.get(b)!;
+  if (ra < rb) return { kind: "down", sideFrom: side("end"), sideTo: side("start") };
+  if (ra > rb) return { kind: "up", sideFrom: side("start"), sideTo: side("end") };
+  const blocked = g.boxes.some((x, i) => i > Math.min(ia, ib) && i < Math.max(ia, ib) && ranks.get(x.id) === ra);
+  if (blocked) return { kind: "around", sideFrom: side("end"), sideTo: side("end") };
+  return ia < ib ? { kind: "beside", sideFrom: side("high"), sideTo: side("low") } : { kind: "beside", sideFrom: side("low"), sideTo: side("high") };
+}
+
+/** Where each box's wires leave its container, as fractions of the wall
+ *  they leave by — what a first layout learned, for ordering the boxes. */
+function leavings(
+  approach: ReadonlyMap<string, ReadonlyMap<string, number>>, groups: ReadonlyMap<string, Group>,
+  laid: ReadonlyMap<string, Laid>, routes: ReadonlyMap<string, Route>, wires: ReadonlyMap<string, Wire>,
+): Map<string, Map<string, Leaving>> {
+  const outside = new Map<string, Map<string, Leaving>>();
+  for (const [c, lanes] of approach) {
+    const g = groups.get(c)!, size = g.dir === "down" ? laid.get(c)!.w : laid.get(c)!.h;
+    for (const [w, lane] of lanes) {
+      const r = routes.get(w)!, wire = wires.get(w)!;
+      const fi = r.fromChain.indexOf(c), ti = r.toChain.indexOf(c);
+      const box = fi >= 0 ? r.fromChain[fi + 1] ?? wire.from : r.toChain[ti + 1] ?? wire.to;
+      const side = fi >= 0 ? r.sideFrom : r.sideTo;
+      const where = side === sideOf(g.dir, "start") ? "above" : side === sideOf(g.dir, "end") ? "below" : undefined;
+      if (!where) continue;
+      const per = outside.get(c) ?? outside.set(c, new Map()).get(c)!;
+      (per.get(box) ?? per.set(box, { above: [], below: [] }).get(box)!)[where].push(lane / size);
+    }
+  }
+  return outside;
+}
+
 /** Drop repeated points and the middle of any three in a line. */
 export function simplify(pts: readonly Pt[]): Pt[] {
   const out: Pt[] = [];
@@ -172,4 +182,3 @@ export function simplify(pts: readonly Pt[]): Pt[] {
   }
   return out;
 }
-

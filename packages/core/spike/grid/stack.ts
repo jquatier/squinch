@@ -2,10 +2,9 @@
 // between them has to be for the wires that turn in it.
 
 import { assignTracks, type Run } from "./channel.js";
-import { LATTICE } from "./place.js";
 import type { Ports } from "./ports.js";
 import type { Sheet } from "./sheet.js";
-import { CORNER, LABEL_PAD, STUB, TRACK } from "./types.js";
+import { CORNER, LABEL_PAD, LATTICE, STUB, TRACK } from "./types.js";
 
 export interface Channel { f: number; depth: number; trackF: Map<string, number> }
 export interface Stacked {

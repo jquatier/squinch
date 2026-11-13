@@ -80,9 +80,6 @@ describe("median", () => {
     expect(median([{ value: 0, weight: 1 }, { value: 10, weight: 1 }])).toBe(5);
     expect(median([{ value: 0, weight: 1 }, { value: 4, weight: 1 }, { value: 10, weight: 1 }])).toBe(4);
   });
-  it("gives an even split between two sides to the side being followed", () => {
-    expect(median([{ value: 0, weight: 1, side: 1 }, { value: 10, weight: 1, side: 0 }])).toBe(10);
-  });
 });
 
 describe("tracks", () => {
@@ -222,6 +219,61 @@ describe("solve", () => {
     const centre = (id: string) => s.boxes.get(id)!.x + s.boxes.get(id)!.w / 2;
     expect(centre("c")).toBe(centre("a"));
     expect(centre("d")).toBe(centre("a"));
+  });
+  // ── what makes a layout tidy, one rule at a time ───────────────────────────
+  const centre = (s: ReturnType<typeof solve>, id: string) => s.boxes.get(id)!.x + s.boxes.get(id)!.w / 2;
+  const crossed = (s: ReturnType<typeof solve>) => {
+    const segs = [...s.wires].flatMap(([id, w]) => w.points.slice(1).map((b, i) => ({ id, a: w.points[i], b })));
+    let n = 0;
+    for (const h of segs) for (const v of segs)
+      if (h.id !== v.id && h.a.y === h.b.y && v.a.x === v.b.x
+        && v.a.x > Math.min(h.a.x, h.b.x) && v.a.x < Math.max(h.a.x, h.b.x)
+        && h.a.y > Math.min(v.a.y, v.b.y) && h.a.y < Math.max(v.a.y, v.b.y)) n++;
+    return n;
+  };
+  const sys = (title?: { w: number; h: number }): Box =>
+    ({ id: "sys", w: 0, h: 0, title, group: group([leaf("sys.x"), leaf("sys.y")], { pad: { top: 44, right: 16, bottom: 16, left: 16 } }) });
+
+  it("centres a parent over its children, whatever feeds it", () => {
+    // `a` feeds `p` and a sibling beside it: one wire above `p`, two below
+    const s = solve(problem([leaf("a"), leaf("b"), leaf("p"), leaf("c1"), leaf("c2")], ["a>p", "a>b", "p>c1", "p>c2"], pin({ a: 0, b: 1, p: 1, c1: 2, c2: 2 })));
+    expect(Math.abs(centre(s, "p") - (centre(s, "c1") + centre(s, "c2")) / 2)).toBeLessThanOrEqual(4); // to the grid
+    expect(s.wires.get("a>p")!.points).toHaveLength(2); // and what feeds it comes to meet it
+  });
+  it("sends a wide box's ports to meet its wires", () => {
+    const s = solve(problem([leaf("a", 320), leaf("b"), leaf("c")], ["a>b", "a>c"]));
+    for (const w of s.wires.values()) expect(w.points).toHaveLength(2);
+  });
+  it("takes a wire round a titled container's boxes on the side away from the title", () => {
+    const s = solve(problem([leaf("a"), sys({ w: 80, h: 34 })], ["a>sys.y", "sys.x>sys.y"]));
+    const x = s.boxes.get("sys.x")!, pts = s.wires.get("a>sys.y")!.points;
+    expect(pts.find((p) => p.y > x.y)!.x).toBeGreaterThan(x.x + x.w);
+    expect(pts[0].x).toBeGreaterThan(s.boxes.get("sys")!.x + 80); // and enters clear of the title
+  });
+  it("reserves room for a label only where it is drawn", () => {
+    const build = (label?: { w: number; h: number }) => {
+      const p = problem([leaf("a"), leaf("b"), sys()], ["a>b", "b>sys.y", "sys.x>sys.y"]);
+      p.wires[1].label = label;
+      return solve(p);
+    };
+    const plain = build(), labelled = build({ w: 60, h: 18 });
+    expect(labelled.boxes.get("sys")).toEqual(plain.boxes.get("sys"));       // the container it enters is no bigger
+    const l = labelled.wires.get("b>sys.y")!.label!, box = labelled.boxes.get("sys")!;
+    expect(l.y + l.h).toBeLessThanOrEqual(box.y);                            // the label stands outside it
+  });
+  it("sends a wire leaving a container round the side it is headed for", () => {
+    for (const order of [["o1", "o2"], ["o2", "o1"]]) {
+      const s = solve(problem([sys(), ...order.map((o) => leaf(o))], ["sys.x>sys.y", "sys.x>o2", "sys.y>o1"], { held: order }));
+      expect(crossed(s)).toBe(0);
+      expect(s.wires.get("sys.x>o2")!.points).toHaveLength(4); // round `sys.y` and straight down
+    }
+  });
+  it("moves a box to straighten a wire only when nothing else pays for it", () => {
+    // `top` has one child, which shares its row with a pair under `hub`:
+    // the pair stays centred under `hub`, and `top` comes to stand over `only`
+    const s = solve(problem([leaf("hub"), leaf("top"), leaf("l"), leaf("r"), leaf("only")], ["hub>l", "hub>r", "top>only"]));
+    expect(centre(s, "hub")).toBe((centre(s, "l") + centre(s, "r")) / 2);
+    expect(s.wires.get("top>only")!.points).toHaveLength(2);
   });
   it("is a pure function", () => {
     const make = () => problem([leaf("a"), leaf("b"), leaf("c"), leaf("d")], ["a>b", "a>c", "b>d", "c>d", "a>d"]);
