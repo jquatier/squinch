@@ -31,11 +31,14 @@ export function pullsOf(sh: Sheet, ports: Ports): Map<Slot, Pull[]> {
   const deadEnd = (s: Slot) => (s.kind === "box" && degree.get(s.id) === 1 ? 0.5 : 1);
 
   const pulls = new Map<Slot, Pull[]>();
+  const shared = new Set<string>();
   const on = (s: Slot) => pulls.get(s) ?? pulls.set(s, []).get(s)!;
   for (const c of chains)
     for (let i = 0; i + 1 < c.path.length; i++) {
       const u = c.path[i], v = c.path[i + 1];
-      if (pulls.get(u)?.some((x) => x.other === v)) continue; // a bundle's shared stretch pulls once
+      // a bundle's shared stretch pulls once
+      if (c.wire.bundle && shared.has(c.wire.bundle + "|" + i + "|" + c.first)) continue;
+      if (c.wire.bundle) shared.add(c.wire.bundle + "|" + i + "|" + c.first);
       // Boxes line up on their centres; the ports then go to meet the wires
       // (`ports.meet`). Lining a box up on one of two evenly spaced ports
       // would set a chain a third of a wall off its own baseline. A
@@ -49,6 +52,25 @@ export function pullsOf(sh: Sheet, ports: Ports): Map<Slot, Pull[]> {
       on(u).push({ other: v, mine: ou, theirs: ov, weight: (base * (boxes ? deadEnd(v) : 1)) / ports.crowd(v, "start") });
       on(v).push({ other: u, mine: ov, theirs: ou, weight: base / ports.crowd(u, "end") });
     }
+  // Two containers joined by several wires cannot run them all straight —
+  // each port is where its own inside put it. Left to the wires alone the
+  // lower one lines up on whichever is the middle wire and the two stand
+  // staggered; one more pull, middle to middle and as heavy as the wires
+  // together, keeps them in a column unless every wire leans the same way.
+  const between = new Map<string, { u: Slot; v: Slot; down: number; up: number }>();
+  for (const [u, list] of pulls)
+    for (const x of list) {
+      const v = x.other;
+      if (!u.box?.group || !v.box?.group || sh.layerOf(u) >= sh.layerOf(v)) continue;
+      const k = `${u.id}|${v.id}`, e = between.get(k) ?? between.set(k, { u, v, down: 0, up: 0 }).get(k)!;
+      e.down += x.weight;
+      e.up += (pulls.get(v) ?? []).filter((y) => y.other === u).reduce((a, y) => a + y.weight, 0) / list.filter((y) => y.other === v).length;
+    }
+  for (const { u, v, down, up } of between.values()) {
+    if (on(u).filter((x) => x.other === v).length < 2) continue;
+    on(u).push({ other: v, mine: u.lsize / 2, theirs: v.lsize / 2, weight: down });
+    on(v).push({ other: u, mine: v.lsize / 2, theirs: u.lsize / 2, weight: up });
+  }
   for (const set of g.aligned ?? [])
     for (let i = 0; i + 1 < set.length; i++) {
       const a = sh.slotOf(set[i]), b = sh.slotOf(set[i + 1]);

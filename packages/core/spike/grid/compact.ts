@@ -42,7 +42,7 @@ export function compact(sh: Sheet, ports: Ports, rows: Rows): void {
         for (const x of group)
           for (const h of hopsOf.get(x) ?? []) if (Math.abs(off(h)) <= 1) group.add(h.u === x ? h.v : h.u); // straight, to the pixel settling rounds to
         const members = [...group];
-        if (members.some((m) => fixed.has(m) || m.kind === "port")) continue;
+        if (members.some((m) => fixed.has(m))) continue;
         const room = Math.min(...members.map((m) => reach(m, dir, group)));
         if (!(reach(s, dir, group) > 0) || !(room > 0) || room === Infinity) continue;
         // each wire out of the group, as how far the group is from running it straight

@@ -312,6 +312,22 @@ describe("solve", () => {
     expect(s.boxes.get("top")!.x).toBe(s.boxes.get("bottom")!.x);
     for (const w of s.wires.values()) expect(w.points).toHaveLength(2);
   });
+  it("keeps two containers joined by several wires in a column", () => {
+    // every wire leans a different way; lining up on any one of them would stagger the two
+    const pad = { top: 44, right: 16, bottom: 16, left: 16 };
+    const row = (id: string) => group(["a", "b", "c"].map((k) => leaf(`${id}.${k}`)), { pad, ...pin({ [`${id}.a`]: 0, [`${id}.b`]: 0, [`${id}.c`]: 0 }), held: ["a", "b", "c"].map((k) => `${id}.${k}`) });
+    const s = solve(problem([{ id: "top", w: 0, h: 0, group: row("top") }, { id: "low", w: 0, h: 0, group: row("low") }], ["top.a>low.b", "top.b>low.c", "top.c>low.a"]));
+    const mid = (id: string) => s.boxes.get(id)!.x + s.boxes.get(id)!.w / 2;
+    expect(Math.abs(mid("top") - mid("low"))).toBeLessThanOrEqual(8);
+  });
+  it("closes a gap that nothing is holding open", () => {
+    // `lone` is fed from outside and tied to nothing else in its row
+    const pad = { top: 44, right: 16, bottom: 16, left: 16 };
+    const inner: Box = { id: "sys", w: 0, h: 0, group: group([leaf("sys.a"), leaf("sys.b"), leaf("sys.lone"), leaf("sys.z")], { pad, ...pin({ "sys.a": 0, "sys.b": 0, "sys.lone": 0, "sys.z": 1 }) }) };
+    const s = solve(problem([leaf("src"), inner], ["src>sys.lone", "sys.a>sys.z", "sys.b>sys.z"]));
+    const b = s.boxes.get("sys.b")!, lone = s.boxes.get("sys.lone")!;
+    expect(Math.min(Math.abs(lone.x - (b.x + b.w)), Math.abs(b.x - (lone.x + lone.w)))).toBeLessThanOrEqual(56);
+  });
   it("is a pure function", () => {
     const make = () => problem([leaf("a"), leaf("b"), leaf("c"), leaf("d")], ["a>b", "a>c", "b>d", "c>d", "a>d"]);
     expect(JSON.stringify([...solve(make()).wires])).toBe(JSON.stringify([...solve(make()).wires]));
