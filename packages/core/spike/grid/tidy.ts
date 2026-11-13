@@ -78,6 +78,13 @@ export function tidy(sh: Sheet, ports: Ports, rows: Rows): void {
       while (at < least) at += LATTICE;
       return at;
     };
+    // boxes the author aligned go to the lattice together, or not at all
+    for (const set of g.aligned ?? []) {
+      const members = set.map((id) => sh.slotOf(id));
+      const centre = Math.round((members[0].pos + members[0].lsize / 2) / LATTICE) * LATTICE;
+      const at = (s: Slot) => Math.round(centre - s.lsize / 2);
+      if (members.every((s) => rows.fits(s, at(s)))) for (const s of members) s.pos = at(s);
+    }
     for (const { slots: row } of sh.layers)
       row.forEach((s, i) => {
         const prev = row[i - 1];

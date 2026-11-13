@@ -29,6 +29,7 @@ describe("score", () => {
   it("calls five percent either way the same", () => {
     expect([gain(100, 96), gain(100, 80), gain(80, 100)].map(verdict)).toEqual(["same", "better", "worse"]);
     expect(gain(100, 50)).toBe(-gain(50, 100));
+    expect(gain(0.4, 1.2)).toBe(0); // under two points apart is level
   });
 });
 
@@ -84,10 +85,9 @@ it("grid vs ELK, view by view", async () => {
 
   console.log("\nDoes the verdict depend on the weights?\n");
   for (const key of Object.keys(WEIGHTS) as (keyof Weights)[])
-    for (const f of [0.5, 2]) console.log(line(`${key} ×${f}`, tally(rows, { ...WEIGHTS, [key]: WEIGHTS[key] * f })));
+    for (const f of WEIGHTS[key] ? [0.5, 2] : []) console.log(line(`${key} ×${f}`, tally(rows, { ...WEIGHTS, [key]: WEIGHTS[key] * f })));
   console.log(line("centring not counted", tally(rows, { ...WEIGHTS, lopsided: 0 })));
-  console.log(line("no size terms", tally(rows, { ...WEIGHTS, wire: 0, area: 0 })));
-  console.log(line("size only", tally(rows, { illegal: 0, crossings: 0, kinks: 0, nearMiss: 0, lopsided: 0, unstraight: 0, bends: 0, wire: WEIGHTS.wire, area: WEIGHTS.area })));
+  console.log(line("canvas size counted", tally(rows, { ...WEIGHTS, area: 1 / 40_000 })));
 
   const scored = rows.map((r) => ({ r, pe: penalty(r.elk, r.elkIllegal), pg: penalty(r.grid, r.gridIllegal) })).map((x) => ({ ...x, g: gain(x.pe, x.pg) }));
   const show = (x: (typeof scored)[number]) =>

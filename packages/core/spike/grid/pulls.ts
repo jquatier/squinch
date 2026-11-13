@@ -13,7 +13,11 @@ import type { Sheet } from "./sheet.js";
 import type { Slot } from "./types.js";
 
 /** `other` draws this slot to where `mine` (an offset into it) meets `theirs`. */
-export interface Pull { other: Slot; mine: number; theirs: number; weight: number }
+export interface Pull {
+  other: Slot; mine: number; theirs: number; weight: number;
+  /** Not a wire: the author aligned the two (`align`). */
+  aligned?: boolean;
+}
 
 const ALIGN = 24; // boxes the author aligned pull this hard on each other
 const WEIGHT = { port: 0.25, passes: 8, pass: 2, boxes: 3 };
@@ -48,8 +52,8 @@ export function pullsOf(sh: Sheet, ports: Ports): Map<Slot, Pull[]> {
   for (const set of g.aligned ?? [])
     for (let i = 0; i + 1 < set.length; i++) {
       const a = sh.slotOf(set[i]), b = sh.slotOf(set[i + 1]);
-      on(a).push({ other: b, mine: a.lsize / 2, theirs: b.lsize / 2, weight: ALIGN });
-      on(b).push({ other: a, mine: b.lsize / 2, theirs: a.lsize / 2, weight: ALIGN });
+      on(a).push({ other: b, mine: a.lsize / 2, theirs: b.lsize / 2, weight: ALIGN, aligned: true });
+      on(b).push({ other: a, mine: b.lsize / 2, theirs: a.lsize / 2, weight: ALIGN, aligned: true });
     }
   return pulls;
 }

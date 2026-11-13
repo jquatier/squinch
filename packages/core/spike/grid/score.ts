@@ -10,7 +10,10 @@
 //    4  a box off the middle of the boxes its wires fan out to
 //    3  a wire that bends although its ends face each other
 //    1  a bend
-//    1  per 200 px of wire, and per 200×200 px of canvas
+//    1  per 200 px of wire
+//
+// Canvas size is not counted: a bigger picture is not a worse one. (Wire
+// length stays — a wire taken the long way round is.)
 //
 // "Lopsided" outweighs the two bends it costs to centre a parent over two
 // children: a centred fan with both wires bent reads better than a straight
@@ -24,7 +27,7 @@
 
 import type { Metrics } from "./metrics.js";
 
-export const WEIGHTS = { illegal: 60, crossings: 10, kinks: 5, nearMiss: 5, lopsided: 4, unstraight: 3, bends: 1, wire: 1 / 200, area: 1 / 40_000 };
+export const WEIGHTS = { illegal: 60, crossings: 10, kinks: 5, nearMiss: 5, lopsided: 4, unstraight: 3, bends: 1, wire: 1 / 200, area: 0 };
 export type Weights = typeof WEIGHTS;
 
 export function penalty(m: Metrics, illegal: number, w: Weights = WEIGHTS): number {
@@ -32,8 +35,12 @@ export function penalty(m: Metrics, illegal: number, w: Weights = WEIGHTS): numb
     + w.lopsided * m.lopsided + w.unstraight * m.unstraight + w.bends * m.bends + w.wire * m.wire + w.area * m.area;
 }
 
+/** Two views less than this apart are level, whatever the ratio: one point is
+ *  one bend, and half a point against a quarter is not "twice as bad". */
+export const FLOOR = 2;
 /** How much better `mine` is than `theirs`: +1 all the way, 0 level, −1 worse. */
-export const gain = (theirs: number, mine: number): number => (theirs - mine) / Math.max(theirs, mine, 1e-9);
+export const gain = (theirs: number, mine: number): number =>
+  Math.abs(theirs - mine) < FLOOR ? 0 : (theirs - mine) / Math.max(theirs, mine, 1e-9);
 
 export const MARGIN = 0.05; // within five percent is "about the same"
 export type Verdict = "better" | "same" | "worse";

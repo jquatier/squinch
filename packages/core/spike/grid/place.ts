@@ -92,11 +92,19 @@ function settle(sh: Sheet, rows: Rows, pulls: ReadonlyMap<Slot, Pull[]>, layer: 
     // under one of a hub's many ports. Level, the sweep's own side wins.
     const li = sh.layerOf(row[0]);
     want = row.map((s) => {
-      const side = (above: boolean) => (pulls.get(s) ?? []).filter((x) => (sh.layerOf(x.other) < li) === above)
+      const side = (above: boolean) => (pulls.get(s) ?? []).filter((x) => !x.aligned && (sh.layerOf(x.other) < li) === above)
         .map((x) => ({ value: x.other.pos + x.theirs - x.mine, weight: x.weight }));
       const [first, second] = fromAbove ? [side(true), side(false)] : [side(false), side(true)];
       const pull = (xs: { weight: number }[]) => xs.reduce((a, x) => a + x.weight, 0);
-      return median(pull(second) > pull(first) + 1e-9 ? second : first.length ? first : second);
+      const wired = median(pull(second) > pull(first) + 1e-9 ? second : first.length ? first : second);
+      // Boxes the author aligned stand where the wires of all of them
+      // together would put their shared centre line — were each simply to
+      // follow the other they would agree at once, wherever they started.
+      const set = sh.g.aligned?.find((ids) => s.kind === "box" && ids.includes(s.id));
+      if (!set) return wired;
+      const centre = median(set.map((id) => sh.slotOf(id)).flatMap((m) => (pulls.get(m) ?? []).filter((x) => !x.aligned)
+        .map((x) => ({ value: x.other.pos + x.theirs - x.mine + m.lsize / 2, weight: x.weight }))));
+      return Number.isNaN(centre) ? s.pos : centre - s.lsize / 2;
     });
     // where a box and a passing wire want the same lane, the wire goes
     // round: a box off its line is seen, a wire a little longer is not
