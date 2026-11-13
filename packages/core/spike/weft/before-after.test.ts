@@ -17,6 +17,26 @@ import { solve as grid } from "../grid/engine.js";
 import { solve as loom } from "../loom/engine.js";
 import { solve as braid } from "../braid/engine.js";
 import { solve as weft } from "./engine.js";
+import { plan } from "../grid/problem.js";
+import type { Positioned } from "../../src/layout/layout.js";
+
+/** REQUIREMENTS §3.5, which `checkLayout` does not hold anyone to: how many
+ *  pairs of wires that are not one bundle run along the same line. */
+function stacked(p: Positioned, bundle: Map<string, string | undefined>): number {
+  const segs = p.edges.flatMap((e) => e.points.slice(1).map((b, i) => {
+    const a = e.points[i];
+    return { id: e.id, flat: a.y === b.y, at: a.y === b.y ? a.y : a.x, lo: Math.min(a.x + a.y, b.x + b.y) - (a.y === b.y ? a.y : a.x), hi: Math.max(a.x + a.y, b.x + b.y) - (a.y === b.y ? a.y : a.x) };
+  }));
+  const pairs = new Set<string>();
+  for (let i = 0; i < segs.length; i++)
+    for (let j = i + 1; j < segs.length; j++) {
+      const s = segs[i], t = segs[j];
+      if (s.id === t.id || s.flat !== t.flat || s.at !== t.at || s.lo >= t.hi || t.lo >= s.hi) continue;
+      if (bundle.get(s.id) && bundle.get(s.id) === bundle.get(t.id)) continue;
+      pairs.add(s.id < t.id ? `${s.id}|${t.id}` : `${t.id}|${s.id}`);
+    }
+  return pairs.size;
+}
 
 const ONLY = process.env.ONLY;
 const others = { grid, loom, braid } as Record<string, typeof weft>;
@@ -48,6 +68,9 @@ it.skipIf(!process.env.BEFORE_AFTER)("this engine against the three before it", 
           ...checkLayout(strict, { zoneMembers: new Map(b.model.zones.map((z) => [z.id, z.members])), channelTargets: new Set([...b.model.views.flatMap((x) => x.layout.channels.map((c) => c.target)), ...trunks]) }),
           ...mine.skipped.map((w) => `wire ${w} not drawn`),
         ];
+        const bundles = new Map(plan(b.model, v, { metrics: "inter", scale: 1 }).problem.wires.map((w) => [w.id, w.bundle]));
+        const lying = stacked(mine.positioned, bundles);
+        if (lying) ill.push(`${lying} pair(s) of wires drawn along one line`);
         if (ill.length) { bad++; if (bad < 12) console.log("ILLEGAL", name, v.name, ill.length, ill[0]); }
         const m: Record<string, Metrics> = { weft: measureLayout(mine.positioned) };
         const pw = penalty(m.weft, ill.length);

@@ -55,7 +55,8 @@ export function settle(ends: End[], space: Wallspace): void {
   // within the wall: push in from the low corner, then from the high one
   for (let i = 0; i < n; i++) at[i] = Math.max(at[i], i ? at[i - 1] + gap : space.lo);
   for (let i = n - 1; i >= 0; i--) at[i] = Math.min(at[i], i < n - 1 ? at[i + 1] - gap : space.hi);
-  ends.forEach((e, i) => { e.at = tight ? Math.round(at[i]) : snap(at[i]); });
+  // a port that reached the place its wire runs straight stands exactly there, on the grid or not
+  ends.forEach((e, i) => { e.at = e.meet !== undefined && Math.abs(at[i] - e.meet) < 0.5 ? e.meet : tight ? Math.round(at[i]) : snap(at[i]); });
 }
 
 /** Ports for the walls facing one channel. `walls`: each leaf wall's ends,

@@ -50,6 +50,16 @@ export function lay(s: Sheet, root: boolean): Geo {
     if (!level) for (const i of row) if (s.slots[i].kid) dv[i] = Math.floor((rowH[k] - s.slots[i].kid!.h) / 2);
   });
 
+  // Two neighbouring containers whose facing ports are a few pixels out of
+  // level: the higher steps down that much, rather than the wire jogging in
+  // the gutter by less than a corner's width.
+  for (const f of s.flats) {
+    const a = s.slots[f.a].kid!, b = s.slots[f.b].kid!, va = fixedPort(s, a, "e", f.key), vb = fixedPort(s, b, "w", f.key);
+    if (!f.straight || va === undefined || vb === undefined) continue;
+    const d = dv[f.a] + va - (dv[f.b] + vb);
+    if (d && Math.abs(d) < STUB) dv[d > 0 ? f.b : f.a] += Math.abs(d);
+  }
+  s.rows.forEach((row, k) => { rowH[k] = Math.max(rowH[k], ...row.map((i) => (s.slots[i].kid ? dv[i] + s.slots[i].kid!.h : 0))); });
   const gut = gutters(s, dv, (kid, wall, key) => fixedPort(s, kid, wall, key));
   const off = (slot: number, wall: Wall, key: string): number => {
     const kid = s.slots[slot].kid;
@@ -106,6 +116,33 @@ export function lay(s: Sheet, root: boolean): Geo {
     }
     meetAcross(walls);
     for (const wall of walls.values()) for (const e of wall.ends) port.set(e.id, e.at);
+    // Nothing almost-right (§4.3): a link whose ends are less than 16 px
+    // apart would turn twice within a corner's width. A leaf's port comes
+    // level with the other end if its wall has the place free — or, if not,
+    // steps away until the jog is a full one.
+    const move = (slot: number, wall: "n" | "s", key: string, to: number): boolean => {
+      if (!isLeaf(slot)) return false;
+      const id = `${slot}|${wall}|${key}`, sp = spaceOf(slot);
+      if (to < sp.lo || to > sp.hi || walls.get(`${slot}|${wall}`)!.ends.some((e) => e.id !== id && Math.abs(port.get(e.id)! - to) < 8)) return false;
+      port.set(id, to);
+      return true;
+    };
+    // …and a lane or wall port that nothing above has fixed yet may step the same way, where its neighbours leave room
+    const shift = (slot: number, to: number): boolean => {
+      const x = s.slots[slot];
+      if (x.kind === "box" || (x.kind === "lane" && x.row !== k + 1)) return false;
+      const row = s.rows[x.row], i = s.at[slot];
+      const clear = [row[i - 1], row[i + 1]].every((o) => o === undefined || Math.abs(u[o] - to) >= w[o] / 2 + (o === row[i - 1] ? s.slots[o].kid?.bleedU ?? 0 : 0) + w[slot] / 2 + STUB);
+      if (!clear || (x.kind === "port" && to < (i ? -Infinity : STUB))) return false;
+      u[slot] = to;
+      return true;
+    };
+    for (const l of s.chan[k]) {
+      const a = endU(l.up, "s", l.key), b = endU(l.down, "n", l.key), away = b > a ? STUB : -STUB;
+      if (a === b || Math.abs(a - b) >= STUB) continue;
+      if (move(l.down, "n", l.key, a) || move(l.up, "s", l.key, b) || shift(l.down, a) || shift(l.up, b)) continue;
+      if (!(move(l.down, "n", l.key, a + away) || move(l.up, "s", l.key, b - away) || shift(l.down, a + away))) shift(l.up, b - away);
+    }
   }
 
   // ── fit ────────────────────────────────────────────────────────────────────
@@ -215,6 +252,7 @@ export function lay(s: Sheet, root: boolean): Geo {
     return rows.map((row) => Math.max(...row.map((t) => t.h)));
   };
   const rowTop: number[] = [0];
+  const crosswise = !!s.parent && s.parent.dir !== s.dir;
   let v = 0;
   channels.forEach((c, k) => {
     const upper = k ? s.rows[k] : [], bleed = Math.max(0, ...upper.map((i) => s.slots[i].kid?.bleedV ?? 0));
@@ -233,6 +271,10 @@ export function lay(s: Sheet, root: boolean): Geo {
     else if (tops.length) y += 2;
     const base = k === 0 ? s.pad.n : k === R ? s.pad.s : s.gap.rank;
     c.depth = Math.max(base, y);
+    // Under a parent of the other direction this sheet's ranks lie along the
+    // parent's rows: each rank's centre line goes on the parent's grid, so a
+    // box outside can stand level with it exactly.
+    if (crosswise && k < R) c.depth += (2 * GRID - ((v + c.depth + rowH[k + 1] / 2) % GRID)) % GRID;
     // what is left over goes half above and half below
     const slack = Math.floor((c.depth - y) / 2);
     c.v0 = v;
