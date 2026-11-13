@@ -127,9 +127,21 @@ export function lay(cell: Cell): void {
     const a = it.inner?.portAt.get(`${wallIn(it.inner, cell, wall)}|${key}`);
     return a === undefined ? undefined : it.y + a;
   };
-  const spreadAbout = (mid: number, n: number, i: number, lo: number, hi: number) => {
-    const pitch = n > 1 ? Math.min(LANE, Math.floor((hi - lo) / (n - 1))) : 0;
-    return Math.max(lo, Math.min(hi, Math.round(mid + (i - (n - 1) / 2) * pitch)));
+  /** Places on one wall for wires that each would like to stand at a given
+   *  level (or, wanting none, about the middle): as near as they can be had,
+   *  in that order, a lane apart where the wall has room, inside its corners. */
+  const allot = (want: (number | undefined)[], lo: number, hi: number): number[] => {
+    const n = want.length, gap = n > 1 ? Math.max(1, Math.min(LANE, Math.floor((hi - lo) / (n - 1)))) : 0;
+    const mid = Math.round((lo + hi) / 2), idle = want.filter((w) => w === undefined).length;
+    let k = 0;
+    const aim = want.map((w) => w ?? mid + (k++ - (idle - 1) / 2) * gap);
+    const order = aim.map((_, i) => i).sort((p, q) => aim[p] - aim[q] || p - q);
+    const y: number[] = [];
+    order.forEach((i, j) => { y[j] = Math.max(Math.round(aim[i]), j ? y[j - 1] + gap : lo); });
+    for (let j = n - 1; j >= 0; j--) y[j] = Math.min(y[j], j + 1 < n ? y[j + 1] - gap : hi);
+    const out: number[] = [];
+    order.forEach((i, j) => { out[i] = y[j]; });
+    return out;
   };
   const gutters = new Map<string, Glued[]>();
   for (const g of cell.glues) {
@@ -138,25 +150,28 @@ export function lay(cell: Cell): void {
   }
   for (const group of gutters.values()) {
     const a = group[0].a.item, b = group[0].b.item, [alo, ahi] = range(a), [blo, bhi] = range(b);
-    // §5.4: a wire arrives level with where it left, if the wall allows
-    const lo = Math.max(alo, blo), hi = Math.min(ahi, bhi);
-    const free = group.filter((g) => fixedY(a, "E", g.key) === undefined && fixedY(b, "W", g.key) === undefined);
-    for (const g of group) {
-      const fa = fixedY(a, "E", g.key), fb = fixedY(b, "W", g.key), i = free.indexOf(g);
-      let ya: number, yb: number;
-      if (fa !== undefined && fb !== undefined) {
-        // both ends are ports of containers already drawn: one may still
-        // slide along the wall of the box inside to come level with the other
-        ya = fa; yb = fb;
-        if (ya !== yb && nudge(b.inner!, wallIn(b.inner!, cell, "W"), g.key, ya - b.y)) yb = ya;
-        else if (ya !== yb && nudge(a.inner!, wallIn(a.inner!, cell, "E"), g.key, yb - a.y)) ya = yb;
-      }
-      else if (fa !== undefined) { ya = fa; yb = fa >= blo && fa <= bhi ? fa : Math.round((blo + bhi) / 2); }
-      else if (fb !== undefined) { yb = fb; ya = fb >= alo && fb <= ahi ? fb : Math.round((alo + ahi) / 2); }
-      else if (lo <= hi) ya = yb = spreadAbout((lo + hi) / 2, free.length, i, lo, hi);
-      else { ya = spreadAbout((alo + ahi) / 2, free.length, i, alo, ahi); yb = spreadAbout((blo + bhi) / 2, free.length, i, blo, bhi); }
-      sideY.set(`${g.uid}|a`, ya); sideY.set(`${g.uid}|b`, yb);
-    }
+    const fa = group.map((g) => fixedY(a, "E", g.key)), fb = group.map((g) => fixedY(b, "W", g.key));
+    // both ends are ports of containers already drawn: one may still slide
+    // along the wall of the box inside to come level with the other
+    group.forEach((g, i) => {
+      if (fa[i] === undefined || fb[i] === undefined || fa[i] === fb[i]) return;
+      if (nudge(b.inner!, wallIn(b.inner!, cell, "W"), g.key, fa[i]! - b.y)) fb[i] = fa[i];
+      else if (nudge(a.inner!, wallIn(a.inner!, cell, "E"), g.key, fb[i]! - a.y)) fa[i] = fb[i];
+    });
+    // §5.4: a wire arrives level with where it left, if the wall allows. The
+    // free ends on the left wall aim at fixed ends opposite (or, with none,
+    // at the middle of what the two walls share); those on the right wall
+    // then aim at where the left ends came to stand.
+    const lo = Math.max(alo, blo), hi = Math.min(ahi, bhi), shared = lo <= hi;
+    const freeA = group.map((_, i) => i).filter((i) => fa[i] === undefined);
+    const ya = [...fa];
+    const placedA = allot(freeA.map((i) => fb[i]), shared && freeA.every((i) => fb[i] === undefined) ? lo : alo, shared && freeA.every((i) => fb[i] === undefined) ? hi : ahi);
+    freeA.forEach((i, k) => { ya[i] = placedA[k]; });
+    const freeB = group.map((_, i) => i).filter((i) => fb[i] === undefined);
+    const yb = [...fb];
+    const placedB = allot(freeB.map((i) => ya[i]), blo, bhi);
+    freeB.forEach((i, k) => { yb[i] = placedB[k]; });
+    group.forEach((g, i) => { sideY.set(`${g.uid}|a`, ya[i]!); sideY.set(`${g.uid}|b`, yb[i]!); });
   }
   // a gutter is a channel on its side: wires that change level in it each
   // turn on a track of their own, packed against the far wall so that any
@@ -174,9 +189,10 @@ export function lay(cell: Cell): void {
   const directs = cell.sides.filter((s) => modes.get(s) === "direct");
   for (const s of directs) {
     const fixed = fixedY(s.from, s.wall, s.key);
+    if (fixed !== undefined) { sideY.set(`${s.uid}`, fixed); continue; }
     const mates = directs.filter((o) => o.from === s.from && o.wall === s.wall && fixedY(o.from, o.wall, o.key) === undefined);
     const [lo, hi] = range(s.from);
-    sideY.set(`${s.uid}`, fixed ?? spreadAbout((lo + hi) / 2, mates.length, mates.indexOf(s), lo, hi));
+    sideY.set(`${s.uid}`, allot(mates.map(() => undefined), lo, hi)[mates.indexOf(s)]);
   }
 
   // ── draw ───────────────────────────────────────────────────────────────────

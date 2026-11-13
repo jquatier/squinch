@@ -117,6 +117,19 @@ export function rethread(thread: Thread): void {
     return n * 1e7 + run;
   };
 
+  /** §5.2: a wire passing a rank between a box and the side wall that box's
+   *  wire leaves by crosses it, and so does one passing between two
+   *  rank-mates a wire goes round under the row to join. Exact: a passing
+   *  wire comes in from above and goes out below, so over or under, it is met. */
+  const passing = (it: Item, g: number): number => {
+    if (it.kind === "port") return 0;
+    const cell = it.cell;
+    let n = 0;
+    for (const s of cell.sides) if (s.row === it.row && s.key !== thread.key && (s.wall === "E" ? g > s.from.pos : g <= s.from.pos)) n++;
+    for (const t of cell.turns) if (t.row === it.row && t.key !== thread.key && g > Math.min(t.a.item.pos, t.b.item.pos) && g <= Math.max(t.a.item.pos, t.b.item.pos)) n++;
+    return n;
+  };
+
   // Shortest path over the thread, which is a tree (a wire is a chain; a
   // bundle is a trunk with branches): each free item's best cost for each of
   // its gaps, given the best its subtree can then do.
@@ -130,7 +143,7 @@ export function rethread(thread: Thread): void {
   const seen = new Set<Item>(), choice = new Map<Item, number>();
   const solve = (it: Item, via?: Seg): { best: number[]; pick: (g: number) => void } => {
     seen.add(it);
-    const gs = gaps.get(it)!, total = gs.map(() => 0);
+    const gs = gaps.get(it)!, total = gs.map((g) => passing(it, g) * 1e7);
     const kids: { pick: (g: number) => void; arg: number[] }[] = [];
     for (const link of at.get(it)!) {
       if (link.seg === via) continue;
