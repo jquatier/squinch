@@ -15,7 +15,7 @@ says which wins.
 
 - **Write it cold.** Do not open, copy from, or port the engine
   implementation files of the earlier engines. That is every non-test `.ts`
-  file in `grid/` and `loom/` **except** the ones listed under "What you may
+  file in `grid/`, `loom/` and `braid/` **except** the ones listed under "What you may
   read". Their designs grew by accretion; the point of this exercise is a
   design that did not. If you find yourself wanting to see "how the old one
   did it", work it out from the requirement instead.
@@ -31,7 +31,7 @@ says which wins.
   - `grid/metrics.ts`, `grid/score.ts` — how a layout is measured and scored.
   - `grid/asks.ts`, `grid/random.ts`, `grid/trial/*.squinch`,
     `grid/round2/*.squinch` — test helpers and the diagram sets.
-  - Every `*.test.ts` in `loom/` and `grid/` — as statements of required
+  - Every `*.test.ts` in `loom/` and `grid/` (not `braid/`'s) — as statements of required
     behaviour. (Unit tests of the old engines' *internal* modules — rank,
     spread, tracks, sketch, tree — tell you what those authors needed from
     their own parts; you owe nothing to that decomposition.)
@@ -46,7 +46,12 @@ says which wins.
 - **Where it goes.** A new directory, `packages/core/spike/<name>/` — pick a
   short name. It exports `solve(problem: Problem): Solution` from
   `engine.ts`, importing its public types from `../contract.js`.
-- **Do not modify** `grid/`, `loom/`, `contract.ts`, anything under
+- **Do not read anything in `braid/`** — not its README, not its tests.
+  It is an earlier rewrite from an earlier version of this document; you
+  meet it only as a black box (`import { solve } from "../braid/engine.js"`)
+  in your before/after test and render tool. Likewise do not read
+  `loom/README.md`.
+- **Do not modify** `grid/`, `loom/`, `braid/`, `contract.ts`, anything under
   `packages/core/src` or `packages/core/test`, or any other package. If the
   Squinch side needs to change for a requirement to be met, say so in your
   report instead.
@@ -137,9 +142,15 @@ The score in `grid/score.ts` writes this down; lower penalty is better.
    container whose centre lines are 1–7 px apart; a wall's only wire 1–7 px
    off the wall's middle. Each reads as a mistake. Either exact, or clearly
    different.
-4. **Balance.** A box whose wires fan out to several boxes stands over the
-   middle of them (or, for an odd number, straight over the middle one).
-5. **Straight wires**, few bends, short wire.
+4. **Balance and symmetry.** A box whose wires fan out to several boxes
+   stands over the middle of them (or, for an odd number, straight over the
+   middle one). This outranks straightness: **never move a box off its
+   balanced place to make a wire straight.** The owner of this project
+   looked at an engine that preferred the straight wire and judged its
+   pictures worse; a symmetric fan with two bent wires reads better than a
+   parent hanging over one child on a dead-straight wire.
+5. Few bends and short wire — *after* balance, as a tie-break and through
+   ports (which may slide), never through box positions.
 6. Canvas size is *not* a goal. A bigger picture is not a worse one. Even
    spacing is preferred to tight spacing.
 
@@ -227,9 +238,9 @@ The score in `grid/score.ts` writes this down; lower penalty is better.
   on that container's wall.
 - A wire arriving at a box's side wall comes in level with where it left
   the box on the other side of the gutter, if the wall allows.
-- A wall's *only* wire meets it in the middle. If the wire is straight and
-  the box has room, the box moves onto the wire; if not, the straight
-  stretch of the wire moves onto the box's middle.
+- A wall's *only* wire meets it in the middle; the wire's own stretch moves
+  to the box's middle, not the box to the wire. Several wires on a wall
+  stand evenly about its middle.
 
 ### 5.5 Placement along a rank
 
@@ -241,19 +252,26 @@ The score in `grid/score.ts` writes this down; lower penalty is better.
   hanging over one child. For a box with wires on both sides, the side with
   more pull decides. A box over exactly two wires stands exactly between
   them.
-- A stage with a successor and a side lookup stays in line with the
-  successor; the lookup hangs beside it. (A dead-end box pulls less.)
+- Every wire to a box in the next rank counts equally in that balance,
+  whether or not the box at its far end leads anywhere. (An earlier
+  version let a dead-end box pull less so a chain stayed straight past a
+  side lookup; that is withdrawn — the parent stands between the two.)
 - A box holds its lane against a wire merely passing it: the wire goes
   round.
 - One of eleven wires leaving a hub cannot be straight anyway and should
-  not drag its far end; a wire with both its walls to itself should be dead
-  straight if a box can move to make it so without bending another wire or
-  costing more wire than it saves.
+  not drag its far end. A single chain (one wire in, one wire out, all the
+  way) is a straight line — that *is* its balanced place. Beyond that,
+  straightness is never a reason to move a box: when balance leaves a box
+  free (ties, slack), take the position with fewer bends; otherwise bend
+  the wire.
 - **A wire running back against the flow follows and never leads** — it
   must not draw its box out of its row.
 - **No gaps nothing is holding open.** Row-mates that begin side by side
   stay side by side; a box tied only to something that is tied only to it
   must not be left stranded wherever it started.
+- (Where exact centring and the grid disagree — a parent exactly midway
+  between two children whose centres are an odd number of steps apart —
+  the children stand one step further apart so both hold.)
 - **One 8-pixel grid for the whole picture**: every box's centre line, in
   every container and across them, stands on it, so two boxes are on one
   line or a clear step apart. A container's size is a whole number of steps
@@ -275,7 +293,9 @@ The score in `grid/score.ts` writes this down; lower penalty is better.
   wire crosses an odd number of gaps, in the row it passes if even. It
   reserves room **only in the container where the wire's two ends part
   company**, not in every container the wire passes through.
-- A labelled gap is deeper by the label; a rank gap never shrinks below its
+- A labelled gap is deeper only as far as the label and its tracks do not
+  already fit (a test holds a container below a labelled gap to the same
+  rectangle as without the label); a rank gap never shrinks below its
   stated size because some other gap has a label. Spacing is even.
 - Several labelled wires between two neighbours on one rank each carry
   their label on their own stub, in columns if they would collide.
@@ -352,28 +372,39 @@ own). All of them must pass.
 | `trial.test.ts` | 20 hand-written + 80 random diagrams: zero violations |
 | `compare.test.ts` | every corpus view: zero violations |
 | `score.test.ts` | the verdict against ELK |
-| `before-after.test.ts` | the verdict against the earlier spike engines — extend it to print your engine against **both** `grid` and `loom` |
+| `before-after.test.ts` | the verdict against the earlier spike engines — extend it to print your engine against `grid`, `loom` **and** `braid` |
 
-Targets — the `loom` engine's numbers, which the rewrite should match or
-beat. Report yours beside them.
+Targets. `braid` is the previous rewrite: best on crossings, bends and
+speed, but it bought bends with balance (boxes off the middle of their
+fans, small jogs) and its pictures were judged worse for it. The engine
+wanted now is **the best of all columns**: `braid`'s crossings and speed
+with `loom`'s balance or better. Report yours beside them.
 
-| | ELK | `grid` | `loom` |
-|---|---|---|---|
-| Violations, any set | many | 0 | 0 |
-| Score vs ELK, 384 views: better / level / worse | — | 183 / 190 / 11 | 189 / 182 / 13 |
-| Total penalty vs ELK | — | −35% | −37% |
-| Corpus (259 views): crossings | 73 | 25 | 26 |
-| Corpus: bends | 1,174 | 1,041 | 1,057 |
-| Corpus: jogs under 16 px | 12 | 1 | 1 |
-| Corpus: almost-aligned pairs | 9 | 1 | 2 |
-| Trial + random (115 views): crossings | 607 | 580 | 440 |
-| Round 2 (35 views): crossings | — | 4 | 1 |
-| Random (80 views): crossings | — | 441 | 365 |
-| Time, 259 corpus views | 3.5 s | 0.95 s | 0.77 s |
-| Time, 80 random views | — | 174 s | 50 s |
+Where a ported test contradicts §4 or §5.5 as now written (a test written
+for the withdrawn dead-end rule, say), this document wins: change the test
+and list it in your report.
 
-A rewrite that is a little behind `loom` on one line and ahead on others is
-acceptable if you can say why. One that is illegal anywhere, or slower than
+| | ELK | `grid` | `loom` | | `braid` |
+|---|---|---|---|---|
+| Violations, any set | many | 0 | 0 | 0 |
+| Score vs ELK, 384 views: better / level / worse | — | 183 / 190 / 11 | 189 / 182 / 13 | 233 / 145 / 6 |
+| Total penalty vs ELK | — | −35% | −37% | −46% |
+| Corpus (259 views): crossings | 73 | 25 | 26 | 25 |
+| Corpus: bends | 1,174 | 1,041 | 1,057 | 701 |
+| Corpus: jogs under 16 px | 12 | 1 | 1 | 5 |
+| Corpus: almost-aligned pairs | 9 | 1 | 2 | 0 |
+| Trial + random (115 views): crossings | 607 | 580 | 440 | 361 |
+| Round 2 (35 views): crossings | — | 4 | 1 | 1 |
+| Random (80 views): crossings | — | 441 | 365 | 288 |
+| Corpus: lopsided boxes (**must not exceed `loom`**) | — | — | 130 | 145 |
+| Random: lopsided boxes | — | 616 | 626 | 589 |
+| Random: jogs under 16 px | — | 41 | 32 | 59 |
+| Time, 259 corpus views | 3.5 s | 0.95 s | 0.77 s | 0.50 s |
+| Time, 80 random views | — | 174 s | 50 s | 1.8 s |
+
+Balance first: lopsided and small jogs at `loom`'s level or better is the
+requirement, then crossings at `braid`'s level, then bends. More bends than
+`braid` is expected and fine. One that is illegal anywhere, or slower than
 `grid`, is not.
 
 Known hard cases worth looking at by eye (render with the tools the `loom`
@@ -391,7 +422,7 @@ random diagrams with seeds 9, 21, 45 (`randomDiagram(n)` in `grid/random.ts`).
    - the design in a paragraph, and how it differs from "order and lay out
      each container in turn, then try again";
    - the table in §7 with a column for your engine;
-   - before/after against `grid` and `loom`: views better / same / worse per
+   - before/after against `grid`, `loom` and `braid`: views better / same / worse per
      set, and the views where yours is furthest behind, with the reason if
      you know it;
    - every requirement in §3–§6 you did **not** meet, and every place you
