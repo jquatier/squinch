@@ -330,7 +330,7 @@ export async function layoutView(
     if (own && !viewHints) {
       view = {
         ...view,
-        layout: { ...view.layout, rows: own.rows, cols: own.cols, place: own.place, direction: own.direction },
+        layout: { ...view.layout, rows: own.rows, cols: own.cols, place: own.place, direction: own.direction, wrap: own.wrap },
       };
       hintsLoc = own.loc;
     }
@@ -803,6 +803,18 @@ export async function layoutView(
   };
   for (const f of graph.frames) {
     const F = f.path;
+    // A container's own `wrap` folds the view that stands inside it (adopted
+    // above). Expanded inside another view it cannot be honoured — the fold
+    // is rank assignment, and inside a frame the ranks are ELK's — and a hint
+    // that does nothing must say so.
+    const ownWrap = model.containers.get(F)?.layout?.wrap;
+    if (ownWrap)
+      diagnostics.push({
+        severity: "warning",
+        message: `\`wrap ${ownWrap.n}\` in \`${F}\` has no effect while \`${F}\` is expanded inside this view`,
+        fix: `it folds the view scoped to \`${F}\`; to fold it here, write the bands by hand in its layout block: \`rows [a b] [c d]\``,
+        loc: ownWrap.loc,
+      });
     const members = [
       ...graph.frames.filter((c) => c.frame === F).map((c) => c.path),
       ...graph.nodes.filter((n) => n.frame === F).map((n) => n.path),

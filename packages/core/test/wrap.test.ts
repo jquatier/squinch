@@ -159,13 +159,28 @@ describe("wrap: never silent", () => {
   });
 });
 
-describe("wrap: never twice, never in a container", () => {
+describe("wrap: never twice, and a container may carry its own", () => {
   it("a second wrap line in one block is an error, not a silent winner", () => {
     const r = buildModel(`a = box "A"\nb = box "B"\nc = box "C"\na -> b\nb -> c\nview v { include *\n layout {\n  wrap 2\n  wrap 3\n } }\n`);
     expect(r.diagnostics.map((d) => d.message)).toContainEqual(expect.stringContaining("`wrap` appears twice in this block"));
   });
-  it("inside a container's layout block it is refused as a view's statement", () => {
+  it("inside a container's layout block it is the container's own fold", () => {
     const r = buildModel(`system s "S" {\n a = box "A"\n b = box "B"\n a -> b\n layout { wrap 2 }\n}\n`);
-    expect(r.diagnostics.map((d) => d.message)).toContainEqual(expect.stringContaining("`wrap` describes a view, not a container's interior"));
+    expect(r.diagnostics.filter((d) => d.severity === "error")).toEqual([]);
+    expect(r.model.containers.get("s")?.layout?.wrap?.n).toBe(2);
+  });
+  it("a container's wrap beside its own rows is an error, as in a view", () => {
+    const r = buildModel(`system s "S" {\n a = box "A"\n b = box "B"\n a -> b\n layout {\n  wrap 2\n  rows [a] [b]\n }\n}\n`);
+    expect(r.diagnostics.map((d) => d.message)).toContainEqual(expect.stringContaining("both assign bands in `s`"));
+  });
+  it("a container's wrap folds the view scoped to it, and says so where it cannot", async () => {
+    const { layoutView } = await import("../src/layout/layout.js");
+    const src = `system s "S" {\n a = box "A"\n b = box "B"\n c = box "C"\n d = box "D"\n a -> b\n b -> c\n c -> d\n layout { wrap 2 }\n}\nview inside { scope s }\nview outside { include *\n expand s }\n`;
+    const { model } = buildModel(src);
+    const inside = await layoutView(model, model.views.find((v) => v.name === "inside")!);
+    const ys = new Set(inside.positioned.nodes.map((n) => n.y));
+    expect(ys.size).toBe(2); // four in a chain, two bands of two
+    const outside = await layoutView(model, model.views.find((v) => v.name === "outside")!);
+    expect(outside.diagnostics.map((d) => d.message)).toContainEqual(expect.stringContaining("has no effect while `s` is expanded"));
   });
 });

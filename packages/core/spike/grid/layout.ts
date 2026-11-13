@@ -11,16 +11,14 @@ import type { Positioned, PEdge, PPort } from "../../src/layout/layout.js";
 import { CHIP_H } from "../../src/layout/layout.js";
 import { measure } from "../../src/metrics.js";
 import type { ThemeFont } from "../../src/themes/index.js";
-import { plan, type PlanOptions } from "./problem.js";
+import { plan } from "./problem.js";
 import { solve, type Rect, type Pt } from "./engine.js";
 
 type Font = Pick<ThemeFont, "metrics" | "scale">;
 const INTER: Font = { metrics: "inter", scale: 1 };
 
-export function layoutViewGrid(
-  model: SModel, view: SView, font: Font = INTER, options: PlanOptions = {},
-): { positioned: Positioned; skipped: string[] } {
-  const p = plan(model, view, font, options);
+export function layoutViewGrid(model: SModel, view: SView, font: Font = INTER): { positioned: Positioned; skipped: string[] } {
+  const p = plan(model, view, font);
   const sol = solve(p.problem);
   const rect = (id: string) => sol.boxes.get(id)!;
 

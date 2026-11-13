@@ -150,20 +150,13 @@ export interface Fold {
 const columnsOf = (bands: string[][]): string[][] =>
   Array.from({ length: Math.max(0, ...bands.map((b) => b.length)) }, (_, k) => bands.flatMap((b) => (b[k] ? [b[k]] : []))).filter((c) => c.length > 1);
 
-export interface PlanOptions {
-  /** `wrap N` for one container's inside, by container path — what a
-   *  `wrap` line in that container's own `layout { }` would say. The grammar
-   *  refuses the line there today, so the spike takes it from here. */
-  wrap?: Record<string, number>;
-}
-
-export function plan(model: SModel, view: SView, font: Font, options: PlanOptions = {}): Plan {
+export function plan(model: SModel, view: SView, font: Font): Plan {
   // a view standing inside a container inherits that container's own layout
   // block, unless it brings hints of its own (SPEC §6: all or nothing)
   const own = view.scope ? model.containers.get(view.scope)?.layout : undefined;
   const L = view.layout;
   if (own && !(L.rows || L.cols || L.place.length || L.direction || L.wrap))
-    view = { ...view, layout: { ...L, rows: own.rows, cols: own.cols, place: own.place, direction: own.direction } };
+    view = { ...view, layout: { ...L, rows: own.rows, cols: own.cols, place: own.place, direction: own.direction, wrap: own.wrap } };
 
   const graph = resolveView(model, view);
   const fx = (px: number) => Math.round(px * font.scale);
@@ -232,7 +225,8 @@ export function plan(model: SModel, view: SView, font: Font, options: PlanOption
   // folded at all.) Each container folds its own direct children.
   const folds = new Map<string, Fold>();
   const foldOf = (container: string, members: readonly string[], edges: readonly Edge[]) => {
-    const n = options.wrap?.[container] ?? view.layout.wrap?.n;
+    // a container's own `wrap` follows it into every view; the view's reaches the rest
+    const n = model.containers.get(container)?.layout?.wrap?.n ?? view.layout.wrap?.n;
     const fold = n ? wrapRows(members, edges, n) : undefined;
     if (fold) folds.set(container, fold);
     return fold;

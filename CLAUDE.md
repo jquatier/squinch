@@ -272,8 +272,8 @@ tag from the next attr key; that one is a check error naming the fix. Both
 spellings build the same model and render byte-identically.
 
 **Container layout blocks** (2026-09): a `layout { }` inside a `system`/`container`
-body arranges its *direct* interior — `rows`/`cols`/`place` and `direction`, written
-by short name — wherever that interior is opened: expanded in any view, or as
+body arranges its *direct* interior — `rows`/`cols`/`place`, `direction` and `wrap`,
+written by short name — wherever that interior is opened: expanded in any view, or as
 the root of a view scoped to it (its auto view included). It was "the most common
 authoring mistake" for a year, refused with a special-case error; cold agents kept
 writing it because that is where the fact lives, and restating one interior in every

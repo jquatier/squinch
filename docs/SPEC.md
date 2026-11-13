@@ -184,8 +184,11 @@ system checkout "Checkout" {
 }
 ```
 
-It accepts `rows`, `cols`, `place` and `direction` (§6); the other layout statements
-describe a view and are refused with the view named as the fix. Members are the
+It accepts `rows`, `cols`, `place`, `direction` and `wrap` (§6); the other layout
+statements describe a view and are refused with the view named as the fix. `wrap N`
+there is the container's own fold — no row of its interior holds more than N members
+— and it applies in the view scoped to the container; expanded inside another view it
+is a warning today, because the layout engine cannot fold inside a frame. Members are the
 container's direct children — a leaf, or a child container ranked as one unit — so a
 deeper path is an error naming the child's own block, and an outside path is an error
 naming the view-level band to write instead. Two blocks in one container is an error.
@@ -615,7 +618,7 @@ SVGs — click-to-zoom works in committed SVGs on GitHub with zero JavaScript.
 ## 6. Layout (the three tiers)
 
 Inside a `layout { ... }` block — a view's, or a container's own (§3, which takes
-`rows`/`cols`/`place`/`direction` only). Everything optional; auto-layout (ELK,
+`rows`/`cols`/`place`/`direction`/`wrap` only). Everything optional; auto-layout (ELK,
 deterministic, declaration-order-stable) fills every gap.
 
 ### Tier 0 — view-level knobs
@@ -835,7 +838,7 @@ order-service.squinch:44:3   `rows` lists `files` twice
   a node can hold only one rank position; remove one occurrence
 
 order-service.squinch:18:5   `lines` describes a view, not a container's interior
-  move it to the view's `layout { }`; inside `shop` only rows, cols, place and direction apply
+  move it to the view's `layout { }`; inside `shop` only rows, cols, place, direction and wrap apply
 
 order-service.squinch:19:11  `workers.sync` is inside `workers`, not a direct member of `shop`
   arrange it in `workers`'s own layout block: `container workers { … layout { rows [sync] } }`

@@ -16,8 +16,8 @@ interface Case {
   name: string; src: string;
   /** container path or zone id → the most boxes one of its rows may hold */
   folds: Record<string, number>;
-  /** `wrap` for single containers, standing in for a line in their own layout block */
-  own?: Record<string, number>;
+  /** the fold is the container's own: `wrap` in its layout block, not the view's */
+  own?: boolean;
   right?: string[]; // containers that flow rightward: their "rows" are columns
 }
 export const cases: Case[] = [
@@ -28,8 +28,8 @@ export const cases: Case[] = [
     src: `src = box "Source"\nsystem pipe "Pipeline" {\n${boxes(range("s", 8))}\n${range("s", 7).map((s, i) => `  ${s} -> s${i + 2}`).join("\n")}\n}\nsink = box "Sink"\nsrc -> pipe.s1\npipe.s8 -> sink\n` + view("expand pipe\nlayout { wrap 4 }"),
     folds: { pipe: 4 } },
   { name: "only the wide container folds; its neighbour is left alone",
-    src: `system api "API" {\n  gw = box "Gateway"\n  a = box "A"\n  b = box "B"\n  gw -> a\n  gw -> b\n}\nsystem farm "Workers" {\n  q = box "Queue"\n${boxes(range("w", 8))}\n${range("w", 8).map((w) => `  q -> ${w}`).join("\n")}\n}\napi.a -> farm.q\napi.b -> farm.q\n` + view("expand api, farm"),
-    own: { farm: 4 }, folds: { farm: 4 } },
+    src: `system api "API" {\n  gw = box "Gateway"\n  a = box "A"\n  b = box "B"\n  gw -> a\n  gw -> b\n}\nsystem farm "Workers" {\n  q = box "Queue"\n${boxes(range("w", 8))}\n${range("w", 8).map((w) => `  q -> ${w}`).join("\n")}\n  layout { wrap 4 }\n}\napi.a -> farm.q\napi.b -> farm.q\n` + view("expand api, farm"),
+    own: true, folds: { farm: 4 } },
   { name: "ten stores in a zone, one service reading them all",
     src: `svc = box "Service"\n${boxes(range("db", 10), "")}\n${range("db", 10).map((d) => `svc -> ${d}`).join("\n")}\nzone data "Data tier" vpc { contains ${range("db", 10).join(", ")} }\n` + view("layout { wrap 5 }"),
     folds: { data: 5 } },
@@ -40,8 +40,8 @@ export const cases: Case[] = [
     src: `${boxes(["web", "mobile", "partner"], "")}\nsystem svc "Services" {\n${boxes(range("s", 8))}\n}\nweb -> svc.s1\nweb -> svc.s5\nmobile -> svc.s2\nmobile -> svc.s7\npartner -> svc.s8\npartner -> svc.s3\ndb = box "Database"\n${range("s", 8).map((s) => `svc.${s} -> db`).join("\n")}\n` + view("expand svc\nlayout { wrap 4 }"),
     folds: { svc: 4 } },
   { name: "a folded container beside an ordinary one, in zones side by side",
-    src: `system edge "Edge" {\n  cdn = box "CDN"\n  waf = box "WAF"\n  cdn -> waf\n}\nsystem fleet "Fleet" {\n  lb = box "Balancer"\n${boxes(range("n", 8))}\n${range("n", 8).map((n) => `  lb -> ${n}`).join("\n")}\n}\nedge.waf -> fleet.lb\nzone a "Public" vpc { contains edge }\nzone b "Private" vpc { contains fleet }\n` + view("expand edge, fleet\nlayout { rows [edge fleet] }"),
-    own: { fleet: 4 }, folds: { fleet: 4 } },
+    src: `system edge "Edge" {\n  cdn = box "CDN"\n  waf = box "WAF"\n  cdn -> waf\n}\nsystem fleet "Fleet" {\n  lb = box "Balancer"\n${boxes(range("n", 8))}\n${range("n", 8).map((n) => `  lb -> ${n}`).join("\n")}\n  layout { wrap 4 }\n}\nedge.waf -> fleet.lb\nzone a "Public" vpc { contains edge }\nzone b "Private" vpc { contains fleet }\n` + view("expand edge, fleet\nlayout { rows [edge fleet] }"),
+    own: true, folds: { fleet: 4 } },
   { name: "wide inside wide: a platform of seven teams, one of them with eight services",
     src: `system plat "Platform" {\n${range("t", 6).map((t) => `  ${t} = box "Team ${t}"`).join("\n")}\n  container big "Core team" {\n${boxes(range("c", 8), "    ")}\n  }\n  hub = box "Portal"\n${range("t", 6).map((t) => `  hub -> ${t}`).join("\n")}\n  hub -> big.c1\n  hub -> big.c5\n}\n` + view("expand *\nlayout { wrap 4 }"),
     folds: { plat: 4, "plat.big": 4 } },
@@ -77,7 +77,7 @@ it("wrap folds containers: no row holds more than was asked", async () => {
     if (errs.length) throw new Error(`${c.name}: ${errs[0].message}`);
     const v = built.model.views.find((x) => x.name === "v")!;
     const elk = await layoutView(built.model, v);
-    const grid = layoutViewGrid(built.model, v, undefined, { wrap: c.own }).positioned;
+    const grid = layoutViewGrid(built.model, v).positioned;
     const strict = { ...grid, edges: grid.edges.map((e) => ({ ...e, coplanar: true as const })) };
     const trunks = new Set(grid.edges.filter((e) => e.via === "bus").map((e) => e.to));
     bad.push(...checkLayout(strict, { channelTargets: trunks, zoneMembers: new Map(built.model.zones.map((z) => [z.id, z.members])) }).map((b) => `${c.name}: ${b}`));
@@ -89,7 +89,7 @@ it("wrap folds containers: no row holds more than was asked", async () => {
       return `${e}/${g}/${n}`;
     });
     const warn = elk.diagnostics.filter((d) => /wrap/.test(d.message)).length;
-    console.log(`${c.name.padEnd(70)} ${`${elk.positioned.width}×${elk.positioned.height}`.padEnd(12)} ${`${grid.width}×${grid.height}`.padEnd(12)} ${rows.join("  ")}${warn ? "   ELK: wrap has no effect" : c.own ? "   ELK: cannot say it" : ""}`);
+    console.log(`${c.name.padEnd(70)} ${`${elk.positioned.width}×${elk.positioned.height}`.padEnd(12)} ${`${grid.width}×${grid.height}`.padEnd(12)} ${rows.join("  ")}${warn ? "   ELK: wrap has no effect" : ""}`);
   }
   console.log(`\nfolded as asked: ELK ${elkFolded}/${asks} · grid ${gridFolded}/${asks}`);
   console.log(bad.join("\n"));

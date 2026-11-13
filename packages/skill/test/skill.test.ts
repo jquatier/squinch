@@ -292,6 +292,9 @@ describe("the skill — diagnostic coverage", () => {
     "appears twice in this block — one",
     // `wrap` (2026-09): the fix lines write the alternative out in full
     "both assign bands in this view", "the band width must be a whole number of at least 2",
+    // `wrap` in a container's own block (2026-11): the same two-way choice,
+    // and where the engine cannot fold yet the fix writes the rows line to use
+    "both assign bands in", "is expanded inside this view",
     // round 23: the fix writes the joined line
     "bands must sit on one line — the statement ends at newline",
     // The expand family (flexibility sweep, 2026-08): each fix writes the

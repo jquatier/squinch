@@ -1149,11 +1149,20 @@ export function buildProject(input: ProjectFile[]): BuildResult {
     const seenStmt = new Set<string>();
     for (let child = lb.firstChild; child; child = child.nextSibling) {
       const t = child.type.name;
-      if (t === "RowsStmt" || t === "ColsStmt" || t === "DirectionStmt") {
+      if (t === "RowsStmt" || t === "ColsStmt" || t === "DirectionStmt" || t === "WrapStmt") {
         if (seenStmt.has(t)) { secondStatement(ctx, child, t); continue; }
         seenStmt.add(t);
       }
-      if (t === "RowsStmt" || t === "ColsStmt") {
+      if (t === "WrapStmt") {
+        // a container too wide for its row folds wherever it is opened — the
+        // fact belongs to the container, as its rows and direction do
+        const num = child.getChild("Number");
+        const n = num ? Number(ctx.text(num)) : NaN;
+        if (!Number.isInteger(n) || n < 2)
+          error(ctx, child, `\`wrap ${num ? ctx.text(num) : ""}\` — the band width must be a whole number of at least 2`,
+            "wrap 5 puts up to five nodes in each band");
+        else layout.wrap = { n, loc: ctx.loc(child) };
+      } else if (t === "RowsStmt" || t === "ColsStmt") {
         const bands: string[][] = [];
         const placed = new Set<string>();
         for (const rank of child.getChildren("Rank")) {
@@ -1187,9 +1196,17 @@ export function buildProject(input: ProjectFile[]): BuildResult {
       } else if (t.endsWith("Stmt")) {
         const word = ctx.text(child).split(/\s/)[0];
         error(ctx, child, `\`${word}\` describes a view, not a container's interior`,
-          `move it to the view's \`layout { }\`; inside \`${c.name}\` only rows, cols, place and direction apply`);
+          `move it to the view's \`layout { }\`; inside \`${c.name}\` only rows, cols, place, direction and wrap apply`);
       }
     }
+    // `wrap` *is* a rows statement, written by the engine (as in a view)
+    if (layout.wrap && (layout.rows || layout.cols))
+      diagnostics.push({
+        severity: "error",
+        message: `\`wrap ${layout.wrap.n}\` and \`${layout.rows ? "rows" : "cols"}\` both assign bands in \`${c.name}\``,
+        fix: "keep one: `wrap` folds the row for you; `rows`/`cols` spell the bands by hand",
+        loc: layout.wrap.loc, file: ctx.name,
+      });
     hintAgreement(layout, ctx);
     c.layout = layout;
   }
