@@ -43,7 +43,9 @@ export function rowsOf(sh: Sheet, gutters: ReadonlyMap<Slot, Gutter>): Rows {
     const outer = row.indexOf(wire) < row.findIndex((x) => x.kind === "box") || row.indexOf(wire) > row.map((x) => x.kind).lastIndexOf("box");
     return s.after + (outer ? WIRE_WIRE : WIRE_BOX);
   };
-  const clear = (s: Slot) => (s.kind === "port" ? CORNER : ax.pad.low);
+  // a port told to stand clear of the title is measured from there: the wall
+  // never comes in so far that it would stand under it
+  const clear = (s: Slot) => (s.kind === "port" ? s.least ?? CORNER : ax.pad.low);
 
   return {
     all, of, gapAfter,
@@ -51,6 +53,7 @@ export function rowsOf(sh: Sheet, gutters: ReadonlyMap<Slot, Gutter>): Rows {
     fits: (s, pos) => {
       const row = of(s), i = row.indexOf(s);
       const prev = row[i - 1], next = row[i + 1];
+      if (s.least !== undefined && pos < s.least) return false; // a wall port stays clear of the title
       return (!prev || pos >= prev.pos + prev.lsize + gapAfter(prev, s)) && (!next || next.pos >= pos + s.lsize + gapAfter(s, next));
     },
     force: (s, pos) => {

@@ -39,9 +39,20 @@ export function tidy(sh: Sheet, ports: Ports, rows: Rows): void {
   const carryGroup = (s: Slot, d: number, hop: Hop): boolean => {
     const group = new Set<Slot>([s]);
     for (const x of group)
-      for (const h of hopsOf.get(x) ?? []) if (h !== hop && off(h) === 0) group.add(h.u === x ? h.v : h.u);
+      for (const h of hopsOf.get(x) ?? []) {
+        const next = h.u === x ? h.v : h.u;
+        // …and the wires leaving its boxes, straight or not: a port or a passing wire only follows
+        if (h !== hop && (off(h) === 0 || (next.kind !== "box" && x.kind === "box"))) group.add(next);
+      }
     const members = [...group], far = hop.u === s ? hop.v : hop.u;
-    if (group.has(far) || members.some((m) => onAxis.has(m) || m.kind === "port" || !rows.fits(m, m.pos + d))) return false;
+    // room for each, not counting a row-mate that is coming along
+    const room = (m: Slot) => {
+      const row = rows.of(m), i = row.indexOf(m), prev = row[i - 1], next = row[i + 1];
+      return (m.least === undefined || m.pos + d >= m.least)
+        && (!prev || group.has(prev) || m.pos + d >= prev.pos + prev.lsize + rows.gapAfter(prev, m))
+        && (!next || group.has(next) || next.pos >= m.pos + d + m.lsize + rows.gapAfter(m, next));
+    };
+    if (group.has(far) || members.some((m) => onAxis.has(m) || !room(m))) return false;
     const out = () => members.reduce((sum, m) => sum + (hopsOf.get(m) ?? []).filter((h) => !group.has(h.u === m ? h.v : h.u)).reduce((a, h) => a + Math.abs(off(h)), 0), 0);
     const before = out();
     for (const m of members) m.pos += d;
@@ -65,6 +76,7 @@ export function tidy(sh: Sheet, ports: Ports, rows: Rows): void {
       if (!by) break;
       moves.push([row[i + step], by]);
     }
+    if (moves.some(([m, by]) => m.least !== undefined && m.pos + by < m.least)) return false; // never into the title
     if (anchored(s, hop)) return row.length === 1 || moves.length === 1 ? carryGroup(s, d, hop) : false;
     if (moves.slice(1).some(([m]) => anchored(m))) return false;
     const strain = () => moves.reduce((sum, [m]) => sum + (hopsOf.get(m) ?? []).reduce((a, h) => a + Math.abs(off(h)), 0), 0);
@@ -179,7 +191,8 @@ export function tidy(sh: Sheet, ports: Ports, rows: Rows): void {
         // port may take it. The last round does not: a jog still being
         // handed round by then has nowhere to go, and is opened up instead.
         if (round < 2 && (shift(v, d) || shift(u, -d))) continue;
-        if (boxesToo && (carry(v, d, hop) || carry(u, -d, hop))) continue;
+        // (after the lattice has had its say, only by whole steps of it)
+        if ((boxesToo || d % LATTICE === 0) && (carry(v, d, hop) || carry(u, -d, hop))) continue;
         const more = Math.sign(d) * (NEAR + 1 - Math.abs(d));
         ports.slide(v, wire, "start", -more) || ports.slide(u, wire, "end", more) || shift(v, -more) || shift(u, more);
       }

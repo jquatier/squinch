@@ -758,3 +758,27 @@ where a second wire from above passes the first zone to reach the second
 (`06-regions#all`). The engine runs that wire straight and sets the second
 zone under it; ELK keeps the zones in a column and bends the wire. Neither
 is wrong.
+
+### Two defects closed
+
+- **`04-pubsub#flow`: the gap beside a box whose wire runs back up the page.**
+  The box and the slot its back-wire passes through were each the other's
+  heaviest pull, so the pair stood wherever it started. A wire running back
+  against the flow now follows and never leads: it pulls on a box with a
+  tenth of its usual weight (`pulls.ts`, `BACK`). 1,568 px wide before,
+  1,232 now.
+- **`17-nested#deep`: the step where a wire enters beside a long title.**
+  Three things, the first two found by writing the test for the third:
+  `settleWall` re-anchored the inside to the low wall without regard to a
+  port's title clearance, and `carry` could push a port under the title — so
+  the rule was being broken silently in some views and kept at the cost of a
+  jog in others. Both now respect it. And the rule itself is softer: a wire
+  that has to turn anyway comes in clear of the title, but one that runs
+  straight on into the first box is let past the end of it, where the
+  renderer already draws it behind the title's halo. (ELK does the same.)
+  A box held by straight wires can also now move together with what they
+  tie it to — its neighbour below, their ports, the wires passing them.
+
+384 views: 178 better, 191 level, 15 worse; total penalty −32%. Two more
+views count as worse than before these fixes, because their wires had been
+slipping under a title to run straight where they should have turned.

@@ -328,6 +328,23 @@ describe("solve", () => {
     const b = s.boxes.get("sys.b")!, lone = s.boxes.get("sys.lone")!;
     expect(Math.min(Math.abs(lone.x - (b.x + b.w)), Math.abs(b.x - (lone.x + lone.w)))).toBeLessThanOrEqual(56);
   });
+  it("does not let a wire running back up the page draw its box out of the row", () => {
+    // `hub` feeds four; the last of them also reports back up to `top`
+    const s = solve(problem([leaf("top"), leaf("hub"), leaf("a"), leaf("b"), leaf("c"), leaf("d")],
+      ["top>hub", "hub>a", "hub>b", "hub>c", "hub>d", "d>top"], pin({ top: 0, hub: 1, a: 2, b: 2, c: 2, d: 2 })));
+    const c = s.boxes.get("c")!, d = s.boxes.get("d")!;
+    expect(d.x - (c.x + c.w)).toBeLessThanOrEqual(64); // beside its row-mate, not off on its own
+  });
+  it("keeps a wire that turns inside a titled container clear of the title, and lets a straight one pass", () => {
+    const pad = { top: 44, right: 16, bottom: 16, left: 16 };
+    const sys = (): Box => ({ id: "sys", w: 0, h: 0, minW: 166, title: { w: 150, h: 34 }, group: group([leaf("sys.x"), leaf("sys.y")], { pad }) });
+    // straight down into the first box: it runs on, past the end of the title
+    const direct = solve(problem([leaf("a"), sys()], ["a>sys.x", "sys.x>sys.y"]));
+    expect(direct.wires.get("a>sys.x")!.points).toHaveLength(2);
+    // round the first box to the second: it has to turn, so it comes in right of the title
+    const round = solve(problem([leaf("a"), sys()], ["a>sys.y", "sys.x>sys.y"]));
+    expect(round.wires.get("a>sys.y")!.points[0].x).toBeGreaterThanOrEqual(round.boxes.get("sys")!.x + 150);
+  });
   it("is a pure function", () => {
     const make = () => problem([leaf("a"), leaf("b"), leaf("c"), leaf("d")], ["a>b", "a>c", "b>d", "c>d", "a>d"]);
     expect(JSON.stringify([...solve(make()).wires])).toBe(JSON.stringify([...solve(make()).wires]));

@@ -41,7 +41,7 @@ export function place(
   ports.meet();
   straightenRuns(sh, ports, rows, approach);
   rows.settleWall();
-  if (title) clearTitle(sh, rows, title);
+  if (title) clearTitle(sh, ports, rows, title);
   tidy(sh, ports, rows);
 }
 
@@ -193,13 +193,20 @@ function straightenRuns(sh: Sheet, ports: Ports, rows: Rows, approach: ReadonlyM
   }
 }
 
-/** No wire enters through the title. Under a downward flow the title lies
+/** No wire that has to turn anyway enters through the title. Under a downward flow the title lies
  *  along the start wall, so a port there keeps to its right; under a
  *  rightward flow it lies along the low wall, and a port keeps below it. */
-function clearTitle(sh: Sheet, rows: Rows, title: { w: number; h: number }): void {
+function clearTitle(sh: Sheet, ports: Ports, rows: Rows, title: { w: number; h: number }): void {
   if (sh.ax.down) {
+    // …unless it runs straight on into the box below: a straight wire past
+    // the end of the title (drawn behind it, on the title's halo) reads
+    // better than one that steps sideways to avoid it.
+    const straight = (s: Slot) => sh.chains.some((c) => c.path[0] === s && c.path[1].kind === "box" && ports.lane(c.path[1], c.wire, "start") === s.pos);
     let least = title.w + CORNER;
-    for (const s of sh.layers[0]?.kind === "wall" ? sh.layers[0].slots : []) { s.least = least; s.pos = Math.max(s.pos, least); least = s.pos + WIRE_WIRE; }
+    for (const s of sh.layers[0]?.kind === "wall" ? sh.layers[0].slots : []) {
+      if (s.pos < least && straight(s)) continue;
+      s.least = least; s.pos = Math.max(s.pos, least); least = s.pos + WIRE_WIRE;
+    }
   } else {
     for (const s of rows.all) if (s.kind === "port") { s.least = title.h + CORNER; s.pos = Math.max(s.pos, s.least); }
   }
