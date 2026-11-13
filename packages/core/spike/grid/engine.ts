@@ -15,6 +15,7 @@ import { sideOf } from "./axes.js";
 import { layoutGroup } from "./group.js";
 import { orderBoxes, type Leaving } from "./order.js";
 import { assignRanks, dense, type Edge } from "./rank.js";
+import { sketchOrder } from "./sketch.js";
 import { tally } from "./tally.js";
 import type { Box, Group, Laid, Problem, Pt, Rect, Role, Route, Solution, Wire } from "./types.js";
 
@@ -25,6 +26,22 @@ const ROOT = "";
 const PASSES = 7; // further layouts once the first has shown where wires come from
 
 export function solve(problem: Problem): Solution {
+  // Twice, from two starting orders: as declared, and as a sketch of the
+  // whole picture would have it (sketch.ts). Neither is reliably the better
+  // start — the sketch sees across containers but knows nothing of routing —
+  // so both are drawn and the one that crosses less is kept. A picture with
+  // no crossing the first time is not drawn again.
+  const order = new Map<Group, Box[]>();
+  const remember = (g: Group) => { order.set(g, [...g.boxes]); for (const b of g.boxes) if (b.group) remember(b.group); };
+  remember(problem.root);
+  const first = attempt(problem, false);
+  if (!first.crossings) return first.solution;
+  for (const [g, boxes] of order) g.boxes = [...boxes];
+  const second = attempt(problem, true);
+  return second.crossings < first.crossings || (second.crossings === first.crossings && second.bends < first.bends) ? second.solution : first.solution;
+}
+
+function attempt(problem: Problem, sketch: boolean): { solution: Solution; crossings: number; bends: number } {
   // ── index the tree ────────────────────────────────────────────────────────
   const groups = new Map<string, Group>([[ROOT, problem.root]]);
   const chainOf = new Map<string, string[]>(); // box → containers holding it, outermost first, ROOT included
@@ -56,9 +73,11 @@ export function solve(problem: Problem): Solution {
   }
   const ranks = new Map<string, number>();
   const edgesOf = (id: string): Edge[] => (lifted.get(id) ?? []).map((x) => [x.a, x.b]);
-  const declared = new Map([...groups].map(([id, g]) => [id, [...g.boxes]]));
   for (const [id, g] of groups)
     for (const [box, r] of dense(assignRanks(g.boxes.map((b) => b.id), edgesOf(id), g.pins))) ranks.set(box, r);
+  // where each container's ordering starts from
+  const sketched = sketch ? sketchOrder(problem.root, ranks, problem.wires) : undefined;
+  const declared = new Map([...groups].map(([id, g]) => [id, sketched ? sketched.get(id)!.map((b) => boxes.get(b)!) : [...g.boxes]]));
 
   // ── order, and which wall each wire uses where its ends part company ──────
   // Both depend on where a container's wires go once they leave it, which is
@@ -157,7 +176,7 @@ export function solve(problem: Problem): Solution {
     arrange(outside);
     consider(lay(ROOT));
   }
-  return best!;
+  return { solution: best!, crossings: score[0], bends: score[1] };
 }
 
 

@@ -5,6 +5,7 @@ import { acyclic, assignRanks, dense } from "./rank.js";
 import { spread } from "./isotonic.js";
 import { assignTracks } from "./channel.js";
 import { crossings, orderBoxes } from "./order.js";
+import { sketchOrder } from "./sketch.js";
 import { median, solve, type Box, type Group, type Problem, type Dir } from "./engine.js";
 
 const ranks = (ids: string, edges: string[], pins: Record<string, number> = {}) =>
@@ -348,5 +349,29 @@ describe("solve", () => {
   it("is a pure function", () => {
     const make = () => problem([leaf("a"), leaf("b"), leaf("c"), leaf("d")], ["a>b", "a>c", "b>d", "c>d", "a>d"]);
     expect(JSON.stringify([...solve(make()).wires])).toBe(JSON.stringify([...solve(make()).wires]));
+  });
+});
+
+describe("sketch", () => {
+  const pad = { top: 44, right: 16, bottom: 16, left: 16 };
+  const row = (id: string, held: string[] = []): Box =>
+    ({ id, w: 0, h: 0, group: group([leaf(`${id}.a`), leaf(`${id}.b`)], { pad, held }) });
+  const order = (boxes: Box[], wires: string[]) => {
+    const root = group(boxes);
+    const rank = new Map<string, number>(boxes.map((b, i) => [b.id, i]));
+    for (const b of boxes) for (const k of b.group?.boxes ?? []) rank.set(k.id, 0);
+    return sketchOrder(root, rank, wires.map(wire));
+  };
+  it("swaps two boxes in one container to uncross wires that end in another", () => {
+    const o = order([row("top"), row("low")], ["top.a>low.b", "top.b>low.a"]);
+    expect([o.get("top"), o.get("low")]).toEqual([["top.b", "top.a"], ["low.a", "low.b"]]);
+  });
+  it("leaves declaration order alone when nothing crosses", () => {
+    const o = order([row("top"), row("low")], ["top.a>low.a", "top.b>low.b"]);
+    expect([o.get("top"), o.get("low")]).toEqual([["top.a", "top.b"], ["low.a", "low.b"]]);
+  });
+  it("never moves a box the author placed", () => {
+    const o = order([row("top", ["top.a", "top.b"]), row("low", ["low.a", "low.b"])], ["top.a>low.b", "top.b>low.a"]);
+    expect([o.get("top"), o.get("low")]).toEqual([["top.a", "top.b"], ["low.a", "low.b"]]);
   });
 });
