@@ -197,7 +197,33 @@ export function place(s: Sheet, p: Placing): { u: number[]; low: number[] } {
         if (row.every((slot) => weight[slot] <= IDLE)) for (const slot of row) want[slot] = u[slot];
         solve([row]);
       }
+  // Nothing almost-right (§4.3). Two ends that cannot slide — a container's
+  // port, a lane — left one grid step out of line would make a jog too short
+  // to draw. One of the two slots takes the step, if its row-mates leave it
+  // room and no other wire of its own is thrown out of line by it. (A leaf's
+  // end is not looked at here: its port slides, later.)
+  const at = u.map(snap);
+  const rigid = (slot: number) => !!s.slots[slot].kid?.sheet || s.slots[slot].kind !== "box";
+  const tip = (slot: number, wall: Wall, key: string) => at[slot] + p.off(slot, wall, key);
+  const gapOf = (l: Link) => tip(l.up, "s", l.key) - tip(l.down, "n", l.key);
+  const short = (d: number) => d !== 0 && Math.abs(d) < 2 * GRID;
+  const free = (slot: number, by: number): boolean => {
+    const row = s.rows[s.slots[slot].row], i = s.at[slot], to = at[slot] + by;
+    if (crossRow || to < low[slot] || (!i && to < at[slot])) return false;
+    if (i && to - at[row[i - 1]] < sep(row[i - 1], slot)) return false;
+    if (i + 1 < row.length && at[row[i + 1]] - to < sep(slot, row[i + 1])) return false;
+    // its other wires: still straight, or a full step out, or ending at a leaf that will slide
+    return [...ups[slot], ...downs[slot]].every((l) => {
+      const d = gapOf(l) + (l.up === slot ? by : -by);
+      return !short(d) || short(gapOf(l)) || !rigid(l.up === slot ? l.down : l.up);
+    });
+  };
+  for (const links of s.chan) for (const l of links) {
+    const d = gapOf(l);
+    if (!short(d) || !rigid(l.up) || !rigid(l.down)) continue;
+    if (free(l.down, d)) at[l.down] += d; else if (free(l.up, -d)) at[l.up] -= d;
+  }
   // nothing holds the picture off the west wall: it comes back as far as its nearest slot allows
-  const at = u.map(snap), spare = Math.min(...at.map((x, i) => x - low[i]));
+  const spare = Math.min(...at.map((x, i) => x - low[i]));
   return { u: at.map((x) => x - (n ? spare : 0)), low };
 }
