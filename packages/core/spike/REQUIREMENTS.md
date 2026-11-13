@@ -384,7 +384,7 @@ Where a ported test contradicts §4 or §5.5 as now written (a test written
 for the withdrawn dead-end rule, say), this document wins: change the test
 and list it in your report.
 
-| | ELK | `grid` | `loom` | | `braid` |
+| | ELK | `grid` | `loom` | `braid` |
 |---|---|---|---|---|
 | Violations, any set | many | 0 | 0 | 0 |
 | Score vs ELK, 384 views: better / level / worse | — | 183 / 190 / 11 | 189 / 182 / 13 | 233 / 145 / 6 |
