@@ -896,3 +896,89 @@ added to it:
 
 384 views: 183 better, 190 level, 11 worse; total penalty −35%.
 `random-21` is still the outlier, and went the wrong way by four.
+
+## The engine rebuilt: `spike/loom`
+
+With the first spike engine (`spike/grid`) working and its edge cases known,
+the engine was rebuilt around what they taught rather than patched further.
+`packages/core/spike/loom/README.md` describes it; this is what changed and
+what it bought.
+
+**What the first engine had become.** It laid a container out the moment it
+was ordered, innermost first, so each could only guess where the wires
+through its walls ended up. Everything added to fix that was a way of
+sending the guess back for another try: eight full layouts per attempt, two
+attempts per picture, three signals passed between them (`approach`,
+`heading`, `outside`), an estimate of crossings outside a container
+(`astray`), a separate box-ordering stage that ran before any wire existed,
+and the best of the sixteen pictures kept. It worked. It was also sixteen
+layouts to find one.
+
+**What the rebuild does instead.** Three things, each once, each for the
+whole picture:
+
+1. **Grow** — index the tree, rank every container (`tree.ts`).
+2. **Order** — draft every container's slots and order them all together,
+   before anything has a position (`order.ts`, `order-one.ts`). The cost is
+   an exact count of crossings (measured: it is what gets drawn), with
+   straightness far below it as the tie-break. A container reads a child's
+   wall by asking, so wall ports are ordered for both sides of the wall at
+   once. There is no separate box-ordering stage: a box is a slot like any
+   other, one the author may have fixed.
+3. **Draw** — lay each container out, three rounds (`lay.ts`). The
+   placement stages carry over from the first engine, where they had
+   already been split into small modules.
+
+Then, once, order and draw again with what the first drawing showed about
+where wires end up, and keep the better picture. Six layouts, not sixteen,
+and the ordering is not redone inside them.
+
+Things found on the way, each by a test written for the new structure:
+
+- Straightness as a row *fraction* misleads when rows are of different
+  lengths; it is measured in rough pixels (each row packed at its real sizes
+  and centred).
+- Two wires sometimes have to change places down a whole container at once
+  — port, row, and the row outside — where each change alone crosses
+  something. A trade now takes what it leads to along with it, and a wall
+  trade is judged after the container outside has re-sorted to suit.
+- A plain box's ports were ordered by which *slot* each wire went to next,
+  so two wires into one container left in declaration order whatever order
+  they arrived in. They are ordered by where they meet that container's
+  wall. (This one was in the first engine too, and was the one place its
+  model and its picture disagreed.)
+
+### Before and after
+
+The first spike engine against the rebuilt one, every view of every set,
+scored by the same function (`BEFORE_AFTER=1 npx vitest run
+spike/loom/before-after.test.ts --disable-console-intercept`):
+
+| Set | Views | Rebuilt better | Same | Worse | Crossings | Time |
+|---|---|---|---|---|---|---|
+| Corpus | 259 | 9 | 245 | 5 | 25 → 26 | 0.95 s → 0.77 s |
+| Trial | 35 | 5 | 27 | 3 | 82 → 75 | 1.8 s → 0.65 s |
+| Round 2 | 35 | 8 | 25 | 2 | 4 → 1 | 3.1 s → 0.53 s |
+| Random | 80 | 32 | 34 | 14 | 441 → 365 | 174 s → 50 s |
+| **All** | **409** | **54** | **331** | **24** | **552 → 467** | **180 s → 52 s** |
+
+Both are legal on every view. Against ELK (`spike/loom/score.test.ts`, 384
+views with `wrap` left out): 189 better, 182 level, 13 worse, total penalty
+−37% — the first spike engine stood at 183 / 190 / 11 and −35%.
+
+Where the rebuild is behind the first engine: bends on the corpus (1,041 →
+1,057) and a handful of views where the first engine's sixteen tries found a
+slightly straighter picture than a search that stops when it stops
+improving (`35-monorepo#landscape`, `14-tables#schema`). Almost-aligned
+pairs are up a little (corpus 1 → 2, random 6 → 11).
+
+The worst dense diagram (`random-21`): ELK 8 crossings, first engine 22,
+rebuilt 19. Still the outlier.
+
+### What is where, for whoever picks this up
+
+`spike/loom/` holds the engine and its tests. The Squinch side — a view
+turned into a Problem, a Solution turned into `Positioned`, the metrics and
+the score — is still in `spike/grid/` (`problem.ts`, `layout.ts`,
+`metrics.ts`, `score.ts`) and takes either engine. `spike/grid/`'s own
+engine files stay until the rebuild is accepted, for the comparison above.
