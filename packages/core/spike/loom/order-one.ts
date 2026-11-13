@@ -21,7 +21,7 @@ const TIDY_SWEEPS = 4;  // …when nothing crosses and only straightness is left
 export const FINE = 1e-7;
 
 /** One container's ordering, kept so the whole picture can be ordered
- *  together (`order-all.ts`): its cost as it stands, and its moves. */
+ *  together (`order.ts`): its cost as it stands, and its moves. */
 export interface SlotOrder {
   /** Sweeps, then trades. `outer` is what the order of this container's
    *  wall ports costs the container outside: with it, a port goes where the
@@ -37,9 +37,6 @@ export interface SlotOrder {
   /** Crossings in this container as its slots now stand — plus, far below
    *  one crossing's worth, how far from straight its wires are. */
   cost(): number;
-  /** Trade neighbours while it removes a crossing — leaving the wall ports
-   *  where they are, which is not this container's call alone. */
-  polish(): void;
 }
 
 export function slotOrder(
@@ -282,7 +279,6 @@ export function slotOrder(
   return {
     settle: (o) => { outer = o; sweepAll(); trades(true); outer = undefined; },
     cost: total,
-    polish: () => trades(false),
     costSettled: () => {
       const kept = layers.map((l) => [...l.slots]);
       // one pass of plain trades: enough to let the wires outside follow a port that moved

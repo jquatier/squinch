@@ -1,3 +1,7 @@
+// Before and after: the first spike engine (`../grid`) and the rebuilt one,
+// drawing every view of every set, scored the same way. Run by hand:
+//   BEFORE_AFTER=1 npx vitest run spike/loom/before-after.test.ts --disable-console-intercept
+//   ONLY=corpus|trial|round2|random  NR=<how many random diagrams>
 import { it } from "vitest";
 const ONLY = process.env.ONLY;
 import { readdirSync, readFileSync } from "node:fs";
@@ -9,7 +13,7 @@ import { measureLayout } from "../grid/metrics.js";
 import { randomDiagram } from "../grid/random.js";
 import { penalty, gain, verdict } from "../grid/score.js";
 import { solve as loom } from "./engine.js";
-it("loom vs grid", () => {
+it.skipIf(!process.env.BEFORE_AFTER)("the rebuilt engine against the first", () => {
   const dir = (d: string) => readdirSync("spike/grid/" + d).filter((f) => f.endsWith(".squinch")).sort().map((f) => ({ name: f, src: readFileSync(`spike/grid/${d}/${f}`, "utf8") }));
   const sets = [["corpus", corpus().map((f) => ({ name: f.name, src: f.src }))], ["trial", dir("trial")], ["round2", dir("round2")], ["random", Array.from({ length: +(process.env.NR ?? 80) }, (_, i) => ({ name: `random-${i}`, src: randomDiagram(i) }))]] as const;
   for (const [set, sources] of sets) {

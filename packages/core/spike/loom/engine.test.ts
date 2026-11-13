@@ -5,6 +5,7 @@ import { acyclic, assignRanks, dense } from "./rank.js";
 import { spread } from "./isotonic.js";
 import { assignTracks } from "./channel.js";
 import { sketchOrder } from "./sketch.js";
+import { grow, routesOf } from "./tree.js";
 import { median, solve, type Box, type Group, type Problem, type Dir } from "./engine.js";
 
 const ranks = (ids: string, edges: string[], pins: Record<string, number> = {}) =>
@@ -118,6 +119,17 @@ const wire = (s: string) => { const [from, to] = s.split(">"); return { id: s, f
 const problem = (boxes: Box[], wires: string[], over: Partial<Group> = {}): Problem => ({ root: group(boxes, over), wires: wires.map(wire) });
 const pin = (o: Record<string, number>) => ({ pins: new Map(Object.entries(o)) });
 
+/** How many times two different wires cross. */
+const crossed = (s: ReturnType<typeof solve>) => {
+  const segs = [...s.wires].flatMap(([id, w]) => w.points.slice(1).map((b, i) => ({ id, a: w.points[i], b })));
+  let n = 0;
+  for (const h of segs) for (const v of segs)
+    if (h.id !== v.id && h.a.y === h.b.y && v.a.x === v.b.x
+      && v.a.x > Math.min(h.a.x, h.b.x) && v.a.x < Math.max(h.a.x, h.b.x)
+      && h.a.y > Math.min(v.a.y, v.b.y) && h.a.y < Math.max(v.a.y, v.b.y)) n++;
+  return n;
+};
+
 describe("solve", () => {
   it("draws a wire between two ranks as one straight line", () => {
     const s = solve(problem([leaf("a"), leaf("b")], ["a>b"]));
@@ -210,15 +222,6 @@ describe("solve", () => {
   });
   // ── what makes a layout tidy, one rule at a time ───────────────────────────
   const centre = (s: ReturnType<typeof solve>, id: string) => s.boxes.get(id)!.x + s.boxes.get(id)!.w / 2;
-  const crossed = (s: ReturnType<typeof solve>) => {
-    const segs = [...s.wires].flatMap(([id, w]) => w.points.slice(1).map((b, i) => ({ id, a: w.points[i], b })));
-    let n = 0;
-    for (const h of segs) for (const v of segs)
-      if (h.id !== v.id && h.a.y === h.b.y && v.a.x === v.b.x
-        && v.a.x > Math.min(h.a.x, h.b.x) && v.a.x < Math.max(h.a.x, h.b.x)
-        && h.a.y > Math.min(v.a.y, v.b.y) && h.a.y < Math.max(v.a.y, v.b.y)) n++;
-    return n;
-  };
   const sys = (title?: { w: number; h: number }): Box =>
     ({ id: "sys", w: 0, h: 0, title, group: group([leaf("sys.x"), leaf("sys.y")], { pad: { top: 44, right: 16, bottom: 16, left: 16 } }) });
 
@@ -359,5 +362,57 @@ describe("sketch", () => {
   it("never moves a box the author placed", () => {
     const o = order([row("top", ["top.a", "top.b"]), row("low", ["low.a", "low.b"])], ["top.a>low.b", "top.b>low.a"]);
     expect([o.get("top"), o.get("low")]).toEqual([["top.a", "top.b"], ["low.a", "low.b"]]);
+  });
+});
+
+describe("tree", () => {
+  const pad = { top: 44, right: 16, bottom: 16, left: 16 };
+  const sys = (id: string, kids: string[]): Box => ({ id, w: 0, h: 0, group: group(kids.map((k) => leaf(`${id}.${k}`)), { pad }) });
+  const p = problem([sys("a", ["x", "y"]), sys("b", ["z"]), leaf("lone")], ["a.x>a.y", "a.y>b.z"]);
+  const tree = grow(p);
+  it("finds the container where a wire's two ends part company", () => {
+    const inside = tree.lifted.find((l) => l.wire.id === "a.x>a.y")!, across = tree.lifted.find((l) => l.wire.id === "a.y>b.z")!;
+    expect([inside.home, inside.a, inside.b]).toEqual(["a", "a.x", "a.y"]);
+    expect([across.home, across.a, across.b, across.fromChain, across.toChain]).toEqual(["", "a", "b", ["a"], ["b"]]);
+  });
+  it("lists every container with a child before its parent", () => {
+    expect(tree.inner.indexOf("a")).toBeLessThan(tree.inner.indexOf(""));
+    expect([tree.parent("a"), tree.parent("")]).toEqual(["", undefined]);
+  });
+  it("ranks each container on its own, and knows which boxes no wire touches", () => {
+    expect([tree.ranks.get("a.x"), tree.ranks.get("a.y"), tree.ranks.get("a"), tree.ranks.get("b")]).toEqual([0, 1, 0, 1]);
+    expect([...tree.idle]).toEqual(["lone"]);
+  });
+  it("routes a wire by the walls it uses where its ends part", () => {
+    const r = routesOf(tree);
+    expect([r.get("a.x>a.y")!.kind, r.get("a.y>b.z")!.kind, r.get("a.y>b.z")!.sideFrom, r.get("a.y>b.z")!.sideTo]).toEqual(["down", "down", "south", "north"]);
+  });
+  it("does not draw a wire one of whose ends holds the other", () => {
+    expect(grow(problem([sys("a", ["x"])], ["a>a.x"])).skipped).toEqual(["a>a.x"]);
+  });
+});
+
+describe("ordering the whole picture", () => {
+  const pad = { top: 44, right: 16, bottom: 16, left: 16 };
+  it("moves a wire and the port it enters by together, when neither could move alone", () => {
+    // `svc` writes to `db` and `cache`, and reads from `replica` below them.
+    // Run round the end of the row the read crosses nothing either — but
+    // between the two it runs straight. Getting there takes two changes at
+    // once: its port on the wall, and its place in the row.
+    const data: Box = { id: "data", w: 0, h: 0, group: group([leaf("data.db"), leaf("data.cache"), leaf("data.replica")], { pad, ...pin({ "data.db": 0, "data.cache": 0, "data.replica": 1 }) }) };
+    const s = solve(problem([leaf("svc"), data], ["svc>data.db", "svc>data.cache", "svc>data.replica", "data.db>data.replica"]));
+    const read = s.wires.get("svc>data.replica")!.points, db = s.boxes.get("data.db")!, cache = s.boxes.get("data.cache")!;
+    const passing = read.find((q) => q.y > db.y && q.y < db.y + db.h) ?? read.find((q) => q.y >= db.y + db.h)!;
+    expect(passing.x).toBeGreaterThan(db.x + db.w);   // between the two…
+    expect(passing.x).toBeLessThan(cache.x);
+    expect(crossed(s)).toBe(0);                       // …crossing nothing
+  });
+  it("orders a container's wall for the wires outside it as well as those inside", () => {
+    // inside `top` nothing prefers either order; outside, the wires to `l` and `r` do
+    const top: Box = { id: "top", w: 0, h: 0, group: group([leaf("top.a"), leaf("top.b")], { pad }) };
+    for (const order of [["l", "r"], ["r", "l"]]) {
+      const s = solve(problem([top, ...order.map((o) => leaf(o))], ["top.a>top.b", "top.a>r", "top.b>l"], { held: order }));
+      expect(crossed(s)).toBe(0);
+    }
   });
 });

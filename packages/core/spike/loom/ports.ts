@@ -37,6 +37,14 @@ export function assignPorts(sh: Sheet): Ports {
   const at = new Map<Slot, number>();
   layers.forEach((layer) => layer.slots.forEach((s, i) => at.set(s, i)));
 
+  /** Where a wire's neighbour stands along its layer — and, when that is a
+   *  container, where on its wall the wire meets it: two wires into one
+   *  container leave this box in the order they arrive there. */
+  const along = (s: Slot, wire: Wire): number => {
+    const port = s.box && sh.childPort(s.box, wire);
+    return at.get(s)! + (port ? ax.laneOf(port) / (ax.lsize(s.box!) + 1) : 0);
+  };
+
   // who wants a port on which wall, and a key that sorts them along it
   const wanted = new Map<string, { wire: Wire; key: number }[]>(); // `${box}|${face}`
   const want = (box: string, face: Face, wire: Wire, key: number) => {
@@ -47,8 +55,8 @@ export function assignPorts(sh: Sheet): Ports {
   };
   for (const c of chains) {
     const top = c.path[0], bottom = c.path[c.path.length - 1];
-    if (top.kind === "box") want(top.id, "end", c.wire, at.get(c.path[1])!);
-    if (bottom.kind === "box") want(bottom.id, "start", c.wire, at.get(c.path[c.path.length - 2])!);
+    if (top.kind === "box") want(top.id, "end", c.wire, along(c.path[1], c.wire));
+    if (bottom.kind === "box") want(bottom.id, "start", c.wire, along(c.path[c.path.length - 2], c.wire));
   }
   for (const l of links) {
     if (l.type === "around") {
