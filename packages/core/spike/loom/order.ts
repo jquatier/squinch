@@ -54,7 +54,9 @@ export function orderAll(
     if (least < 1) break; // nothing crosses: not worth turning anything about
     if (parent(sh.gid) === undefined || sh.layers.some((l) => l.slots.some((s) => s.kind === "box" && !s.loose))) continue;
     for (const l of sh.layers) l.slots.reverse();
-    everything();
+    // only what touches it needs to settle again: the containers inside it, itself, the one outside
+    const near = sheets.filter((o) => o === sh || o.gid === parent(sh.gid) || parent(o.gid) === sh.gid);
+    for (let twice = 0; twice < 2; twice++) for (const o of near) settle(o);
     judge();
   }
   return least;

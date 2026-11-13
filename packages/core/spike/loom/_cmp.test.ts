@@ -1,4 +1,5 @@
 import { it } from "vitest";
+const ONLY = process.env.ONLY;
 import { readdirSync, readFileSync } from "node:fs";
 import { buildProject } from "../../src/index.js";
 import { corpus } from "../../test/helpers/corpus.js";
@@ -12,6 +13,7 @@ it("loom vs grid", () => {
   const dir = (d: string) => readdirSync("spike/grid/" + d).filter((f) => f.endsWith(".squinch")).sort().map((f) => ({ name: f, src: readFileSync(`spike/grid/${d}/${f}`, "utf8") }));
   const sets = [["corpus", corpus().map((f) => ({ name: f.name, src: f.src }))], ["trial", dir("trial")], ["round2", dir("round2")], ["random", Array.from({ length: +(process.env.NR ?? 80) }, (_, i) => ({ name: `random-${i}`, src: randomDiagram(i) }))]] as const;
   for (const [set, sources] of sets) {
+    if (ONLY && set !== ONLY) continue;
     const keys = ["crossings", "bends", "kinks", "nearMiss", "lopsided", "offCentre"] as const;
     const tot = { grid: {} as any, loom: {} as any }; for (const k of keys) { tot.grid[k] = 0; tot.loom[k] = 0; }
     let better = 0, same = 0, worse = 0, bad = 0, views = 0, tg = 0, tl = 0; const worst: string[] = [];

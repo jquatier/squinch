@@ -123,6 +123,8 @@ export interface Slot {
   /** A box nobody placed and no same-rank wire ties to a neighbour: it may
    *  trade places with one like it to uncross the wires passing them. */
   loose?: boolean;
+  /** Scratch, while ordering: its index in its layer and roughly where it would stand. */
+  at?: number; rough?: number;
   /** A wall port's least lane: clear of the container's title. */
   least?: number;
   /** Its place in its layer is settled: every box, and a wall port once the
