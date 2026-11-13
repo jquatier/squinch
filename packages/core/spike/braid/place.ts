@@ -107,6 +107,7 @@ interface Term {
  *  the wall's middle: up to 8 px from each corner, less a lane for each
  *  port it shares the wall with on that side. Nothing on a container, whose
  *  ports are where its inside put them. */
+const spreadOf = new Map<string, number>();
 function reach(end: End, key: string): [number, number] | undefined {
   const it = end.item;
   if (it.kind !== "box" || !stops(end, key)) return undefined;
@@ -116,6 +117,7 @@ function reach(end: End, key: string): [number, number] | undefined {
     .sort((p, q) => p.far - q.far);
   const i = mates.findIndex((m) => m.key === key), n = mates.length;
   if (i < 0) return undefined;
+  spreadOf.set(`${it.uid}|${end.wall}|${key}`, (i - (n - 1) / 2) * LANE);
   const face = faceAcross(it), wide = face !== undefined && face < it.w ? face : it.w;
   const half = Math.floor((wide / 2 - 8) / GRID) * GRID;
   return [Math.max(0, half - LANE * i), Math.max(0, half - LANE * (n - 1 - i))];
@@ -153,9 +155,12 @@ export function pulls(cell: Cell): { terms: Term[]; spans: { a: Item; b: Item; m
         const ra = reach(s.upper, s.key), rb = reach(s.lower, s.key);
         const weight = s.back ? W.back : ra || rb ? (s.upper.item.kind === "box" && s.lower.item.kind === "box" ? W.reach : W.lane) : s.upper.item.kind === "box" && s.lower.item.kind === "box" ? W.fixed : W.lane;
         terms.push({ a: s.upper.item, b: s.lower.item, offA: offsetOf(s.upper, s.key), offB: offsetOf(s.lower, s.key), weight, slackA: ra, slackB: rb });
-        // a wall's only wire meets it in the middle (§5.4)
-        if (!s.back && ra && s.upper.item.below === 1 && !plain(s.lower.item)) terms.push({ a: s.upper.item, b: s.lower.item, offA: offsetOf(s.upper, s.key), offB: offsetOf(s.lower, s.key), weight: W.middle });
-        if (!s.back && rb && s.lower.item.above === 1 && !plain(s.upper.item)) terms.push({ a: s.upper.item, b: s.lower.item, offA: offsetOf(s.upper, s.key), offB: offsetOf(s.lower, s.key), weight: W.middle });
+        // a wall's only wire meets it in the middle, and several stand
+        // evenly about it (§5.4): whatever a port leads to that is not a box
+        // is drawn, faintly, to where the port would stand
+        const even = (e: End) => Math.round((spreadOf.get(`${e.item.uid}|${e.wall}|${s.key}`) ?? 0) / GRID) * GRID;
+        if (!s.back && ra && !plain(s.lower.item)) terms.push({ a: s.upper.item, b: s.lower.item, offA: offsetOf(s.upper, s.key) + even(s.upper), offB: offsetOf(s.lower, s.key), weight: W.middle });
+        if (!s.back && rb && !plain(s.upper.item)) terms.push({ a: s.upper.item, b: s.lower.item, offA: offsetOf(s.upper, s.key), offB: offsetOf(s.lower, s.key) + even(s.lower), weight: W.middle });
       }
     }
   }
