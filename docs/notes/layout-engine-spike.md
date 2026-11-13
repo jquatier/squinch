@@ -649,3 +649,35 @@ grid (it hugs a box 4 px off) leaves a 4 px step at the container wall
 (`17-nested#deep`); a wrapped fan-out pays eight more bends for its bus than
 ELK pays for ignoring `wrap` (`09-hub#wrapped`); and dense random graphs of
 several expanded systems (696 crossings to ELK's 607 on the trial set).
+
+### Wrap out of the score, wires on the middle
+
+`wrap` is new with this engine — ELK folds two shapes and ignores the rest —
+so a view that folds sits out of the score (25 views). Two measures changed,
+both applied to either engine alike: an **almost-centred** count (a wall's
+only wire 1–7 px off the wall's middle — the eye sees it, the score did
+not), and the centring measure accepts a parent straight over the middle of
+an odd number of children as centred.
+
+| Set | Views | Better | Same | Worse | Total penalty |
+|---|---|---|---|---|---|
+| Corpus | 254 | 80 | 170 | 4 | −32% |
+| Trial | 33 | 23 | 7 | 3 | −45% |
+| Round 2 | 33 | 30 | 2 | 1 | −57% |
+| Random | 64 | 41 | 9 | 14 | −12% |
+| **Everything** | **384** | **174** | **188** | **22** | **−26%** |
+
+On the 320 views that are not random: crossings 162 → 107, short jogs 35 →
+8, almost-aligned pairs 31 → 5, off-centre parents 486 → 319, bends 2,306 →
+2,012, illegal 30 → 0. The one count the grid loses is the new one:
+almost-centred wires, 1 for ELK and 10 for the grid, down from 41 when the
+count was added.
+
+What that count found: after boxes snapped to the grid, a wire passing
+between two of them stayed where it was, and both boxes' ports slid 2–4 px
+off-centre to reach it. Now the passing wire goes with the box it runs
+straight into; and at the end, where a wall's only wire is still a few
+pixels off the middle, the box moves onto the wire — or, where it has no
+room, the straight stretch of the wire slides over to the box
+(`tidy.ts`, `recentre`). The ten that remain cannot be centred: the wire's
+other end is at the corner limit of a box that does not reach that far.

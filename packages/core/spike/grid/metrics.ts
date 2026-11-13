@@ -71,7 +71,8 @@ export function measureLayout(p: Positioned): Metrics {
     }
   // DESIGN: a parent stands over the middle of its children. For every wall
   // of a box that two or more wires leave by, to different boxes: is the box
-  // within a grid step of the middle of the span those boxes make?
+  // within a grid step of the middle of the span those boxes make — or, when
+  // there is an odd number of them, straight over the middle one?
   let lopsided = 0;
   const byId = new Map(p.nodes.map((n) => [n.path, n]));
   const fans = new Map<string, { vertical: boolean; others: Set<string> }>();
@@ -103,8 +104,11 @@ export function measureLayout(p: Positioned): Metrics {
   for (const [k, fan] of fans) {
     if (fan.others.size < 2) continue;
     const mid = (n: { x: number; y: number; w: number; h: number }) => (fan.vertical ? n.x + n.w / 2 : n.y + n.h / 2);
-    const cs = [...fan.others].map((o) => mid(byId.get(o)!));
-    if (Math.abs(mid(byId.get(k.split("|")[0])!) - (Math.min(...cs) + Math.max(...cs)) / 2) > 8) lopsided++;
+    const cs = [...fan.others].map((o) => mid(byId.get(o)!)).sort((a, b) => a - b);
+    const me = mid(byId.get(k.split("|")[0])!);
+    // in the middle of the span they make — or, of an odd number, straight over the middle one
+    const centred = Math.abs(me - (cs[0] + cs[cs.length - 1]) / 2) <= 8 || (cs.length % 2 === 1 && Math.abs(me - cs[cs.length >> 1]) <= 8);
+    if (!centred) lopsided++;
   }
   return { lopsided, offCentre, area: p.width * p.height, width: p.width, height: p.height, wire, bends, crossings, overlaps, throughNode, throughFrame, kinks, unstraight, nearMiss };
 }
