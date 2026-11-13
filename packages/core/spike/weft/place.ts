@@ -159,7 +159,15 @@ export function place(s: Sheet, p: Placing): number[] {
     if (!up.length && !down.length) { up = ups[slot]; down = downs[slot]; forward = () => true; scale *= 0.05; }
     if (!up.length && !down.length) { want[slot] = s.at[slot] ? -FAR : FAR; weight[slot] = IDLE; return; }
     const side = down.length > up.length || (down.length === up.length && down.length > 1) ? down : up.length > down.length ? up : undefined;
-    if (side && side.length > 1) { want[slot] = middle(side.map((l) => straight(slot, l))); weight[slot] = HEAVY * side.length * scale; return; }
+    if (side && side.length > 1) {
+      const runs = side.map((l) => straight(slot, l)), far = side[0].down === slot ? side[0].up : side[0].down;
+      // two containers joined by several wires stand in a column, middle to
+      // middle, unless every wire leans the same way
+      const column = s.slots[slot].kid?.sheet && s.slots[far].kid?.sheet && side.every((l) => (l.down === slot ? l.up : l.down) === far);
+      want[slot] = column ? Math.max(Math.min(...runs), Math.min(Math.max(...runs), u[far])) : middle(runs);
+      weight[slot] = HEAVY * side.length * scale;
+      return;
+    }
     weight[slot] = LIGHT * scale;
     if (side) { want[slot] = among(slot, side[0], forward); return; }
     // one in, one out: stay with the end that is a fan, else with the nearer
@@ -172,6 +180,8 @@ export function place(s: Sheet, p: Placing): number[] {
     for (const rows of [s.rows, [...s.rows].reverse()])
       for (const row of rows) {
         for (const slot of row) aim(slot);
+        // a row nothing pulls stays where it is, centred on its neighbours
+        if (row.every((slot) => weight[slot] <= IDLE)) for (const slot of row) want[slot] = u[slot];
         solve([row]);
       }
   return u.map(snap);

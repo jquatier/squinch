@@ -151,7 +151,14 @@ describe("solve", () => {
     for (const order of [["o1", "o2"], ["o2", "o1"]]) {
       const s = solve(problem([sys(), ...order.map((o) => leaf(o))], ["sys.x>sys.y", "sys.x>o2", "sys.y>o1"], { held: order }));
       expect(crossed(s)).toBe(0);
-      expect(s.wires.get("sys.x>o2")!.points).toHaveLength(4); // round `sys.y` and straight down
+      // REQUIREMENTS §4.4: `sys.x` has two wires down, so it stands between
+      // them and both run straight — the old test wanted it over `sys.y` and
+      // this wire bent round. What still holds: the wire passes `sys.y` on
+      // the side it is headed for.
+      const y = s.boxes.get("sys.y")!, pts = s.wires.get("sys.x>o2")!.points;
+      const passing = pts.find((p) => p.y > y.y)!.x, o2 = s.boxes.get("o2")!.x, o1 = s.boxes.get("o1")!.x;
+      expect(passing >= y.x + y.w || passing <= y.x).toBe(true);
+      expect(passing > y.x === o2 > o1).toBe(true);
     }
   });
   it("moves a box to straighten a wire only when nothing else pays for it", () => {
