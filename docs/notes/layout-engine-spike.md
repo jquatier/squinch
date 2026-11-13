@@ -692,3 +692,39 @@ above the other line up with the wire between them straight
 and in line now). `rows`, `cols` and `place` hold a box where the author put
 it, wired or not; that is the way to say otherwise. Seven views in the
 corpus and trial sets change; none scores worse.
+
+### Crossings below ELK's
+
+| Set | Views | Better | Same | Worse | Total penalty |
+|---|---|---|---|---|---|
+| Corpus | 254 | 79 | 171 | 4 | −34% |
+| Trial | 33 | 22 | 9 | 2 | −45% |
+| Round 2 | 33 | 30 | 2 | 1 | −57% |
+| Random | 64 | 51 | 6 | 7 | −23% |
+| **Everything** | **384** | **182** | **188** | **14** | **−32%** |
+
+Crossings on the trial set, the one total ELK still led: 693 → 580, to
+ELK's 607. On the corpus 31 → 25 (ELK 73). Three changes did it:
+
+- **Unplaced boxes join the crossing sweeps** (`order-slots.ts`). The sweeps
+  run twice from one start — once with every box keeping its declared place
+  unless leaving it removes a crossing, once with boxes nobody placed going
+  wherever their wires draw them — and the second is kept only if it crosses
+  less. Declaration order is worth a tie, not a crossing.
+- **The engine keeps the best picture it drew** (`engine.ts`, `tally.ts`).
+  Every pass is a whole, legal layout; the one with fewest crossings, then
+  fewest turns, is returned rather than always the last. With that in place
+  more passes only help, so there are seven.
+- **Gaps nothing holds open are closed** (`compact.ts`). Two slots that only
+  follow each other stayed wherever the first sweep left them. A box and
+  whatever its straight wires tie it to now move as one toward a row-mate,
+  as far as leaves the wires out of the group shorter in sum and no less
+  balanced; a sweep afterwards puts parents back over the children that
+  moved.
+
+Cost: 259 corpus views take about 1.0 s where they took 0.6 s — still a
+quarter of ELK's time. Tried and not kept: compacting twice (three more
+views worse, nothing gained).
+
+Still open: `04-pubsub#flow` keeps a gap beside a box whose wire runs back
+up the page; the 4 px step at a titled container's wall (`17-nested#deep`).

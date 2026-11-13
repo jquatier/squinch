@@ -21,7 +21,11 @@ export function compact(sh: Sheet, ports: Ports, rows: Rows): void {
       const hop = { u: c.path[i], v, wire: c.wire };
       for (const s of [hop.u, hop.v]) (hopsOf.get(s) ?? hopsOf.set(s, []).get(s)!).push(hop);
     });
-  const off = (h: Hop) => ports.lane(h.u, h.wire, "end") - ports.lane(h.v, h.wire, "start");
+  // Straight as settling means it: a plain box counts by its middle, since
+  // its ports have not yet gone to meet their wires (`pulls.ts`).
+  const lane = (s: Slot, wire: Wire, face: "start" | "end") =>
+    s.kind === "box" && !s.box!.group ? s.pos + Math.round(sh.ax.flowFace(s.box!) / 2) : ports.lane(s, wire, face);
+  const off = (h: Hop) => lane(h.u, h.wire, "end") - lane(h.v, h.wire, "start");
   const fixed = new Set([...(sh.g.aligned ?? []), ...(sh.g.columns ?? [])].flat().map((id) => sh.slotOf(id)));
 
   /** How far `m` could move that way before it crowds a neighbour outside the group. */
@@ -36,7 +40,7 @@ export function compact(sh: Sheet, ports: Ports, rows: Rows): void {
         if (s.kind !== "box") continue;
         const group = new Set<Slot>([s]);
         for (const x of group)
-          for (const h of hopsOf.get(x) ?? []) if (off(h) === 0) group.add(h.u === x ? h.v : h.u);
+          for (const h of hopsOf.get(x) ?? []) if (Math.abs(off(h)) <= 1) group.add(h.u === x ? h.v : h.u); // straight, to the pixel settling rounds to
         const members = [...group];
         if (members.some((m) => fixed.has(m) || m.kind === "port")) continue;
         const room = Math.min(...members.map((m) => reach(m, dir, group)));
