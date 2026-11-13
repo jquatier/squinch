@@ -25,7 +25,7 @@
 //     open that nothing is holding open; the cell's walls likewise, so it is
 //     as small as its inside allows.
 
-import { sideMode } from "./count.js";
+import { sideMode, sub } from "./count.js";
 import type { Cell, End, Item, Seg } from "./plan.js";
 import { wallIn } from "./plan.js";
 import { feasible, solve, type Arc } from "./simplex.js";
@@ -34,7 +34,16 @@ export const GRID = 8;
 export const LANE = 16; // between two wires side by side
 const up8 = (v: number) => Math.ceil(v / GRID) * GRID;
 
-const W = { box: 16, deadEnd: 8, lane: 8, stub: 8, back: 2, together: 1, walls: 1 };
+const W = {
+  balance: 12,  // a box and the box its wire reaches: centres in line
+  deadEnd: 6,   // …half as hard if one of them goes nowhere else
+  back: 2,      // …and barely at all for a wire running back against the flow
+  fixed: 12,    // a wire between two ports that cannot move: straight
+  lane: 8,      // a wire passing a rank: straight
+  reach: 4,     // a wire whose ports can slide: within their reach
+  middle: 2,    // a wall's only wire: in the wall's middle
+  together: 1, walls: 1,
+};
 
 /** A box's bleed lies to its right in a transposed cell (it is below, in the picture). */
 const bleedAcross = (it: Item) => (it.cell.flip ? it.node?.box?.bleed ?? 0 : 0);
@@ -83,36 +92,47 @@ export function apart(a: Item, b: Item): number {
   return up8(half(a) + bleedAcross(a) + half(b) + Math.max(gapOf(a) + gapOf(b), a.kind === "label" || b.kind === "label" ? 8 : LANE));
 }
 
+/** What a wire asks of the two things it joins: |x(a) + offA − x(b) − offB|,
+ *  costing nothing while within `slack` (how far each end's port can slide
+ *  to meet the other: left and right of where it would stand). */
 interface Term {
   a: Item; b: Item; offA: number; offB: number; weight: number;
-  /** How far off its line the wire can stand and still be drawn straight: the
-   *  reach of the ports at its ends, when each has its wall to itself. */
-  slack: number;
+  slackA?: [left: number, right: number]; slackB?: [left: number, right: number];
 }
 
-/** How far a wire's port can slide along its box's wall to meet it: nothing
- *  on a container (its ports are its inside's) or on a wall it shares. */
-function reach(end: End, key: string, wires: number): number {
+/** How far a wire's port can slide along its box's wall, left and right of
+ *  the wall's middle: up to 8 px from each corner, less a lane for each
+ *  port it shares the wall with on that side. Nothing on a container, whose
+ *  ports are where its inside put them. */
+function reach(end: End, key: string): [number, number] | undefined {
   const it = end.item;
-  if (it.kind !== "box" || wires !== 1 || !stops(end, key) || it.inner) return 0;
-  const face = faceAcross(it);
-  return Math.max(0, Math.floor(((face !== undefined && face < it.w ? face : it.w) / 2 - 8) / GRID) * GRID);
+  if (it.kind !== "box" || !stops(end, key)) return undefined;
+  const mates = (end.wall === "S" ? it.touch.filter((s) => s.upper.item === it) : it.touch.filter((s) => s.lower.item === it))
+    .map((s) => ({ key: s.key, far: end.wall === "S" ? s.lower.item.pos + sub(s.lower, s.key) : s.upper.item.pos + sub(s.upper, s.key) }))
+    .filter((m, i, all) => all.findIndex((o) => o.key === m.key) === i)
+    .sort((p, q) => p.far - q.far);
+  const i = mates.findIndex((m) => m.key === key), n = mates.length;
+  if (i < 0) return undefined;
+  const face = faceAcross(it), wide = face !== undefined && face < it.w ? face : it.w;
+  const half = Math.floor((wide / 2 - 8) / GRID) * GRID;
+  return [Math.max(0, half - LANE * i), Math.max(0, half - LANE * (n - 1 - i))];
 }
 const stops = (end: End, key: string) => !(end.item.inner && end.item.inner.portAt.has(`${wallIn(end.item.inner, end.item.cell, end.wall)}|${key}`));
 
-/** §5.5, as terms: what each wire asks of the two things it joins. */
+/** §5.5, as terms. Two kinds:
+ *   straight  one per seg: its two ends in line, or within reach of the ports;
+ *   balance   one per wire, from a plain box to whatever its wire reaches in
+ *             this cell (through any lanes between): centres in line. */
 export function pulls(cell: Cell): { terms: Term[]; spans: { a: Item; b: Item; min: number }[] } {
   const terms: Term[] = [], spans: { a: Item; b: Item; min: number }[] = [];
-  const deadEnd = (it: Item) => it.kind === "box" && !it.inner && it.above + it.below === 1 && it.keys.size === 1;
-  const weightOf = (s: Seg): number => {
-    if (s.back) return W.back;
-    const u = s.upper.item, l = s.lower.item;
-    if (u.kind === "box" && l.kind === "box") return deadEnd(u) || deadEnd(l) ? W.deadEnd : W.box;
-    return u.kind === "box" || l.kind === "box" ? W.stub : W.lane;
-  };
+  const plain = (it: Item) => it.kind === "box" && !it.inner;
+  const deadEnd = (it: Item) => plain(it) && it.above + it.below === 1 && it.keys.size === 1;
+
+  // ── straight ───────────────────────────────────────────────────────────────
   for (const segs of cell.segs) {
     // several wires between one pair of boxes: each to its own port if they
-    // all lean one way, else middle to middle
+    // all lean one way, else middle to middle (two containers so joined
+    // stand in a column)
     const pairs = new Map<string, Seg[]>();
     for (const s of segs) {
       const id = `${s.upper.item.uid}|${s.lower.item.uid}`;
@@ -122,34 +142,66 @@ export function pulls(cell: Cell): { terms: Term[]; spans: { a: Item; b: Item; m
       const leans = group.map((s) => offsetOf(s.upper, s.key) - offsetOf(s.lower, s.key));
       const mixed = group.length > 1 && !(leans.every((d) => d > 0) || leans.every((d) => d < 0) || leans.every((d) => d === 0));
       if (mixed) {
-        terms.push({ a: group[0].upper.item, b: group[0].lower.item, offA: 0, offB: 0, weight: group.reduce((n, s) => n + weightOf(s), 0), slack: 0 });
+        terms.push({ a: group[0].upper.item, b: group[0].lower.item, offA: 0, offB: 0, weight: group.reduce((n, s) => n + (s.back ? W.back : W.fixed), 0) });
         continue;
       }
-      for (const s of group)
-        terms.push({ a: s.upper.item, b: s.lower.item, offA: offsetOf(s.upper, s.key), offB: offsetOf(s.lower, s.key), weight: weightOf(s), slack: reach(s.upper, s.key, s.upper.item.below) + reach(s.lower, s.key, s.lower.item.above) });
+      for (const s of group) {
+        const ra = reach(s.upper, s.key), rb = reach(s.lower, s.key);
+        const weight = s.back ? W.back : ra || rb ? (s.upper.item.kind === "box" && s.lower.item.kind === "box" ? W.reach : W.lane) : s.upper.item.kind === "box" && s.lower.item.kind === "box" ? W.fixed : W.lane;
+        terms.push({ a: s.upper.item, b: s.lower.item, offA: offsetOf(s.upper, s.key), offB: offsetOf(s.lower, s.key), weight, slackA: ra, slackB: rb });
+        // a wall's only wire meets it in the middle (§5.4)
+        if (!s.back && ra && s.upper.item.below === 1 && !plain(s.lower.item)) terms.push({ a: s.upper.item, b: s.lower.item, offA: offsetOf(s.upper, s.key), offB: offsetOf(s.lower, s.key), weight: W.middle });
+        if (!s.back && rb && s.lower.item.above === 1 && !plain(s.upper.item)) terms.push({ a: s.upper.item, b: s.lower.item, offA: offsetOf(s.upper, s.key), offB: offsetOf(s.lower, s.key), weight: W.middle });
+      }
     }
   }
+
+  // ── balance ────────────────────────────────────────────────────────────────
+  // every wire from where it enters the cell's rows (a box, or a port on the
+  // north wall) down to where it leaves them, through the lanes between
+  const balance: Term[] = [];
+  const walk = (s: Seg): End[] => {
+    const it = s.lower.item;
+    if (it.kind === "box" || it.kind === "port") return [s.lower];
+    return it.touch.filter((n) => n.upper.item === it && (n.key === s.key || it.key !== s.key)).flatMap(walk);
+  };
+  for (const segs of cell.segs)
+    for (const s of segs) {
+      const from = s.upper.item;
+      if (from.kind !== "box" && from.kind !== "port") continue;
+      for (const end of walk(s)) {
+        const to = end.item;
+        // only a box is stood over: a port on the wall follows its wire, it does not lead it
+        if (!plain(from) && !plain(to)) continue;
+        if (from.kind === "port" || to.kind === "port") continue;
+        if (from.row + 1 === to.row && cell.segs[from.row].filter((o) => o.upper.item === from && o.lower.item === to).length > 1) continue; // already middle to middle
+        balance.push({
+          a: from, b: to, offA: offsetOf(s.upper, s.key), offB: offsetOf(end, s.key),
+          weight: s.back ? W.back : deadEnd(from) || deadEnd(to) ? W.deadEnd : W.balance,
+        });
+      }
+    }
   // An even fan: aim its two middle wires half a gap inward, so the box
   // stands exactly between them rather than anywhere between them.
   const fans = new Map<Item, { up: Term[]; down: Term[] }>();
-  for (const t of terms) {
-    if (t.a.kind === "box" && !t.a.inner) (fans.get(t.a) ?? fans.set(t.a, { up: [], down: [] }).get(t.a)!).down.push(t);
-    if (t.b.kind === "box" && !t.b.inner) (fans.get(t.b) ?? fans.set(t.b, { up: [], down: [] }).get(t.b)!).up.push(t);
+  for (const t of balance) {
+    if (plain(t.a)) (fans.get(t.a) ?? fans.set(t.a, { up: [], down: [] }).get(t.a)!).down.push(t);
+    if (plain(t.b)) (fans.get(t.b) ?? fans.set(t.b, { up: [], down: [] }).get(t.b)!).up.push(t);
   }
   for (const [box, fan] of fans)
     for (const side of [fan.up, fan.down]) {
       const far = (t: Term) => (t.a === box ? t.b : t.a);
-      const list = side.filter((t) => t.weight > W.back).sort((p, q) => far(p).pos - far(q).pos);
+      const list = side.filter((t) => t.weight > W.back).sort((p, q) => far(p).row - far(q).row || far(p).pos - far(q).pos);
       if (list.length < 2 || list.length % 2) continue;
       const l = list[list.length / 2 - 1], r = list[list.length / 2];
-      if (l.weight !== r.weight || far(r).pos !== far(l).pos + 1 || far(l) === far(r)) continue;
+      if (l.weight !== r.weight || far(r).row !== far(l).row || far(r).pos !== far(l).pos + 1) continue;
       // (the middle of two grid lines is on the grid only if they are an even
       // number of steps apart: the pair stands a step wider where it must)
       const gap = Math.ceil(apart(far(l), far(r)) / (2 * GRID)) * 2 * GRID, half = gap / 2;
       spans.push({ a: far(l), b: far(r), min: gap });
       if (l.a === box) { l.offB += half; r.offB -= half; } else { l.offA += half; r.offA -= half; }
     }
-  return { terms, spans };
+  return { terms: [...terms, ...balance], spans };
 }
 
 /** Give every item of the cell its centre `x`, and the cell its width. */
@@ -217,22 +269,21 @@ export function place(cell: Cell): void {
     for (const t of terms) {
       const a = nodeOf.get(t.a)!, b = nodeOf.get(t.b)!;
       if (a === b) continue;
-      // A wire whose ports can reach each other is as good as straight. So
-      // within their reach it pulls a little less (three quarters: enough
-      // that boxes still line up on their centres, and hold their lane
-      // against a wire merely passing) and beyond it in full.
-      let from = a, off = t.offA, weight = t.weight;
-      if (t.slack && t.weight >= 4) {
-        const weak = n++, centre = (t.weight * 3) / 4;
-        arc(weak, a, -t.offA, centre);
-        arc(weak, b, -t.offB, centre);
-        from = n++; off = 0; weight = t.weight - centre;
-        arc(a, from, t.offA - t.slack, 0);
-        arc(from, a, -t.offA - t.slack, 0);
+      // a port that can slide is a point of its own, held within reach of where it would stand
+      let from = a, offF = t.offA, to = b, offT = t.offB;
+      if (t.slackA && (t.slackA[0] || t.slackA[1])) {
+        from = n++; offF = 0;
+        arc(a, from, t.offA - t.slackA[0], 0);
+        arc(from, a, -t.offA - t.slackA[1], 0);
+      }
+      if (t.slackB && (t.slackB[0] || t.slackB[1])) {
+        to = n++; offT = 0;
+        arc(b, to, t.offB - t.slackB[0], 0);
+        arc(to, b, -t.offB - t.slackB[1], 0);
       }
       const helper = n++;
-      arc(helper, from, -off, weight);
-      arc(helper, b, -t.offB, weight);
+      arc(helper, from, -offF, t.weight);
+      arc(helper, to, -offT, t.weight);
     }
     return { arcs, n };
   };

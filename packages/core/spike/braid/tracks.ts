@@ -61,34 +61,54 @@ export function assignTracks(runs: readonly Run[], width = Infinity): { track: M
   }
   const touch = (a: Shape, b: Shape) => a.lo <= b.hi + 8 && b.lo <= a.hi + 8;
 
-  // one order, top track first: each shape goes in where it costs least
-  // against those already in, then neighbours trade places while that helps
-  const order: Shape[] = [];
-  const pair = (hi: Shape, lo: Shape) => (touch(hi, lo) ? above(hi, lo) : 0);
-  for (const s of shapes) {
-    let best = 0, least = Infinity;
-    for (let at = 0; at <= order.length; at++) {
-      let c = 0;
-      for (let k = 0; k < order.length; k++) c += k < at ? pair(order[k], s) : pair(s, order[k]);
-      if (c < least) { least = c; best = at; }
+  // Which of two overlapping shapes should be the upper: asked of every
+  // pair, and the answers that matter most are honoured first — one that
+  // would contradict those already taken (a cycle) is dropped.
+  const n = shapes.length;
+  const wants: { hi: number; lo: number; gain: number }[] = [];
+  for (let i = 0; i < n; i++)
+    for (let j = i + 1; j < n; j++) {
+      if (!touch(shapes[i], shapes[j])) continue;
+      const ij = above(shapes[i], shapes[j]), ji = above(shapes[j], shapes[i]);
+      if (ij < ji) wants.push({ hi: i, lo: j, gain: ji - ij });
+      if (ji < ij) wants.push({ hi: j, lo: i, gain: ij - ji });
     }
-    order.splice(best, 0, s);
-  }
-  for (let pass = 0, moved = true; moved && pass < 8; pass++) {
-    moved = false;
-    for (let k = 0; k + 1 < order.length; k++)
-      if (pair(order[k + 1], order[k]) < pair(order[k], order[k + 1])) { [order[k], order[k + 1]] = [order[k + 1], order[k]]; moved = true; }
-  }
+  wants.sort((p, q) => q.gain - p.gain || p.hi - q.hi || p.lo - q.lo);
+  const below: number[][] = shapes.map(() => []);
+  const reaches = (from: number, to: number): boolean => {
+    const stack = [from], seen = new Set<number>();
+    while (stack.length) {
+      const v = stack.pop()!;
+      if (v === to) return true;
+      if (seen.has(v)) continue;
+      seen.add(v);
+      stack.push(...below[v]);
+    }
+    return false;
+  };
+  for (const w of wants) if (!reaches(w.lo, w.hi)) below[w.hi].push(w.lo);
 
-  const track = new Map<number, number>(), level = new Map<Shape, number>();
+  // Tracks, top first: a shape goes on the first track under everything it
+  // must be under that no overlapping shape already has.
+  const pending = shapes.map(() => 0);
+  for (const list of below) for (const v of list) pending[v]++;
+  const level = new Map<Shape, number>(), floor = shapes.map(() => 0), order: Shape[] = [];
+  const track = new Map<number, number>();
   let count = 0;
-  order.forEach((s, k) => {
-    let t = 0;
-    for (let j = 0; j < k; j++) if (touch(order[j], s)) t = Math.max(t, level.get(order[j])! + 1);
+  for (let placed = 0; placed < n; placed++) {
+    let v = -1;
+    for (let i = 0; i < n; i++) if (pending[i] === 0 && (v < 0 || floor[i] < floor[v])) v = i;
+    pending[v] = -1;
+    const s = shapes[v];
+    let t = floor[v];
+    while (order.some((o) => level.get(o) === t && touch(o, s))) t++;
     level.set(s, t);
+    order.push(s);
     for (const id of s.ids) track.set(id, t);
     count = Math.max(count, t + 1);
-  });
+    for (const u of below[v]) { pending[u]--; floor[u] = Math.max(floor[u], t + 1); }
+  }
+  order.sort((p, q) => level.get(p)! - level.get(q)!);
   // what no order could prevent: the caller draws the upper one round (lay.ts)
   const clashes: Clash[] = [];
   for (let k = 0; k < order.length; k++)

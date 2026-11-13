@@ -14,6 +14,9 @@ import { randomDiagram } from "../grid/random.js";
 import { penalty } from "../grid/score.js";
 import { audit, crowded } from "./audit.js";
 import { solve } from "./engine.js";
+import { crossings as counted } from "./count.js";
+import { order } from "./order.js";
+import { plan as draft } from "./plan.js";
 
 const args = process.argv.slice(2), verbose = args.includes("-v");
 const only = args.find((a) => !a.startsWith("-") && !a.includes("="));
@@ -30,7 +33,7 @@ const keys = ["crossings", "bends", "kinks", "nearMiss", "lopsided", "offCentre"
 for (const [set, sources, turned] of sets) {
   if (only && set !== only) continue;
   const tot: Record<string, number> = {}; for (const k of keys) tot[k] = 0;
-  let views = 0, ms = 0, pen = 0, tight = 0;
+  let views = 0, ms = 0, pen = 0, tight = 0, off = 0, modelled = 0;
   const bad: string[] = [];
   for (const { name, src } of sources) {
     const b = buildProject([{ name, src }]);
@@ -50,17 +53,21 @@ for (const [set, sources, turned] of sets) {
       const p = plan(b.model, v, { metrics: "inter", scale: 1 }).problem;
       const sol = solve(p);
       const mine = audit(p, sol);
+      const d = draft(p); order(d);
+      const model = counted(d);
       tight += crowded(p, sol);
       for (const x of ill) bad.push(`${tag} [check] ${x}`);
       for (const x of mine) bad.push(`${tag} [audit] ${x}`);
       for (const x of l.skipped) bad.push(`${tag} wire ${x} not drawn`);
       const m = measureLayout(l.positioned);
+      if (m.crossings !== model) { off++; if (args.includes("-x")) console.log(`   ${tag}: counted ${model}, drawn ${m.crossings}`); }
+      modelled += model;
       for (const k of keys) tot[k] += m[k];
       pen += penalty(m, ill.length);
       if (verbose) console.log(`${tag.padEnd(48)} cross ${m.crossings} bends ${m.bends} kinks ${m.kinks} lop ${m.lopsided} near ${m.nearMiss} off ${m.offCentre} unst ${m.unstraight}`);
     }
   }
-  console.log(`${set}: ${views} views · ${Math.round(ms)}ms · ${bad.length} violations · penalty ${Math.round(pen)} · crowded walls ${tight}`);
+  console.log(`${set}: ${views} views · ${Math.round(ms)}ms · ${bad.length} violations · penalty ${Math.round(pen)} · crowded walls ${tight} · counted ${modelled} crossings, ${off} views drawn differently`);
   console.log("   " + keys.map((k) => `${k} ${tot[k]}`).join("  "));
   const kinds = new Map<string, number>();
   for (const x of bad) { const k = x.replace(/^\S+ /, "").replace(/[\w.:>~-]*\d[\w.:>~,-]*/g, "#").slice(0, 60); kinds.set(k, (kinds.get(k) ?? 0) + 1); }
