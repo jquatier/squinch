@@ -728,3 +728,33 @@ views worse, nothing gained).
 
 Still open: `04-pubsub#flow` keeps a gap beside a box whose wire runs back
 up the page; the 4 px step at a titled container's wall (`17-nested#deep`).
+
+### Containers in a column
+
+A bug found on the way to this: several wires between the same two boxes
+were counted as one pull — the rule meant for a bundle's shared stretch
+caught them all — so a container followed the *first* wire to its
+neighbour rather than the middle one. Each wire now pulls on its own, and
+two containers joined by several wires get one more pull, middle to middle
+and as heavy as their wires together: they stand in a column unless every
+wire leans the same way. Wall ports now move with their box when a gap is
+closed, which is what was leaving a lone box stranded inside its container.
+
+| Set | Views | Better | Same | Worse |
+|---|---|---|---|---|
+| Corpus | 254 | 79 | 171 | 4 |
+| Trial | 33 | 22 | 9 | 2 |
+| Round 2 | 33 | 30 | 3 | 0 |
+| Random | 64 | 47 | 9 | 8 |
+| **Everything** | **384** | **178** | **192** | **14** |
+
+By count this is level with the round before (182/188/14) and seven
+crossings worse on the trial set (587 to 580; ELK 607); by eye the dense
+diagrams with several expanded groups are the ones that changed, from a
+diagonal stagger to a column. Off-centre parents are at their lowest (309).
+
+What still staggers: two zones in successive ranks joined by a single wire,
+where a second wire from above passes the first zone to reach the second
+(`06-regions#all`). The engine runs that wire straight and sets the second
+zone under it; ELK keeps the zones in a column and bends the wire. Neither
+is wrong.
