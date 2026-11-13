@@ -126,7 +126,8 @@ const stops = (end: End, key: string) => !(end.item.inner && end.item.inner.port
 export function pulls(cell: Cell): { terms: Term[]; spans: { a: Item; b: Item; min: number }[] } {
   const terms: Term[] = [], spans: { a: Item; b: Item; min: number }[] = [];
   const plain = (it: Item) => it.kind === "box" && !it.inner;
-  const deadEnd = (it: Item) => plain(it) && it.above + it.below === 1 && it.keys.size === 1;
+  // a box that goes nowhere else — a wire back against the flow does not count as somewhere
+  const deadEnd = (it: Item) => plain(it) && it.touch.filter((s) => !s.back).length === 1 && it.keys.size === new Set(it.touch.map((s) => s.key)).size;
 
   // ── straight ───────────────────────────────────────────────────────────────
   for (const segs of cell.segs) {

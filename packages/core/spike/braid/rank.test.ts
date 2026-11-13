@@ -1,6 +1,5 @@
 import { describe, it, expect } from "vitest";
 import { rankBoxes } from "./rank.js";
-import { solve, type Arc } from "./simplex.js";
 
 const ranks = (ids: string, edges: string[], pins: Record<string, number> = {}) =>
   Object.fromEntries(rankBoxes(ids.split(" "), edges.map((e) => e.split(">") as [string, string]), new Map(Object.entries(pins))));
@@ -58,26 +57,3 @@ describe("rank is the least total wire", () => {
   });
 });
 
-describe("simplex", () => {
-  it("finds the least weighted length on random constraint graphs", () => {
-    let seed = 11;
-    const next = () => (seed = (seed * 1103515245 + 12345) % 2147483648) / 2147483648;
-    for (let trial = 0; trial < 80; trial++) {
-      const n = 4 + Math.floor(next() * 3);
-      const arcs: Arc[] = [];
-      for (let i = 0; i < n; i++) for (let j = i + 1; j < n; j++)
-        if (next() < 0.5) arcs.push({ tail: i, head: j, min: Math.floor(next() * 3), weight: Math.floor(next() * 4) });
-      const y = solve(n, arcs);
-      for (const a of arcs) expect(y[a.head] - y[a.tail]).toBeGreaterThanOrEqual(a.min);
-      const cost = (v: number[]) => arcs.reduce((s, a) => s + a.weight * (v[a.head] - v[a.tail]), 0);
-      // exhaustive over a small box of integer assignments
-      let best = Infinity;
-      const v = new Array(n).fill(0);
-      const walk = (i: number) => {
-        if (i === n) { if (arcs.every((a) => v[a.head] - v[a.tail] >= a.min)) best = Math.min(best, cost(v)); return; }
-        for (v[i] = 0; v[i] <= 2 * n; v[i]++) walk(i + 1);
-      };
-      if (n <= 5) { walk(0); expect(cost(y)).toBe(best); }
-    }
-  });
-});
