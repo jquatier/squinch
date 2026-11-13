@@ -95,7 +95,7 @@ export function solve(problem: Problem): Solution {
   // puts each wall port where its own inside would like it. The second time
   // it knows which lane each wire arrives on and may meet it there.
   const laid = new Map<string, Laid>();
-  let approach = new Map<string, Map<string, number>>();
+  let approach = new Map<string, Map<string, number>>(), heading = new Map<string, Map<string, number>>();
   const layGroup = (id: string): Laid => {
     const g = groups.get(id)!;
     for (const b of g.boxes) if (b.group) {
@@ -103,7 +103,7 @@ export function solve(problem: Problem): Solution {
       b.w = inner.w; b.h = inner.h;
     }
     const before = laid.get(id);
-    const out = layoutGroup(id, g, boxes.get(id), problem.wires, routes, ranks, laid, approach.get(id), before ? (g.dir === "down" ? before.w : before.h) : 0);
+    const out = layoutGroup(id, g, boxes.get(id), problem.wires, routes, ranks, laid, approach.get(id), before ? (g.dir === "down" ? before.w : before.h) : 0, heading.get(id));
     laid.set(id, out);
     return out;
   };
@@ -111,6 +111,7 @@ export function solve(problem: Problem): Solution {
   // each further pass lets one more container down the flow follow the one above
   for (let pass = 0; pass < PASSES && groups.size > 1; pass++) {
     approach = new Map([...laid.values()].flatMap((l) => [...l.approach]));
+    heading = new Map([...laid.values()].flatMap((l) => [...l.heading]));
     // where each box's wires leave its container, as a fraction of the wall
     const outside = new Map<string, Map<string, Leaving>>();
     for (const [c, lanes] of approach) {

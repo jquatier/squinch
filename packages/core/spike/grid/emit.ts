@@ -102,19 +102,25 @@ export function emit(sh: Sheet, ports: Ports, gutters: ReadonlyMap<Slot, Gutter>
     }
   }
 
-  // where each wire into a child container comes from, for that child's second pass
-  const approach = new Map<string, Map<string, number>>();
-  for (const c of chains)
-    for (let i = 0; i + 1 < c.path.length; i++) {
-      const u = c.path[i], v = c.path[i + 1];
-      const note = (box: Slot, lane: number) => {
-        if (!box.box?.group || box.box.group.dir !== g.dir) return; // only where the two share a lane axis
-        (approach.get(box.id) ?? approach.set(box.id, new Map()).get(box.id)!).set(c.wire.id, lane - box.pos);
-      };
-      note(v, ports.lane(u, c.wire, "end"));
-      note(u, ports.lane(v, c.wire, "start"));
-    }
+  // What each child container should know for its next pass about the wires
+  // through its walls: the lane each arrives on from the slot next to it
+  // (`approach`), and the lane of its far end (`heading`). The second is for
+  // ordering the ports wires leave by — the slots between were placed to
+  // suit the child's ports, and following them back would only confirm
+  // whatever order came first.
+  const approach = new Map<string, Map<string, number>>(), heading = new Map<string, Map<string, number>>();
+  const note = (into: Map<string, Map<string, number>>, box: Slot, wire: Wire, lane: number) => {
+    if (!box.box?.group || box.box.group.dir !== g.dir) return; // only where the two share a lane axis
+    (into.get(box.id) ?? into.set(box.id, new Map()).get(box.id)!).set(wire.id, lane - box.pos);
+  };
+  for (const c of chains) {
+    const last = c.path.length - 1, top = c.path[0], bottom = c.path[last];
+    note(approach, bottom, c.wire, ports.lane(c.path[last - 1], c.wire, "end"));
+    note(approach, top, c.wire, ports.lane(c.path[1], c.wire, "start"));
+    note(heading, bottom, c.wire, ports.lane(top, c.wire, "end"));
+    note(heading, top, c.wire, ports.lane(bottom, c.wire, "start"));
+  }
 
   const size = ax.toScreen(st.L, st.F);
-  return { w: size.x, h: size.y, rects, pieces, labels, wall, approach };
+  return { w: size.x, h: size.y, rects, pieces, labels, wall, approach, heading };
 }

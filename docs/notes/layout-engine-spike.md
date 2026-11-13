@@ -151,19 +151,43 @@ lines are 1–7 px apart — because nothing else measured it.
 
 | | ELK | Grid, before | Grid, now |
 |---|---|---|---|
-| Corpus: bends | 1,174 | 1,113 | 989 (×0.84) |
-| Corpus: jogs under 16 px | 12 | 4 | 12 |
+| Corpus: bends | 1,174 | 1,113 | 1,083 (×0.92) |
+| Corpus: jogs under 16 px | 12 | 4 | 13 |
 | Corpus: almost-aligned pairs | 9 | 17 | 1 |
-| Corpus: wire length | 230 k | 219 k | 199 k (×0.86) |
-| Trial: bends | 4,328 | 3,957 | 3,926 |
-| Trial: almost-aligned pairs | 44 | 89 | 5 |
+| Corpus: wire length | 230 k | 219 k | 198 k (×0.86) |
+| Corpus: crossings | 73 | 38 | 40 |
+| Trial: bends | 4,328 | 3,957 | 4,088 |
+| Trial: almost-aligned pairs | 44 | 89 | 2 |
 | Turned sideways: almost-aligned pairs | 66 | 66 | 0 |
-| Turned sideways: jogs under 16 px | 43 | 47 | 38 |
+| Turned sideways: jogs under 16 px | 43 | 47 | 28 |
 
-The one thing that went the wrong way is short jogs on the corpus (4 → 12,
-level with ELK): the grid moves a box up to 4 px, and where a port cannot
-absorb that — two wires into a container's fixed ports, a crowded wall — a
-small jog comes back. Crossings, area and legality are unchanged.
+Two more rules came from a second look at two views ("the Data container has
+a bunch of empty area", "the bottom should be centred below the rest"):
+
+- **The side with more pull decides where a box sits.** A box used to take
+  the median of every wire it has, above and below together — so a container
+  with one wire in and two out lined up over one child instead of between
+  them, and dragged the row below off-centre. Now each side gives its own
+  median and the heavier side wins: a parent sits centred over its children
+  whatever feeds it. This costs bends by the count (a centred parent bends
+  both wires where a lopsided one bends one) and is the right trade.
+- **A box is only moved to straighten a wire if the wires of everything that
+  moves get shorter in sum.** Otherwise one wire went straight while a
+  row-mate's grew by as much, and a centred row slid sideways.
+- **A wire going round the boxes of a titled container goes round the far
+  side from the title, and hugs the row.** It used to open a band under the
+  title and push the boxes down.
+- **A wire's label reserves room only where it is drawn.** It was also
+  reserving a row inside every container the wire passed through — which
+  both padded those containers and hid the hint that orders their exits.
+- **A container's exits are ordered by where the wires end up**, not by the
+  next slot along, which had been placed to suit the container in the first
+  place.
+
+Short jogs on the corpus are level with ELK rather than below it (13 to 12):
+the grid moves a box up to 4 px, and where a port cannot absorb that — two
+wires into a container's fixed ports, a crowded wall — a small jog comes
+back.
 
 ### Diagrams neither engine had seen
 

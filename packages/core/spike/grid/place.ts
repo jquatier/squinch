@@ -51,7 +51,11 @@ export function place(
       return s.after + (gu && gu.right === next ? gu.width : g.gap.lane);
     }
     if (s.label || next.label) return s.after + LABEL_PAD;
-    return s.after + (s.kind === "box" || next.kind === "box" ? WIRE_BOX : WIRE_WIRE);
+    if (s.kind !== "box" && next.kind !== "box") return s.after + WIRE_WIRE;
+    // a wire going round the end of a row hugs it; one threading between two boxes keeps its distance
+    const row = layers[sh.layerOf(s)].slots, wire = s.kind === "box" ? next : s;
+    const outer = row.indexOf(wire) < row.findIndex((x) => x.kind === "box") || row.indexOf(wire) > row.map((x) => x.kind).lastIndexOf("box");
+    return s.after + (outer ? WIRE_WIRE : WIRE_BOX);
   };
   const stride = (row: Slot[], i: number) => row[i].lsize + (row[i + 1] ? gapAfter(row[i], row[i + 1]) : 0);
 
@@ -124,15 +128,19 @@ export function place(
       want = row.map((s) => s.pos + shift);
       weight = row.map(() => 1);
     } else {
-      // the median of where its wires would run straight: one wire is
-      // followed exactly, two are split evenly, three follow the middle one
+      // Each side has a say: the median of where the wires above would run
+      // straight, and of those below — one wire followed exactly, two split
+      // evenly, three following the middle one. The side with more pull
+      // wins: a parent sits centred over its children whatever feeds it from
+      // above, and a label stands over the one box it leads to rather than
+      // under one of a hub's many ports. Level, the sweep's own side wins.
       want = row.map((s) => {
         const li = sh.layerOf(s);
-        return median((pulls.get(s) ?? []).map((x) => ({
-          value: x.other.pos + x.theirs - x.mine, weight: x.weight,
-          // an even split between the two sides goes to the side this sweep follows
-          side: (sh.layerOf(x.other) < li) === fromAbove ? 0 : 1,
-        })));
+        const side = (above: boolean) => (pulls.get(s) ?? []).filter((x) => (sh.layerOf(x.other) < li) === above)
+          .map((x) => ({ value: x.other.pos + x.theirs - x.mine, weight: x.weight }));
+        const [first, second] = fromAbove ? [side(true), side(false)] : [side(false), side(true)];
+        const pull = (xs: { weight: number }[]) => xs.reduce((a, x) => a + x.weight, 0);
+        return median(pull(second) > pull(first) + 1e-9 ? second : first.length ? first : second);
       });
       // where a box and a passing wire want the same lane, the wire goes
       // round: a box off its line is seen, a wire a little longer is not
@@ -284,8 +292,15 @@ export function place(
       moves.push([row[i + step], by]);
     }
     if (anchoredElsewhere(s, hop) || moves.slice(1).some(([m]) => anchoredElsewhere(m))) return false;
+    // and only if the wires of everything that moves come out shorter in
+    // sum: dragging a whole row along to straighten one wire, while a
+    // row-mate's wire grows by as much, trades centring for nothing
+    const strain = () => moves.reduce((sum, [m]) => sum + (hopsOf.get(m) ?? []).reduce((a, h) => a + Math.abs(off(h)), 0), 0);
+    const before = strain();
     for (const [m, by] of moves) m.pos += by;
-    return true;
+    if (strain() < before) return true;
+    for (const [m, by] of moves) m.pos -= by;
+    return false;
   };
   for (const boxesOnly of [true, false])
     for (const c of chains)

@@ -18,6 +18,10 @@ export function orderSlots(
   /** Where along the wall a port's wire is headed once outside, 0 to 1, if
    *  known: the tie-break among places that cross nothing. */
   headed: (s: Slot) => number | undefined = () => undefined,
+  /** Among places that are otherwise as good, take the one furthest along
+   *  the row: in a titled container that is the side away from the title, so
+   *  a wire going round the boxes does not open a band beneath it. */
+  preferFar = false,
 ): void {
   // hops[i]: between layer i and i+1, each end carrying its place within its slot
   type Hop = [u: Slot, v: Slot, fu: number, fv: number];
@@ -60,7 +64,8 @@ export function orderSlots(
       const targets = [fr(above, up), fr(below, dn), headed(s)].filter((x): x is number => x !== undefined);
       const target = targets.length ? targets.reduce((a, b) => a + b, 0) / targets.length : 0.5;
       const off = Math.abs(p / Math.max(1, layer.length) - target);
-      if (cost < bestCost || (cost === bestCost && off < bestOff - 1e-9)) { best = p; bestCost = cost; bestOff = off; }
+      const tied = cost === bestCost && Math.abs(off - bestOff) <= 1e-9;
+      if (cost < bestCost || (cost === bestCost && off < bestOff - 1e-9) || (tied && preferFar)) { best = p; bestCost = cost; bestOff = off; }
     }
     layer.splice(best, 0, s);
   };

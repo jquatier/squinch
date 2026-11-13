@@ -95,11 +95,17 @@ export interface Laid {
    *  wire arrives on from this side of its wall. What the outside would like;
    *  the child may take it on a second pass. */
   approach: Map<string, Map<string, number>>;
+  /** child container → wire → the lane, in the child's coordinates, of the
+   *  wire's far end. For ordering the ports a child's wires leave by. */
+  heading: Map<string, Map<string, number>>;
 }
 
 /** What a wire does inside one container. */
 export type Link =
-  | { wire: Wire; type: "chain"; top: string | "wall"; bottom: string | "wall"; flipped: boolean }
+  | { wire: Wire; type: "chain"; top: string | "wall"; bottom: string | "wall"; flipped: boolean;
+      /** The wire's label is drawn in this container — the one where its two
+       *  ends part company — and nowhere else on its way. */
+      labelled: boolean }
   | { wire: Wire; type: "beside"; a: string; b: string }   // neighbours on one rank
   | { wire: Wire; type: "around"; a: string; b: string }   // one rank, something between
   | { wire: Wire; type: "side"; box: string; wall: "low" | "high"; outward: boolean };

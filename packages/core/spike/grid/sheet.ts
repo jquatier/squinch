@@ -26,8 +26,8 @@ function linksOf(gid: string, ax: Axes, wires: readonly Wire[], routes: Readonly
     const r = routes.get(wire.id);
     if (!r) continue;
     if (r.home === gid) {
-      if (r.kind === "down") links.push({ wire, type: "chain", top: r.a, bottom: r.b, flipped: false });
-      else if (r.kind === "up") links.push({ wire, type: "chain", top: r.b, bottom: r.a, flipped: true });
+      if (r.kind === "down") links.push({ wire, type: "chain", top: r.a, bottom: r.b, flipped: false, labelled: !!wire.label });
+      else if (r.kind === "up") links.push({ wire, type: "chain", top: r.b, bottom: r.a, flipped: true, labelled: !!wire.label });
       else links.push({ wire, type: r.kind, a: r.a, b: r.b });
       continue;
     }
@@ -37,8 +37,8 @@ function linksOf(gid: string, ax: Axes, wires: readonly Wire[], routes: Readonly
     const outward = fi >= 0;
     const child = outward ? r.fromChain[fi + 1] ?? wire.from : r.toChain[ti + 1] ?? wire.to;
     const wall = ax.role(outward ? r.sideFrom : r.sideTo);
-    if (wall === "end") links.push({ wire, type: "chain", top: child, bottom: "wall", flipped: !outward });
-    else if (wall === "start") links.push({ wire, type: "chain", top: "wall", bottom: child, flipped: outward });
+    if (wall === "end") links.push({ wire, type: "chain", top: child, bottom: "wall", flipped: !outward, labelled: false });
+    else if (wall === "start") links.push({ wire, type: "chain", top: "wall", bottom: child, flipped: outward, labelled: false });
     else links.push({ wire, type: "side", box: child, wall, outward });
   }
   return links;
@@ -64,7 +64,7 @@ export function draft(
     const a = rankOf(c.top, "top"), b = rankOf(c.bottom, "bottom");
     return (b - a) % 2 === 0 ? { rank: (a + b) / 2 } : { gap: a + (b - a - 1) / 2 };
   };
-  const labelled = new Set(chainLinks.filter((c) => c.wire.label).map(labelSpot).flatMap((s) => ("gap" in s ? [s.gap] : [])));
+  const labelled = new Set(chainLinks.filter((c) => c.labelled).map(labelSpot).flatMap((s) => ("gap" in s ? [s.gap] : [])));
   const layers: Layer[] = [];
   const layerOfRank = new Map<number, number>(), layerOfLabel = new Map<number, number>();
   const add = (kind: Layer["kind"]) => layers.push({ kind, slots: [], f: 0, depth: 0 }) - 1;
@@ -86,7 +86,7 @@ export function draft(
   const shared = new Map<string, Slot>();
   const chains: Chain[] = chainLinks.map((c) => {
     const from = layerOfRank.get(rankOf(c.top, "top"))!, to = layerOfRank.get(rankOf(c.bottom, "bottom"))!;
-    const spot = c.wire.label ? labelSpot(c) : undefined;
+    const spot = c.labelled ? labelSpot(c) : undefined;
     const labelAt = !spot ? undefined : "gap" in spot ? layerOfLabel.get(spot.gap) : layerOfRank.get(spot.rank);
     const path: Slot[] = [];
     for (let i = from; i <= to; i++) {
