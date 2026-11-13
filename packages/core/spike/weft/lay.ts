@@ -57,7 +57,12 @@ export function lay(s: Sheet, root: boolean): Geo {
     const a = s.slots[f.a].kid!, b = s.slots[f.b].kid!, va = fixedPort(s, a, "e", f.key), vb = fixedPort(s, b, "w", f.key);
     if (!f.straight || va === undefined || vb === undefined) continue;
     const d = dv[f.a] + va - (dv[f.b] + vb);
-    if (d && Math.abs(d) < STUB) dv[d > 0 ? f.b : f.a] += Math.abs(d);
+    // A wire comes in level with where it left the box across the gutter, if
+    // the wall allows (§5.4): the box inside either container lets its port
+    // slide. Failing that, a step too short to draw is closed by the higher
+    // container standing down by it.
+    if (!d || slide(s, b, "w", f.key, d) || slide(s, a, "e", f.key, -d)) continue;
+    if (Math.abs(d) < STUB) dv[d > 0 ? f.b : f.a] += Math.abs(d);
   }
   s.rows.forEach((row, k) => { rowH[k] = Math.max(rowH[k], ...row.map((i) => (s.slots[i].kid ? dv[i] + s.slots[i].kid!.h : 0))); });
   const gut = gutters(s, dv, (kid, wall, key) => fixedPort(s, kid, wall, key));
@@ -395,6 +400,25 @@ export function lay(s: Sheet, root: boolean): Geo {
     geo.wires.set(wire, [piece.wall === "n" ? { x: at, y: 0 } : piece.wall === "s" ? { x: at, y: H } : piece.wall === "e" ? { x: W, y: at } : { x: 0, y: at }]);
   }
   return geo;
+}
+
+/** Move the place where the wire `key` crosses a laid-out container's side
+ *  wall by `d`, if the wire runs straight out of a leaf inside whose wall has
+ *  that place free. The one thing the outside ever asks of an inside. */
+function slide(s: Sheet, kid: Kid, wall: "e" | "w", key: string, d: number): boolean {
+  const c = kid.sheet, geo = c?.geo;
+  if (!c || !geo || c.dir !== s.dir) return false;
+  const mine = c.sides.filter((x) => x.wall === wall && x.key === key);
+  if (mine.length !== 1 || sideWay(c, mine[0]) !== "straight") return false;
+  const side = mine[0], inner = c.slots[side.x].kid!, at = geo.ports.get(`${wall}|${key}`)!, to = at + d;
+  if (inner.sheet) { if (!slide(c, inner, wall, key, d)) return false; }
+  else {
+    const top = geo.top[side.x], others = c.sides.filter((x) => x !== side && x.x === side.x && x.wall === wall).map((x) => geo.ports.get(`${wall}|${x.key}`)!);
+    if (to < top + 8 || to > top + Math.min(inner.h, inner.faceV ?? inner.h) - 8 || others.some((o) => Math.abs(o - to) < STUB)) return false;
+  }
+  geo.ports.set(`${wall}|${key}`, to);
+  for (const p of geo.wires.get(side.wire) ?? []) p.y += d;
+  return true;
 }
 
 /** The port key a vertical piece's links carry. */
