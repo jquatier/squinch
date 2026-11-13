@@ -75,11 +75,11 @@ all 259 views in the corpus:
 | Layout time, whole corpus | 3,331 ms | 171 ms | 210 ms | 230 ms | 301 ms |
 | Invariant violations (`checkLayout`) | 0 | 0 | 0 | 0 | 0 |
 | …with *every* wire held to "crosses no foreign box" | not asserted | 0 | 0 | 0 | 0 |
-| Total area | 81.3 M | 81.0 M | 79.9 M | 79.6 M | 79.9 M (×0.98) |
-| Total wire length | 230 k | 239 k | 230 k | 229 k | 219 k (×0.95) |
+| Total area | 81.3 M | 81.0 M | 79.9 M | 79.6 M | 79.4 M (×0.98) |
+| Total wire length | 230 k | 239 k | 230 k | 229 k | 199 k (×0.86) |
 | Wire crossings | 73 | 120 | 78 | 73 | **38 (×0.52)** |
-| Bends | 1,174 | 1,565 | 1,331 | 1,337 | **1,113 (×0.95)** |
-| Jogs under 16 px | 12 | 47 | 19 | 11 | **4** |
+| Bends | 1,174 | 1,565 | 1,331 | 1,337 | **989 (×0.84)** |
+| Jogs under 16 px | 12 | 47 | 19 | 11 | 12 |
 | Wires that bend though their ends face | 22 | 10 | 8 | 8 | 8 |
 | Wires through an unrelated node | 2 | 0 | 0 | 0 | 0 |
 | Frame titles a wire runs through | 3 flagged in shipped views | — | 17 of 35 | 5 of 35 | 5 of 35 |
@@ -115,6 +115,55 @@ Read plainly: on the corpus the spike is legal everywhere, eleven times
 faster, level on area, and ahead on wire, bends, short jogs and crossings
 (half of ELK's). Several views are now the better picture (`27-k8s#cluster`:
 0 crossings to ELK's 2, 806 px tall to 878, every label on its wire).
+
+### Tidiness: alignment, straight wires, nothing almost-aligned
+
+Legal and compact is not the same as good-looking. A review of side-by-side
+renders ("the column of three expanded systems looks better with ELK") turned
+up faults no total had flagged, and each became a rule:
+
+- **Boxes line up on their centres; ports go to meet the wires.** Placement
+  used to line a box up on one of its neighbour's ports, so a chain whose
+  middle stage had a second wire sat a third of a wall off its own baseline.
+  Now boxes pull centre to centre, and each port slides along its wall to
+  where its wire runs straight — keeping its order and 16 px from its
+  neighbours, and keeping the even spread where no straight run is possible.
+- **A box holds its lane against a wire passing it.** Where the two want the
+  same place the wire goes round; a box off its line is seen, a wire a little
+  longer is not.
+- **A parent stays centred over its children.** Only a wire that has both its
+  walls to itself is pulled dead straight; a fan keeps its symmetry.
+- **One grid for the whole picture.** Every box's centre line stands on the
+  8 px design grid, in every container and across them (a container's width is
+  a whole number of steps, so its inside is on its parent's grid). Two boxes
+  are on one line or a clear step apart, never a few pixels — DESIGN's
+  "nothing almost-aligned", which could not be held while ELK placed nodes.
+- **No jog too short to draw.** A turn under 16 px is removed — a port slides,
+  then every port on that wall, then a passing wire shifts, then a box moves
+  if nothing straight bends for it — or is opened to a full corner.
+- **Several labelled wires share the gap between two neighbours**, each label
+  on its own wire's stub, instead of the second being sent the long way round.
+- **An arrival lane never stretches a container** to reach it (the cause of
+  the tall empty frame in the flagged view).
+
+`metrics.ts` gained `nearMiss` — pairs of boxes in one container whose centre
+lines are 1–7 px apart — because nothing else measured it.
+
+| | ELK | Grid, before | Grid, now |
+|---|---|---|---|
+| Corpus: bends | 1,174 | 1,113 | 989 (×0.84) |
+| Corpus: jogs under 16 px | 12 | 4 | 12 |
+| Corpus: almost-aligned pairs | 9 | 17 | 1 |
+| Corpus: wire length | 230 k | 219 k | 199 k (×0.86) |
+| Trial: bends | 4,328 | 3,957 | 3,926 |
+| Trial: almost-aligned pairs | 44 | 89 | 5 |
+| Turned sideways: almost-aligned pairs | 66 | 66 | 0 |
+| Turned sideways: jogs under 16 px | 43 | 47 | 38 |
+
+The one thing that went the wrong way is short jogs on the corpus (4 → 12,
+level with ELK): the grid moves a box up to 4 px, and where a port cannot
+absorb that — two wires into a container's fixed ports, a crowded wall — a
+small jog comes back. Crossings, area and legality are unchanged.
 
 ### Diagrams neither engine had seen
 
