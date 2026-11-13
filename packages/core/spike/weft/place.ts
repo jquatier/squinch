@@ -103,6 +103,8 @@ export function place(s: Sheet, p: Placing): number[] {
   });
   s.rows.forEach((row, k) => row.forEach((slot) => { u[slot] += (widest - span[k]) / 2; }));
   const want = [...u], weight = new Array<number>(n).fill(LIGHT);
+  /** how firmly a slot is held: 1 for a fan, halving along each wire that merely follows */
+  const firm = new Array<number>(n).fill(0);
   const solve = (rows: number[][]) => {
     if (crossRow) {
       // one variable per aligned set: it stands where the wires of all its members together put it
@@ -154,10 +156,12 @@ export function place(s: Sheet, p: Placing): number[] {
   };
   const aim = (slot: number): void => {
     const kind = s.slots[slot].kind;
-    let up = ups[slot].filter((l) => !l.back), down = downs[slot].filter((l) => !l.back);
-    let forward = (l: Link) => !l.back, scale = kind === "box" ? 1 : THIN;
+    // a wire running back against the flow follows and never leads; so does
+    // a wire to the sheet's own wall — its port goes where the box is
+    let forward = (l: Link) => !l.back && (kind === "port" || (s.slots[l.up].kind !== "port" && s.slots[l.down].kind !== "port"));
+    let up = ups[slot].filter(forward), down = downs[slot].filter(forward), scale = kind === "box" ? 1 : THIN;
     if (!up.length && !down.length) { up = ups[slot]; down = downs[slot]; forward = () => true; scale *= 0.05; }
-    if (!up.length && !down.length) { want[slot] = s.at[slot] ? -FAR : FAR; weight[slot] = IDLE; return; }
+    if (!up.length && !down.length) { want[slot] = s.at[slot] ? -FAR : FAR; weight[slot] = IDLE; firm[slot] = 0; return; }
     const side = down.length > up.length || (down.length === up.length && down.length > 1) ? down : up.length > down.length ? up : undefined;
     if (side && side.length > 1) {
       const runs = side.map((l) => straight(slot, l)), far = side[0].down === slot ? side[0].up : side[0].down;
@@ -166,14 +170,19 @@ export function place(s: Sheet, p: Placing): number[] {
       const column = s.slots[slot].kid?.sheet && s.slots[far].kid?.sheet && side.every((l) => (l.down === slot ? l.up : l.down) === far);
       want[slot] = column ? Math.max(Math.min(...runs), Math.min(Math.max(...runs), u[far])) : middle(runs);
       weight[slot] = HEAVY * side.length * scale;
+      firm[slot] = 1;
       return;
     }
     weight[slot] = LIGHT * scale;
-    if (side) { want[slot] = among(slot, side[0], forward); return; }
-    // one in, one out: stay with the end that is a fan, else with the nearer
+    if (side) { want[slot] = among(slot, side[0], forward); firm[slot] = firm[side === up ? up[0].up : down[0].down] / 2; return; }
+    // one in, one out: stay with the end that is a fan; else with the end
+    // that is itself held more firmly — a chain hangs from whatever it leads
+    // to that has a balanced place of its own — and failing that, the one below
     const a = among(slot, up[0], forward), b = among(slot, down[0], forward);
     const fanUp = downs[up[0].up].filter(forward).length > 1, fanDown = ups[down[0].down].filter(forward).length > 1;
-    want[slot] = fanUp !== fanDown ? (fanUp ? a : b) : Math.abs(a - u[slot]) <= Math.abs(b - u[slot]) ? a : b;
+    const above = fanUp !== fanDown ? fanUp : firm[up[0].up] > firm[down[0].down];
+    want[slot] = above ? a : b;
+    firm[slot] = firm[above ? up[0].up : down[0].down] / 2;
   };
 
   for (let sweep = 0; sweep < SWEEPS; sweep++)
