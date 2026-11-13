@@ -11,7 +11,7 @@
 // them (lay.ts). Only a wire that *ends* at a container is, like a leaf's.
 
 import { ring, sideMode, sub } from "./count.js";
-import type { Cell, End, Item, Piece } from "./plan.js";
+import type { Cell, End, Item, Piece, Seg } from "./plan.js";
 import { wallIn } from "./plan.js";
 import { GRID, LANE, faceAcross } from "./place.js";
 
@@ -91,18 +91,37 @@ export function assignPorts(cell: Cell): Map<string, number> {
   }
 
   // slide: a port goes to meet its wire if that makes the wire straight —
-  // never changing places with a neighbour, never into a corner
-  /** Move a port towards `to` as far as its wall and neighbours let it; where it ends up. */
+  // never changing places with a neighbour, never into a corner. A
+  // neighbour whose own wire bends anyway gives way; one whose wire runs
+  // straight does not.
+  const wireOf = new Map<string, Seg>();
+  for (const segs of cell.segs) for (const s of segs) {
+    if (stops(s.upper, s.key)) wireOf.set(portId(s.upper.item, "S", s.key), s);
+    if (stops(s.lower, s.key)) wireOf.set(portId(s.lower.item, "N", s.key), s);
+  }
+  const bent = (w: WallPorts, p: Port): boolean => {
+    const s = wireOf.get(portId(w.it, w.wall, p.key));
+    return !s || endAt(ports, s.upper, s.key) !== endAt(ports, s.lower, s.key);
+  };
+  /** How far towards `to` a port can go; where it ends up. */
   const slide = (it: Item, wall: "N" | "S", key: string, to: number): number | undefined => {
     const w = walls.get(`${it.uid}|${wall}`), i = w?.ports.findIndex((p) => p.key === key) ?? -1;
     if (!w || i < 0) return undefined;
-    const list = w.ports;
-    const lo = i ? list[i - 1].x + w.gap : w.lo, hi = i + 1 < list.length ? list[i + 1].x - w.gap : w.hi;
-    return Math.max(Math.min(lo, list[i].x), Math.min(Math.max(hi, list[i].x), to));
+    const list = w.ports, dir = to > list[i].x ? 1 : -1;
+    let limit = dir > 0 ? w.hi : w.lo, k = i;
+    for (let j = i + dir; j >= 0 && j < list.length; j += dir) {
+      if (!bent(w, list[j])) { limit = list[j].x - dir * w.gap * (Math.abs(j - i)); k = -1; break; }
+      k = j;
+    }
+    if (k >= 0) limit -= dir * w.gap * Math.abs(k - i);
+    return dir > 0 ? Math.max(list[i].x, Math.min(limit, to)) : Math.min(list[i].x, Math.max(limit, to));
   };
   const set = (it: Item, wall: "N" | "S", key: string, x: number) => {
-    walls.get(`${it.uid}|${wall}`)!.ports.find((p) => p.key === key)!.x = x;
-    ports.set(portId(it, wall, key), x);
+    const w = walls.get(`${it.uid}|${wall}`)!, list = w.ports, i = list.findIndex((p) => p.key === key);
+    const put = (p: Port, at: number) => { p.x = at; ports.set(portId(it, wall, p.key), at); };
+    put(list[i], x);
+    for (let j = i + 1; j < list.length && list[j].x < list[j - 1].x + w.gap; j++) put(list[j], list[j - 1].x + w.gap);
+    for (let j = i - 1; j >= 0 && list[j].x > list[j + 1].x - w.gap; j--) put(list[j], list[j + 1].x - w.gap);
   };
   const straighten = (p: Piece) => {
     if (p.kind !== "seg") return;
