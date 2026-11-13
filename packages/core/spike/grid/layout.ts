@@ -17,9 +17,13 @@ import { solve, type Rect, type Pt } from "./engine.js";
 type Font = Pick<ThemeFont, "metrics" | "scale">;
 const INTER: Font = { metrics: "inter", scale: 1 };
 
-export function layoutViewGrid(model: SModel, view: SView, font: Font = INTER): { positioned: Positioned; skipped: string[] } {
+export function layoutViewGrid(
+  model: SModel, view: SView, font: Font = INTER,
+  /** which engine draws it: the spike's first (`grid`) unless told otherwise */
+  solver: (problem: Parameters<typeof solve>[0]) => ReturnType<typeof solve> = solve,
+): { positioned: Positioned; skipped: string[] } {
   const p = plan(model, view, font);
-  const sol = solve(p.problem);
+  const sol = solver(p.problem);
   const rect = (id: string) => sol.boxes.get(id)!;
 
   const nodes = p.graph.nodes.map((n) => ({ ...n, ...rect(n.path), rank: sol.ranks.get(p.unitOf.get(n.path)!)! }));
