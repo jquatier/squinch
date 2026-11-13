@@ -184,7 +184,9 @@ export function place(s: Sheet, p: Placing): { u: number[]; low: number[] } {
     // to that has a balanced place of its own — and failing that, the one below
     const a = among(slot, up[0], forward), b = among(slot, down[0], forward);
     const fanUp = downs[up[0].up].filter(forward).length > 1, fanDown = ups[down[0].down].filter(forward).length > 1;
-    const above = fanUp !== fanDown ? fanUp : firm[up[0].up] > firm[down[0].down];
+    // …but a lane is not a box: it runs straight on to where its wire is
+    // going, and the fan it left is measured out to it
+    const above = fanUp !== fanDown ? fanUp === (kind === "box") : firm[up[0].up] > firm[down[0].down];
     want[slot] = above ? a : b;
     firm[slot] = firm[above ? up[0].up : down[0].down] / 2;
   };
