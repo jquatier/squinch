@@ -27,7 +27,7 @@ export function place(
   pack(sh, rows);
   const pulls = pullsOf(sh, ports);
   for (let pass = 0; pass < SWEEPS; pass++)
-    for (const layer of pass % 2 ? [...sh.layers].reverse() : sh.layers) settle(sh, rows, pulls, layer, pass % 2 === 0);
+    for (const layer of pass % 2 ? [...sh.layers].reverse() : sh.layers) settle(sh, rows, pulls, layer, pass % 2 === 0, pass === 0);
   wholePixels(sh, rows);
   alignExactly(sh, rows);
   rows.settleWall();
@@ -68,8 +68,8 @@ const extent = (layer: Layer) => {
 };
 
 /** One layer, given the others: follow the wires from the layer above
- *  (`fromAbove`) or below. */
-function settle(sh: Sheet, rows: Rows, pulls: ReadonlyMap<Slot, Pull[]>, layer: Layer, fromAbove: boolean): void {
+ *  (`fromAbove`) or below. `cold`: nothing below it has been placed yet. */
+function settle(sh: Sheet, rows: Rows, pulls: ReadonlyMap<Slot, Pull[]>, layer: Layer, fromAbove: boolean, cold = false): void {
   const row = layer.slots;
   if (!row.length) return;
   const gaps = row.map((_, i) => rows.stride(row, i));
@@ -96,6 +96,11 @@ function settle(sh: Sheet, rows: Rows, pulls: ReadonlyMap<Slot, Pull[]>, layer: 
         .map((x) => ({ value: x.other.pos + x.theirs - x.mine, weight: x.weight }));
       const [first, second] = fromAbove ? [side(true), side(false)] : [side(false), side(true)];
       const pull = (xs: { weight: number }[]) => xs.reduce((a, x) => a + x.weight, 0);
+      // On the very first sweep the rows below have not been placed: a slot
+      // with nothing above keeps its packed place rather than chase them, or
+      // row-mates that began side by side would part for no reason and
+      // nothing afterwards would bring them back.
+      if (cold && !first.length) return s.pos;
       const wired = median(pull(second) > pull(first) + 1e-9 ? second : first.length ? first : second);
       // Boxes the author aligned stand where the wires of all of them
       // together would put their shared centre line — were each simply to

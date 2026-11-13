@@ -106,7 +106,8 @@ export function wrapRows(
       const band = chain.slice(i * n, (i + 1) * n);
       bands.push(i % 2 ? band.reverse() : band);
     }
-    return { bands, columns: columnsOf(bands), bundle: () => undefined, band: () => undefined };
+    const shift = bands.map((b, i) => (i % 2 ? n - b.length : 0));
+    return { bands, columns: columnsOf(bands, shift), bundle: () => undefined, band: () => undefined };
   }
 
   const rank = dense(assignRanks(nodes, edges));
@@ -147,8 +148,11 @@ export interface Fold {
   /** Where a member sits in its folded rank. */
   band(id: string): { rank: number; index: number; last: boolean } | undefined;
 }
-const columnsOf = (bands: string[][]): string[][] =>
-  Array.from({ length: Math.max(0, ...bands.map((b) => b.length)) }, (_, k) => bands.flatMap((b) => (b[k] ? [b[k]] : []))).filter((c) => c.length > 1);
+/** `shift[i]`: how many columns band `i` starts in from the low side — a
+ *  short band running backwards stands under the end of the one above. */
+const columnsOf = (bands: string[][], shift: number[] = []): string[][] =>
+  Array.from({ length: Math.max(0, ...bands.map((b) => b.length)) }, (_, k) =>
+    bands.flatMap((b, i) => (b[k - (shift[i] ?? 0)] ? [b[k - (shift[i] ?? 0)]] : []))).filter((c) => c.length > 1);
 
 export function plan(model: SModel, view: SView, font: Font): Plan {
   // a view standing inside a container inherits that container's own layout
