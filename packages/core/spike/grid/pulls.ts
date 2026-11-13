@@ -19,6 +19,7 @@ export interface Pull {
   aligned?: boolean;
 }
 
+const BACK = 0.1; // how much of its usual pull a wire against the flow has on a box
 const ALIGN = 24; // boxes the author aligned pull this hard on each other
 const WEIGHT = { port: 0.25, passes: 8, pass: 2, boxes: 3 };
 
@@ -49,8 +50,13 @@ export function pullsOf(sh: Sheet, ports: Ports): Map<Slot, Pull[]> {
       const base = u.kind === "port" || v.kind === "port" ? WEIGHT.port
         : u.kind === "pass" && v.kind === "pass" ? WEIGHT.passes : u.kind === "pass" || v.kind === "pass" ? WEIGHT.pass : WEIGHT.boxes;
       const boxes = u.kind === "box" && v.kind === "box";
-      on(u).push({ other: v, mine: ou, theirs: ov, weight: (base * (boxes ? deadEnd(v) : 1)) / ports.crowd(v, "start") });
-      on(v).push({ other: u, mine: ov, theirs: ou, weight: base / ports.crowd(u, "end") });
+      // A wire running back against the flow follows and never leads: it
+      // will be bent whatever happens, and a box drawn out of its row to
+      // shorten one — with the slot it passes through drawn after it in turn
+      // — ends up wherever the two happened to start.
+      const lead = (s: Slot) => (c.flipped && s.kind === "box" ? BACK : 1);
+      on(u).push({ other: v, mine: ou, theirs: ov, weight: (lead(u) * base * (boxes ? deadEnd(v) : 1)) / ports.crowd(v, "start") });
+      on(v).push({ other: u, mine: ov, theirs: ou, weight: (lead(v) * base) / ports.crowd(u, "end") });
     }
   // Two containers joined by several wires cannot run them all straight —
   // each port is where its own inside put it. Left to the wires alone the

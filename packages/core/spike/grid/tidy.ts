@@ -32,6 +32,24 @@ export function tidy(sh: Sheet, ports: Ports, rows: Rows): void {
   const onAxis = new Set([...(g.aligned ?? []), ...(g.columns ?? [])].flat().map((id) => sh.slotOf(id)));
   const anchored = (s: Slot, except?: Hop) => onAxis.has(s) || (hopsOf.get(s) ?? []).some((h) => h !== except && off(h) === 0);
 
+  /** `s` is held by wires that already run straight: move it together with
+   *  everything those wires tie it to, so they stay straight — if every one
+   *  of them has room as it stands, and the wires out of the group come out
+   *  shorter in sum. */
+  const carryGroup = (s: Slot, d: number, hop: Hop): boolean => {
+    const group = new Set<Slot>([s]);
+    for (const x of group)
+      for (const h of hopsOf.get(x) ?? []) if (h !== hop && off(h) === 0) group.add(h.u === x ? h.v : h.u);
+    const members = [...group], far = hop.u === s ? hop.v : hop.u;
+    if (group.has(far) || members.some((m) => onAxis.has(m) || m.kind === "port" || !rows.fits(m, m.pos + d))) return false;
+    const out = () => members.reduce((sum, m) => sum + (hopsOf.get(m) ?? []).filter((h) => !group.has(h.u === m ? h.v : h.u)).reduce((a, h) => a + Math.abs(off(h)), 0), 0);
+    const before = out();
+    for (const m of members) m.pos += d;
+    if (out() < before) return true;
+    for (const m of members) m.pos -= d;
+    return false;
+  };
+
   /** Move `s` by `d`, pushing row-mates ahead of it. Refused — false — if
    *  that would bend a straight wire, or if the wires of everything that
    *  moves do not come out shorter in sum: dragging a whole row along to
@@ -47,7 +65,8 @@ export function tidy(sh: Sheet, ports: Ports, rows: Rows): void {
       if (!by) break;
       moves.push([row[i + step], by]);
     }
-    if (anchored(s, hop) || moves.slice(1).some(([m]) => anchored(m))) return false;
+    if (anchored(s, hop)) return row.length === 1 || moves.length === 1 ? carryGroup(s, d, hop) : false;
+    if (moves.slice(1).some(([m]) => anchored(m))) return false;
     const strain = () => moves.reduce((sum, [m]) => sum + (hopsOf.get(m) ?? []).reduce((a, h) => a + Math.abs(off(h)), 0), 0);
     const before = strain();
     for (const [m, by] of moves) m.pos += by;
