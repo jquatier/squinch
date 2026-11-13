@@ -67,7 +67,7 @@ export function lay(s: Sheet, root: boolean): Geo {
     const fixed = fixedPort(s, kid, wall, key);
     return fixed !== undefined ? fixed - kid.w / 2 : kid.faceU ? kid.faceU / 2 - kid.w / 2 : 0;
   };
-  const u = place(s, { w, bleed: s.slots.map((x) => x.kid?.bleedU ?? 0), gutter: gut.room, off });
+  const { u } = place(s, { w, bleed: s.slots.map((x) => x.kid?.bleedU ?? 0), gutter: gut.room, off });
 
   // ── ports ──────────────────────────────────────────────────────────────────
   const how = new Map<Side, "straight" | "over" | "under">(s.sides.map((x) => [x, sideWay(s, x)]));

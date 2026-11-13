@@ -39,7 +39,8 @@ export interface Placing {
   off(slot: number, wall: Wall, key: string): number;
 }
 
-export function place(s: Sheet, p: Placing): number[] {
+/** Where each slot stands, and the nearest to the west wall each may. */
+export function place(s: Sheet, p: Placing): { u: number[]; low: number[] } {
   const n = s.slots.length;
   const ups: Link[][] = Array.from({ length: n }, () => []), downs: Link[][] = Array.from({ length: n }, () => []);
   for (const links of s.chan) for (const l of links) { downs[l.up].push(l); ups[l.down].push(l); }
@@ -66,15 +67,15 @@ export function place(s: Sheet, p: Placing): number[] {
     for (const m of members) rep[m] = rep[members[0]];
   }
   const WALL = n;
-  const gaps: Gap[] = [];
+  const gaps: Gap[] = [], low = new Array<number>(n).fill(0);
   const titled = s.dir === "down" && s.title ? ceilTo(s.title.u + 8, GRID) : 0;
   s.rows.forEach((row, k) => row.forEach((slot, i) => {
     if (i) gaps.push({ left: rep[row[i - 1]], right: rep[slot], gap: sep(row[i - 1], slot) });
     // a wire that has to turn comes in clear of the title; one that runs
     // straight into a box of the first rank may pass the end of it (§5.7)
     const turns = s.slots[slot].kind === "port" ? !downs[slot].some((l) => s.slots[l.down].kind === "box") : k === 1 && s.slots[slot].kind === "lane";
-    const low = k <= 1 && titled && turns ? titled : i ? -Infinity : s.slots[slot].kind === "box" ? s.pad.w + p.w[slot] / 2 : Math.max(16, s.pad.w);
-    if (low > -Infinity) gaps.push({ left: WALL, right: rep[slot], gap: ceilTo(low, GRID) });
+    low[slot] = ceilTo(k <= 1 && titled && turns ? titled : s.slots[slot].kind === "box" ? s.pad.w + p.w[slot] / 2 : 16, GRID);
+    if (!i || (k <= 1 && titled && turns)) gaps.push({ left: WALL, right: rep[slot], gap: low[slot] });
   }));
   // `columns`: each band wholly before the next, in every rank — through a line between them
   const bands = s.cell.group.columns ?? [];
@@ -193,5 +194,7 @@ export function place(s: Sheet, p: Placing): number[] {
         if (row.every((slot) => weight[slot] <= IDLE)) for (const slot of row) want[slot] = u[slot];
         solve([row]);
       }
-  return u.map(snap);
+  // nothing holds the picture off the west wall: it comes back as far as its nearest slot allows
+  const at = u.map(snap), spare = Math.min(...at.map((x, i) => x - low[i]));
+  return { u: at.map((x) => x - (n ? spare : 0)), low };
 }
