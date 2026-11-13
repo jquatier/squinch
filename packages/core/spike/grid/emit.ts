@@ -6,12 +6,16 @@ import type { Ports } from "./ports.js";
 import type { Sheet } from "./sheet.js";
 import { sideRun } from "./side.js";
 import type { Stacked } from "./stack.js";
-import { LABEL_PAD, type Laid, type Pt, type Rect, type Slot, type Wire } from "./types.js";
+import { spread } from "./isotonic.js";
+import { CORNER, LABEL_PAD, TRACK, type Laid, type Link, type Pt, type Rect, type Slot, type Wire } from "./types.js";
 
 export function emit(
   sh: Sheet, ports: Ports, gutters: ReadonlyMap<Slot, Gutter>, st: Stacked,
   /** wire → the lane of its far end, where this container has been told */
   bound: ReadonlyMap<string, number> = new Map(),
+  /** wire → where it arrives from outside: a lane, or for a wire through a
+   *  side wall how far along the flow */
+  arriving: ReadonlyMap<string, number> = new Map(),
 ): Laid {
   const { ax, g, layers, chains, links } = sh;
   const boxF = (s: Slot) => layers[sh.layerOf(s)].f + sh.inset(s);
@@ -81,6 +85,27 @@ export function emit(
     }
   }
 
+  // Where each wire straight out of a plain box's side meets it: evenly
+  // along the wall — except a wire arriving, which comes in level with
+  // where it left the box outside, as far as the wall and its neighbours
+  // allow. (Only the arriving end gives way, or the two would swap.)
+  const sideF = new Map<Link, number>();
+  const sharing = new Map<string, Extract<Link, { type: "side" }>[]>();
+  for (const l of links)
+    if (l.type === "side" && sh.outermost(l.box, l.wall) && !sh.childPort(sh.slotOf(l.box).box!, l.wire))
+      (sharing.get(`${l.box}|${l.wall}`) ?? sharing.set(`${l.box}|${l.wall}`, []).get(`${l.box}|${l.wall}`)!).push(l);
+  for (const mates of sharing.values()) {
+    const s = sh.slotOf(mates[0].box), face = ax.sideFace(s.box!), n = mates.length;
+    const want = mates.map((l, i) => {
+      const from = l.outward ? undefined : arriving.get(l.wire.id);
+      return from !== undefined ? from - boxF(s) : Math.round((face * (i + 1)) / (n + 1));
+    });
+    const order = mates.map((_, i) => i).sort((a, b) => want[a] - want[b] || a - b);
+    const gap = Math.min(TRACK, n > 1 ? Math.floor((face - 2 * CORNER) / (n - 1)) : TRACK);
+    spread(order.map((i) => want[i]), order.map(() => 1), order.map(() => gap)).forEach((v, k) =>
+      sideF.set(mates[order[k]], Math.round(Math.min(Math.max(v, CORNER + k * gap), face - CORNER - (n - 1 - k) * gap))));
+  }
+
   // round a blocker, and out through a side wall
   for (const l of links) {
     if (l.type === "around") {
@@ -95,8 +120,7 @@ export function emit(
       if (sh.outermost(l.box, l.wall)) {
         // nothing between it and the wall: straight out of the box's side
         const cp = sh.childPort(s.box!, l.wire);
-        const mates = links.filter((o) => o.type === "side" && o.box === l.box && o.wall === l.wall && !sh.childPort(s.box!, o.wire));
-        const f = boxF(s) + (cp ? ax.flowOf(cp) : Math.round((ax.sideFace(s.box!) * (mates.indexOf(l) + 1)) / (mates.length + 1)));
+        const f = boxF(s) + (cp ? ax.flowOf(cp) : sideF.get(l)!);
         put(l.wire, [[l.wall === "low" ? s.pos : s.pos + s.lsize, f], [edge, f]], !l.outward);
         wall.set(l.wire.id, ax.toScreen(edge, f));
       } else {
@@ -133,6 +157,13 @@ export function emit(
   };
   const far = (s: Slot, wire: Wire, face: "start" | "end") => (s.kind === "port" ? bound.get(wire.id) : undefined) ?? end(s, wire, face);
   const reach = new Map<string, number>();
+  // …and for a wire across a gutter, how far along the flow its other end is
+  const level = (box: Slot, wire: Wire, f: number) => {
+    if (!box.box?.group || box.box.group.dir !== g.dir) return;
+    (approach.get(box.id) ?? approach.set(box.id, new Map()).get(box.id)!).set(wire.id, f - sh.inset(box));
+  };
+  for (const gu of gutters.values())
+    for (const r of gu.runs) { level(gu.left, r.link.wire, r.fb); level(gu.right, r.link.wire, r.fa); }
   for (const c of chains) {
     const last = c.path.length - 1, top = c.path[0], bottom = c.path[last];
     note(approach, bottom, c.wire, ports.lane(c.path[last - 1], c.wire, "end"));
