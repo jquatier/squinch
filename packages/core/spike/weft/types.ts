@@ -77,6 +77,8 @@ export interface Link {
   back: boolean;
   /** links of one trunk share a track where they part */
   net?: string;
+  /** the link's number among all the picture's links, for the ordering stage's tables */
+  n?: number;
   /** a label rides on this link's stub — the one into its lower end, or
    *  (a trunk that gathers) the one out of its upper end */
   label?: { u: number; v: number; wire: string; at: "top" | "bottom" };

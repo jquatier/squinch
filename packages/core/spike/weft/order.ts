@@ -24,9 +24,9 @@
 // only if no box has passed another, because declaration order is worth a
 // tie and a box never moves merely to straighten a wire — the straighter.
 import { Count, type Tally } from "./count.js";
-import type { Sheet } from "./types.js";
+import type { Link, Sheet } from "./types.js";
 
-const ROUNDS = 12, SWEEPS = 6, TRIES = 6;
+const ROUNDS = 12, SWEEPS = 6, TRIES = 2;
 
 export function order(sheets: Sheet[]): Count {
   for (const s of sheets) seed(s);
@@ -95,7 +95,10 @@ class Search {
       const sheet = t.sheet;
       this.fixed.set(sheet, new Set(sheet.before.flatMap(([a, b]) => [a * sheet.slots.length + b, b * sheet.slots.length + a])));
     }
-    for (const t of [...count.tallies].reverse()) { this.comb(t, "n"); this.comb(t, "s"); }
+    for (const t of count.tallies) { this.ties(t, "n"); this.ties(t, "s"); }
+    this.anyTied = this.tied.size > 0;
+    for (const t of count.tallies) this.heading.set(t, t.sheet.slots.map((x) => (x.kind === "port" ? this.head(t, x.i) : undefined)));
+    for (const tallies of [[...count.tallies].reverse(), count.tallies]) for (const t of tallies) { this.comb(t, "n", false); this.comb(t, "s", false); }
     count.settle();
     // every wire's lanes, in every sheet it passes
     const byWire = new Map<string, { t: Tally; slot: number }[]>();
@@ -146,10 +149,10 @@ class Search {
         const rows = t.sheet.rows.map((_, k) => k).slice(1, t.sheet.R + 1);
         for (const k of round % 2 ? rows.reverse() : rows)
           for (const slot of [...t.sheet.rows[k]])
-            if (this.sift(t, slot) || (t.sheet.slots[slot].kind === "box" && this.sift(t, slot, [], true))) moved = true;
+            if (this.sift(t, slot) || (count.cross > 0 && t.sheet.slots[slot].kind === "box" && this.sift(t, slot, [], true))) moved = true;
       }
       for (const t of count.tallies) if (this.mirror(t)) moved = true;
-      for (const thread of this.threads) if (this.reroute(thread)) moved = true;
+      for (const thread of this.threads) if (count.cross > 0 && this.reroute(thread)) moved = true;
       if (!moved) break;
     }
     count.settle();
@@ -168,45 +171,71 @@ class Search {
 
   /** A wall's ports in the order the rank behind the wall has their wires;
    *  two wires of one box inside, in the order they are headed for outside.
-   *  Containers standing against the wall inside are combed after it, since
-   *  where their wires are headed is read through this wall. */
-  private comb(t: Tally, wall: "n" | "s", depth = 0): void {
-    const s = t.sheet, k = wall === "n" ? 0 : s.R + 1, row = s.rows[k];
-    let changed = false;
-    if (row.length > 1) {
-      const rank = new Map(row.map((p) => {
-        const l = (wall === "n" ? t.downs : t.ups)[p][0];
-        return [p, [l ? this.count.key(t, wall === "n" ? l.down : l.up, wall, l.key) : Infinity, this.headed(t, wall, s.slots[p].key!), s.at[p]]];
-      }));
-      const sorted = [...row].sort((p, q) => { const a = rank.get(p)!, b = rank.get(q)!; return a[0] - b[0] || a[1] - b[1] || a[2] - b[2]; });
-      changed = sorted.some((p, i) => p !== row[i]);
-      if (changed) this.set(t, k, sorted);
+   *  A wall that changes is read by the wall outside it, if this sheet
+   *  stands against that one. `deep`: what lies outside has changed, so the
+   *  containers standing against this wall inside — whose wires are headed
+   *  out through it — are combed too. */
+  private comb(t: Tally, wall: "n" | "s", deep: boolean): void {
+    const s = t.sheet, k = wall === "n" ? 0 : s.R + 1, row = s.rows[k], n = row.length;
+    if (n > 1) {
+      const inside = this.inside, outside = this.outside, heading = this.heading.get(t)!, links = wall === "n" ? t.downs : t.ups;
+      let sorted = true;
+      for (let i = 0; i < n; i++) {
+        const l = links[row[i]][0], h = heading[row[i]];
+        inside[i] = l ? (wall === "n" ? this.count.below(t, l) : this.count.above(t, l)) : Infinity;
+        outside[i] = h ? (wall === "n" ? this.count.above(h.t, h.link) : this.count.below(h.t, h.link)) : 0;
+        if (i && (inside[i - 1] > inside[i] || (inside[i - 1] === inside[i] && outside[i - 1] > outside[i]))) sorted = false;
+      }
+      if (!sorted) {
+        const by = row.map((_, i) => i).sort((p, q) => inside[p] - inside[q] || outside[p] - outside[q] || p - q);
+        this.set(t, k, by.map((i) => row[i]));
+        const out = t.parent;
+        if (out && out.sheet.dir === s.dir && out.sheet.slots[s.self!].row === (wall === "n" ? 1 : out.sheet.R)) this.comb(out, wall, false);
+      }
     }
-    // a wall that changed is read by the wall outside it, if this sheet stands against that one
-    const out = t.parent, edge = (x: Sheet) => (wall === "n" ? 1 : x.R);
-    if (changed && depth < 8 && out && out.sheet.dir === s.dir && out.sheet.slots[s.self!].row === edge(out.sheet)) { this.comb(out, wall, depth + 1); return; }
-    for (const slot of s.rows[edge(s)] ?? []) {
+    if (deep) for (const slot of s.rows[wall === "n" ? 1 : s.R] ?? []) {
       const inner = s.slots[slot].kid?.sheet;
-      if (inner && inner.dir === s.dir) this.comb(this.count.tally(inner), wall, depth + 1);
+      if (inner && inner.dir === s.dir && this.tied.has(`${wall}${inner.cell.id}`)) this.comb(this.count.tally(inner), wall, true);
     }
   }
-  /** Where the wire `key`, leaving `t` by `wall`, next comes to rest outside:
-   *  its place in the row out there — looked for beyond that sheet's own wall, if it goes on through it. */
-  private headed(t: Tally, wall: "n" | "s", key: string): number {
-    const out = t.parent, s = t.sheet;
-    if (!out || out.sheet.dir !== s.dir) return 0;
-    const l = (wall === "n" ? out.ups : out.downs)[s.self!].find((x) => x.key === key);
-    if (!l) return 0;
-    const far = wall === "n" ? l.up : l.down;
-    return out.sheet.slots[far].kind === "port" ? this.headed(out, wall, key) : this.count.key(out, far, wall === "n" ? "s" : "n", key);
+  /** `wall` + container id, for every wall whose order depends on what lies
+   *  outside it: two of its wires come from one box inside — or a container
+   *  standing against it inside has such a wall. Only these need combing
+   *  again when the row outside changes. */
+  private readonly inside: number[] = [];
+  private readonly outside: number[] = [];
+  private readonly tied = new Set<string>();
+  private anyTied = false;
+  private ties(t: Tally, wall: "n" | "s"): boolean {
+    const s = t.sheet, ports = s.rows[wall === "n" ? 0 : s.R + 1];
+    const inner = ports.map((p) => { const l = (wall === "n" ? t.downs : t.ups)[p][0]; return l ? (wall === "n" ? l.down : l.up) : -1; });
+    let tied = new Set(inner).size < inner.length;
+    for (const slot of s.rows[wall === "n" ? 1 : s.R] ?? []) {
+      const kid = s.slots[slot].kid?.sheet;
+      if (kid && kid.dir === s.dir && this.ties(this.count.tally(kid), wall)) tied = true;
+    }
+    if (tied) this.tied.add(`${wall}${s.cell.id}`);
+    return tied;
+  }
+  /** per sheet, per port: the link outside on which the port's wire next
+   *  comes to rest — beyond the next wall out, if it goes on through that */
+  private readonly heading = new Map<Tally, ({ t: Tally; link: Link } | undefined)[]>();
+  private head(t: Tally, port: number): { t: Tally; link: Link } | undefined {
+    const s = t.sheet, out = t.parent, north = s.slots[port].row === 0;
+    if (!out || out.sheet.dir !== s.dir) return undefined;
+    const link = (north ? out.ups : out.downs)[s.self!].find((x) => x.key === s.slots[port].key);
+    if (!link) return undefined;
+    const far = north ? link.up : link.down;
+    return out.sheet.slots[far].kind === "port" ? this.head(out, far) : { t: out, link };
   }
   /** Row `k` of `t` has changed: comb the walls that read from it. */
   private combed(t: Tally, k: number): void {
     const s = t.sheet;
-    if (k === 1) this.comb(t, "n");
-    if (k === s.R) this.comb(t, "s");
+    if (k === 1) this.comb(t, "n", false);
+    if (k === s.R) this.comb(t, "s", false);
+    if (!this.anyTied) return;
     for (const [near, wall] of [[k + 1, "n"], [k - 1, "s"]] as const)
-      for (const slot of s.rows[near] ?? []) { const inner = s.slots[slot].kid?.sheet; if (inner) this.comb(this.count.tally(inner), wall); }
+      for (const slot of s.rows[near] ?? []) { const inner = s.slots[slot].kid?.sheet; if (inner && inner.dir === s.dir && this.tied.has(`${wall}${inner.cell.id}`)) this.comb(this.count.tally(inner), wall, true); }
   }
 
   /** The other start: down the sheets and back up, each row sorted by the
@@ -225,7 +254,7 @@ class Search {
           const was = s.rows[k], row = [...was];
           const mean = new Map(row.map((slot, i) => {
             const links = up ? t.downs[slot] : t.ups[slot], n = s.rows[up ? k + 1 : k - 1].length || 1;
-            const sum = links.reduce((a, l) => a + (up ? count.key(t, l.down, "n", l.key) : count.key(t, l.up, "s", l.key)) / 4096 + 0.5, 0);
+            const sum = links.reduce((a, l) => a + (up ? count.below(t, l) : count.above(t, l)) / 4096 + 0.5, 0);
             return [slot, links.length ? sum / links.length / n : (i + 0.5) / row.length];
           }));
           // a bubble sort: only neighbours trade, and only those that may
@@ -260,17 +289,17 @@ class Search {
    *  between two boxes a straight wire joins, nothing but lanes past a
    *  container whose wire runs straight out? */
   private sound(s: Sheet, row: number): boolean {
-    const boxed = (from: number, to: number) => s.rows[row].slice(from, to).some((i) => s.slots[i].kind === "box");
-    for (const [a, b] of s.glue) if (s.slots[a].row === row && boxed(s.at[a] + 1, s.at[b])) return false;
-    for (const { x, wall } of s.last) if (s.slots[x].row === row && (wall === "e" ? boxed(s.at[x] + 1, s.rows[row].length) : boxed(0, s.at[x]))) return false;
+    for (const [a, b] of s.glue) if (s.slots[a].row === row && this.boxed(s, row, s.at[a] + 1, s.at[b])) return false;
+    for (const { x, wall } of s.last) if (s.slots[x].row === row && (wall === "e" ? this.boxed(s, row, s.at[x] + 1, s.rows[row].length) : this.boxed(s, row, 0, s.at[x]))) return false;
     return true;
+  }
+  private boxed(s: Sheet, row: number, from: number, to: number): boolean {
+    for (let i = from; i < to; i++) if (s.slots[s.rows[row][i]].kind === "box") return true;
+    return false;
   }
 
   private swap(t: Tally, row: number, i: number, log: Swap[]): void {
-    const r = t.sheet.rows[row], a = r[i], b = r[i + 1];
-    r[i] = b; r[i + 1] = a;
-    t.sheet.at[a] = i + 1; t.sheet.at[b] = i;
-    this.count.touch(t, row);
+    this.count.swap(t, row, i);
     this.combed(t, row);
     log.push([t, row, i]);
   }
@@ -294,18 +323,19 @@ class Search {
       return;
     }
     const row = s.rows[k];
-    const back = (slot: number): number => {
-      const links = step < 0 ? t.downs[slot] : t.ups[slot];
-      if (s.slots[slot].kind === "box" || links.length !== 1) return NaN;
-      return step < 0 ? this.count.key(t, links[0].down, "n", links[0].key) : this.count.key(t, links[0].up, "s", links[0].key);
-    };
     let any = false;
     for (let again = true, pass = 0; again && pass < row.length; pass++) {
       again = false;
       for (let i = 0; i + 1 < row.length; i++)
-        if (back(row[i]) > back(row[i + 1])) { this.swap(t, k, i, log); again = any = true; }
+        if (this.back(t, row[i], step) > this.back(t, row[i + 1], step)) { this.swap(t, k, i, log); again = any = true; }
     }
     if (any) this.untangle(t, k + step, step, log);
+  }
+  /** Where a lane's one wire comes from, `step` behind it; not a number for anything else. */
+  private back(t: Tally, slot: number, step: number): number {
+    const links = step < 0 ? t.downs[slot] : t.ups[slot];
+    if (t.sheet.slots[slot].kind === "box" || links.length !== 1) return NaN;
+    return step < 0 ? this.count.below(t, links[0]) : this.count.above(t, links[0]);
   }
 
   /** Take `slot` to the place in its row where the picture is best; say
