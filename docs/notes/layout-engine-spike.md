@@ -543,3 +543,53 @@ Still behind, by eye as well as by number: wires between nested containers
 (`14-tables#schema`, `10-nested-zones#side`), and a box with no wires is kept
 in declared order even where moving it would let two zones line up
 (`20-multicloud-migration#landscape`, 688 px wide to ELK's 472).
+
+### After three more passes
+
+| Set | Views | Better | Same | Worse | Total penalty |
+|---|---|---|---|---|---|
+| Corpus | 259 | 109 | 84 | 66 | −21% |
+| Trial | 35 | 22 | 8 | 5 | −36% |
+| Round 2 | 35 | 28 | 3 | 4 | −45% |
+| Random | 80 | 49 | 12 | 19 | −8% |
+| **Everything** | **409** | **208** | **107** | **94** | **−18%** |
+
+Without the centring term: 157 better, 123 the same, 129 worse — ahead by
+count now, where it was behind. Short jogs: 3 on the corpus (ELK 12), 40 on
+the trial set (ELK 119). Crossings: 32 on the corpus (ELK 73); 698 on the
+trial set (ELK 607), all of the excess in dense random graphs.
+
+What moved it, each from a view that lost:
+
+- **Nested containers agree on an order.** Two things are learned from each
+  layout and they answer each other: the order of a container's boxes
+  follows where its wires arrive from, and the order of the wires leaving a
+  container follows where they end up. Refreshed together they swapped
+  places every pass and ended crossed. Now they take turns, a container
+  reports the *box* a wire finally reaches rather than its own wall port,
+  and a last pass refreshes neither (`engine.ts`, `Laid.reach`).
+- **Wall ports out of order with where their wires end up count as the
+  crossing they cause outside**, where the container cannot see it
+  (`order-slots.ts`, `astray`).
+- **Unplaced boxes may trade places** to uncross a wire from outside, and
+  the wire slots beside them re-sort before the trade is judged.
+- **A wire to a side wall takes whichever channel is quieter** — over the
+  row or under it — and steps into the gutter rather than running along a
+  container's wall (`side.ts`).
+- **A short jog still being handed from hop to hop on the last round is
+  opened to a full corner** instead of left where it stopped.
+
+Tried and not kept: letting the inside of a container decide its entry order
+outright (more crossings upstream than it saved); standing unwired boxes
+after wired ones in a row (no gain, and it overrides declaration order).
+
+Three things that are taste rather than defects, to be decided:
+
+- **Spacing.** The grid gives every gap the density's spacing. ELK, in a view
+  with any label, lets unlabelled gaps shrink — 22 px between two boxes of a
+  rightward chain, 36 px between ranks — so its small views are 10–15%
+  smaller and score better on area alone.
+- **Centring** (above).
+- **Declared order.** A box with no wires keeps its declared place even
+  where moving it would let two zones line up
+  (`20-multicloud-migration#landscape`: 688 px wide to ELK's 472).
