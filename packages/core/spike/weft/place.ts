@@ -103,6 +103,9 @@ export function place(s: Sheet, p: Placing): { u: number[]; low: number[] } {
     return len;
   });
   s.rows.forEach((row, k) => row.forEach((slot) => { u[slot] += (widest - span[k]) / 2; }));
+  // …the whole of it clear of the west wall, moved as one so that what was in line stays in line
+  const clear = Math.max(0, ...u.map((x, i) => low[i] - x));
+  for (let i = 0; i < n; i++) u[i] += ceilTo(clear, GRID);
   const want = [...u], weight = new Array<number>(n).fill(LIGHT);
   /** how firmly a slot is held: 1 for a fan, halving along each wire that merely follows */
   const firm = new Array<number>(n).fill(0);
