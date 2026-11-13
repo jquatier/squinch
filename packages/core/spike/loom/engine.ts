@@ -30,7 +30,7 @@ import type { Box, Laid, Problem, Pt, Rect, Route, Solution } from "./types.js";
 export type { Box, Dir, Group, Problem, Pt, Rect, Side, Solution, Wire } from "./types.js";
 export { median } from "./place.js";
 
-const ROUNDS = +(process.env.RNDS ?? 3); // drawings: one blind, the rest knowing where the wires arrive
+const ROUNDS = 3; // drawings: one blind, two knowing where the wires arrive
 
 export function solve(problem: Problem): Solution {
   const tree = grow(problem);
