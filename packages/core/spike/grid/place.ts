@@ -97,10 +97,10 @@ function settle(sh: Sheet, rows: Rows, pulls: ReadonlyMap<Slot, Pull[]>, layer: 
       const [first, second] = fromAbove ? [side(true), side(false)] : [side(false), side(true)];
       const pull = (xs: { weight: number }[]) => xs.reduce((a, x) => a + x.weight, 0);
       // On the very first sweep the rows below have not been placed: a slot
-      // with nothing above keeps its packed place rather than chase them, or
-      // row-mates that began side by side would part for no reason and
-      // nothing afterwards would bring them back.
-      if (cold && !first.length) return s.pos;
+      // follows what is above it and nothing else, and with nothing above
+      // keeps its packed place — or row-mates that began side by side would
+      // part to chase them, and nothing afterwards would bring them back.
+      if (cold) return first.length ? median(first) : s.pos;
       const wired = median(pull(second) > pull(first) + 1e-9 ? second : first.length ? first : second);
       // Boxes the author aligned stand where the wires of all of them
       // together would put their shared centre line — were each simply to
