@@ -123,7 +123,9 @@ export function lay(s: Sheet, root: boolean): Geo {
     const move = (slot: number, wall: "n" | "s", key: string, to: number): boolean => {
       if (!isLeaf(slot)) return false;
       const id = `${slot}|${wall}|${key}`, sp = spaceOf(slot);
-      if (to < sp.lo || to > sp.hi || walls.get(`${slot}|${wall}`)!.ends.some((e) => e.id !== id && Math.abs(port.get(e.id)! - to) < 8)) return false;
+      const now = port.get(id)!;
+      // never past a neighbour, never within 8 px of one
+      if (to < sp.lo || to > sp.hi || walls.get(`${slot}|${wall}`)!.ends.some((e) => e.id !== id && (Math.abs(port.get(e.id)! - to) < 8 || port.get(e.id)! > now !== port.get(e.id)! > to))) return false;
       port.set(id, to);
       return true;
     };
@@ -132,7 +134,7 @@ export function lay(s: Sheet, root: boolean): Geo {
       const x = s.slots[slot];
       if (x.kind === "box" || (x.kind === "lane" && x.row !== k + 1)) return false;
       const row = s.rows[x.row], i = s.at[slot];
-      const clear = [row[i - 1], row[i + 1]].every((o) => o === undefined || Math.abs(u[o] - to) >= w[o] / 2 + (o === row[i - 1] ? s.slots[o].kid?.bleedU ?? 0 : 0) + w[slot] / 2 + STUB);
+      const clear = [row[i - 1], row[i + 1]].every((o, side) => o === undefined || (side ? u[o] - to : to - u[o]) >= w[o] / 2 + (side ? 0 : s.slots[o].kid?.bleedU ?? 0) + w[slot] / 2 + STUB);
       if (!clear || (x.kind === "port" && to < (i ? -Infinity : STUB))) return false;
       u[slot] = to;
       return true;
@@ -171,6 +173,7 @@ export function lay(s: Sheet, root: boolean): Geo {
 
   // ── channels ───────────────────────────────────────────────────────────────
   const channels: Channel[] = [];
+  const twice = new Map<string, number>(); // `channel|net` → the line a twice-stepping wire crosses on
   const netId = (k: number, l: Link, i: number) => l.net ?? `${k}:${i}`;
   for (let k = 0; k <= R; k++) {
     const build = (): { nets: Net[]; netOf: Map<Link, string> } => {
@@ -183,7 +186,14 @@ export function lay(s: Sheet, root: boolean): Geo {
         net.lo = Math.min(net.lo, tu, bu); net.hi = Math.max(net.hi, tu, bu);
         netOf.set(l, id);
       });
-      const nets = [...byId.values()].filter((x) => x.lo < x.hi); // a straight link needs no track
+      const nets = [...byId.values()].filter((x) => x.lo < x.hi).flatMap((x): Net[] => {
+        // a straight link needs no track; a wire that had to step twice needs two
+        const mid = twice.get(`${k}|${x.id}`);
+        return mid === undefined ? [x] : [
+          { id: x.id, tops: x.tops, bots: [mid], lo: Math.min(x.tops[0], mid), hi: Math.max(x.tops[0], mid), thick: 0 },
+          { id: `${x.id}~`, tops: [mid], bots: x.bots, lo: Math.min(x.bots[0], mid), hi: Math.max(x.bots[0], mid), thick: 0, under: x.id },
+        ];
+      });
       for (const f of s.flats) if (!f.straight && s.slots[f.a].row === k) {
         const a = endU(f.a, "s", f.key), b = endU(f.b, "s", f.key);
         nets.push({ id: `round:${f.wire}`, tops: [a, b], bots: [], lo: Math.min(a, b), hi: Math.max(a, b), thick: f.label ? f.label.v : 0 });
@@ -203,6 +213,20 @@ export function lay(s: Sheet, root: boolean): Geo {
     // each try moves one port one step, and a wall has only so many.
     for (let tries = 0; st.clash && tries < 12; tries++) {
       if (!stepAside(st.clash.at, k)) break;
+      ({ nets, netOf } = build());
+      st = stack(nets);
+    }
+    // Where no port can step aside — both wires fixed at both ends, by
+    // containers or by lanes already drawn above — one of the two wires
+    // steps twice instead: across to a free line between its ends on a
+    // track above the other wire, and on from there on a track below it.
+    for (let tries = 0; st.clash && tries < 6; tries++) {
+      const net = [st.clash.upper, st.clash.lower].find((x) => x.tops.length === 1 && x.bots.length === 1 && !x.under && !twice.has(`${k}|${x.id}`) && Math.abs(x.tops[0] - x.bots[0]) >= 2 * STUB);
+      if (!net) break;
+      const taken = nets.flatMap((x) => [...x.tops, ...x.bots]), lo = Math.min(net.tops[0], net.bots[0]), hi = Math.max(net.tops[0], net.bots[0]);
+      let mid = snap((lo + hi) / 2);
+      for (let d = 0; d < hi - lo; d += GRID) { const free = [mid - d, mid + d].find((x) => x >= lo + STUB && x <= hi - STUB && taken.every((o) => Math.abs(o - x) >= GRID)); if (free !== undefined) { mid = free; break; } }
+      twice.set(`${k}|${net.id}`, mid);
       ({ nets, netOf } = build());
       st = stack(nets);
     }
@@ -311,7 +335,9 @@ export function lay(s: Sheet, root: boolean): Geo {
       for (let i = 0; i + 1 < path.length; i++) {
         const k = s.slots[path[i]].row, l = s.chan[k].find((x) => x.up === path[i] && x.down === path[i + 1] && x.key === key)!;
         const a = endU(l.up, "s", key), b = endU(l.down, "n", key), net = channels[k].netOf.get(l)!;
-        if (channels[k].stack.track.has(net) && a !== b) { const y = trackOf(k, net); pts.push({ x: a, y }, { x: b, y }); }
+        const mid = twice.get(`${k}|${net}`);
+        if (mid !== undefined) pts.push({ x: a, y: trackOf(k, net) }, { x: mid, y: trackOf(k, net) }, { x: mid, y: trackOf(k, `${net}~`) }, { x: b, y: trackOf(k, `${net}~`) });
+        else if (channels[k].stack.track.has(net) && a !== b) { const y = trackOf(k, net); pts.push({ x: a, y }, { x: b, y }); }
       }
       const last = path[path.length - 1];
       pts.push({ x: endU(last, "n", key), y: northOf(last) });

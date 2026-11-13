@@ -170,19 +170,24 @@ class Search {
    *  two wires of one box inside, in the order they are headed for outside.
    *  Containers standing against the wall inside are combed after it, since
    *  where their wires are headed is read through this wall. */
-  private comb(t: Tally, wall: "n" | "s"): void {
+  private comb(t: Tally, wall: "n" | "s", depth = 0): void {
     const s = t.sheet, k = wall === "n" ? 0 : s.R + 1, row = s.rows[k];
+    let changed = false;
     if (row.length > 1) {
       const rank = new Map(row.map((p) => {
         const l = (wall === "n" ? t.downs : t.ups)[p][0];
         return [p, [l ? this.count.key(t, wall === "n" ? l.down : l.up, wall, l.key) : Infinity, this.headed(t, wall, s.slots[p].key!), s.at[p]]];
       }));
       const sorted = [...row].sort((p, q) => { const a = rank.get(p)!, b = rank.get(q)!; return a[0] - b[0] || a[1] - b[1] || a[2] - b[2]; });
-      if (sorted.some((p, i) => p !== row[i])) this.set(t, k, sorted);
+      changed = sorted.some((p, i) => p !== row[i]);
+      if (changed) this.set(t, k, sorted);
     }
-    for (const slot of s.rows[wall === "n" ? 1 : s.R] ?? []) {
+    // a wall that changed is read by the wall outside it, if this sheet stands against that one
+    const out = t.parent, edge = (x: Sheet) => (wall === "n" ? 1 : x.R);
+    if (changed && depth < 8 && out && out.sheet.dir === s.dir && out.sheet.slots[s.self!].row === edge(out.sheet)) { this.comb(out, wall, depth + 1); return; }
+    for (const slot of s.rows[edge(s)] ?? []) {
       const inner = s.slots[slot].kid?.sheet;
-      if (inner && inner.dir === s.dir) this.comb(this.count.tally(inner), wall);
+      if (inner && inner.dir === s.dir) this.comb(this.count.tally(inner), wall, depth + 1);
     }
   }
   /** Where the wire `key`, leaving `t` by `wall`, next comes to rest outside:

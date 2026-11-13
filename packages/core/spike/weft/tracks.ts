@@ -20,6 +20,8 @@ export interface Net {
   lo: number; hi: number;
   /** room a label on the run needs across the tracks, or 0 */
   thick: number;
+  /** the second half of a wire that steps twice: it runs below the net named here */
+  under?: string;
 }
 
 /** Runs closer than this, end to end, do not share a track. */
@@ -31,6 +33,8 @@ const inside = (x: number, n: Net) => x > n.lo && x < n.hi;
 /** What it costs to put `a` on a track above `b`: the crossings it draws, and
  *  far more if a stub of `a` going down would lie along one of `b` coming up. */
 export function above(a: Net, b: Net): number {
+  if (b.under === a.id) return 0;
+  if (a.under === b.id) return CLASH;
   if (!overlap(a, b)) return 0;
   let cost = 0;
   for (const x of a.bots) { if (inside(x, b)) cost++; if (b.tops.includes(x)) cost += CLASH; }
@@ -72,7 +76,7 @@ export function stack(nets: readonly Net[]): Stack {
   let count = 0;
   order.forEach((n, i) => {
     let t = 0;
-    for (let j = 0; j < i; j++) if (overlap(order[j], n)) t = Math.max(t, track.get(order[j].id)! + 1);
+    for (let j = 0; j < i; j++) if (overlap(order[j], n) || n.under === order[j].id) t = Math.max(t, track.get(order[j].id)! + 1);
     track.set(n.id, t);
     count = Math.max(count, t + 1);
   });
@@ -86,7 +90,7 @@ export function stack(nets: readonly Net[]): Stack {
   let clash: Stack["clash"];
   for (let i = 0; i < order.length && !clash; i++)
     for (let j = i + 1; j < order.length && !clash; j++)
-      if (above(order[i], order[j]) >= CLASH) clash = { upper: order[i], lower: order[j], at: order[i].bots.find((x) => order[j].tops.includes(x))! };
+      if (above(order[i], order[j]) >= CLASH && order[i].under !== order[j].id) clash = { upper: order[i], lower: order[j], at: order[i].bots.find((x) => order[j].tops.includes(x))! };
   return { track, count, clash };
 }
 
