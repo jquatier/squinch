@@ -50,7 +50,10 @@ it("grid vs ELK, view by view", async () => {
         zoneMembers: new Map(built.model.zones.map((z) => [z.id, z.members])),
         channelTargets: new Set(built.model.views.flatMap((v) => v.layout.channels.map((c) => c.target))),
       };
-      for (const view of built.model.views.filter((v) => auto || !v.auto)) {
+      // `wrap` is new with this engine — ELK folds two shapes and ignores the
+      // rest — so a view that folds is not a fair comparison either way
+      const folds = (v: (typeof built.model.views)[number]) => !!v.layout.wrap || [...built.model.containers.values()].some((c) => c.layout?.wrap);
+      for (const view of built.model.views.filter((v) => (auto || !v.auto) && !folds(v))) {
         const elk = await layoutView(built.model, view);
         const grid = layoutViewGrid(built.model, view);
         // the new engine is held to the stricter rule: no wire through any box

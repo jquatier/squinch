@@ -184,15 +184,35 @@ export function tidy(sh: Sheet, ports: Ports, rows: Rows): void {
           if (after > NEAR) ports.slide(s, hop.wire, face, -d);
           continue;
         }
-        if (!rows.fits(s, s.pos + d)) continue;
         // the box goes to the wire; every port of it stays on its own lane
         const others = (hopsOf.get(s) ?? []).map((h) => ({ h, face: (h.u === s ? "end" : "start") as "start" | "end" }));
-        s.pos += d;
         const done: typeof others = [];
-        const ok = others.every((o) => (ports.slide(s, o.h.wire, o.face, -d) ? (done.push(o), true) : false));
-        if (ok) continue;
-        for (const o of done) ports.slide(s, o.h.wire, o.face, d);
-        s.pos -= d;
+        if (rows.fits(s, s.pos + d)) {
+          s.pos += d;
+          if (others.every((o) => (ports.slide(s, o.h.wire, o.face, -d) ? (done.push(o), true) : false))) continue;
+          for (const o of done) ports.slide(s, o.h.wire, o.face, d);
+          s.pos -= d;
+        }
+        // …or, where the box has no room, the wire comes to the box: the
+        // straight stretch of it that ends here slides over as one. Where
+        // that stretch ends at another box, that box's port slides too —
+        // if it is among others on its wall, and so has no middle to keep.
+        const stretch: Slot[] = [];
+        let at = s, last: Hop | undefined = hop;
+        for (;;) {
+          const next: Slot = last!.u === at ? last!.v : last!.u;
+          if (off(last!) !== 0 || next.kind === "box") { at = next; break; }
+          stretch.push(next);
+          const onward: Hop | undefined = (hopsOf.get(next) ?? []).find((h) => h !== last && h.wire === hop.wire);
+          if (!onward) { last = undefined; break; }
+          at = next; last = onward;
+        }
+        if (!stretch.every((x) => rows.fits(x, x.pos - d))) continue;
+        const farFace = last && last.v === at ? "start" : "end";
+        const ends = !!last && off(last) === 0 && at.kind === "box";
+        if (ends && (ports.crowd(at, farFace) < 2 || !ports.slide(at, hop.wire, farFace, -d))) continue;
+        if (!ports.slide(s, hop.wire, face, -d)) { if (ends) ports.slide(at, hop.wire, farFace, d); continue; }
+        for (const x of stretch) x.pos -= d;
       }
     }
   };
