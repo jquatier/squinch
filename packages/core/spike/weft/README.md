@@ -80,7 +80,8 @@ cannot point down runs up instead (`constraints`); network simplex
 - *Count exactly*: `Count.channel` (two links cross when their ends stand in
   opposite orders; an end at a container stands where its wire meets that
   container's wall) and `Count.along` (same-rank wires, wires to side walls).
-  Measured on the 80 random diagrams: model 275 crossings, drawn 279.
+  Measured on the 80 random diagrams: model 275 crossings, drawn 281 (the
+  six are in gutters and round-the-row wires, which the count leaves out).
 - *A passing wire takes a place in the row*: lanes are slots (`sheet.ts`).
 - *Declaration order is worth a tie*: `Search.sift` (a box passes a box only
   for fewer crossings) and `Search.restore`.
@@ -191,6 +192,27 @@ npx tsx spike/weft/render.ts <out-dir> <file.squinch#view | random:N | right:…
 test was changed where REQUIREMENTS §4.4 now overrides it (marked in the
 file). `before-after.test.ts` also checks what `checkLayout` does not: that
 no two wires outside one bundle are drawn along the same line (§3.5).
+
+## Measured
+
+`before-after.test.ts` and `score.test.ts`, 409 views (384 against ELK, `wrap`
+views left out as in the earlier engines' score). No violation in any suite.
+
+| | `grid` | `loom` | `braid` | `weft` |
+|---|---|---|---|---|
+| Score vs ELK: better / level / worse | 183 / 190 / 11 | 189 / 182 / 13 | 233 / 145 / 6 | 238 / 143 / 3 |
+| Total penalty vs ELK | −35% | −37% | −46% | −49% |
+| Corpus (259): crossings | 25 | 26 | 25 | 22 |
+| Corpus: bends | 1,041 | 1,057 | 701 | 707 |
+| Corpus: jogs under 16 px | 1 | 1 | 5 | 1 |
+| Corpus: lopsided boxes | 134 | 130 | 145 | 104 |
+| Trial + random (115): crossings | 523 | 440 | 361 | 345 |
+| Round 2 (35): crossings | 4 | 1 | 1 | 2 |
+| Random (80): crossings | 441 | 365 | 288 | 281 |
+| Random: lopsided boxes | 616 | 626 | 589 | 580 |
+| Random: jogs under 16 px | 41 | 32 | 59 | 10 |
+| Time, 259 corpus views (this machine, planning included) | 1.1 s | 0.9 s | 0.5 s | 0.4 s |
+| Time, 80 random views | 180 s | 51 s | 1.9 s | 1.4 s |
 
 ## What is not done
 
