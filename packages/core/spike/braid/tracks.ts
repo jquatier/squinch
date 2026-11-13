@@ -19,12 +19,16 @@ export interface Run {
   /** Where it meets the row above, the row below; whether it leaves by a side wall. */
   top: number[]; bottom: number[];
   east?: boolean; west?: boolean;
-  /** Needs this much room across the tracks (a label rides it). */
-  thick?: boolean;
+  /** A label rides it: how much room it needs across the tracks. */
+  thick?: number;
 }
 
+/** Two runs whose stubs no order of tracks keeps apart: `upper`'s way down at `x` is `lower`'s way in. */
+export interface Clash { upper: number; lower: number; x: number }
+
 interface Shape { ids: number[]; top: number[]; bottom: number[]; lo: number; hi: number }
-const CLASH = 1000;
+const CLASH = 100000; // two wires along one line: never
+const CLOSE = 50;     // two stubs side by side, nearer than a lane: only to avoid a clash
 
 /** What it costs to give `a` a track above `b`'s: crossings, and stubs that would overlap. */
 function above(a: Shape, b: Shape): number {
@@ -32,14 +36,14 @@ function above(a: Shape, b: Shape): number {
   // a's stubs to the row below pass b's level; b's stubs to the row above pass a's
   for (const x of a.bottom) {
     if (x > b.lo && x < b.hi) n++;
-    if (b.top.some((t) => Math.abs(t - x) < 8)) n += CLASH;
+    for (const t of b.top) if (t === x) n += CLASH; else if (Math.abs(t - x) < 8) n += CLOSE;
   }
   for (const x of b.top) if (x > a.lo && x < a.hi) n++;
   return n;
 }
 
 /** A track for every run, numbered from the upper row down, and how many there are. */
-export function assignTracks(runs: readonly Run[], width = Infinity): { track: Map<number, number>; count: number } {
+export function assignTracks(runs: readonly Run[], width = Infinity): { track: Map<number, number>; count: number; clashes: Clash[] } {
   const shapes: Shape[] = [];
   const byNet = new Map<string, Shape>();
   for (const r of runs) {
@@ -85,5 +89,12 @@ export function assignTracks(runs: readonly Run[], width = Infinity): { track: M
     for (const id of s.ids) track.set(id, t);
     count = Math.max(count, t + 1);
   });
-  return { track, count };
+  // what no order could prevent: the caller draws the upper one round (lay.ts)
+  const clashes: Clash[] = [];
+  for (let k = 0; k < order.length; k++)
+    for (let j = k + 1; j < order.length; j++) {
+      if (!touch(order[k], order[j])) continue;
+      for (const x of order[k].bottom) if (order[j].top.includes(x)) clashes.push({ upper: order[k].ids[0], lower: order[j].ids[0], x });
+    }
+  return { track, count, clashes };
 }

@@ -73,6 +73,9 @@ export function apart(a: Item, b: Item): number {
     let room = 0;
     for (const g of cell.glues) if (g.a.item === a && g.b.item === b && g.label) room += g.label.w + 8;
     if (room) gutter = Math.max(gutter, room + 24);
+    // and each wire that may have to step from one level to another needs a lane of its own to do it in
+    const stepping = cell.glues.filter((g) => g.a.item === a && g.b.item === b && (a.inner || b.inner)).length;
+    if (stepping > 1) gutter = Math.max(gutter, room + LANE * (stepping + 1) + (room ? 8 : 0));
     return up8(half(a) + bleedAcross(a) + gutter + half(b));
   }
   const side = Math.max(LANE, cell.gap.lane / 2);
@@ -98,8 +101,8 @@ function reach(end: End, key: string, wires: number): number {
 const stops = (end: End, key: string) => !(end.item.inner && end.item.inner.portAt.has(`${wallIn(end.item.inner, end.item.cell, end.wall)}|${key}`));
 
 /** §5.5, as terms: what each wire asks of the two things it joins. */
-export function pulls(cell: Cell): Term[] {
-  const terms: Term[] = [];
+export function pulls(cell: Cell): { terms: Term[]; spans: { a: Item; b: Item; min: number }[] } {
+  const terms: Term[] = [], spans: { a: Item; b: Item; min: number }[] = [];
   const deadEnd = (it: Item) => it.kind === "box" && !it.inner && it.above + it.below === 1 && it.keys.size === 1;
   const weightOf = (s: Seg): number => {
     if (s.back) return W.back;
@@ -140,10 +143,13 @@ export function pulls(cell: Cell): Term[] {
       if (list.length < 2 || list.length % 2) continue;
       const l = list[list.length / 2 - 1], r = list[list.length / 2];
       if (l.weight !== r.weight || far(r).pos !== far(l).pos + 1 || far(l) === far(r)) continue;
-      const half = apart(far(l), far(r)) / 2;
+      // (the middle of two grid lines is on the grid only if they are an even
+      // number of steps apart: the pair stands a step wider where it must)
+      const gap = Math.ceil(apart(far(l), far(r)) / (2 * GRID)) * 2 * GRID, half = gap / 2;
+      spans.push({ a: far(l), b: far(r), min: gap });
       if (l.a === box) { l.offB += half; r.offB -= half; } else { l.offA += half; r.offA -= half; }
     }
-  return terms;
+  return { terms, spans };
 }
 
 /** Give every item of the cell its centre `x`, and the cell its width. */
@@ -178,9 +184,13 @@ export function place(cell: Cell): void {
       for (let i = 0; i + 1 < items.length; i++) arc(nodeOf.get(items[i])!, nodeOf.get(items[i + 1])!, apart(items[i], items[i + 1]), W.together);
       if (!items.length) return;
       const first = items[0], last = items[items.length - 1];
+      // a box keeps the cell's padding; a wire passing or a label may stand in it
       const margin = (it: Item, pad: number) => up8(it.kind === "box" ? pad + it.w / 2 : it.kind === "label" ? it.w / 2 + 8 : LANE);
-      arc(L, nodeOf.get(first)!, margin(first, cell.pad.left), 0);
-      arc(nodeOf.get(last)!, R, margin(last, cell.pad.right) + bleedAcross(last), 0);
+      for (const it of items) {
+        if (it.kind !== "box" && it !== first && it !== last) continue;
+        if (it.kind === "box" || it === first) arc(L, nodeOf.get(it)!, margin(it, cell.pad.left), 0);
+        if (it.kind === "box" || it === last) arc(nodeOf.get(it)!, R, margin(it, cell.pad.right) + bleedAcross(it), 0);
+      }
       // §5.7: a wire that has to turn anyway comes in clear of the title; one
       // that runs straight on into the first box may pass the end of it
       if (k === 0 && titleEdge)
@@ -202,7 +212,9 @@ export function place(cell: Cell): void {
     }
 
     // ── every wire: |x(a) + offA − x(b) − offB|, through a helper below both ──
-    for (const t of pulls(cell)) {
+    const { terms, spans } = pulls(cell);
+    for (const sp of spans) arc(nodeOf.get(sp.a)!, nodeOf.get(sp.b)!, sp.min, 0);
+    for (const t of terms) {
       const a = nodeOf.get(t.a)!, b = nodeOf.get(t.b)!;
       if (a === b) continue;
       // A wire whose ports can reach each other is as good as straight. So

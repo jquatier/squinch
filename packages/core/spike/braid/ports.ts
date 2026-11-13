@@ -83,8 +83,9 @@ export function assignPorts(cell: Cell): Map<string, number> {
     // evenly spread: the wall in n + 1 parts, on the grid — closer only if the wall is too short
     const pitch = n > 1 ? Math.min(Math.max(LANE, Math.floor((w.hi - w.lo) / (n + 1) / GRID) * GRID), Math.floor((w.hi - w.lo) / (n - 1))) : 0;
     w.gap = n > 1 ? Math.min(LANE, pitch) : LANE;
+    const first = Math.max(w.lo, Math.min(w.hi - (n - 1) * pitch, Math.round(mid - ((n - 1) / 2) * pitch)));
     list.forEach((p, i) => {
-      p.x = Math.round(mid + (i - (n - 1) / 2) * pitch);
+      p.x = first + i * pitch;
       ports.set(portId(it, wall, p.key), p.x);
     });
   }

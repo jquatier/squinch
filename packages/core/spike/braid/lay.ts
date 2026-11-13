@@ -58,6 +58,7 @@ export function lay(cell: Cell): void {
   const bleedBelow = (it: Item) => (cell.flip ? 0 : it.node?.box?.bleed ?? 0);
   const faceDown = (it: Item) => (cell.flip ? undefined : it.node?.box?.face);
   const top: number[] = [], trackY = new Map<number, number>();
+  const landing = new Map<number, number>(), landY = new Map<number, number>();
   const height = rows.map((row) => Math.max(0, ...row.items.map((it) => (row.kind === "wall" ? 0 : it.h))));
   let y = 0;
   for (let k = 0; k <= last; k++) {
@@ -75,26 +76,36 @@ export function lay(cell: Cell): void {
       const a = at(s.upper, s.key), b = at(s.lower, s.key);
       if (a !== b) runs.push({ id: s.uid, net: s.key.startsWith("b:") ? s.key : undefined, top: [a], bottom: [b] });
     }
-    for (const t of cell.turns) if (t.row === k) runs.push({ id: t.uid, top: [at(t.a, t.key), at(t.b, t.key)], bottom: [], thick: !!t.label });
+    for (const t of cell.turns) if (t.row === k) runs.push({ id: t.uid, top: [at(t.a, t.key), at(t.b, t.key)], bottom: [], thick: t.label?.h });
     for (const s of cell.sides) {
       const mode = modes.get(s)!;
       if (mode === "under" && s.row === k) runs.push({ id: s.uid, top: [leaves(s)], bottom: [], east: s.wall === "E", west: s.wall === "W" });
       if (mode === "over" && s.row === k + 1) runs.push({ id: s.uid, top: [], bottom: [leaves(s)], east: s.wall === "E", west: s.wall === "W" });
     }
-    const { track, count } = assignTracks(runs, cell.w);
-    const thick = runs.some((r) => r.thick), pitch = thick ? 24 : LANE;
+    const { track, count: plain, clashes } = assignTracks(runs, cell.w);
+    // Two wires changing places on the very same two lines cannot both turn
+    // once: whichever turns first comes down the line the other is still
+    // on. The upper one lands a step short instead, and takes its last step
+    // below the other's track.
+    let count = plain;
+    for (const c of clashes) if (!landing.has(c.upper)) landing.set(c.upper, count++);
+    // a label riding a track needs the track's width in room: the whole channel is then spaced for it
+    const thick = Math.max(0, ...runs.map((r) => r.thick ?? 0)), pitch = thick ? Math.max(LANE, thick + 8) : LANE;
     // the first track clears whatever hangs below the row (and, under the
     // north wall, the title: a wire turning just inside turns below it)
     const hang = Math.max(0, ...items.map((it) => (it.kind === "box" ? it.y + it.h + bleedBelow(it) - y : 0)));
     // (a wire passes straight through a label, so beside a row of labels a
     // track needs no stub's length, only daylight)
-    let lead = (rows[k].kind === "label" ? 8 : STUB) + hang + (thick ? 4 : 0);
+    let lead = Math.max(rows[k].kind === "label" ? 8 : STUB, thick ? Math.ceil(thick / 2) + 4 : 0) + hang;
     if (k === 0 && cell.title) lead = Math.max(lead, cell.title.h + 8);
-    const tail = (rows[k + 1].kind === "label" ? 8 : STUB) + (thick ? 4 : 0);
+    const tail = Math.max(rows[k + 1].kind === "label" ? 8 : STUB, thick ? Math.ceil(thick / 2) + 4 : 0);
     const need = count ? lead + pitch * (count - 1) + tail : 0;
     const depth = Math.max(baseDepth(cell, k, height), need);
     const slack = Math.floor((depth - need) / 2);
-    for (const r of runs) trackY.set(r.id, y + lead + slack + pitch * track.get(r.id)!);
+    for (const r of runs) {
+      trackY.set(r.id, y + lead + slack + pitch * track.get(r.id)!);
+      if (landing.has(r.id)) landY.set(r.id, y + lead + slack + pitch * landing.get(r.id)!);
+    }
     y += depth;
   }
   // a transposed cell's `minW` is a least height here: share the extra above and below
@@ -102,6 +113,7 @@ export function lay(cell: Cell): void {
     const extra = Math.floor((cell.minH - y) / 2);
     for (let k = 1; k < last; k++) { top[k] += extra; for (const it of rows[k].items) it.y += extra; }
     for (const [id, ty] of trackY) trackY.set(id, ty + extra);
+    for (const [id, ty] of landY) landY.set(id, ty + extra);
     top[last] = y = cell.minH;
   }
   cell.h = y;
@@ -139,6 +151,19 @@ export function lay(cell: Cell): void {
       sideY.set(`${g.uid}|a`, ya); sideY.set(`${g.uid}|b`, yb);
     }
   }
+  // a gutter is a channel on its side: wires that change level in it each
+  // turn on a track of their own, packed against the far wall so that any
+  // labels have the near side to themselves
+  const gutterX = new Map<number, number>();
+  for (const group of gutters.values()) {
+    const stepping = group.filter((g) => sideY.get(`${g.uid}|a`) !== sideY.get(`${g.uid}|b`));
+    if (!stepping.length) continue;
+    const { track, count } = assignTracks(stepping.map((g) => ({ id: g.uid, top: [sideY.get(`${g.uid}|a`)!], bottom: [sideY.get(`${g.uid}|b`)!] })));
+    const a = group[0].a.item, b = group[0].b.item, x0 = a.x + a.w / 2, x1 = b.x - b.w / 2;
+    const labelled = group.some((g) => g.label);
+    const first = labelled ? x1 - STUB - LANE * (count - 1) : Math.round((x0 + x1 - LANE * (count - 1)) / 2);
+    for (const g of stepping) gutterX.set(g.uid, first + LANE * track.get(g.uid)!);
+  }
   const directs = cell.sides.filter((s) => modes.get(s) === "direct");
   for (const s of directs) {
     const fixed = fixedY(s.from, s.wall, s.key);
@@ -156,7 +181,13 @@ export function lay(cell: Cell): void {
   const jog = (a: Pt, b: Pt, ty: number): Pt[] => (a.x === b.x ? [a, b] : [a, { x: a.x, y: ty }, { x: b.x, y: ty }, b]);
   for (const p of cell.pieces) {
     if (p.kind === "seg") {
-      p.pts = jog({ x: at(p.upper, p.key), y: meets(p.upper) }, { x: at(p.lower, p.key), y: meets(p.lower) }, trackY.get(p.uid) ?? 0);
+      const a = { x: at(p.upper, p.key), y: meets(p.upper) }, b = { x: at(p.lower, p.key), y: meets(p.lower) }, ty = trackY.get(p.uid) ?? 0;
+      const land = landY.get(p.uid);
+      if (land === undefined) p.pts = jog(a, b, ty);
+      else {
+        const short = b.x + (a.x < b.x ? -8 : 8);
+        p.pts = [a, { x: a.x, y: ty }, { x: short, y: ty }, { x: short, y: land }, { x: b.x, y: land }, b];
+      }
     } else if (p.kind === "turn") {
       const ty = trackY.get(p.uid)!, a = { x: at(p.a, p.key), y: meets(p.a) }, b = { x: at(p.b, p.key), y: meets(p.b) };
       p.pts = [a, { x: a.x, y: ty }, { x: b.x, y: ty }, b];
@@ -184,7 +215,7 @@ export function lay(cell: Cell): void {
       const mates = gutters.get(`${a.uid}|${b.uid}`)!.filter((g) => g.label);
       let lx = x0 + 12;
       for (const g of mates) { if (g === p) break; lx += g.label!.w + 8; }
-      const turnAt = mates.length ? x1 - STUB : Math.round((x0 + x1) / 2);
+      const turnAt = gutterX.get(p.uid) ?? Math.round((x0 + x1) / 2);
       p.pts = ya === yb ? [{ x: x0, y: ya }, { x: x1, y: yb }] : [{ x: x0, y: ya }, { x: turnAt, y: ya }, { x: turnAt, y: yb }, { x: x1, y: yb }];
       if (p.label) p.label.at = { x: Math.round(lx + p.label.w / 2), y: ya };
     }
