@@ -33,6 +33,7 @@ export function median(items: { value: number; weight: number; side?: number }[]
   return sorted[sorted.length - 1].value;
 }
 
+const HOLD = 20;   // how much harder a box holds its lane than a wire passing it
 const SWEEPS = 5;  // down, up, down, up, down — the last word to the reading direction
 const NEAR = 15;   // a jog shorter than two corner radii is slid straight rather than drawn
 
@@ -72,7 +73,13 @@ export function place(
     for (let i = 0; i + 1 < c.path.length; i++) {
       const u = c.path[i], v = c.path[i + 1];
       if (pulls.get(u)?.some((x) => x.other === v)) continue; // a bundle's shared stretch pulls once
-      const ou = ports.lane(u, c.wire, "end") - u.pos, ov = ports.lane(v, c.wire, "start") - v.pos;
+      // Boxes line up on their centres; the ports then go to meet the wires
+      // (`ports.meet`). Lining a box up on one of two evenly spaced ports
+      // would set a chain a third of a wall off its own baseline. A
+      // container's port is where its inside put it, and is followed as is.
+      const centre = (s: Slot, face: "start" | "end") =>
+        s.kind === "box" && !s.box!.group ? Math.round(ax.flowFace(s.box!) / 2) : ports.lane(s, c.wire, face) - s.pos;
+      const ou = centre(u, "end"), ov = centre(v, "start");
       const base = u.kind === "port" || v.kind === "port" ? 0.25
         : u.kind === "pass" && v.kind === "pass" ? 8 : u.kind === "pass" || v.kind === "pass" ? 2 : 3;
       const boxes = u.kind === "box" && v.kind === "box";
@@ -126,7 +133,9 @@ export function place(
           side: (sh.layerOf(x.other) < li) === fromAbove ? 0 : 1,
         })));
       });
-      weight = row.map((s) => (pulls.get(s) ?? []).reduce((a, x) => a + x.weight, 0) || 1e-6);
+      // where a box and a passing wire want the same lane, the wire goes
+      // round: a box off its line is seen, a wire a little longer is not
+      weight = row.map((s) => ((pulls.get(s) ?? []).reduce((a, x) => a + x.weight, 0) || 1e-6) * (s.kind === "box" ? HOLD : 1));
       // a slot nothing pulls on leans on the nearest one that is pulled
       const offset = [0];
       for (let i = 0; i + 1 < gaps.length; i++) offset.push(offset[i] + gaps[i]);
@@ -194,6 +203,21 @@ export function place(
     edge = Math.max(edge, ...members.map((s) => s.pos + s.lsize + s.after)) + g.gap.lane;
   }
 
+  // where each wire comes in from, for the ports to go and meet
+  const partner = (s: Slot, face: "start" | "end", wire: Wire): number | undefined => {
+    for (const c of chains) {
+      if (c.wire !== wire && (c.wire.bundle === undefined || c.wire.bundle !== wire.bundle)) continue;
+      const i = c.path.indexOf(s);
+      const other = face === "end" ? c.path[i + 1] : c.path[i - 1];
+      if (i >= 0 && other) return ports.lane(other, c.wire, face === "end" ? "start" : "end");
+    }
+    return undefined;
+  };
+  const meet = () => { ports.meet(partner); ports.meet(partner); }; // twice: both ends of a wire move
+  meet();
+  const boxes = all.filter((s) => s.kind === "box");
+  const extentLo = Math.min(...boxes.map((s) => s.pos), Infinity), extentHi = Math.max(...boxes.map((s) => s.pos + s.lsize), -Infinity);
+
   // A wire through several ranks runs in one line if it can. Each of its
   // slots was placed in its own row, among its own neighbours; where one lane
   // is free in every row, take it — preferring one that meets a box head-on.
@@ -207,7 +231,9 @@ export function place(
       ...(bottom.kind === "box" ? [ports.lane(bottom, c.wire, "start")] : []),
       ...(top.kind === "box" ? [ports.lane(top, c.wire, "end")] : []),
       // failing a straight run to the box, the lane it arrives on from outside
-      ...(approach.has(c.wire.id) && run.some((s) => s.kind === "port") ? [approach.get(c.wire.id)!] : []),
+      // — never one that would stretch the container to reach it
+      ...(approach.has(c.wire.id) && run.some((s) => s.kind === "port") && approach.get(c.wire.id)! >= extentLo && approach.get(c.wire.id)! <= extentHi
+        ? [approach.get(c.wire.id)!] : []),
       ...[...run].sort((a, b) => Math.abs(centre(a) - centre(mid)) - Math.abs(centre(b) - centre(mid))).map(centre),
     ].map(Math.round);
     const lane = lanes.find((l) => run.every((s) => fits(s, l - Math.round(s.lsize / 2))));
@@ -266,6 +292,7 @@ export function place(
         if (d) carry(hop.v, d, hop) || carry(hop.u, -d, hop);
       }
   settleWall();
+  meet();
 
   // A wire a few pixels off straight is slid onto the line: the lower end
   // gives way — a port along its wall, a pass-through slot along its row.

@@ -5,13 +5,21 @@
 // leaving it from crossing each other.
 
 import type { Sheet } from "./sheet.js";
+import { spread } from "./isotonic.js";
 import { CORNER, type Face, type Slot, type Wire } from "./types.js";
+
+const PORT_GAP = 16; // two ports on one wall keep this far apart
 
 export interface Ports {
   /** Lane coordinate where `wire` meets `s` on its `face`. */
   lane(s: Slot, wire: Wire, face: Face): number;
   /** How many wires share that wall of `s`. */
   crowd(s: Slot, face: Face): number;
+  /** Ports go to meet their wires. `target` says which lane each wire comes
+   *  in on; a port whose wire could run straight into this wall moves to
+   *  where it would, the others keep their even spacing, none changes
+   *  places with a neighbour and none comes within PORT_GAP of one. */
+  meet(target: (s: Slot, face: Face, wire: Wire) => number | undefined): void;
   /** Move a plain box's port by `d` along its wall: alone if it stays clear
    *  of its neighbours, else together with every port on that wall. Never
    *  into a corner. */
@@ -52,11 +60,15 @@ export function assignPorts(sh: Sheet): Ports {
   }
 
   const offset = new Map<string, number>(); // `${box}|${face}|${port}` → lane offset from the box's start
+  const even = new Map<string, number>();   // the same, as first dealt out: evenly along the wall
+  const ordered = new Map<string, Wire[]>(); // `${box}|${face}` → its wires, in order along the wall
   for (const [k, list] of wanted) {
     const box = sh.slotOf(k.split("|")[0]).box!;
     const order = [...list].sort((p, q) => p.key - q.key || wires.indexOf(p.wire) - wires.indexOf(q.wire));
-    order.forEach((p, i) => offset.set(`${k}|${portId(p.wire)}`, Math.round((ax.flowFace(box) * (i + 1)) / (order.length + 1))));
+    ordered.set(k, order.map((p) => p.wire));
+    order.forEach((p, i) => even.set(`${k}|${portId(p.wire)}`, Math.round((ax.flowFace(box) * (i + 1)) / (order.length + 1))));
   }
+  for (const [k, v] of even) offset.set(k, v);
   const offsetOn = (s: Slot, wire: Wire, face: Face): number => {
     if (s.kind !== "box") return Math.round(s.lsize / 2);
     const cp = sh.childPort(s.box!, wire);
@@ -67,6 +79,28 @@ export function assignPorts(sh: Sheet): Ports {
   return {
     lane: (s, wire, face) => s.pos + offsetOn(s, wire, face),
     crowd: (s, face) => (s.kind === "box" ? wanted.get(`${s.id}|${face}`)?.length ?? 1 : 1),
+    meet: (target) => {
+      for (const [k, list] of ordered) {
+        const [id, face] = k.split("|") as [string, Face];
+        const s = sh.slotOf(id), len = ax.flowFace(s.box!);
+        const room = len - 2 * CORNER;
+        if ((list.length - 1) * PORT_GAP > room) continue; // too crowded to move anything
+        const key = (w: Wire) => `${k}|${portId(w)}`;
+        // where each wire would run straight in, if that is on this wall
+        const straight = list.map((w) => {
+          const lane = target(s, face, w);
+          const rel = lane === undefined ? NaN : lane - s.pos;
+          return rel >= CORNER && rel <= len - CORNER ? rel : NaN;
+        });
+        const want = list.map((w, i) => (Number.isNaN(straight[i]) ? even.get(key(w))! : straight[i]));
+        const placed = spread(want, straight.map((x) => (Number.isNaN(x) ? 1 : 1e6)), list.map(() => PORT_GAP));
+        // back inside the corners, pushing neighbours along from each end
+        const at = placed.map(Math.round);
+        for (let i = 0; i < at.length; i++) at[i] = Math.max(at[i], i ? at[i - 1] + PORT_GAP : CORNER);
+        for (let i = at.length - 1; i >= 0; i--) at[i] = Math.min(at[i], i + 1 < at.length ? at[i + 1] - PORT_GAP : len - CORNER);
+        list.forEach((w, i) => offset.set(key(w), at[i]));
+      }
+    },
     slide: (s, wire, face, d) => {
       const key = `${s.id}|${face}|${portId(wire)}`;
       if (s.kind !== "box" || !offset.has(key)) return false; // a container's port is its inside's

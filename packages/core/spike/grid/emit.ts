@@ -5,7 +5,7 @@ import type { Gutter } from "./gutters.js";
 import type { Ports } from "./ports.js";
 import type { Sheet } from "./sheet.js";
 import type { Stacked } from "./stack.js";
-import { TRACK, type Laid, type Pt, type Rect, type Slot, type Wire } from "./types.js";
+import type { Laid, Pt, Rect, Slot, Wire } from "./types.js";
 
 export function emit(sh: Sheet, ports: Ports, gutters: ReadonlyMap<Slot, Gutter>, st: Stacked): Laid {
   const { ax, g, layers, chains, links } = sh;
@@ -58,12 +58,15 @@ export function emit(sh: Sheet, ports: Ports, gutters: ReadonlyMap<Slot, Gutter>
   for (const gu of gutters.values()) {
     const lo = gu.left.pos + gu.left.lsize, hi = gu.right.pos;
     const base = layers[sh.layerOf(gu.left)].f;
-    const used = (gu.count - 1) * TRACK;
+    const at = gu.lanes(lo, hi);
     for (const r of gu.runs) {
       const wire = r.link.wire, fa = base + r.fa, fb = base + r.fb;
-      const mid = fa === fb ? Math.round((lo + hi) / 2) : lo + Math.round((hi - lo - used) / 2) + gu.tracks.get(wire.id)! * TRACK;
-      put(wire, fa === fb ? [[lo, fa], [hi, fa]] : [[lo, fa], [mid, fa], [mid, fb], [hi, fb]], r.link.a !== gu.left.id);
-      if (wire.label) labelAt(wire, mid, (fa + fb) / 2);
+      const turn = at.turn(wire.id);
+      put(wire, fa === fb ? [[lo, fa], [hi, fa]] : [[lo, fa], [turn, fa], [turn, fb], [hi, fb]], r.link.a !== gu.left.id);
+      if (wire.label) {
+        const spot = at.label(wire.id);
+        labelAt(wire, spot.lane, spot.onLeft ? fa : fb);
+      }
     }
   }
 

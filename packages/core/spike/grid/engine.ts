@@ -68,7 +68,6 @@ export function solve(problem: Problem): Solution {
     g.boxes = orderBoxes([...byId.keys()], ranks, edgesOf(id), outside.get(id), new Set(g.held)).map((b) => byId.get(b)!);
   }
   routes.clear();
-  const labelledBeside = new Set<string>();
   for (const [home, list] of lifted) {
     const g = groups.get(home)!;
     const at = new Map(g.boxes.map((b, i) => [b.id, i]));
@@ -81,12 +80,7 @@ export function solve(problem: Problem): Solution {
       else {
         const [lo, hi] = at.get(a)! < at.get(b)! ? [at.get(a)!, at.get(b)!] : [at.get(b)!, at.get(a)!];
         const blocked = g.boxes.some((x, i) => i > lo && i < hi && ranks.get(x.id) === ra);
-        // one labelled wire has the gutter between two neighbours; a second
-        // would put its label on the first's, so it goes round like a blocked one
-        const pair = `${home}|${g.boxes[lo].id}|${g.boxes[hi].id}`;
-        const crowded = !blocked && !!wire.label && labelledBeside.has(pair);
-        if (!blocked && wire.label) labelledBeside.add(pair);
-        if (blocked || crowded) [kind, sideFrom, sideTo] = ["around", side("end"), side("end")];
+        if (blocked) [kind, sideFrom, sideTo] = ["around", side("end"), side("end")];
         else if (at.get(a)! < at.get(b)!) [kind, sideFrom, sideTo] = ["beside", side("high"), side("low")];
         else [kind, sideFrom, sideTo] = ["beside", side("low"), side("high")];
       }
