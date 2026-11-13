@@ -35,5 +35,19 @@ export function orderAll(
     if (now >= least) break;
     best = snapshot(); least = now;
   }
-  sheets.forEach((sh, i) => sh.layers.forEach((l, k) => { l.slots = best[i][k]; }));
+  const restore = () => sheets.forEach((sh, i) => sh.layers.forEach((l, k) => { l.slots = [...best[i][k]]; }));
+  restore();
+
+  // One move the sweeps cannot make a step at a time: a container turned
+  // about, every row of it mirrored. Where nobody placed its boxes, try it,
+  // let everything settle round it, and keep it if the picture crosses less.
+  for (const sh of sheets) {
+    if (least === 0) break;
+    if (parent(sh.gid) === undefined || sh.layers.some((l) => l.slots.some((s) => s.kind === "box" && !s.loose))) continue;
+    for (const l of sh.layers) l.slots.reverse();
+    for (const other of [...sheets].reverse()) settle(other);
+    for (const other of sheets) settle(other);
+    const now = cost();
+    if (now < least) { best = snapshot(); least = now; } else restore();
+  }
 }

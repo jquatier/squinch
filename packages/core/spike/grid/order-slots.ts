@@ -208,11 +208,12 @@ export function slotOrder(
       const [a, b] = [row[i], row[i + 1]];
       if (a.pinned && b.pinned && !(boxesToo && a.loose && b.loose)) continue;
       if (!walls && (a.kind === "port" || b.kind === "port")) continue;
-      const ports = a.kind === "port" || b.kind === "port";
+      const ports = a.kind === "port" || b.kind === "port", boxes = a.kind === "box" && b.kind === "box";
+      // two boxes trading may take wall ports along (the rows either side
+      // re-sort), so the far side of the wall is counted for them too
       const around = () => crossings(li - 2) + crossings(li - 1) + crossings(li) + crossings(li + 1) + astray(li - 1) + astray(li) + astray(li + 1) + barred(li - 1) + barred(li) + barred(li + 1)
-        + (ports && outer ? outer() : 0);
+        + ((ports || boxes) && outer ? outer() : 0);
       const before = around();
-      const boxes = a.kind === "box" && b.kind === "box";
       // two boxes trading take the wires beside them along: the rows either
       // side get to re-sort before the trade is judged
       const kept = boxes ? [layers[li - 1]?.slots.slice(), layers[li + 1]?.slots.slice()] : [];

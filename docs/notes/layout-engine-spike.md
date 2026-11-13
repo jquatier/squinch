@@ -861,3 +861,38 @@ absorbs some of that. Tried and not kept: dropping the old estimate of
 outside crossings now that they are counted for real (worse: the estimate
 still helps the first, container-alone ordering); more ordering rounds (it
 settles in two).
+
+### The model and the picture agree; the search was the gap
+
+The plan was to make the tracks wires turn on follow the order the ordering
+stage chose, on the guess that the drawn picture was crossing wires the
+model said it would not. Measured first, pass by pass on three dense
+diagrams, the guess was wrong: the drawn count equals the model's, or is a
+little below it (the model also counts its own estimate of trouble outside
+a container). The tracks already follow the order. Nothing was changed
+there.
+
+What the same measurement showed is how much the *model's* count varies
+from one pass to the next on one diagram — 23, 60, 52, 37, 24 — which is a
+search stuck in different places, not a model that is wrong. Two moves were
+added to it:
+
+- **A box trade counts the far side of the wall.** Two boxes trading places
+  inside a container can take wall ports along with them; the trade was
+  being judged on the inside alone.
+- **A container turned about.** Once the sweeps settle, each container whose
+  boxes nobody placed is tried mirrored, everything is settled round it,
+  and it is kept if the picture as a whole crosses less (`order-all.ts`).
+  A step-at-a-time search cannot get there.
+
+| | Before | Now | ELK |
+|---|---|---|---|
+| Trial set: crossings | 545 | 523 | 607 |
+| `random-9` | 10 | 1 | 2 |
+| `random-45` | 25 | 22 | 21 |
+| `random-21` | 18 | 22 | 8 |
+| Random views scoring worse | 8 | 6 | — |
+| 259 corpus views | 1.2 s | 1.0 s | 3.4 s |
+
+384 views: 183 better, 190 level, 11 worse; total penalty −35%.
+`random-21` is still the outlier, and went the wrong way by four.
