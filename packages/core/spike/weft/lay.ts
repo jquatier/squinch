@@ -139,7 +139,7 @@ export function lay(s: Sheet, root: boolean): Geo {
       const x = s.slots[slot];
       if (x.kind === "box" || (x.kind === "lane" && x.row !== k + 1)) return false;
       const row = s.rows[x.row], i = s.at[slot];
-      const clear = [row[i - 1], row[i + 1]].every((o, side) => o === undefined || (side ? u[o] - to : to - u[o]) >= w[o] / 2 + (side ? 0 : s.slots[o].kid?.bleedU ?? 0) + w[slot] / 2 + STUB);
+      const clear = [row[i - 1], row[i + 1]].every((o, side) => o === undefined || (side ? u[o] - to : to - u[o]) >= w[o] / 2 + (side ? 0 : s.slots[o].kid?.bleedU ?? 0) + w[slot] / 2 + (s.slots[o].kind === "box" ? STUB : GRID));
       if (!clear || (x.kind === "port" && to < (i ? -Infinity : STUB))) return false;
       u[slot] = to;
       return true;
