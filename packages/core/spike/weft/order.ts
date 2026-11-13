@@ -190,7 +190,15 @@ class Search {
         const by = row.map((_, i) => i).sort((p, q) => inside[p] - inside[q] || outside[p] - outside[q] || p - q);
         this.set(t, k, by.map((i) => row[i]));
         const out = t.parent;
-        if (out && out.sheet.dir === s.dir && out.sheet.slots[s.self!].row === (wall === "n" ? 1 : out.sheet.R)) this.comb(out, wall, false);
+        if (out && out.sheet.dir === s.dir) {
+          const at = out.sheet.slots[s.self!].row;
+          if (at === (wall === "n" ? 1 : out.sheet.R)) this.comb(out, wall, false);
+          // …and by the containers across the channel, whose own ties follow this order
+          if (this.anyTied) for (const slot of out.sheet.rows[wall === "n" ? at - 1 : at + 1] ?? []) {
+            const inner = out.sheet.slots[slot].kid?.sheet, facing = wall === "n" ? "s" : "n";
+            if (inner && inner.dir === s.dir && this.tied.has(`${facing}${inner.cell.id}`)) this.comb(this.count.tally(inner), facing, true);
+          }
+        }
       }
     }
     if (deep) for (const slot of s.rows[wall === "n" ? 1 : s.R] ?? []) {
