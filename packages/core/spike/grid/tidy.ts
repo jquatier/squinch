@@ -124,19 +124,22 @@ export function tidy(sh: Sheet, ports: Ports, rows: Rows): void {
    *  before a passing wire does: moving the wire only hands the jog to its
    *  other end. `boxesToo`: where neither can give, move a box — if nothing
    *  straight bends for it. Failing everything, the jog is opened up to a
-   *  full corner. Twice: one wire's port sliding can leave its neighbour off. */
+   *  full corner. */
   const nudge = (boxesToo: boolean) => {
-    for (let round = 0; round < 2; round++)
+    for (let round = 0; round < 3; round++)
       for (const hop of hops) {
         const { u, v, wire } = hop, d = off(hop);
         if (!d || Math.abs(d) > NEAR) continue;
-        if (ports.slide(v, wire, "start", d) || ports.slide(u, wire, "end", -d) || shift(v, d) || shift(u, -d)) continue;
+        if (ports.slide(v, wire, "start", d) || ports.slide(u, wire, "end", -d)) continue;
+        // Sliding the passing wire hands the jog to its next hop, where a
+        // port may take it. The last round does not: a jog still being
+        // handed round by then has nowhere to go, and is opened up instead.
+        if (round < 2 && (shift(v, d) || shift(u, -d))) continue;
         if (boxesToo && (carry(v, d, hop) || carry(u, -d, hop))) continue;
         const more = Math.sign(d) * (NEAR + 1 - Math.abs(d));
         ports.slide(v, wire, "start", -more) || ports.slide(u, wire, "end", more) || shift(v, -more) || shift(u, more);
       }
   };
-
   // boxes, then wires; and after the lattice has had its say, wires only —
   // the last word goes to the boxes' lines
   straighten();
