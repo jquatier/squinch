@@ -69,7 +69,7 @@ export function steps(it: Item, wall: "E" | "W"): number {
 }
 
 /** Centre-to-centre distance two neighbours in a row must keep. */
-export function apart(a: Item, b: Item): number {
+export function apart(a: Item, b: Item, tight = false): number {
   const cell = a.cell;
   const half = (it: Item) => it.w / 2;
   if (a.kind === "port" && b.kind === "port") return LANE;
@@ -87,7 +87,7 @@ export function apart(a: Item, b: Item): number {
     if (stepping > 1) gutter = Math.max(gutter, room + LANE * (stepping + 1) + (room ? 8 : 0));
     return up8(half(a) + bleedAcross(a) + gutter + half(b));
   }
-  const side = Math.max(LANE, cell.gap.lane / 2);
+  const side = tight ? LANE : Math.max(LANE, cell.gap.lane / 2);
   const gapOf = (it: Item) => (it.kind === "box" ? side : it.kind === "label" ? 8 : 0);
   return up8(half(a) + bleedAcross(a) + half(b) + Math.max(gapOf(a) + gapOf(b), a.kind === "label" || b.kind === "label" ? 8 : LANE));
 }
@@ -294,4 +294,57 @@ export function place(cell: Cell): void {
   const y = solve(g.n, g.arcs);
   for (const [it, node] of nodeOf) it.x = y[node] - y[L];
   cell.w = y[R] - y[L];
+  unkink(cell);
+}
+
+/** §4: nothing almost-right. A wire passing a rank stands half a gutter off
+ *  the box it passes — a step more than it strictly needs — so that where
+ *  two stretches of one wire have come to rest a single step apart, one of
+ *  them can take that step and the wire runs straight. A lane moves only if
+ *  that leaves the cell with fewer such jogs than before, and never nearer
+ *  to anything than a lane's width. */
+function unkink(cell: Cell): void {
+  const loose = (it: Item) => it.kind !== "box";
+  // where an end stands if it cannot slide: a lane, a label, a port — or a container's port
+  const fixedAt = (e: End, key: string): number | undefined =>
+    e.item.kind !== "box" ? e.item.x : e.item.inner && !stops(e, key) ? e.item.x + offsetOf(e, key) : undefined;
+  const jog = (s: Seg) => {
+    const a = fixedAt(s.upper, s.key), b = fixedAt(s.lower, s.key);
+    return a !== undefined && b !== undefined && a !== b && Math.abs(a - b) < LANE ? 1 : 0;
+  };
+  /** The lanes that would have to move for `it` to stand at `x`: itself, and
+   *  any lane it would crowd, pushed along — or nothing, if a box, a label or
+   *  a wall is in the way. */
+  const shove = (it: Item, x: number): [Item, number][] | undefined => {
+    const items = cell.rows[it.row].items, dir = x > it.x ? 1 : -1, out: [Item, number][] = [];
+    let at = x;
+    for (let k = it.pos; ; k += dir) {
+      const cur = items[k];
+      if (cur.row === 0 && cell.title && cur.touch[0]?.lower.item.kind !== "box" && at < cell.title.w + 8) return undefined;
+      out.push([cur, at]);
+      const next = items[k + dir];
+      if (!next) return at >= LANE && at <= cell.w - LANE ? out : undefined;
+      const need = dir > 0 ? apart(cur, next, true) : apart(next, cur, true);
+      if ((next.x - at) * dir >= need) return out;
+      if (!loose(next)) return undefined;
+      at += dir * need;
+    }
+  };
+  for (let pass = 0; pass < 4; pass++) {
+    let moved = false;
+    for (const segs of cell.segs)
+      for (const s of segs) {
+        if (!jog(s)) continue;
+        for (const [it, to] of [[s.lower.item, fixedAt(s.upper, s.key)!], [s.upper.item, fixedAt(s.lower, s.key)!]] as const) {
+          const moves = loose(it) ? shove(it, to) : undefined;
+          if (!moves) continue;
+          const touched = [...new Set(moves.flatMap(([m]) => m.touch))];
+          const before = touched.reduce((n, t) => n + jog(t), 0), was = moves.map(([m]) => m.x);
+          for (const [m, x] of moves) m.x = x;
+          if (touched.reduce((n, t) => n + jog(t), 0) < before) { moved = true; break; }
+          moves.forEach(([m], i) => { m.x = was[i]; });
+        }
+      }
+    if (!moved) break;
+  }
 }

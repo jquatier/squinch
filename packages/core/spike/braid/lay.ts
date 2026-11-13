@@ -46,6 +46,7 @@ export function lay(cell: Cell): void {
   for (const s of cell.sides) {
     const mode = sideMode(s);
     modes.set(s, mode);
+    s.mode = mode;
     if (mode !== "direct" && s.from.inner) {
       const id = `${s.from.uid}|${s.wall}`, k = (stepped.get(id) ?? 0) + 1;
       stepped.set(id, k);
@@ -143,7 +144,13 @@ export function lay(cell: Cell): void {
     for (const g of group) {
       const fa = fixedY(a, "E", g.key), fb = fixedY(b, "W", g.key), i = free.indexOf(g);
       let ya: number, yb: number;
-      if (fa !== undefined && fb !== undefined) { ya = fa; yb = fb; }
+      if (fa !== undefined && fb !== undefined) {
+        // both ends are ports of containers already drawn: one may still
+        // slide along the wall of the box inside to come level with the other
+        ya = fa; yb = fb;
+        if (ya !== yb && nudge(b.inner!, wallIn(b.inner!, cell, "W"), g.key, ya - b.y)) yb = ya;
+        else if (ya !== yb && nudge(a.inner!, wallIn(a.inner!, cell, "E"), g.key, yb - a.y)) ya = yb;
+      }
       else if (fa !== undefined) { ya = fa; yb = fa >= blo && fa <= bhi ? fa : Math.round((blo + bhi) / 2); }
       else if (fb !== undefined) { yb = fb; ya = fb >= alo && fb <= ahi ? fb : Math.round((alo + ahi) / 2); }
       else if (lo <= hi) ya = yb = spreadAbout((lo + hi) / 2, free.length, i, lo, hi);
@@ -237,4 +244,26 @@ function baseDepth(cell: Cell, k: number, height: readonly number[]): number {
   if (b === "label") return Math.max(8, Math.floor((cell.gap.rank - height[k + 1]) / 2));
   if (a === "label") return Math.max(8, Math.ceil((cell.gap.rank - height[k]) / 2));
   return cell.gap.rank;
+}
+
+/** Slide a wire's port along a side wall of a cell already drawn, to stand
+ *  at `to`: possible when the wire runs straight out from a box that has
+ *  that wall to itself (or from a container inside, which is asked in turn).
+ *  This is §5.4's "a port slides along its wall to meet a wire that could
+ *  then run straight", for a port the cell outside finds it needs moved —
+ *  the one thing passed back down, and only ever a straight stub's level. */
+export function nudge(cell: Cell, wall: string, key: string, to: number): boolean {
+  if (wall !== "E" && wall !== "W") return false;
+  const p = cell.sides.find((s) => s.key === key && s.wall === wall);
+  if (!p || p.mode !== "direct" || cell.sides.filter((s) => s.from === p.from && s.wall === wall).length > 1) return false;
+  const it = p.from;
+  if (it.inner) {
+    if (!it.inner.portAt.has(`${wallIn(it.inner, cell, wall)}|${key}`) || !nudge(it.inner, wallIn(it.inner, cell, wall), key, to - it.y)) return false;
+  } else {
+    const face = cell.flip ? undefined : it.node?.box?.face;
+    if (to < it.y + CORNER || to > it.y + Math.min(it.h, face ?? it.h) - CORNER) return false;
+  }
+  for (const q of p.pts) q.y = to;
+  cell.portAt.set(`${wall}|${key}`, to);
+  return true;
 }

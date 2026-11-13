@@ -76,7 +76,7 @@ interface PieceBase {
 export interface Seg extends PieceBase { kind: "seg"; upper: End; lower: End; ch: number }
 export interface Turn extends PieceBase { kind: "turn"; a: End; b: End; row: number; label?: { wire: string; w: number; h: number; at?: Pt } }
 export interface Glued extends PieceBase { kind: "glued"; a: End; b: End; row: number; label?: { wire: string; w: number; h: number; at?: Pt } }
-export interface Side extends PieceBase { kind: "side"; from: Item; wall: "E" | "W"; row: number }
+export interface Side extends PieceBase { kind: "side"; from: Item; wall: "E" | "W"; row: number; /** How it was drawn (lay.ts). */ mode?: "direct" | "over" | "under" }
 export type Piece = Seg | Turn | Glued | Side;
 
 export interface Row { kind: "wall" | "rank" | "label"; rank: number; items: Item[] }

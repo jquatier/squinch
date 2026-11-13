@@ -111,9 +111,19 @@ export function assignPorts(cell: Cell): Map<string, number> {
     // each end goes as far as it may; they move only if between them they meet
     const b2 = slide(p.lower.item, "N", p.key, a) ?? b;
     const a2 = slide(p.upper.item, "S", p.key, b2) ?? a;
-    if (a2 !== b2) return;
-    if (b2 !== b) set(p.lower.item, "N", p.key, b2);
-    if (a2 !== a) set(p.upper.item, "S", p.key, a2);
+    if (a2 === b2) {
+      if (b2 !== b) set(p.lower.item, "N", p.key, b2);
+      if (a2 !== a) set(p.upper.item, "S", p.key, a2);
+      return;
+    }
+    // §4: nothing almost-right. If they cannot meet and would be left a
+    // step apart, one stands back so the jog between them is a clear one.
+    if (Math.abs(a - b) >= LANE) return;
+    const away = a < b ? -1 : 1; // which way the upper end steps back
+    const a3 = slide(p.upper.item, "S", p.key, b + away * LANE);
+    if (a3 !== undefined && Math.abs(a3 - b) >= LANE) return set(p.upper.item, "S", p.key, a3);
+    const b3 = slide(p.lower.item, "N", p.key, a - away * LANE);
+    if (b3 !== undefined && Math.abs(b3 - a) >= LANE) set(p.lower.item, "N", p.key, b3);
   };
   for (const segs of cell.segs) for (const s of segs) straighten(s);
   for (let ch = cell.segs.length - 1; ch >= 0; ch--) for (const s of cell.segs[ch]) straighten(s);
