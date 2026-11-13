@@ -92,6 +92,9 @@ export interface Laid {
   pieces: Map<string, Pt[]>;    // wire → its run here, from → to
   labels: Map<string, Rect>;
   wall: Map<string, Pt>;        // wire → where it meets this container's wall
+  /** wire → the lane, in this container's coordinates, of the box inside
+   *  that a wire through its wall finally reaches — however deep. */
+  reach: Map<string, number>;
   /** child container → wire → the lane, in the child's own coordinates, the
    *  wire arrives on from this side of its wall. What the outside would like;
    *  the child may take it on a second pass. */
@@ -123,6 +126,9 @@ export interface Slot {
   after: number;              // extra room on the lane-high side (a bleed, sideways)
   pos: number;                // lane start
   label?: boolean;
+  /** A box nobody placed and no same-rank wire ties to a neighbour: it may
+   *  trade places with one like it to uncross the wires passing them. */
+  loose?: boolean;
   /** A wall port's least lane: clear of the container's title. */
   least?: number;
   /** Its place in its layer is settled: every box, and a wall port once the

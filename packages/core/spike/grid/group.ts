@@ -43,5 +43,5 @@ export function layoutGroup(
   const ports = assignPorts(sheet);
   const gutters = buildGutters(sheet);
   place(sheet, ports, gutters, box?.title, approach);
-  return emit(sheet, ports, gutters, stack(sheet, ports, box?.minW ?? 0, box?.title));
+  return emit(sheet, ports, gutters, stack(sheet, ports, box?.minW ?? 0, box?.title), heading);
 }

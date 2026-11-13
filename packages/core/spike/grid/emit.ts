@@ -7,7 +7,11 @@ import type { Sheet } from "./sheet.js";
 import type { Stacked } from "./stack.js";
 import { LABEL_PAD, type Laid, type Pt, type Rect, type Slot, type Wire } from "./types.js";
 
-export function emit(sh: Sheet, ports: Ports, gutters: ReadonlyMap<Slot, Gutter>, st: Stacked): Laid {
+export function emit(
+  sh: Sheet, ports: Ports, gutters: ReadonlyMap<Slot, Gutter>, st: Stacked,
+  /** wire → the lane of its far end, where this container has been told */
+  bound: ReadonlyMap<string, number> = new Map(),
+): Laid {
   const { ax, g, layers, chains, links } = sh;
   const boxF = (s: Slot) => layers[sh.layerOf(s)].f + sh.inset(s);
 
@@ -119,14 +123,25 @@ export function emit(sh: Sheet, ports: Ports, gutters: ReadonlyMap<Slot, Gutter>
     if (!box.box?.group || box.box.group.dir !== g.dir) return; // only where the two share a lane axis
     (into.get(box.id) ?? into.set(box.id, new Map()).get(box.id)!).set(wire.id, lane - box.pos);
   };
+  // Where a wire is really going: through this container's own wall, to
+  // wherever this container was told it ends; into a child container, to
+  // the box inside it — not to the wall port, which only follows.
+  const end = (s: Slot, wire: Wire, face: "start" | "end"): number => {
+    const inner = s.box && sh.childReach(s.box, wire);
+    return inner !== undefined ? s.pos + inner : ports.lane(s, wire, face);
+  };
+  const far = (s: Slot, wire: Wire, face: "start" | "end") => (s.kind === "port" ? bound.get(wire.id) : undefined) ?? end(s, wire, face);
+  const reach = new Map<string, number>();
   for (const c of chains) {
     const last = c.path.length - 1, top = c.path[0], bottom = c.path[last];
     note(approach, bottom, c.wire, ports.lane(c.path[last - 1], c.wire, "end"));
     note(approach, top, c.wire, ports.lane(c.path[1], c.wire, "start"));
-    note(heading, bottom, c.wire, ports.lane(top, c.wire, "end"));
-    note(heading, top, c.wire, ports.lane(bottom, c.wire, "start"));
+    note(heading, bottom, c.wire, far(top, c.wire, "end"));
+    note(heading, top, c.wire, far(bottom, c.wire, "start"));
+    if (top.kind === "port" && bottom.kind === "box") reach.set(c.wire.id, end(bottom, c.wire, "start"));
+    if (bottom.kind === "port" && top.kind === "box") reach.set(c.wire.id, end(top, c.wire, "end"));
   }
 
   const size = ax.toScreen(st.L, st.F);
-  return { w: size.x, h: size.y, rects, pieces, labels, wall, approach, heading };
+  return { w: size.x, h: size.y, rects, pieces, labels, wall, reach, approach, heading };
 }

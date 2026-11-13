@@ -108,6 +108,8 @@ it("grid vs ELK, view by view", async () => {
   const named = scored.filter((x) => x.r.set !== "random");
   console.log("\nWhere the new engine is furthest behind (ELK/grid):\n" + [...named].sort((a, b) => a.g - b.g).slice(0, 25).map(show).join("\n"));
   console.log("\nWhere it is furthest ahead:\n" + [...named].sort((a, b) => b.g - a.g).slice(0, 15).map(show).join("\n"));
+  console.log("\nRandom diagrams with the most crossings to make up:\n" + scored.filter((x) => x.r.set === "random")
+    .sort((a, b) => (b.r.grid.crossings - b.r.elk.crossings) - (a.r.grid.crossings - a.r.elk.crossings)).slice(0, 10).map(show).join("\n"));
   console.log("\nRound 2, every view:\n" + scored.filter((x) => x.r.set === "round 2").map(show).join("\n"));
 
   expect(rows.reduce((a, r) => a + r.gridIllegal, 0)).toBe(0);

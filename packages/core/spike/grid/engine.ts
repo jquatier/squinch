@@ -21,7 +21,7 @@ export type { Box, Dir, Group, Problem, Pt, Rect, Side, Solution, Wire } from ".
 export { median } from "./place.js";
 
 const ROOT = "";
-const PASSES = 3; // further layouts once the first has shown where wires come from
+const PASSES = 5; // further layouts once the first has shown where wires come from
 
 export function solve(problem: Problem): Solution {
   // ── index the tree ────────────────────────────────────────────────────────
@@ -98,10 +98,20 @@ export function solve(problem: Problem): Solution {
   };
   arrange(new Map());
   let top = lay(ROOT);
+  // Two things are learned from each layout and they answer each other: the
+  // order of a container's boxes follows where its wires arrive from, and
+  // the order of the wires leaving a container follows where they end up.
+  // Refreshed together they swap places every pass and never agree — so
+  // they take turns.
+  let outside = new Map<string, Map<string, Leaving>>();
   for (let pass = 0; pass < PASSES && groups.size > 1; pass++) {
     approach = new Map([...laid.values()].flatMap((l) => [...l.approach]));
-    heading = new Map([...laid.values()].flatMap((l) => [...l.heading]));
-    arrange(leavings(approach, groups, laid, routes, wireById));
+    // …and the last pass refreshes neither: it only lets every container
+    // meet the lanes its wires now arrive on
+    if (pass === PASSES - 1) { /* settle */ }
+    else if (pass % 2 === 0) outside = leavings(approach, groups, laid, routes, wireById);
+    else heading = new Map([...laid.values()].flatMap((l) => [...l.heading]));
+    arrange(outside);
     top = lay(ROOT);
   }
 

@@ -12,6 +12,8 @@ export interface Sheet {
   layerOf(s: Slot): number;
   /** Where a child container's own layout put this wire's wall port. */
   childPort(box: Box, wire: Wire): Pt | undefined;
+  /** The lane, inside a child container, of the box this wire finally reaches. */
+  childReach(box: Box, wire: Wire): number | undefined;
   /** Is `box` the first (`low`) or last (`high`) box of its rank? */
   outermost(box: string, wall: "low" | "high"): boolean;
   /** A box's flow offset inside its rank: tops level beside a table or a
@@ -85,8 +87,10 @@ export function draft(
   if (chainLinks.some((c) => c.bottom === "wall")) layerOfRank.set(rankCount, add("wall"));
 
   const boxSlot = new Map<string, Slot>();
+  const tied = new Set([...(g.held ?? []), ...(g.aligned ?? []).flat(), ...(g.columns ?? []).flat(),
+    ...links.flatMap((l) => (l.type === "beside" || l.type === "around" ? [l.a, l.b] : l.type === "side" ? [l.box] : []))]);
   for (const b of g.boxes) {
-    const s: Slot = { kind: "box", id: b.id, box: b, lsize: ax.lsize(b), fsize: ax.fsize(b), after: ax.down ? 0 : b.bleed ?? 0, pos: 0, pinned: true };
+    const s: Slot = { kind: "box", id: b.id, box: b, lsize: ax.lsize(b), fsize: ax.fsize(b), after: ax.down ? 0 : b.bleed ?? 0, pos: 0, pinned: true, loose: !tied.has(b.id) };
     boxSlot.set(b.id, s);
     layers[layerOfRank.get(ranks.get(b.id)!)!].slots.push(s);
   }
@@ -136,6 +140,7 @@ export function draft(
     slotOf: (box) => boxSlot.get(box)!,
     layerOf: (s) => layerIndex.get(s)!,
     childPort: (box, wire) => (box.group ? laid.get(box.id)!.wall.get(wire.id) : undefined),
+    childReach: (box, wire) => (box.group ? laid.get(box.id)!.reach.get(wire.id) : undefined),
     outermost: (box, wall) => {
       const row = layers[layerIndex.get(boxSlot.get(box)!)!].slots.filter((s) => s.kind === "box");
       return (wall === "low" ? row[0] : row[row.length - 1]).id === box;

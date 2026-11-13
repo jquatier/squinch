@@ -114,7 +114,9 @@ export function orderSlots(
   }
   layers.forEach((l, i) => { l.slots = best[i]; });
 
-  // then trade neighbours while it removes a crossing. Two boxes never trade.
+  // then trade neighbours while it removes a crossing. Two boxes trade only
+  // if both are loose: declaration order stands until a wire from outside,
+  // which the box order was settled without, has to cross to keep it.
   const splits = (row: Slot[], i: number) => {
     const l = row[i - 1], r = row[i + 1];
     return row[i].kind !== "box" && l?.kind === "box" && r?.kind === "box" && beside.has(`${l.id}|${r.id}`);
@@ -124,7 +126,7 @@ export function orderSlots(
     for (let li = 0; li < layers.length; li++) {
       const row = layers[li].slots;
       for (let i = 0; i + 1 < row.length; i++) {
-        if (row[i].pinned && row[i + 1].pinned) continue;
+        if (row[i].pinned && row[i + 1].pinned && !(row[i].loose && row[i + 1].loose)) continue;
         const before = crossings(li - 1) + crossings(li);
         [row[i], row[i + 1]] = [row[i + 1], row[i]];
         if (crossings(li - 1) + crossings(li) < before && !splits(row, i) && !splits(row, i + 1)) improved = true;
