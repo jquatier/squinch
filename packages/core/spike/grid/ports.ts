@@ -59,6 +59,16 @@ export function assignPorts(sh: Sheet): Ports {
     }
   }
 
+  // how many wires meet each wall — a container's too, whose ports are its inside's
+  const sharing = new Map<string, Set<string>>();
+  const share = (box: string, face: Face, wire: Wire) => (sharing.get(`${box}|${face}`) ?? sharing.set(`${box}|${face}`, new Set()).get(`${box}|${face}`)!).add(portId(wire));
+  for (const c of chains) {
+    const top = c.path[0], bottom = c.path[c.path.length - 1];
+    if (top.kind === "box") share(top.id, "end", c.wire);
+    if (bottom.kind === "box") share(bottom.id, "start", c.wire);
+  }
+  for (const [k, list] of wanted) for (const p of list) share(k.split("|")[0], k.split("|")[1] as Face, p.wire);
+
   const offset = new Map<string, number>(); // `${box}|${face}|${port}` → lane offset from the box's start
   const even = new Map<string, number>();   // the same, as first dealt out: evenly along the wall
   const ordered = new Map<string, Wire[]>(); // `${box}|${face}` → its wires, in order along the wall
@@ -78,7 +88,7 @@ export function assignPorts(sh: Sheet): Ports {
 
   return {
     lane: (s, wire, face) => s.pos + offsetOn(s, wire, face),
-    crowd: (s, face) => (s.kind === "box" ? wanted.get(`${s.id}|${face}`)?.length ?? 1 : 1),
+    crowd: (s, face) => (s.kind === "box" ? sharing.get(`${s.id}|${face}`)?.size ?? 1 : 1),
     meet: (target) => {
       for (const [k, list] of ordered) {
         const [id, face] = k.split("|") as [string, Face];

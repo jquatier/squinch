@@ -288,6 +288,9 @@ export function place(
       for (let i = 0; i + 1 < c.path.length; i++) {
         const hop = hopsOf.get(c.path[i])!.find((h) => h.v === c.path[i + 1] && h.wire === c.wire)!;
         if (boxesOnly !== (hop.u.kind === "box" && hop.v.kind === "box")) continue;
+        // only a wire that has both its walls to itself: a parent stays
+        // centred over its children, and they stay spread beneath it
+        if (ports.crowd(hop.u, "end") > 1 || ports.crowd(hop.v, "start") > 1) continue;
         const d = off(hop);
         if (d) carry(hop.v, d, hop) || carry(hop.u, -d, hop);
       }
@@ -308,6 +311,12 @@ export function place(
         const u = c.path[i], v = c.path[i + 1];
         const d = ports.lane(u, c.wire, "end") - ports.lane(v, c.wire, "start");
         if (!d || Math.abs(d) > NEAR) continue;
-        if (!(ports.slide(v, c.wire, "start", d) || shift(v, d))) ports.slide(u, c.wire, "end", -d) || shift(u, -d);
+        if (ports.slide(v, c.wire, "start", d) || shift(v, d) || ports.slide(u, c.wire, "end", -d) || shift(u, -d)) continue;
+        // no port or passing wire could give: move a box, if nothing straight
+        // bends for it — and failing that, open the jog up to a full corner
+        const hop = hopsOf.get(u)!.find((h) => h.v === v && h.wire === c.wire)!;
+        if (carry(v, d, hop) || carry(u, -d, hop)) continue;
+        const more = Math.sign(d) * (NEAR + 1 - Math.abs(d));
+        ports.slide(v, c.wire, "start", -more) || ports.slide(u, c.wire, "end", more) || shift(v, -more) || shift(u, more);
       }
 }
