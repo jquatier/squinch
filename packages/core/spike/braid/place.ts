@@ -303,6 +303,17 @@ export function place(cell: Cell): void {
   const y = solve(g.n, g.arcs);
   for (const [it, node] of nodeOf) it.x = y[node] - y[L];
   cell.w = y[R] - y[L];
+  // §5.5: a rank with no wire up or down is centred on its neighbours —
+  // nothing pulled it anywhere, so it was left against a wall
+  const banded = new Set(cell.aligned.flat());
+  for (const row of rows) {
+    const items = row.items;
+    if (row.kind !== "rank" || !items.length || items.some((it) => it.touch.length || it.band >= 0 || banded.has(it))) continue;
+    const first = items[0], last = items[items.length - 1];
+    const room = (cell.w - cell.pad.right - (last.x + last.w / 2)) - (first.x - first.w / 2 - cell.pad.left);
+    const shift = Math.trunc(room / 2 / GRID) * GRID;
+    for (const it of items) it.x += shift;
+  }
   unkink(cell);
 }
 

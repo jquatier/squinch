@@ -54,6 +54,10 @@ describe("place", () => {
     expect(x("lone") - x("a")).toBe(168);
     expect(p.root.w).toBeLessThanOrEqual(32 + 120 + 48 + 120 + 32 + 16); // …to the grid: centres on 8, width on 16
   });
+  it("centres a rank with no wire up or down on its neighbours", () => {
+    const { x, p } = centres(problem([leaf("a", 320), leaf("b", 320), leaf("lone")], ["a>b"], pin({ a: 0, b: 1, lone: 2 })));
+    expect(Math.abs(x("lone") - p.root.w / 2)).toBeLessThanOrEqual(8);
+  });
   it("keeps a wire passing a box half a gutter off it, and two wires a lane apart", () => {
     const { p } = centres(problem([leaf("a"), leaf("b"), leaf("c")], ["a>b", "b>c", "a>c"]));
     const lane = p.threads.get("w:a>c")!.items[0], b = p.root.boxes.get("b")!;
