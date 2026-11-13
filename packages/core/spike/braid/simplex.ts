@@ -139,7 +139,6 @@ export function solve(n: number, arcs: readonly Arc[]): number[] {
       if (parent[v] >= 0 && cut[v] < 0) { c = v; from = (v + 1) % n; break; }
     }
     if (c < 0) break;
-    if (pivots === 40 * n + 199 && typeof process !== "undefined" && process.env.SIMPLEX_DEBUG) console.log("simplex: gave up", n, m);
     const leaving = via[c], tailUnder = arcs[leaving].tail === c;
     // the arc that enters runs from the head's half back to the tail's half
     let entering = -1, least = Infinity;

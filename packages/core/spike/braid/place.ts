@@ -30,12 +30,11 @@ import type { Cell, End, Item, Seg } from "./plan.js";
 import { wallIn } from "./plan.js";
 import { feasible, solve, type Arc } from "./simplex.js";
 
-declare const process: { env: Record<string, string | undefined> } | undefined;
 export const GRID = 8;
 export const LANE = 16; // between two wires side by side
 const up8 = (v: number) => Math.ceil(v / GRID) * GRID;
 
-const W: Record<string, number> = {
+const W = {
   balance: 12,  // a box and the box its wire reaches: centres in line
   deadEnd: 8,   // …less hard if one of them goes nowhere else
   back: 2,      // …and barely at all for a wire running back against the flow
@@ -45,8 +44,6 @@ const W: Record<string, number> = {
   middle: 2,    // a wall's only wire: in the wall's middle
   together: 1, walls: 1,
 };
-
-if (typeof process !== "undefined" && process.env.BRAID_W) for (const kv of process.env.BRAID_W.split(",")) { const [k, v] = kv.split("="); W[k] = +v; }
 
 /** A box's bleed lies to its right in a transposed cell (it is below, in the picture). */
 const bleedAcross = (it: Item) => (it.cell.flip ? it.node?.box?.bleed ?? 0 : 0);

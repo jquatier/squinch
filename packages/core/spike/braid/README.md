@@ -59,7 +59,7 @@ and, for a wire entering a container, the place of its port on that
 container's wall, asked of the container every time. That is what makes the
 inside and the outside of a wall one decision: move a port, and the count
 on both sides of the wall moves with it. `sweep.ts` checks the count against
-the finished pictures; they agree (see "What is measured").
+the finished pictures (see "What is measured").
 
 **One judge.** `order.ts` keeps a candidate only if `score` prefers it:
 fewer crossings; then fewer boxes out of their declared order; then
@@ -166,12 +166,43 @@ BEFORE_AFTER=1 npx vitest run spike/braid/before-after.test.ts --disable-console
     this engine against grid and loom, view by view (ONLY=, NR=, AGAINST=)
 ```
 
+## What is measured
+
+`npx tsx spike/braid/sweep.ts` — every set through this engine, both judges
+(`checkLayout` with every wire held to the strict rule, and `audit.ts`):
+
+| set | views | violations | crossings counted / drawn | bends | jogs < 16 |
+|---|---|---|---|---|---|
+| corpus | 259 | 0 | 25 / 25 | 701 | 5 |
+| trial | 35 | 0 | 73 / 73 | 531 | 2 |
+| round 2 | 35 | 0 | 1 / 1 | 374 | 1 |
+| random | 80 | 0 | 286 / 288 | 2,716 | 59 |
+| corpus + trial, turned rightward | 303 | 0 | 98 / 98 | 1,725 | 31 |
+
+The count and the picture disagree on one view of 712 (random 37, a `wrap`
+fold: a bundle is counted as its member wires, and its shared bus is drawn
+once). Against ELK over the 384 scored views: 233 better, 145 level, 6
+worse; total penalty −46%.
+
 ## What is not done
 
-See the hand-back report for the full list. In short: one 8-pixel grid holds
-within every run of containers that share a direction, not across a
-container of the other direction; a wire that ends *at* a container (rather
-than inside it) is drawn to its wall but takes no part in the port order
-there; bundles are counted as their members (a bus crossed once is counted
-once per branch it shadows); and a port is not slid along a container's
-north or south wall once the container is drawn.
+- One 8-pixel grid holds within every run of containers that share a
+  direction, not across a container of the other direction (its ports sit
+  where its own ranks put them).
+- A wire that ends *at* a container (rather than inside it) is drawn to its
+  wall, legally, but takes no part in the port order there.
+- Bundles are counted as their members: a bus crossed once is counted once
+  per branch it shadows.
+- A port on a container's north or south wall is not moved once the
+  container is drawn; the cell outside brings the wire to it. (Only a
+  straight stub to a side wall is — `nudge`.) So "an arrival lane is
+  followed when it lies within the extent of the container's own boxes"
+  (§5.7) is met from the outside only.
+- Two wires changing places on the same two lines are kept apart by a
+  one-step landing (`lay.ts`), which draws a jog shorter than 16 px.
+- More jogs under 16 px remain than in the earlier engines, nearly all in
+  rightward diagrams where a 64 px wall carries four or five wires.
+- A rank with no wire of its own is centred only if no wire passes it.
+- The search has one start. Where the earlier engines draw a view with
+  fewer crossings (a handful of dense random diagrams) a second start or a
+  move that turns a container about would be the place to look.
