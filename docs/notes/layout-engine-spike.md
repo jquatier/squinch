@@ -235,14 +235,58 @@ rather than a staircase, all found by looking at the first attempt:
 - the same holds across the container's wall — nine workers writing to one
   store outside are a trunk, not nine lanes threading the bands below.
 
-Two ways to ask. The view's `wrap N` reaches every container the view opens,
-which works in today's language. A single container can also be folded
-(`layoutViewGrid(…, { wrap: { farm: 4 } })`) — that stands in for a `wrap`
-line in the container's own `layout { }`, which is where the fact belongs
-(it should follow the container into every view) but which the grammar
-refuses today. Accepting it is a few lines in `model/build.ts` and one test
-that pins the refusal; it was left alone because it changes the shipping
-language.
+Two ways to ask. The view's `wrap N` reaches every container the view opens.
+A container can also carry its own — `layout { wrap 4 }` in the system's
+block, beside `rows`, `cols`, `place` and `direction` — which is where the
+fact belongs, since it follows the container into every view. That line is
+now part of the language (SPEC §3): the model accepts it, `wrap` beside
+`rows` or `cols` in one block is an error as in a view, and the ELK engine
+folds the view scoped to the container and warns, with the `rows` line to
+write, where the container is expanded inside another view.
+
+### Left to right
+
+`spike/grid/direction-right.test.ts` asks three things of a rightward flow.
+
+**Does it read rightward?** Twelve acyclic diagrams with nothing arranged by
+hand — chains, fans, a lattice, a tree, tiers. Both engines: every one of 75
+wires leaves an east wall and enters a west one, and all 45 columns keep one
+left edge. No difference; sizes within a few pixels.
+
+**Are arrangements honoured?** Under a rightward flow a `rows` band is a
+column. Twelve stated arrangements — zones one after another, two zones in one
+column, a cloud holding two VPCs, a downward container inside a rightward
+view, a wire running back against the flow, a folded chain, tables.
+
+| | ELK engine | Grid engine |
+|---|---|---|
+| Arranged as asked | 11 of 12 | 12 of 12 |
+| Tidy (a row's tops level, a column flush left) | 8 of 11 | 10 of 11 |
+
+ELK's one miss is the same as under a downward flow: two VPCs inside a cloud,
+asked into one column, come out side by side.
+
+**Is everything still legal on its side?** Every corpus and trial view that
+is not already rightward, turned to flow right — 303 views.
+
+| | ELK engine | Grid engine |
+|---|---|---|
+| Check errors | 14 | — |
+| Invariant violations | 11 | 0 |
+| Total area | 114.3 M | 109.2 M (×0.96) |
+| Total wire | 392 k | 350 k (×0.89) |
+| Bends | 1,972 | 1,757 (×0.89) |
+| Crossings | 153 | 139 (×0.91) |
+| Jogs under 16 px | 43 | 47 |
+
+One rough spot, in both engines: a chain with a wire running back (`a -> b
+-> c`, `c -> a`) does not sit on one baseline. The returning wire shares a
+wall with the forward one, the two ports sit a third of the wall apart, and
+the next box lines up on its port rather than on the box's centre — 11 px
+off. Two fixes were tried and measured (line boxes up on centres and let
+ports slide to meet; place boxes before the wires that pass between them).
+Both made that case level and neither was kept: the first moved the totals
+the wrong way on bends, the second cost 9% of area on dense graphs.
 
 ### What ELK made us work around, and what happens instead
 

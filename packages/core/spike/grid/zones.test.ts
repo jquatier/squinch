@@ -4,46 +4,13 @@
 //   npx vitest run spike/grid/zones.test.ts --disable-console-intercept
 import { it, expect } from "vitest";
 import { buildProject } from "../../src/index.js";
-import { layoutView, type Positioned } from "../../src/layout/layout.js";
+import { layoutView } from "../../src/layout/layout.js";
 import { checkLayout } from "../../test/invariants.js";
 import { layoutViewGrid } from "./layout.js";
 import { measureLayout } from "./metrics.js";
 
-type R = { x: number; y: number; w: number; h: number };
-/** The rectangle of a zone (by id), an expanded container or a node (by path). */
-const rectOf = (p: Positioned, id: string): R | undefined =>
-  p.zones.find((z) => z.id === id) ?? p.frames.find((f) => f.path === id) ?? p.nodes.find((n) => n.path === id);
+import { rectOf, row, stack, level, leftOf, sys, zone, view, type Ask } from "./asks.js";
 
-/** What the author asked for, as a check on the picture. */
-type Ask = { say: string; holds(p: Positioned): boolean; /** tidiness rather than arrangement */ polish?: boolean };
-const all = (p: Positioned, ids: string[]) => ids.map((id) => rectOf(p, id));
-const pairs = <T,>(xs: T[]) => xs.slice(1).map((b, i) => [xs[i], b] as const);
-/** Left to right, sharing some height: a row. */
-const row = (...ids: string[]): Ask => ({
-  say: `${ids.join(" | ")} in a row`,
-  holds: (p) => pairs(all(p, ids)).every(([a, b]) => !!a && !!b && a.x + a.w <= b.x && a.y < b.y + b.h && b.y < a.y + a.h),
-});
-/** Entirely to the left, whatever the heights: a column before a column. */
-const leftOf = (a: string, b: string): Ask => ({
-  say: `${a} left of ${b}`,
-  holds: (p) => { const [x, y] = all(p, [a, b]); return !!x && !!y && x.x + x.w <= y.x; },
-});
-/** Top to bottom, nothing overlapping: a stack. */
-const stack = (...ids: string[]): Ask => ({
-  say: `${ids.join(" / ")} stacked`,
-  holds: (p) => pairs(all(p, ids)).every(([a, b]) => !!a && !!b && a.y + a.h <= b.y),
-});
-/** Tops on one line — a row that also looks like one. */
-const level = (...ids: string[]): Ask => ({
-  polish: true,
-  say: `${ids.join(", ")} level`,
-  holds: (p) => pairs(all(p, ids)).every(([a, b]) => !!a && !!b && Math.abs(a.y - b.y) <= 2),
-});
-
-const sys = (id: string, label: string, leaves: string[], edges: string[] = []) =>
-  `system ${id} "${label}" {\n${leaves.map((l) => `  ${l} = box "${l}"`).join("\n")}\n${edges.map((e) => `  ${e}`).join("\n")}\n}\n`;
-const zone = (id: string, label: string, kind: string, ...members: string[]) => `zone ${id} "${label}" ${kind} { contains ${members.join(", ")} }\n`;
-const view = (body: string) => `view v { include *\n${body}\n}\n`;
 const web = sys("web", "Web", ["ui", "bff"], ["ui -> bff"]);
 const api = sys("api", "API", ["gw", "svc", "db"], ["gw -> svc", "svc -> db"]);
 const data = sys("data", "Data", ["lake", "jobs"], ["jobs -> lake"]);
