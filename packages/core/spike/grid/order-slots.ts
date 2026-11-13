@@ -9,11 +9,30 @@ import type { Chain, Layer, Slot, Wire } from "./types.js";
 
 const SWEEPS = 12;
 
-export function orderSlots(
+/** One container's ordering, kept so the whole picture can be ordered
+ *  together (`order-all.ts`): its cost as it stands, and its moves. */
+export interface SlotOrder {
+  /** Sweeps, then trades. `outer` is what the order of this container's
+   *  wall ports costs the container outside, as that now stands: with it, a
+   *  port goes where the two sides of the wall together cross least. */
+  settle(outer?: () => number): void;
+  /** Crossings in this container as its slots now stand. */
+  cost(): number;
+  /** Trade neighbours while it removes a crossing — leaving the wall ports
+   *  where they are, which is not this container's call alone. */
+  polish(): void;
+}
+
+export function orderSlots(...args: Parameters<typeof slotOrder>): void {
+  slotOrder(...args).settle();
+}
+
+export function slotOrder(
   layers: Layer[], chains: readonly Chain[], neighbours: readonly (readonly [string, string])[],
-  /** Where on a container's wall a wire's port already is, as a fraction of
-   *  the wall — its inside decided. Two wires into one container cross or
-   *  not by this; two wires into a plain box never do, their ports follow. */
+  /** Where on a container's wall a wire's port is, as a fraction of the
+   *  wall, read afresh each time: its inside decides, and may yet change its
+   *  mind. Two wires into one container cross or not by this; two wires into
+   *  a plain box never do, their ports follow. */
   fixed: (s: Slot, wire: Wire) => number = () => 0,
   /** Where along the wall a port's wire is headed once outside, 0 to 1, if
    *  known: the tie-break among places that cross nothing. */
@@ -25,16 +44,19 @@ export function orderSlots(
   /** How many wires leave each box sideways, toward the low wall and the
    *  high: a wire passing on that side of the box crosses every one. */
   sideways: ReadonlyMap<string, { low: number; high: number }> = new Map(),
-): void {
+): SlotOrder {
   // hops[i]: between layer i and i+1, each end carrying its place within its slot
-  type Hop = [u: Slot, v: Slot, fu: number, fv: number];
+  type Hop = [u: Slot, v: Slot, wire: Wire];
   const hops: Hop[][] = layers.map(() => []);
+  const plain = (s: Slot) => !s.box?.group;
   chains.forEach((c) => c.path.forEach((s, i) => {
     const next = c.path[i + 1];
-    if (next && !hops[c.first + i].some(([u, v]) => u === s && v === next && !fixed(s, c.wire) && !fixed(next, c.wire)))
-      hops[c.first + i].push([s, next, fixed(s, c.wire), fixed(next, c.wire)]);
+    // two wires between the same two plain slots are one hop: they cannot cross
+    if (next && !(plain(s) && plain(next) && hops[c.first + i].some(([u, v]) => u === s && v === next)))
+      hops[c.first + i].push([s, next, c.wire]);
   }));
   const beside = new Set(neighbours.flatMap(([a, b]) => [`${a}|${b}`, `${b}|${a}`]));
+  let outer: (() => number) | undefined;
 
   const reinsert = (li: number, s: Slot, useAbove: boolean, useBelow: boolean, settled = true) => {
     const layer = layers[li].slots;
@@ -52,12 +74,12 @@ export function orderSlots(
       let cost = 0;
       // an inserted slot at p sits left of here-index ≥ p
       const side = (x: Slot) => (here.get(x)! < p ? -1 : 1);
-      if (upHop) for (const [u, v, fu] of hops[li - 1]) {
-        const far = above.get(u)! + fu - above.get(up!)! - upHop[2];
+      if (upHop) for (const [u, v, w] of hops[li - 1]) {
+        const far = above.get(u)! + fixed(u, w) - above.get(up!)! - fixed(up!, upHop[2]);
         if (v !== s && far && here.has(v) && Math.sign(far) !== side(v)) cost++;
       }
-      if (dnHop) for (const [u, v, , fv] of hops[li]) {
-        const far = below.get(v)! + fv - below.get(dn!)! - dnHop[3];
+      if (dnHop) for (const [u, v, w] of hops[li]) {
+        const far = below.get(v)! + fixed(v, w) - below.get(dn!)! - fixed(dn!, dnHop[2]);
         if (u !== s && far && here.has(u) && Math.sign(far) !== side(u)) cost++;
       }
       // a wire passing between a box and the side wall its own wires leave by
@@ -73,6 +95,12 @@ export function orderSlots(
           const g = x.kind === "port" ? headed(x) : undefined;
           if (g !== undefined && Math.abs(g - headed(s)!) > 1e-9 && Math.sign(g - headed(s)!) !== side(x)) cost++;
         }
+      // what standing here costs on the far side of the wall
+      if (outer && s.kind === "port") {
+        layer.splice(p, 0, s);
+        cost += outer();
+        layer.splice(p, 1);
+      }
       // never between two boxes a same-rank wire joins directly
       const l = layer[p - 1], r = layer[p];
       if (l?.kind === "box" && r?.kind === "box" && beside.has(`${l.id}|${r.id}`)) cost += 100;
@@ -99,11 +127,10 @@ export function orderSlots(
     if (i < 0 || i + 1 >= layers.length) return 0;
     const up = new Map(layers[i].slots.map((x, k) => [x, k])), dn = new Map(layers[i + 1].slots.map((x, k) => [x, k]));
     let n = 0;
-    for (let a = 0; a < hops[i].length; a++)
-      for (let b = a + 1; b < hops[i].length; b++) {
-        const [u1, v1, fu1, fv1] = hops[i][a], [u2, v2, fu2, fv2] = hops[i][b];
-        if ((up.get(u1)! + fu1 - up.get(u2)! - fu2) * (dn.get(v1)! + fv1 - dn.get(v2)! - fv2) < 0) n++;
-      }
+    const ends = hops[i].map(([u, v, w]) => [up.get(u)! + fixed(u, w), dn.get(v)! + fixed(v, w)]);
+    for (let a = 0; a < ends.length; a++)
+      for (let b = a + 1; b < ends.length; b++)
+        if ((ends[a][0] - ends[b][0]) * (ends[a][1] - ends[b][1]) < 0) n++;
     return n;
   };
   /** Pairs of wall ports in layer `i` out of order with where they are headed. */
@@ -131,37 +158,40 @@ export function orderSlots(
   // keep the best arrangement seen — a wire through several ranks only moves
   // as a whole when each sweep looks one way
   const free = (li: number) => layers[li].slots.filter((s) => !s.pinned || s.loose);
-  for (let li = 0; li < layers.length; li++) for (const s of free(li)) reinsert(li, s, true, li === 0);
   // within a layer, slots are re-placed in the order of what they follow, so
   // each lands beside the neighbours it will keep
   const following = (li: number, down: boolean) => {
     const facing = new Map((down ? layers[li - 1] : layers[li + 1])?.slots.map((x, k) => [x, k]) ?? []);
     const key = (s: Slot) => {
       const hop = down ? hops[li - 1]?.find(([, v]) => v === s) : hops[li]?.find(([u]) => u === s);
-      return hop ? facing.get(down ? hop[0] : hop[1])! + (down ? hop[2] : hop[3]) : Infinity;
+      return hop ? facing.get(down ? hop[0] : hop[1])! + fixed(down ? hop[0] : hop[1], hop[2]) : Infinity;
     };
     return free(li).map((s, i) => ({ s, i, k: key(s) })).sort((a, b) => a.k - b.k || a.i - b.i).map((x) => x.s);
   };
-  // Twice from the same start: once with every box keeping its declared
-  // place unless leaving it removes a crossing, once with boxes nobody
-  // placed going wherever their wires draw them, like any slot. The second
-  // is taken only if it crosses less — declaration order is worth a tie.
-  const start = layers.map((l) => [...l.slots]), startCost = total();
-  const sweeps = (settled: boolean) => {
-    layers.forEach((l, i) => { l.slots = [...start[i]]; });
-    let best = start, bestCost = startCost;
-    for (let sweep = 0; sweep < SWEEPS && bestCost > 0; sweep++) {
-      const down = sweep % 2 === 1;
-      for (const li of down ? layers.keys() : [...layers.keys()].reverse())
-        for (const s of following(li, down)) reinsert(li, s, down || li === layers.length - 1, !down || li === 0, settled);
-      const cost = total();
-      if (cost < bestCost) { best = layers.map((l) => [...l.slots]); bestCost = cost; }
-    }
-    return { best, bestCost };
+  const sweepAll = () => {
+    for (let li = 0; li < layers.length; li++) for (const s of free(li)) reinsert(li, s, true, li === 0);
+    // Twice from the same start: once with every box keeping its declared
+    // place unless leaving it removes a crossing, once with boxes nobody
+    // placed going wherever their wires draw them, like any slot. The second
+    // is taken only if it crosses less — declaration order is worth a tie.
+    const whole = () => total() + (outer?.() ?? 0);
+  const start = layers.map((l) => [...l.slots]), startCost = whole();
+    const sweeps = (settled: boolean) => {
+      layers.forEach((l, i) => { l.slots = [...start[i]]; });
+      let best = start, bestCost = startCost;
+      for (let sweep = 0; sweep < SWEEPS && bestCost > 0; sweep++) {
+        const down = sweep % 2 === 1;
+        for (const li of down ? layers.keys() : [...layers.keys()].reverse())
+          for (const s of following(li, down)) reinsert(li, s, down || li === layers.length - 1, !down || li === 0, settled);
+        const cost = total();
+        if (cost < bestCost) { best = layers.map((l) => [...l.slots]); bestCost = cost; }
+      }
+      return { best, bestCost };
+    };
+    const kept = sweeps(true), freed = kept.bestCost > 0 ? sweeps(false) : kept;
+    const chosen = freed.bestCost < kept.bestCost ? freed : kept;
+    layers.forEach((l, i) => { l.slots = [...chosen.best[i]]; });
   };
-  const kept = sweeps(true), freed = kept.bestCost > 0 ? sweeps(false) : kept;
-  const chosen = freed.bestCost < kept.bestCost ? freed : kept;
-  layers.forEach((l, i) => { l.slots = [...chosen.best[i]]; });
 
   // then trade neighbours while it removes a crossing. Two boxes trade only
   // if both are loose: declaration order stands until a wire from outside,
@@ -171,28 +201,34 @@ export function orderSlots(
     return row[i].kind !== "box" && l?.kind === "box" && r?.kind === "box" && beside.has(`${l.id}|${r.id}`);
   };
   /** One sweep of trades along a row; true if any removed a crossing. */
-  const trade = (li: number, boxesToo: boolean): boolean => {
+  const trade = (li: number, boxesToo: boolean, walls = true): boolean => {
     const row = layers[li]?.slots ?? [];
     let improved = false;
     for (let i = 0; i + 1 < row.length; i++) {
       const [a, b] = [row[i], row[i + 1]];
       if (a.pinned && b.pinned && !(boxesToo && a.loose && b.loose)) continue;
-      const around = () => crossings(li - 2) + crossings(li - 1) + crossings(li) + crossings(li + 1) + astray(li - 1) + astray(li) + astray(li + 1) + barred(li - 1) + barred(li) + barred(li + 1);
+      if (!walls && (a.kind === "port" || b.kind === "port")) continue;
+      const ports = a.kind === "port" || b.kind === "port";
+      const around = () => crossings(li - 2) + crossings(li - 1) + crossings(li) + crossings(li + 1) + astray(li - 1) + astray(li) + astray(li + 1) + barred(li - 1) + barred(li) + barred(li + 1)
+        + (ports && outer ? outer() : 0);
       const before = around();
       const boxes = a.kind === "box" && b.kind === "box";
       // two boxes trading take the wires beside them along: the rows either
       // side get to re-sort before the trade is judged
       const kept = boxes ? [layers[li - 1]?.slots.slice(), layers[li + 1]?.slots.slice()] : [];
       [row[i], row[i + 1]] = [b, a];
-      if (boxes) for (const near of [li - 1, li + 1]) while (trade(near, false));
+      if (boxes) for (const near of [li - 1, li + 1]) while (trade(near, false, walls));
       if (around() < before && !splits(row, i) && !splits(row, i + 1)) { improved = true; continue; }
       [row[i], row[i + 1]] = [a, b];
       if (boxes) [li - 1, li + 1].forEach((near, k) => { if (kept[k]) layers[near].slots = kept[k]!; });
     }
     return improved;
   };
-  for (let round = 0, improved = true; improved && round < 8; round++) {
-    improved = false;
-    for (let li = 0; li < layers.length; li++) if (trade(li, true)) improved = true;
-  }
+  const trades = (walls: boolean) => {
+    for (let round = 0, improved = true; improved && round < 8; round++) {
+      improved = false;
+      for (let li = 0; li < layers.length; li++) if (trade(li, true, walls)) improved = true;
+    }
+  };
+  return { settle: (o) => { outer = o; sweepAll(); trades(true); outer = undefined; }, cost: total, polish: () => trades(false) };
 }

@@ -16,6 +16,11 @@ export interface Sheet {
   childReach(box: Box, wire: Wire): number | undefined;
   /** Is `box` the first (`low`) or last (`high`) box of its rank? */
   outermost(box: string, wall: "low" | "high"): boolean;
+  /** Where a wire meets this container's own wall, as a fraction along it
+   *  in the order its ports now stand — what the container outside sees. */
+  wallFraction(wire: Wire): number;
+  /** Take up the sizes its child containers have turned out to be. */
+  resize(): void;
   /** A box's flow offset inside its rank: tops level beside a table or a
    *  container, centred otherwise. */
   inset(s: Slot): number;
@@ -49,7 +54,6 @@ function linksOf(gid: string, ax: Axes, wires: readonly Wire[], routes: Readonly
 export function draft(
   gid: string, g: Group, wires: readonly Wire[],
   routes: ReadonlyMap<string, Route>, ranks: ReadonlyMap<string, number>, laid: ReadonlyMap<string, Laid>,
-  approach: ReadonlyMap<string, number> = new Map(),
 ): Sheet {
   const ax = axes(g);
   const links = linksOf(gid, ax, wires, routes);
@@ -121,22 +125,23 @@ export function draft(
     return { wire: c.wire, path, first: from, flipped: c.flipped, stubLabel: stubEnd(c) };
   });
 
-  // A container follows the flow: once the outside has said which lane each
-  // wire arrives on, the ports of its start wall stand in that order and the
-  // inside arranges itself to suit. (Its end wall stays the inside's to
-  // order — the next container down follows it in turn.)
-  const entry = layers[0];
-  if (entry?.kind === "wall" && entry.slots.every((s) => approach.has(s.id))) {
-    entry.slots.sort((a, b) => approach.get(a.id)! - approach.get(b.id)!);
-    for (const s of entry.slots) s.pinned = true;
-  }
-
   const layerIndex = new Map<Slot, number>();
   layers.forEach((layer, i) => layer.slots.forEach((s) => layerIndex.set(s, i)));
   const startAligned = (layer: Layer) => !ax.down || layer.slots.some((s) => s.box?.face !== undefined || s.box?.group);
   const tallest = (layer: Layer) => Math.max(0, ...layer.slots.map((s) => s.fsize));
+  // each wire's port on this container's flow walls, and its side wall if it leaves by one
+  const portOf = new Map<string, Slot>();
+  for (const c of chains) for (const end of [c.path[0], c.path[c.path.length - 1]]) if (end.kind === "port") portOf.set(c.wire.id, end);
+  const sideOf = new Map(links.flatMap((l) => (l.type === "side" ? [[l.wire.id, l.wall] as const] : [])));
   return {
     gid, g, ax, wires, links, layers, chains,
+    wallFraction: (wire) => {
+      const port = portOf.get(wire.id);
+      if (!port) return sideOf.get(wire.id) === "high" ? 0.999 : 0;
+      const row = layers[layerIndex.get(port)!].slots;
+      return (row.indexOf(port) + 0.5) / row.length;
+    },
+    resize: () => { for (const s of boxSlot.values()) { s.lsize = ax.lsize(s.box!); s.fsize = ax.fsize(s.box!); } },
     slotOf: (box) => boxSlot.get(box)!,
     layerOf: (s) => layerIndex.get(s)!,
     childPort: (box, wire) => (box.group ? laid.get(box.id)!.wall.get(wire.id) : undefined),

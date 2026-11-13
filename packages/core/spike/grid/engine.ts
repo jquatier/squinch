@@ -12,9 +12,11 @@
 // and each wire stitched from the pieces the containers on its way drew.
 
 import { sideOf } from "./axes.js";
-import { layoutGroup } from "./group.js";
+import { layoutGroup, ordering } from "./group.js";
+import { orderAll } from "./order-all.js";
 import { orderBoxes, type Leaving } from "./order.js";
 import { assignRanks, dense, type Edge } from "./rank.js";
+import { draft } from "./sheet.js";
 import { sketchOrder } from "./sketch.js";
 import { tally } from "./tally.js";
 import type { Box, Group, Laid, Problem, Pt, Rect, Role, Route, Solution, Wire } from "./types.js";
@@ -107,18 +109,26 @@ function attempt(problem: Problem, sketch: boolean): { solution: Solution; cross
   // and each pass lets one more container down the flow follow the one above.
   const laid = new Map<string, Laid>();
   let approach = new Map<string, Map<string, number>>(), heading = new Map<string, Map<string, number>>();
-  const lay = (id: string): Laid => {
-    const g = groups.get(id)!;
-    for (const b of g.boxes) if (b.group) {
-      const inner = lay(b.id);
-      b.w = inner.w; b.h = inner.h;
+  // Each pass: draft every container, order them all together, then lay
+  // each out — innermost first, since a container needs its children's sizes.
+  const inner = [...groups.keys()].reverse(); // a child is indexed after its parent
+  const parentOf = (id: string) => (id === ROOT ? undefined : chainOf.get(id)![chainOf.get(id)!.length - 1]);
+  const lay = (): Laid => {
+    const sheets = new Map(inner.map((id) => [id, draft(id, groups.get(id)!, problem.wires, routes, ranks, laid)]));
+    const orders = new Map(inner.map((id) => {
+      const before = laid.get(id), g = groups.get(id)!;
+      return [id, ordering(sheets.get(id)!, boxes.get(id), (c) => sheets.get(c), heading.get(id), before ? (g.dir === "down" ? before.w : before.h) : 0)];
+    }));
+    orderAll(inner.map((id) => sheets.get(id)!), parentOf, (id) => orders.get(id)!);
+    for (const id of inner) {
+      const out = layoutGroup(sheets.get(id)!, boxes.get(id), approach.get(id), heading.get(id));
+      laid.set(id, out);
+      const box = boxes.get(id);
+      if (box) { box.w = out.w; box.h = out.h; }
     }
-    const before = laid.get(id);
-    const extent = before ? (g.dir === "down" ? before.w : before.h) : 0;
-    const out = layoutGroup(id, g, boxes.get(id), problem.wires, routes, ranks, laid, approach.get(id), extent, heading.get(id));
-    laid.set(id, out);
-    return out;
+    return laid.get(ROOT)!;
   };
+
   // ── absolute positions, and each wire stitched from its pieces ────────────
   const assemble = (top: Laid): Solution => {
   const origin = new Map<string, Pt>([[ROOT, { x: 0, y: 0 }]]);
@@ -159,7 +169,7 @@ function attempt(problem: Problem, sketch: boolean): { solution: Solution; cross
     if (crossings < score[0] || (crossings === score[0] && bends <= score[1])) { best = sol; score = [crossings, bends]; }
   };
   arrange(new Map());
-  consider(lay(ROOT));
+  consider(lay());
   // Two things are learned from each layout and they answer each other: the
   // order of a container's boxes follows where its wires arrive from, and
   // the order of the wires leaving a container follows where they end up.
@@ -174,7 +184,7 @@ function attempt(problem: Problem, sketch: boolean): { solution: Solution; cross
     else if (pass % 2 === 0) outside = leavings(approach, groups, laid, routes, wireById);
     else heading = new Map([...laid.values()].flatMap((l) => [...l.heading]));
     arrange(outside);
-    consider(lay(ROOT));
+    consider(lay());
   }
   return { solution: best!, crossings: score[0], bends: score[1] };
 }
