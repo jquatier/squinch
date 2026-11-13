@@ -820,3 +820,44 @@ the whole hierarchy, in which a wire passing a rank is a node in that rank's
 order — inside containers and across their walls alike — rather than each
 container ordering its own slots with a hint from outside. That is a
 different ordering stage, not a tweak to this one.
+
+### The whole picture ordered together
+
+Tried, and it works. The engine no longer drafts and orders a container at
+the moment it lays it out. Each pass now has three steps:
+
+1. **Draft** every container's slots — boxes, passing wires, wall ports —
+   before any has a position (`sheet.ts`).
+2. **Order them all together** (`order-all.ts`). Every container is ordered
+   on its own first. Then each is ordered again with what the order of its
+   wall ports costs the container *outside* counted in — a port goes where
+   the two sides of the wall together cross least — outermost first and
+   back, while the total falls. The best arrangement seen is kept.
+3. **Lay out**, innermost first, as before (`group.ts`).
+
+The piece that made it possible is small: a container's view of a child's
+wall is no longer a number fixed when the child was laid out but a question
+asked each time (`Sheet.wallFraction`), so the child's ports can move and
+the parent's crossing count moves with them.
+
+| | Before | Now | ELK |
+|---|---|---|---|
+| Trial set: crossings | 566 | 545 | 607 |
+| Trial set: bends | 3,849 | 3,791 | 4,328 |
+| `random-21` (the worst): crossings | 37 | 18 | 8 |
+| `random-45`: crossings | 36 | 25 | 21 |
+| Corpus: crossings | 25 | 25 | 73 |
+| 259 corpus views | 0.9 s | 1.2 s | 4.3 s |
+
+384 views: 180 better, 191 level, 13 worse; total penalty −34%. On the 320
+views that are not random, crossings are 98 to ELK's 162.
+
+Not every dense view gained — `random-9` went from 5 crossings to 10 —
+because the count being minimised is the ordering model's, not the drawn
+picture's: which track a wire turns on, and how far a passing wire stands
+from the box it passes, are decided later and can cross what the model said
+would not. The engine's keeping the best of its passes by the *drawn* count
+absorbs some of that. Tried and not kept: dropping the old estimate of
+outside crossings now that they are counted for real (worse: the estimate
+still helps the first, container-alone ordering); more ordering rounds (it
+settles in two).

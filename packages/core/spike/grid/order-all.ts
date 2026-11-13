@@ -12,7 +12,7 @@
 import type { Sheet } from "./sheet.js";
 import type { SlotOrder } from "./order-slots.js";
 
-const ROUNDS = 4;
+const ROUNDS = 2;
 
 export function orderAll(
   /** every container, innermost first */
