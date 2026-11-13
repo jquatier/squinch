@@ -1,0 +1,37 @@
+// Round-two diagram for the grid engine: written after the engine, never tuned against.
+system a "Team A" {
+  s1 = box "Search"
+  s2 = box "Suggest"
+  s1 -> s2
+}
+system b "Team B" {
+  s1 = box "Profile"
+  s2 = box "Graph"
+  s3 = box "Feed"
+  s3 -> s2
+  s3 -> s1
+}
+system c "Team C" {
+  s1 = box "Ads"
+  s2 = box "Billing"
+  s1 -> s2
+}
+system d "Team D" {
+  s1 = box "Notify"
+  s2 = box "Email"
+  s3 = box "Push"
+  s1 -> s2
+  s1 -> s3
+}
+b.s3 -> a.s1 "query"
+b.s3 -> c.s1 "fill"
+a.s2 -> b.s2 "signals"
+c.s1 -> b.s1 "targeting"
+b.s3 -> d.s1 "fan-out"
+c.s2 -> d.s2 "invoices"
+view teams { include * }
+view open { include *
+  expand * }
+view grid { include *
+  expand *
+  layout { rows [a b] [c d] } }

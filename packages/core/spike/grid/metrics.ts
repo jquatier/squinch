@@ -18,6 +18,7 @@ export interface Metrics {
   kinks: number;       // a jog shorter than a corner radius can draw cleanly
   unstraight: number;  // wires that turn although their ends face each other
   nearMiss: number;    // two boxes in one container almost, but not, on one line
+  lopsided: number;    // a box off the middle of the boxes its wires fan out to
 }
 
 type Seg = { x1: number; y1: number; x2: number; y2: number; horizontal: boolean };
@@ -67,5 +68,25 @@ export function measureLayout(p: Positioned): Metrics {
       if (beside && !stacked && almost(a.y + a.h / 2, b.y + b.h / 2) && almost(a.y, b.y)) nearMiss++;
       if (stacked && !beside && almost(a.x + a.w / 2, b.x + b.w / 2) && almost(a.x, b.x)) nearMiss++;
     }
-  return { area: p.width * p.height, width: p.width, height: p.height, wire, bends, crossings, overlaps, throughNode, throughFrame, kinks, unstraight, nearMiss };
+  // DESIGN: a parent stands over the middle of its children. For every wall
+  // of a box that two or more wires leave by, to different boxes: is the box
+  // within a grid step of the middle of the span those boxes make?
+  let lopsided = 0;
+  const byId = new Map(p.nodes.map((n) => [n.path, n]));
+  const fans = new Map<string, { vertical: boolean; others: Set<string> }>();
+  for (const e of p.edges)
+    for (const [me, other, pt] of [[e.from, e.to, e.points[0]], [e.to, e.from, e.points[e.points.length - 1]]] as const) {
+      const n = byId.get(me);
+      if (!n || !byId.has(other) || !pt) continue;
+      const wall = pt.y === n.y ? "n" : pt.y === n.y + n.h ? "s" : pt.x === n.x ? "w" : "e";
+      const k = `${me}|${wall}`;
+      (fans.get(k) ?? fans.set(k, { vertical: wall === "n" || wall === "s", others: new Set() }).get(k)!).others.add(other);
+    }
+  for (const [k, fan] of fans) {
+    if (fan.others.size < 2) continue;
+    const mid = (n: { x: number; y: number; w: number; h: number }) => (fan.vertical ? n.x + n.w / 2 : n.y + n.h / 2);
+    const cs = [...fan.others].map((o) => mid(byId.get(o)!));
+    if (Math.abs(mid(byId.get(k.split("|")[0])!) - (Math.min(...cs) + Math.max(...cs)) / 2) > 8) lopsided++;
+  }
+  return { lopsided, area: p.width * p.height, width: p.width, height: p.height, wire, bends, crossings, overlaps, throughNode, throughFrame, kinks, unstraight, nearMiss };
 }

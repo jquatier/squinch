@@ -1,0 +1,34 @@
+// Round-two diagram for the grid engine: written after the engine, never tuned against.
+person admin "Tenant admin"
+person member "Member"
+system app "Product" {
+  web = box "Web app"
+  api = box "API"
+  jobs = box "Background jobs"
+  db = box "Postgres" datastore
+  web -> api
+  api -> db
+  api -> jobs "enqueue"
+  jobs -> db
+}
+system platform "Platform" {
+  auth = box "Auth"
+  billing = box "Billing"
+  flags = box "Feature flags"
+}
+stripe = box "Stripe"
+email = box "Email provider"
+okta = box "Customer IdP"
+admin -> app.web
+member -> app.web
+app.api -> platform.auth "session"
+app.api -> platform.flags
+app.api -> platform.billing "usage"
+platform.auth -> okta "SAML"
+platform.billing -> stripe
+app.jobs -> email
+zone ext "Third parties" onprem { contains stripe, email, okta }
+view product { include *
+  expand app }
+view all { include *
+  expand * }

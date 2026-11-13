@@ -1,0 +1,26 @@
+// Round-two diagram for the grid engine: written after the engine, never tuned against.
+a = box "Intake"
+b = box "Validate"
+c = box "Enrich"
+d = box "Deduplicate"
+e = box "Score"
+f = box "Route"
+g = box "Approve"
+h = box "Fulfil"
+i = box "Invoice"
+j = box "Archive"
+a -> b
+b -> c
+c -> d
+d -> e
+e -> f
+f -> g
+g -> h
+h -> i
+i -> j
+e -> b "reject"
+g -> c "needs info"
+view chain { include *
+  layout { wrap 5 } }
+view line { include *
+  layout { direction right } }

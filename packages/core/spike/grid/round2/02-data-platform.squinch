@@ -1,0 +1,39 @@
+// Round-two diagram for the grid engine: written after the engine, never tuned against.
+pack aws
+system sources "Sources" {
+  app = box "App databases"
+  events = box "Clickstream"
+  saas = box "SaaS exports"
+}
+system ingest "Ingest" {
+  cdc = box "CDC"
+  firehose = aws/kinesis "Firehose"
+  batch = aws/lambda "Batch pull"
+}
+system lake "Lake" {
+  raw = aws/s3 "Raw" datastore
+  curated = aws/s3 "Curated" datastore
+  raw -> curated "transform"
+}
+system serve "Serving" {
+  wh = box "Warehouse" datastore
+  bi = box "Dashboards"
+  ml = box "Feature store" datastore
+  wh -> bi
+}
+person analyst "Analysts"
+sources.app -> ingest.cdc
+sources.events -> ingest.firehose
+sources.saas -> ingest.batch
+ingest.cdc -> lake.raw
+ingest.firehose -> lake.raw
+ingest.batch -> lake.raw
+lake.curated -> serve.wh "load"
+lake.curated -> serve.ml "features"
+analyst -> serve.bi
+view overview { include * }
+view detail { include *
+  expand * }
+view sideways { include *
+  expand *
+  layout { direction right } }

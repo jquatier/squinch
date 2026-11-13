@@ -1,0 +1,28 @@
+// Round-two diagram for the grid engine: written after the engine, never tuned against.
+person dev "Developer"
+repo = box "Repository"
+ci = box "CI runner"
+lint = box "Lint"
+unit = box "Unit tests"
+e2e = box "E2E tests"
+build = box "Build image"
+reg = box "Registry" datastore
+staging = box "Staging"
+prod = box "Production"
+chat = box "Chat"
+dev -> repo "push"
+repo -> ci "webhook"
+ci -> lint
+ci -> unit
+ci -> e2e
+lint -> build
+unit -> build
+e2e -> build
+build -> reg "push"
+reg -> staging "deploy"
+staging -> prod "promote"
+ci ~> chat "status"
+prod ~> chat "released"
+view pipeline { include *
+  layout { direction right } }
+view down { include * }

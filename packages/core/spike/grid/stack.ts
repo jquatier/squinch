@@ -39,6 +39,15 @@ export function stack(sh: Sheet, ports: Ports, minW: number, title?: { w: number
     }
   }
 
+  // a label on a wire's last stub needs that much channel beyond the tracks
+  const head = new Map<number, number>(), tail = new Map<number, number>();
+  for (const c of chains) {
+    if (!c.stubLabel) continue;
+    const room = ax.labelF(c.wire) + 2 * LABEL_PAD;
+    if (c.stubLabel === "top") head.set(c.first, Math.max(head.get(c.first) ?? 0, room));
+    else tail.set(c.first + c.path.length - 2, Math.max(tail.get(c.first + c.path.length - 2) ?? 0, room));
+  }
+
   // ── flow positions ────────────────────────────────────────────────────────
   const channels = new Map<number, Channel>();
   const halfLabelGap = Math.max(LABEL_PAD, Math.round((g.gap.rank - 18) / 2));
@@ -54,8 +63,10 @@ export function stack(sh: Sheet, ports: Ports, minW: number, title?: { w: number
     const centre: number[] = [];
     half.forEach((h, t) => centre.push(t ? centre[t - 1] + half[t - 1] + TRACK + h : h));
     const used = count ? centre[count - 1] + half[count - 1] : 0;
-    const depth = Math.ceil(Math.max(least, count ? Math.max(STUB, below) + used + STUB : 0));
-    const first = f + Math.max(Math.round((depth - used) / 2), count ? below : 0);
+    const before = Math.max(count ? Math.max(STUB, below) : 0, head.get(i) ?? 0), after = Math.max(count ? STUB : 0, tail.get(i) ?? 0);
+    const depth = Math.ceil(Math.max(least, before + used + after));
+    // the tracks, centred in what the stubs leave free
+    const first = f + before + Math.max(0, Math.round((depth - before - after - used) / 2));
     channels.set(i, { f, depth, trackF: new Map(here.map((r) => [r.id, first + Math.round(centre[track.get(r.id)!])])) });
     return f + depth;
   };

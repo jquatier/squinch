@@ -5,7 +5,7 @@ import type { Gutter } from "./gutters.js";
 import type { Ports } from "./ports.js";
 import type { Sheet } from "./sheet.js";
 import type { Stacked } from "./stack.js";
-import type { Laid, Pt, Rect, Slot, Wire } from "./types.js";
+import { LABEL_PAD, type Laid, type Pt, type Rect, type Slot, type Wire } from "./types.js";
 
 export function emit(sh: Sheet, ports: Ports, gutters: ReadonlyMap<Slot, Gutter>, st: Stacked): Laid {
   const { ax, g, layers, chains, links } = sh;
@@ -52,6 +52,12 @@ export function emit(sh: Sheet, ports: Ports, gutters: ReadonlyMap<Slot, Gutter>
       }
     });
     put(c.wire, lf, c.flipped);
+    if (c.stubLabel) {
+      // on the stub at the end that is this wire's alone, clear of the box
+      const [l, f] = c.stubLabel === "bottom" ? lf[lf.length - 1] : lf[0];
+      const away = LABEL_PAD + ax.labelF(c.wire) / 2;
+      labelAt(c.wire, l, c.stubLabel === "bottom" ? f - away : f + away);
+    }
   }
 
   // across a gutter

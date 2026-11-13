@@ -1,0 +1,41 @@
+// Round-two diagram for the grid engine: written after the engine, never tuned against.
+api = box "API"
+system pg "Postgres" {
+  users = sys/table "users" datastore {
+    fields {
+      id uuid pk
+      email text
+      created_at timestamptz
+    }
+  }
+  orders = sys/table "orders" datastore {
+    fields {
+      id uuid pk
+      user_id uuid fk
+      total bigint
+      status text
+    }
+  }
+  items = sys/table "order_items" datastore {
+    fields {
+      order_id uuid pk
+      sku text pk
+      qty int
+    }
+  }
+  skus = sys/table "skus" datastore {
+    fields {
+      sku text pk
+      name text
+      price bigint
+    }
+  }
+  orders -> users "user_id"
+  items -> orders "order_id"
+  items -> skus "sku"
+}
+api -> pg.users
+api -> pg.orders
+view schema { include *
+  expand pg }
+view tables { scope pg }

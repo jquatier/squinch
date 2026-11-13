@@ -64,7 +64,16 @@ export function draft(
     const a = rankOf(c.top, "top"), b = rankOf(c.bottom, "bottom");
     return (b - a) % 2 === 0 ? { rank: (a + b) / 2 } : { gap: a + (b - a - 1) / 2 };
   };
-  const labelled = new Set(chainLinks.filter((c) => c.labelled).map(labelSpot).flatMap((s) => ("gap" in s ? [s.gap] : [])));
+  /** A bundle's wires share a trunk most of the way, so a label half-way
+   *  would stand on the trunk and split it. Each carries its label on its
+   *  own branch instead: the stub at the end that is its alone. */
+  const stubEnd = (c: ChainLink): "top" | "bottom" | undefined => {
+    if (!c.labelled || !c.wire.bundle || rankOf(c.bottom, "bottom") - rankOf(c.top, "top") < 2) return undefined;
+    const sharesFrom = wires.every((w) => w.bundle !== c.wire.bundle || w.from === c.wire.from);
+    return sharesFrom !== c.flipped ? "bottom" : "top";
+  };
+  const inLayers = (c: ChainLink) => c.labelled && !stubEnd(c);
+  const labelled = new Set(chainLinks.filter(inLayers).map(labelSpot).flatMap((s) => ("gap" in s ? [s.gap] : [])));
   const layers: Layer[] = [];
   const layerOfRank = new Map<number, number>(), layerOfLabel = new Map<number, number>();
   const add = (kind: Layer["kind"]) => layers.push({ kind, slots: [], f: 0, depth: 0 }) - 1;
@@ -86,7 +95,7 @@ export function draft(
   const shared = new Map<string, Slot>();
   const chains: Chain[] = chainLinks.map((c) => {
     const from = layerOfRank.get(rankOf(c.top, "top"))!, to = layerOfRank.get(rankOf(c.bottom, "bottom"))!;
-    const spot = c.labelled ? labelSpot(c) : undefined;
+    const spot = inLayers(c) ? labelSpot(c) : undefined;
     const labelAt = !spot ? undefined : "gap" in spot ? layerOfLabel.get(spot.gap) : layerOfRank.get(spot.rank);
     const path: Slot[] = [];
     for (let i = from; i <= to; i++) {
@@ -105,7 +114,7 @@ export function draft(
       layers[i].slots.push(s);
       path.push(s);
     }
-    return { wire: c.wire, path, first: from, flipped: c.flipped };
+    return { wire: c.wire, path, first: from, flipped: c.flipped, stubLabel: stubEnd(c) };
   });
 
   // A container follows the flow: once the outside has said which lane each

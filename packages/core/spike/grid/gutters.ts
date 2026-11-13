@@ -3,6 +3,7 @@
 // flow positions where a channel has lane positions.
 
 import { assignTracks, type Run } from "./channel.js";
+import { spread } from "./isotonic.js";
 import type { Sheet } from "./sheet.js";
 import { CORNER, LABEL_PAD, STUB, TRACK, type BesideLink, type Slot } from "./types.js";
 
@@ -47,6 +48,18 @@ export function buildGutters(sh: Sheet): Map<Slot, Gutter> {
       const fb = fr ?? (fl !== undefined ? clamp(fl, right) : shared);
       return { link, fa, fb };
     });
+    // several wires meeting one plain box each get their own place on its
+    // wall: as near where they come from as the wall and each other allow
+    const apart = (side: "fa" | "fb", s: Slot, fixed: (r: (typeof runs)[number]) => boolean) => {
+      const mine = runs.filter((r) => !fixed(r)).sort((p, q) => p[side] - q[side]);
+      const from = sh.inset(s) + CORNER, room = ax.sideFace(s.box!) - 2 * CORNER;
+      const gap = Math.min(TRACK, mine.length > 1 ? Math.floor(room / (mine.length - 1)) : TRACK);
+      spread(mine.map((r) => r[side]), mine.map(() => 1), mine.map(() => gap)).forEach((v, i) => {
+        mine[i][side] = Math.round(Math.min(Math.max(v, from + i * gap), from + room - (mine.length - 1 - i) * gap));
+      });
+    };
+    apart("fa", left, (r) => !!sh.childPort(left.box!, r.link.wire));
+    apart("fb", right, (r) => !!sh.childPort(right.box!, r.link.wire));
     const bent: Run[] = runs.filter((r) => r.fa !== r.fb).map((r) => ({ id: r.link.wire.id, a: { at: "lo", pos: r.fa }, b: { at: "hi", pos: r.fb } }));
     const tracks = assignTracks(bent);
     const count = Math.max(0, ...[...tracks.values()].map((t) => t + 1));

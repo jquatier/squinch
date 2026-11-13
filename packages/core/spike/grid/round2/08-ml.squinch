@@ -1,0 +1,24 @@
+// Round-two diagram for the grid engine: written after the engine, never tuned against.
+person ds "Data scientist"
+notebooks = box "Notebooks"
+features = box "Feature store" datastore
+train = box "Training jobs"
+registry = box "Model registry" datastore
+eval = box "Evaluation"
+serve = box "Model server"
+monitor = box "Drift monitor"
+app = box "Product"
+logs = box "Prediction log" datastore
+ds -> notebooks
+notebooks -> train "submit"
+features -> train
+train -> registry "register"
+registry -> eval
+eval -> registry "approve"
+registry -> serve "deploy"
+app -> serve "predict"
+serve -> features "online lookup"
+serve ~> logs
+logs -> monitor
+monitor -> train "retrain"
+view lifecycle { include * }

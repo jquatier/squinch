@@ -1,0 +1,23 @@
+// Round-two diagram for the grid engine: written after the engine, never tuned against.
+pack aws
+person shopper "Shopper"
+web = aws/cloudfront "Storefront" { subtitle: "static + edge" }
+api = aws/fargate "Checkout API" { subtitle: "ECS" }
+cart = aws/dynamodb "Carts" datastore
+orders = aws/dynamodb "Orders" datastore
+pay = box "Payment provider" { subtitle: "external" }
+bus = aws/sns "Order events"
+mail = aws/lambda "Receipt mailer"
+ship = aws/lambda "Fulfilment"
+shopper -> web "browse"
+web -> api "checkout"
+api -> cart "read"
+api -> orders "write"
+api -> pay "charge"
+pay -> api "webhook"
+orders ~> bus "stream"
+bus -> mail
+bus -> ship
+view checkout { include * }
+view pinned { include *
+  layout { rows [shopper web] [api pay] [cart orders] [bus] [mail ship] } }

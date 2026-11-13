@@ -123,6 +123,8 @@ export interface Slot {
   after: number;              // extra room on the lane-high side (a bleed, sideways)
   pos: number;                // lane start
   label?: boolean;
+  /** A wall port's least lane: clear of the container's title. */
+  least?: number;
   /** Its place in its layer is settled: every box, and a wall port once the
    *  outside has said which lane its wire arrives on. */
   pinned?: boolean;
@@ -131,4 +133,8 @@ export interface Layer { kind: "rank" | "label" | "wall"; slots: Slot[]; f: numb
 
 /** A wire's way through the layers, top to bottom. `flipped` when the wire
  *  itself runs bottom to top. */
-export interface Chain { wire: Wire; path: Slot[]; first: number; flipped: boolean }
+export interface Chain {
+  wire: Wire; path: Slot[]; first: number; flipped: boolean;
+  /** Its label stands on the stub at this end rather than in a layer. */
+  stubLabel?: "top" | "bottom";
+}

@@ -1,0 +1,40 @@
+// Round-two diagram for the grid engine: written after the engine, never tuned against.
+person customer "Customer"
+system edge "Edge" {
+  gw = box "Gateway"
+  auth = box "Auth"
+  gw -> auth "verify"
+}
+system catalog "Catalog" {
+  api = box "Catalog API"
+  search = box "Search"
+  db = box "Catalog DB" datastore
+  api -> db
+  api -> search
+}
+system ordering "Ordering" {
+  api = box "Order API"
+  saga = box "Saga"
+  db = box "Order DB" datastore
+  api -> saga
+  saga -> db
+}
+system payments "Payments" {
+  api = box "Payments API"
+  risk = box "Risk"
+  db = box "Ledger" datastore
+  api -> risk
+  api -> db
+}
+customer -> edge.gw
+edge.gw -> catalog.api "browse"
+edge.gw -> ordering.api "order"
+ordering.saga -> payments.api "charge"
+ordering.saga -> catalog.api "reserve"
+payments.api -> ordering.saga "result"
+view systems { include * }
+view open { include *
+  expand * }
+view order { include *
+  expand ordering, payments
+  layout { rows [customer] [edge] [catalog ordering payments] } }

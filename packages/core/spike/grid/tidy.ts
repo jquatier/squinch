@@ -73,14 +73,21 @@ export function tidy(sh: Sheet, ports: Ports, rows: Rows): void {
    *  never a few pixels. A box moves at most half a step; its ports then go
    *  to meet their wires again, which is what they are for. */
   const snap = () => {
+    const onLattice = (v: number, least: number) => {
+      let at = Math.round(v / LATTICE) * LATTICE;
+      while (at < least) at += LATTICE;
+      return at;
+    };
     for (const { slots: row } of sh.layers)
       row.forEach((s, i) => {
         const prev = row[i - 1];
         const least = prev ? prev.pos + prev.lsize + rows.gapAfter(prev, s) : -Infinity;
-        if (s.kind !== "box" || onAxis.has(s)) { s.pos = Math.max(s.pos, least); return; }
-        let centre = Math.round((s.pos + s.lsize / 2) / LATTICE) * LATTICE;
-        while (centre - s.lsize / 2 < least) centre += LATTICE;
-        s.pos = Math.round(centre - s.lsize / 2);
+        // a wall port stands on the lattice too: it is where this container's
+        // wire is, seen from outside, and two containers joined by a straight
+        // wire must round the same way
+        if (s.kind === "port") s.pos = onLattice(s.pos, Math.max(least, s.least ?? -Infinity));
+        else if (s.kind !== "box" || onAxis.has(s)) s.pos = Math.max(s.pos, least);
+        else s.pos = Math.round(onLattice(s.pos + s.lsize / 2, least + s.lsize / 2) - s.lsize / 2);
       });
     rows.settleWall();
     ports.meet();

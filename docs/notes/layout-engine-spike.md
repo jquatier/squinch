@@ -477,3 +477,69 @@ nest. What remains before a gauntlet round:
 The timing argument stands either way. After launch, `render --check` makes
 layout output something users have committed, and any engine change makes their
 CI stale.
+
+## A score for "does it look better?"
+
+`spike/grid/score.ts` turns the question into one number per view, so it can
+be asked of every view at once and answered the same way each time. A view's
+*penalty* adds up what a reviewer would mark on it:
+
+| Weight | For each |
+|---|---|
+| 60 | illegal thing: a wire through a box, a broken invariant |
+| 10 | crossing |
+| 5 | jog too short to draw cleanly; pair of boxes almost, but not, in line |
+| 4 | box off the middle of the boxes its wires fan out to |
+| 3 | wire that bends although its ends face each other |
+| 1 | bend; 200 px of wire; 200×200 px of canvas |
+
+Lower is better; within 5% either way is "the same". The weights are a
+judgement, written down once and applied to both engines, and
+`score.test.ts` prints how the verdict moves when each is halved or doubled.
+
+`npx vitest run spike/grid/score.test.ts --disable-console-intercept`, over
+409 views — the corpus, the twenty trial diagrams, sixteen more written after
+the engine (`round2/`: checkout, a data platform, three subnets, event-driven,
+microservices, CI/CD, two regions, an ML lifecycle, an SSO hub, nested zones,
+IoT, a bank, a long chain, tables, a SaaS product, a team mesh) and eighty
+random ones:
+
+| Set | Views | Better | Same | Worse | Total penalty |
+|---|---|---|---|---|---|
+| Corpus | 259 | 104 | 84 | 71 | −19% |
+| Trial | 35 | 20 | 7 | 8 | −31% |
+| Round 2 | 35 | 23 | 3 | 9 | −38% |
+| Random | 80 | 43 | 11 | 26 | −4% |
+| **Everything** | **409** | **190** | **105** | **114** | **−14%** |
+
+Three things to know before quoting that.
+
+- **It turns on centring.** A parent centred over two children bends both
+  wires; ELK runs one straight and hangs the parent over that child. Count
+  bends alone and the centred picture loses. With the centring term set to
+  nothing the tally is 140 better, 119 the same, 150 worse — the new engine
+  behind by count, still 14% ahead on total penalty. The term is in because
+  centring is what was asked for; the number without it is printed beside.
+- **The views it wins, it wins by more.** Where the grid is ahead the cause
+  is usually something ELK got wrong outright — 62 illegal things across the
+  set, none in the grid — or a wire taken the long way round. Where it is
+  behind the cause is nearly always crossings: 249 more of them across the
+  114 lost views, mostly in dense random graphs and between nested containers.
+- **The score cannot see a hint that was not honoured.** `10-nested-zones#side`
+  asks for two networks side by side; ELK stacks them and scores 40, the grid
+  does as asked and scores 121 for the crossings it draws getting there.
+
+What the scoring round changed in the engine, each found by a view that lost:
+
+- A container's wall ports stand on the 8-pixel grid like its boxes. Two
+  containers joined by a straight wire used to round to different lines and
+  leave a jog of a few pixels between them.
+- A bundled wire's label stands on its own last stub, not half-way along the
+  trunk it shares, where it split the trunk into a comb.
+- Several wires into the side of one plain box each get their own place on
+  the wall (two used to land on one point).
+
+Still behind, by eye as well as by number: wires between nested containers
+(`14-tables#schema`, `10-nested-zones#side`), and a box with no wires is kept
+in declared order even where moving it would let two zones line up
+(`20-multicloud-migration#landscape`, 688 px wide to ELK's 472).

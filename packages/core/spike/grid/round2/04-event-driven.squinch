@@ -1,0 +1,28 @@
+// Round-two diagram for the grid engine: written after the engine, never tuned against.
+pack aws
+api = aws/api-gateway "API"
+orders = aws/lambda "Orders"
+bus = aws/eventbridge "Event bus"
+inv = aws/lambda "Inventory"
+bill = aws/lambda "Billing"
+notify = aws/lambda "Notifications"
+audit = aws/lambda "Audit"
+odb = aws/dynamodb "Orders" datastore
+idb = aws/dynamodb "Stock" datastore
+ledger = aws/dynamodb "Ledger" datastore
+dlq = aws/sqs "Dead letters"
+api -> orders
+orders -> odb
+orders -> bus "OrderPlaced"
+bus -> inv
+bus -> bill
+bus -> notify
+bus -> audit
+inv -> idb
+bill -> ledger
+inv -> bus "StockReserved"
+bill ~> dlq "failures"
+notify ~> dlq
+view flow { include * }
+view folded { include *
+  layout { rows [api] [orders] [bus] [inv bill notify audit] [idb ledger dlq odb] } }

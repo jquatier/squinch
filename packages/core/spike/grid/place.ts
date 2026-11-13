@@ -180,8 +180,8 @@ function straightenRuns(sh: Sheet, ports: Ports, rows: Rows, approach: ReadonlyM
 function clearTitle(sh: Sheet, rows: Rows, title: { w: number; h: number }): void {
   if (sh.ax.down) {
     let least = title.w + CORNER;
-    for (const s of sh.layers[0]?.kind === "wall" ? sh.layers[0].slots : []) { s.pos = Math.max(s.pos, least); least = s.pos + WIRE_WIRE; }
+    for (const s of sh.layers[0]?.kind === "wall" ? sh.layers[0].slots : []) { s.least = least; s.pos = Math.max(s.pos, least); least = s.pos + WIRE_WIRE; }
   } else {
-    for (const s of rows.all) if (s.kind === "port") s.pos = Math.max(s.pos, title.h + CORNER);
+    for (const s of rows.all) if (s.kind === "port") { s.least = title.h + CORNER; s.pos = Math.max(s.pos, s.least); }
   }
 }

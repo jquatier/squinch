@@ -1,0 +1,31 @@
+// Round-two diagram for the grid engine: written after the engine, never tuned against.
+pack aws
+person user "Users"
+dns = aws/route-53 "DNS" { subtitle: "latency routing" }
+system east "us-east-1" {
+  lb = aws/elb "ALB"
+  app = aws/fargate "App"
+  db = aws/rds "Aurora writer" datastore
+  lb -> app
+  app -> db
+}
+system west "eu-west-1" {
+  lb = aws/elb "ALB"
+  app = aws/fargate "App"
+  db = aws/rds "Aurora reader" datastore
+  lb -> app
+  app -> db
+}
+assets = aws/s3 "Assets" datastore
+user -> dns
+dns -> east.lb
+dns -> west.lb
+east.db ~> west.db "global replication"
+west.app -> east.db "writes"
+east.app -> assets
+west.app -> assets
+view regions { include *
+  expand east, west }
+view pinned { include *
+  expand east, west
+  layout { rows [user] [dns] [east west] [assets] } }
