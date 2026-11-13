@@ -5,6 +5,7 @@
 // leaving it from crossing each other.
 
 import type { Sheet } from "./sheet.js";
+import { sideFace } from "./side.js";
 import { spread } from "./isotonic.js";
 import { CORNER, type Face, type Slot, type Wire } from "./types.js";
 
@@ -56,7 +57,7 @@ export function assignPorts(sh: Sheet): Ports {
       want(l.a, "end", l.wire, ib < ia ? -FAR - ib : FAR - ib);
       want(l.b, "end", l.wire, ia < ib ? -FAR - ia : FAR - ia);
     } else if (l.type === "side" && !sh.outermost(l.box, l.wall)) {
-      want(l.box, l.outward ? "end" : "start", l.wire, l.wall === "low" ? -2 * FAR : 2 * FAR);
+      want(l.box, sideFace(sh, l), l.wire, l.wall === "low" ? -2 * FAR : 2 * FAR);
     }
   }
 

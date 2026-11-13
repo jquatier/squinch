@@ -4,6 +4,7 @@
 import { assignTracks, type Run } from "./channel.js";
 import type { Ports } from "./ports.js";
 import type { Sheet } from "./sheet.js";
+import { sideRun } from "./side.js";
 import { CORNER, LABEL_PAD, LATTICE, STUB, TRACK } from "./types.js";
 
 export interface Channel { f: number; depth: number; trackF: Map<string, number> }
@@ -32,10 +33,10 @@ export function stack(sh: Sheet, ports: Ports, minW: number, title?: { w: number
       runsIn(sh.layerOf(a)).push({ id: l.wire.id, a: { at: "lo", pos: ports.lane(a, l.wire, "end") }, b: { at: "lo", pos: ports.lane(b, l.wire, "end") } });
       if (l.wire.label) thick.set(l.wire.id, ax.labelF(l.wire));
     } else if (l.type === "side" && !sh.outermost(l.box, l.wall)) {
-      const s = sh.slotOf(l.box), li = sh.layerOf(s);
+      const li = sh.layerOf(sh.slotOf(l.box)), run = sideRun(sh, ports, l);
       const out = { at: l.wall === "low" ? "start" : "end" } as const;
-      if (l.outward) runsIn(li).push({ id: l.wire.id, a: { at: "lo", pos: ports.lane(s, l.wire, "end") }, b: out });
-      else runsIn(li - 1).push({ id: l.wire.id, a: out, b: { at: "hi", pos: ports.lane(s, l.wire, "start") } });
+      if (run.face === "end") runsIn(li).push({ id: l.wire.id, a: { at: "lo", pos: run.lane }, b: out });
+      else runsIn(li - 1).push({ id: l.wire.id, a: out, b: { at: "hi", pos: run.lane } });
     }
   }
 

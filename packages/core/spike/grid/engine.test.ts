@@ -275,6 +275,27 @@ describe("solve", () => {
     expect(centre(s, "hub")).toBe((centre(s, "l") + centre(s, "r")) / 2);
     expect(s.wires.get("top>only")!.points).toHaveLength(2);
   });
+  it("orders a nested container's exits by the box each wire finally reaches", () => {
+    // two levels down on one side, one level down on the other, and the
+    // author has put the stores the other way round from the declaration
+    const pad = { top: 44, right: 16, bottom: 16, left: 16 };
+    const api: Box = { id: "api", w: 0, h: 0, group: group([leaf("api.g"), leaf("api.r")], { pad }) };
+    const apps: Box = { id: "apps", w: 0, h: 0, group: group([api], { pad }) };
+    for (const order of [["data.pg", "data.s3"], ["data.s3", "data.pg"]]) {
+      const data: Box = { id: "data", w: 0, h: 0, group: group(order.map((id) => leaf(id)), { pad, held: order }) };
+      const s = solve(problem([apps, data], ["api.g>api.r", "api.r>data.pg", "api.r>data.s3"]));
+      expect(crossed(s)).toBe(0);
+    }
+  });
+  it("takes a wire to a side wall along whichever channel is quieter", () => {
+    // `x` reaches out past `y`; `y` has a wire going down, so `x`'s goes over the top
+    const pad = { top: 44, right: 16, bottom: 16, left: 16 };
+    const inner: Box = { id: "sys", w: 0, h: 0, group: group([leaf("sys.x"), leaf("sys.y"), leaf("sys.z")], { pad, ...pin({ "sys.x": 0, "sys.y": 0, "sys.z": 1 }) }) };
+    const s = solve(problem([inner, leaf("t")], ["sys.y>sys.z", "sys.x>t"], pin({ sys: 0, t: 0 })));
+    const y = s.boxes.get("sys.y")!, pts = s.wires.get("sys.x>t")!.points;
+    expect(crossed(s)).toBe(0);
+    expect(Math.min(...pts.map((p) => p.y))).toBeLessThan(y.y); // over `y`, not under it
+  });
   it("is a pure function", () => {
     const make = () => problem([leaf("a"), leaf("b"), leaf("c"), leaf("d")], ["a>b", "a>c", "b>d", "c>d", "a>d"]);
     expect(JSON.stringify([...solve(make()).wires])).toBe(JSON.stringify([...solve(make()).wires]));

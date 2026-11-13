@@ -56,6 +56,13 @@ export function orderSlots(
         const far = below.get(v)! + fv - below.get(dn!)! - dnHop[3];
         if (u !== s && far && here.has(u) && Math.sign(far) !== side(u)) cost++;
       }
+      // two wall ports standing the other way round from where their wires
+      // end up cross once outside, where this container cannot see it
+      if (s.kind === "port" && headed(s) !== undefined)
+        for (const x of layer) {
+          const g = x.kind === "port" ? headed(x) : undefined;
+          if (g !== undefined && Math.abs(g - headed(s)!) > 1e-9 && Math.sign(g - headed(s)!) !== side(x)) cost++;
+        }
       // never between two boxes a same-rank wire joins directly
       const l = layer[p - 1], r = layer[p];
       if (l?.kind === "box" && r?.kind === "box" && beside.has(`${l.id}|${r.id}`)) cost += 100;
@@ -87,7 +94,14 @@ export function orderSlots(
       }
     return n;
   };
-  const total = () => layers.reduce((n, _, i) => n + crossings(i), 0);
+  /** Pairs of wall ports in layer `i` out of order with where they are headed. */
+  const astray = (i: number): number => {
+    const goals = (layers[i]?.slots ?? []).flatMap((x) => (x.kind === "port" && headed(x) !== undefined ? [headed(x)!] : []));
+    let n = 0;
+    for (let a = 0; a < goals.length; a++) for (let b = a + 1; b < goals.length; b++) if (goals[a] > goals[b] + 1e-9) n++;
+    return n;
+  };
+  const total = () => layers.reduce((n, _, i) => n + crossings(i) + astray(i), 0);
 
   // sweep down following the layer above, up following the layer below, and
   // keep the best arrangement seen — a wire through several ranks only moves
@@ -121,17 +135,29 @@ export function orderSlots(
     const l = row[i - 1], r = row[i + 1];
     return row[i].kind !== "box" && l?.kind === "box" && r?.kind === "box" && beside.has(`${l.id}|${r.id}`);
   };
+  /** One sweep of trades along a row; true if any removed a crossing. */
+  const trade = (li: number, boxesToo: boolean): boolean => {
+    const row = layers[li]?.slots ?? [];
+    let improved = false;
+    for (let i = 0; i + 1 < row.length; i++) {
+      const [a, b] = [row[i], row[i + 1]];
+      if (a.pinned && b.pinned && !(boxesToo && a.loose && b.loose)) continue;
+      const around = () => crossings(li - 2) + crossings(li - 1) + crossings(li) + crossings(li + 1) + astray(li - 1) + astray(li) + astray(li + 1);
+      const before = around();
+      const boxes = a.kind === "box" && b.kind === "box";
+      // two boxes trading take the wires beside them along: the rows either
+      // side get to re-sort before the trade is judged
+      const kept = boxes ? [layers[li - 1]?.slots.slice(), layers[li + 1]?.slots.slice()] : [];
+      [row[i], row[i + 1]] = [b, a];
+      if (boxes) for (const near of [li - 1, li + 1]) while (trade(near, false));
+      if (around() < before && !splits(row, i) && !splits(row, i + 1)) { improved = true; continue; }
+      [row[i], row[i + 1]] = [a, b];
+      if (boxes) [li - 1, li + 1].forEach((near, k) => { if (kept[k]) layers[near].slots = kept[k]!; });
+    }
+    return improved;
+  };
   for (let round = 0, improved = true; improved && round < 8; round++) {
     improved = false;
-    for (let li = 0; li < layers.length; li++) {
-      const row = layers[li].slots;
-      for (let i = 0; i + 1 < row.length; i++) {
-        if (row[i].pinned && row[i + 1].pinned && !(row[i].loose && row[i + 1].loose)) continue;
-        const before = crossings(li - 1) + crossings(li);
-        [row[i], row[i + 1]] = [row[i + 1], row[i]];
-        if (crossings(li - 1) + crossings(li) < before && !splits(row, i) && !splits(row, i + 1)) improved = true;
-        else [row[i], row[i + 1]] = [row[i + 1], row[i]];
-      }
-    }
+    for (let li = 0; li < layers.length; li++) if (trade(li, true)) improved = true;
   }
 }

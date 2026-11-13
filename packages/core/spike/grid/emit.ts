@@ -4,6 +4,7 @@
 import type { Gutter } from "./gutters.js";
 import type { Ports } from "./ports.js";
 import type { Sheet } from "./sheet.js";
+import { sideRun } from "./side.js";
 import type { Stacked } from "./stack.js";
 import { LABEL_PAD, type Laid, type Pt, type Rect, type Slot, type Wire } from "./types.js";
 
@@ -98,15 +99,14 @@ export function emit(
         const f = boxF(s) + (cp ? ax.flowOf(cp) : Math.round((ax.sideFace(s.box!) * (mates.indexOf(l) + 1)) / (mates.length + 1)));
         put(l.wire, [[l.wall === "low" ? s.pos : s.pos + s.lsize, f], [edge, f]], !l.outward);
         wall.set(l.wire.id, ax.toScreen(edge, f));
-      } else if (l.outward) {
-        const tf = st.channels.get(sh.layerOf(s))!.trackF.get(l.wire.id)!;
-        const pl = ports.lane(s, l.wire, "end");
-        put(l.wire, [[pl, boxF(s) + s.fsize], [pl, tf], [edge, tf]], false);
-        wall.set(l.wire.id, ax.toScreen(edge, tf));
       } else {
-        const tf = st.channels.get(sh.layerOf(s) - 1)!.trackF.get(l.wire.id)!;
-        const pl = ports.lane(s, l.wire, "start");
-        put(l.wire, [[edge, tf], [pl, tf], [pl, boxF(s)]], false);
+        // past the boxes between: along the channel after its rank, or before it
+        const run = sideRun(sh, ports, l), li = sh.layerOf(s);
+        const tf = st.channels.get(run.face === "end" ? li : li - 1)!.trackF.get(l.wire.id)!;
+        const leave: [number, number][] = run.from
+          ? [[run.from.lane, boxF(s) + run.from.flow], [run.lane, boxF(s) + run.from.flow]]
+          : [[run.lane, run.face === "end" ? boxF(s) + s.fsize : boxF(s)]];
+        put(l.wire, [...leave, [run.lane, tf], [edge, tf]], !l.outward);
         wall.set(l.wire.id, ax.toScreen(edge, tf));
       }
     }
@@ -128,7 +128,8 @@ export function emit(
   // the box inside it — not to the wall port, which only follows.
   const end = (s: Slot, wire: Wire, face: "start" | "end"): number => {
     const inner = s.box && sh.childReach(s.box, wire);
-    return inner !== undefined ? s.pos + inner : ports.lane(s, wire, face);
+    // a plain box's middle, not its port: two wires to one box are headed the same way
+    return inner !== undefined ? s.pos + inner : s.kind === "box" && !s.box!.group ? s.pos + s.lsize / 2 : ports.lane(s, wire, face);
   };
   const far = (s: Slot, wire: Wire, face: "start" | "end") => (s.kind === "port" ? bound.get(wire.id) : undefined) ?? end(s, wire, face);
   const reach = new Map<string, number>();
