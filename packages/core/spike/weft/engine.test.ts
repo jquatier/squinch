@@ -26,6 +26,19 @@ const crossed = (s: ReturnType<typeof solve>) => {
 };
 
 describe("solve", () => {
+  it("stands a box beside a container level with the wire between them", () => {
+    // a sideways row inside a zone, and a monitor beside it probing the middle stage:
+    // the wire has to pass over the last stage, so it meets the zone's wall high up
+    const pad = { top: 48, right: 16, bottom: 16, left: 16 };
+    const pipe: Box = { id: "p", w: 0, h: 0, group: group([leaf("p.a"), leaf("p.b"), leaf("p.c")], { dir: "right", pad }) };
+    const zone: Box = { id: "z", w: 0, h: 0, group: group([pipe], { pad: { top: 28, right: 24, bottom: 20, left: 24 } }) };
+    const s = solve({ root: group([zone, leaf("mon", 160)], pin({ z: 0, mon: 0 })), wires: ["p.a>p.b", "p.b>p.c", "mon>p.b"].map(wire) });
+    const mon = s.boxes.get("mon")!, pts = s.wires.get("mon>p.b")!.points;
+    expect(pts[0]).toEqual({ x: mon.x, y: mon.y + 32 });      // out of the middle of its wall
+    expect(pts[1].y).toBe(pts[0].y);                          // and straight on — no step in the gutter
+    expect(pts[1].x).toBeLessThan(s.boxes.get("z")!.x + s.boxes.get("z")!.w); // well inside the zone before it turns
+  });
+
   it("draws a wire between two ranks as one straight line", () => {
     const s = solve(problem([leaf("a"), leaf("b")], ["a>b"]));
     const a = s.boxes.get("a")!, b = s.boxes.get("b")!, pts = s.wires.get("a>b")!.points;

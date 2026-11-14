@@ -64,6 +64,20 @@ export function lay(s: Sheet, root: boolean): Geo {
     if (!d || slide(s, b, "w", f.key, d) || slide(s, a, "e", f.key, -d)) continue;
     if (Math.abs(d) < STUB) dv[d > 0 ? f.b : f.a] += Math.abs(d);
   }
+  // A plain box whose one wire across a gutter meets a container's fixed
+  // port stands with its middle on that wire, as far as its rank is deep —
+  // a wall's only wire meets it in the middle (§5.4), and here it is the box
+  // that can move. Left on the rank's top line it could only bring a port as
+  // near as its corner allows, and the wire stepped the rest.
+  const across = (i: number) => s.flats.filter((f) => f.a === i || f.b === i);
+  for (const f of s.flats) {
+    const a = s.slots[f.a].kid!, b = s.slots[f.b].kid!, va = fixedPort(s, a, "e", f.key), vb = fixedPort(s, b, "w", f.key);
+    if (!f.straight || (va === undefined) === (vb === undefined)) continue;
+    const [leaf, i, at] = va === undefined ? [a, f.a, dv[f.b] + vb!] : [b, f.b, dv[f.a] + va];
+    if (leaf.sheet || leaf.faceV || across(i).length !== 1) continue;
+    const k = s.rows.findIndex((row) => row.includes(i));
+    dv[i] = Math.max(0, Math.min(at - Math.round(leaf.h / 2), rowH[k] - leaf.h));
+  }
   s.rows.forEach((row, k) => { rowH[k] = Math.max(rowH[k], ...row.map((i) => (s.slots[i].kid ? dv[i] + s.slots[i].kid!.h : 0))); });
   const gut = gutters(s, dv, (kid, wall, key) => fixedPort(s, kid, wall, key));
   const off = (slot: number, wall: Wall, key: string): number => {
