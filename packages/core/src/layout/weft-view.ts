@@ -6,14 +6,14 @@
 // pass: notes and flow badges are placed *after* layout from nodes, wires and
 // pills, so they do not depend on which engine produced those.
 
-import type { SModel, SView, Side } from "../../src/model/types.js";
-import type { Positioned, PEdge, PPort } from "../../src/layout/layout.js";
-import { CHIP_H } from "../../src/layout/layout.js";
-import { measure } from "../../src/metrics.js";
-import type { ThemeFont } from "../../src/themes/index.js";
-import { plan } from "./problem.js";
-import { solve } from "./engine.js";
-import type { Rect, Pt } from "./contract.js";
+import type { SModel, SView, Side } from "../model/types.js";
+import type { Positioned, PEdge, PPort } from "./layout.js";
+import { CHIP_H } from "./layout.js";
+import { measure } from "../metrics.js";
+import type { ThemeFont } from "../themes/index.js";
+import { plan } from "./plan.js";
+import { solve } from "./weft/engine.js";
+import type { Rect, Pt } from "./weft/contract.js";
 
 type Font = Pick<ThemeFont, "metrics" | "scale">;
 const INTER: Font = { metrics: "inter", scale: 1 };

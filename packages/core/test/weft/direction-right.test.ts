@@ -4,7 +4,7 @@
 //   2. are arrangements stated under a rightward flow honoured (there a
 //      `rows` band is a column)?
 //   3. turned on its side, is every view we own still legal, and how good?
-//   npx vitest run spike/weft/direction-right.test.ts --disable-console-intercept
+//   npx vitest run test/weft/direction-right.test.ts --disable-console-intercept
 import { it, expect } from "vitest";
 import { readdirSync, readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
@@ -12,10 +12,10 @@ import { dirname, join } from "node:path";
 import { buildProject } from "../../src/index.js";
 import { layoutView, type Positioned } from "../../src/layout/layout.js";
 import type { SView } from "../../src/model/types.js";
-import { corpus } from "../../test/helpers/corpus.js";
-import { checkLayout } from "../../test/invariants.js";
+import { corpus } from "../helpers/corpus.js";
+import { checkLayout } from "../invariants.js";
 import { column, flush, leftOf, level, row, stack, sys, zone, view, rectOf, type Ask } from "./asks.js";
-import { layoutViewWeft } from "./layout.js";
+import { layoutViewWeft } from "../../src/layout/weft-view.js";
 import { measureLayout, type Metrics } from "./metrics.js";
 
 const here = dirname(fileURLToPath(import.meta.url));

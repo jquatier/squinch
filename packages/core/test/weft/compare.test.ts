@@ -1,12 +1,12 @@
 // Both engines over every view the repo owns, measured the same way.
 // Prints the table the spike's write-up quotes (docs/notes/layout-engine-spike.md):
-//   npx vitest run spike/weft/compare.test.ts --disable-console-intercept
+//   npx vitest run test/weft/compare.test.ts --disable-console-intercept
 import { it, expect } from "vitest";
 import { buildProject } from "../../src/index.js";
 import { layoutView } from "../../src/layout/layout.js";
-import { corpus } from "../../test/helpers/corpus.js";
-import { checkLayout } from "../../test/invariants.js";
-import { layoutViewWeft } from "./layout.js";
+import { corpus } from "../helpers/corpus.js";
+import { checkLayout } from "../invariants.js";
+import { layoutViewWeft } from "../../src/layout/weft-view.js";
 import { measureLayout, type Metrics } from "./metrics.js";
 
 it("weft vs ELK over the corpus", async () => {

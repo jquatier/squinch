@@ -1,12 +1,12 @@
 // `wrap` inside containers: a container that is too wide folds its own
 // members, wherever it is opened. Under ELK a view holding an expanded
 // container or a zone cannot be folded at all ("wrap has no effect").
-//   npx vitest run spike/weft/wrap-containers.test.ts --disable-console-intercept
+//   npx vitest run test/weft/wrap-containers.test.ts --disable-console-intercept
 import { it, expect } from "vitest";
 import { buildProject } from "../../src/index.js";
 import { layoutView, type Positioned } from "../../src/layout/layout.js";
-import { checkLayout } from "../../test/invariants.js";
-import { layoutViewWeft } from "./layout.js";
+import { checkLayout } from "../invariants.js";
+import { layoutViewWeft } from "../../src/layout/weft-view.js";
 
 const boxes = (ids: string[], indent = "  ") => ids.map((id) => `${indent}${id} = box "${id}"`).join("\n");
 const range = (p: string, n: number) => Array.from({ length: n }, (_, i) => `${p}${i + 1}`);

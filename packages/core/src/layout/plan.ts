@@ -10,13 +10,13 @@
 // The ELK engine needed a separate mechanism per kind of container, and had
 // none at all for a zone's inside.
 
-import type { SModel, SView, RelPos } from "../../src/model/types.js";
-import { resolveView, type ViewGraph, type VNode } from "../../src/view/resolve.js";
-import { pillDims, sizeOf, SHEET_BLEED, CHIP_H } from "../../src/layout/layout.js";
-import { measure } from "../../src/metrics.js";
-import type { ThemeFont } from "../../src/themes/index.js";
-import { rankGroup as assignRanks, dense, type Edge } from "./rank.js";
-import type { Box, Dir, Group, Problem, Wire } from "./contract.js";
+import type { SModel, SView, RelPos } from "../model/types.js";
+import { resolveView, type ViewGraph, type VNode } from "../view/resolve.js";
+import { pillDims, sizeOf, SHEET_BLEED, CHIP_H } from "./layout.js";
+import { measure } from "../metrics.js";
+import type { ThemeFont } from "../themes/index.js";
+import { rankGroup as assignRanks, dense, type Edge } from "./weft/rank.js";
+import type { Box, Dir, Group, Problem, Wire } from "./weft/contract.js";
 
 type Font = Pick<ThemeFont, "metrics" | "scale">;
 export interface Hints { rows?: string[][]; cols?: string[][]; place: { node: string; relpos: RelPos; target: string }[] }

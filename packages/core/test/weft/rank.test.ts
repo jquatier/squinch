@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { rankGroup } from "./rank.js";
+import { rankGroup } from "../../src/layout/weft/rank.js";
 
 const ranks = (ids: string, edges: string[], pins: Record<string, number> = {}) =>
   Object.fromEntries(rankGroup(ids.split(" "), edges.map((e) => e.split(">") as [string, string]), new Map(Object.entries(pins))));

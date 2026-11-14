@@ -2,7 +2,7 @@
 // side by side, as plain boxes and lines. Not the product's renderer — just
 // enough to judge a layout by eye.
 //
-//   npx tsx spike/weft/render.ts <out-dir> <spec>…
+//   npx tsx test/weft/render.ts <out-dir> <spec>…
 //
 // A spec is `path/to/file.squinch#view` (or `#*` for every explicit view),
 // `random:<seed>`, or `right:<spec>` to turn the view to flow rightward.
@@ -12,8 +12,8 @@ import { readFileSync, writeFileSync, mkdirSync } from "node:fs";
 import { join } from "node:path";
 import { buildProject } from "../../src/index.js";
 import { layoutView, type Positioned } from "../../src/layout/layout.js";
-import { checkLayout } from "../../test/invariants.js";
-import { layoutViewWeft } from "./layout.js";
+import { checkLayout } from "../invariants.js";
+import { layoutViewWeft } from "../../src/layout/weft-view.js";
 import { measureLayout } from "./metrics.js";
 import { randomDiagram } from "./random.js";
 

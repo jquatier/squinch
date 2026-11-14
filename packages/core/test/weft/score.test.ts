@@ -1,16 +1,16 @@
 // The verdict: every view the repo owns, twenty hand-written trial diagrams,
 // sixteen more written after the engine (`round2/`) and eighty random ones —
 // each drawn by both engines and scored by `score.ts`.
-//   npx vitest run spike/weft/score.test.ts --disable-console-intercept
+//   npx vitest run test/weft/score.test.ts --disable-console-intercept
 import { describe, it, expect } from "vitest";
 import { readdirSync, readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { dirname, join } from "node:path";
 import { buildProject } from "../../src/index.js";
 import { layoutView } from "../../src/layout/layout.js";
-import { corpus } from "../../test/helpers/corpus.js";
-import { checkLayout } from "../../test/invariants.js";
-import { layoutViewWeft } from "./layout.js";
+import { corpus } from "../helpers/corpus.js";
+import { checkLayout } from "../invariants.js";
+import { layoutViewWeft } from "../../src/layout/weft-view.js";
 import { measureLayout, type Metrics } from "./metrics.js";
 import { randomDiagram } from "./random.js";
 import { gain, penalty, verdict, WEIGHTS, type Weights } from "./score.js";

@@ -3,7 +3,7 @@
 // from `loom/engine.test.ts`; where REQUIREMENTS §4/§5.5 now override a test
 // the change is marked "REQUIREMENTS".
 import { describe, it, expect } from "vitest";
-import { solve, type Box, type Group, type Problem, type Dir } from "./engine.js";
+import { solve, type Box, type Group, type Problem, type Dir } from "../../src/layout/weft/engine.js";
 
 // ── the whole engine, on problems small enough to read ───────────────────────
 const leaf = (id: string, w = 120, h = 64): Box => ({ id, w, h });

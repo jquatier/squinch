@@ -192,10 +192,10 @@ flush ranks of a rightward sheet.
 ## Tests
 
 ```
-npx vitest run spike/weft/ --disable-console-intercept          # everything (≈1 min)
-npx vitest run spike/weft/modules.test.ts spike/weft/rank.test.ts spike/weft/engine.test.ts
-EVERY_SET=1 npx vitest run spike/weft/every-set.test.ts --disable-console-intercept       # all four sets, hard rules + totals
-npx tsx spike/weft/render.ts <out-dir> <file.squinch#view | random:N | right:…>…           # pictures
+npx vitest run test/weft/ --disable-console-intercept          # everything (≈1 min)
+npx vitest run test/weft/modules.test.ts test/weft/rank.test.ts test/weft/engine.test.ts
+EVERY_SET=1 npx vitest run test/weft/every-set.test.ts --disable-console-intercept       # all four sets, hard rules + totals
+npx tsx test/weft/render.ts <out-dir> <file.squinch#view | random:N | right:…>…           # pictures
 ```
 
 `engine.test.ts` is the behavioural blocks of the previous engines' suite, ported; one

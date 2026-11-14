@@ -1,14 +1,14 @@
 // Diagrams neither engine has seen: twenty written by hand (`trial/`) and a
 // seeded batch of random ones. Nothing in the engine was tuned against these.
-//   npx vitest run spike/weft/trial.test.ts --disable-console-intercept
+//   npx vitest run test/weft/trial.test.ts --disable-console-intercept
 import { it, expect } from "vitest";
 import { readdirSync, readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { dirname, join } from "node:path";
 import { buildProject } from "../../src/index.js";
 import { layoutView } from "../../src/layout/layout.js";
-import { checkLayout } from "../../test/invariants.js";
-import { layoutViewWeft } from "./layout.js";
+import { checkLayout } from "../invariants.js";
+import { layoutViewWeft } from "../../src/layout/weft-view.js";
 import { measureLayout, type Metrics } from "./metrics.js";
 import { randomDiagram } from "./random.js";
 

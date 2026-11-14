@@ -1,18 +1,18 @@
 // Each module on its own, with a few lines of input — no view, no model, no
 // font, and (below `engine.ts`) no call to `solve`.
 import { describe, it, expect } from "vitest";
-import type { Box, Group, Problem } from "./contract.js";
-import { Count } from "./count.js";
-import { ceilTo, framed, pagePt, pageRect, real, snap, turn } from "./frame.js";
-import { gutters } from "./gutter.js";
-import { order } from "./order.js";
-import { place } from "./place.js";
-import { settle, wallspace, type End } from "./ports.js";
-import { project } from "./project.js";
-import { beyond, sideWay, weave } from "./sheet.js";
-import { above, pitch, stack, type Net } from "./tracks.js";
-import { grow } from "./tree.js";
-import type { Sheet } from "./types.js";
+import type { Box, Group, Problem } from "../../src/layout/weft/contract.js";
+import { Count } from "../../src/layout/weft/count.js";
+import { ceilTo, framed, pagePt, pageRect, real, snap, turn } from "../../src/layout/weft/frame.js";
+import { gutters } from "../../src/layout/weft/gutter.js";
+import { order } from "../../src/layout/weft/order.js";
+import { place } from "../../src/layout/weft/place.js";
+import { settle, wallspace, type End } from "../../src/layout/weft/ports.js";
+import { project } from "../../src/layout/weft/project.js";
+import { beyond, sideWay, weave } from "../../src/layout/weft/sheet.js";
+import { above, pitch, stack, type Net } from "../../src/layout/weft/tracks.js";
+import { grow } from "../../src/layout/weft/tree.js";
+import type { Sheet } from "../../src/layout/weft/types.js";
 
 const leaf = (id: string, w = 120, h = 64): Box => ({ id, w, h });
 const group = (boxes: Box[], over: Partial<Group> = {}): Group => ({

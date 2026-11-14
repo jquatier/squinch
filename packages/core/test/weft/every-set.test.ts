@@ -3,19 +3,19 @@
 // along one line) and totalled. A second engine can be scored beside this
 // one by adding its `solve` to `others`; the three this engine replaced were
 // compared that way before they were removed. Run by hand:
-//   EVERY_SET=1 npx vitest run spike/weft/every-set.test.ts --disable-console-intercept
+//   EVERY_SET=1 npx vitest run test/weft/every-set.test.ts --disable-console-intercept
 //   ONLY=corpus|trial|round2|random   NR=<how many random diagrams>
 import { it, expect } from "vitest";
 import { readdirSync, readFileSync } from "node:fs";
 import { buildProject } from "../../src/index.js";
-import { corpus } from "../../test/helpers/corpus.js";
-import { checkLayout } from "../../test/invariants.js";
-import { layoutViewWeft } from "./layout.js";
+import { corpus } from "../helpers/corpus.js";
+import { checkLayout } from "../invariants.js";
+import { layoutViewWeft } from "../../src/layout/weft-view.js";
 import { measureLayout, type Metrics } from "./metrics.js";
 import { randomDiagram } from "./random.js";
 import { penalty, gain, verdict } from "./score.js";
-import { solve as weft } from "./engine.js";
-import { plan } from "./problem.js";
+import { solve as weft } from "../../src/layout/weft/engine.js";
+import { plan } from "../../src/layout/plan.js";
 import type { Positioned } from "../../src/layout/layout.js";
 
 /** REQUIREMENTS §3.5, which `checkLayout` does not hold anyone to: how many
@@ -42,7 +42,7 @@ const VS = Object.keys(others);
 const keys = ["crossings", "bends", "kinks", "nearMiss", "lopsided", "offCentre", "unstraight", "overlaps"] as const;
 
 it.skipIf(!process.env.EVERY_SET)("every view of every set is legal", () => {
-  const dir = (d: string) => readdirSync("spike/weft/" + d).filter((f) => f.endsWith(".squinch")).sort().map((f) => ({ name: f, src: readFileSync(`spike/weft/${d}/${f}`, "utf8") }));
+  const dir = (d: string) => readdirSync("test/weft/" + d).filter((f) => f.endsWith(".squinch")).sort().map((f) => ({ name: f, src: readFileSync(`test/weft/${d}/${f}`, "utf8") }));
   const sets = [["corpus", corpus().map((f) => ({ name: f.name, src: f.src }))], ["trial", dir("trial")], ["round2", dir("round2")], ["random", Array.from({ length: +(process.env.NR ?? 80) }, (_, i) => ({ name: `random-${i}`, src: randomDiagram(i) }))]] as const;
   let illegal = 0;
   for (const [set, sources] of sets) {

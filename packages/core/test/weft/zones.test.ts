@@ -1,12 +1,12 @@
 // Placement with zones and expanded containers: does each engine put things
 // where the author asked? Every case states an arrangement in the source and
 // then checks the rectangles for it — side by side means side by side.
-//   npx vitest run spike/weft/zones.test.ts --disable-console-intercept
+//   npx vitest run test/weft/zones.test.ts --disable-console-intercept
 import { it, expect } from "vitest";
 import { buildProject } from "../../src/index.js";
 import { layoutView } from "../../src/layout/layout.js";
-import { checkLayout } from "../../test/invariants.js";
-import { layoutViewWeft } from "./layout.js";
+import { checkLayout } from "../invariants.js";
+import { layoutViewWeft } from "../../src/layout/weft-view.js";
 import { measureLayout } from "./metrics.js";
 
 import { rectOf, row, stack, level, leftOf, sys, zone, view, type Ask } from "./asks.js";

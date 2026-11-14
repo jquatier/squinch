@@ -5,8 +5,8 @@
 import { describe, it, expect } from "vitest";
 import { buildModel } from "../../src/model/build.js";
 import { layoutView } from "../../src/layout/layout.js";
-import { checkLayout } from "../../test/invariants.js";
-import { layoutViewWeft } from "./layout.js";
+import { checkLayout } from "../invariants.js";
+import { layoutViewWeft } from "../../src/layout/weft-view.js";
 
 /** `trunkTargets`: boxes where a trunk arrives on one shared port by design. */
 const both = async (src: string, trunkTargets: string[] = []) => {
