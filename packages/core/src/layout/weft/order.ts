@@ -79,6 +79,12 @@ function seed(s: Sheet): void {
     const place = (i: number) => x.get(i) ?? want.get(i) ?? 0;
     // a stable sort: boxes are already in order, and a lane at a box's own centre passes after it
     s.rows[k] = row.map((i, n) => ({ i, n })).sort((p, q) => place(p.i) - place(q.i) || p.n - q.n).map((p) => p.i);
+    // a hook's lane stands right beside its box, on its side of it
+    for (const lane of s.rows[k].filter((i) => s.slots[i].beside)) {
+      const order = s.rows[k].filter((i) => i !== lane), b = s.slots[lane].beside!;
+      order.splice(order.indexOf(b.box) + (b.after ? 1 : 0), 0, lane);
+      s.rows[k] = order;
+    }
     s.rows[k].forEach((i, n) => { s.at[i] = n; });
   });
 }
@@ -105,7 +111,7 @@ class Search {
     for (const t of count.tallies)
       for (const [wire, piece] of t.sheet.pieces)
         if (piece.kind === "vert") for (const slot of piece.slots)
-          if (t.sheet.slots[slot].kind === "lane") (byWire.get(wire) ?? byWire.set(wire, []).get(wire)!).push({ t, slot });
+          if (t.sheet.slots[slot].kind === "lane" && !t.sheet.slots[slot].beside) (byWire.get(wire) ?? byWire.set(wire, []).get(wire)!).push({ t, slot });
     this.threads = [...byWire.values()];
     this.byWire = byWire;
   }
@@ -299,6 +305,25 @@ class Search {
   private sound(s: Sheet, row: number): boolean {
     for (const [a, b] of s.glue) if (s.slots[a].row === row && this.boxed(s, row, s.at[a] + 1, s.at[b])) return false;
     for (const { x, wall } of s.last) if (s.slots[x].row === row && (wall === "e" ? this.boxed(s, row, s.at[x] + 1, s.rows[row].length) : this.boxed(s, row, 0, s.at[x]))) return false;
+    for (const lane of this.hooked(s)) if (s.slots[lane].row === row && !this.beside(s, lane)) return false;
+    return true;
+  }
+  /** per sheet: the lanes of hooks, each of which stays beside its box */
+  private readonly hooks = new Map<Sheet, number[]>();
+  private hooked(s: Sheet): number[] {
+    return this.hooks.get(s) ?? this.hooks.set(s, s.slots.filter((x) => x.beside).map((x) => x.i)).get(s)!;
+  }
+  /** Is a hook's lane where its hook can be drawn: on its side of its box,
+   *  with no other box between — and no other box's hook lane either, or
+   *  the two hooks, each reaching across the other's lane, could lie along
+   *  one line. */
+  private beside(s: Sheet, lane: number): boolean {
+    const b = s.slots[lane].beside!, i = s.at[lane], j = s.at[b.box], row = s.rows[s.slots[lane].row];
+    if (b.after ? i < j : i > j) return false;
+    for (let k = Math.min(i, j) + 1; k < Math.max(i, j); k++) {
+      const x = s.slots[row[k]];
+      if (x.kind === "box" || (x.beside && x.beside.box !== b.box)) return false;
+    }
     return true;
   }
   private boxed(s: Sheet, row: number, from: number, to: number): boolean {
@@ -317,6 +342,10 @@ class Search {
   /** Two neighbours trade places, and what their wires lead to is put back in step. */
   private trade(t: Tally, row: number, i: number, log: Swap[]): void {
     this.swap(t, row, i, log);
+    // a box that moved takes the lanes of its hooks along
+    const s = t.sheet;
+    for (const lane of this.hooked(s)) if (s.slots[lane].row === row)
+      for (let n = s.rows[row].length; n > 0 && !this.beside(s, lane); n--) this.swap(t, row, s.at[lane] < s.at[s.slots[lane].beside!.box] ? s.at[lane] : s.at[lane] - 1, log);
     for (const step of [-1, 1]) this.untangle(t, row + step, step, log);
   }
   /** Row `k` reads from the row `step` behind it, which has just changed.
@@ -342,7 +371,8 @@ class Search {
   /** Where a lane's one wire comes from, `step` behind it; not a number for anything else. */
   private back(t: Tally, slot: number, step: number): number {
     const links = step < 0 ? t.downs[slot] : t.ups[slot];
-    if (t.sheet.slots[slot].kind === "box" || links.length !== 1) return NaN;
+    // (a hook's lane is not untangled: it stays where its box keeps it)
+    if (t.sheet.slots[slot].kind === "box" || t.sheet.slots[slot].beside || links.length !== 1) return NaN;
     return step < 0 ? this.count.below(t, links[0]) : this.count.above(t, links[0]);
   }
 
@@ -366,6 +396,7 @@ class Search {
         if (j < 0 || j >= s.rows[row].length || !this.free(s, slot, s.rows[row][j])) break;
         if (s.slots[slot].kind === "box" && s.slots[s.rows[row][j]].kind === "box") passed++;
         this.trade(t, row, Math.min(i, j), log);
+        if (s.at[slot] === i) break; // a hook's lane, brought straight back beside its box
         if (carry) for (const lane of lanes) this.sift(lane.t, lane.slot, log);
         if (!this.sound(s, row)) continue;
         count.settle();
@@ -388,7 +419,7 @@ class Search {
    *  reversed at once. Kept only if the whole picture crosses less. */
   mirror(t: Tally): boolean {
     const s = t.sheet, count = this.count;
-    if (!s.parent || s.before.length || s.sides.length || s.terms.length || s.slots.some((x) => x.held || x.col >= 0)) return false;
+    if (!s.parent || s.before.length || s.sides.length || s.terms.length || s.slots.some((x) => x.held || x.col >= 0 || x.beside)) return false;
     if (!s.rows.some((row) => row.length > 1)) return false;
     count.settle();
     const before = count.cross;

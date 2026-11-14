@@ -19,6 +19,14 @@ export interface Box {
   face?: number;
   /** Something drawn below the box that is not part of it (a card's sheets). */
   bleed?: number;
+  /** Clear space kept outside a wall of a leaf (a note anchored beside it),
+   *  as deep as stated and as long as the wall, by screen side. Nothing
+   *  enters it — no other box, no lane, no label, no wire but the box's own
+   *  on that wall, which cross it straight — and the container's walls stay
+   *  outside it. The box's rectangle, ports and balanced place are the box's
+   *  own: the room is not part of it. South of a box that also has `bleed`,
+   *  the deeper of the two holds. */
+  room?: { north?: number; south?: number; east?: number; west?: number };
   /** A container is never narrower than this (its title has to fit). */
   minW?: number;
   /** A container's title, as the corner of its top-left it occupies. No wire
@@ -51,6 +59,14 @@ export interface Wire {
    *  one port on the shared box, one lane through each rank they all cross,
    *  one track where they part. (`wrap` on a fan-out; `channel`.) */
   bundle?: string;
+  /** The wall a wire is asked to leave its `from` box by, and to enter its
+   *  `to` box by — screen sides, leaves only, and only for a wire whose ends
+   *  are in different ranks or containers (between two row-mates it is
+   *  ignored). A side that is the natural one changes nothing; any other is
+   *  drawn the long way round, at least 16 px straight out of the wall
+   *  first. Where that cannot be drawn the end keeps its natural side and
+   *  the wire is listed in `Solution.unhonoured`. */
+  fromSide?: Side; toSide?: Side;
 }
 export interface Problem { root: Group; wires: Wire[] }
 export interface Solution {
@@ -61,4 +77,6 @@ export interface Solution {
   wires: Map<string, { points: Pt[]; label?: Rect }>;
   /** Wires the engine does not draw: one end contains the other. */
   skipped: string[];
+  /** Wires drawn, but not by the side they asked for (`fromSide`, `toSide`). Absent when there are none. */
+  unhonoured?: string[];
 }

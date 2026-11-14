@@ -22,12 +22,14 @@ import type { Wire } from "./contract.js";
 import { framed, turn } from "./frame.js";
 import { rankGroup, type Edge } from "./rank.js";
 import type { Tree } from "./tree.js";
-import type { Cell, Flat, Kid, Link, Path, Sheet, Side, Slot, Wall } from "./types.js";
+import type { Cell, Flat, Hook, Kid, Link, Path, Sheet, Side, Slot, Wall } from "./types.js";
 
 /** A wire on its way through a container's wall, as the sheet outside decided it. */
 interface Thru { path: Path; side: "from" | "to"; depth: number; wall: Wall }
 /** A wire between two rows of one sheet, before it has lanes. */
-interface Vert { wire: Wire; key: string; top: number; bottom: number; down: boolean; trunk?: { id: string; fans: "out" | "in" }; labelled: boolean }
+interface Vert { wire: Wire; key: string; top: number; bottom: number; down: boolean; trunk?: { id: string; fans: "out" | "in" }; labelled: boolean; ask?: { top?: Wall; bottom?: Wall } }
+/** A screen side as a wall of a `dir` sheet. */
+const wallOf = (side: "north" | "south" | "east" | "west", dir: "down" | "right"): Wall => turn(side[0] as Wall, "down", dir);
 
 /** Every sheet of the tree, a parent always before its children. */
 export function weave(tree: Tree): Sheet[] {
@@ -64,7 +66,14 @@ function buildSheet(tree: Tree, cell: Cell, arriving: Thru[], inbound: Map<strin
       id: box.id, box, w: size.u, h: size.v,
       faceU: down ? undefined : box.face, faceV: down ? box.face : undefined,
       bleedU: down ? 0 : box.bleed ?? 0, bleedV: down ? box.bleed ?? 0 : 0,
+      room: { n: 0, s: 0, e: 0, w: 0 },
     };
+    // room beside a leaf, by screen side, turned into this frame
+    if (box.room && !box.group) {
+      for (const side of ["north", "south", "east", "west"] as const) kid.room[wallOf(side, dir)] = Math.max(0, box.room[side] ?? 0);
+      kid.bleedU = Math.max(kid.bleedU, kid.room.e);
+      if (kid.room.s) kid.bleedV = Math.max(0, kid.bleedV - kid.room.s);
+    }
     kids.push(kid);
     const row = rank.get(box.id)! + 1;
     const slot: Slot = { i: slots.length, kind: "box", row, kid, held: held.has(box.id), col: col.get(box.id) ?? -1, idle: !tree.wired.has(box.id), decl: rows[row].length };
@@ -81,7 +90,7 @@ function buildSheet(tree: Tree, cell: Cell, arriving: Thru[], inbound: Map<strin
 
   const sheet: Sheet = {
     cell, dir, parent, self, R, kids, slots, rows, at: [], chan: Array.from({ length: R + 1 }, () => []),
-    flats: [], sides: [], terms: [], pieces: new Map(), port: new Map(), through: new Map(), before: [], glue: [], last: [],
+    flats: [], sides: [], terms: [], pieces: new Map(), port: new Map(), through: new Map(), before: [], glue: [], last: [], unhonoured: [],
     pad: down ? { n: g.pad.top, s: g.pad.bottom, w: g.pad.left, e: g.pad.right } : { n: g.pad.left, s: g.pad.right, w: g.pad.top, e: g.pad.bottom },
     gap: g.gap,
     title: cell.box?.title && (down ? { u: cell.box.title.w, v: cell.box.title.h } : { u: cell.box.title.h, v: cell.box.title.w }),
@@ -112,7 +121,10 @@ function buildSheet(tree: Tree, cell: Cell, arriving: Thru[], inbound: Map<strin
     const a = slotOf.get(path.a)!, b = slotOf.get(path.b)!;
     if (slots[a].row !== slots[b].row) {
       const aboveA = slots[a].row < slots[b].row;
-      verts.push({ wire: path.wire, key, top: aboveA ? a : b, bottom: aboveA ? b : a, down: aboveA, labelled: true });
+      // a side asked of an end that is itself a leaf here (§ sides a wire is asked to use)
+      const askA = !path.from.length && path.wire.fromSide ? wallOf(path.wire.fromSide, dir) : undefined;
+      const askB = !path.to.length && path.wire.toSide ? wallOf(path.wire.toSide, dir) : undefined;
+      verts.push({ wire: path.wire, key, top: aboveA ? a : b, bottom: aboveA ? b : a, down: aboveA, labelled: true, ask: aboveA ? { top: askA, bottom: askB } : { top: askB, bottom: askA } });
       pass(path, "from", 0, path.a, aboveA ? "s" : "n");
       pass(path, "to", 0, path.b, aboveA ? "n" : "s");
       continue;
@@ -125,6 +137,13 @@ function buildSheet(tree: Tree, cell: Cell, arriving: Thru[], inbound: Map<strin
     if (flat.straight) sheet.glue.push([flat.a, flat.b]);
     pass(path, "from", 0, path.a, !flat.straight ? "s" : first ? "e" : "w");
     pass(path, "to", 0, path.b, !flat.straight ? "s" : first ? "w" : "e");
+    // A side asked of a wire along a rank is not given. Between two row-mates
+    // of this container that is the contract (ignored; the caller knows). But
+    // where the other end lies deeper, in a container that merely stands in
+    // this rank, the caller cannot know, so the wire is reported.
+    const asked = (hint: Wire["fromSide"], deeper: boolean, natural: Wall) => !!hint && deeper && wallOf(hint, dir) !== natural;
+    if (asked(path.from.length ? undefined : path.wire.fromSide, path.to.length > 0, !flat.straight ? "s" : first ? "e" : "w")
+      || asked(path.to.length ? undefined : path.wire.toSide, path.from.length > 0, !flat.straight ? "s" : first ? "w" : "e")) sheet.unhonoured.push(path.wire.id);
   }
 
   // ── wires on their way through a wall ──────────────────────────────────────
@@ -137,7 +156,8 @@ function buildSheet(tree: Tree, cell: Cell, arriving: Thru[], inbound: Map<strin
       if (kid === null) { sheet.pieces.set(path.wire.id, { kind: "term", wall, key }); continue; }
       const x = slotOf.get(kid)!;
       // through the north wall: in if the wire is arriving, out (against the flow) if it is leaving
-      verts.push({ wire: path.wire, key, top: wall === "n" ? port : x, bottom: wall === "n" ? x : port, down: (wall === "n") === (side === "to"), labelled: false });
+      const hint = path[side][depth + 1] ? undefined : side === "from" ? path.wire.fromSide : path.wire.toSide, ask = hint && wallOf(hint, dir);
+      verts.push({ wire: path.wire, key, top: wall === "n" ? port : x, bottom: wall === "n" ? x : port, down: (wall === "n") === (side === "to"), labelled: false, ask: wall === "n" ? { bottom: ask } : { top: ask } });
       pass(path, side, depth + 1, kid, wall);
     } else if (kid === null) {
       sheet.terms.push({ wall, key, wire: path.wire.id });
@@ -159,6 +179,17 @@ function buildSheet(tree: Tree, cell: Cell, arriving: Thru[], inbound: Map<strin
       if (via === "straight") sheet.last.push({ x, wall });
       pass(t.path, t.side, t.depth + 1, kid, via === "straight" ? wall : via === "over" ? "n" : "s");
     }
+    // A leaf asked to use a wall: over or under the row is its north or south
+    // wall; the wall facing the sheet's own is the natural one only while the
+    // box is last in its row, so it is then kept last. Anything else — the
+    // far wall, or the near one with a row-mate in the way — is not given.
+    const hint = slots[x].kid!.box.group || t.path[t.side][t.depth + 1] ? undefined : t.side === "from" ? t.path.wire.fromSide : t.path.wire.toSide;
+    if (hint) {
+      const ask = wallOf(hint, dir);
+      if (ask === "n" || ask === "s") via = ask === "n" ? "over" : "under";
+      else if (ask === wall && !beyond.length) sheet.last.push({ x, wall });
+      else sheet.unhonoured.push(t.path.wire.id);
+    }
     const piece: Side = { x, wall, key, wire: t.path.wire.id, via, out: t.side === "from" };
     sheet.sides.push(piece);
     sheet.through.set(`${wall}|${key}`, piece);
@@ -177,13 +208,31 @@ function buildSheet(tree: Tree, cell: Cell, arriving: Thru[], inbound: Map<strin
   trunks("top", "out");
   trunks("bottom", "in");
   const shared = new Map<string, number>();
+  // An end asked to use another wall than the one facing where the wire goes
+  // gets a hook: a lane right beside the box, in its own rank, that the rest
+  // of the wire starts from — so the ordering stage sees the detour as what
+  // it is, a wire passing the box — and the short way from the asked wall to
+  // that lane. Not given (the end keeps its natural wall, and the wire is
+  // reported) to a wire of a bundle, whose port and lanes are shared; nor
+  // where the box already has a wire straight across that side's gutter or
+  // out to that side's wall, which the hook would have to run along.
+  const hookFor = (v: Vert, box: number, ask: Wall | undefined, natural: Wall): Hook | undefined => {
+    if (!ask || ask === natural || slots[box].kind !== "box" || slots[box].kid!.box.group) return undefined;
+    const taken = (wall: Wall) => sheet.flats.some((f) => f.straight && ((f.a === box && wall === "e") || (f.b === box && wall === "w"))) || sheet.sides.some((d) => d.x === box && d.wall === wall);
+    const side = ask === "e" || ask === "w" ? ask : !taken("e") ? "e" : "w";
+    if (v.wire.bundle || taken(side)) { sheet.unhonoured.push(v.wire.id); return undefined; }
+    const lane = thin("lane", slots[box].row, v.key);
+    slots[lane].beside = { box, after: side === "e" };
+    return { box, wall: ask, lane };
+  };
   for (const v of verts) {
-    const path = [v.top];
+    const head = hookFor(v, v.top, v.ask?.top, "s"), tail = hookFor(v, v.bottom, v.ask?.bottom, "n");
+    const path = [head ? head.lane : v.top];
     for (let row = slots[v.top].row + 1; row < slots[v.bottom].row; row++) {
       const k = v.trunk && `${v.trunk.id}|${row}`;
       path.push(k ? shared.get(k) ?? shared.set(k, thin("lane", row, v.key)).get(k)! : thin("lane", row, v.key));
     }
-    path.push(v.bottom);
+    path.push(tail ? tail.lane : v.bottom);
     const links = path.slice(1).map((lower, i) => {
       const k = slots[path[i]].row, same = sheet.chan[k].find((l) => l.up === path[i] && l.down === lower && l.key === v.key);
       if (same) { same.wires.push(v.wire.id); return same; }
@@ -191,7 +240,7 @@ function buildSheet(tree: Tree, cell: Cell, arriving: Thru[], inbound: Map<strin
       sheet.chan[k].push(link);
       return link;
     });
-    sheet.pieces.set(v.wire.id, { kind: "vert", slots: path, down: v.down });
+    sheet.pieces.set(v.wire.id, head || tail ? { kind: "vert", slots: path, down: v.down, head, tail } : { kind: "vert", slots: path, down: v.down });
 
     // the label: half-way along — in the middle gap, or on the lane in the
     // middle row — but a trunk's wire carries it on its own last stub

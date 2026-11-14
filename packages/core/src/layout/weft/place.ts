@@ -33,6 +33,8 @@ const SWEEPS = 4;
 export interface Placing {
   /** width of each slot along the row, and room past its high side nothing may enter */
   w: number[]; bleed: number[];
+  /** room before a slot's low side nothing may enter (a leaf's west `room`) */
+  lead: number[];
   /** clear room wanted between a slot and the next, where a gutter holds more than a gap */
   gutter: Map<number, number>;
   /** where on a slot the wire `key` attaches at wall `wall`, measured from the slot's centre */
@@ -49,7 +51,7 @@ export function place(s: Sheet, p: Placing): { u: number[]; low: number[] } {
   const sep = (a: number, b: number): number => {
     const A = s.slots[a], B = s.slots[b];
     const gap = A.kind === "box" && B.kind === "box" ? s.gap.lane : A.kind === "box" || B.kind === "box" ? Math.max(16, s.gap.lane / 2) : 16;
-    return ceilTo(p.w[a] / 2 + p.bleed[a] + Math.max(gap, p.gutter.get(a) ?? 0) + p.w[b] / 2, GRID);
+    return ceilTo(p.w[a] / 2 + p.bleed[a] + Math.max(gap, p.gutter.get(a) ?? 0) + p.lead[b] + p.w[b] / 2, GRID);
   };
   /** Least distance between two slots of one row, whatever stands between them. */
   const apart = (a: number, b: number): number => {
@@ -74,7 +76,7 @@ export function place(s: Sheet, p: Placing): { u: number[]; low: number[] } {
     // a wire that has to turn comes in clear of the title; one that runs
     // straight into a box of the first rank may pass the end of it (§5.7)
     const turns = s.slots[slot].kind === "port" ? !downs[slot].some((l) => s.slots[l.down].kind === "box") : k === 1 && s.slots[slot].kind === "lane";
-    low[slot] = ceilTo(k <= 1 && titled && turns ? titled : s.slots[slot].kind === "box" ? s.pad.w + p.w[slot] / 2 : 16, GRID);
+    low[slot] = ceilTo(k <= 1 && titled && turns ? titled : s.slots[slot].kind === "box" ? s.pad.w + p.lead[slot] + p.w[slot] / 2 : 16, GRID);
     if (!i || (k <= 1 && titled && turns)) gaps.push({ left: WALL, right: rep[slot], gap: low[slot] });
   }));
   // `columns`: each band wholly before the next, in every rank — through a line between them
@@ -86,7 +88,7 @@ export function place(s: Sheet, p: Placing): { u: number[]; low: number[] } {
       for (const id of ids) {
         const x = s.slots.find((q) => q.kid?.id === id);
         if (!x) continue;
-        const half = ceilTo(p.w[x.i] / 2 + (before ? p.bleed[x.i] : 0) + s.gap.lane / 2, GRID);
+        const half = ceilTo(p.w[x.i] / 2 + (before ? p.bleed[x.i] : p.lead[x.i]) + s.gap.lane / 2, GRID);
         gaps.push(before ? { left: rep[x.i], right: line, gap: half } : { left: line, right: rep[x.i], gap: half });
       }
   });
@@ -159,7 +161,9 @@ export function place(s: Sheet, p: Placing): { u: number[]; low: number[] } {
     return end(hub, below ? "s" : "n", l.key) + at[sorted.indexOf(l)] - middle(tip);
   };
   const aim = (slot: number): void => {
-    const kind = s.slots[slot].kind;
+    const kind = s.slots[slot].kind, hook = s.slots[slot].beside;
+    // a hook's lane keeps close beside its box: the hook is the short way round, not a run along the rank
+    if (hook) { want[slot] = hook.after ? u[hook.box] + apart(hook.box, slot) : u[hook.box] - apart(slot, hook.box); weight[slot] = LIGHT * THIN; firm[slot] = 0; return; }
     // a wire running back against the flow follows and never leads; so does
     // a wire to the sheet's own wall — its port goes where the box is
     let forward = (l: Link) => !l.back && (kind === "port" || (s.slots[l.up].kind !== "port" && s.slots[l.down].kind !== "port"));

@@ -254,7 +254,7 @@ describe("place", () => {
   const at = (p: Problem) => {
     const all = sheets(p); order(all);
     const s = all[0], w = s.slots.map((x) => x.kid?.w ?? 0);
-    const { u } = place(s, { w, bleed: w.map(() => 0), gutter: new Map(), off: () => 0 });
+    const { u } = place(s, { w, bleed: w.map(() => 0), lead: w.map(() => 0), gutter: new Map(), off: () => 0 });
     return (id: string) => u[s.slots.find((x) => x.kid?.id === id || x.key === id)!.i];
   };
   it("stands a box over the middle of the boxes it fans out to", () => {

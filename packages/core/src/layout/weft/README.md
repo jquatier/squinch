@@ -157,6 +157,47 @@ track under a title runs below it: channel 0's depth in `lay.ts`.
 title, `face`/`bleed` (which lie along the page, not along the flow) and the
 flush ranks of a rightward sheet.
 
+**Room beside a box (`Box.room`)** — clear space outside a wall of a leaf,
+by screen side, that nothing enters but the box's own wires on that wall.
+- turned into the sheet's frame, and folded with `bleed` (the deeper holds):
+  the kid in `buildSheet` (`sheet.ts`, `Kid.room` in `types.ts`);
+- beside the box, along its rank: one more term in the gap between two
+  neighbours and before the west wall — `sep`, `low` and the `columns` lines
+  in `place.ts` (`Placing.bleed` after a slot, `Placing.lead` before it); the
+  east wall goes round it in `fit` (`lay.ts`);
+- above or below the box, across the ranks: part of the rank's depth — the
+  rows step of `lay.ts`. The channels start outside it, so no track, lane or
+  label can be in it, and the box's own wire crosses it as a longer stub;
+- what a gutter holds (a step, a label) stands past the room: `drawFlat`;
+- never part of the box: `place.ts` works on centres and widths, which the
+  room does not touch, so a box with room is balanced exactly as without.
+
+**Sides a wire is asked to use (`Wire.fromSide`, `toSide`)** — a `Hook`
+(`types.ts`).
+- decided in `buildSheet` (`hookFor`): an end asked for a wall other than
+  the one facing where the wire goes gets a lane right beside the box, in
+  its own rank, and the wire's path starts (ends) at that lane instead of
+  at the box. So to the ordering stage the detour is what it is — a wire
+  passing the box — and it is counted like one;
+- the lane stays beside its box: `Search.beside` / `sound` (its side, no box
+  and no other box's hook lane between), `trade` (a box that moves takes its
+  hooks' lanes along), the seed, and `aim` in `place.ts` (close beside it);
+- drawn in `lay.ts` (`hookOf`): from a side wall, straight across to the
+  lane; from the north or south wall, out, along a track of the channel
+  there (a net of its own, `hook:…`) and down (up) to the lane. Its port on
+  a north or south wall is placed with the wall's others, at the end
+  nearest the lane;
+- a wire to the sheet's own side wall, from a leaf: north and south are
+  `Side.via` over and under; the near wall is kept by keeping the box last
+  (`sheet.last`);
+- not given, and reported in `Solution.unhonoured` (collected in
+  `engine.ts`): a wire of a bundle; a box that already has a wire straight
+  across that side's gutter or out to that side's wall; the far wall, or a
+  blocked near wall, of a box whose wire leaves its container sideways; a
+  leaf standing in one rank with the container the other end is in. Between
+  two row-mates of one container the side is ignored without report (the
+  caller can see that), and so is a side asked of a container.
+
 ## Iteration, where there is any
 
 - `order.ts`: the search is a descent; it runs from the declared order and,
@@ -195,6 +236,7 @@ flush ranks of a rightward sheet.
 npx vitest run test/weft/ --disable-console-intercept          # everything (≈1 min)
 npx vitest run test/weft/modules.test.ts test/weft/rank.test.ts test/weft/engine.test.ts
 EVERY_SET=1 npx vitest run test/weft/every-set.test.ts --disable-console-intercept       # all four sets, hard rules + totals
+npx vitest run test/weft/audit.test.ts                                                    # random Problems with rooms and asked sides, every hard rule (legal.ts)
 npx tsx test/weft/render.ts <out-dir> <file.squinch#view | random:N | right:…>…           # pictures
 ```
 
@@ -241,5 +283,11 @@ views left out as in the earlier engines' score). No violation in any suite.
 - **A wire ending at a container's side wall** takes the free place nearest
   the wall's middle; nothing more considered.
 - **A label can be crossed by another wire** (never by a box or a label).
+- **A hooked wire is not felt in placement or counted in a gutter.** The
+  box it leaves is not pulled by it (its fan is its other wires), a hook's
+  short stretch between wall and lane is not in the crossing count, and a
+  hook always takes the lane on the side asked — or, out of a north or
+  south wall, the east side unless that is taken — not the side nearer
+  where the wire is going.
 - A wall's only wire can still be a few pixels off the middle where it meets
   a container port that is off the grid (3 cases in the random set).

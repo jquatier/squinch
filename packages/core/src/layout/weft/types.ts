@@ -42,6 +42,10 @@ export interface Kid {
   faceV?: number;
   /** room past the box, along u or along v, that nothing may be placed over */
   bleedU: number; bleedV: number;
+  /** clear space kept outside each wall (`Box.room`), in this frame. The east
+   *  room is also counted into `bleedU`, and a south room replaces as much of
+   *  `bleedV` as it covers; north and south rooms are part of the rank's depth. */
+  room: { n: number; s: number; e: number; w: number };
 }
 
 /** Something that takes a place in a row's order: a box, a wire passing the
@@ -64,6 +68,8 @@ export interface Slot {
   idle: boolean;
   /** place in the declared order of its row — worth a tie, not a crossing */
   decl: number;
+  /** a hook's lane: the box it stands beside, and whether after it or before */
+  beside?: { box: number; after: boolean };
 }
 
 /** A stretch of wire from a slot in one row to a slot in the next. Wires of
@@ -112,9 +118,18 @@ export interface Side {
 /** A wire that ends at this container's own east or west wall. */
 export interface Term { wall: "e" | "w"; key: string; wire: string }
 
+/** An end of a wire that was asked to use a wall other than the one facing
+ *  where it is going (`Wire.fromSide`, `toSide`). The wire's path through the
+ *  sheet then starts (or ends) not at the box but at `lane`, a lane standing
+ *  right beside it in its own rank; between the box's `wall` and that lane it
+ *  is drawn as a hook — straight across from a side wall, or out of the
+ *  north or south wall and over (under) the box on a track of the channel
+ *  there. */
+export interface Hook { box: number; wall: Wall; lane: number }
+
 /** How one wire is drawn in one sheet. */
 export type Piece =
-  | { kind: "vert"; slots: number[]; down: boolean }
+  | { kind: "vert"; slots: number[]; down: boolean; head?: Hook; tail?: Hook }
   | { kind: "flat"; flat: Flat }
   | { kind: "side"; side: Side }
   | { kind: "term"; wall: Wall; key: string };
@@ -151,6 +166,8 @@ export interface Sheet {
   glue: [number, number][];
   /** boxes that stay last in their row toward a wall: a container whose wire runs straight out */
   last: { x: number; wall: "e" | "w" }[];
+  /** wires that asked for a side they could not be given here */
+  unhonoured: string[];
   pad: { n: number; s: number; w: number; e: number };
   gap: { lane: number; rank: number };
   /** the title's corner, in this frame: along the north wall in a downward

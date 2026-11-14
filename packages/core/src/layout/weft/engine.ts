@@ -60,7 +60,9 @@ export function solve(problem: Problem): Solution {
     wires.set(path.wire.id, { points: tidy(points), label });
   }
   const size = root.dir === "down" ? { width: geo.W, height: geo.H } : { width: geo.H, height: geo.W };
-  return { ...size, boxes, ranks, wires, skipped: tree.skipped };
+  // wires that asked for a side and could not be given it, once each
+  const unhonoured = [...new Set(sheets.flatMap((s) => s.unhonoured))];
+  return { ...size, boxes, ranks, wires, skipped: tree.skipped, ...(unhonoured.length ? { unhonoured } : {}) };
 }
 
 /** One polyline from the pieces: no repeated point, no three in a line. */
