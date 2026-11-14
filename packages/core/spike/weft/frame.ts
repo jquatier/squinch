@@ -4,7 +4,7 @@
 // (REQUIREMENTS §5.8). Exchanging the axes exchanges north with west and
 // south with east, and nothing else: both pairs still run low to high, so
 // the order of ports along a wall reads the same from either side of it.
-import type { Dir, Pt, Rect } from "../contract.js";
+import type { Dir, Pt, Rect } from "./contract.js";
 import type { Wall } from "./types.js";
 
 const TURN: Record<Wall, Wall> = { n: "w", w: "n", s: "e", e: "s" };

@@ -1,23 +1,21 @@
-// Before and after: every view of every set drawn by this engine and by the
-// three spike engines before it (`../grid`, `../loom`, `../braid` — black
-// boxes here), scored by the same function. Run by hand:
-//   BEFORE_AFTER=1 npx vitest run spike/weft/before-after.test.ts --disable-console-intercept
+// Every view of every set — corpus, trial, round 2, random — drawn, held to
+// the hard rules (including the one `checkLayout` leaves out: no two wires
+// along one line) and totalled. A second engine can be scored beside this
+// one by adding its `solve` to `others`; the three this engine replaced were
+// compared that way before they were removed. Run by hand:
+//   EVERY_SET=1 npx vitest run spike/weft/every-set.test.ts --disable-console-intercept
 //   ONLY=corpus|trial|round2|random   NR=<how many random diagrams>
-//   VS=grid,loom,braid (which to compare against; grid and loom take minutes on the random set)
 import { it, expect } from "vitest";
 import { readdirSync, readFileSync } from "node:fs";
 import { buildProject } from "../../src/index.js";
 import { corpus } from "../../test/helpers/corpus.js";
 import { checkLayout } from "../../test/invariants.js";
-import { layoutViewGrid } from "../grid/layout.js";
-import { measureLayout, type Metrics } from "../grid/metrics.js";
-import { randomDiagram } from "../grid/random.js";
-import { penalty, gain, verdict } from "../grid/score.js";
-import { solve as grid } from "../grid/engine.js";
-import { solve as loom } from "../loom/engine.js";
-import { solve as braid } from "../braid/engine.js";
+import { layoutViewWeft } from "./layout.js";
+import { measureLayout, type Metrics } from "./metrics.js";
+import { randomDiagram } from "./random.js";
+import { penalty, gain, verdict } from "./score.js";
 import { solve as weft } from "./engine.js";
-import { plan } from "../grid/problem.js";
+import { plan } from "./problem.js";
 import type { Positioned } from "../../src/layout/layout.js";
 
 /** REQUIREMENTS §3.5, which `checkLayout` does not hold anyone to: how many
@@ -39,12 +37,12 @@ function stacked(p: Positioned, bundle: Map<string, string | undefined>): number
 }
 
 const ONLY = process.env.ONLY;
-const others = { grid, loom, braid } as Record<string, typeof weft>;
-const VS = (process.env.VS ?? "grid,loom,braid").split(",").filter((n) => n in others);
+const others = {} as Record<string, typeof weft>;
+const VS = Object.keys(others);
 const keys = ["crossings", "bends", "kinks", "nearMiss", "lopsided", "offCentre", "unstraight", "overlaps"] as const;
 
-it.skipIf(!process.env.BEFORE_AFTER)("this engine against the three before it", () => {
-  const dir = (d: string) => readdirSync("spike/grid/" + d).filter((f) => f.endsWith(".squinch")).sort().map((f) => ({ name: f, src: readFileSync(`spike/grid/${d}/${f}`, "utf8") }));
+it.skipIf(!process.env.EVERY_SET)("every view of every set is legal", () => {
+  const dir = (d: string) => readdirSync("spike/weft/" + d).filter((f) => f.endsWith(".squinch")).sort().map((f) => ({ name: f, src: readFileSync(`spike/weft/${d}/${f}`, "utf8") }));
   const sets = [["corpus", corpus().map((f) => ({ name: f.name, src: f.src }))], ["trial", dir("trial")], ["round2", dir("round2")], ["random", Array.from({ length: +(process.env.NR ?? 80) }, (_, i) => ({ name: `random-${i}`, src: randomDiagram(i) }))]] as const;
   let illegal = 0;
   for (const [set, sources] of sets) {
@@ -58,7 +56,7 @@ it.skipIf(!process.env.BEFORE_AFTER)("this engine against the three before it", 
       const b = buildProject([{ name, src }]);
       if (b.diagnostics.some((d) => d.severity === "error")) continue;
       for (const v of b.model.views.filter((x) => set === "corpus" || !x.auto)) {
-        const run = (n: string, solver: typeof weft) => { const t = performance.now(); const out = layoutViewGrid(b.model, v, undefined, solver); ms[n] += performance.now() - t; return out; };
+        const run = (n: string, solver: typeof weft) => { const t = performance.now(); const out = layoutViewWeft(b.model, v, undefined, solver); ms[n] += performance.now() - t; return out; };
         let mine;
         try { mine = run("weft", weft); } catch (e) { console.log("CRASH", name, v.name, String((e as Error).stack).slice(0, 300)); bad++; continue; }
         views++;

@@ -11,7 +11,7 @@
 //
 // and then the sheets are set on the page and each wire's pieces joined.
 // Nothing later sends anything back to an earlier stage.
-import type { Problem, Pt, Rect, Solution } from "../contract.js";
+import type { Problem, Pt, Rect, Solution } from "./contract.js";
 import { pagePt, pageRect } from "./frame.js";
 import { lay } from "./lay.js";
 import { order } from "./order.js";
@@ -19,7 +19,7 @@ import { weave } from "./sheet.js";
 import { grow } from "./tree.js";
 import type { Sheet } from "./types.js";
 
-export type { Box, Dir, Group, Problem, Solution, Wire } from "../contract.js";
+export type { Box, Dir, Group, Problem, Solution, Wire } from "./contract.js";
 
 export function solve(problem: Problem): Solution {
   const tree = grow(problem);

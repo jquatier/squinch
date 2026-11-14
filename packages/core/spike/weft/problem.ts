@@ -1,4 +1,4 @@
-// A Squinch view → a `Problem` the grid engine can solve.
+// A Squinch view → a `Problem` the engine can solve.
 //
 // This file is the only place that knows both vocabularies. It decides three
 // things and nothing else: the tree (which boxes sit in which container), the
@@ -15,8 +15,8 @@ import { resolveView, type ViewGraph, type VNode } from "../../src/view/resolve.
 import { pillDims, sizeOf, SHEET_BLEED, CHIP_H } from "../../src/layout/layout.js";
 import { measure } from "../../src/metrics.js";
 import type { ThemeFont } from "../../src/themes/index.js";
-import { assignRanks, dense, type Edge } from "./rank.js";
-import type { Box, Dir, Group, Problem, Wire } from "./engine.js";
+import { rankGroup as assignRanks, dense, type Edge } from "./rank.js";
+import type { Box, Dir, Group, Problem, Wire } from "./contract.js";
 
 type Font = Pick<ThemeFont, "metrics" | "scale">;
 export interface Hints { rows?: string[][]; cols?: string[][]; place: { node: string; relpos: RelPos; target: string }[] }

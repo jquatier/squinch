@@ -7,9 +7,9 @@ import { buildProject } from "../../src/index.js";
 import { layoutView } from "../../src/layout/layout.js";
 import { checkLayout } from "../../test/invariants.js";
 import { layoutViewWeft } from "./layout.js";
-import { measureLayout } from "../grid/metrics.js";
+import { measureLayout } from "./metrics.js";
 
-import { rectOf, row, stack, level, leftOf, sys, zone, view, type Ask } from "../grid/asks.js";
+import { rectOf, row, stack, level, leftOf, sys, zone, view, type Ask } from "./asks.js";
 
 const web = sys("web", "Web", ["ui", "bff"], ["ui -> bff"]);
 const api = sys("api", "API", ["gw", "svc", "db"], ["gw -> svc", "svc -> db"]);
@@ -153,20 +153,20 @@ it("zones and expanded containers: is the arrangement the author asked for the o
       if (print) {
         const me = measureLayout(elk.positioned), mg = measureLayout(grid);
         const verdict = (ok: boolean[]) => (ok.every(Boolean) ? "as asked" : placedOk(ok) ? "uneven" : "NOT as asked");
-        console.log(`${c.name.padEnd(64)} ELK ${verdict(e).padEnd(13)} grid ${verdict(g).padEnd(13)} ${`${me.width}×${me.height}`.padEnd(10)} ${`${mg.width}×${mg.height}`.padEnd(10)}${elkErr ? ` ELK:${elkErr} error` : ""}${elkWarn ? ` ELK:${elkWarn} warning` : ""}`);
-        c.asks.forEach((a, i) => { if (!a.polish && (!e[i] || !g[i])) console.log(`      ${a.say}: ELK ${e[i] ? "yes" : "NO"}, grid ${g[i] ? "yes" : "NO"}`); });
+        console.log(`${c.name.padEnd(64)} ELK ${verdict(e).padEnd(13)} weft ${verdict(g).padEnd(13)} ${`${me.width}×${me.height}`.padEnd(10)} ${`${mg.width}×${mg.height}`.padEnd(10)}${elkErr ? ` ELK:${elkErr} error` : ""}${elkWarn ? ` ELK:${elkWarn} warning` : ""}`);
+        c.asks.forEach((a, i) => { if (!a.polish && (!e[i] || !g[i])) console.log(`      ${a.say}: ELK ${e[i] ? "yes" : "NO"}, weft ${g[i] ? "yes" : "NO"}`); });
       }
     }
     return { tally, gridViolations };
   };
-  console.log(`${"case".padEnd(64)} ${"ELK".padEnd(17)} ${"grid".padEnd(18)} size ELK   size grid`);
+  console.log(`${"case".padEnd(64)} ${"ELK".padEnd(17)} ${"weft".padEnd(18)} size ELK   size weft`);
   const hand = await run(cases, true);
   const random = await run(Array.from({ length: 60 }, (_, i) => randomRow(i)), false);
   for (const [label, r] of [["hand-written", hand], ["random rows", random]] as const) {
     const t = r.tally;
     console.log(`\n${label}: ${t.n} diagrams`);
-    console.log(`  arranged as asked   ELK ${t.elkWhole}/${t.n} diagrams (${t.elkPlaced}/${t.placed} asks)   grid ${t.gridWhole}/${t.n} (${t.gridPlaced}/${t.placed})`);
-    console.log(`  rows level          ELK ${t.elkLevel}/${t.level}   grid ${t.gridLevel}/${t.level}`);
+    console.log(`  arranged as asked   ELK ${t.elkWhole}/${t.n} diagrams (${t.elkPlaced}/${t.placed} asks)   weft ${t.gridWhole}/${t.n} (${t.gridPlaced}/${t.placed})`);
+    console.log(`  rows level          ELK ${t.elkLevel}/${t.level}   weft ${t.gridLevel}/${t.level}`);
     console.log(`  ELK diagnostics     ${t.elkErr} errors, ${t.elkWarn} warnings, ${t.elkBad} invariant violations`);
   }
   console.log([...hand.gridViolations, ...random.gridViolations].slice(0, 20).join("\n"));

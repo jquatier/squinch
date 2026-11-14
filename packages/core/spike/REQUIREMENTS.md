@@ -1,5 +1,11 @@
 # Requirements for a layout engine, written from scratch
 
+> **Status.** This brief was met by `weft/`, which is now the only engine
+> here. The engines it names as *before* (`grid/`, `loom/`, `braid/`) were
+> removed afterwards, and the shared files it points at under `grid/` and
+> `../contract.ts` now live in `weft/`. The paths below are left as they
+> were when the brief was written; the rules and priorities still stand.
+
 This is the brief for a **ground-up rewrite** of Squinch's spike layout
 engine. Two engines already exist in this directory (`grid/`, the first, and
 `loom/`, a partial rebuild of it). They are the *before*. You are writing the

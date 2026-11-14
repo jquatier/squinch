@@ -7,9 +7,9 @@ import { layoutView } from "../../src/layout/layout.js";
 import { corpus } from "../../test/helpers/corpus.js";
 import { checkLayout } from "../../test/invariants.js";
 import { layoutViewWeft } from "./layout.js";
-import { measureLayout, type Metrics } from "../grid/metrics.js";
+import { measureLayout, type Metrics } from "./metrics.js";
 
-it("grid vs ELK over the corpus", async () => {
+it("weft vs ELK over the corpus", async () => {
   const keys: (keyof Metrics)[] = ["area", "wire", "bends", "crossings", "overlaps", "throughNode", "kinks", "unstraight", "nearMiss"];
   const total = { elk: {} as Record<string, number>, grid: {} as Record<string, number> };
   const wins = {} as Record<string, [better: number, worse: number]>;
@@ -39,9 +39,9 @@ it("grid vs ELK over the corpus", async () => {
       for (const k of keys) { total.elk[k] += a[k]; total.grid[k] += b[k]; if (b[k] < a[k]) wins[k][0]++; if (b[k] > a[k]) wins[k][1]++; }
     }
   }
-  console.log(`${views} views · ELK ${Math.round(msElk)}ms · grid ${Math.round(msGrid)}ms`);
+  console.log(`${views} views · ELK ${Math.round(msElk)}ms · weft ${Math.round(msGrid)}ms`);
   for (const k of keys)
-    console.log(`${k.padEnd(12)} ELK ${String(total.elk[k]).padStart(9)}  grid ${String(total.grid[k]).padStart(9)}  ×${(total.grid[k] / (total.elk[k] || 1)).toFixed(2)}  grid better in ${wins[k][0]}, worse in ${wins[k][1]}`);
+    console.log(`${k.padEnd(12)} ELK ${String(total.elk[k]).padStart(9)}  weft ${String(total.grid[k]).padStart(9)}  ×${(total.grid[k] / (total.elk[k] || 1)).toFixed(2)}  grid better in ${wins[k][0]}, worse in ${wins[k][1]}`);
   console.log(illegal.slice(0, 20).join("\n"));
   expect(views).toBeGreaterThan(120);
   expect(illegal).toEqual([]);

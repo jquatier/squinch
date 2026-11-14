@@ -1,11 +1,21 @@
 # weft — a layout engine written from the requirements
 
 `solve(problem: Problem): Solution` (`engine.ts`), written cold from
-`../REQUIREMENTS.md`, `../contract.ts` and the test suites. It knows nothing
+`../REQUIREMENTS.md`, `contract.ts` and the test suites. It knows nothing
 about Squinch: boxes (some holding boxes), wires, and per container a
 direction, spacing and what the author pinned go in; a rectangle per box and
 an orthogonal polyline per wire come out. No dependency, no `node:` import,
 no clock, no randomness.
+
+The Squinch side lives beside it and is not part of the engine: `problem.ts`
+(a view → a `Problem`), `layout.ts` (`layoutViewWeft`: plan, solve, dress the
+`Solution` as the `Positioned` the renderer draws), `metrics.ts` and
+`score.ts` (how a layout is measured and judged against ELK), `asks.ts` and
+`random.ts` (test helpers), and the diagram sets `trial/` and `round2/`.
+
+Three spike engines came before this one — `grid`, `loom` and `braid` — and
+were removed once this one was accepted; they are in the branch's history,
+and the "Measured" table below keeps their numbers.
 
 ## The design in one paragraph
 
@@ -184,18 +194,19 @@ flush ranks of a rightward sheet.
 ```
 npx vitest run spike/weft/ --disable-console-intercept          # everything (≈1 min)
 npx vitest run spike/weft/modules.test.ts spike/weft/rank.test.ts spike/weft/engine.test.ts
-BEFORE_AFTER=1 npx vitest run spike/weft/before-after.test.ts --disable-console-intercept   # ≈5 min
+EVERY_SET=1 npx vitest run spike/weft/every-set.test.ts --disable-console-intercept       # all four sets, hard rules + totals
 npx tsx spike/weft/render.ts <out-dir> <file.squinch#view | random:N | right:…>…           # pictures
 ```
 
-`engine.test.ts` is `loom/engine.test.ts`'s behavioural blocks, ported; one
+`engine.test.ts` is the behavioural blocks of the previous engines' suite, ported; one
 test was changed where REQUIREMENTS §4.4 now overrides it (marked in the
-file). `before-after.test.ts` also checks what `checkLayout` does not: that
+file). `every-set.test.ts` also checks what `checkLayout` does not: that
 no two wires outside one bundle are drawn along the same line (§3.5).
 
 ## Measured
 
-`before-after.test.ts` and `score.test.ts`, 409 views (384 against ELK, `wrap`
+`every-set.test.ts` (run against the earlier engines before they were
+removed) and `score.test.ts`, 409 views (384 against ELK, `wrap`
 views left out as in the earlier engines' score). No violation in any suite.
 
 | | `grid` | `loom` | `braid` | `weft` |

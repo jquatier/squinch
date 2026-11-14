@@ -1,4 +1,4 @@
-// A look at the pictures: one view drawn by ELK and by each spike engine,
+// A look at the pictures: one view drawn by ELK and by this engine,
 // side by side, as plain boxes and lines. Not the product's renderer — just
 // enough to judge a layout by eye.
 //
@@ -7,18 +7,15 @@
 // A spec is `path/to/file.squinch#view` (or `#*` for every explicit view),
 // `random:<seed>`, or `right:<spec>` to turn the view to flow rightward.
 // Writes `<out-dir>/<name>.html` and, where Playwright is installed, a PNG
-// beside it. ENGINES=elk,loom,braid,weft picks the columns.
+// beside it. ENGINES=elk,weft picks the columns.
 import { readFileSync, writeFileSync, mkdirSync } from "node:fs";
 import { join } from "node:path";
 import { buildProject } from "../../src/index.js";
 import { layoutView, type Positioned } from "../../src/layout/layout.js";
 import { checkLayout } from "../../test/invariants.js";
-import { layoutViewGrid } from "../grid/layout.js";
-import { measureLayout } from "../grid/metrics.js";
-import { randomDiagram } from "../grid/random.js";
-import { solve as loom } from "../loom/engine.js";
-import { solve as braid } from "../braid/engine.js";
-import { solve as weft } from "./engine.js";
+import { layoutViewWeft } from "./layout.js";
+import { measureLayout } from "./metrics.js";
+import { randomDiagram } from "./random.js";
 
 const esc = (t: string) => t.replace(/&/g, "&amp;").replace(/</g, "&lt;");
 
@@ -37,7 +34,7 @@ export function svg(p: Positioned): string {
 async function main() {
   const [outDir, ...specs] = process.argv.slice(2);
   mkdirSync(outDir, { recursive: true });
-  const engines = (process.env.ENGINES ?? "elk,loom,braid,weft").split(",");
+  const engines = (process.env.ENGINES ?? "elk,weft").split(",");
   const pages: string[] = [];
   for (let spec of specs) {
     const right = spec.startsWith("right:");
@@ -53,7 +50,7 @@ async function main() {
       for (const name of engines) {
         let p: Positioned, note = "";
         try {
-          p = name === "elk" ? (await layoutView(built.model, view)).positioned : layoutViewGrid(built.model, view, undefined, { loom, braid, weft }[name]).positioned;
+          p = name === "elk" ? (await layoutView(built.model, view)).positioned : layoutViewWeft(built.model, view).positioned;
         } catch (e) { cells.push(`<td><b>${name}</b> crashed: ${esc(String(e))}</td>`); continue; }
         const m = measureLayout(p);
         if (name !== "elk") {

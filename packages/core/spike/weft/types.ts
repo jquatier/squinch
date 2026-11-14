@@ -2,7 +2,7 @@
 // container's own frame — `u` runs along a rank (the lane axis), `v` runs
 // across the ranks — so every stage is written once, for a downward flow, and
 // `frame.ts` is the only place that knows which of the two is x.
-import type { Box, Dir, Group, Wire } from "../contract.js";
+import type { Box, Dir, Group, Wire } from "./contract.js";
 
 /** A wall of a box or of a container, in the frame of the sheet being laid out. */
 export type Wall = "n" | "s" | "e" | "w";

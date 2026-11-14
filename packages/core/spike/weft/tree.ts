@@ -4,7 +4,7 @@
 // container that holds both ends (between the two children that hold them),
 // and one in every container it has to leave or enter on the way. This file
 // finds those containers; it decides nothing about geometry.
-import type { Box, Problem, Wire } from "../contract.js";
+import type { Box, Problem, Wire } from "./contract.js";
 import type { Cell, Path, Step } from "./types.js";
 
 export interface Tree {

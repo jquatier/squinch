@@ -9,12 +9,12 @@ import { buildProject } from "../../src/index.js";
 import { layoutView } from "../../src/layout/layout.js";
 import { checkLayout } from "../../test/invariants.js";
 import { layoutViewWeft } from "./layout.js";
-import { measureLayout, type Metrics } from "../grid/metrics.js";
-import { randomDiagram } from "../grid/random.js";
+import { measureLayout, type Metrics } from "./metrics.js";
+import { randomDiagram } from "./random.js";
 
-const dir = join(dirname(fileURLToPath(import.meta.url)), "..", "grid", "trial");
+const dir = join(dirname(fileURLToPath(import.meta.url)), "trial");
 
-it("grid vs ELK on diagrams neither has seen", async () => {
+it("weft vs ELK on diagrams neither has seen", async () => {
   const sources = [
     ...readdirSync(dir).filter((f) => f.endsWith(".squinch")).sort().map((f) => ({ name: f.replace(".squinch", ""), src: readFileSync(join(dir, f), "utf8") })),
     ...Array.from({ length: 80 }, (_, i) => ({ name: `random-${i}`, src: randomDiagram(i) })),
@@ -49,10 +49,10 @@ it("grid vs ELK on diagrams neither has seen", async () => {
         lines.push(`${`${name}#${view.name}`.padEnd(26)} ${a ? `${a.width}×${a.height}`.padEnd(10) : "—".padEnd(10)} ${`${b.width}×${b.height}`.padEnd(10)} bends ${String(a?.bends ?? "—").padStart(3)}/${String(b.bends).padEnd(3)} cross ${String(a?.crossings ?? "—").padStart(2)}/${String(b.crossings).padEnd(2)}${note}`);
     }
   }
-  console.log(`${"view".padEnd(26)} ${"ELK".padEnd(10)} ${"grid".padEnd(10)} (ELK/grid)`);
+  console.log(`${"view".padEnd(26)} ${"ELK".padEnd(10)} ${"weft".padEnd(10)} (ELK/weft)`);
   console.log(lines.join("\n"));
-  console.log(`\n${views} views · ELK: ${elkErrors} errors, ${elkWarnings} warnings, ${elkBad} invariant violations, ${elkCrashed} crashes · grid: ${gridBad.length} violations`);
-  for (const k of keys) console.log(`${k.padEnd(12)} ELK ${String(total.elk[k]).padStart(9)}  grid ${String(total.grid[k]).padStart(9)}  ×${(total.grid[k] / (total.elk[k] || 1)).toFixed(2)}`);
+  console.log(`\n${views} views · ELK: ${elkErrors} errors, ${elkWarnings} warnings, ${elkBad} invariant violations, ${elkCrashed} crashes · weft: ${gridBad.length} violations`);
+  for (const k of keys) console.log(`${k.padEnd(12)} ELK ${String(total.elk[k]).padStart(9)}  weft ${String(total.grid[k]).padStart(9)}  ×${(total.grid[k] / (total.elk[k] || 1)).toFixed(2)}`);
   console.log(broken.join("\n"));
   console.log(gridBad.slice(0, 30).join("\n"));
   expect(broken).toEqual([]);

@@ -18,7 +18,7 @@
 // So the set of slots is fixed, a container knows which of its walls each
 // wire uses before its inside is looked at, and the ordering stage can count
 // crossings over the whole tree without anything appearing or vanishing.
-import type { Wire } from "../contract.js";
+import type { Wire } from "./contract.js";
 import { framed, turn } from "./frame.js";
 import { rankGroup, type Edge } from "./rank.js";
 import type { Tree } from "./tree.js";

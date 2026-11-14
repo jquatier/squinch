@@ -982,3 +982,49 @@ turned into a Problem, a Solution turned into `Positioned`, the metrics and
 the score — is still in `spike/grid/` (`problem.ts`, `layout.ts`,
 `metrics.ts`, `score.ts`) and takes either engine. `spike/grid/`'s own
 engine files stay until the rebuild is accepted, for the comparison above.
+
+## Two cold rewrites, and what is left: `spike/weft`
+
+`loom` turned out to be a partial rebuild — most of its stages were carried
+over from `grid`. So the rules were written down as requirements
+(`packages/core/spike/REQUIREMENTS.md`) and handed, twice, to an agent that
+had seen none of this work and was not allowed to read the earlier engines.
+
+- **`braid`** won on crossings, bends and speed, but it bought bends with
+  balance: it would leave a box hanging over one child on a dead-straight
+  wire rather than centred over its fan. Looked at, its pictures were worse.
+- The requirements were revised — **balance outranks straightness; a box is
+  never moved to straighten a wire**; the "dead end pulls less" rule
+  withdrawn — and **`weft`** written from them. It is ahead of every earlier
+  engine on balance *and* on crossings and speed.
+
+| | ELK | `grid` | `loom` | `braid` | `weft` |
+|---|---|---|---|---|---|
+| Better / level / worse than ELK, 384 views | — | 183 / 190 / 11 | 189 / 182 / 13 | 233 / 145 / 6 | 238 / 143 / 3 |
+| Total penalty vs ELK | — | −35% | −37% | −46% | −49% |
+| Corpus: crossings | 73 | 25 | 26 | 25 | 22 |
+| Corpus: bends | 1,174 | 1,041 | 1,057 | 701 | 707 |
+| Corpus: lopsided boxes | — | 134 | 130 | 145 | 104 |
+| Corpus: jogs under 16 px | 12 | 1 | 1 | 5 | 1 |
+| Random (80): crossings | — | 441 | 365 | 288 | 281 |
+| Random: jogs under 16 px | — | 41 | 32 | 59 | 10 |
+| Time, 80 random views | — | 180 s | 51 s | 1.9 s | 1.4 s |
+
+Layout time on the 259 corpus views, warmed up: ELK 2.5 s, `weft` 0.25 s
+(median view 8.0 ms against 0.8 ms; `weft` is slower on none).
+
+**Tried and not kept: leaves that grow.** A fanning box widened to cover its
+fan (so every wire runs straight), and a container's leaves given one width.
+Bends on the corpus fell from 707 to 425 with no violation — and the pictures
+were not better: width starts to read as importance, a grown card is mostly
+empty, sizes in one picture stop being uniform, and adding a wire would
+change a box's size. The score does not see any of that. If it returns, it
+should be something the author asks for, not something wiring decides.
+
+**What is where now.** `grid`, `loom` and `braid` are removed (they are in
+the branch's history). `packages/core/spike/weft/` holds the engine, its
+README, and the Squinch side every engine shared — `problem.ts`, `layout.ts`
+(`layoutViewWeft`), `metrics.ts`, `score.ts`, the `trial/` and `round2/`
+diagram sets. Sections above that name files under `spike/grid/` or
+`spike/loom/` describe those engines as they were.
+

@@ -1,7 +1,7 @@
 // Each module on its own, with a few lines of input — no view, no model, no
 // font, and (below `engine.ts`) no call to `solve`.
 import { describe, it, expect } from "vitest";
-import type { Box, Group, Problem } from "../contract.js";
+import type { Box, Group, Problem } from "./contract.js";
 import { Count } from "./count.js";
 import { ceilTo, framed, pagePt, pageRect, real, snap, turn } from "./frame.js";
 import { gutters } from "./gutter.js";

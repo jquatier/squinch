@@ -70,7 +70,7 @@ function widestRow(p: Positioned, container: string, built: ReturnType<typeof bu
 it("wrap folds containers: no row holds more than was asked", async () => {
   const bad: string[] = [];
   let elkFolded = 0, gridFolded = 0, asks = 0;
-  console.log(`${"case".padEnd(70)} ELK canvas   grid canvas  widest row ELK/grid/asked`);
+  console.log(`${"case".padEnd(70)} ELK canvas   weft canvas  widest row ELK/weft/asked`);
   for (const c of cases) {
     const built = buildProject([{ name: c.name, src: c.src }]);
     const errs = built.diagnostics.filter((d) => d.severity === "error");
@@ -91,7 +91,7 @@ it("wrap folds containers: no row holds more than was asked", async () => {
     const warn = elk.diagnostics.filter((d) => /wrap/.test(d.message)).length;
     console.log(`${c.name.padEnd(70)} ${`${elk.positioned.width}×${elk.positioned.height}`.padEnd(12)} ${`${grid.width}×${grid.height}`.padEnd(12)} ${rows.join("  ")}${warn ? "   ELK: wrap has no effect" : ""}`);
   }
-  console.log(`\nfolded as asked: ELK ${elkFolded}/${asks} · grid ${gridFolded}/${asks}`);
+  console.log(`\nfolded as asked: ELK ${elkFolded}/${asks} · weft ${gridFolded}/${asks}`);
   console.log(bad.join("\n"));
   expect(bad).toEqual([]);
 }, 300_000);

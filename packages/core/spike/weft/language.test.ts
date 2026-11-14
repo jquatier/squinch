@@ -1,5 +1,5 @@
 // Three things the language says and the ELK engine answers with a warning
-// or an error. In the grid engine each is simply a layout — the reason is the
+// or an error. In this engine each is simply a layout — the reason is the
 // same for all three: a rank is a constraint the engine owns, not a
 // suggestion handed to someone else.
 import { describe, it, expect } from "vitest";
@@ -18,7 +18,7 @@ const both = async (src: string, trunkTargets: string[] = []) => {
   return { elk: await layoutView(built.model, view), grid, y: (p: string) => grid.nodes.find((n) => n.path === p)!.y };
 };
 
-describe("hints the grid engine honours and ELK cannot", () => {
+describe("hints this engine honours and ELK cannot", () => {
   it("keeps a band whole around an unlisted bus", async () => {
     const { elk, y } = await both(`a = box "A"
 b = box "B"

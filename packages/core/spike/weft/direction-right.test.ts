@@ -14,9 +14,9 @@ import { layoutView, type Positioned } from "../../src/layout/layout.js";
 import type { SView } from "../../src/model/types.js";
 import { corpus } from "../../test/helpers/corpus.js";
 import { checkLayout } from "../../test/invariants.js";
-import { column, flush, leftOf, level, row, stack, sys, zone, view, rectOf, type Ask } from "../grid/asks.js";
+import { column, flush, leftOf, level, row, stack, sys, zone, view, rectOf, type Ask } from "./asks.js";
 import { layoutViewWeft } from "./layout.js";
-import { measureLayout, type Metrics } from "../grid/metrics.js";
+import { measureLayout, type Metrics } from "./metrics.js";
 
 const here = dirname(fileURLToPath(import.meta.url));
 const right = (v: SView): SView => ({ ...v, layout: { ...v.layout, direction: "right" } });
@@ -106,7 +106,7 @@ it("left to right: does it read rightward, is it arranged as asked, and is every
 
   // 1 ─ reading
   console.log(`\n1. Reading rightward — ${flows.length} acyclic diagrams, nothing arranged by hand`);
-  console.log(`${"".padEnd(30)} wires east→west      columns flush left    size ELK     size grid   bends ELK/grid`);
+  console.log(`${"".padEnd(30)} wires east→west      columns flush left    size ELK     size weft   bends ELK/weft`);
   const sum = { elk: { wires: 0, eastToWest: 0, columns: 0, flushColumns: 0 }, grid: { wires: 0, eastToWest: 0, columns: 0, flushColumns: 0 } };
   for (const f of flows) {
     const built = buildProject([{ name: f.name, src: f.src }]);
@@ -117,9 +117,9 @@ it("left to right: does it read rightward, is it arranged as asked, and is every
     strict(f.name, grid);
     const e = reading(elk), g = reading(grid), me = measureLayout(elk), mg = measureLayout(grid);
     for (const k of ["wires", "eastToWest", "columns", "flushColumns"] as const) { sum.elk[k] += e[k]; sum.grid[k] += g[k]; }
-    console.log(`${f.name.padEnd(30)} ELK ${`${e.eastToWest}/${e.wires}`.padEnd(6)} grid ${`${g.eastToWest}/${g.wires}`.padEnd(6)} ELK ${`${e.flushColumns}/${e.columns}`.padEnd(5)} grid ${`${g.flushColumns}/${g.columns}`.padEnd(5)}  ${`${me.width}×${me.height}`.padEnd(11)} ${`${mg.width}×${mg.height}`.padEnd(11)} ${me.bends}/${mg.bends}`);
+    console.log(`${f.name.padEnd(30)} ELK ${`${e.eastToWest}/${e.wires}`.padEnd(6)} weft ${`${g.eastToWest}/${g.wires}`.padEnd(6)} ELK ${`${e.flushColumns}/${e.columns}`.padEnd(5)} weft ${`${g.flushColumns}/${g.columns}`.padEnd(5)}  ${`${me.width}×${me.height}`.padEnd(11)} ${`${mg.width}×${mg.height}`.padEnd(11)} ${me.bends}/${mg.bends}`);
   }
-  console.log(`${"total".padEnd(30)} ELK ${sum.elk.eastToWest}/${sum.elk.wires}  grid ${sum.grid.eastToWest}/${sum.grid.wires}     ELK ${sum.elk.flushColumns}/${sum.elk.columns}  grid ${sum.grid.flushColumns}/${sum.grid.columns}`);
+  console.log(`${"total".padEnd(30)} ELK ${sum.elk.eastToWest}/${sum.elk.wires}  weft ${sum.grid.eastToWest}/${sum.grid.wires}     ELK ${sum.elk.flushColumns}/${sum.elk.columns}  weft ${sum.grid.flushColumns}/${sum.grid.columns}`);
 
   // 2 ─ arrangements
   console.log(`\n2. Arrangements under a rightward flow — ${cases.length} diagrams`);
@@ -139,16 +139,16 @@ it("left to right: does it read rightward, is it arranged as asked, and is every
     if (placed(g)) gridWhole++;
     const verdict = (ok: boolean[]) => (ok.every(Boolean) ? "as asked" : placed(ok) ? "uneven" : "NOT as asked");
     const diag = elkOut.diagnostics.length;
-    console.log(`${c.name.padEnd(54)} ELK ${verdict(e).padEnd(13)} grid ${verdict(g).padEnd(13)} ${`${elk.width}×${elk.height}`.padEnd(10)} ${`${grid.width}×${grid.height}`.padEnd(10)}${diag ? ` ELK:${diag} diagnostic` : ""}`);
-    c.asks.forEach((a, i) => { if (!a.polish && (!e[i] || !g[i])) console.log(`      ${a.say}: ELK ${e[i] ? "yes" : "NO"}, grid ${g[i] ? "yes" : "NO"}`); });
+    console.log(`${c.name.padEnd(54)} ELK ${verdict(e).padEnd(13)} weft ${verdict(g).padEnd(13)} ${`${elk.width}×${elk.height}`.padEnd(10)} ${`${grid.width}×${grid.height}`.padEnd(10)}${diag ? ` ELK:${diag} diagnostic` : ""}`);
+    c.asks.forEach((a, i) => { if (!a.polish && (!e[i] || !g[i])) console.log(`      ${a.say}: ELK ${e[i] ? "yes" : "NO"}, weft ${g[i] ? "yes" : "NO"}`); });
     if (!placed(g)) bad.push(`${c.name}: not arranged as asked`);
   }
-  console.log(`arranged as asked: ELK ${elkWhole}/${cases.length} · grid ${gridWhole}/${cases.length}    tidy (level, flush): ELK ${elkTidy}/${tidy} · grid ${gridTidy}/${tidy}`);
+  console.log(`arranged as asked: ELK ${elkWhole}/${cases.length} · weft ${gridWhole}/${cases.length}    tidy (level, flush): ELK ${elkTidy}/${tidy} · weft ${gridTidy}/${tidy}`);
 
   // 3 ─ everything we own, turned on its side
   const sources = [
     ...corpus(),
-    ...readdirSync(join(here, "..", "grid", "trial")).filter((f) => f.endsWith(".squinch")).sort().map((f) => ({ name: `trial/${f}`, src: readFileSync(join(here, "..", "grid", "trial", f), "utf8") })),
+    ...readdirSync(join(here, "trial")).filter((f) => f.endsWith(".squinch")).sort().map((f) => ({ name: `trial/${f}`, src: readFileSync(join(here, "trial", f), "utf8") })),
   ];
   const keys: (keyof Metrics)[] = ["area", "wire", "bends", "crossings", "kinks", "throughNode", "nearMiss"];
   const total = { elk: {} as Record<string, number>, grid: {} as Record<string, number> };
@@ -178,8 +178,8 @@ it("left to right: does it read rightward, is it arranged as asked, and is every
     }
   }
   console.log(`\n3. Every corpus and trial view, turned to flow rightward — ${views} views`);
-  console.log(`   ELK: ${elkErr} errors, ${elkBad} invariant violations, ${elkCrash} crashes · grid: ${bad.length} violations`);
-  for (const k of keys) console.log(`   ${k.padEnd(12)} ELK ${String(total.elk[k]).padStart(10)}  grid ${String(total.grid[k]).padStart(10)}  ×${(total.grid[k] / (total.elk[k] || 1)).toFixed(2)}`);
+  console.log(`   ELK: ${elkErr} errors, ${elkBad} invariant violations, ${elkCrash} crashes · weft: ${bad.length} violations`);
+  for (const k of keys) console.log(`   ${k.padEnd(12)} ELK ${String(total.elk[k]).padStart(10)}  weft ${String(total.grid[k]).padStart(10)}  ×${(total.grid[k] / (total.elk[k] || 1)).toFixed(2)}`);
   console.log(bad.slice(0, 30).join("\n"));
   expect(bad).toEqual([]);
 }, 900_000);

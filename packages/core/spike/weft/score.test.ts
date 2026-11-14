@@ -11,13 +11,13 @@ import { layoutView } from "../../src/layout/layout.js";
 import { corpus } from "../../test/helpers/corpus.js";
 import { checkLayout } from "../../test/invariants.js";
 import { layoutViewWeft } from "./layout.js";
-import { measureLayout, type Metrics } from "../grid/metrics.js";
-import { randomDiagram } from "../grid/random.js";
-import { gain, penalty, verdict, WEIGHTS, type Weights } from "../grid/score.js";
+import { measureLayout, type Metrics } from "./metrics.js";
+import { randomDiagram } from "./random.js";
+import { gain, penalty, verdict, WEIGHTS, type Weights } from "./score.js";
 
 const here = dirname(fileURLToPath(import.meta.url));
-const folder = (name: string) => readdirSync(join(here, "..", "grid", name)).filter((f) => f.endsWith(".squinch")).sort()
-  .map((f) => ({ name: f.replace(".squinch", ""), src: readFileSync(join(here, "..", "grid", name, f), "utf8") }));
+const folder = (name: string) => readdirSync(join(here, name)).filter((f) => f.endsWith(".squinch")).sort()
+  .map((f) => ({ name: f.replace(".squinch", ""), src: readFileSync(join(here, name, f), "utf8") }));
 
 describe("score", () => {
   const m = (over: Partial<Metrics>): Metrics => ({ area: 0, width: 0, height: 0, wire: 0, bends: 0, crossings: 0, overlaps: 0, throughNode: 0, throughFrame: 0, kinks: 0, unstraight: 0, nearMiss: 0, lopsided: 0, offCentre: 0, ...over });
@@ -33,7 +33,7 @@ describe("score", () => {
   });
 });
 
-it("grid vs ELK, view by view", async () => {
+it("weft vs ELK, view by view", async () => {
   const sets = [
     { set: "corpus", sources: corpus().map((f) => ({ name: f.name, src: f.src })), auto: true },
     { set: "trial", sources: folder("trial"), auto: false },
@@ -94,7 +94,7 @@ it("grid vs ELK, view by view", async () => {
 
   const scored = rows.map((r) => ({ r, pe: penalty(r.elk, r.elkIllegal), pg: penalty(r.grid, r.gridIllegal) })).map((x) => ({ ...x, g: gain(x.pe, x.pg) }));
   const show = (x: (typeof scored)[number]) =>
-    `  ${pct(x.g).padStart(5)}  ${x.r.view.padEnd(44)} ELK ${x.pe.toFixed(0).padStart(4)} grid ${x.pg.toFixed(0).padStart(4)}   cross ${x.r.elk.crossings}/${x.r.grid.crossings} bends ${x.r.elk.bends}/${x.r.grid.bends} kinks ${x.r.elk.kinks}/${x.r.grid.kinks} lopsided ${x.r.elk.lopsided}/${x.r.grid.lopsided} illegal ${x.r.elkIllegal}/${x.r.gridIllegal} ${x.r.elk.width}×${x.r.elk.height} → ${x.r.grid.width}×${x.r.grid.height}`;
+    `  ${pct(x.g).padStart(5)}  ${x.r.view.padEnd(44)} ELK ${x.pe.toFixed(0).padStart(4)} weft ${x.pg.toFixed(0).padStart(4)}   cross ${x.r.elk.crossings}/${x.r.grid.crossings} bends ${x.r.elk.bends}/${x.r.grid.bends} kinks ${x.r.elk.kinks}/${x.r.grid.kinks} lopsided ${x.r.elk.lopsided}/${x.r.grid.lopsided} illegal ${x.r.elkIllegal}/${x.r.gridIllegal} ${x.r.elk.width}×${x.r.elk.height} → ${x.r.grid.width}×${x.r.grid.height}`;
   // what the lost views lose on: each term's share of the penalty they gave away
   const terms: [string, (m: Metrics, illegal: number) => number][] = [
     ["illegal", (m, i) => WEIGHTS.illegal * (i + m.throughNode)], ["crossings", (m) => WEIGHTS.crossings * m.crossings],
@@ -103,18 +103,18 @@ it("grid vs ELK, view by view", async () => {
   ];
   for (const [label, pick] of [["lost", "worse"], ["won", "better"]] as const) {
     const list = scored.filter((x) => verdict(x.g) === pick);
-    console.log(`\nIn the ${list.length} views ${label}, penalty by term (ELK → grid):\n` + terms.map(([name, f]) => {
+    console.log(`\nIn the ${list.length} views ${label}, penalty by term (ELK → weft):\n` + terms.map(([name, f]) => {
       const e = list.reduce((a, x) => a + f(x.r.elk, x.r.elkIllegal), 0), g = list.reduce((a, x) => a + f(x.r.grid, x.r.gridIllegal), 0);
       return `  ${name.padEnd(11)} ${e.toFixed(0).padStart(6)} → ${g.toFixed(0).padStart(6)}   ${(g - e >= 0 ? "+" : "") + (g - e).toFixed(0)}`;
     }).join("\n"));
   }
-  console.log("\nTotals, everything but the random set (ELK → grid):\n" + (["crossings", "kinks", "nearMiss", "lopsided", "unstraight", "offCentre", "bends", "wire"] as const).map((k) => {
+  console.log("\nTotals, everything but the random set (ELK → weft):\n" + (["crossings", "kinks", "nearMiss", "lopsided", "unstraight", "offCentre", "bends", "wire"] as const).map((k) => {
     const list = rows.filter((r) => r.set !== "random");
     const e = list.reduce((a, r) => a + r.elk[k], 0), g = list.reduce((a, r) => a + r.grid[k], 0);
     return `  ${k.padEnd(11)} ${String(e).padStart(7)} → ${String(g).padStart(7)}   ×${(g / (e || 1)).toFixed(2)}`;
   }).join("\n") + `\n  illegal     ${String(rows.filter((r) => r.set !== "random").reduce((a, r) => a + r.elkIllegal, 0)).padStart(7)} → ${String(rows.filter((r) => r.set !== "random").reduce((a, r) => a + r.gridIllegal, 0)).padStart(7)}`);
   const named = scored.filter((x) => x.r.set !== "random");
-  console.log("\nWhere the new engine is furthest behind (ELK/grid):\n" + [...named].sort((a, b) => a.g - b.g).slice(0, 25).map(show).join("\n"));
+  console.log("\nWhere the new engine is furthest behind (ELK/weft):\n" + [...named].sort((a, b) => a.g - b.g).slice(0, 25).map(show).join("\n"));
   console.log("\nWhere it is furthest ahead:\n" + [...named].sort((a, b) => b.g - a.g).slice(0, 15).map(show).join("\n"));
   console.log("\nRandom diagrams with the most crossings to make up:\n" + scored.filter((x) => x.r.set === "random")
     .sort((a, b) => (b.r.grid.crossings - b.r.elk.crossings) - (a.r.grid.crossings - a.r.elk.crossings)).slice(0, 10).map(show).join("\n"));
