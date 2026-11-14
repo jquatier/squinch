@@ -12,6 +12,7 @@ import { resolveView } from "../view/resolve.js";
 import type { VNode, VEdge, FieldRow } from "../view/resolve.js";
 import type { SModel, SView, Side, Diagnostic, Hue, RelPos, ZoneKind, ZoneLabelPos } from "../model/types.js";
 import type { ThemeFont } from "../themes/index.js";
+import { layoutViewWeft } from "./weft-view.js";
 
 const LEAF_TIERS = [120, 160, 200, 240];
 /** Past 240 only a label earns more room: a long subtitle on every leaf would
@@ -297,6 +298,14 @@ function alignColumnsLeft(graph: any) {
   }
 }
 
+/** Which engine `layoutView` runs. ELK is what ships; `weft` is the engine
+ *  written to replace it (`./weft/README.md`), switched in so the whole
+ *  product — tests, CLI, playground — can be run on either and compared.
+ *  @internal */
+let engine: "elk" | "weft" = "elk";
+export function setLayoutEngine(next: "elk" | "weft"): void { engine = next; }
+export const layoutEngine = (): "elk" | "weft" => engine;
+
 export async function layoutView(
   model: SModel,
   view: SView,
@@ -305,6 +314,10 @@ export async function layoutView(
    *  path then face — found by a first pass, see `noteLabels` in leafChild. */
   shared: ReadonlyMap<string, Partial<Record<Side, number>>> = new Map(),
 ): Promise<{ positioned: Positioned; diagnostics: Diagnostic[] }> {
+  if (engine === "weft") {
+    const { positioned, diagnostics } = layoutViewWeft(model, view, font);
+    return { positioned, diagnostics };
+  }
   const authored = view;
   // A view scoped to a container (its auto view, or `scope c`) stands *inside*
   // it, so the container's own `layout { }` is the root layout there — unless

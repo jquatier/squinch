@@ -1,16 +1,14 @@
-// `layoutViewWeft` — the spike's drop-in for `layoutView`.
+// `layoutViewWeft` — a view laid out by the weft engine.
 //
-// plan (Squinch → Problem) · solve (the engine) · dress (Solution →
-// `Positioned`, the type the renderer and the invariant sweep already
-// consume). The spike draws zone chips and nothing else from the annotation
-// pass: notes and flow badges are placed *after* layout from nodes, wires and
-// pills, so they do not depend on which engine produced those.
+// plan (Squinch → Problem, `plan.ts`) · solve (the engine, `weft/`) · dress
+// (Solution → `Positioned`, the type the renderer and the invariant sweep
+// consume) · annotate (badges, chips, notes — `annotate.ts`, `notes.ts`).
 
-import type { SModel, SView, Side } from "../model/types.js";
+import type { Diagnostic, SModel, SView, Side } from "../model/types.js";
 import type { Positioned, PEdge, PPort } from "./layout.js";
-import { CHIP_H } from "./layout.js";
-import { measure } from "../metrics.js";
 import type { ThemeFont } from "../themes/index.js";
+import { annotate, markCrossedTitles } from "./annotate.js";
+import { placeNotes } from "./notes.js";
 import { plan } from "./plan.js";
 import { solve } from "./weft/engine.js";
 import type { Rect, Pt } from "./weft/contract.js";
@@ -22,7 +20,7 @@ export function layoutViewWeft(
   model: SModel, view: SView, font: Font = INTER,
   /** the engine that draws it: this one, unless a test hands in another */
   solver: (problem: Parameters<typeof solve>[0]) => ReturnType<typeof solve> = solve,
-): { positioned: Positioned; skipped: string[] } {
+): { positioned: Positioned; diagnostics: Diagnostic[]; skipped: string[] } {
   const p = plan(model, view, font);
   const sol = solver(p.problem);
   const rect = (id: string) => sol.boxes.get(id)!;
@@ -50,50 +48,49 @@ export function layoutViewWeft(
     };
   });
 
-  // a frame title a wire runs through is drawn last, on a halo (PFrame.titleCrossed)
-  const fx = (px: number) => Math.round(px * font.scale);
-  for (const f of frames as (typeof frames[number] & { titleCrossed?: boolean })[]) {
-    const title = {
-      x: f.icon ? f.x + 12 : f.x + 14, y: f.icon ? f.y + 9 : f.y + 11,
-      w: (f.icon ? 32 : 0) + Math.round(measure(f.label, fx(13), "500", font.metrics)), h: f.icon ? 24 : 17,
-    };
-    const crosses = (e: PEdge) => e.points.slice(1).some((b, i) => {
-      const a = e.points[i];
-      return Math.min(a.x, b.x) < title.x + title.w && Math.max(a.x, b.x) > title.x && Math.min(a.y, b.y) < title.y + title.h && Math.max(a.y, b.y) > title.y;
-    });
-    if (edges.some(crosses)) f.titleCrossed = true;
+  // `align` and `cols` ask for a shared axis; where the layout could not give
+  // one, say which and why (SPEC §6: never silently dropped)
+  const diagnostics = [...p.diagnostics];
+  const axis = (view.layout.direction ?? "down") === "right" ? "y" : "x", span = axis === "x" ? "w" : "h";
+  const asked = [
+    ...view.layout.align.map((g) => ({ nodes: g.nodes, loc: g.loc, from: "align" })),
+    ...(view.layout.cols ?? []).filter((c) => c.length > 1).map((nodes) => ({ nodes, loc: view.loc, from: "cols" })),
+  ];
+  for (const g of asked) {
+    const found = g.nodes.filter((path) => sol.boxes.has(path));
+    if (found.length < 2) continue;
+    const centre = (path: string) => rect(path)[axis] + Math.round(rect(path)[span] / 2);
+    const off = found.filter((path) => centre(path) !== centre(found[0]));
+    if (!off.length) continue;
+    const list = g.nodes.join(" ");
+    const oneRank = found.every((path) => sol.ranks.get(path) === sol.ranks.get(found[0]) && p.parentOf.get(path) === p.parentOf.get(found[0]));
+    diagnostics.push(oneRank
+      ? {
+        severity: "warning",
+        message: `${g.from} \`[${list}]\` — all ${found.length} sit on the same rank, so they cannot share an axis`,
+        fix: `to put them side by side write \`rows [${list}]\`; \`${g.from}\` stacks nodes *across* ranks`,
+        loc: g.loc,
+      }
+      : {
+        severity: "warning",
+        message: `${g.from} \`[${list}]\` — ${off.map((x) => `\`${x}\``).join(", ")} could not be put on \`${found[0]}\`'s axis`,
+        fix: `they sit in different containers, or another hint holds them apart; align the containers themselves, or drop one of the hints`,
+        loc: g.loc,
+      });
   }
 
-  // zone chips: on the border, at the corner the zone asked for
-  // …slid along it, 16 at a time, to the first spot no wire, node or label is under
-  const under = [
-    ...edges.flatMap((e) => e.points.slice(1).map((b, k) => {
-      const a = e.points[k];
-      return { x: Math.min(a.x, b.x), y: Math.min(a.y, b.y), w: Math.abs(b.x - a.x), h: Math.abs(b.y - a.y) };
-    })),
-    ...nodes, ...edges.flatMap((e) => (e.labelRect ? [e.labelRect] : [])),
-  ];
-  const chips: Positioned["chips"] = [];
-  for (const z of [...zones].sort((a, b) => a.depth - b.depth)) {
-    const detailW = z.detail ? Math.round(measure(z.detail, fx(11), "400", "mono")) + 16 : 0;
-    const w = Math.round(measure(z.label, fx(11), "500", font.metrics)) + 16 + (z.icon ? CHIP_H : 0) + detailW;
-    const y = z.labelPos.startsWith("top") ? z.y - CHIP_H / 2 : z.y + z.h - CHIP_H / 2;
-    const lo = z.x + 12, hi = Math.max(lo, z.x + z.w - 12 - w), fromRight = z.labelPos.endsWith("right");
-    const hits = (x: number) => [...under, ...chips].filter((o) => o.x < x + w + 6 && o.x + o.w + 6 > x && o.y < y + CHIP_H + 6 && o.y + o.h + 6 > y).length;
-    let best = fromRight ? hi : lo;
-    for (let x = best; x >= lo && x <= hi; x += fromRight ? -16 : 16) {
-      if (hits(x) < hits(best)) best = x;
-      if (!hits(best)) break;
-    }
-    chips.push({ x: best, y, w, h: CHIP_H, label: z.label, zone: z.id, icon: z.icon, ...(z.detail ? { detail: z.detail, detailW } : {}) });
-  }
+  // what stands on the layout beside its boxes and wires
+  markCrossedTitles(frames, edges, font);
+  const { badges, chips, pillRects } = annotate(p.graph, edges, nodes, zones, font);
+  const notes = placeNotes({ view, font, width: sol.width, height: sol.height, nodes, edges, ports, frames, zones, chips, badges, pillRects });
 
   return {
     positioned: {
       name: view.name, width: sol.width, height: sol.height,
-      nodes, edges, ports, frames, zones, chips, badges: [], notes: [],
+      nodes, edges, ports, frames, zones, chips, badges, notes,
       flow: p.graph.flow, lines: view.layout.lines ?? "orthogonal",
     },
+    diagnostics,
     skipped: sol.skipped,
   };
 }

@@ -10,10 +10,11 @@
 // The ELK engine needed a separate mechanism per kind of container, and had
 // none at all for a zone's inside.
 
-import type { SModel, SView, RelPos } from "../model/types.js";
+import type { Diagnostic, SModel, SView, RelPos } from "../model/types.js";
 import { resolveView, type ViewGraph, type VNode } from "../view/resolve.js";
 import { pillDims, sizeOf, SHEET_BLEED, CHIP_H } from "./layout.js";
 import { measure } from "../metrics.js";
+import { BADGE_GAP, badgeWidth } from "./annotate.js";
 import type { ThemeFont } from "../themes/index.js";
 import { rankGroup as assignRanks, dense, type Edge } from "./weft/rank.js";
 import type { Box, Dir, Group, Problem, Wire } from "./weft/contract.js";
@@ -28,6 +29,10 @@ export interface Plan {
   zones: PlannedZone[];
   /** box id → the top-level box that holds it (itself when top-level) */
   unitOf: Map<string, string>;
+  /** box id → the container box that holds it ("" for the root) */
+  parentOf: Map<string, string>;
+  /** What the view asks for that cannot be drawn as asked. */
+  diagnostics: Diagnostic[];
 }
 
 const SPACING = { compact: [32, 40], comfortable: [48, 56], spacious: [72, 80] } as const;
@@ -154,6 +159,93 @@ const columnsOf = (bands: string[][], shift: number[] = []): string[][] =>
   Array.from({ length: Math.max(0, ...bands.map((b) => b.length)) }, (_, k) =>
     bands.flatMap((b, i) => (b[k - (shift[i] ?? 0)] ? [b[k - (shift[i] ?? 0)]] : []))).filter((c) => c.length > 1);
 
+/** Zones must form a clean hierarchy — with each other and with expanded
+ *  containers — for the picture to be a tree. What does not is said here
+ *  (SPEC §Zones), never silently dropped. */
+function zoneDiagnostics(
+  model: SModel, view: SView, graph: ViewGraph, zones: readonly { z: SModel["zones"][number]; set: Set<string> }[],
+): Diagnostic[] {
+  const out: Diagnostic[] = [];
+  const within = (path: string, member: string) => path === member || path.startsWith(member + ".");
+  const frameUp = new Map(graph.frames.map((f) => [f.path, f.frame]));
+  const outermost = (frame: string): string => (frameUp.get(frame) ? outermost(frameUp.get(frame)!) : frame);
+  const visible = new Map(zones.map((x) => [x.z.id, x.set]));
+  for (const z of model.zones) {
+    const set = visible.get(z.id);
+    // any enclosing frame in the zone keeps a node whole — under `expand *`
+    // the outermost frame is the one membership must cover, and the one to name
+    for (const n of graph.nodes) {
+      if (!n.frame || set?.has(outermost(n.frame)) || !z.members.some((m) => within(n.path, m))) continue;
+      out.push({
+        severity: "error",
+        message: `zone \`${z.id}\` cuts through expanded container \`${outermost(n.frame)}\` (member \`${n.path}\`)`,
+        fix: `contain the whole container (\`contains ${outermost(n.frame)}\`), or don't expand it in this view`,
+        loc: z.loc,
+      });
+    }
+    // a zone follows visibility by design, but in a view the author wrote it
+    // does not vanish in silence
+    if (!set && !view.auto)
+      out.push({
+        severity: "warning",
+        message: `zone \`${z.id}\` has no visible members in view \`${view.name}\``,
+        fix: z.members.length
+          ? `its members (${z.members.join(", ")}) are inside collapsed cards here — \`expand\` one, or scope the view to them`
+          : "the zone contains nothing",
+        loc: z.loc,
+      });
+  }
+  for (let i = 0; i < zones.length; i++)
+    for (let j = i + 1; j < zones.length; j++) {
+      const A = zones[i], B = zones[j];
+      const shared = [...A.set].filter((e) => B.set.has(e));
+      if (!shared.length) continue;
+      const aOnly = [...A.set].filter((e) => !B.set.has(e)), bOnly = [...B.set].filter((e) => !A.set.has(e));
+      if (aOnly.length && bOnly.length)
+        out.push({
+          severity: "error",
+          message: `zones \`${A.z.id}\` and \`${B.z.id}\` partially overlap — visible zones must nest or stay disjoint`,
+          fix: `shared: ${shared.join(", ")} · only ${A.z.id}: ${aOnly.join(", ")} · only ${B.z.id}: ${bOnly.join(", ")}`,
+          loc: view.loc,
+        });
+      // identical sets cannot nest either way: neither is the other's parent
+      else if (!aOnly.length && !bOnly.length)
+        out.push({
+          severity: "error",
+          message: `zones \`${A.z.id}\` and \`${B.z.id}\` contain exactly the same members`,
+          fix: `one boundary cannot sit inside the other: merge them, or give one a narrower \`contains\``,
+          loc: view.loc,
+        });
+    }
+  return out;
+}
+
+/** Hints about wires that name something this view does not draw. */
+function wireDiagnostics(view: SView, graph: ViewGraph): Diagnostic[] {
+  const out: Diagnostic[] = [];
+  const visible = new Set([...graph.nodes.map((n) => n.path), ...graph.frames.map((f) => f.path)]);
+  const between = (from: string, to: string) => graph.edges.filter((e) => e.from === from && e.to === to).length;
+  for (const r of view.layout.routes)
+    if (!r.label && between(r.from, r.to) > 1)
+      out.push({
+        severity: "error",
+        message: `${between(r.from, r.to)} edges match \`route ${r.from} -> ${r.to}\``,
+        fix: "add the edge's label to the route statement to disambiguate",
+        loc: r.loc,
+      });
+  for (const ch of view.layout.channels) {
+    const members = ch.sources.filter((src) => visible.has(src) && between(src, ch.target) > 0);
+    if (visible.has(ch.target) && members.length >= 2) continue;
+    out.push({
+      severity: "warning",
+      message: `channel into \`${ch.target}\`: ${!visible.has(ch.target) ? "the target is not visible here" : "fewer than two of its edges are"}`,
+      fix: "channels only apply where every member edge is visible in the view",
+      loc: ch.loc,
+    });
+  }
+  return out;
+}
+
 export function plan(model: SModel, view: SView, font: Font): Plan {
   // a view standing inside a container inherits that container's own layout
   // block, unless it brings hints of its own (SPEC §6: all or nothing)
@@ -163,6 +255,7 @@ export function plan(model: SModel, view: SView, font: Font): Plan {
     view = { ...view, layout: { ...L, rows: own.rows, cols: own.cols, place: own.place, direction: own.direction, wrap: own.wrap } };
 
   const graph = resolveView(model, view);
+  const diagnostics: Diagnostic[] = [...graph.diagnostics];
   const fx = (px: number) => Math.round(px * font.scale);
   const nodeAt = new Map(graph.nodes.map((n) => [n.path, n]));
   const frameAt = new Map(graph.frames.map((f) => [f.path, f]));
@@ -174,6 +267,7 @@ export function plan(model: SModel, view: SView, font: Font): Plan {
   const zones = model.zones
     .map((z) => ({ z, set: new Set(entities.filter((e) => z.members.some((m) => within(e, m)))) }))
     .filter((x) => x.set.size > 0);
+  diagnostics.push(...zoneDiagnostics(model, view, graph, zones));
   /** The smallest zone that satisfies `covers` — a zone's parent, an entity's home. */
   const smallest = (covers: (set: Set<string>) => boolean) =>
     zones.filter((c) => covers(c.set)).sort((a, b) => a.set.size - b.set.size)[0]?.z.id;
@@ -301,14 +395,26 @@ export function plan(model: SModel, view: SView, font: Font): Plan {
   };
 
   const root = group(""); // before the wires: folding decides which of them are trunks
+  diagnostics.push(...wireDiagnostics(view, graph));
+  // a `wrap` that folded nothing, anywhere it reaches, is said — never silent
+  if (view.layout.wrap && !view.layout.rows && !view.layout.cols && folds.size === 0)
+    diagnostics.push({
+      severity: "warning",
+      message: `\`wrap ${view.layout.wrap.n}\` has no effect — no row here is wider than ${view.layout.wrap.n}`,
+      fix: "lower the number, or drop the line",
+      loc: view.layout.wrap.loc,
+    });
   const wires: Wire[] = graph.edges.map((e) => ({
     id: e.id, from: e.from, to: e.to,
-    label: e.label ? { w: pillDims(e.label, font).w, h: 18 } : undefined,
+    // a flow badge is reserved with its pill, as one rect on one wire — the
+    // annotation pass carves it back out; an unlabelled wire's badge is a
+    // bead on the wire and reserves nothing
+    label: e.label ? { w: pillDims(e.label, font).w + (badgeWidth(graph.flow, e.id, font) ? badgeWidth(graph.flow, e.id, font) + BADGE_GAP : 0), h: 18 } : undefined,
     bundle: bundleOf(e.from, e.to),
   }));
   const depthOf = (id: string): number => (zoneParent.get(id) ? 1 + depthOf(zoneParent.get(id)!) : 0);
   return {
-    problem: { root, wires }, graph, view, unitOf,
+    problem: { root, wires }, graph, view, unitOf, parentOf: parent, diagnostics,
     zones: zones.map((x) => ({ id: x.z.id, box: zoneBoxId(x.z.id), depth: depthOf(x.z.id) })),
   };
 }
