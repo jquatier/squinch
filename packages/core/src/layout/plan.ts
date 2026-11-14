@@ -286,7 +286,9 @@ export function plan(model: SModel, view: SView, font: Font): Plan {
   ];
   /** The direct child of `container` that holds `path`. */
   const memberOf = (container: string, path: string): string | undefined => {
-    for (let cur: string | undefined = path; cur !== undefined && parent.has(cur); cur = parent.get(cur))
+    // a hint may name a zone by its own id (`rows [edge] [core]`)
+    const start = !parent.has(path) && parent.has(zoneBoxId(path)) ? zoneBoxId(path) : path;
+    for (let cur: string | undefined = start; cur !== undefined && parent.has(cur); cur = parent.get(cur))
       if (parent.get(cur) === container) return cur;
     return undefined;
   };
