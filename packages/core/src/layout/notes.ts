@@ -249,6 +249,9 @@ export function placeNotes(input: NoteInput): NonNullable<Positioned["notes"]> {
     // An edge note's reservation is inline on its own wire; the ladder's
     // first rung stands it beside that wire instead, inside the room the
     // label made. The reservation is what is left when no rung is clear.
+    // Room an engine kept beside the wire for this note is where it goes, if
+    // nothing the engine could not see is in it.
+    if (!found && reserved && clear({ ...reserved, w, h })) { x = reserved.x; y = reserved.y; found = true; }
     for (const strict of [true, false]) {
       for (const fit of found ? [] : fits) {
         for (const c of cands) {

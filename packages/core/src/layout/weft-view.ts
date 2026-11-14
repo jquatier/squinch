@@ -5,11 +5,11 @@
 // consume) · annotate (badges, chips, notes — `annotate.ts`, `notes.ts`).
 
 import type { Diagnostic, SModel, SView, Side } from "../model/types.js";
-import type { Positioned, PEdge, PPort } from "./layout.js";
+import { noteBox, pillDims, type Positioned, type PEdge, type PPort } from "./layout.js";
 import type { ThemeFont } from "../themes/index.js";
-import { annotate, markCrossedTitles } from "./annotate.js";
+import { annotate, BADGE_GAP, badgeWidth, markCrossedTitles } from "./annotate.js";
 import { placeNotes } from "./notes.js";
-import { plan } from "./plan.js";
+import { NOTE_CLEAR, noteOff, plan } from "./plan.js";
 import { solve } from "./weft/engine.js";
 import type { Rect, Pt } from "./weft/contract.js";
 
@@ -79,10 +79,64 @@ export function layoutViewWeft(
       });
   }
 
+  // A note anchored to an edge shared that wire's reservation, which the
+  // engine centred on the wire: the pill (if any) keeps the middle, the note
+  // takes the room to one side — east of a wire running down, south of one
+  // running rightward.
+  const boxes = new Map<number, { x: number; y: number; w: number; h: number }>();
+  for (const e of edges) {
+    const i = p.edgeNote.get(e.id), r = e.labelRect;
+    if (i === undefined || !r) continue;
+    const nt = noteBox(view.notes![i].text, font), cx = r.x + Math.round(r.w / 2), cy = r.y + Math.round(r.h / 2);
+    const pill = e.label ? pillDims(e.label, font).w + (badgeWidth(p.graph.flow, e.id, font) ? badgeWidth(p.graph.flow, e.id, font) + BADGE_GAP : 0) : 0;
+    const across = r.w >= 2 * (noteOff(pill) + nt.w); // reserved across the wire: it runs down here
+    boxes.set(i, across
+      ? { x: cx + noteOff(pill), y: cy - Math.round(nt.h / 2), w: nt.w, h: nt.h }
+      : { x: cx - Math.round(nt.w / 2), y: cy + (pill ? 9 : 0) + NOTE_CLEAR, w: nt.w, h: nt.h });
+    if (e.label) e.labelRect = { x: cx - Math.round(pill / 2), y: cy - 9, w: pill, h: 18 };
+    else delete e.labelRect;
+  }
+
+  // `route … from/to` names walls; say where one could not be used
+  const drawnBy = new Map(p.problem.wires.map((w) => [w.id, w]));
+  for (const r of view.layout.routes) {
+    if (!r.fromSide && !r.toSide) continue;
+    const e = p.graph.edges.find((x) => x.from === r.from && x.to === r.to && (!r.label || x.label === r.label));
+    if (!e || !drawnBy.has(e.id)) continue;
+    const mates = p.parentOf.get(e.from) === p.parentOf.get(e.to) && sol.ranks.get(e.from) === sol.ranks.get(e.to);
+    if (mates)
+      diagnostics.push({
+        severity: "warning",
+        message: `\`route ${r.from} -> ${r.to}\` sides are ignored — it is a same-rank edge`,
+        fix: "same-rank edges are routed side-to-side automatically; drop the `from`/`to`, or move one end to another row so the edge spans ranks",
+        loc: r.loc,
+      });
+    else if (sol.unhonoured?.includes(e.id))
+      diagnostics.push({
+        severity: "warning",
+        message: `\`route ${r.from} -> ${r.to}\` could not use the side it asks for here`,
+        fix: "that wall is taken by a wire running straight across to a neighbour, the edge is part of a `channel` or a `wrap` trunk, or one end is a container — drop the `from`/`to`, or free the wall",
+        loc: r.loc,
+      });
+  }
+
   // what stands on the layout beside its boxes and wires
   markCrossedTitles(frames, edges, font);
   const { badges, chips, pillRects } = annotate(p.graph, edges, nodes, zones, font);
-  const notes = placeNotes({ view, font, width: sol.width, height: sol.height, nodes, edges, ports, frames, zones, chips, badges, pillRects });
+  // A note on a face that also carries wires stands past the last of them:
+  // the room is told to reach that far (the engine kept the whole depth of
+  // the rank clear there; the resolver still checks what it finds).
+  const room = new Map(p.noteRoom);
+  (view.notes ?? []).forEach((note, i) => {
+    const r = room.get(i);
+    if (!r || note.anchor.kind !== "relpos") return;
+    const target = note.anchor.target, rp = note.anchor.relpos;
+    const face: Side = rp === "above" ? "north" : rp === "below" ? "south" : rp === "left-of" ? "west" : "east";
+    if (!ports.some((pt) => pt.node === target && pt.side === face)) return;
+    const nt = noteBox(note.text, font);
+    room.set(i, face === "north" || face === "south" ? { ...r, w: r.w + NOTE_CLEAR + nt.w } : { ...r, h: r.h + NOTE_CLEAR + nt.h });
+  });
+  const notes = placeNotes({ view, font, width: sol.width, height: sol.height, nodes, edges, ports, frames, zones, chips, badges, pillRects, room, boxes });
 
   return {
     positioned: {

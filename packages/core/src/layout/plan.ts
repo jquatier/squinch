@@ -12,7 +12,7 @@
 
 import type { Diagnostic, SModel, SView, RelPos } from "../model/types.js";
 import { resolveView, type ViewGraph, type VNode } from "../view/resolve.js";
-import { pillDims, sizeOf, SHEET_BLEED, CHIP_H } from "./layout.js";
+import { noteBox, pillDims, sizeOf, SHEET_BLEED, CHIP_H } from "./layout.js";
 import { measure } from "../metrics.js";
 import { BADGE_GAP, badgeWidth } from "./annotate.js";
 import type { ThemeFont } from "../themes/index.js";
@@ -31,11 +31,23 @@ export interface Plan {
   unitOf: Map<string, string>;
   /** box id → the container box that holds it ("" for the root) */
   parentOf: Map<string, string>;
+  /** Room kept beside a node for the note anchored to it, by note index:
+   *  where it is, from the node's top-left corner. */
+  noteRoom: Map<number, { dx: number; dy: number; w: number; h: number }>;
+  /** Edge id → the note that shares that wire's label reservation. */
+  edgeNote: Map<string, number>;
   /** What the view asks for that cannot be drawn as asked. */
   diagnostics: Diagnostic[];
 }
 
 const SPACING = { compact: [32, 40], comfortable: [48, 56], spacious: [72, 80] } as const;
+/** A note stands this far off its anchor; the dotted leader spans it. */
+const NOTE_GAP = 24;
+/** …and this far from a pill it shares a wire's reservation with. */
+export const NOTE_CLEAR = 8;
+/** How far off its wire a note anchored to an edge stands, past a pill `pill` wide. */
+export const noteOff = (pill: number) => (pill ? Math.round(pill / 2) + NOTE_CLEAR : 16);
+const NOTE_SIDE = { "right-of": "east", "left-of": "west", above: "north", below: "south" } as const;
 const zoneBoxId = (id: string) => `zone:${id}`;
 
 /** Rank pins and in-rank order for one container's direct children. */
@@ -378,9 +390,24 @@ export function plan(model: SModel, view: SView, font: Font): Plan {
       gap: isFrame ? { lane: 32, rank: 40 } : { lane: gapLane, rank: gapRank },
     };
   };
+  // ── room for the notes anchored to a node: beside the wall each stands off ──
+  const noteRoom = new Map<number, { dx: number; dy: number; w: number; h: number }>();
+  const roomOf = new Map<string, NonNullable<Box["room"]>>();
+  (view.notes ?? []).forEach((note, i) => {
+    const n = note.anchor.kind === "relpos" ? nodeAt.get(note.anchor.target) : undefined;
+    if (!n || note.anchor.kind !== "relpos") return;
+    const size = sizeOf(n, font), nt = noteBox(note.text, font), side = NOTE_SIDE[note.anchor.relpos];
+    const deep = NOTE_GAP + (side === "north" || side === "south" ? nt.h : nt.w);
+    const room = roomOf.get(n.path) ?? roomOf.set(n.path, {}).get(n.path)!;
+    room[side] = Math.max(room[side] ?? 0, deep);
+    noteRoom.set(i, side === "north" ? { dx: 0, dy: -deep, w: size.w, h: deep }
+      : side === "south" ? { dx: 0, dy: size.h, w: size.w, h: deep }
+      : side === "west" ? { dx: -deep, dy: 0, w: deep, h: size.h }
+      : { dx: size.w, dy: 0, w: deep, h: size.h });
+  });
   const leaf = (n: VNode): Box => {
     const { w, h } = sizeOf(n, font);
-    return { id: n.path, w, h, face: n.fields ? 64 : undefined, bleed: n.kind === "card" ? SHEET_BLEED : undefined };
+    return { id: n.path, w, h, face: n.fields ? 64 : undefined, bleed: n.kind === "card" ? SHEET_BLEED : undefined, room: roomOf.get(n.path) };
   };
   const box = (id: string): Box => {
     const n = nodeAt.get(id);
@@ -396,6 +423,42 @@ export function plan(model: SModel, view: SView, font: Font): Plan {
     return { id, w: 0, h: 0, minW: chip, group: group(id) };
   };
 
+  /** `route a -> b from east to west`: the walls a wire is asked to use. */
+  const sidesOf = (e: ViewGraph["edges"][number]) => {
+    const r = view.layout.routes.find((x) => x.from === e.from && x.to === e.to && (!x.label || x.label === e.label));
+    return r ? { fromSide: r.fromSide, toSide: r.toSide } : {};
+  };
+  // What a wire keeps room for, as one rect on the wire: its pill; with it a
+  // flow badge (the annotation pass carves it back out — an unlabelled wire's
+  // badge is a bead on the wire and reserves nothing); and the note anchored
+  // to the edge, which the dresser carves out the same way.
+  const edgeNote = new Map<string, number>(); // edge id → the first note anchored to it
+  (view.notes ?? []).forEach((note, i) => {
+    if (note.anchor.kind !== "edge") return;
+    const { from, to } = note.anchor;
+    const e = graph.edges.find((x) => x.from === from && x.to === to);
+    if (e && !edgeNote.has(e.id)) edgeNote.set(e.id, i);
+  });
+  const reserve = (e: ViewGraph["edges"][number]): Wire["label"] => {
+    const badge = badgeWidth(graph.flow, e.id, font);
+    const pill = e.label ? pillDims(e.label, font).w + (badge ? badge + BADGE_GAP : 0) : 0;
+    const note = edgeNote.has(e.id) ? noteBox(view.notes![edgeNote.get(e.id)!].text, font) : undefined;
+    if (!note) return pill ? { w: pill, h: 18 } : undefined;
+    // The pill stays centred on the wire and the note stands off to one side
+    // of it — so the reservation, which the engine centres on the wire, is
+    // that much to both sides: across the wire where it runs down, along it
+    // where it runs rightward.
+    const off = noteOff(pill);
+    return flowAt(e) === "down"
+      ? { w: 2 * (off + note.w), h: Math.max(pill ? 18 : 0, note.h) }
+      : { w: Math.max(pill, note.w), h: 2 * ((pill ? 9 : 0) + NOTE_CLEAR + note.h) };
+  };
+  /** The flow of the container a wire's two ends part in — where its label stands. */
+  const flowAt = (e: ViewGraph["edges"][number]): Dir => {
+    const up = (id: string) => { const chain: string[] = []; for (let c = parent.get(id); c !== undefined; c = parent.get(c)) chain.push(c); return chain; };
+    const a = up(e.from), lca = up(e.to).find((c) => a.includes(c)) ?? "";
+    return lca === "" ? rootDir : dirOf(lca);
+  };
   const root = group(""); // before the wires: folding decides which of them are trunks
   diagnostics.push(...wireDiagnostics(view, graph));
   // a `wrap` that folded nothing, anywhere it reaches, is said — never silent
@@ -408,15 +471,13 @@ export function plan(model: SModel, view: SView, font: Font): Plan {
     });
   const wires: Wire[] = graph.edges.map((e) => ({
     id: e.id, from: e.from, to: e.to,
-    // a flow badge is reserved with its pill, as one rect on one wire — the
-    // annotation pass carves it back out; an unlabelled wire's badge is a
-    // bead on the wire and reserves nothing
-    label: e.label ? { w: pillDims(e.label, font).w + (badgeWidth(graph.flow, e.id, font) ? badgeWidth(graph.flow, e.id, font) + BADGE_GAP : 0), h: 18 } : undefined,
+    label: reserve(e),
     bundle: bundleOf(e.from, e.to),
+    ...sidesOf(e),
   }));
   const depthOf = (id: string): number => (zoneParent.get(id) ? 1 + depthOf(zoneParent.get(id)!) : 0);
   return {
-    problem: { root, wires }, graph, view, unitOf, parentOf: parent, diagnostics,
+    problem: { root, wires }, graph, view, unitOf, parentOf: parent, noteRoom, edgeNote, diagnostics,
     zones: zones.map((x) => ({ id: x.z.id, box: zoneBoxId(x.z.id), depth: depthOf(x.z.id) })),
   };
 }
