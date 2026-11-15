@@ -216,11 +216,8 @@ view v { expand *
     expect(r.diagnostics.map((d) => d.message)).toEqual([expect.stringContaining("could not be put on `s.x`'s axis")]);
   });
 
-  // KNOWN BREAK. SPEC §6: a hint is never silently dropped. A route side on
-  // an edge that ends at an expanded container is dropped with nothing said —
-  // the fix text of the "could not use the side" warning names exactly this
-  // case ("or one end is a container"), but the warning is not raised for it.
-  it.fails("a route side on an edge that ends at a container says it could not be used", async () => {
+  // a side is a leaf's wall: an expanded container has none to give, and says so
+  it("a route side on an edge that ends at a container says it could not be used", async () => {
     const r = await lay(`system s "S" { x = box "X" }
 b = box "B"
 s -> b

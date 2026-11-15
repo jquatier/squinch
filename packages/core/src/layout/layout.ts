@@ -119,6 +119,7 @@ export async function layoutView(
 
   // `route … from/to` names walls; say where one could not be used
   const drawnBy = new Map(p.problem.wires.map((w) => [w.id, w]));
+  const frameAt = new Set(p.graph.frames.map((f) => f.path)); // a side is a leaf's wall: an expanded container has none to give
   for (const r of view.layout.routes) {
     if (!r.fromSide && !r.toSide) continue;
     const e = p.graph.edges.find((x) => x.from === r.from && x.to === r.to && (!r.label || x.label === r.label));
@@ -131,7 +132,7 @@ export async function layoutView(
         fix: "same-rank edges are routed side-to-side automatically; drop the `from`/`to`, or move one end to another row so the edge spans ranks",
         loc: r.loc,
       });
-    else if (sol.unhonoured?.includes(e.id))
+    else if (sol.unhonoured?.includes(e.id) || (r.fromSide && frameAt.has(e.from)) || (r.toSide && frameAt.has(e.to)))
       diagnostics.push({
         severity: "warning",
         message: `\`route ${r.from} -> ${r.to}\` could not use the side it asks for here`,

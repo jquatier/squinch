@@ -1277,16 +1277,8 @@ function computePills(p: Positioned, rc: RC, edgeMatches: (e: PEdge) => boolean)
 }
 
 
-/**
- * Zone label chips straddle their zone's top border. ELK doesn't treat labels
- * as routing obstacles (spiked: outside compound labels get routed straight
- * through), so this is ours, same philosophy as computePills: slide the chip
- * right along the border in grid steps to the first spot clear of edges,
- * nodes and pills — falling back to the least-crossed spot. The canvas halo
- * (drawn in chipMarkup) keeps even the fallback legible.
- */
-// placeZoneChips moved to layout.ts (Positioned consolidation): chip geometry
-// is layout's; the colour below is the renderer's.
+// Zone chip geometry is layout's (annotate.ts): the chip slides along its
+// border to the least-crossed spot. The colour below is the renderer's.
 
 /** Tints of the zone's own colour, as 8-digit hex. The chip is built from one
  *  hue at three strengths — border, label bed, detail bed — so a boundary's

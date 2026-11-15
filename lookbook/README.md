@@ -378,7 +378,7 @@ Source: [`cases/31-full-detail.squinch`](cases/31-full-detail.squinch)
 
 ## Coplanar Frames
 
-Expanded systems side by side, with calls running between them. Same-rank edges route through the gutters between the frames and continue to the card itself where the way in is clear.
+Expanded systems side by side, with calls running between them. Each call crosses the gutter between the frames and runs on to the card it names.
 
 Source: [`cases/32-coplanar-frames.squinch`](cases/32-coplanar-frames.squinch)
 
@@ -466,7 +466,7 @@ Source: [`cases/38-container-direction.squinch`](cases/38-container-direction.sq
 
 ## Wrap
 
-`wrap N` folds a diagram to an aspect ratio: a single chain becomes a serpentine, and a single source's fan-out folds into bands under it with the band-skipping edges drawn as one bus. Any other shape warns and names the `rows` line to write.
+`wrap N` folds a diagram to an aspect ratio: no row holds more than N. A single chain becomes a serpentine, and a source's fan-out folds into bands under it with the band-skipping edges drawn as one trunk. Any row wider than N folds, in the view and in every container it opens.
 
 Source: [`cases/39-wrap.squinch`](cases/39-wrap.squinch)
 
@@ -512,7 +512,7 @@ Source: [`cases/41-preview-card.squinch`](cases/41-preview-card.squinch)
 
 ## Mutual Pair
 
-A bus that one area both publishes to and consumes from — `catalog -> bus` and `bus ~> catalog` lift to a mutual pair with no `rows` anywhere. Ranks break the cycle the way ELK does (the first-declared edge wins), so the pair lands on two ranks and both edges are ELK's. Before that, the rank relaxation ran out its pass budget on the cycle, the pair tied by accident, the router classified both edges same-rank and drew each straight at its own height — ending in canvas beside the other card.
+A bus that one area both publishes to and consumes from — `catalog -> bus` and `bus ~> catalog` lift to a mutual pair with no `rows` anywhere. Ranks break the cycle in declaration order (the first-declared edge keeps its direction), so the pair lands on two ranks: one wire runs down, the other back up. An earlier engine tied the pair on one rank by accident and drew each wire ending in canvas beside the other card.
 
 Source: [`cases/42-mutual-pair.squinch`](cases/42-mutual-pair.squinch)
 
