@@ -97,7 +97,7 @@ export function lay(s: Sheet, root: boolean): Geo {
     const fixed = fixedPort(s, kid, wall, key);
     return fixed !== undefined ? fixed - kid.w / 2 : kid.faceU ? kid.faceU / 2 - kid.w / 2 : 0;
   };
-  const { u } = place(s, { w, bleed: s.slots.map((x) => x.kid?.bleedU ?? 0), lead: s.slots.map((x) => x.kid?.room.w ?? 0), gutter: gut.room, off });
+  const { u, off: offLine } = place(s, { w, bleed: s.slots.map((x) => x.kid?.bleedU ?? 0), lead: s.slots.map((x) => x.kid?.room.w ?? 0), gutter: gut.room, off });
 
   // ── ports ──────────────────────────────────────────────────────────────────
   const how = new Map<Side, "straight" | "over" | "under">(s.sides.map((x) => [x, sideWay(s, x)]));
@@ -354,7 +354,7 @@ export function lay(s: Sheet, root: boolean): Geo {
 
   // ── draw ───────────────────────────────────────────────────────────────────
   const top = s.slots.map((x) => (x.kid ? rowTop[x.row] + dv[x.i] : 0));
-  const geo: Geo = { W, H, u, top, ports: new Map(), wires: new Map(), labels: new Map() };
+  const geo: Geo = { W, H, u, top, ports: new Map(), wires: new Map(), labels: new Map(), unaligned: offLine.map((i) => s.slots[i].kid!.id) };
   const northOf = (slot: number) => (s.slots[slot].kind === "port" ? (s.slots[slot].row ? H : 0) : top[slot]);
   const southOf = (slot: number) => (s.slots[slot].kind === "port" ? (s.slots[slot].row ? H : 0) : top[slot] + (s.slots[slot].kid?.h ?? 0));
   const trackOf = (k: number, id: string): number => channels[k].trackV[channels[k].stack.track.get(id)!];

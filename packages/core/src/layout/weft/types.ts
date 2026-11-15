@@ -166,6 +166,11 @@ export interface Sheet {
   glue: [number, number][];
   /** boxes that stay last in their row toward a wall: a container whose wire runs straight out */
   last: { x: number; wall: "e" | "w" }[];
+  /** per slot: the slot that stands for its `aligned` set — itself, if it is in none.
+   *  One member per rank at most: boxes of one rank cannot share a centre line. */
+  rep: number[];
+  /** boxes named in an `aligned` set and left out of it: a second member in one rank */
+  unaligned: string[];
   /** wires that asked for a side they could not be given here */
   unhonoured: string[];
   pad: { n: number; s: number; w: number; e: number };
@@ -194,6 +199,8 @@ export interface Geo {
   /** wire id → its polyline in this sheet, in the direction the wire runs */
   wires: Map<string, { x: number; y: number }[]>;
   labels: Map<string, { x: number; y: number; w: number; h: number }>;
+  /** boxes of an `aligned` set that placement could not keep on its line */
+  unaligned: string[];
 }
 
 export type { Box, Dir, Group, Wire };

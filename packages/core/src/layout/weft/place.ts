@@ -42,7 +42,7 @@ export interface Placing {
 }
 
 /** Where each slot stands, and the nearest to the west wall each may. */
-export function place(s: Sheet, p: Placing): { u: number[]; low: number[] } {
+export function place(s: Sheet, p: Placing): { u: number[]; low: number[]; off: number[] } {
   const n = s.slots.length;
   const ups: Link[][] = Array.from({ length: n }, () => []), downs: Link[][] = Array.from({ length: n }, () => []);
   for (const links of s.chan) for (const l of links) { downs[l.up].push(l); ups[l.down].push(l); }
@@ -63,11 +63,7 @@ export function place(s: Sheet, p: Placing): { u: number[]; low: number[] } {
 
   // ── what never changes: the gaps, the walls ────────────────────────────────
   // variable n is the west wall, held at 0; `aligned` boxes are one variable
-  const rep = s.slots.map((x) => x.i);
-  for (const set of s.cell.group.aligned ?? []) {
-    const members = set.map((id) => s.slots.find((x) => x.kid?.id === id)?.i).filter((i): i is number => i !== undefined);
-    for (const m of members) rep[m] = rep[members[0]];
-  }
+  const rep = s.rep;
   const WALL = n;
   const gaps: Gap[] = [], low = new Array<number>(n).fill(0);
   const titled = s.dir === "down" && s.title ? ceilTo(s.title.u + 8, GRID) : 0;
@@ -229,7 +225,17 @@ export function place(s: Sheet, p: Placing): { u: number[]; low: number[] } {
     if (!short(d) || !rigid(l.up) || !rigid(l.down)) continue;
     if (free(l.down, d)) at[l.down] += d; else if (free(l.up, -d)) at[l.up] -= d;
   }
+  // No two boxes overlap, whatever was asked (§3.1). Statements that cannot
+  // all hold — an aligned set against `columns`, against the order the
+  // author held a row in, against another set — leave the solver with gaps
+  // it could not keep; each row is then pushed apart to its gaps, and the
+  // members that came off their line are reported.
+  const off: number[] = [];
+  if (crossRow) {
+    for (const row of s.rows) row.forEach((slot, i) => { at[slot] = Math.max(at[slot], low[slot], i ? at[row[i - 1]] + sep(row[i - 1], slot) : -Infinity); });
+    for (let i = 0; i < n; i++) if (at[i] !== at[rep[i]]) off.push(i);
+  }
   // nothing holds the picture off the west wall: it comes back as far as its nearest slot allows
   const spare = Math.min(...at.map((x, i) => x - low[i]));
-  return { u: at.map((x) => x - (n ? spare : 0)), low };
+  return { u: at.map((x) => x - (n ? spare : 0)), low, off };
 }

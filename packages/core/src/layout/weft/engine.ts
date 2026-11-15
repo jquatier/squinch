@@ -62,7 +62,9 @@ export function solve(problem: Problem): Solution {
   const size = root.dir === "down" ? { width: geo.W, height: geo.H } : { width: geo.H, height: geo.W };
   // wires that asked for a side and could not be given it, once each
   const unhonoured = [...new Set(sheets.flatMap((s) => s.unhonoured))];
-  return { ...size, boxes, ranks, wires, skipped: tree.skipped, ...(unhonoured.length ? { unhonoured } : {}) };
+  // boxes of an aligned set that are not on its line: left out for standing in a rank it already has a member in, or pushed off it
+  const unaligned = [...new Set(sheets.flatMap((s) => [...s.unaligned, ...s.geo!.unaligned]))];
+  return { ...size, boxes, ranks, wires, skipped: tree.skipped, ...(unhonoured.length ? { unhonoured } : {}), ...(unaligned.length ? { unaligned } : {}) };
 }
 
 /** One polyline from the pieces: no repeated point, no three in a line. */

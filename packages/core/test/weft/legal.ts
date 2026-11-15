@@ -56,6 +56,18 @@ export function audit(problem: Problem, sol: Solution): string[] {
     for (const [w, { label }] of sol.wires) if (label && inside(label, r)) bad.push(`label of ${w} lies in the room ${room.side} of ${room.id}`);
   }
 
+  // ── `aligned`: every member not reported as left out stands on one centre line ──
+  const sets = (g: Group, id: string): void => {
+    for (const set of g.aligned ?? []) {
+      const on = [...new Set(set)].filter((m) => parent.get(m) === id && !sol.unaligned?.includes(m));
+      const line = (m: string) => (g.dir === "down" ? rect(m).x + rect(m).w / 2 : rect(m).y + rect(m).h / 2);
+      for (const m of on) if (line(m) !== line(on[0])) bad.push(`aligned ${m} is off the line of ${on[0]}, unreported`);
+    }
+    for (const b of g.boxes) if (b.group) sets(b.group, b.id);
+  };
+  sets(problem.root, "");
+  for (const id of sol.unaligned ?? []) if (!boxes.has(id)) bad.push(`unaligned names ${id}, which is no box`);
+
   // ── wires ──────────────────────────────────────────────────────────────────
   const rowMates = (a: string, b: string) => parent.get(a) === parent.get(b) && sol.ranks.get(a) === sol.ranks.get(b);
   for (const wire of problem.wires) {

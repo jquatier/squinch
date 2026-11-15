@@ -424,3 +424,59 @@ describe("sides a wire is asked to use", () => {
     expect(s.unhonoured).toBeUndefined();
   });
 });
+
+// ── statements that cannot all hold: the picture stays legal, and says what gave ──
+describe("an aligned set that names two boxes of one rank", () => {
+  const overlapping = (s: ReturnType<typeof solve>, a: string, b: string) => {
+    const p = s.boxes.get(a)!, q = s.boxes.get(b)!;
+    return p.x < q.x + q.w && q.x < p.x + p.w && p.y < q.y + q.h && q.y < p.y + p.h;
+  };
+  it("takes the first member of the rank and leaves the other out, side by side", () => {
+    const p = problem([leaf("a"), leaf("b"), leaf("c")], ["a>b", "a>c"], { aligned: [["b", "c"]] }), s = solve(p);
+    expect(overlapping(s, "b", "c")).toBe(false);
+    expect(s.unaligned).toEqual(["c"]);
+    expect(audit(p, s)).toEqual([]);
+    // and the picture is the one drawn without the statement
+    expect([...s.boxes]).toEqual([...solve(problem([leaf("a"), leaf("b"), leaf("c")], ["a>b", "a>c"])).boxes]);
+  });
+  it("does so with no wire at all, in a rightward container", () => {
+    const p = problem([leaf("a"), leaf("b"), leaf("c")], [], { aligned: [["b", "c"]], dir: "right" }), s = solve(p);
+    expect(overlapping(s, "b", "c")).toBe(false);
+    expect(s.unaligned).toEqual(["c"]);
+    expect(audit(p, s)).toEqual([]);
+  });
+  it("does so when one of the two is a container", () => {
+    const sys: Box = { id: "sys", w: 0, h: 0, group: group([leaf("sys.x"), leaf("sys.y")], { pad: { top: 44, right: 16, bottom: 16, left: 16 } }) };
+    const p = problem([leaf("a"), sys, leaf("c")], ["a>sys.x", "a>c", "sys.x>sys.y"], { aligned: [["sys", "c"]] }), s = solve(p);
+    expect(overlapping(s, "sys", "c")).toBe(false);
+    expect(s.unaligned).toEqual(["c"]);
+    expect(audit(p, s)).toEqual([]);
+  });
+  it("still lines up the members that are in different ranks", () => {
+    const p = problem([leaf("a", 200), leaf("b"), leaf("c"), leaf("d", 160)], ["a>b", "a>c", "b>d", "c>d"], { aligned: [["a", "b", "c", "d"]] }), s = solve(p);
+    const mid = (id: string) => s.boxes.get(id)!.x + s.boxes.get(id)!.w / 2;
+    expect([mid("b"), mid("d")]).toEqual([mid("a"), mid("a")]);
+    expect(s.unaligned).toEqual(["c"]);
+    expect(audit(p, s)).toEqual([]);
+  });
+  it("makes one set of two that share a member, on the same terms", () => {
+    const p = problem([leaf("a"), leaf("b"), leaf("c")], ["a>b", "a>c"], { aligned: [["a", "b"], ["c", "a"]] }), s = solve(p);
+    expect(overlapping(s, "b", "c")).toBe(false);
+    expect(s.unaligned).toEqual(["a"]); // joining the second set would put `c` on `b`'s line: `a` stays out of it
+    expect(audit(p, s)).toEqual([]);
+  });
+  it("says nothing when every member is on its line", () => {
+    expect(solve(problem([leaf("a"), leaf("b")], ["a>b"], { aligned: [["a", "b"]] })).unaligned).toBeUndefined();
+  });
+  it("gives way, and says so, where a held row contradicts two sets", () => {
+    // a over d and b over c, but the author held a before b and c before d
+    const p = problem([leaf("a"), leaf("b"), leaf("c"), leaf("d")], ["a>c", "b>d"], { aligned: [["a", "d"], ["b", "c"]], held: ["a", "b", "c", "d"] }), s = solve(p);
+    expect(audit(p, s)).toEqual([]);
+    expect(s.unaligned?.length).toBeGreaterThan(0);
+    for (const [x, y] of [["a", "b"], ["c", "d"]]) expect(overlapping(s, x, y)).toBe(false);
+  });
+  it("keeps `columns` and an aligned set that cut across each other legal", () => {
+    const p = problem([leaf("a"), leaf("b"), leaf("x"), leaf("y")], ["a>x", "b>y"], { columns: [["a", "y"], ["b", "x"]], aligned: [["a", "y"], ["b", "x"]] }), s = solve(p);
+    expect(audit(p, s)).toEqual([]);
+  });
+});

@@ -90,7 +90,7 @@ function buildSheet(tree: Tree, cell: Cell, arriving: Thru[], inbound: Map<strin
 
   const sheet: Sheet = {
     cell, dir, parent, self, R, kids, slots, rows, at: [], chan: Array.from({ length: R + 1 }, () => []),
-    flats: [], sides: [], terms: [], pieces: new Map(), port: new Map(), through: new Map(), before: [], glue: [], last: [], unhonoured: [],
+    flats: [], sides: [], terms: [], pieces: new Map(), port: new Map(), through: new Map(), before: [], glue: [], last: [], unhonoured: [], rep: [], unaligned: [],
     pad: down ? { n: g.pad.top, s: g.pad.bottom, w: g.pad.left, e: g.pad.right } : { n: g.pad.left, s: g.pad.right, w: g.pad.top, e: g.pad.bottom },
     gap: g.gap,
     title: cell.box?.title && (down ? { u: cell.box.title.w, v: cell.box.title.h } : { u: cell.box.title.h, v: cell.box.title.w }),
@@ -253,6 +253,27 @@ function buildSheet(tree: Tree, cell: Cell, arriving: Thru[], inbound: Map<strin
   }
 
   rows.forEach((row) => row.forEach((s, i) => { sheet.at[s] = i; }));
+
+  // ── `aligned`: sets of boxes on one centre line ────────────────────────────
+  // Two boxes of one rank stand side by side, so they cannot share a centre
+  // line: of each rank a set takes the first member given, and any other is
+  // left out (and reported) — placed like any box. Sets that share a member
+  // are one set, on the same terms.
+  sheet.rep = slots.map((x) => x.i);
+  const ranksOf = (rep: number) => slots.filter((x) => sheet.rep[x.i] === rep).map((x) => x.row);
+  for (const set of g.aligned ?? []) {
+    let first: number | undefined;
+    for (const id of new Set(set)) {
+      const m = slotOf.get(id);
+      if (m === undefined) continue;
+      if (first === undefined) { first = m; continue; }
+      const a = sheet.rep[first], b = sheet.rep[m];
+      if (a === b) continue;
+      const taken = new Set(ranksOf(a));
+      if (ranksOf(b).some((row) => taken.has(row))) sheet.unaligned.push(id);
+      else for (const x of slots) if (sheet.rep[x.i] === b) sheet.rep[x.i] = a;
+    }
+  }
   sheet.busy = { up: slots.map(() => 0), down: slots.map(() => 0) };
   for (const links of sheet.chan) for (const l of links) { sheet.busy.down[l.up]++; sheet.busy.up[l.down]++; }
   for (const f of sheet.flats) if (!f.straight) { sheet.busy.down[f.a]++; sheet.busy.down[f.b]++; }

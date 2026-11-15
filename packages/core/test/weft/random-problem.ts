@@ -6,7 +6,7 @@ import type { Box, Dir, Group, Problem, Side, Wire } from "../../src/layout/weft
 
 const SIDES: Side[] = ["north", "south", "east", "west"];
 
-export function randomProblem(seed: number, extensions = true): Problem {
+export function randomProblem(seed: number, extensions = true, arranged = false): Problem {
   let s = seed * 9973 + 31;
   const rnd = () => (s = (s * 1103515245 + 12345) % 2147483648) / 2147483648;
   const pick = (n: number) => Math.floor(rnd() * n);
@@ -42,6 +42,18 @@ export function randomProblem(seed: number, extensions = true): Problem {
     const i = pick(root.boxes.length - 1);
     root.pins.set(root.boxes[i].id, 0); root.pins.set(root.boxes[i + 1].id, 0);
     root.held = [root.boxes[i].id, root.boxes[i + 1].id];
+  }
+
+  // Statements about centre lines and bands, made without looking at the
+  // ranks — so some name two boxes of one rank, some contradict a held row
+  // or each other. Whatever they say, the picture must stay legal.
+  if (arranged) for (const g of [root, ...top.flatMap((b) => (b.group ? [b.group] : []))]) {
+    const some = (k: number) => Array.from({ length: Math.min(k, g.boxes.length) }, () => g.boxes[pick(g.boxes.length)].id);
+    if (g.boxes.length > 1 && chance(0.5)) g.aligned = Array.from({ length: 1 + pick(2) }, () => some(2 + pick(2)));
+    if (g.boxes.length > 2 && chance(0.25)) {
+      const cut = 1 + pick(g.boxes.length - 1), ids = g.boxes.map((b) => b.id);
+      g.columns = chance(0.5) ? [ids.slice(0, cut), ids.slice(cut)] : [some(2), some(2)];
+    }
   }
 
   const wires: Wire[] = [];

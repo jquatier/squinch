@@ -77,6 +77,12 @@ export interface Solution {
   wires: Map<string, { points: Pt[]; label?: Rect }>;
   /** Wires the engine does not draw: one end contains the other. */
   skipped: string[];
+  /** Boxes of an `aligned` set that do not stand on its centre line. Two
+   *  boxes of one rank can never share one, so only the first member given
+   *  in each rank takes part; and a set the rest of the arrangement
+   *  contradicts (`columns`, `held`, another set) gives way rather than let
+   *  two boxes overlap. Absent when every member is on its line. */
+  unaligned?: string[];
   /** Wires drawn, but not by the side they asked for (`fromSide`, `toSide`). Absent when there are none. */
   unhonoured?: string[];
 }
