@@ -1251,8 +1251,7 @@ function computePills(p: Positioned, rc: RC, edgeMatches: (e: PEdge) => boolean)
   // segments ranked longest-first, an overhang allowance, a relocate fallback
   // and a shared baseline for detached labels — all machinery for finding room
   // in gutters that were never sized to hold a label. The room is now made at
-  // layout time (ELK inline labels cross-rank, gutter/lane reservation
-  // coplanar; docs/notes/edge-labels.md), every labelled edge carries
+  // layout time (docs/notes/edge-labels.md), every labelled edge carries
   // `labelRect`, and a pill cannot collide with anything because the space it
   // occupies exists on purpose. The invariant sweep asserts exactly that over
   // the whole corpus.

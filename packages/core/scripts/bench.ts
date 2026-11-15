@@ -10,9 +10,9 @@
 //
 // Budgets catch catastrophes; they do not catch creep. `bench.baseline.json`
 // holds recorded medians per machine, and a run on a machine it knows about
-// flags anything more than DRIFT above its own recorded number — the ELK label
-// dummies grew layout 66ms → 86ms across one session, all of it explained, none
-// of it noticed automatically. Timings are not comparable across machines, so a
+// flags anything more than DRIFT above its own recorded number — layout once
+// grew 66ms → 86ms across one session, all of it explained, none of it noticed
+// automatically. Timings are not comparable across machines, so a
 // run on an unrecorded one (CI, someone else's laptop) prints the comparison as
 // informational and gates on the absolute budgets only.
 //
