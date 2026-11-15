@@ -11,7 +11,7 @@
 // between the editor, the compiler and the canvas.
 import { test, expect, type Page } from "@playwright/test";
 
-/** The compile is debounced 180ms and ELK takes a beat; wait for the thing
+/** The compile is debounced 180ms and layout takes a beat; wait for the thing
  *  itself rather than a magic number. */
 const canvas = (page: Page) => page.locator("main svg, .canvas svg").first();
 const nodes = (page: Page) => page.locator("[data-path]");
