@@ -7,7 +7,7 @@ must produce a clean diagram for each. **v1 ships at ≥ 16/20 with zero human
 layout fixes** (the original ≥ 8/10 bar, at the current prompt count).
 
 > **Current standing: the committed corpus scores 39/39 on the deep scorer; the
-> latest round itself scored 39/39, with 28 of 39 clean on the first `check`.** The
+> latest round itself — the first on the `weft` layout engine — scored 39/39, with 28 of 39 clean on the first `check`.** The
 > solutions those agents wrote are committed in `solutions/` and re-scored by CI
 > on every push, so the claim is inspectable rather than asserted.
 >
@@ -69,31 +69,40 @@ nothing.
 
 ## Latest round
 
-**Round 33 — 38/39 on the deep scorer; 29 of 39 clean on the first `check`**
-(2026-11-11, Sonnet). Run because the first outside test of `fields` changed
-where they draw (docs/notes/fields.md): a table inside an expanded container
-shows a compact list with no verb, `preview` is only for the leaves nothing
-else reaches, and fields no view can draw are a check warning. The skill
-gained two sentences — mark every key column, say what a null or a key
-pattern means in the caption — and the scorer gained `keyed`, which holds
-prompt 39 to a marker on both columns of its composite key and both DynamoDB
-keys.
+**Round 34 — 39/39 on the deep scorer; 28 of 39 clean on the first `check`**
+(2026-11-15, Sonnet). The first round on `weft`, the layout engine that
+replaced ELK (docs/notes/layout-engine.md). Run to find out what the swap did
+to a cold agent's loop and to the pictures it hands over — every earlier round
+certified the language and the skill on the old engine.
 
-**The new warning did the work it was written for.** 39's agent declared the
-DynamoDB table and the Kafka topic at the top level and its first `check`
-said both tables' fields "are never drawn — no view shows them", with
-`preview carts` as the fix. It added the previews; its final landscape
-expands Postgres with no `preview` on the tables inside, and both columns of
-`order_items`' key carry `pk`. Three calls, no errors. 36 and 37, tables with
-no columns asked for, were clean in one check each and neither wrote a field.
+**No agent hit a layout error, and the two prompts that always did were clean
+in one call.** 01 and 27 — `27-rank-conflict` is written to provoke it — used
+to fail their first `check` on "hint conflict … runs upward" and fix it from
+the diagnostic. That error no longer exists: an edge against the declared rows
+is drawn, and both were one call, exit 0, no warnings. No band split, no
+row-mates-inside-a-container, no hints-inside-a-zone, no `wrap` shape warning
+either; those classes cannot occur now.
 
-**The one scoring miss is not about fields**: 21 distinguished its three
-kinds of link with one `animate:` value where the prompt wants two. First
-failures elsewhere are the old classes, each fixed in one step from its
-diagnostic: hint conflicts (01, 27), chained edges (32), a `preview:` naming
-a non-child (34). 16, 24, 30 and 35 re-ran on warnings.
+**One layout diagnostic fired, and it was right.** 26 wrote `cols [wh idx]`
+for two nodes on one rank; `check` said they "cannot share an axis" and wrote
+the `rows` line, and the second call was clean. Before the fix made during the
+swap that hint drew the two boxes on top of each other in silence.
 
-The corpus in `solutions/` is this round's answers for thirty-seven prompts.
-Two are round 32's, kept: 21, which missed above, and 38, whose agent read a
-file outside its sandbox and was discarded. Deep-scored at 39/39, none
-re-authored.
+**The first-check count did not move, because what is left was never layout.**
+Of the eleven prompts with more than one call: three ran a clean `check` twice
+(02, 20, 34 — nothing to fix); three re-ran on warnings (22 and 35 a long
+subtitle, 26 above); five had errors, each fixed in one step from its
+diagnostic — attributes written outside the braces (21, 38), two icon ids that
+do not exist (30), chained edges (32), `scope` naming a leaf (39). None of
+these has a change in this commit: they are the old classes, and the
+diagnostics already carry the fix.
+
+**The pictures were looked at, all 68 declared views.** Every one renders
+with no diagnostic. Nothing overlaps, no label sits on another wire, fans
+stand centred over what they feed. The weak spots the engine note lists did
+not show at this size; the largest views (34, 35, 38) are where to look first
+if they ever do.
+
+No agent read outside its sandbox, none opened the cookbook, one opened the
+icon list. The corpus in `solutions/` is this round's answers for all
+thirty-nine prompts.

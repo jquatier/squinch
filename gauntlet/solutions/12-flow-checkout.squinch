@@ -1,28 +1,26 @@
 pack aws
 
-gw     = aws/api-gateway "API Gateway"
-cart   = aws/lambda "Cart" { subtitle: "Lambda" }
-pay    = aws/lambda "Payment" { subtitle: "Lambda" }
+api    = aws/api-gateway "API Gateway"
+cart   = aws/lambda "Cart"
+pay    = aws/lambda "Payment"
 db     = aws/dynamodb "DynamoDB" datastore
-queue  = aws/sqs "Queue"
-worker = sys/cog "Fulfilment Worker"
+queue  = aws/sqs "Fulfilment Queue"
+worker = aws/lambda "Fulfilment Worker"
 
-gw -> cart
+api -> cart
 cart -> pay
 pay -> db "writes"
 pay ~> queue "publishes"
 queue ~> worker "drains"
 
 flow checkout "Checkout journey" {
-  gw -> cart
-  cart -> pay
-  pay -> db
+  api -> cart -> pay -> db
   pay ~> queue
   queue ~> worker
 }
 
 view landscape {
-  title "Checkout path"
+  title "Checkout Path"
   include *
   show flow checkout
   legend auto

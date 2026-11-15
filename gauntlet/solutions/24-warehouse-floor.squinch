@@ -1,24 +1,24 @@
 person supervisor "Shift Supervisor"
 
-scan1 = sys/barcode "Bench 1 Scanner"
-scan2 = sys/barcode "Bench 2 Scanner"
-scan3 = sys/barcode "Bench 3 Scanner"
-ctrl = sys/cpu "Local Controller"
+bench1 = sys/barcode "Bench 1 Scanner" { subtitle: "Packing bench" }
+bench2 = sys/barcode "Bench 2 Scanner" { subtitle: "Packing bench" }
+bench3 = sys/barcode "Bench 3 Scanner" { subtitle: "Packing bench" }
+controller = sys/cpu "Local Controller"
 sorter = sys/workflow "Conveyor Sorter"
 printer = sys/printer "Label Printer"
-erp = sys/server "ERP" external
+erp = sys/database "ERP" external
 board = sys/monitor "Status Board"
 
-scan1 -> ctrl "scans"
-scan2 -> ctrl "scans"
-scan3 -> ctrl "scans"
-ctrl -> sorter "drives"
-ctrl -> printer "drives"
-ctrl ~> erp "sync, every minute"
+bench1 -> controller
+bench2 -> controller
+bench3 -> controller
+controller -> sorter
+controller -> printer
+controller ~> erp "sync, once a minute" { tags: #site-network }
+controller -> board
 supervisor -> board "watches"
 
 view landscape {
-  title "Warehouse Automation"
+  title "Warehouse Floor"
   include *
-  layout { rows [scan1 scan2 scan3] [ctrl] [sorter printer erp supervisor] [board] }
 }

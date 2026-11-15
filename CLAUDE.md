@@ -234,7 +234,8 @@ extension + language server, six icon packs, and the light/dark pair. The accept
 bar — an agent producing clean diagrams from prose using only the skill + CLI —
 is certified at **39/39
 by independent cold agents** on the committed corpus; the latest full round scored
-38/39 with **29/39 clean on the first `check`** (round 33, run after the first
+39/39 with **28/39 clean on the first `check`** (round 34, the first on the
+`weft` layout engine — `gauntlet/README.md`; round 33 before it, 38/39 and 29/39, run after the first
 outside test of `fields` changed where they draw — `gauntlet/README.md`,
 `docs/notes/fields.md`; round 32 before it, 28/39, added a leaf's `fields` and
 a schema prompt;
@@ -263,13 +264,13 @@ whose call they then left out. Positional tags work on nodes, container heads an
 edges; a comma is optional wherever whitespace already separates. `gauntlet/README.md` writes up the latest round only: every round's
 findings land as a code or docs change in the same commit, so the fixes are the
 record. The number is never the point — a round that scores full marks and
-surfaces a crash beats one that scores full marks and surfaces nothing. Every
-round above ran on the ELK-based layout; none has been run since `weft` replaced
-it (2026-11), so the numbers certify the language and the skill, not yet the new
-engine's pictures. Five of the old first-`check` failures — an upward edge, a split
-band, row-mates inside a container, hints inside a zone, `wrap` on the wrong shape —
-can no longer occur, which should move the first-check count, and has not been
-measured.
+surfaces a crash beats one that scores full marks and surfaces nothing. Round
+34 (2026-11-15) was the first on `weft`: 39/39 deep, 28/39 clean on the first
+`check`, and no agent hit a layout error — 01 and 27, which always failed first
+on "runs upward", were clean in one call. The count did not move because what is
+left was never layout: attributes outside the braces, guessed icon ids, chained
+edges, `scope` on a leaf, each fixed in one step from its diagnostic. Every round
+before 34 ran on the ELK-based layout.
 
 Two surface rules, both from measuring what cold agents actually write (367
 gauntlet check calls plus a 5-agent probe): **a tag may sit in kind position**

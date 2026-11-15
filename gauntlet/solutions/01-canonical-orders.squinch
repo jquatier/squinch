@@ -1,14 +1,14 @@
 pack aws
 
-system api "Orders API" {
+system api_stack "Orders API" {
   gw     = aws/api-gateway "API Gateway"
   create = aws/lambda "Create Handler"
   get    = aws/lambda "Get Handler"
   search = aws/lambda "Search Handler"
-  sync   = aws/lambda "Index Sync"
   db     = aws/dynamodb "DynamoDB Table" datastore
   files  = aws/s3 "S3 Bucket" datastore
   idx    = aws/opensearch "OpenSearch Index" datastore
+  sync   = aws/lambda "Index Sync"
 
   gw -> create, get, search
   create -> db
@@ -19,8 +19,9 @@ system api "Orders API" {
   sync -> idx "updates index"
 }
 
-view landscape {
-  title "Orders API"
-  include *
-  expand api
+view api_stack {
+  title "Lambda API"
+  layout {
+    rows [gw] [create get search] [db files idx] [sync]
+  }
 }

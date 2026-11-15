@@ -1,39 +1,34 @@
-pack logos
-
 person analyst "Analyst"
 
 kafka = logos/kafka "Kafka" external {
-  subtitle: "Order events"
+  subtitle: "Not Databricks"
 }
 
-system dbx "Databricks" {
-  description: "Lakehouse platform"
-  icon: logos/databricks
+system dbx "Databricks Lakehouse" {
+  description: "Databricks-managed pieces, badged with the Databricks mark"
+  loader = sys/stream "Auto Loader" { badge: logos/databricks }
+  bronze = sys/table "Bronze orders" datastore { badge: logos/databricks, subtitle: "Delta table" }
+  job    = sys/workflow "Nightly merge" { badge: logos/databricks, subtitle: "Job" }
+  silver = sys/table "Silver customers" datastore { badge: logos/databricks, subtitle: "Delta table" }
+  uc     = sys/catalog "Unity Catalog" { badge: logos/databricks }
+  wh     = sys/database "SQL warehouse" { badge: logos/databricks }
+  vs     = sys/waypoints "Vector search index" { badge: logos/databricks }
+  serve  = sys/model "Model serving endpoint" { badge: logos/databricks }
 
-  loader  = sys/stream    "Auto Loader" { badge: logos/databricks }
-  bronze  = sys/table     "Bronze Orders" datastore { badge: logos/databricks, subtitle: "Delta table" }
-  job     = sys/workflow  "Nightly Merge" { badge: logos/databricks, subtitle: "Workflows job" }
-  silver  = sys/table     "Silver Customers" datastore { badge: logos/databricks, subtitle: "Delta table" }
-  uc      = sys/catalog   "Unity Catalog" { badge: logos/databricks }
-  wh      = sys/database  "SQL Warehouse" { badge: logos/databricks, subtitle: "Databricks SQL" }
-  vs      = sys/waypoints "Vector Search Index" { badge: logos/databricks }
-  serving = sys/model     "Model Serving Endpoint" { badge: logos/databricks }
-
-  loader ~> bronze "lands"
+  loader -> bronze "ingests"
   bronze -> job "reads"
   job -> silver "merges"
   uc -> silver "governs"
   wh -> silver "queries"
-  vs ~> serving "feeds"
+  vs ~> serve "feeds"
 }
 
 kafka ~> dbx.loader "order events"
 analyst -> dbx.wh "queries"
 
-view lakehouse {
-  title "Databricks Lakehouse"
+view landscape {
+  title "Databricks lakehouse"
   include *
   expand dbx
   legend auto
-  note right-of kafka "Hatched = not Databricks; badge = Databricks-owned"
 }

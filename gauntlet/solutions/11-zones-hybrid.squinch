@@ -1,24 +1,17 @@
 pack aws
 
 person operators "Operators"
-
-erp    = box "Legacy ERP" { subtitle: "Oracle-style" }
+erp = sys/server "Legacy ERP" { subtitle: "Oracle-style" }
 ingest = aws/lambda "Ingestion Lambda"
-db     = aws/aurora "Aurora Database" datastore
+db = aws/aurora "Aurora Database" datastore
 
 operators -> erp "use"
-erp ~> ingest "feeds data"
+erp ~> ingest "feeds"
 ingest -> db "writes"
 
-zone dc "On-Premises Data Centre" onprem {
-  contains operators, erp
-}
-zone cloud "AWS Cloud" cloud {
-  contains ingest, db
-}
-zone vpc "Database VPC" vpc {
-  contains db
-}
+zone onprem "On-Premises Data Centre" onprem { contains operators, erp }
+zone aws_cloud "AWS Cloud" cloud { contains ingest, db }
+zone db_vpc "Database VPC" vpc { contains db }
 
 view landscape {
   title "Hybrid Estate"

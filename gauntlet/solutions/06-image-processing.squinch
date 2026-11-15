@@ -1,13 +1,13 @@
 pack aws
 
-bucket  = aws/s3          "Upload Bucket"
-fn      = aws/lambda      "Image Processor"
-rek     = aws/rekognition "Rekognition"
-db      = aws/dynamodb    "Metadata Table" datastore
-topic   = aws/sns         "Notifications"
-subs    = box             "Subscribers"
+bucket = aws/s3 "Uploads Bucket"
+fn     = aws/lambda "Image Processor"
+rek    = aws/rekognition "Rekognition"
+db     = aws/dynamodb "Metadata Table" datastore
+topic  = aws/sns "Notifications Topic"
+subs   = box "Subscribers" external
 
-bucket ~> fn "object created"
+bucket ~> fn "upload event"
 fn -> rek "detect labels"
 fn -> db "write metadata"
 fn ~> topic "publish"

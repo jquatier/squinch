@@ -1,19 +1,18 @@
 pack aws
 
-person analysts "Analysts"
+person analyst "Analysts"
 
-stream  = aws/kinesis "Clickstream" 
-xform   = aws/lambda "Transformer"
-lake    = aws/s3 "Data Lake" datastore
+stream = aws/kinesis "Clickstream" 
+transform = aws/lambda "Transformer"
+lake = aws/s3 "Data Lake" datastore
 catalog = aws/glue "Glue Catalog"
-athena  = aws/athena "Athena"
+athena = aws/athena "Athena"
 
-stream ~> xform "click events"
-xform -> lake "lands data"
+stream ~> transform "events"
+transform -> lake "writes"
 catalog -> lake "catalogs"
-athena -> lake "queries"
-athena -> catalog "reads schemas"
-analysts -> athena "run queries"
+analyst -> athena "query"
+athena -> lake "reads"
 
 view landscape {
   title "Clickstream Data Pipeline"

@@ -4,18 +4,15 @@ person admins "Administrators"
 
 erp       = sys/server     "Legacy ERP" external { subtitle: "On-premises" }
 worker    = aws/lambda     "Sync Worker"
-db        = aws/rds        "Admin Database" datastore
-dashboard = sys/app-window "Admin Dashboard"
+db        = aws/rds        "RDS Database" datastore
+dashboard = sys/app-window "Admin Dashboard" { subtitle: "Web app" }
 
-zone onprem "On-premises" onprem { contains erp }
-zone cloud  "AWS" cloud { contains worker, db }
-
-erp ~> worker "ERP changes"
+erp ~> worker "sync"
 worker -> db "writes"
 dashboard -> db "reads"
 admins -> dashboard "use"
 
 view landscape {
-  title "Hybrid ERP Sync"
+  title "Legacy ERP Sync"
   include *
 }

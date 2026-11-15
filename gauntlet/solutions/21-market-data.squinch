@@ -1,20 +1,23 @@
-exchange = sys/building-2 "Exchange" external
-feed     = sys/activity "Feed Handler" { subtitle: "ingest · normalise" }
-pricing  = sys/cpu "Pricing Engine"
+exchange = box "Exchange" external { subtitle: "price stream source" }
+feed     = sys/radio-tower "Feed Handler" { subtitle: "ingest + normalise" }
+pricing  = sys/gauge "Pricing Engine"
 ui       = sys/app-window "Trading UI"
 risk     = sys/shield-check "Risk Service"
-recon    = sys/clock "Reconciliation Batch" { subtitle: "overnight" }
-clearing = sys/building-2 "Clearing House" external
+batch    = sys/clock "Reconciliation Batch" { subtitle: "overnight" }
+clearing = box "Clearing House" external
 
-exchange ~> feed "price stream" { color: teal, animate: packets, tags: #continuous }
-feed ~> pricing "normalised ticks" { color: teal, animate: packets, tags: #continuous }
-pricing ~> ui "tick subscription" { color: teal, animate: packets, tags: #continuous }
-risk -> pricing "health poll, every few seconds" { color: violet, style: dotted, animate: pulse }
-recon -> clearing "nightly fills reconciliation" { color: amber }
+exchange ~> feed "price stream" { tags: #continuous; animate: packets }
+feed ~> pricing "ticks" { tags: #continuous; animate: packets }
+pricing ~> ui "tick subscription" { tags: #continuous; animate: packets }
+batch -> clearing "nightly: reconcile fills" { tags: #nightly; style: dotted }
+risk -> pricing "poll every few seconds: health" { tags: #poll; animate: pulse }
 
 view landscape {
   title "Market Data Path"
   include *
+  color #continuous blue
+  color #nightly amber
+  color #poll violet
   legend auto
-  note bottom-right "Teal: continuous stream · Violet dotted: periodic poll · Amber solid: nightly batch"
+  layout { rows [exchange batch] [feed clearing] [pricing risk] [ui] }
 }
