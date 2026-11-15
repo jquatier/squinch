@@ -422,13 +422,21 @@ Source: [`cases/34-view-axes.squinch`](cases/34-view-axes.squinch)
 
 ## Rows Cols
 
-`rows` pins ranks, `cols` pins the cross axis, and together they are the grid the language has no third construct for. Here `rows [ingress hot] [store]` composed with `cols [ingress store] [hot]` is a 2×2 with one corner empty: without the `cols` line the store would stand centred under the pair.
+`rows` pins ranks, `cols` pins the cross axis, and together they are the grid the language has no third construct for. Here `rows [ingress hot] [store]` composed with `cols [ingress store] [hot]` is a 2×2 with one corner empty: without the `cols` line the store would stand centred under the pair. Rows are a statement about where things stand, not about which way every connection runs: in the second view a retry runs back up the pinned rows.
 
 Source: [`cases/35-rows-cols.squinch`](cases/35-rows-cols.squinch)
+
+**`quad`**
 
 | light | dark |
 |---|---|
 | ![](out/35-rows-cols.quad.light.svg) | ![](out/35-rows-cols.quad.dark.svg) |
+
+**`loop`**
+
+| light | dark |
+|---|---|
+| ![](out/35-rows-cols.loop.light.svg) | ![](out/35-rows-cols.loop.dark.svg) |
 
 ## Colors
 
