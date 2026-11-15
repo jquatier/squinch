@@ -8,13 +8,12 @@
 import type { SView, Side } from "../model/types.js";
 import type { ThemeFont } from "../themes/index.js";
 import { hitR } from "./annotate.js";
-import { noteBox, type PEdge, type PFrame, type PNode, type PPort, type PZone, type Positioned } from "./layout.js";
+import type { PEdge, PFrame, PNode, PPort, PZone, Positioned } from "./positioned.js";
+import { NOTE_CLEAR, noteBox } from "./sizes.js";
 
 type Font = Pick<ThemeFont, "metrics" | "scale">;
 type Rect = { x: number; y: number; w: number; h: number };
 
-/** …and this far past the last wire on a face it shares with wires. */
-const NOTE_CLEAR = 8;
 /** A frame's title strip: a note inside the frame stays below it. */
 const FRAME_HEAD = 36;
 const NOTE_FACE: Record<string, Side> = { "right-of": "east", "left-of": "west", above: "north", below: "south" };

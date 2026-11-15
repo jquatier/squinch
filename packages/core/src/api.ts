@@ -2,7 +2,7 @@
 // see index.ts (Node) and browser.ts for how packs get registered.
 import { buildModel, buildProject, formatDiagnostics, type ProjectFile } from "./model/build.js";
 import { normalizeFiles } from "./model/source.js";
-import { layoutView, setLayoutEngine, layoutEngine } from "./layout/layout.js";
+import { layoutView } from "./layout/layout.js";
 import { renderSVG } from "./render/svg.js";
 // the bundled face inventory — the HTML export hoists it, tests assert against it
 export { allFaces, fontFaceCSS } from "./render/svg.js";
@@ -17,9 +17,6 @@ import type { BuildResult, Diagnostic, Loc, SModel, SView } from "./model/types.
 import { navViews, type NavView } from "./view/navigate.js";
 
 export { buildModel, buildProject, formatDiagnostics, layoutView, renderSVG, validateSVG, themes };
-// Which engine lays views out — ELK (what ships) or weft (written to replace
-// it). @internal: here so the two can be compared from any host before the swap.
-export { setLayoutEngine, layoutEngine };
 // CRLF → LF, exported for hosts that map core's Loc offsets back into their own
 // buffer: normalize that buffer first, or the positions are off by one per line
 // on a Windows checkout (packages/vscode/src/features.ts is the one that does).

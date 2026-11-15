@@ -9,7 +9,8 @@
 import { fit, measure } from "../metrics.js";
 import type { ViewGraph } from "../view/resolve.js";
 import type { ThemeFont } from "../themes/index.js";
-import { CHIP_H, type PEdge, type PFrame, type PNode, type PZone, type Positioned } from "./layout.js";
+import type { PEdge, PFrame, PNode, PZone, Positioned } from "./positioned.js";
+import { CHIP_H } from "./sizes.js";
 
 type Font = Pick<ThemeFont, "metrics" | "scale">;
 type Rect = { x: number; y: number; w: number; h: number };

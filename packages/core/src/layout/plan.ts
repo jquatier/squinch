@@ -12,7 +12,7 @@
 
 import type { Diagnostic, SModel, SView, RelPos } from "../model/types.js";
 import { resolveView, type ViewGraph, type VNode } from "../view/resolve.js";
-import { noteBox, pillDims, sizeOf, SHEET_BLEED, CHIP_H } from "./layout.js";
+import { noteBox, pillDims, sizeOf, SHEET_BLEED, CHIP_H, NOTE_CLEAR, NOTE_GAP } from "./sizes.js";
 import { measure } from "../metrics.js";
 import { BADGE_GAP, badgeWidth } from "./annotate.js";
 import type { ThemeFont } from "../themes/index.js";
@@ -41,10 +41,6 @@ export interface Plan {
 }
 
 const SPACING = { compact: [32, 40], comfortable: [48, 56], spacious: [72, 80] } as const;
-/** A note stands this far off its anchor; the dotted leader spans it. */
-const NOTE_GAP = 24;
-/** …and this far from a pill it shares a wire's reservation with. */
-export const NOTE_CLEAR = 8;
 /** How far off its wire a note anchored to an edge stands, past a pill `pill` wide. */
 export const noteOff = (pill: number) => (pill ? Math.round(pill / 2) + NOTE_CLEAR : 16);
 const NOTE_SIDE = { "right-of": "east", "left-of": "west", above: "north", below: "south" } as const;
