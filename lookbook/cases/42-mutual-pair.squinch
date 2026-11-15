@@ -1,10 +1,9 @@
 // A bus that one area both publishes to and consumes from — `catalog -> bus`
 // and `bus ~> catalog` lift to a mutual pair with no `rows` anywhere. Ranks
-// break the cycle the way ELK does (the first-declared edge wins), so the
-// pair lands on two ranks and both edges are ELK's. Before that, the rank
-// relaxation ran out its pass budget on the cycle, the pair tied by
-// accident, the router classified both edges same-rank and drew each
-// straight at its own height — ending in canvas beside the other card.
+// break the cycle in declaration order (the first-declared edge keeps its
+// direction), so the pair lands on two ranks: one wire runs down, the other
+// back up. An earlier engine tied the pair on one rank by accident and drew
+// each wire ending in canvas beside the other card.
 pack logos
 
 identity = sys/lock "Identity"

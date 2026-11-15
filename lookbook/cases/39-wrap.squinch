@@ -1,7 +1,7 @@
-// `wrap N` folds a diagram to an aspect ratio: a single chain becomes a
-// serpentine, and a single source's fan-out folds into bands under it with
-// the band-skipping edges drawn as one bus. Any other shape warns and names
-// the `rows` line to write.
+// `wrap N` folds a diagram to an aspect ratio: no row holds more than N. A
+// single chain becomes a serpentine, and a source's fan-out folds into bands
+// under it with the band-skipping edges drawn as one trunk. Any row wider
+// than N folds, in the view and in every container it opens.
 pack aws
 
 system etl "Nightly ETL" {
