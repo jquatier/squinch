@@ -76,8 +76,8 @@ export function diagnosticsFor(src: string): FeatureDiagnostic[] {
 }
 
 /**
- * Everything `squinch check` would report, including hint conflicts that only
- * surface once a view is laid out. Deduped by position+message, since one
+ * Everything `squinch check` would report, including what only surfaces once
+ * a view is laid out (zones that overlap, a hint the layout could not give). Deduped by position+message, since one
  * model problem can resurface in several views.
  */
 export async function allDiagnosticsFor(src: string): Promise<FeatureDiagnostic[]> {

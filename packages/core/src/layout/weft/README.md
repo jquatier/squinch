@@ -1,23 +1,29 @@
-# weft — a layout engine written from the requirements
+# weft — the layout engine
 
-`solve(problem: Problem): Solution` (`engine.ts`), written cold from
-`../REQUIREMENTS.md`, `contract.ts` and the test suites. It knows nothing
-about Squinch: boxes (some holding boxes), wires, and per container a
-direction, spacing and what the author pinned go in; a rectangle per box and
-an orthogonal polyline per wire come out. No dependency, no `node:` import,
-no clock, no randomness.
+`solve(problem: Problem): Solution` (`engine.ts`). It knows nothing about
+Squinch: boxes (some holding boxes), wires, and per container a direction,
+spacing and what the author pinned go in; a rectangle per box and an
+orthogonal polyline per wire come out. No dependency, no `node:` import, no
+clock, no randomness.
 
-The Squinch side lives beside it and is not part of the engine: `problem.ts`
-(a view → a `Problem`), `layout.ts` (`layoutViewWeft`: plan, solve, dress the
-`Solution` as the `Positioned` the renderer draws), `metrics.ts` and
-`score.ts` (how a layout is measured and judged against ELK), `asks.ts` and
-`random.ts` (test helpers), and the diagram sets `trial/` and `round2/`.
+This file is the code-side map: the modules, where each rule is kept, how to
+extend the engine and how to run its tests. It does not argue for anything.
 
-Three spike engines came before this one — `grid`, `loom` and `braid` — and
-were removed once this one was accepted; they are in the branch's history,
-and the "Measured" table below keeps their numbers.
+- Why the engine exists, every decision with its evidence, what was rejected,
+  how quality is judged, the known weak spots:
+  `docs/notes/layout-engine.md`.
+- The rules themselves: `docs/notes/layout-engine-requirements.md`. Comments
+  in this directory cite it as "REQUIREMENTS §n".
+
+The Squinch side is one directory up and is not part of the engine: `plan.ts`
+(a view → a `Problem`, and the diagnostics), `layout.ts` (`layoutView`: plan,
+solve, dress the `Solution` as the `Positioned` the renderer draws, annotate),
+`annotate.ts` and `notes.ts` (badges, chips, notes), `sizes.ts`. The suites,
+the yardsticks and the diagram sets are in `packages/core/test/weft/`.
 
 ## The design in one paragraph
+
+(The longer account, stage by stage with the reasons, is §4 of the note.)
 
 Every container gets a **sheet**: its ranks, the slots in them (boxes, a
 *lane* for each wire passing a rank, a *port* for each wire crossing the north
@@ -62,22 +68,22 @@ vocabulary. Each file opens with what it decides and why.
 | File | Lines | Decides |
 |---|---|---|
 | `tree.ts` | ~70 | the containers each wire passes; wires that cannot be drawn |
-| `rank.ts` | ~170 | ranks of one container: pins exact, the rest least total length |
-| `sheet.ts` | ~230 | slots, links, trunks, labels' places, which wall each wire uses |
-| `count.ts` | ~230 | how many crossings an order will draw — exactly, and incrementally |
-| `order.ts` | ~390 | the order of every row |
+| `rank.ts` | ~160 | ranks of one container: pins exact, the rest least total length |
+| `sheet.ts` | ~280 | slots, links, trunks, labels' places, which wall each wire uses |
+| `count.ts` | ~240 | how many crossings an order will draw — exactly, and incrementally |
+| `order.ts` | ~460 | the order of every row |
 | `project.ts` | ~70 | positions on a line under gaps, nearest to what each wants |
 | `place.ts` | ~240 | where each slot stands along its row: balance first |
-| `ports.ts` | ~100 | ports on a leaf's wall: ordered, even, sliding to meet |
+| `ports.ts` | ~90 | ports on a leaf's wall: ordered, even, sliding to meet |
 | `gutter.ts` | ~110 | a wire straight across between two neighbours; its label |
 | `tracks.ts` | ~110 | track order and spacing in a channel |
-| `lay.ts` | ~400 | rows, fit, channel depths, the polylines |
+| `lay.ts` | ~490 | rows, fit, channel depths, the polylines |
 | `engine.ts` | ~80 | the stages in order; sheets onto the page; pieces joined |
 
 ## The rules, and where each is kept
 
 Section numbers are REQUIREMENTS'. Each has a comment at the place named and
-a test (`engine.test.ts` on whole problems, `modules.test.ts` per module).
+a test (on whole small Problems, or per module — see Tests).
 
 **Ranks (§5.1)** — `rank.ts`. Pins are one node with fixed offsets, so a
 pinned band cannot split; wires are taken in declaration order and one that
@@ -90,8 +96,7 @@ cannot point down runs up instead (`constraints`); network simplex
 - *Count exactly*: `Count.channel` (two links cross when their ends stand in
   opposite orders; an end at a container stands where its wire meets that
   container's wall) and `Count.along` (same-rank wires, wires to side walls).
-  Measured on the 80 random diagrams: model 275 crossings, drawn 281 (the
-  six are in gutters and round-the-row wires, which the count leaves out).
+  Crossings in gutters and between round-the-row wires are left out.
 - *A passing wire takes a place in the row*: lanes are slots (`sheet.ts`).
 - *Declaration order is worth a tie*: `Search.sift` (a box passes a box only
   for fewer crossings) and `Search.restore`.
@@ -223,71 +228,58 @@ by screen side, that nothing enters but the box's own wires on that wall.
 - **A tidiness rule about where boxes stand**: a branch in `aim`
   (`place.ts`) — a want and a weight. About ports: `ports.ts`. About jogs:
   beside the existing ones (see "Nothing almost-right").
-- **A new kind of wire** (e.g. a route-side hint, `route … from <side>`): a
-  field on `Wire` read in `buildSheet`, where each wire's walls are chosen
-  (`pass(…)`); `Side.via` is already the place a wire says how it leaves.
-  Drawing it is a case in `lay.ts`'s draw step, and if it turns in a channel
-  it is one more `Net`.
+- **A new kind of wire**: a field on `Wire` read in `buildSheet`, where each
+  wire's walls are chosen (`pass(…)`); `Side.via` is already the place a wire
+  says how it leaves. Drawing it is a case in `lay.ts`'s draw step, and if it
+  turns in a channel it is one more `Net`. The route-side hint (`hookFor`) is
+  the worked example.
+- **A new field on the contract**: opt-in, absent by default, and a rule for
+  it in the Problem-level audit (`test/weft/legal.ts`) and its random
+  generator before the engine honours it. `Box.room` and the wire sides were
+  added this way.
 - **Another tie-break in track order**: `above` in `tracks.ts`.
 
 ## Tests
 
+From `packages/core`. The suites are in `test/weft/`.
+
 ```
-npx vitest run test/weft/ --disable-console-intercept          # everything (≈1 min)
-npx vitest run test/weft/modules.test.ts test/weft/rank.test.ts test/weft/engine.test.ts
-EVERY_SET=1 npx vitest run test/weft/every-set.test.ts --disable-console-intercept       # all four sets, hard rules + totals
-npx vitest run test/weft/audit.test.ts                                                    # random Problems with rooms and asked sides, every hard rule (legal.ts)
-npx tsx test/weft/render.ts <out-dir> <file.squinch#view | random:N | right:…>…           # pictures
+npx vitest run test/weft/                                             # everything
+npx vitest run test/weft/modules.test.ts test/weft/rank.test.ts test/weft/engine.test.ts   # seconds
+npx vitest run test/weft/audit.test.ts                                # random Problems, every hard rule
+npx vitest run test/weft/sets.test.ts --disable-console-intercept     # every set, both directions; prints the totals
+RANDOM=400 npx vitest run test/weft/sets.test.ts                      # more random diagrams (legality only)
+UPDATE_QUALITY=1 npx vitest run test/weft/sets.test.ts                # re-record quality.baseline.json
 ```
 
-`engine.test.ts` is the behavioural blocks of the previous engines' suite, ported; one
-test was changed where REQUIREMENTS §4.4 now overrides it (marked in the
-file). `every-set.test.ts` also checks what `checkLayout` does not: that
-no two wires outside one bundle are drawn along the same line (§3.5).
+| File | Holds the engine to |
+|---|---|
+| `modules.test.ts`, `rank.test.ts` | each module on its own, a few lines of input; ranks against brute force |
+| `engine.test.ts` | each rule of REQUIREMENTS §5 on a whole Problem of a handful of boxes |
+| `audit.test.ts` (`legal.ts`, `random-problem.ts`) | every hard rule on seeded random Problems, with `room` and asked sides; purity |
+| `language.test.ts` | hints that used to be errors or warnings and now draw; the diagnostics that remain |
+| `zones.test.ts`, `wrap-containers.test.ts`, `direction-right.test.ts` (`asks.ts`) | zones and containers arranged as asked; folds; rightward flow |
+| `sets.test.ts` (`sets.ts`, `metrics.ts`, `random.ts`, `trial/`, `round2/`) | every view of the corpus, trial, round-2 and random sets, as written and turned right: no broken rule, and no total worse than `quality.baseline.json` |
 
-## Measured
-
-`every-set.test.ts` (run against the earlier engines before they were
-removed) and `score.test.ts`, 409 views (384 against ELK, `wrap`
-views left out as in the earlier engines' score). No violation in any suite.
-
-| | `grid` | `loom` | `braid` | `weft` |
-|---|---|---|---|---|
-| Score vs ELK: better / level / worse | 183 / 190 / 11 | 189 / 182 / 13 | 233 / 145 / 6 | 238 / 143 / 3 |
-| Total penalty vs ELK | −35% | −37% | −46% | −49% |
-| Corpus (259): crossings | 25 | 26 | 25 | 22 |
-| Corpus: bends | 1,041 | 1,057 | 701 | 707 |
-| Corpus: jogs under 16 px | 1 | 1 | 5 | 1 |
-| Corpus: lopsided boxes | 134 | 130 | 145 | 104 |
-| Trial + random (115): crossings | 523 | 440 | 361 | 345 |
-| Round 2 (35): crossings | 4 | 1 | 1 | 2 |
-| Random (80): crossings | 441 | 365 | 288 | 281 |
-| Random: lopsided boxes | 616 | 626 | 589 | 580 |
-| Random: jogs under 16 px | 41 | 32 | 59 | 10 |
-| Time, 259 corpus views (this machine, planning included) | 1.1 s | 0.9 s | 0.5 s | 0.4 s |
-| Time, 80 random views | 180 s | 51 s | 1.9 s | 1.4 s |
+Before changing behaviour read `docs/notes/layout-engine.md` §9 ("How to
+change the engine safely"): the order to run these in, and how to look at the
+pictures a change moved.
 
 ## What is not done
 
-- **A lane from outside is not followed inside.** A container's north and
-  south ports stand where its inside puts them; the outside comes to meet
-  them, but the inside is not told where the outside would like a port
-  (§5.4 "slides to meet", §5.7 "arrival lane") — except across a gutter
-  (`slide`).
-- **Crossings inside a gutter are not counted** (two containers side by side
-  joined by several wires whose fixed ports are in opposite orders), nor a
-  round-the-row wire against another going round the same row.
-- **Titles in a rightward container**: the title lies along the west wall
-  there and a wire entering through that wall may run under it (the renderer
-  draws the title on a halo). Same as the engines before.
-- **A wire ending at a container's side wall** takes the free place nearest
-  the wall's middle; nothing more considered.
-- **A label can be crossed by another wire** (never by a box or a label).
-- **A hooked wire is not felt in placement or counted in a gutter.** The
-  box it leaves is not pulled by it (its fan is its other wires), a hook's
-  short stretch between wall and lane is not in the crossing count, and a
-  hook always takes the lane on the side asked — or, out of a north or
-  south wall, the east side unless that is taken — not the side nearer
-  where the wire is going.
-- A wall's only wire can still be a few pixels off the middle where it meets
-  a container port that is off the grid (3 cases in the random set).
+The list, with what each costs and what to try next, is §8 of
+`docs/notes/layout-engine.md`. The ones a reader of this code will trip over:
+
+- `order.ts`: one descent from the declared order and one restart; no wider
+  search. Dense diagrams can stop at a local minimum.
+- `count.ts`: crossings inside a gutter, and between two round-the-row wires,
+  are not counted.
+- `sheet.ts` (`hookFor`): a hook takes the side asked — out of a north or
+  south wall, the east side unless taken — not the side nearer where the wire
+  is going; its stub is not counted and does not pull its box in `place.ts`.
+- `lay.ts`: a container's north and south ports stand where its inside puts
+  them; only `slide` (across a gutter) moves a finished container's port to
+  meet a wire.
+- A label can be crossed by another wire (never by a box or a label).
+- In a rightward container the title lies along the wall wires enter by; a
+  wire may run under it and the renderer draws the title on a halo.

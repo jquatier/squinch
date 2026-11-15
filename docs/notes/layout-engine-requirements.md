@@ -27,9 +27,10 @@ says which wins.
   `columns`, `wrap` folds, bundles, titles, note room, route sides).
 - `packages/core/src/layout/layout.ts` — `layoutView`: plan, solve, dress the
   `Solution` as `Positioned`, annotate.
-- `packages/core/test/weft/` — the engine's suites, the yardsticks
-  (`metrics.ts`, `score.ts`), the Problem-level audit of §3 (`legal.ts`) and
-  the diagram sets (`trial/`, `round2/`, the seeded random generators).
+- `packages/core/test/weft/` — the engine's suites, the measures
+  (`metrics.ts`), the Problem-level audit of §3 (`legal.ts`), the diagram
+  sets (`sets.ts`: the corpus, `trial/`, `round2/`, the seeded random
+  generators) and the recorded quality baseline (`quality.baseline.json`).
 - `packages/core/test/invariants.ts` — `checkLayout`, the hard rules on a
   `Positioned`.
 
@@ -134,8 +135,9 @@ Problem-level audit in `test/weft/legal.ts`, and by the suites in §7.
 
 ## 4. What "a good layout" means, in priority order
 
-The score in `packages/core/test/weft/score.ts` writes this down; lower
-penalty is better.
+`packages/core/test/weft/metrics.ts` measures each of these; the weights
+that once folded them into one penalty per view, for comparing engines, are
+in `layout-engine.md` §7.
 
 1. Legal (§3).
 2. **Few crossings.** Two wires crossing is the worst legal flaw.
@@ -363,13 +365,12 @@ lists them by file and says how to run each. By role, all of them must pass:
 
 | Suite | What it holds the engine to |
 |---|---|
-| Engine tests on whole small Problems | each tidiness and ordering rule of §5, on a handful of boxes — the behavioural spec |
-| Unit tests per module | each module on its own, a few lines of input, no view, model or font |
-| Problem-level audit | every hard rule of §3 on seeded random Problems, with and without `room` and asked sides; purity |
-| Language suites | hints the language promises: upward edges, kept bands, row-mates inside containers, zones and expanded containers arranged as asked, `wrap` inside containers |
-| Direction | every view turned sideways stays legal and reads rightward |
-| Acceptance over the diagram sets | corpus, trial, round 2 and random: zero violations, and no two wires outside one bundle drawn along one line |
-| Quality baseline | the totals over the sets do not get worse without the baseline being re-recorded on purpose |
+| `engine.test.ts` | each tidiness and ordering rule of §5, on a handful of boxes — the behavioural spec |
+| `modules.test.ts`, `rank.test.ts` | each module on its own, a few lines of input, no view, model or font |
+| `audit.test.ts` | every hard rule of §3 on seeded random Problems, with and without `room` and asked sides; purity |
+| `language.test.ts`, `zones.test.ts`, `wrap-containers.test.ts` | hints the language promises: upward edges, kept bands, row-mates inside containers, zones and expanded containers arranged as asked, `wrap` inside containers — and the diagnostics that remain |
+| `direction-right.test.ts` | a rightward diagram reads rightward, and arrangements stated under a rightward flow are honoured |
+| `sets.test.ts` | corpus, trial, round 2 and random, as written and turned on their side: zero broken rules, every edge drawn, no two wires outside one bundle along one line; and no total worse than `quality.baseline.json` |
 
 Where a test contradicts §4 or §5.5 as written, this document wins: change
 the test and say so in the commit.

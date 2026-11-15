@@ -477,33 +477,23 @@ produces; a Problem-level audit (`test/weft/legal.ts`) that holds a `Problem`
 and its `Solution` to every hard rule directly, including the two only the
 contract can state (a box's `room` is entered by nothing but its own wires; a
 wire asked to use a side uses it or is listed); and that audit run over
-seeded random Problems with rooms, asked sides, both directions, pins, bundles
-and labels. A failure names its seed.
+seeded random Problems (`audit.test.ts`, `random-problem.ts`) with rooms,
+asked sides, both directions, pins, bundles and labels. A failure names its
+seed. The sweep over the diagram sets adds two rules `checkLayout` cannot
+state alone: every edge the view has is drawn, and no two wires outside one
+bundle run along the same line.
 
-**The score.** `test/weft/score.ts` turns "does this view look better?" into
-one penalty per view, from `test/weft/metrics.ts`:
+**The measures.** `test/weft/metrics.ts` counts, on any `Positioned`, what a
+reviewer would mark: crossings, bends, kinks (a jog under 16 px), near-misses
+(two boxes of one container 1–7 px out of line), lopsided boxes (off the
+middle of the boxes their wires fan out to), off-centre wires (a wall's only
+wire 1–7 px off the wall's middle), unstraight wires (bent although their ends
+face each other), wire length and area.
 
-| Weight | For each |
-|---|---|
-| 60 | illegal thing (a wire through a box, a broken invariant) |
-| 10 | crossing |
-| 5 | kink: a jog under 16 px |
-| 5 | near-miss: two boxes of one container 1–7 px out of line |
-| 4 | lopsided: a box off the middle of the boxes its wires fan out to |
-| 3 | unstraight: a wire that bends although its ends face each other |
-| 2 | off-centre: a wall's only wire 1–7 px off the wall's middle |
-| 1 | bend |
-| 1 | 200 px of wire |
-| 0 | area |
+**The diagram sets** (`test/weft/sets.ts`), 409 views in all:
 
-Lower is better. Two views are level when they are within 2 points or within
-5%. The weights are a judgement written down once; the score test prints how
-the verdict moves when each is halved or doubled.
-
-The diagram sets, 409 views in all:
-
-- **corpus** (259 views) — every committed diagram: examples, lookbook cases,
-  gauntlet solutions, core's fixtures;
+- **corpus** (259 views) — every `.squinch` file the repo owns: examples,
+  lookbook cases, gauntlet solutions, core's fixtures, auto views included;
 - **trial** (35 views) — twenty diagrams written after the first engine, on
   purpose unlike the corpus: a hub with ten services, a saga, a lattice, a
   tree, a dense bipartite graph, containers three deep, zones side by side;
@@ -511,20 +501,55 @@ The diagram sets, 409 views in all:
 - **random** (80 views) — seeded: flat, grouped into expanded systems, with
   `rows`, `wrap` or a rightward flow.
 
+Each set is also drawn turned on its side (every view forced to `direction
+right`), which is the same engine working along the other axis.
+
+**The standing gate: a quality baseline.** `test/weft/sets.test.ts` draws
+every view of every set both ways, requires zero broken rules, and compares
+the per-set totals of each measure against `test/weft/quality.baseline.json`.
+Lower is better for every one; a total that rises fails the test, and a total
+that falls is printed with a reminder to re-record. `UPDATE_QUALITY=1`
+re-records — in the same commit as the change that earned the difference, with
+the reason in the message. A set whose view count changed has to be
+re-recorded too, because totals over different views do not compare. The
+baseline also carries `labelOnWire`: labels another wire crosses, the one
+thing in §8 that is counted so it cannot grow unnoticed. Its numbers are the
+product path's (auto views, notes, route sides) and so differ a little from
+the acceptance figures quoted in this note, which were measured before those
+were wired in.
+
+**The score used to choose between engines** (history; the file went with
+ELK — `git show c95ab03:packages/core/test/weft/score.ts`). While there were
+two engines to compare, the measures were folded into one penalty per view:
+
+| Weight | For each |
+|---|---|
+| 60 | illegal thing (a wire through a box, a broken invariant) |
+| 10 | crossing |
+| 5 | kink |
+| 5 | near-miss |
+| 4 | lopsided box |
+| 3 | unstraight wire |
+| 2 | off-centre wire |
+| 1 | bend |
+| 1 | 200 px of wire |
+| 0 | area |
+
+Lower is better; two views within 2 points or within 5% are level. The
+weights are a judgement written down once and applied to both engines alike;
+`lopsided` deliberately outweighs the two bends that centring a parent costs.
 At acceptance, against ELK on the 384 views both engines could be scored on
 (views that fold with `wrap` sat out, because ELK ignored most of them): 238
 better, 143 level, 3 worse; total penalty −49%. Corpus crossings 73 → 22,
-bends 1,174 → 705, jogs under 16 px 12 → 0, almost-aligned pairs 9 → 0.
+bends 1,174 → 705, jogs under 16 px 12 → 0, almost-aligned pairs 9 → 0. If two
+candidate engines ever have to be compared again, restore that file rather
+than inventing new weights — the history in `layout-engine-spike.md` is only
+comparable under these.
 
-ELK is no longer in the tree, so the standing gate is a **quality baseline**:
-the engine's own totals over the sets, recorded, with a test that fails when a
-change makes them worse. A change that moves the baseline on purpose
-re-records it in the same commit and says why. (File names: the README.)
-
-What the score cannot see, so nobody trusts it alone: whether a hint was
-honoured (ELK scored *better* on `10-nested-zones#side` for stacking two
-networks the author asked for side by side); whether sizes are uniform (the
-growing-leaves experiment); crowding near the canvas edge.
+What no number sees, so nobody trusts one alone: whether a hint was honoured
+(ELK scored *better* on `10-nested-zones#side` for stacking two networks the
+author asked for side by side); whether sizes are uniform (the growing-leaves
+experiment); crowding near the canvas edge.
 
 **Looking at pictures.** Every decision in §5 that mattered was made by
 someone looking at renders side by side. Acceptance was the owner looking at
@@ -617,13 +642,17 @@ first two engines; find the stage that should have known. Where iteration is
 genuinely needed it is explicit, small and bounded, and the README lists every
 instance.
 
-**Run, in this order** (from `packages/core`; exact file names are in the
-README):
+**Run, in this order** (from `packages/core`; the README has the commands):
 
-1. the engine's unit tests — per module and on whole small Problems. Seconds.
-2. the Problem-level legality audit over random Problems.
-3. the acceptance suites over the four diagram sets: zero violations.
-4. the quality baseline. If it moved, know why before re-recording it.
+1. the engine's unit tests — per module (`modules.test.ts`, `rank.test.ts`)
+   and on whole small Problems (`engine.test.ts`). Seconds.
+2. the Problem-level legality audit over random Problems
+   (`test/weft/audit.test.ts`).
+3. the language suites (`language`, `zones`, `wrap-containers`,
+   `direction-right`): hints drawn as asked.
+4. `test/weft/sets.test.ts`: every view of the four sets, both directions —
+   zero broken rules, and the quality baseline. If a total moved, know why
+   before re-recording it (`UPDATE_QUALITY=1`).
 5. `pnpm --filter @squinch/core test` — goldens, the corpus invariant sweep.
    A placement change will move goldens; `UPDATE_GOLDEN=1` only after step 6.
 6. look at the pictures (below).
@@ -639,11 +668,11 @@ node packages/cli/bin/squinch.js render <file.squinch> -o out/        # both tre
 ```
 
 and, for the whole corpus at once, `npx tsx lookbook/build.ts` followed by
-`git diff --stat lookbook/out` names every lookbook view that moved. The
-engine's test directory also has a small render tool that draws a view — or a
-seeded random diagram, or a view turned rightward — as plain boxes and lines,
-which is faster than the product renderer when only the layout matters. Look
-at every view that moved, not a sample: the growing-leaves experiment had no
+`git diff --stat lookbook/out` names every lookbook view that moved; restore
+the directory afterwards if the change is not going in. For a diagram that is
+not in the corpus — a trial or round-2 file, or `randomDiagram(seed)` from
+`test/weft/random.ts` written out to a file — render it with the CLI like any
+other. Look at every view that moved, not a sample: the growing-leaves experiment had no
 violations and a better score, and was wrong.
 
 **Determinism.** `solve` must stay a pure function of the `Problem`: no

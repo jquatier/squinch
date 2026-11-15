@@ -482,6 +482,15 @@ in `layout-engine-spike.md`; `coplanar.md`, `wrap.md`, `edge-labels.md` and
   byte-compare, XML validity, determinism, corpus geometry. `UPDATE_GOLDEN=1`
   to rebless goldens after an *intentional* visual change.
 - `pnpm -r typecheck` — tsc across packages (CI runs this first).
+- `cd packages/core && npx vitest run test/weft/` — the layout engine's own
+  suites: module and whole-Problem unit tests, a legality audit over seeded
+  random Problems, the language suites (hints drawn as asked), and
+  `sets.test.ts`, which draws every view of four diagram sets both ways,
+  allows no broken rule, and fails when a quality total (crossings, bends,
+  jogs, near-misses, lopsided boxes…) is worse than
+  `test/weft/quality.baseline.json`. `UPDATE_QUALITY=1` re-records the
+  baseline — same commit as the change that earned it, and only after looking
+  at the pictures that moved (`docs/notes/layout-engine.md` §9).
 - `node scripts/version.mjs [x.y.z]` — print, or set, the **one** version the
   whole workspace shares (root `package.json` is the truth; a guardrail asserts
   every member matches). The engine, CLI and extension are one product cut
