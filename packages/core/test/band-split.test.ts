@@ -1,8 +1,8 @@
-// Two defects gauntlet round 26 surfaced — the first round with prompts big
-// enough to draw a shared bus between areas, and to write an edge from an
-// area itself rather than from something inside it. Both left a coplanar wire
-// ending in empty canvas, which the corpus invariant sweep caught
-// (docs/notes/coplanar.md, "Round 26").
+// Shapes gauntlet rounds 26 and 27 surfaced — the first rounds with prompts
+// big enough to draw a shared bus between areas, and to write an edge from an
+// area itself rather than from something inside it. Each once left a wire
+// ending in empty canvas. What they promise is unchanged: a declared row is
+// one row, and a wire between row-mates ends on both of them.
 import { describe, it, expect } from "vitest";
 import { buildModel } from "../src/model/build.js";
 import { checkLayout } from "./invariants.js";
@@ -16,8 +16,8 @@ const lay = async (src: string) => {
 
 describe("a container endpoint is not a bare leaf", () => {
   // `a -> t` names the *container*; expanded, it is a frame several cards
-  // tall beside a one-card neighbour. The straight run used the frame's
-  // mid-height for both ends and stopped below `t`.
+  // tall beside a one-card neighbour. A wire drawn at the frame's mid-height
+  // would pass below `t`; it has to leave the frame's wall and land on `t`.
   const SRC = `c = box "C"
 system a "A" {
   x = box "X"
@@ -32,20 +32,21 @@ view v {
   layout { rows [c] [a t] }
 }`;
 
-  it("ends on the neighbour's face, jogging through the gutter", async () => {
+  it("leaves the frame's wall and ends on the neighbour's face", async () => {
     const { positioned, diagnostics } = await lay(SRC);
     expect(diagnostics).toEqual([]);
     expect(checkLayout(positioned)).toEqual([]);
     const wire = positioned.edges.find((e) => e.from === "a" && e.to === "t")!;
     const t = positioned.nodes.find((n) => n.path === "t")!;
+    const a = positioned.frames.find((f) => f.path === "a")!;
     const end = wire.points[wire.points.length - 1];
-    expect(wire.coplanar).toBe(true);
+    expect(wire.points[0].x).toBe(a.x + a.w);
     expect(end.x).toBe(t.x);
     expect(end.y).toBeGreaterThanOrEqual(t.y);
     expect(end.y).toBeLessThanOrEqual(t.y + t.h);
   });
 
-  it("leaves two bare leaves on the straight path, as before", async () => {
+  it("draws two bare leaves straight across", async () => {
     const { positioned } = await lay(`a = box "A"
 b = box "B"
 a -> b
@@ -57,10 +58,11 @@ view v { include *
   });
 });
 
-describe("a declared band the layouter could not keep is an error", () => {
+describe("a declared band is kept whatever sits on the path between its members", () => {
   // Every area talks to the bus and the bus talks back, and the bus is in no
-  // band. Scaffold edges are lower bounds, so ELK is free to layer the areas
-  // the bus feeds below it — and does, once there are enough of them.
+  // band — so it lies on a path between band-mates. That used to split the
+  // band in two and was refused with a line to paste; now the band is one
+  // row and the bus stands on a row of its own.
   const AREAS = ["identity", "catalog", "commerce", "fulfilment", "engagement", "analytics"];
   const model = (rows: string) => `gw = box "Gateway"
 bus = box "Bus"
@@ -79,18 +81,20 @@ view v {
   layout { rows ${rows} }
 }`;
 
-  it("names the wedge and writes a line that passes", async () => {
-    const { diagnostics } = await lay(model(`[gw] [${AREAS.join(" ")}]`));
-    const errs = diagnostics.filter((d) => d.severity === "error");
-    expect(errs).toHaveLength(1);
-    expect(errs[0].message).toContain("in one band, but `bus` sits on the path between them");
-    const line = /write `rows (.+?)`/.exec(errs[0].fix ?? "")?.[1];
-    expect(line, errs[0].fix).toBeTruthy();
-
-    // the promise the fix makes: paste it and the view is clean
-    const fixed = await lay(model(line!));
-    expect(fixed.diagnostics).toEqual([]);
-    expect(checkLayout(fixed.positioned)).toEqual([]);
+  it("six areas around a bus stay one row, in the order written", async () => {
+    const { positioned, diagnostics } = await lay(model(`[gw] [${AREAS.join(" ")}]`));
+    expect(diagnostics).toEqual([]);
+    expect(checkLayout(positioned)).toEqual([]);
+    const at = (p: string) => positioned.nodes.find((n) => n.path === p)!;
+    const band = AREAS.map(at);
+    expect(new Set(band.map((n) => n.y)).size).toBe(1);
+    for (let i = 1; i < band.length; i++) expect(band[i].x).toBeGreaterThanOrEqual(band[i - 1].x + band[i - 1].w);
+    // the gateway's row is above the band, and the bus is not in either
+    expect(at("gw").y + at("gw").h).toBeLessThanOrEqual(band[0].y);
+    expect(at("bus").y).not.toBe(band[0].y);
+    expect(at("bus").y).not.toBe(at("gw").y);
+    // every edge is drawn, the ones that run back up from the bus included
+    expect(positioned.edges).toHaveLength(14);
   });
 
   it("stays silent when the band holds", async () => {
@@ -110,13 +114,10 @@ describe("a mutual pair with no hint is two ranks, not one (round 27)", () => {
   // The lifted unit graph of round 27's monorepo answer, pruned to the
   // smallest edge set that still tied the pair: a bus six areas publish to
   // and consume from, so `catalog -> bus` and `bus ~> catalog` are a
-  // 2-cycle. Rank relaxation is a longest path and never settles on a
-  // cycle; it ran out its pass budget with both on one rank, the router
-  // took both edges (hiding them from ELK — the whole co-ranking
-  // mechanism), and ELK, seeing no edge between the two, layered them
-  // apart. Each wire ran straight at its own height and ended in canvas.
-  // Edge *order* is part of the repro: the tie is an accident of the pass
-  // count, and other orders inflate the ranks without tying them.
+  // 2-cycle. A cycle has no longest path, and the pair once came out tied
+  // on one rank by accident, with each wire running straight at its own
+  // height and ending in canvas. A cycle is broken by declaration order:
+  // the first-declared edge points down and the other runs back up.
   const SRC = `identity = box "identity"
 bus = box "bus"
 catalog = box "catalog"
@@ -138,13 +139,12 @@ gw -> commerce
 commerce -> fulfilment
 view v { include * }`;
 
-  it("hands both edges to ELK as ordinary cross-rank edges", async () => {
+  it("puts the pair on two ranks, the first-declared edge pointing down", async () => {
     const { positioned, diagnostics } = await lay(SRC);
     expect(diagnostics).toEqual([]);
     expect(checkLayout(positioned)).toEqual([]);
     const at = (p: string) => positioned.nodes.find((n) => n.path === p)!;
     expect(at("catalog").rank).not.toBe(at("bus").rank);
-    expect(positioned.edges.filter((e) => e.coplanar)).toEqual([]);
     // the first-declared direction wins: catalog above the bus
     expect(at("catalog").rank).toBeLessThan(at("bus").rank);
     // and the cycle no longer inflates the ladder — ranks are contiguous
@@ -152,9 +152,9 @@ view v { include * }`;
     expect(ranks).toEqual(ranks.map((_, i) => i));
   });
 
-  it("still routes a pair the author pins to one row, both ways", async () => {
-    // A declared rank is not a cycle accident: `rows [a b]` keeps both edges
-    // coplanar and the router draws them side to side, as it always has.
+  it("still draws a pair the author pins to one row, both ways", async () => {
+    // A declared row is not a cycle accident: `rows [a b]` keeps the two on
+    // one row, and both wires run straight across the gutter between them.
     const { positioned, diagnostics } = await lay(`a = box "A"
 b = box "B"
 a -> b
@@ -163,8 +163,14 @@ view v { include *
   layout { rows [a b] } }`);
     expect(diagnostics).toEqual([]);
     expect(checkLayout(positioned)).toEqual([]);
-    expect(positioned.edges.map((e) => e.coplanar)).toEqual([true, true]);
     const at = (p: string) => positioned.nodes.find((n) => n.path === p)!;
     expect(at("a").rank).toBe(at("b").rank);
+    const [there, back] = positioned.edges;
+    for (const w of [there, back]) {
+      expect(w.points).toHaveLength(2);
+      expect(w.points[0].y).toBe(w.points[1].y);
+    }
+    // two wires, two lines: they do not lie on each other
+    expect(there.points[0].y).not.toBe(back.points[0].y);
   });
 });

@@ -6,8 +6,8 @@
 // `data-edge`, no `data-port`, no `data-frame`, so the crossing-hop test has to
 // find edges by matching a theme colour literal. Whole categories of the
 // checklist — port distribution, stub lengths, zone containment — simply cannot
-// be expressed that way, which is why the coplanar router still has no named
-// test and why five stub violations sat in the corpus unnoticed.
+// be expressed that way, which is why five stub violations once sat in the
+// corpus unnoticed.
 //
 // `layoutView` already returns the geometry, typed. These are pure functions
 // over `Positioned`: they return violations rather than asserting, so the
@@ -70,9 +70,9 @@ export function checkLayout(p: Positioned, ctx: Ctx = {}): string[] {
       if (!whole(q.x) || !whole(q.y)) bad.push(`edge ${e.id}: non-integer point (${q.x},${q.y})`);
 
   // ── node dimensions on the grid ─────────────────────────────────────────
-  // DESIGN §2. Dimensions are ours — `sizeOf` picks from fixed tiers — unlike
-  // positions, which ELK assigns and which cannot be gridded while `align`
-  // equalises centres across 40px-stepped tiers.
+  // DESIGN §2. Dimensions come from fixed tiers (`sizeOf`). Positions are not
+  // held to the grid: `align` equalises centres across 40px-stepped tiers, and
+  // a centre line cannot be on the grid for both.
   for (const n of nodes)
     if (n.w % GRID || n.h % GRID)
       bad.push(`node ${n.path}: ${n.w}×${n.h} is off the ${GRID}px grid`);
@@ -80,8 +80,7 @@ export function checkLayout(p: Positioned, ctx: Ctx = {}): string[] {
   // ── wires land on a table's head, never on a row ────────────────────────
   // docs/notes/fields.md, preview-card.md: a leaf drawing its fields is a 64px
   // head with rows under it, and a wire that meets a row on a side wall reads
-  // as pointing at that field. Held on the wire's own end, so it covers ELK's
-  // ports and every router path alike.
+  // as pointing at that field. Held on the wire's own end, whatever drew it.
   const HEAD = 64;
   for (const e of p.edges) {
     const ends: [{ x: number; y: number }, string][] = [[e.points[0], e.from], [e.points[e.points.length - 1], e.to]];
@@ -108,8 +107,8 @@ export function checkLayout(p: Positioned, ctx: Ctx = {}): string[] {
     if (e.points.length < 2) bad.push(`edge ${e.id}: ${e.points.length} point(s)`);
 
   // ── stubs (DESIGN §4) ───────────────────────────────────────────────────
-  // Only edges that actually turn: 171 of 352 orthogonal edges are two-point
-  // runs from the coplanar router, where "before its first turn" has no meaning.
+  // Only edges that actually turn: a two-point run straight across a gutter
+  // has no "before its first turn".
   for (const e of p.edges as PEdge[]) {
     if (e.points.length < 3) continue;
     const first = len(e.points[0], e.points[1]);
@@ -127,13 +126,11 @@ export function checkLayout(p: Positioned, ctx: Ctx = {}): string[] {
   // ── the stacked sheets have room to land ────────────────────────────────
   // A container's sheets are drawn from its node rect, peeking SHEET_BLEED
   // below it and inset at the sides, rather than sized into it — inflating the
-  // node would put ELK's ports on the inflated face and every edge would stop
-  // short of the card it points at (layout.ts). That trade is only safe while
-  // the bleed lands in empty space, which the spacing constants guarantee:
-  // node spacing 32, frame padding 16, zone padding 20, root padding 32, all
-  // wider than 12. This asserts the guarantee instead of trusting it, so a
-  // future spacing change that breaks it fails here rather than shipping
-  // overlapped sheets. The band is the strip the near sheet shows under the
+  // node would put its ports on the inflated face and every edge would stop
+  // short of the card it points at. That trade is only safe while the bleed
+  // lands in empty space, which the layout is asked to keep (a box's `bleed`).
+  // This asserts the guarantee instead of trusting it, so a spacing change
+  // that breaks it fails here rather than shipping overlapped sheets. The band is the strip the near sheet shows under the
   // card, inset as it is — the back sheet is narrower still.
   const SHEET = 12;
   const sheetBand = (n: PNode) => ({ x: n.x + SHEET, y: n.y + n.h, w: n.w - 2 * SHEET, h: SHEET });
@@ -148,9 +145,8 @@ export function checkLayout(p: Positioned, ctx: Ctx = {}): string[] {
       // border is a collision
       if (f.path !== n.frame && overlaps(band, f) && !contains(f, band))
         bad.push(`sheets behind ${n.path} cross frame ${f.path}`);
-    // and the label on a wire leaving the card: ELK spaces it from the sheets
-    // only because the card carries a sheet-deep node label (layout.ts,
-    // leafChild) — every such pill in the corpus sat inside the sheets before
+    // and the label on a wire leaving the card, which has to clear the sheets
+    // as well as the card
     for (const e of p.edges)
       if (e.label && e.labelRect) {
         const r = e.labelRect;
@@ -170,46 +166,44 @@ export function checkLayout(p: Positioned, ctx: Ctx = {}): string[] {
       if (outer !== f && f.path.startsWith(`${outer.path}.`) && !contains(outer, f))
         bad.push(`frame ${f.path} escapes its enclosing frame ${outer.path}`);
 
-  // ── router wires cross nothing ──────────────────────────────────────────
-  // ELK's edges may pass through a frame interior legitimately — it routes
-  // them around geometry it owns. The coplanar router's may not: every
-  // segment must stay clear of every node and frame rect except the ones the
-  // edge itself touches (its endpoints and their enclosing frames). Touching
-  // a wall is legal — that is how a wall-to-wall route ends — so the test is
-  // strict interior penetration.
-  for (const e of p.edges.filter((x) => x.coplanar)) {
+  // ── wires cross nothing ─────────────────────────────────────────────────
+  // Every segment of every wire stays clear of every node, frame and zone
+  // except the ones the edge itself touches: its two ends and the frames and
+  // zones that hold them. Running along a wall is legal — that is how a wire ends — so the
+  // test is strict interior penetration.
+  for (const e of p.edges) {
     const own = (path: string) =>
       e.from === path || e.to === path ||
       e.from.startsWith(`${path}.`) || e.to.startsWith(`${path}.`);
+    // a zone has no path: it holds an end when that end's box is inside it
+    const ends = [e.from, e.to].flatMap((path) => [...nodes.filter((n) => n.path === path), ...p.frames.filter((f) => f.path === path)]);
     const obstacles = [
       ...nodes.filter((n) => n.path !== e.from && n.path !== e.to).map((n) => ({ id: `node ${n.path}`, ...n })),
       ...p.frames.filter((f) => !own(f.path)).map((f) => ({ id: `frame ${f.path}`, ...f })),
+      ...p.zones.filter((z) => !ends.some((r) => contains(z, r))).map((z) => ({ ...z, id: `zone ${z.id}` })),
     ];
     for (let i = 0; i < e.points.length - 1; i++) {
       const [a, b] = [e.points[i], e.points[i + 1]];
       const seg = { x: Math.min(a.x, b.x), y: Math.min(a.y, b.y), w: Math.abs(a.x - b.x), h: Math.abs(a.y - b.y) };
       for (const r of obstacles)
         if (seg.x < r.x + r.w && seg.x + seg.w > r.x && seg.y < r.y + r.h && seg.y + seg.h > r.y)
-          bad.push(`coplanar wire ${e.id} crosses ${r.id}`);
+          bad.push(`wire ${e.id} crosses ${r.id}`);
     }
   }
 
-  // ── router wires end on something ───────────────────────────────────────
-  // Approach #6 lets a wire continue past a unit wall to its leaf; either way
-  // each end must sit ON a boundary — the endpoint leaf's, an enclosing
-  // frame's, or a zone's — never floating in a gutter or inside a card.
+  // ── wires end on what they name ─────────────────────────────────────────
+  // Each end sits ON the boundary of the node or frame the edge names —
+  // never on the wall of something around it, floating in a gutter, or inside
+  // a card.
   const onBoundary = (q: { x: number; y: number }, r: { x: number; y: number; w: number; h: number }) =>
     ((q.x === r.x || q.x === r.x + r.w) && q.y >= r.y && q.y <= r.y + r.h) ||
     ((q.y === r.y || q.y === r.y + r.h) && q.x >= r.x && q.x <= r.x + r.w);
-  for (const e of p.edges.filter((x) => x.coplanar)) {
+  for (const e of p.edges) {
+    if (e.points.length < 2) continue;
     for (const [path, q] of [[e.from, e.points[0]], [e.to, e.points[e.points.length - 1]]] as const) {
-      const rects = [
-        ...nodes.filter((n) => n.path === path),
-        ...p.frames.filter((f) => f.path === path || path.startsWith(`${f.path}.`)),
-        ...p.zones,
-      ];
+      const rects = [...nodes.filter((n) => n.path === path), ...p.frames.filter((f) => f.path === path)];
       if (!rects.some((r) => onBoundary(q, r)))
-        bad.push(`coplanar wire ${e.id} ends at (${q.x},${q.y}), on no boundary of ${path}`);
+        bad.push(`wire ${e.id} ends at (${q.x},${q.y}), not on ${path}`);
     }
   }
 
@@ -254,16 +248,6 @@ export function checkLayout(p: Positioned, ctx: Ctx = {}): string[] {
       bad.push(`note ${n.i}: text needs ${need} but its box is ${n.w}`);
   }
 
-  // ── reserved note boxes (edge-anchored notes) never collide ─────────────
-  for (const [i, r] of p.noteBoxes ?? [])
-    for (const n of nodes)
-      if (overlaps(r as any, n)) bad.push(`note ${i} overlaps node ${n.path}`);
-  for (const [i, r] of p.noteBoxes ?? [])
-    for (const e of labelled)
-      if (e.labelRect && r.x < e.labelRect.x + e.labelRect.w && r.x + r.w > e.labelRect.x
-          && r.y < e.labelRect.y + e.labelRect.h && r.y + r.h > e.labelRect.y)
-        bad.push(`note ${i} overlaps label of ${e.id}`);
-
   // ── a note is inside a compound or outside it, and off every wire ───────
   // Frames and zones used to be solid obstacles to the note resolver, so a
   // note on a framed node was evicted over the wall — and wires were not
@@ -286,8 +270,7 @@ export function checkLayout(p: Positioned, ctx: Ctx = {}): string[] {
   }
 
   // ── chips and badges never collide with nodes ───────────────────────────
-  // They are typed geometry now (Positioned consolidation), so the rule is
-  // assertable. A chip legitimately straddles its own zone border; it must not
+  // A chip legitimately straddles its own zone border; it must not
   // sit on a node. Badges likewise.
   for (const c of p.chips ?? [])
     for (const n of nodes)
@@ -327,15 +310,14 @@ export function checkLayout(p: Positioned, ctx: Ctx = {}): string[] {
 
   // ── port distribution (DESIGN §4) ───────────────────────────────────────
   // "multiple edges on one side spread at even offsets — never stacked into a
-  // single point". The one legal exception is a `channel`: merging N sources
-  // into one entry port is exactly what the feature does, so a trunk target is
-  // exempt rather than a false positive.
+  // single point". The one legal exception is a trunk: a `channel` merges N
+  // sources into one entry port and a `wrap` trunk leaves its box by one, and
+  // that is exactly what those features do.
   const seen = new Map<string, string>();
   const busSources = new Set(p.edges.filter((e) => e.via === "bus").map((e) => e.from));
   for (const pt of p.ports) {
-    // a folded fan-out's source shares one port with every bus edge, as a
-    // channel target shares one with every trunk member — and the layout
-    // says so itself (`via: "bus"`), so no caller has to know
+    // the layout marks a `wrap` trunk itself (`via: "bus"`), so no caller has
+    // to know; a channel's target is the caller's to name
     if (ctx.channelTargets?.has(pt.node) || busSources.has(pt.node)) continue;
     const key = `${pt.node}|${pt.side}|${pt.x},${pt.y}`;
     const prev = seen.get(key);
@@ -343,5 +325,31 @@ export function checkLayout(p: Positioned, ctx: Ctx = {}): string[] {
     else seen.set(key, pt.edge);
   }
 
+  return bad;
+}
+
+/**
+ * A label sits on its own wire and on no other: a pill lying across a wire it
+ * does not belong to reads as that wire's label, and hides the wire. Kept
+ * apart from `checkLayout` because the layout does not hold it everywhere yet
+ * — `invariants.test.ts` records where, and the quality gate in
+ * `test/weft/sets.test.ts` keeps the count from growing.
+ */
+export function labelsOnWires(p: Positioned): string[] {
+  const bad: string[] = [];
+  for (const e of p.edges) {
+    if (!e.label || !e.labelRect) continue;
+    const r = e.labelRect;
+    // the pill is the 18px drawn in the middle of the reservation
+    const pill = { x: r.x, y: r.y + Math.round((r.h - 18) / 2), w: r.w, h: 18 };
+    for (const other of p.edges) {
+      if (other.id === e.id) continue;
+      const on = other.points.slice(1).some((b, i) => {
+        const a = other.points[i];
+        return Math.min(a.x, b.x) < pill.x + pill.w && Math.max(a.x, b.x) > pill.x && Math.min(a.y, b.y) < pill.y + pill.h && Math.max(a.y, b.y) > pill.y;
+      });
+      if (on) bad.push(`label of ${e.id} sits on the wire ${other.id}`);
+    }
+  }
   return bad;
 }

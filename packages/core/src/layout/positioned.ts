@@ -42,18 +42,13 @@ export interface PEdge {
   color?: Hue;
   heads: "one" | "both" | "none";
   points: { x: number; y: number }[];
-  /** Label space reserved by ELK at layout time (cross-rank edges). The pill
+  /** The room the layout reserved for this edge's label, on the wire. The pill
    *  is drawn exactly here — no search, no fallback, no way to collide: the
-   *  room exists because the layout made it. Coplanar edges get theirs from
-   *  the router (phase 2); until then they are undefined and the renderer's
-   *  search still covers them. */
+   *  room exists because the layout made it. Absent on an unlabelled edge. */
   labelRect?: { x: number; y: number; w: number; h: number };
-  /** Produced by the coplanar router rather than ELK. ELK's wires may cross a
-   *  frame interior legitimately (it routes them around what it knows); ours
-   *  must not cross anything, and the invariant sweep holds us to it. */
-  coplanar?: true;
-  /** Which of the router's shapes drew it, when it was not a same-rank wire:
-   *  `bus` is a folded fan-out's spine-trunk-drop (docs/notes/wrap.md). */
+  /** Set on the wires of a folded row's trunk (`wrap`): they share one port
+   *  on the box they fan out of and run as a spine with branches
+   *  (docs/notes/wrap.md). */
   via?: "bus";
 }
 export interface Positioned {
@@ -65,8 +60,7 @@ export interface Positioned {
   lines: "orthogonal" | "curved" | "straight";
   /** Zone label chips: geometry only — colour is a theme concern and layout
    *  is theme-free (the adaptive contract shares one layout across palettes).
-   *  Slid along their zone's border to the least-crossed spot, exactly the
-   *  algorithm that lived in svg.ts. */
+   *  Each is slid along its zone's border to the least-crossed spot. */
   chips: {
     x: number; y: number; w: number; h: number; label: string; zone: string;
     icon?: { pack: string; id: string };
@@ -79,14 +73,9 @@ export interface Positioned {
    *  right-aligned inside the reservation, so per-step text changes never move
    *  or collide with anything. */
   badges: { edgeId: string; x: number; y: number; w: number; h: number; nums: number[] }[];
-  /** Fully placed notes, in declaration order: the resolver lives in layout
-   *  now. Text lines are pre-wrapped (font-derived, theme-free); style/colour
-   *  stay the renderer's. */
+  /** Fully placed notes, in declaration order. A note anchored to a node
+   *  stands in room the layout kept beside that node; one anchored to an edge,
+   *  beside the wire. Text lines are pre-wrapped (font-derived, theme-free);
+   *  style/colour stay the renderer's. */
   notes?: { i: number; x: number; y: number; w: number; h: number; lines: string[]; leader?: { x1: number; y1: number; x2: number; y2: number } }[];
-  /** The inline label ELK reserved for each edge-anchored note, by view-note
-   *  index (a second label on the note's own elk edge). It sits on the wire;
-   *  the resolver stands the note beside the wire inside the gap this made,
-   *  and falls back to the box itself. Node-anchored notes reserve their room
-   *  as a label on the anchor instead, and never appear here. */
-  noteBoxes?: Map<number, { x: number; y: number; w: number; h: number }>;
 }

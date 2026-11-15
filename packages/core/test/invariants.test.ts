@@ -14,7 +14,7 @@ import { describe, it, expect } from "vitest";
 import { buildProject } from "../src/index.js";
 import { layoutView, type Positioned } from "../src/layout/layout.js";
 import { corpus } from "./helpers/corpus.js";
-import { checkLayout, type Ctx } from "./invariants.js";
+import { checkLayout, labelsOnWires, type Ctx } from "./invariants.js";
 
 const FONTS = [{ name: "inter", font: { metrics: "inter" as const, scale: 1 } }];
 
@@ -58,6 +58,28 @@ describe("geometric invariants over the whole corpus", () => {
     // cannot turn this sweep into a no-op that still reports green.
     expect(views).toBeGreaterThan(120);
     expect(violations, `${violations.length} geometric violation(s)`).toEqual([]);
+  }, 60_000);
+});
+
+describe("labels over the whole corpus", () => {
+  // KNOWN BREAK, recorded rather than hidden. A label is given room along its
+  // own wire, but wires that run side by side 16px apart each carry a pill far
+  // wider than that, so the pill lies across its neighbours
+  // (`lookbook/cases/42-mutual-pair.squinch#landscape` is the clearest: three
+  // labelled wires into one bus). 29 such pills in 13 corpus views when this
+  // was written. `it.fails` turns green-to-red the day the layout keeps them
+  // apart: delete the `.fails` then, and move the rule into `checkLayout`.
+  it.fails("no label sits on another edge's wire", async () => {
+    const violations: string[] = [];
+    for (const f of files) {
+      const built = buildProject([{ name: f.name, src: f.src }]);
+      if (built.diagnostics.some((d) => d.severity === "error")) continue;
+      for (const view of built.model.views) {
+        const { positioned } = await layoutView(built.model, view, FONTS[0].font);
+        for (const v of labelsOnWires(positioned)) violations.push(`${f.name}#${view.name} ${v}`);
+      }
+    }
+    expect(violations).toEqual([]);
   }, 60_000);
 });
 
@@ -109,7 +131,7 @@ describe("the invariants themselves", () => {
   });
 
   it("leaves a two-point edge alone — it never turns", () => {
-    const p = base({ edges: [edge([{ x: 0, y: 0 }, { x: 0, y: 4 }])] });
+    const p = base({ nodes: [node("a", 0, 0), node("b", 124, 0)], edges: [edge([{ x: 120, y: 32 }, { x: 124, y: 32 }])] });
     expect(checkLayout(p)).toEqual([]);
   });
 
@@ -132,11 +154,41 @@ describe("the invariants themselves", () => {
     // a label pill LABEL_GAP under the card lands in the sheets; one spaced
     // from the sheets' base is clear
     const pill = (y: number) => ({ id: "e", from: "a", to: "x", label: "REST", points: [{ x: 100, y: 96 }, { x: 100, y: 200 }], labelRect: { x: 80, y, w: 40, h: 18 } }) as any;
-    expect(checkLayout(base({ nodes: [card("a", 0)], edges: [pill(106)] })).join())
+    const under = [card("a", 0), node("x", 40, 200)];
+    expect(checkLayout(base({ nodes: under, edges: [pill(106)] })).join())
       .toContain("sheets behind a reach the label on e");
-    expect(checkLayout(base({ nodes: [card("a", 0)], edges: [pill(118)] }))).toEqual([]);
+    expect(checkLayout(base({ nodes: under, edges: [pill(118)] }))).toEqual([]);
     // a leaf has no sheets, so the same tight gap is legal for one
     expect(checkLayout(base({ nodes: [node("a", 0, 0), node("b", 126, 0)] }))).toEqual([]);
+  });
+
+  it("catches a wire through a node, a frame or a zone that is not its own", () => {
+    // a → b straight across, with something standing in the gutter between them
+    const across = edge([{ x: 120, y: 32 }, { x: 400, y: 32 }]);
+    const ab = [node("a", 0, 0), node("b", 400, 0)];
+    expect(checkLayout(base({ nodes: [...ab, node("c", 200, 0, 120)], edges: [across] })).join())
+      .toContain("wire e1 crosses node c");
+    const box = { x: 200, y: -20, w: 120, h: 104, depth: 0 };
+    expect(checkLayout(base({ nodes: ab, edges: [across], frames: [{ path: "f", label: "F", ...box }] })).join())
+      .toContain("wire e1 crosses frame f");
+    expect(checkLayout(base({ nodes: ab, edges: [across], zones: [{ id: "z", label: "Z", kind: "vpc", labelPos: "top-left", ...box }] as any })).join())
+      .toContain("wire e1 crosses zone z");
+    // a zone that holds one of the ends is the wire's own: it has to cross that wall
+    const around = { id: "z", label: "Z", kind: "vpc", labelPos: "top-left", x: 380, y: -20, w: 160, h: 104, depth: 0 };
+    expect(checkLayout(base({ nodes: ab, edges: [across], zones: [around] as any }))).toEqual([]);
+  });
+
+  it("catches a wire that ends short of the node it names", () => {
+    // stops in the gutter, 20px before b's wall
+    expect(checkLayout(base({ edges: [edge([{ x: 120, y: 32 }, { x: 180, y: 32 }])] })).join())
+      .toContain("wire e1 ends at (180,32), not on b");
+    // stops on the wall of the frame around b rather than on b
+    const framed = base({
+      nodes: [node("a", 0, 0), { ...node("f.b", 200, 0), frame: "f" }],
+      frames: [{ path: "f", label: "F", x: 180, y: -20, w: 160, h: 104, depth: 0 }],
+      edges: [{ ...edge([{ x: 120, y: 32 }, { x: 180, y: 32 }]), to: "f.b" }],
+    });
+    expect(checkLayout(framed).join()).toContain("not on f.b");
   });
 
   it("catches a child escaping its frame", () => {
@@ -167,7 +219,7 @@ describe("the invariants themselves", () => {
   });
 
   it("catches a label overlapping a node, and two labels overlapping", () => {
-    const withLabel = (rect: any) => ({ ...edge([{ x: 0, y: 100 }, { x: 400, y: 100 }]), label: "x", labelRect: rect });
+    const withLabel = (rect: any) => ({ ...edge([{ x: 60, y: 64 }, { x: 60, y: 100 }, { x: 260, y: 100 }, { x: 260, y: 64 }]), label: "x", labelRect: rect });
     // on a node
     expect(checkLayout(base({ edges: [withLabel({ x: 10, y: 10, w: 60, h: 18 })] })).join())
       .toContain("overlaps node");
@@ -179,6 +231,13 @@ describe("the invariants themselves", () => {
     expect(checkLayout(p2).join()).toContain("labels of");
     // clear of everything: fine
     expect(checkLayout(base({ edges: [withLabel({ x: 200, y: 120, w: 60, h: 18 })] }))).toEqual([]);
+  });
+
+  it("catches a label lying across another edge's wire", () => {
+    const e1 = { ...edge([{ x: 60, y: 64 }, { x: 60, y: 200 }]), label: "x", labelRect: { x: 40, y: 120, w: 60, h: 18 } };
+    const e2 = (x: number) => ({ ...edge([{ x, y: 64 }, { x, y: 200 }]), id: "e2" });
+    expect(labelsOnWires(base({ edges: [e1, e2(76)] }))).toEqual(["label of e1 sits on the wire e2"]);
+    expect(labelsOnWires(base({ edges: [e1, e2(110)] }))).toEqual([]);
   });
 
   it("catches a note whose text is wider than its box", () => {
