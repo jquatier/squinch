@@ -985,10 +985,11 @@ describe("update notices through the CLI", () => {
 });
 
 describe("check lays out what the export draws", () => {
-  // Round 29: a system's own `layout { }` takes effect only where the system
-  // is opened, and no declared view opened this one — so `check` and
-  // `--sync` never laid it out, and its band-split error (measured off the
-  // finished layout) surfaced only at `render -o x.html`, the last step.
+  // Round 29: a system's interior is drawn only where the system is opened,
+  // and no declared view opened this one — so `check` and `--sync` never laid
+  // it out, and an error only its automatic view can reach surfaced at
+  // `render -o x.html`, the last step. Two zones that overlap inside the
+  // system are that kind of error: the landscape shows one card and neither.
   const SRC = `gw = aws/api-gateway "Gateway"
 
 system catalog "Catalog" {
@@ -997,49 +998,48 @@ system catalog "Catalog" {
   search   = aws/lambda "Search"
   products ~> bus
   bus ~> search
-  layout { rows [products search] }
 }
+
+zone hot "Hot path" { contains catalog.products, catalog.bus }
+zone slow "Async" { contains catalog.bus, catalog.search }
 
 gw -> catalog.products
-
-view landscape {
-  include *
-}
 `;
 
-  it("an error only an auto view reaches fails check, at the system's block", async () => {
+  it("an error only an auto view reaches fails check, at the system it belongs to", async () => {
     const f = join(dir, "d.squinch");
     writeFileSync(f, SRC);
     expect(await main(["check", f, "--format", "json"])).toBe(1);
     const payload = JSON.parse(out.join("\n"));
     expect(payload.diagnostics).toHaveLength(1);
-    expect(payload.diagnostics[0].message).toContain("lands a tier later");
-    expect(payload.diagnostics[0].loc.line).toBe(9); // the `layout` line, not `system`
+    expect(payload.diagnostics[0].message).toContain("partially overlap");
+    expect(payload.diagnostics[0].loc.line).toBe(3); // the `system` line: the auto view has no source of its own
   });
 
   it("layout errors name the file they belong to, in both formats", async () => {
     // Layout-stage diagnostics carried a line and no file: `input:7:3`, which
     // in a directory of several files points nowhere. The view's own hint
-    // lives in one file and the system's block in the other.
+    // lives in one file and the system in the other.
     const p = join(dir, "proj");
     mkdirSync(p);
     writeFileSync(join(p, "catalog.squinch"), SRC.slice(SRC.indexOf("system"), SRC.indexOf("gw ->")));
     writeFileSync(join(p, "views.squinch"),
-      `gw = aws/api-gateway "Gateway"\nmon = aws/cloudwatch "Monitor"\ngw -> catalog.products\nmon -> gw\n\n` +
-      `view landscape {\n  include *\n  layout { rows [gw] [mon] }\n}\n`);
+      `gw = aws/api-gateway "Gateway"\nmon = aws/cloudwatch "Monitor"\ngw -> catalog.products\nmon -> gw "poll"\nmon -> gw "alert"\n\n` +
+      `view landscape {\n  include *\n  layout { route mon -> gw from east }\n}\n`);
     expect(await main(["check", p, "--format", "json"])).toBe(1);
-    const files = JSON.parse(out.join("\n")).diagnostics.map((d: { file: string; loc: { line: number } }) => `${d.file}:${d.loc.line}`);
-    expect(files.sort()).toEqual(["catalog.squinch:7", "views.squinch:6"]);
+    const errors = JSON.parse(out.join("\n")).diagnostics.filter((d: { severity: string }) => d.severity === "error");
+    const files = errors.map((d: { file: string; loc: { line: number } }) => `${d.file}:${d.loc.line}`);
+    expect(files.sort()).toEqual(["catalog.squinch:1", "views.squinch:9"]);
     err = [];
     await main(["check", p]);
-    expect(err.join("\n")).toContain("catalog.squinch:7:3");
-    expect(err.join("\n")).toContain("views.squinch:6:1");
+    expect(err.join("\n")).toContain("catalog.squinch:1:1");
+    expect(err.join("\n")).toContain("views.squinch:9:");
     expect(err.join("\n")).not.toContain("input:");
   });
 
-  it("the line the fix writes out checks clean and exports", async () => {
+  it("narrowing one zone checks clean and exports", async () => {
     const f = join(dir, "d.squinch");
-    writeFileSync(f, SRC.replace("rows [products search]", "rows [products] [bus] [search]"));
+    writeFileSync(f, SRC.replace("contains catalog.bus, catalog.search", "contains catalog.search"));
     expect(await main(["check", f])).toBe(0);
     expect(await main(["render", f, "-o", join(dir, "d.html")])).toBe(0);
   });

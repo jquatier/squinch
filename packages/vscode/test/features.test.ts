@@ -49,39 +49,42 @@ describe("diagnostics", () => {
     expect(diagnosticsFor(SRC).filter((d) => d.severity === "error")).toHaveLength(0);
   });
 
-  it("surfaces layout-time hint conflicts too", async () => {
+  it("surfaces layout-time errors too", async () => {
     const src = `pack aws
 system s "S" {
   a = aws/lambda "A"
   b = aws/lambda "B"
-  a -> b
+  a -> b "read"
+  a -> b "write"
 }
 view s {
-  layout { rows [b] [a] }
+  layout { route a -> b from east }
 }
 `;
     const ds = await allDiagnosticsFor(src);
-    expect(ds.some((d) => d.message.includes("runs upward"))).toBe(true);
+    expect(ds.some((d) => d.message.includes("2 edges match"))).toBe(true);
   });
 
   it("lays out the auto views too — what the interactive export draws", async () => {
-    // A system's own block takes effect only where the system is opened; no
-    // declared view opens this one, but its auto view does, and the band
-    // split is measured off that layout. Round 29: clean here, export failed.
+    // A system's interior is drawn only where the system is opened; no
+    // declared view opens this one, but its auto view does, and two zones
+    // that overlap inside it are an error only that layout can find.
+    // Round 29: clean here, export failed.
     const src = `system catalog "Catalog" {
   products = aws/lambda "Products"
   bus      = aws/sqs "Index Queue"
   search   = aws/lambda "Search"
   products ~> bus
   bus ~> search
-  layout { rows [products search] }
 }
+zone hot "Hot path" { contains catalog.products, catalog.bus }
+zone slow "Async" { contains catalog.bus, catalog.search }
 gw = aws/api-gateway "Gateway"
 gw -> catalog.products
 view landscape { include * }
 `;
-    const split = (await allDiagnosticsFor(src)).find((d) => d.message.includes("lands a tier later"));
-    expect(split?.range.start.line).toBe(6); // the `layout` line, zero-based
+    const overlap = (await allDiagnosticsFor(src)).find((d) => d.message.includes("partially overlap"));
+    expect(overlap?.range.start.line).toBe(0); // the `system` line, zero-based
   });
 
   it("extracts replacements only from did-you-mean fixes", () => {
