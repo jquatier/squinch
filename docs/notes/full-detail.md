@@ -7,7 +7,7 @@ way frames nest.
 
 A view opens exactly one level of depth. That rule is load-bearing — SPEC §5's
 rule stack, DESIGN §5's "depth is one step, not a ladder", and mechanically the
-layout's flattening of frames into single-level ELK compounds, where a nested
+layout of the time, which flattened frames to a single level, so a nested
 frame arrived childless and came back 0×0 with its label floating free. The
 consequence: a reader who wants the whole architecture at leaf level on one
 page had to click into containers one at a time, losing every other
@@ -23,9 +23,11 @@ running at the expand step of the rule stack, so `scope`/`only`/`context`/
 `expand a.b`) **stay an error**; the error's fix now also names `expand *`.
 
 The machinery: `VFrame` carries `frame` (immediate parent — the same field a
-`VNode` has), layout projects framed things to their *outermost* frame for
-ranking and recurses `framedChildren` through `entityElk` so ELK receives real
-nested compounds, `PFrame` carries `depth`, and the renderer paints frames
+`VNode` has), the layout planner builds the tree from it — a frame inside a
+frame is a container inside a container, laid out by the same code as any
+other (`layout/plan.ts`; since 2026-11 the engine is `weft`,
+[`layout-engine.md`](layout-engine.md)) — `PFrame` carries `depth`, and the
+renderer paints frames
 depth-sorted with the recessed `surfaceAlt` fill at depth 0 only — deeper
 frames are border + label.
 

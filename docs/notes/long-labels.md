@@ -22,10 +22,11 @@ A label that fits renders as it always did. A card's name stays one line.
   In that same diagram 24 of 50 subtitles were past it, so letting them count
   would have widened nearly every leaf in the largest views, and fitted views
   draw everything smaller as they widen.
-- **A column in a rightward flow keeps one left edge**, by `elk.alignment: LEFT`
-  on each node, including inside a frame directed right. ELK centres a narrower
-  node in its layer, which beside a wider one reads as a mistake. A downward view
-  still centres, because its rows are not columns.
+- **A column in a rightward flow keeps one left edge**, including inside a
+  frame directed right. A narrower node centred in its column beside a wider
+  one reads as a mistake. A downward view still centres, because its rows are
+  not columns. (The layout engine keeps this as a rule of its own — the flush
+  ranks of a rightward container, `layout/weft/lay.ts`.)
 - **The warning is measured.** A count of 40 characters missed a card cut at 27
   and warned on leaves that fit two lines whole. `WIDEST_TITLE_ROOM` holds the
   numbers, and `test/long-labels.test.ts` holds them to what the renderer cuts.

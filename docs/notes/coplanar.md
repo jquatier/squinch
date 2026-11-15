@@ -1,384 +1,51 @@
-# Note — why same-rank edges bypass ELK
+# Note — same-rank edges, and why they once needed a router of their own
 
-The coplanar router (96 code lines in `layout.ts`, of ~1500) is the one place
-the engine does its own edge geometry, and it is the reason "ELK owns the
-layout" is not quite true — every annotation feature since has needed a second
-code path for it. That is a real tax, so the question "could ELK just do this?"
-is worth asking. It has now been asked and measured, four ways.
+> **Superseded (2026-11).** This note recorded the "coplanar router": the
+> second router that drew same-rank edges beside ELK, the scaffold edges that
+> held declared ranks, and seven "approaches" that extended the pair to
+> frames, zones and per-container direction. All of that machinery is gone —
+> the layout engine is now `weft`, where a rank is a constraint and one router
+> draws every wire ([`layout-engine.md`](layout-engine.md)). The body has been
+> cut to what is still true. The full text, with every ELK option that was
+> measured, is in git: `git show c95ab03~1:docs/notes/coplanar.md`.
 
-**It cannot, and the reason is structural.** In Sugiyama layering — which is
-what `elk.algorithm: layered` implements — a *layer* is by definition a set of
-nodes with no edges between them. Any edge whose endpoints you want on one rank
-is a contradiction in terms, and no option resolves it.
+## What still holds
 
-## What was measured (2026-08)
+**Two connected nodes may share a row, and that is a language feature.**
+`rows [a b]` with `a -> b` is the most ordinary hint there is. Neighbours join
+straight across the gutter between them; a wire that reaches past a row-mate
+goes round under the row; a mutual pair takes two places on the facing walls,
+one wire above the other, never one line with two arrowheads. This holds at
+the root, inside an expanded container and inside a zone, and the wire always
+ends on the leaf it names.
 
-| Approach | Result |
-|---|---|
-| **Hand every same-rank edge to ELK** (delete the router) | Ranks collapse. 9 of 117 corpus views contain a coplanar edge; every one goes portrait. `09-coplanar-row` 1102×180 → 336×808. `products-api` — the README hero — 850×570 → 411×922. The `rows` hint is silently discarded, and worse than the shape: `rows [catalog orders accounts]` redraws three peer services as Order Service *above* the other two, asserting a dependency the model does not have. Geometry stays legal (one invariant violation corpus-wide), so nothing would have caught this but looking. |
-| **`elk.partitioning`**, partition = rank index | A partition is a *band*, not a layer. An edge inside one splits it into several layers, so peers stack exactly as above. |
-| **`layering.strategy: INTERACTIVE`** seeded with coordinates | Six chained nodes seeded all-x-equal, all-y-equal, and all-at-origin each produced six layers. The interactive layerer derives layer *order* from coordinates; it still refuses to put edge-connected nodes together. |
-| **Wrap the row in a synthetic compound laid out `RIGHT`** | The most promising, and the closest to working. Under `hierarchyHandling: INCLUDE_CHILDREN` — which the rest of the engine needs — a child's `elk.direction` is ignored outright and the row lays out downward anyway. Forcing `SEPARATE_CHILDREN` on that compound does produce a horizontal row (1060×106), but two things break: members land on **four** different baselines (up to 42px of jitter, because node placement staggers them to route the skips) where our router puts them on one, and an edge from outside can no longer address a row member — it must attach to the compound's border. Most edges in a real diagram cross ranks, so that trade is worse than the router. |
+**A wire lands on a table's head, never on a field row.** A leaf drawing its
+`fields` is a 64 px head with rows under it; a wire on a row reads as pointing
+at that field. The planner tells the engine how much of the side walls may
+take a wire (`Box.face`), `checkLayout` asserts it on every wire's own end
+("lands on a field row"), and `packages/core/examples/fields-wires.squinch` is
+the fixture. A 64 px face holds three wires at 16 px pitch, exactly as a plain
+leaf does. In a row that holds a table, boxes are top-aligned so heads line
+up and a same-row wire can run head to head.
 
-## Approach #5: wall-to-wall between expanded frames (2026-08, adopted)
+**A mutual pair nobody pinned is two ranks.** `a -> bus` and `bus ~> a` with
+no `rows` anywhere: cycles are broken in declaration order, so the
+first-declared edge keeps its direction and the other runs back up
+(`lookbook/cases/42-mutual-pair`). A pair the author pins to one row stays on
+it.
 
-`expand *` made a new collision inevitable: `rows [catalog orders accounts]`
-with all three expanded and orders *calling* the other two. The cross-frame
-edge could not be classified coplanar (the router only knew bare leaves), so
-it stayed in ELK's graph and ELK re-layered the frames apart — the row broke
-with a warning whose only advice was to stop asking.
+## Why ELK could not do this — the one-paragraph record
 
-The fix is the same mechanism the router has always been: **classifying an
-edge coplanar (hiding it from `elkEdges`) is the entire co-ranking machinery**
-— there is no same-layer constraint anywhere else; scaffold edges are lower
-bounds only. Hide the edge and the frames co-layer naturally. The router then
-draws the wire between the two *outermost frame rects*, wall-to-wall:
-
-- **straight** through the gutter when both wall entries agree (the entry sits
-  at the interior leaf's height, clamped into the pair's shared cross-overlap
-  band — frames on one layer are top-aligned with unequal heights);
-- a **4-point jog** at mid-gutter when they don't (each stub ≥ gutter/2 ≥ 24);
-- the **shelf** below the row when another unit sits between (bandEdge measured
-  over unit rects — frame borders, not the leaves inside them).
-
-Labelled gutters are reserved pre-ELK exactly as leaf gutters are — spiked:
-`elk.spacing.individual` **is honoured on a compound under
-`INCLUDE_CHILDREN`** (48 → 140 on request; `elk.margins` is not). Wires carry
-`coplanar: true` and the invariant sweep asserts a router wire crosses no node
-or non-endpoint frame rect — strict interior penetration, walls are legal.
-
-**Deliberately not built: interior routing** (the wire *navigating* from the
-leaf through the frame's inside). The interior is ELK's territory on both
-axes — every interior spacing constant was tuned for ELK's own edges, and a
-foreign wire jogging through them re-opens the stub violations that took a
-gate cycle to close. Approach #5 stopped at the wall on the grounds that most
-frame interiors are one column wide, so the entry visually sits beside its
-leaf anyway. Approach #6 below keeps the "never navigate" half of that and
-drops the "stop at the wall" half.
-
-## Approach #6: zones are units too (2026-09, adopted)
-
-Approach #5 turned same-rank **zone** pairs away with a warning, on the
-grounds that a dashed zone boundary is not a wall a wire can enter. That
-reason did not survive the first real diagram: ELK's own wires enter zones
-constantly (every cross-rank edge into a namespace does), and lookbook
-`27-k8s` — two namespaces, `rows [batch orders]`, one `reads` edge between
-them — silently stacked the zones with a warning whose only advice was to
-stop asking. SPEC §zones had promised `rows` could pin a zone all along.
-
-The first half is the four lines the sentence above predicted: the coplanar
-filter no longer excludes zoned endpoints, `routeRect` resolves a zoned leaf
-to its *outermost* zone's rect, and the zone compound carries the same
-labelled gutter reservation a frame does. The warning is deleted rather than
-reworded — after the change no same-rank pair is unroutable, so there is
-nothing left for it to say. Measured against the whole gallery corpus (162
-views): zero renders change, because the only edges whose classification
-moves are the ones that used to warn, and none of the shipped diagrams
-carried one.
-
-That alone was rejected on sight. A zone wrapping an expanded frame stacks
-two paddings plus the frame's own column, so the `reads` arrow ended on the
-namespace boundary some 160px from the service it named — the wall-stop
-compromise that was tolerable for a one-column frame is not tolerable
-through two boundaries. So the second half is **the inward corridor**: after
-the gutter geometry is fixed (entry heights, straight or jog, pill on the
-gutter run between the two unit walls), each end walks from its unit wall to
-the leaf's own wall **when the straight corridor between them is provably
-empty** — no node but the leaf, no frame that does not enclose it, ±16 on
-the cross axis; zone rects are not obstacles, ELK's wires cross them too.
-Otherwise the wall stays the end, exactly as #5 drew it. The wire never jogs
-inside a compound: that is the line between "extend through space proven
-empty" and the interior navigation still deliberately unbuilt.
-
-Two consequences, both measured before adoption. The port moves with the
-end: a wire that reaches the leaf registers on the leaf's face, so parallel
-wires into one leaf spread *there* (the prototype that spread them at the
-wall had two Catalog API arrivals converge on one point after it). And the
-entry height is the leaf's own, clamped into its unit rather than into the
-pair's shared band — #5's shared clamp is what would park a low leaf's entry
-at the wrong height and stop the corridor from ever reaching it; the jog
-handles any pair of heights. Corpus impact: 2 of 162 views, both the #5
-frame cases (`examples/microservices` full and lookbook `32-coplanar-frames`
-row), and in both the before had arrowheads stopping in frame padding beside
-the wrong card. The invariant sweep gained a rule with it: a router wire's
-ends sit on a boundary — the leaf's, an enclosing frame's, or a zone's.
-
-Still unbuilt, with the same reasoning: the shelf (a unit *between* the
-pair) keeps exiting from the unit's far wall, because reaching a leaf from
-below would cross interiors vertically.
-
-## What this means for the router
-
-It is not polish, and it is not there because ELK's routing is inadequate — it
-is what makes `rows` a language feature rather than a suggestion. The
-prerequisite for deleting it is dropping or redefining `rows`; that is the
-decision, and the router is downstream of it.
-
-Its scope is also narrower than it feels. Coplanar edges exist **only** because
-a rank was declared: without `rows`/`place`, an edge always puts its endpoints
-on different ranks naturally, so there is nothing for the router to do. Nine
-corpus views out of 117 exercise it at all.
-
-The cost to keep honest is the second code path. When adding anything that
-attaches to an edge — labels, notes, flow badges — the coplanar case needs its
-own answer, and it is the one most likely to be forgotten because most views
-never hit it. The pattern that has worked is to make the router *report the same
-shape* ELK does (`labelRect`) rather than to special-case it downstream.
-
-## Levers inside a compound (2026-09, measured against elkjs 0.12)
-
-Interior hints (`rows`/`cols`/`place` naming leaves inside an expanded frame, and a
-container's own `layout { }`) needed ELK to honour an order *inside* a compound under
-`hierarchyHandling: INCLUDE_CHILDREN`. What was tried, so it is not tried again:
-
-| Lever | Result |
-|---|---|
-| Child model order (the order `framedChildren` hands ELK) | **Not** the in-layer order inside a compound. Four permutations of a compound's children produced identical output; the row followed the feeding node's *port* order. `considerModelOrder`/`forceNodeModelOrder` are read per graph and never inherited into a child graph. |
-| `considerModelOrder` / `forceNodeModelOrder` set on the compound itself | **Crashes** ELK's model-order comparator on the border-port dummies (`Cannot read properties of undefined (reading 'a')`) — every variant, `PREFER_NODES` included; `PREFER_EDGES` survived a toy and crashed on anything with two layers. `crossingMinimization.strategy: NONE` throws `UnsupportedGraphException`. |
-| `crossingMinimization.semiInteractive: true` on the compound + `elk.position` on its children | **Works**: honoured for fans, disconnected leaves, two feeders, two layers at once, `direction right` (transpose the position axis) and nested compounds. One exception: a frame's *entry* layer (members fed only from outside it, via the border-port dummies) ignores positions and follows the compound's child model order instead — so the engine pulls both levers. |
-| Invisible scaffold edge between two interior leaves | A rank lower bound inside the compound, exactly as at the root; no side effects in the corpus. Carries the frame-interior spacer under the label scheme. |
-
-The engine engages these only for a frame that carries a hint relating two or more of
-its members (`frameOrder`), which is what keeps every unhinted render byte-identical —
-switching a frame to semi-interactive replaces ELK's interior order with declaration
-order, and that must never happen uninvited. Naming a single member is how you rank
-the whole frame from the root, and stays exactly that.
-
-## Approach #7: per-container direction on hierarchical ports (2026-09, adopted)
-
-Attempt 4 in the table above stopped one step short. Under `INCLUDE_CHILDREN` a
-compound's own `elk.direction` is ignored outright (re-measured: byte-identical
-geometry with and without it), and `SEPARATE_CHILDREN` on that compound does give
-it a direction of its own — at the cost that an edge from outside can no longer
-address a member inside, because a run cannot see ports inside another run
-(`UnsupportedGraphException`). Re-targeting the edge at the compound was the
-recorded dead end: it attaches at the compound's centre, over the wrong leaf.
-
-What nobody tried was ELK's own answer, the **hierarchical port**: a `FIXED_SIDE`
-port *on* the compound's wall, the outside edge ending there, and a second edge
-declared *inside* the compound continuing from that port to the leaf. ELK lays the
-interior out on one baseline in the frame's own direction and routes wall → leaf
-itself. The engine cuts every ELK edge into one segment per call it crosses
-(`segments`), the segment in the pair's common container keeping the id, pill and
-notes and the others carrying the invisible spacer; after layout the segments are
-stitched back into one polyline (the join point appears twice, a straight run
-through the wall as three collinear points; both dropped). With no directed frame
-there is exactly one root segment per edge, one ELK call, and the graph built
-before this existed — 165 of 165 corpus views byte-identical.
-
-**Two ELK calls, not one.** The POC put the directed frame inside the single root
-call as a `SEPARATE_CHILDREN` compound, and its probes passed. The first scoped
-view with a `rows` line broke it: whenever the edge's other end lands *earlier* in
-the next layer, the parent run drags the frame's EAST wall port to the west wall
-(measured: `[0, 291]` for a port declared EAST at `[752, 291]`), and the interior
-segment runs straight through the row. No port-constraint mode changes that
-(`FIXED_ORDER`, `FIXED_RATIO`, `FIXED_POS` all measured). So each directed frame is
-laid out first by a call of its own, deepest first — the frame as the one child
-of a padding-less `SEPARATE_CHILDREN` wrapper carrying its direction, the frame
-itself `INCLUDE_CHILDREN` with `FIXED_SIDE` external ports — and the root call is
-handed a fixed-size leaf with `FIXED_POS` ports at the positions that produced.
-Three more measurements fixed the shape of that: a root graph *with* ports crashes
-elkjs 0.12's JSON import (`null.o`), hence the wrapper; a ported compound that is
-itself included in the wrapper crashes the crossing-minimisation comparator when it
-holds a nested compound (`undefined.a`), and run `SEPARATE_CHILDREN` instead it
-drops every edge into that nested compound — `INCLUDE_CHILDREN` beneath a
-`SEPARATE_CHILDREN` wrapper is the one combination that both routes and lands the
-ports. And in the root call `forceNodeModelOrder` moves a `FIXED_POS` port off its
-wall in exactly the target-to-the-left case (no per-node or per-port option
-escapes it), so a view holding a directed frame swaps that option for
-`semiInteractive` crossing minimisation with each root child's `elk.position` set
-from the model order it would have been forced to — the interior pass's lever,
-applied at the root, and only there, only then.
-
-Two rules came out of measurement. **The wall port's side is per edge**: an edge
-into the head of the frame's own interior (a leaf nothing inside feeds) enters on
-the frame's flow side, and one out of its tail leaves on the flow side; anything
-reaching a mid-chain leaf takes the outer side, so the enclosing run routes it as
-it routes every other edge. Outer-only parked the entry at the top-left corner
-with 80px of dead interior (a NORTH port on a RIGHT run becomes a layer of its
-own at the far left); flow-only looped a mid-chain exit up and over the frame.
-**The leaf-side port of an interior segment is on the frame's flow side** too —
-carrying the outer side through made the interior 48px taller and ran the wire
-along the title band.
-
-One thing the layout cannot fix: a directed frame flush-left inside an undirected
-one takes its entry through the enclosing frame's 16px left padding, which is the
-strip the title sits in, so the wire crosses the title. Widening that padding only
-moved the letter (the title moves with the frame); the outer side moved the
-crossing one level in. The title cannot be an ELK obstacle, so it does what zone
-chips do: a frame title any final wire segment crosses is flagged (`PFrame.titleCrossed`)
-and the renderer draws it after the edges on a surface halo. Emitted only when it
-happens, which is what keeps every other render byte-identical — and it turned out
-three shipped views already had a wire through a frame title.
-
-Still open: skip-edge baseline jitter is larger inside a directed frame (46px on
-the probe) than at the root (11px) — ELK node placement on a skip edge, not the
-compound; and a scoped view's own `direction` is the only override, an expanded
-frame's direction is the container's.
-
-**Flow-through first (round 23).** A pipeline with one side lookup stepped off
-its row: ELK centres a stage between its two successors, and the cold agent's
-correct `direction right` drew Publish a row below Enrich. Measured on a
-five-node fork in a plain RIGHT graph: `priority.straightness` on the
-flow-through edge changes nothing under NETWORK_SIMPLEX, BRANDES_KOEPF or
-LINEAR_SEGMENTS, and neither node nor edge declaration order moves which
-successor the fork aligns with — ELK puts the dead end on top every time. What
-does move it is in-layer order under `semiInteractive`: a child whose unit goes
-on somewhere (another stage, or out through the wall) sorts before one that is
-the end of the line, and the chain hugs the row while the dead end hangs beside
-it. Applied only in a directed frame's own call, and only when the author gave
-no interior hints of their own.
-
-## Round 26: two ways a coplanar wire ended in empty canvas (2026-09)
-
-Gauntlet round 26 added the first prompts about a *large* system. Their answers
-drew two things the corpus never had — an edge from an area itself rather than
-from something inside it, and a shared bus between a band of areas — and the
-invariant sweep caught both as `coplanar wire … ends on no boundary of …`.
-
-**A container endpoint was taken for a bare leaf.** The straight branch asks
-"are both ends their own unit?" so it can keep the pre-frames path
-byte-identical. A *container* is its own unit too (`checkout ~> fulfilment` with
-`checkout` expanded), so a frame several cards tall went down the leaf path: both
-ends at the frame's mid-height, and the wire stopped below a one-card neighbour.
-Bare now means a leaf — not a frame, not a zone — and a container endpoint jogs
-through the gutter like any other unit. Twelve-line repro in
-`test/band-split.test.ts`. No existing render moved: goldens, the five example
-projects and all 51 lookbook views are byte-identical.
-
-**A declared band came back as two tiers, and nothing said so.** Declared ranks
-reach ELK as scaffold edges, which are lower bounds: they push a unit down to
-its row and cannot pull one up. With `rows [… identity catalog commerce
-fulfilment …]` and an unlisted `kafka` on `identity ~> kafka ~> catalog`, ELK
-layered `catalog` below `kafka`; the band rendered as two tiers 350px apart, the
-hint was silently not honoured, and the router — classifying by *declared* rank,
-before layout — drew `commerce → fulfilment` as a 12px stub off `commerce`'s
-wall.
-
-Two things were measured before choosing the fix:
-
-- *It is not predictable from the graph.* `rows [a b]` with `a → k → b` comes
-  back intact: cycle breaking floats `k` above both. The split needs several
-  areas on each side of the wedge. A pre-layout rule ("an unlisted unit on a
-  path between band-mates") would refuse diagrams that render correctly, so the
-  check reads the result: group each hand-written band's units by the tier they
-  landed on, and more than one tier is the conflict.
-- *It is new.* Zero of the corpus's 67 views that use `rows` split a band; every
-  hit was a large-system answer. So it could be an error without touching a
-  committed file.
-
-It is an error, not a warning and not a router fallback, because the
-constitution already decided this class: a hint the engine cannot honour is a
-check-time error, never silently dropped. Teaching the router to draw *some*
-wire across tiers would have hidden the broken band and needed a second
-cross-tier router for an edge ELK was never shown.
-
-The fix text writes the `rows` line out, as `mergedRowsFix` does and for the
-same reason (round 17: abstract advice gets guessed at, a concrete line gets
-pasted). It tries the wedge in a band of its own, then in the tier below, then
-the tier above, and offers the first line with no upward edge; a bus that both
-hears from and speaks to the lower tier only fits beside it. When none is clean
-it says so in prose rather than offer a line that would be refused. `wrap`'s
-synthesized bands are exempt — they are the engine's own, and it routes them.
-
-Still open: the check covers a view's `rows`. A container's own `layout { }`
-bands can split the same way inside an auto view (seen once, on a catalog
-area whose indexer sat between two listed leaves), and `cols` is untested.
-
-## Round 27: a mutual pair with no hint tied by accident (2026-09)
-
-Round 27's monorepo answer drew a bus that six areas publish to *and*
-consume from, so `catalog.products -> kafka` and `kafka ~> catalog.indexer`
-lifted to a 2-cycle `catalog ↔ kafka` in the landscape with no `rows`
-anywhere. The sweep caught it three ways — both wires `end … on no boundary`
-and the label sat on the bus — and it reproduced with the view's `preview *`
-removed, so it was the ranking, not the detailed card.
-
-**The rank relaxation never settles on a cycle.** Unhinted ranks are a
-longest-path relaxation (`relaxOver`), run for `members + 2` passes and
-stopped at a fixpoint. A cycle has no fixpoint: every pass pushes both ends
-one further, the loop runs out its budget, and the pair lands wherever the
-count left it — rank 31 and rank 31 here, rank 9 and rank 10 for a smaller
-graph with the same shape. Tied, both edges were classified coplanar, which
-hid both from ELK; that hiding *is* the co-ranking mechanism (approach #5),
-and with no edge left between them ELK layered the two apart. The router
-then drew each wire straight at its own source's height, from one unit's
-x-extent to the other's, into canvas.
-
-Nothing to refuse here: round 26's band-split check refuses a *hint* the
-layouter will not honour, and this view declared none. ELK breaks cycles
-itself before layering (a back edge is reversed; it is never a same-layer
-pair), so the rank estimate now breaks them the same way, ahead of the
-relaxation: edges are taken in declaration order and one that would close a
-cycle with the ones already accepted is left out (`acyclic`). First declared
-wins — `catalog -> kafka` puts the bus below the catalog — and the closing
-edge reaches ELK as the ordinary cross-rank edge it always was, which ELK
-reverses on its own. The same DAG feeds the `natural` estimate that decides
-scaffold edges, so a cycle cannot inflate that side of `nat < want` either,
-and the frame-interior pass gets the filter through the same function. A
-pair the author *pins* to one row is untouched: `rows [a b]` with edges both
-ways is a declared rank, both edges stay coplanar, and the router draws them
-side to side as before.
-
-Corpus impact: one view of 224 moved, the committed round-26 answer to the
-same prompt (`gauntlet/solutions/35-monorepo` landscape) — it carried the
-same cycle and had landed the pair on *different* inflated ranks by the same
-accident. Everything else is byte-identical. Repro and the pinned-pair guard
-in `test/band-split.test.ts`; lookbook `42-mutual-pair` keeps the shape in
-the sweep. The reduction is order-sensitive on purpose: the tie is an
-artefact of the pass count, so a different edge order inflates the ranks
-without tying them, and the test keeps the order that did.
-
-Seen on the way: a *pinned* mutual pair (`rows [a b]`, `a -> b`, `b ~> a`)
-drew both straight wires on one line, ports stacked at the same point on each
-face, arrowheads on top of each other and one pill under the other. That was
-the router's and predated the ranking change — the straight branch put every
-wire at the pair's mid-height on the argument that two straight coplanar
-wires cannot collide because a second *target* on a face is blocked by the
-first, which is true and does not cover a second wire to the *same* target.
-Fixed in the straight branch alone: the wires between one pair take lanes,
-the face divided into n+1 even slots (the spread ELK gives the parallel ports
-it owns — the same node cross-rank gets its two ports at 40 and 80 on a
-120-wide face, and the pinned pair under `direction right` now lands on
-exactly those), measured off the first-declared wire's source so each wire
-stays straight and the group sits centred. A lone wire is slot 1 of 2, which
-is the centre it always had, and the gallery gate held all 225 corpus views
-byte-identical. The go-around branches were already spreading through
-`freePort`, so a pinned pair of *frames* never stacked.
-
-## A table's rows: wires land on the head (2026-11)
-
-A leaf drawing its `fields` is a 64px head with 24px rows under it
-(`fields.md`). Both engines picked a side-wall landing from the node's full
-height, so in a rightward flow, on a same-row wire, and on a `route … to east`,
-the wire met a row — and a wire on a row reads as pointing at that field. The
-first outside tester's left-to-right view had three of three wires on rows.
-
-**What shipped.** ELK is told the head alone: `leafChild` hands it
-`height: 64` and hangs the rows as an invisible `OUTSIDE V_BOTTOM` label, the
-trick a card's sheets and a note's room already use, so every port ELK places
-is on the head and the spacing below still clears the rows. The harvest
-restores the full height and moves south ports — and the wire ends on them,
-keyed by ELK port id — down past the rows. The router goes through one
-`faceOf(rect)` wherever it picks a y on an east/west wall: `freePort`,
-`wantCross`, the straight path's reference rect, the shelf's `wantAlong`, the
-bus's source and drops. `checkLayout` holds it on the wire's own end
-("lands on a field row"), since no corpus view exercised the case before
-`packages/core/examples/fields-wires.squinch`.
-
-**Rows of mixed height.** ELK centres each node in its layer, and a layer is
-as deep as its tallest node plus margins, so a plain leaf beside a table sat
-level with the fields and a same-row wire could not run head to head. In a
-view that draws rows, nodes take `elk.alignment: TOP` across a downward flow
-(a rightward flow already sets the option to `LEFT`). Heads line up.
-
-| Tried | Result |
-|---|---|
-| `elk.portAlignment.east/west: BEGIN`, with `spacing.portPort` / `portsSurrounding` | Ports land 0/10/20 from the corner whatever the spacing says; no way to centre them on a 64px band. |
-| `FIXED_POS` on every port | Same coordinates as the label trick, but ELK loses port ordering and we would compute north and south ports too. |
-| Spilling a fourth wire into the rows | Defeats the rule. A 64px face holds three wires at 16px pitch, exactly as a plain leaf does; a fourth stacks there as it always has. |
-
-**Found on the way, not fixed here:** two labelled wires between one pair of
-row-mates take two shelf lanes under the row, and the second lane's label can
-reach the node below — the layer gap is sized for one. It fails with or
-without this change.
+ELK's layered algorithm is Sugiyama layering, in which a layer is by
+definition a set of nodes with no edges between them. No option puts two
+edge-connected nodes on one rank. Four ways of making it were measured in
+2026-08 and all failed: handing it the same-rank edges (ranks collapse; 9 of
+117 corpus views went portrait); `elk.partitioning` (a partition is a band,
+not a layer); the interactive layerer seeded with coordinates (still one layer
+per node of a chain); a synthetic rightward compound around the row (a child's
+direction is ignored under `INCLUDE_CHILDREN`). So same-rank edges were hidden
+from ELK and drawn afterwards, and every feature since needed a second code
+path. The symptoms that followed — wires stopping at a container's wall,
+bands ELK split in two, a mutual pair tied on one rank by accident, labels on
+crossings — are listed in `layout-engine.md` §1 as the reasons the engine was
+replaced.

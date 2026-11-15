@@ -9,90 +9,74 @@ thing it collided with. Three shipped examples were broken when this was written
 including the golden: a `right-of db` note sat on a context card in
 `microservices`, `storefront` and `landscape` alike.
 
+> **Updated 2026-11 for the weft engine.** How a note's room is *reserved*
+> changed with the engine and the two sections below are rewritten; the
+> ELK-era mechanics (outside labels on the anchor's node, margins shared with
+> row-mates, a second layout run, note layer-nodes) are gone and are in git:
+> `git show c95ab03~1:docs/notes/note-placement.md`. The resolver's policy,
+> the rejected approaches, the leader rule and the residuals did not depend on
+> the engine and are unchanged.
+
 ## Edge-anchored notes are layout citizens (2026-08)
 
-`note on a -> b` rides its own edge into ELK as a second inline label, so the
-gap is sized for the pill *and* the note (`Positioned.noteBoxes`). The two
-things that used to be placed at the same midpoint can no longer fight over it.
+`note on a -> b` shares its edge's label reservation: the planner asks the
+engine for one rect on the wire big enough for the pill *and* the note
+(`reserve` in `layout/plan.ts`), so the two things that used to be placed at
+the same midpoint cannot fight over it. The engine centres that rect on the
+wire; the dresser (`layout.ts`) then keeps the pill in the middle and gives
+the note the room to one side — east of a wire running down, south of one
+running rightward.
 
-Corrected 2026-11: this section used to say the note "no longer goes through
-the resolver at all" and is drawn in the reservation. It never was. An inline
-label is centred *on* its wire, and the resolver's first ladder pass has always
-run for a reserved note — which is what stands it beside the wire, inside the
-gap the label made. That is the behaviour worth having, so it is the stated
-one now: the ladder first, the reservation when no rung is clear. What the
-ladder lacked was wires as obstacles: its standoff is horizontal, so on a
-dog-leg's cross run "16px off the wire" was still on it, and `p99 8ms` in
-lookbook 10 covered the corner.
+The resolver still runs for a reserved note: the room is where the note goes
+if nothing the engine did not place is in it, and the ladder below is what
+stands it beside the wire otherwise. The ladder treats wires as obstacles —
+its standoff is horizontal, so on a dog-leg's cross run "16 px off the wire"
+was still on it, and `p99 8ms` in lookbook 10 once covered the corner.
 
 ## Node-anchored notes reserve their room on the anchor (2026-11)
 
-`right-of`/`left-of`/`above`/`below` are layout citizens too, by a different
-mechanism: the note's room is an invisible **outside label on its anchor's ELK
-node** — the trick a card already uses to reserve its stacked sheets, and the
-only way ELK learns a node's margins (a value set on `elk.margins` is
-discarded). The room is part of the node, so it exists wherever the node is: at
-the root, inside an expanded frame, inside a zone. The compound grows to hold
-it.
+`right-of`/`left-of`/`above`/`below` are layout citizens too. The note's room
+is **clear space beside its anchor's wall** — `Box.room` on the engine's
+contract, as deep as the note plus its 24 px gap and as long as the wall.
+Nothing enters it: no other box, no lane, no label, no wire but the anchor's
+own on that wall, and the container's walls stay outside it. So the room
+exists wherever the node is — at the root, inside an expanded frame, inside a
+zone — and the frame or zone grows to hold it.
 
-What this replaced, and why it had to go:
+Why reservation, and not the resolver alone: frames and zones are walls to
+the resolver, and a container is packed to its padding, so for an anchor
+inside one there was no clear spot to find. Every such note left its
+container — `right-of svc.orders` once landed 110 px up, above the zone and on
+a wire. No corpus diagram had a note inside a container, so nothing failed
+until one was written.
 
-- **The resolver could not serve a framed or zoned anchor at all.** Frames and
-  zones sat in its obstacle list as filled rects, so no spot inside one was ever
-  clear, and ELK packs a compound to its padding, so there was no gap to find
-  even with the rect removed. Every such note left its compound: `right-of
-  svc.orders` landed 110px up, above the zone and on a wire; `below svc.pay`
-  landed to the *right* of the zone. No corpus diagram had a note inside a
-  compound, so nothing failed.
-- **`above`/`below` layer nodes (2026-08) are gone.** A note node with a
-  directed invisible edge only fixed the note's *layer*; within the layer it
-  sorted last by model order, so ELK put `above q` 300px to the right of `q`.
-  Nobody saw it, because the resolver's first ladder pass ran anyway and
-  overrode the reservation — the reserved space inflated the canvas and stayed
-  empty, and the note was drawn by the ladder, which ignored wires. Zoned
-  anchors took this path too (the guard checked `frame`, never zones), which
-  parked the note 4px outside the zone wall.
+What the reservation guarantees, and what it leaves to the resolver:
 
-The mechanics, all in `leafChild` and the resolver's `room` branch:
+- **The room is not part of the box.** The anchor's rectangle, its ports and
+  its balanced place are computed as if the room were not there
+  (`layout-engine.md` §2). A node does not move off the middle of its fan
+  because it has a note.
+- **A face wires also use** (`above` a node fed from the top): the note
+  stands past the last port on that face, known only after layout; the
+  dresser extends the room that far and the resolver places the note 8 px past
+  the last wire.
+- **The room is stored relative to the anchor**, not absolutely.
+- **The resolver checks the room before using it** — a pill, a badge or an
+  earlier note can be in it — and otherwise runs the ladder as it always did.
 
-- **A face no wire uses**: the label is the note plus its 24px gap, centred on
-  the face (`OUTSIDE H_RIGHT V_CENTER` and so on). Centred along a face, the
-  room is capped at the face's own length — a note 15px wider than its node
-  reserved 8px a side, and ELK paid for them by jogging the node's own wire
-  rather than moving the next column (lookbook 10). The overhang is at most 40
-  a side.
-- **A face wires do use** (`above` a node fed from the top): a centred note
-  would sit on them. The label runs from the face's start to one note-width
-  past its end (`V_TOP H_LEFT`, width `node + 8 + note`), and the resolver
-  draws the note 8px past the last port on that face — known only after
-  layout, always inside the room.
-- **Row-mates share the margin.** ELK sizes a layer to its deepest
-  node-plus-margins and clamps each node inside its own, so a node with a note
-  below it sat 26px above its row-mates. The mates get an empty label of the
-  same depth on the same face. Which nodes are mates is ELK's decision, so a
-  first pass reads the layers off the result and `layoutView` runs again with
-  the margins in (`shared`). Only a view with a note along the flow, on a node
-  that shares its layer, pays for the second run.
-- **The room is stored relative to the anchor**, not absolutely: `align` moves
-  nodes after ELK.
-- **The resolver checks the room before using it.** The one thing the
-  reservation cannot see is a coplanar wire — drawn after ELK, straight off the
-  face — and an earlier note. Then the ladder below runs as it always did.
-
-Rejected on the way:
+Rejected on the way (under either engine):
 
 | Approach | Why it lost |
 |---|---|
-| Frames and zones as walls, nothing else | Necessary (it is in the resolver now) but not sufficient: a compound has no spare room inside, so the note still left it. |
-| Mirror the margin on the anchor's opposite face | Keeps the row straight, but spends a second empty band — 51px above a node whose note is below it. Sharing the margin with the row-mates spends nothing the note does not use. |
-| `elk.alignment` on the row | Aligns tops or bottoms, not both: a row with one `above` note and one `below` note cannot be satisfied, and it re-aligns unequal neighbours that had no note. |
-| Full-width room for a centred note | The 8px wire jog above. |
+| Frames and zones as walls, nothing else | Necessary (it is in the resolver) but not sufficient: a container has no spare room inside, so the note still left it. |
+| Mirror the room on the anchor's opposite face | Keeps a row straight, but spends a second empty band — 51 px above a node whose note is below it. |
+| Making the room part of the node | Ports move to the inflated face, and the node is balanced on a centre that is not its own. |
+| A note as a node of its own, tied to its anchor by an invisible edge | It fixed the note's rank and nothing else: within the rank it sorted last, 300 px from its anchor. |
 
-Still on the resolver: corners (canvas chrome), a note anchored to an
+Still on the resolver alone: corners (canvas chrome), a note anchored to an
 **expanded container** (its frame is the anchor; it gets no reservation, so
-next to a zone wall it can still be pushed outside the zone — it used to be
-dropped silently, which was a lookup that only knew nodes), and any note whose
-room turned out to be taken.
+next to a zone wall it can still be pushed outside the zone), and any note
+whose room turned out to be taken.
 
 ## The policy (the resolver, for everything not reserved)
 
@@ -164,7 +148,7 @@ only notes that had actually slid changed.
 **Leader lines are not collision-checked — and will not be.** Decided
 2026-08, favouring less owned code: routing leaders means segment/rect
 intersection plus a detour policy, net-new geometry machinery for a cosmetic
-residual that the layer-note and edge-note conversions have already shrunk
+residual that reserving room for notes has already shrunk
 (their leaders are short verticals now). If a leader ever reads truly wrong,
 reopen with a picture, not a hunch.
 
@@ -179,9 +163,13 @@ The legend and titleblock are drawn *after* notes but positioned from the final
 canvas height, which is circular. The reserved band is computed from the
 pre-note height. A note that then grows the canvas pushes the footer down with
 it, so the two do not collide — but the reservation is an approximation rather
-than an exact rect, and if that ever bites, the fix is to move annotation
-placement into layout so the size fixpoint is explicit (see the plan note in
-`docs/ENGINEERING.md` on `Positioned`).
+than an exact rect, and if that ever bites, the fix is to make the size
+fixpoint explicit in `layout.ts`, where annotation placement already lives.
+
+**Corner notes sit closer to the content than they used to** (2026-11): the
+weft engine's canvases are tighter than ELK's were. Nothing overlaps — the
+resolver still grows the canvas when a corner is taken — but there is less
+air. Recorded as a known weak spot in `layout-engine.md` §8.
 
 ## Diagnosing the next odd note
 

@@ -77,7 +77,7 @@ Numbers that were tuned by eye, not derived:
   `orders-pci`) share no card. There is nothing to fly through, so those get a
   240ms depth cut instead — still in `Stage.tsx`, but as an internal fallback
   rather than a user choice.
-- **Animating the ELK layout between altitudes** (morphing each node from its
+- **Animating the layout between altitudes** (morphing each node from its
   landscape position to its detail position). The two layouts are computed
   independently and share almost no nodes; the correspondence that would make a
   morph legible does not exist.
