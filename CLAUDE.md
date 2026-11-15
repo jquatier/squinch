@@ -448,7 +448,7 @@ share a row with an edge between them; rank hints reach inside zones; `align` an
 still errors (`place a right-of b` + `place b right-of a`, a `place` against its
 band, a second `rows` line). Layout-time warnings that remain, each naming its hint:
 `align`/`cols` on one rank ("cannot share an axis") or across containers ("could not
-be put on `x`'s axis"); `route` sides on a same-rank edge ("sides are ignored") or
+be put on `x`'s axis") — both currently unreliable, see below; `route` sides on a same-rank edge ("sides are ignored") or
 where the wall is taken, the edge is in a `channel` or `wrap` trunk, or an end is a
 container ("could not use the side it asks for here"); a `wrap` that folds nothing;
 a `channel` not fully visible; and "`a` → `b` is not drawn — one end is inside the
@@ -460,10 +460,18 @@ ordering search is a descent with one restart and can stop at a local minimum on
 dense diagrams — some random diagrams cross more than ELK's did; a side-routed wire
 (`route … from/to`) takes the side asked, not the side nearer its destination, and
 `lookbook/cases/26-route-label` crosses wires because of it; a label can be crossed
-by another wire; canvases are tighter than ELK's, so corner notes sit closer to
-content. None breaks a hard rule: no wire through a box it does not end on, no two
-wires along one line outside a trunk, no label on a box or another label — asserted
-on every corpus view, on four diagram sets, and on seeded random Problems.
+canvases are tighter than ELK's, so corner notes sit closer to content. And four
+things are **broken**, each recorded as an `it.fails` so it goes red when fixed:
+`align`/`cols` naming two nodes of one rank — or members of two containers on one
+row — draws them on top of each other where the promised warning should be; a
+`route` side on an edge ending at an expanded container is dropped without the
+warning; and a label can lie across a neighbouring wire where labelled wires run
+16px apart (29 pills in 13 corpus views, counted as `labelOnWire` in the quality
+baseline so it cannot grow). SPEC and the skill state the promise on those points
+and are ahead of the code. What *is* held everywhere — on every corpus view, on
+four diagram sets drawn both ways, and on seeded random Problems: no wire through a
+box it does not end on, every edge drawn, no two wires along one line outside a
+trunk, no label on a box or on another label.
 **ELK was replaced, not wrapped** (commit `c95ab03`; `elkjs` is gone, and no
 dependency took its place). In Sugiyama layering a layer *is* a set of nodes with
 no edges between them, so ELK needed a second hand-written router beside it for

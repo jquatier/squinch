@@ -37,8 +37,11 @@ somewhere odd again, start here rather than re-deriving.
   label.** The corpus invariant sweep asserts it. The sheets are not part of
   the card's rectangle; the planner states them as the box's `bleed`, so the
   label on a wire leaving a card's bottom clears them.
-- **A label may be crossed by another wire.** Known, and rare; see the weak
-  spots in `layout-engine.md` §8.
+- **A label can still lie across a neighbouring wire** — known, and not
+  rare: where labelled wires run side by side 16 px apart, each pill is wider
+  than the spacing (29 pills in 13 corpus views at the swap;
+  `42-mutual-pair` is the clearest). It is recorded as a failing test and
+  counted in the quality baseline so it cannot grow; `layout-engine.md` §8.
 
 ## Flow badges (2026-08)
 

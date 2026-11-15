@@ -301,7 +301,7 @@ middle rank if even. It reserves room only in the container where the wire's
 two ends part company, and a labelled channel is deeper only as far as the
 label and its tracks do not already fit. So a pill is on its own wire by
 construction, and the "label on a crossing" seam of the two-router design has
-no place to occur. (A label can still be crossed by *another* wire; §8.)
+no place to occur. (A label can still lie across a *neighbouring* wire; §8.)
 
 **Containers, directions, titles** (`lay.ts`, `frame.ts`). Sheets are laid
 out innermost first, because a container's size is its inside's. `frame.ts` is
@@ -560,9 +560,58 @@ Beyond the engine's own suites, the product gates still apply: golden SVG
 byte-compare, the corpus invariant sweep, `render --check` on every example
 project, the lookbook snapshot, and the bench budgets.
 
-## 8. Known weak spots
+## 8. Known breaks and weak spots
 
-Written down at acceptance. None is a hard-rule violation.
+### Breaks — wrong, and recorded as failing tests
+
+Found while the tests were rewritten for this engine, after the swap. Each is
+an `it.fails` in the suite named, with the reproduction in its comment, so the
+test goes red the day the break is fixed and the `.fails` has to be deleted.
+Until then the documents that state the promise (SPEC §6, the skill) are ahead
+of the code on these four points.
+
+- **`align` or `cols` naming two nodes of one rank draws them on top of each
+  other, with no diagnostic.** The promise is the warning "… sit on the same
+  rank, so they cannot share an axis" with the nodes left where they were. The
+  planner hands the engine the set as `aligned` whatever ranks its members
+  land in, the engine honours it literally, and `layout.ts` only warns when
+  the centres *differ* — which they then do not. This breaks hard rule 1.
+  (`test/weft/language.test.ts`.) The fix belongs in `plan.ts`: only members
+  in different ranks of one container may form an `aligned` set.
+- **The same across containers**: `align` naming members of two containers
+  that share a row draws the two frames on top of each other, where the
+  promise is "could not be put on `x`'s axis". (`language.test.ts`.)
+- **A `route` side on an edge that ends at an expanded container is dropped
+  in silence.** The "could not use the side it asks for here" warning names
+  this case in its fix text and is not raised for it: the engine ignores a
+  side asked of a container without listing the wire in `unhonoured`.
+  (`language.test.ts`.)
+- **A label can lie across a neighbouring wire.** A label has room along its
+  own wire, but wires running side by side 16 px apart each carry a pill far
+  wider than that. 29 pills in 13 corpus views at the swap;
+  `lookbook/cases/42-mutual-pair` (`landscape`) is the clearest — three
+  labelled wires into one bus. Never over a box or another label.
+  (`test/invariants.test.ts`; counted as `labelOnWire` in the quality
+  baseline so it cannot grow.) The fix is in how much room a labelled lane or
+  track claims across the flow (`sheet.ts`, `lay.ts`), and it will cost
+  width.
+
+**One more failing test is a disagreement, not a bug, and needs the owner's
+decision.** `test/view.test.ts`, "a side branch hangs off the row; the
+flow-through path stays straight" (from gauntlet round 23,
+`30-platform-pipeline`): a pipeline stage with a successor and a dead-end
+lookup. The ELK-era fix kept the stage that goes on somewhere on the row and
+hung the lookup below it. That is exactly the "dead end pulls less" rule the
+requirements withdrew (§5.5), so weft centres the stage between the two —
+`publish` 48 px above the row, `catalog` 48 px below — as the requirements
+now say it should. The test's comment records it as a break. Either the test
+is rewritten to state balance first, or the withdrawn rule comes back in some
+narrower form (a rightward pipeline is where it reads worst); it should not be
+settled by quietly changing one or the other.
+
+### Weak spots — legal, but not as good as they could be
+
+Written down at acceptance.
 
 - **Dense diagrams can stop at a local minimum.** The ordering search is a
   descent from the declared order with one restart. On some of the 80 random
@@ -588,7 +637,6 @@ Written down at acceptance. None is a hard-rule violation.
   them. Only across a gutter is a finished container's side port moved to
   come level with a wire (`slide` in `lay.ts` — the one message from outside
   to inside).
-- **A label can be crossed by another wire** (never by a box or a label).
 - **Titles in a rightward container** lie along the wall wires enter by, so a
   wire may run under one; the renderer draws the title on a halo.
 - **A wire ending at a container's side wall** takes the free place nearest
@@ -598,6 +646,7 @@ Written down at acceptance. None is a hard-rule violation.
 
 ### The most promising next steps
 
+0. **Fix the four breaks above.** The first three are small and local.
 1. **A wider ordering search for dense diagrams**: more starts, or a
    perturbation step when the descent stalls. The count is exact and
    incremental and a restart is cheap (80 random views take 1.4 s in all), so

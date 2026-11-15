@@ -26,6 +26,7 @@ themselves.
 | "`x` is placed `right-of y`, but `rows` puts it somewhere else" error | The two hints disagree. Restating a band is fine — `rows [db bus]` alongside `place bus right-of db` is accepted, since both say the same thing — so fix whichever one is wrong, or drop `x` from the band |
 | "`x` is listed in `rows` but is placed relative to `y`, which is not" error | Put `y` in a band too, or take `x` out of its band. A banded node can only be placed against another banded one |
 | "cols `[a b c]` — all 3 sit on the same rank, so they cannot share an axis" warning | You wanted them side by side; that is `rows [a b c]`. `rows` is a **rank** — things drawn beside each other. `cols`/`align` stack a node onto another's axis *across* ranks. The confusion is worst with `direction right`, where a rank looks like a column on screen — the words describe the model, not the picture |
+| Two nodes are drawn on top of each other | An `align` or a `cols` column names two nodes that sit on the same row (or members of two systems side by side). Remove it — side by side is `rows [a b]` |
 | "`x` appears in `rows` twice" error — likewise "appears in `cols` twice" | A node can hold only one rank position; remove one of the two occurrences |
 | A wire jogs slightly instead of running straight | `align a b` — b takes a's axis exactly (a is the anchor) |
 | "align `[a b]` — `b` could not be put on `a`'s axis" warning — likewise for `cols` | They sit in different systems or zones, or another hint holds them apart. Align the containers themselves, or drop one of the hints |
