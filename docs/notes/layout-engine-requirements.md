@@ -1,66 +1,46 @@
-# Requirements for a layout engine, written from scratch
+# Requirements for the layout engine
 
-> **Status.** This brief was met by `weft/`, which is now the only engine
-> here. The engines it names as *before* (`grid/`, `loom/`, `braid/`) were
-> removed afterwards, and the shared files it points at under `grid/` and
-> `../contract.ts` now live in `weft/`. The paths below are left as they
-> were when the brief was written; the rules and priorities still stand.
-
-This is the brief for a **ground-up rewrite** of Squinch's spike layout
-engine. Two engines already exist in this directory (`grid/`, the first, and
-`loom/`, a partial rebuild of it). They are the *before*. You are writing the
-*after*: a new engine, designed and written from nothing but this document,
-the contract, and the tests.
+> **Status (2026-11): standing requirements.** This began as the brief for a
+> ground-up rewrite of the layout engine, handed to an author who was not
+> allowed to read the engines that came before. The engine written from it,
+> `weft` (`packages/core/src/layout/weft/`), is the product's layout engine.
+> The rules and priorities below are what that engine is held to, and what any
+> change to it — or any future rewrite — must keep. The code's comments cite
+> this file as "REQUIREMENTS §n"; the section numbers are stable.
+>
+> Why each rule exists, and what was tried instead:
+> [`layout-engine.md`](layout-engine.md). The history round by round:
+> [`layout-engine-spike.md`](layout-engine-spike.md).
 
 Everything below was learned the hard way, from several hundred diagrams and
 a long run of "that one looks wrong — why?". Treat each rule as a
 requirement, not a suggestion; where two pull against each other the text
 says which wins.
 
-## 0. Ground rules for the rewrite
+## 0. Where things are
 
-- **Write it cold.** Do not open, copy from, or port the engine
-  implementation files of the earlier engines. That is every non-test `.ts`
-  file in `grid/`, `loom/` and `braid/` **except** the ones listed under "What you may
-  read". Their designs grew by accretion; the point of this exercise is a
-  design that did not. If you find yourself wanting to see "how the old one
-  did it", work it out from the requirement instead.
-- **What you may read** (the contract, the Squinch side, the yardsticks, and
-  tests as executable requirements):
-  - `contract.ts` — `Problem`, `Solution` and friends. Your engine's whole
-    interface.
-  - `grid/problem.ts` — how a Squinch view becomes a `Problem` (so you know
-    what real Problems look like: zones and frames as containers, hints as
-    `pins` / `held` / `aligned` / `columns`, `wrap` folds, bundles, titles).
-  - `grid/layout.ts` — `layoutViewGrid(model, view, font, solver)`: runs any
-    `solve` on a view and dresses the result as `Positioned`.
-  - `grid/metrics.ts`, `grid/score.ts` — how a layout is measured and scored.
-  - `grid/asks.ts`, `grid/random.ts`, `grid/trial/*.squinch`,
-    `grid/round2/*.squinch` — test helpers and the diagram sets.
-  - Every `*.test.ts` in `loom/` and `grid/` (not `braid/`'s) — as statements of required
-    behaviour. (Unit tests of the old engines' *internal* modules — rank,
-    spread, tracks, sketch, tree — tell you what those authors needed from
-    their own parts; you owe nothing to that decomposition.)
-  - `packages/core/test/invariants.ts` (`checkLayout`),
-    `packages/core/test/helpers/corpus.ts`, `packages/core/src/layout/layout.ts`
-    for the `Positioned` type and the ELK engine's entry point `layoutView`.
-  - `docs/SPEC.md`, `docs/DESIGN.md`, `docs/ENGINEERING.md`, `CLAUDE.md` —
-    the product's own constitution.
-  - `docs/notes/layout-engine-spike.md` — the history. Read it for *why* a
-    rule exists if a rule here puzzles you; it describes the old designs in
-    detail, which you are not following.
-- **Where it goes.** A new directory, `packages/core/spike/<name>/` — pick a
-  short name. It exports `solve(problem: Problem): Solution` from
-  `engine.ts`, importing its public types from `../contract.js`.
-- **Do not read anything in `braid/`** — not its README, not its tests.
-  It is an earlier rewrite from an earlier version of this document; you
-  meet it only as a black box (`import { solve } from "../braid/engine.js"`)
-  in your before/after test and render tool. Likewise do not read
-  `loom/README.md`.
-- **Do not modify** `grid/`, `loom/`, `braid/`, `contract.ts`, anything under
-  `packages/core/src` or `packages/core/test`, or any other package. If the
-  Squinch side needs to change for a requirement to be met, say so in your
-  report instead.
+- `packages/core/src/layout/weft/contract.ts` — `Problem`, `Solution` and
+  friends. The engine's whole interface.
+- `packages/core/src/layout/weft/engine.ts` — `solve(problem): Solution`.
+- `packages/core/src/layout/plan.ts` — how a Squinch view becomes a `Problem`
+  (zones and frames as containers, hints as `pins` / `held` / `aligned` /
+  `columns`, `wrap` folds, bundles, titles, note room, route sides).
+- `packages/core/src/layout/layout.ts` — `layoutView`: plan, solve, dress the
+  `Solution` as `Positioned`, annotate.
+- `packages/core/test/weft/` — the engine's suites, the yardsticks
+  (`metrics.ts`, `score.ts`), the Problem-level audit of §3 (`legal.ts`) and
+  the diagram sets (`trial/`, `round2/`, the seeded random generators).
+- `packages/core/test/invariants.ts` — `checkLayout`, the hard rules on a
+  `Positioned`.
+
+**If the engine is ever rewritten again, write it cold.** The two rewrites
+that improved on what came before (`braid`, then `weft`) were written from
+this document, the contract and the tests, by an author who had not read the
+previous engine. The one "rebuild" done with the old code open (`loom`)
+carried most of the old stages over. Hand a new author this file, the
+contract, `plan.ts`, and the test suites as executable requirements — not the
+engine.
+
 
 ## 1. What the engine is for
 
@@ -103,13 +83,27 @@ per wire.
   included); `ranks` (each box's rank in its own container); for every drawn
   wire an orthogonal polyline from the `from` box's wall to the `to` box's
   wall, and its label rectangle if it has one; `skipped` — ids of wires not
-  drawn (one end contains the other, or an end is not in the picture).
+  drawn (one end contains the other, or an end is not in the picture);
+  `unhonoured` — wires drawn, but not by the side they asked for.
+- Two opt-in extensions, added after the engine was accepted (the contract's
+  own comments are the full statement):
+  - `Box.room` — clear space outside a wall of a leaf, by screen side, as
+    deep as stated and as long as the wall. Nothing enters it but the box's
+    own wires on that wall, and the container's walls stay outside it. It is
+    not part of the box: the box's rectangle, ports and balanced place are
+    its own.
+  - `Wire.fromSide` / `toSide` — the wall a wire is asked to leave or enter a
+    leaf by. Only for a wire whose ends are in different ranks or containers.
+    A side that is the natural one changes nothing; any other is drawn the
+    long way round, at least 16 px straight out of the wall first. Where that
+    cannot be drawn the end keeps its natural side and the wire is listed in
+    `unhonoured`.
 - Treat the `Problem` as read-only. `solve` must be a pure function of it.
 
 ## 3. Hard rules — a layout that breaks one is wrong
 
-These are checked by `checkLayout` (with every wire held to the strict
-"coplanar" rule, as the existing test suites do) and by the suites in §7.
+These are checked by `checkLayout` on every `Positioned`, by the
+Problem-level audit in `test/weft/legal.ts`, and by the suites in §7.
 
 1. No two boxes of one container overlap; a box never leaves its container;
    containers are padded as stated; a container is at least `minW` wide.
@@ -131,8 +125,8 @@ These are checked by `checkLayout` (with every wire held to the strict
    above source), a wire between two boxes of one rank, a wire between
    boxes in different containers at any depth, a wire into or out of a
    container held in someone else's rank: all are legal inputs and all must
-   produce legal output. The old production engine (ELK) refuses or
-   mis-draws several of these; this engine never may.
+   produce legal output. (The engine this replaced, ELK, refused or
+   mis-drew several of these.)
 8. The author's statements hold: a pinned rank is that rank; `held` boxes
    keep their relative order in their rank; `aligned` boxes share a centre
    line to the pixel; `columns` do not interleave.
@@ -140,7 +134,8 @@ These are checked by `checkLayout` (with every wire held to the strict
 
 ## 4. What "a good layout" means, in priority order
 
-The score in `grid/score.ts` writes this down; lower penalty is better.
+The score in `packages/core/test/weft/score.ts` writes this down; lower
+penalty is better.
 
 1. Legal (§3).
 2. **Few crossings.** Two wires crossing is the worst legal flaw.
@@ -352,9 +347,9 @@ asymmetry (a title lies along the top wall in both).
 - Comments say *why*, in the house style of the repo (look at any file under
   `packages/core/src`): prose, not tags.
 - TypeScript strict; `npx tsc --noEmit -p tsconfig.json` in `packages/core`
-  must pass (the `spike` directory is already included).
-- A `README.md` in the engine's directory: the design, the stages, the
-  rules it keeps and where, how to extend it.
+  must pass.
+- A `README.md` in the engine's directory: the stages, the rules it keeps
+  and where, how to extend it, how to run the tests.
 - **Extendable**: adding an ordering move, a tidiness rule, or a new kind of
   wire (e.g. a route-side hint) should each be a local change. Say in the
   README where each would go.
@@ -363,82 +358,58 @@ asymmetry (a title lies along the top wall in both).
 
 ## 7. Acceptance
 
-Create these in your engine's directory. The suites in `loom/` are the
-model — copy each and point it at your engine (they use a small
-`layout.ts` wrapper that passes a solver to `layoutViewGrid`; write your
-own). All of them must pass.
+The suites live in `packages/core/test/weft/`; the engine directory's README
+lists them by file and says how to run each. By role, all of them must pass:
 
-| Suite (in `loom/`) | What it holds the engine to |
+| Suite | What it holds the engine to |
 |---|---|
-| `engine.test.ts` — the `describe("solve")` and `describe("ordering the whole picture")` blocks | each tidiness and ordering rule, on a handful of boxes. Port these as they are; they are the behavioural spec. Skip the blocks that unit-test the old engines' internal modules, and write your own unit tests for yours. |
-| `language.test.ts` | hints this engine honours and ELK cannot |
-| `zones.test.ts` | zones and expanded containers arranged as asked |
-| `wrap-containers.test.ts` | `wrap` inside containers |
-| `direction-right.test.ts` | every view turned sideways stays legal and reads rightward |
-| `trial.test.ts` | 20 hand-written + 80 random diagrams: zero violations |
-| `compare.test.ts` | every corpus view: zero violations |
-| `score.test.ts` | the verdict against ELK |
-| `before-after.test.ts` | the verdict against the earlier spike engines — extend it to print your engine against `grid`, `loom` **and** `braid` |
+| Engine tests on whole small Problems | each tidiness and ordering rule of §5, on a handful of boxes — the behavioural spec |
+| Unit tests per module | each module on its own, a few lines of input, no view, model or font |
+| Problem-level audit | every hard rule of §3 on seeded random Problems, with and without `room` and asked sides; purity |
+| Language suites | hints the language promises: upward edges, kept bands, row-mates inside containers, zones and expanded containers arranged as asked, `wrap` inside containers |
+| Direction | every view turned sideways stays legal and reads rightward |
+| Acceptance over the diagram sets | corpus, trial, round 2 and random: zero violations, and no two wires outside one bundle drawn along one line |
+| Quality baseline | the totals over the sets do not get worse without the baseline being re-recorded on purpose |
 
-Targets. `braid` is the previous rewrite: best on crossings, bends and
-speed, but it bought bends with balance (boxes off the middle of their
-fans, small jogs) and its pictures were judged worse for it. The engine
-wanted now is **the best of all columns**: `braid`'s crossings and speed
-with `loom`'s balance or better. Report yours beside them.
+Where a test contradicts §4 or §5.5 as written, this document wins: change
+the test and say so in the commit.
 
-Where a ported test contradicts §4 or §5.5 as now written (a test written
-for the withdrawn dead-end rule, say), this document wins: change the test
-and list it in your report.
+What the engines scored when each was last measured, for whoever writes the
+next one. `grid`, `loom` and `braid` were the three before `weft` and are
+deleted (git history, under `packages/core/spike/`).
 
-| | ELK | `grid` | `loom` | `braid` |
-|---|---|---|---|---|
-| Violations, any set | many | 0 | 0 | 0 |
-| Score vs ELK, 384 views: better / level / worse | — | 183 / 190 / 11 | 189 / 182 / 13 | 233 / 145 / 6 |
-| Total penalty vs ELK | — | −35% | −37% | −46% |
-| Corpus (259 views): crossings | 73 | 25 | 26 | 25 |
-| Corpus: bends | 1,174 | 1,041 | 1,057 | 701 |
-| Corpus: jogs under 16 px | 12 | 1 | 1 | 5 |
-| Corpus: almost-aligned pairs | 9 | 1 | 2 | 0 |
-| Trial + random (115 views): crossings | 607 | 580 | 440 | 361 |
-| Round 2 (35 views): crossings | — | 4 | 1 | 1 |
-| Random (80 views): crossings | — | 441 | 365 | 288 |
-| Corpus: lopsided boxes (**must not exceed `loom`**) | — | — | 130 | 145 |
-| Random: lopsided boxes | — | 616 | 626 | 589 |
-| Random: jogs under 16 px | — | 41 | 32 | 59 |
-| Time, 259 corpus views | 3.5 s | 0.95 s | 0.77 s | 0.50 s |
-| Time, 80 random views | — | 174 s | 50 s | 1.8 s |
+| | ELK | `grid` | `loom` | `braid` | `weft` |
+|---|---|---|---|---|---|
+| Violations, any set | many | 0 | 0 | 0 | 0 |
+| Score vs ELK, 384 views: better / level / worse | — | 183 / 190 / 11 | 189 / 182 / 13 | 233 / 145 / 6 | 238 / 143 / 3 |
+| Total penalty vs ELK | — | −35% | −37% | −46% | −49% |
+| Corpus (259 views): crossings | 73 | 25 | 26 | 25 | 22 |
+| Corpus: bends | 1,174 | 1,041 | 1,057 | 701 | 707 |
+| Corpus: jogs under 16 px | 12 | 1 | 1 | 5 | 1 |
+| Corpus: almost-aligned pairs | 9 | 1 | 2 | 0 | 0 |
+| Corpus: lopsided boxes | — | 134 | 130 | 145 | 104 |
+| Trial + random (115 views): crossings | 607 | 523 | 440 | 361 | 345 |
+| Round 2 (35 views): crossings | — | 4 | 1 | 1 | 2 |
+| Random (80 views): crossings | — | 441 | 365 | 288 | 281 |
+| Random: lopsided boxes | — | 616 | 626 | 589 | 580 |
+| Random: jogs under 16 px | — | 41 | 32 | 59 | 10 |
+| Time, 80 random views | — | 180 s | 51 s | 1.9 s | 1.4 s |
 
-Balance first: lopsided and small jogs at `loom`'s level or better is the
-requirement, then crossings at `braid`'s level, then bends. More bends than
-`braid` is expected and fine. One that is illegal anywhere, or slower than
-`grid`, is not.
+(After a fix made once weft was accepted its corpus stands at 705 bends and
+no jog under 16 px.) Timings are one machine's and only compare within a
+column's own era; ELK against weft on the 259 corpus views, warmed up, was
+2.5 s against 0.25 s.
 
-Known hard cases worth looking at by eye (render with the tools the `loom`
-directory has — `render-trio.ts`, `dump.ts` — or your own):
-`grid/round2/10-nested-zones.squinch` (`side`), `grid/round2/14-tables.squinch`
-(`schema`), `grid/trial/17-nested.squinch` (`deep`),
-`grid/trial/04-pubsub.squinch` (`flow`), `gauntlet/solutions/35-monorepo.squinch`,
-`gauntlet/solutions/20-multicloud-migration.squinch` (`landscape`), and the
-random diagrams with seeds 9, 21, 45 (`randomDiagram(n)` in `grid/random.ts`).
+**The target for any successor is the best of all columns, balance first**:
+lopsided boxes and small jogs at `weft`'s level or better, then crossings,
+then bends. `braid` is the cautionary column — best on bends when it was
+written, and rejected, because it bought them with balance. One that is
+illegal anywhere is not a candidate.
 
-## 8. What to hand back
-
-1. The engine, its tests and its README, in its own directory.
-2. A report (your final message), honest about what is and is not done:
-   - the design in a paragraph, and how it differs from "order and lay out
-     each container in turn, then try again";
-   - the table in §7 with a column for your engine;
-   - before/after against `grid`, `loom` and `braid`: views better / same / worse per
-     set, and the views where yours is furthest behind, with the reason if
-     you know it;
-   - every requirement in §3–§6 you did **not** meet, and every place you
-     found this document wrong, unclear, or contradicting a test;
-   - anything you had to read from the excluded files, and why.
-
-Commit as you reach working milestones, on the current branch, with exactly:
-
-```
-git -c user.name="JQ" -c user.email="jquatier@gmail.com" -c commit.gpgsign=false commit -m "<message>"
-```
-
-No co-author or other trailers; do not push; do not open a pull request.
+Known hard cases worth looking at by eye:
+`packages/core/test/weft/round2/10-nested-zones.squinch` (`side`),
+`round2/14-tables.squinch` (`schema`), `trial/17-nested.squinch` (`deep`),
+`trial/04-pubsub.squinch` (`flow`), `gauntlet/solutions/35-monorepo.squinch`,
+`gauntlet/solutions/20-multicloud-migration.squinch` (`landscape`),
+`lookbook/cases/26-route-label.squinch`, and the random diagrams with seeds
+9, 21 and 45.
