@@ -180,32 +180,27 @@ view v { include *
     expect(r.diagnostics.map((d) => [d.severity, d.message])).toEqual([["warning", "`wrap 3` has no effect — no row here is wider than 3"]]);
   });
 
-  // KNOWN BREAK, recorded rather than hidden. Two nodes on one rank cannot
-  // share an axis, and the promise is a warning that says so with the nodes
-  // left where they were. What happens: the axis is honoured literally — the
-  // nodes are drawn on top of each other, with no diagnostic. The same for
+  // Two nodes on one rank cannot share an axis: the hint is left out for the
+  // second, both stay side by side, and a warning says so. (Honoured
+  // literally, the axis draws one node on top of the other.) The same for
   // `cols [b c]`, under `direction right`, with three nodes, and with no
-  // edges at all (`b = box "B"; c = box "C"; view v { layout { align b c } }`).
-  // Delete the `.fails` when the warning is back and nothing overlaps.
-  it.fails("`align` between two nodes of one rank warns, and nothing overlaps", async () => {
+  // edges at all.
+  it("`align` between two nodes of one rank warns, and nothing overlaps", async () => {
     const r = await lay(`${fan}view v { include *
   layout { align b c } }`);
     expect(r.illegal).toEqual([]);
     expect(r.diagnostics.map((d) => d.message)).toEqual([expect.stringContaining("all 2 sit on the same rank, so they cannot share an axis")]);
   });
 
-  it.fails("`cols` putting two nodes of one rank in one column warns, and nothing overlaps", async () => {
+  it("`cols` putting two nodes of one rank in one column warns, and nothing overlaps", async () => {
     const r = await lay(`${fan}view v { include *
   layout { cols [b c] } }`);
     expect(r.illegal).toEqual([]);
     expect(r.diagnostics.map((d) => d.message)).toEqual([expect.stringContaining("all 2 sit on the same rank, so they cannot share an axis")]);
   });
 
-  // KNOWN BREAK, the same one across containers. `align` naming members of
-  // two containers that share a row is promised a warning ("could not be put
-  // on `s.x`'s axis"). What happens: the two frames are drawn on top of each
-  // other, every member overlapping its counterpart, with no diagnostic.
-  it.fails("`align` across two containers on one row warns, and nothing overlaps", async () => {
+  // …and across two containers that share a row: the frames stay apart.
+  it("`align` across two containers on one row warns, and nothing overlaps", async () => {
     const r = await lay(`system s "S" { x = box "X"; y = box "Y"; x -> y }
 system t "T" { p = box "P"; q = box "Q"; p -> q }
 s.y -> t.p

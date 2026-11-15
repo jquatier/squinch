@@ -44,11 +44,8 @@ describe("a label beside a labelled wire between two row-mates", () => {
     // and it is on a run of its own wire rather than adrift
     expect(segs(views).some((s) => hit(pill, s)), "pill left its own wire").toBe(true);
 
-    // Not yet true of every label here: `creates order` lies across the
-    // `views orders` wire, which runs 24px beside its own. That is the known
-    // break `invariants.test.ts` records for the whole corpus; this pins it
-    // down so that fixing it shows up here too.
-    expect(labelsOnWires(positioned)).toEqual(["label of e6 sits on the wire e13"]);
+    // …and the same of every label in the view
+    expect(labelsOnWires(positioned)).toEqual([]);
     expect(checkLayout(positioned)).toEqual([]);
   });
 });

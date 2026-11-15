@@ -62,14 +62,14 @@ describe("geometric invariants over the whole corpus", () => {
 });
 
 describe("labels over the whole corpus", () => {
-  // KNOWN BREAK, recorded rather than hidden. A label is given room along its
-  // own wire, but wires that run side by side 16px apart each carry a pill far
-  // wider than that, so the pill lies across its neighbours
-  // (`lookbook/cases/42-mutual-pair.squinch#landscape` is the clearest: three
-  // labelled wires into one bus). 29 such pills in 13 corpus views when this
-  // was written. `it.fails` turns green-to-red the day the layout keeps them
-  // apart: delete the `.fails` then, and move the rule into `checkLayout`.
-  it.fails("no label sits on another edge's wire", async () => {
+  // A label is crossed by nothing but its own wire. Wires that run side by
+  // side each carry a pill far wider than the 16px between them, so the layout
+  // moves a label along its wire to where it is clear, or stands the wires
+  // further apart (`lookbook/cases/42-mutual-pair.squinch#landscape`: three
+  // labelled wires into one bus). Held over the corpus here rather than in
+  // `checkLayout`, because a few views turned sideways still have a crossed
+  // label — counted, so it cannot grow, as `labelOnWire` in the quality gate.
+  it("no label sits on another edge's wire", async () => {
     const violations: string[] = [];
     for (const f of files) {
       const built = buildProject([{ name: f.name, src: f.src }]);
