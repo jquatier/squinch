@@ -156,8 +156,9 @@ first"). Do not reverse it on the strength of a bend count.
 
 ## 4. How weft works
 
-`solve` runs four stages, each once, each for the whole picture. Nothing later
-sends anything back to an earlier stage.
+`solve` runs four stages, each for the whole picture. Ranking, weaving and
+ordering run once and nothing sends anything back to them; the last stage runs
+once, or up to twice more when a label has to be given room (below).
 
 ```
 grow     tree.ts     the tree of containers; each wire cut where its ends part
@@ -263,8 +264,11 @@ gives way:
 For a box with wires on both sides, the busier side decides. Every wire to the
 next rank counts equally, whether or not its far end leads anywhere (an
 earlier rule let a dead end pull less; it is withdrawn). Two containers joined
-by several wires stand in a column. `aligned` sets are one variable; `columns`
-are constraints between bands. Rows are solved one at a time, down the sheet
+by several wires stand in a column. `aligned` sets are one variable — taking
+one box of a rank, since two boxes of one rank stand side by side and cannot
+share a centre line — and `columns` are constraints between bands; where such
+statements contradict each other the rows are pushed apart to their gaps, so
+nothing overlaps, and `Solution.unaligned` says which boxes gave way. Rows are solved one at a time, down the sheet
 and back up, four times; each row solve is exact. Everything then goes to
 **one 8-pixel grid**: every gap is a multiple of 8, positions are rounded
 once, a container's width is a whole number of steps, so two boxes anywhere in
@@ -301,7 +305,23 @@ middle rank if even. It reserves room only in the container where the wire's
 two ends part company, and a labelled channel is deeper only as far as the
 label and its tracks do not already fit. So a pill is on its own wire by
 construction, and the "label on a crossing" seam of the two-router design has
-no place to occur. (A label can still lie across a *neighbouring* wire; §8.)
+no place to occur.
+
+**A label is crossed by nothing but its own wire**, in two steps. First, once
+a sheet's wires are drawn, a label that another wire, box, room or label
+touches *moves along its own wire* to the nearest clear place (`clearLabels`,
+the end of `lay.ts`); no box or wire moves, and a label that is clear where it
+stands is not touched. Second, a label with no clear place anywhere on its
+wire is *given room* (`giveRoom` in `sheet.ts`, asked for by `engine.ts`): the
+wires either side of the stub it stands on are kept half its width away — at a
+leaf's ports (`settleWide` in `ports.ts`), beside a lane (`sep` in
+`place.ts`), on through a container's wall, and between row-mates of a
+rightward sheet (`gutter.ts`) — and the sheets are laid out again. Laid out,
+not ordered again, and at most twice more; a picture whose labels are all
+clear is laid out once. This is the one place a drawing feeds back, and it is
+bounded and explicit for the reason the requirements give: whether a label
+has a clear place is only known once the wires are drawn. A label on a lane at
+the west edge can no longer poke off the canvas.
 
 **Containers, directions, titles** (`lay.ts`, `frame.ts`). Sheets are laid
 out innermost first, because a container's size is its inside's. `frame.ts` is
@@ -370,8 +390,9 @@ crossings; the cold rewrites, built around the idea from the start, took the
 
 **Decide each thing once; no "best of N layouts".** `grid` ended at sixteen
 full layouts per picture with three signals passed back between them, and
-took 180 s on the 80 random diagrams. `weft` lays each sheet out once and
-takes 1.4 s. The requirement is in §6 of the requirements document ("a design,
+took 180 s on the 80 random diagrams. `weft` orders once and lays each sheet
+out once — again, at most twice, only when a label needs room — and takes
+1.4 s. The requirement is in §6 of the requirements document ("a design,
 not a pile"); the iteration that remains is listed, bounded, in the README.
 
 **Declaration order is worth a tie, not a crossing.** Under ELK the root kept
@@ -402,6 +423,20 @@ taller.
 **A straight wire may pass the end of a title.** Keeping every wire clear of
 titles left a 4 px step at a titled container's wall (`17-nested#deep`); the
 renderer already draws a crossed title on a halo.
+
+**A label moves before anything moves for it; room is given only to a label
+that has no clear place.** Claiming room across the flow for every label up
+front was tried first and rejected: it cost 8 more lopsided boxes across the
+sets, to protect labels most of which were never crossed. Moving the label
+along its own wire costs the picture nothing, and only the few with nowhere to
+go pay in bends (28 across all sets).
+
+**An aligned set takes one box of a rank.** Two boxes of one rank stand side
+by side; putting them on one centre line can only overlap them. The first
+given keeps the line, the rest are placed normally and the author is told.
+The alternative — refusing the hint in the planner — would have left the
+engine able to overlap boxes on a contradictory `Problem`, which the audit now
+generates on purpose.
 
 **Labels reserve room only where the wire's ends part.** Reserving in every
 container the wire passed padded those containers and hid the hint that orders
@@ -438,6 +473,7 @@ the engine is ever rewritten again.
 | ELK's convention for a parent of two (line up with the first child) | Fewer bends by count | Lopsided; the same decision as balance first. |
 | For a chain with a wire running back: line boxes up on centres and slide ports; or place boxes before passing wires | Both fixed that case | In `grid` the first moved bend totals the wrong way and the second cost 9% of area on dense graphs. (Centres-then-ports is what weft does, designed in from the start.) |
 | Making the tracks follow the ordering model more closely | Not needed | Measured first: the drawn count already equalled the model's. The gap was the search, not the model. |
+| Room across the flow claimed for every label up front | Lopsided boxes +8 across the sets | Most labels are never crossed; see "a label moves before anything moves for it". |
 | Shrinking unlabelled gaps the way ELK's spacer scheme did | — | Taste, decided for even spacing: every gap is the density's spacing. |
 
 The ELK-era experiments (hub-in-the-middle fans, a return wire instead of a
@@ -478,7 +514,9 @@ and its `Solution` to every hard rule directly, including the two only the
 contract can state (a box's `room` is entered by nothing but its own wires; a
 wire asked to use a side uses it or is listed); and that audit run over
 seeded random Problems (`audit.test.ts`, `random-problem.ts`) with rooms,
-asked sides, both directions, pins, bundles and labels. A failure names its
+asked sides, both directions, pins, bundles, labels, and `aligned`/`columns`
+sets including contradictory ones — 950 Problems, also checking that no label
+is crossed by another wire and none leaves the canvas. A failure names its
 seed. The sweep over the diagram sets adds two rules `checkLayout` cannot
 state alone: every edge the view has is drawn, and no two wires outside one
 bundle run along the same line.
@@ -512,8 +550,8 @@ that falls is printed with a reminder to re-record. `UPDATE_QUALITY=1`
 re-records — in the same commit as the change that earned the difference, with
 the reason in the message. A set whose view count changed has to be
 re-recorded too, because totals over different views do not compare. The
-baseline also carries `labelOnWire`: labels another wire crosses, the one
-thing in §8 that is counted so it cannot grow unnoticed. Its numbers are the
+baseline also carries `labelOnWire`: labels another wire crosses — 0 nearly
+everywhere since the fix in §8, and counted so it cannot grow unnoticed. Its numbers are the
 product path's (auto views, notes, route sides) and so differ a little from
 the acceptance figures quoted in this note, which were measured before those
 were wired in.
@@ -560,41 +598,37 @@ Beyond the engine's own suites, the product gates still apply: golden SVG
 byte-compare, the corpus invariant sweep, `render --check` on every example
 project, the lookbook snapshot, and the bench budgets.
 
-## 8. Known breaks and weak spots
+## 8. Fixed after acceptance, and what is still weak
 
-### Breaks — wrong, and recorded as failing tests
+### Four breaks found after the swap, and how each was fixed
 
-Found while the tests were rewritten for this engine, after the swap. Each is
-an `it.fails` in the suite named, with the reproduction in its comment, so the
-test goes red the day the break is fixed and the `.fails` has to be deleted.
-Until then the documents that state the promise (SPEC §6, the skill) are ahead
-of the code on these four points.
+Found while the tests were rewritten for this engine, each first recorded as a
+failing test. All four are fixed; core's suite has no `it.fails` left. They are
+kept here because each fix added a rule to the engine.
 
-- **`align` or `cols` naming two nodes of one rank draws them on top of each
-  other, with no diagnostic.** The promise is the warning "… sit on the same
-  rank, so they cannot share an axis" with the nodes left where they were. The
-  planner hands the engine the set as `aligned` whatever ranks its members
-  land in, the engine honours it literally, and `layout.ts` only warns when
-  the centres *differ* — which they then do not. This breaks hard rule 1.
-  (`test/weft/language.test.ts`.) The fix belongs in `plan.ts`: only members
-  in different ranks of one container may form an `aligned` set.
-- **The same across containers**: `align` naming members of two containers
-  that share a row draws the two frames on top of each other, where the
-  promise is "could not be put on `x`'s axis". (`language.test.ts`.)
-- **A `route` side on an edge that ends at an expanded container is dropped
-  in silence.** The "could not use the side it asks for here" warning names
-  this case in its fix text and is not raised for it: the engine ignores a
-  side asked of a container without listing the wire in `unhonoured`.
-  (`language.test.ts`.)
-- **A label can lie across a neighbouring wire.** A label has room along its
-  own wire, but wires running side by side 16 px apart each carry a pill far
-  wider than that. 29 pills in 13 corpus views at the swap;
-  `lookbook/cases/42-mutual-pair` (`landscape`) is the clearest — three
-  labelled wires into one bus. Never over a box or another label.
-  (`test/invariants.test.ts`; counted as `labelOnWire` in the quality
-  baseline so it cannot grow.) The fix is in how much room a labelled lane or
-  track claims across the flow (`sheet.ts`, `lay.ts`), and it will cost
-  width.
+- **`align` or `cols` naming two nodes of one rank drew them on top of each
+  other, with no diagnostic.** The engine honoured the `aligned` set
+  literally. Now **an aligned set takes one box of a rank** — the first as
+  given; the others are left out of the set and placed like any box, side by
+  side. Where statements contradict each other (a set against `columns`,
+  against a held row, against another set) every row is pushed apart to its
+  gaps after the solve, so no contradiction can overlap boxes.
+  `Solution.unaligned` lists the boxes left out or pushed off their line, and
+  the existing warning fires: "… all N sit on the same rank, so they cannot
+  share an axis". (`2fad8cc`; `sheet.rep` and the last block of `place.ts`.)
+- **The same across containers**: `align` naming members of two containers on
+  one row overlapped the frames. Same mechanism: the frames stay apart and
+  the warning is "… could not be put on `x`'s axis".
+- **A `route` side on an edge ending at an expanded container was dropped in
+  silence.** It now warns "could not use the side it asks for here"
+  (`layout.ts`): a side is a leaf's wall.
+- **A label could lie across a neighbouring wire** — 29 pills in 13 corpus
+  views at the swap, because wires 16 px apart each carried a pill far wider
+  than that. Fixed in two steps, the cheap one first (`7af1ee7`; §4, "Labels
+  as row items"). `labelOnWire` in the quality baseline is now 0 on every set
+  as written, and on every set turned rightward except trial (3). The price,
+  across all sets: 28 more bends, lopsided +3 on trial and +1 on round 2, one
+  more short jog on random, canvas area ×1.0008.
 
 **Decided, not to be reopened without new evidence: a stage that branches
 stands between its two successors, even in a pipeline.** Gauntlet round 23
@@ -611,8 +645,13 @@ between its two successors, on the row's line", now states it.
 
 ### Weak spots — legal, but not as good as they could be
 
-Written down at acceptance.
+Written down at acceptance, less what has been fixed since.
 
+- **A label can still be crossed where room cannot be given**: wires between
+  two row-mates that are both containers, whose ports are fixed by their
+  insides (the 3 labels in the trial set turned rightward), and about one
+  random Problem in five hundred in the audit's generator. The quality
+  baseline counts these as `labelOnWire`, so the number cannot grow.
 - **Dense diagrams can stop at a local minimum.** The ordering search is a
   descent from the declared order with one restart. On some of the 80 random
   diagrams — several expanded groups, wired freely — it draws more crossings
@@ -646,7 +685,6 @@ Written down at acceptance.
 
 ### The most promising next steps
 
-0. **Fix the four breaks above.** The first three are small and local.
 1. **A wider ordering search for dense diagrams**: more starts, or a
    perturbation step when the descent stalls. The count is exact and
    incremental and a restart is cheap (80 random views take 1.4 s in all), so

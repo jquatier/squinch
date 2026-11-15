@@ -42,8 +42,9 @@ what turns onto tracks.
 
 That differs from "order and lay out each container in turn, then try again"
 in three ways: there is no "in turn" for ordering (one state, one cost, the
-whole tree); there is no "try again" (no layout is drawn twice, nothing
-measured in a drawing is fed back into ordering); and geometry is the last
+whole tree); there is no "try again" (nothing measured in a drawing is fed
+back into ordering, and the one time sheets are laid out again — to give a
+crowded label room, see Iteration — the order stands); and geometry is the last
 thing decided, not a thing the ordering has to guess.
 
 ## Stages

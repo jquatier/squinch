@@ -568,9 +568,9 @@ view steps { include *
   you a full grid, and a cell is empty when nobody is placed in it.
 - **`cols` and `align` work across bands, never within one.** Six collectors
   that all feed one normaliser are siblings on a single rank — they are already
-  drawn side by side, and no two of them can share an axis, so never write
-  `cols [c1 … c6]` or `align c1 c2` for them — it can draw them on top of
-  each other. If you want them beside each other, that is `rows [c1 … c6]`. The
+  drawn side by side, and no two of them can share an axis, so `cols [c1 … c6]`
+  warns and leaves them where they were. If you want them beside each other,
+  that is `rows [c1 … c6]`. The
   trap is worst under `direction right`, where a rank *looks* like a column on
   screen: the words name the model, not the picture.
 - **A system's interior is arranged by the system itself.** Give the system

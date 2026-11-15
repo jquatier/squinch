@@ -16,8 +16,9 @@ workflow lifts the matching section verbatim into the GitHub Release notes.
 - `align` and `cols` hold exactly, inside containers too. `route … from/to` is honoured on edges that span rows; where a side cannot be used `check` says "could not use the side it asks for here". New warning: "`a` → `b` is not drawn — one end is inside the other".
 - A note beside a node keeps its place inside that node's container or zone; a note on an edge stands beside its wire.
 - Layout is about ten times faster (the same 259 views: 2.5 s → 0.25 s), and core's install is smaller by ELK.
-- Known rough edges: a few very dense diagrams draw more crossings than before; `route … from/to` does not yet pick the side nearer the edge's destination, and on an edge that ends at an expanded container it is ignored without a warning; where labelled wires run close together a label can lie across its neighbour; canvases are a little tighter, so a note pinned to a corner sits closer to the content.
-- Known bug: `align` or `cols` naming two nodes that sit on the same row draws them on top of each other instead of warning. Side by side is `rows`; `align` and `cols` are for nodes in different rows.
+- An edge label is crossed by no wire but its own: it moves along its wire to a clear place, and where there is none its neighbours make room.
+- `align` or `cols` naming two nodes that sit on the same row leaves them side by side and warns that they "cannot share an axis"; side by side is `rows`. No combination of hints can draw two nodes on top of each other.
+- Known rough edges: a few very dense diagrams draw more crossings than before; `route … from/to` does not yet pick the side nearer the edge's destination; canvases are a little tighter, so a note pinned to a corner sits closer to the content.
 - Re-run `squinch skill` to teach agents: the layout section and the cookbook drop the guidance that only worked around the old engine. `docs/notes/layout-engine.md` records why the engine was replaced and how the new one works.
 
 ## 0.19.0 — 2026-11-11

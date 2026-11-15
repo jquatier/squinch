@@ -85,7 +85,10 @@ per wire.
   wire an orthogonal polyline from the `from` box's wall to the `to` box's
   wall, and its label rectangle if it has one; `skipped` — ids of wires not
   drawn (one end contains the other, or an end is not in the picture);
-  `unhonoured` — wires drawn, but not by the side they asked for.
+  `unhonoured` — wires drawn, but not by the side they asked for;
+  `unaligned` — boxes left out of an `aligned` set or pushed off their line
+  (two boxes of one rank cannot share a centre line: a set takes one box of
+  a rank, the first given).
 - Two opt-in extensions, added after the engine was accepted (the contract's
   own comments are the full statement):
   - `Box.room` — clear space outside a wall of a leaf, by screen side, as
@@ -130,7 +133,9 @@ Problem-level audit in `test/weft/legal.ts`, and by the suites in §7.
    mis-drew several of these.)
 8. The author's statements hold: a pinned rank is that rank; `held` boxes
    keep their relative order in their rank; `aligned` boxes share a centre
-   line to the pixel; `columns` do not interleave.
+   line to the pixel; `columns` do not interleave. Where statements
+   contradict each other, rule 1 wins — no boxes overlap — and what gave way
+   is listed in `unaligned`.
 9. Determinism and purity (§1).
 
 ## 4. What "a good layout" means, in priority order
@@ -302,6 +307,11 @@ in `layout-engine.md` §7.
   stated size because some other gap has a label. Spacing is even.
 - Several labelled wires between two neighbours on one rank each carry
   their label on their own stub, in columns if they would collide.
+- A label is crossed by no wire but its own, and stays on the canvas. It
+  moves along its own wire to a clear place first; only a label with none is
+  given room, by keeping the wires beside its stub half its width away.
+  (Added after acceptance. Not yet held between two row-mate containers,
+  whose ports are fixed by their insides.)
 - A bundle is one trunk: one port on the shared box, one lane through each
   rank they all pass, one track where they part. Each wire of a bundle
   carries its label on its **own last stub**, not on the trunk.

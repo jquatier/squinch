@@ -426,8 +426,8 @@ wire, a port per wire through a wall) are fixed before anything has a position; 
 order of every row in the whole tree is searched as one state against **one exact
 count of the crossings that will be drawn**, a container's wall counted on both
 sides; and only then is geometry laid, innermost first, once. Nothing later sends
-anything back to an earlier stage, and no layout is drawn twice — the two engines
-that did that were the ones replaced.
+anything back to ranking or ordering, and no layout is drawn to be compared with
+another — the two engines that did that were the ones replaced.
 Decisions that are not to be relitigated without reading the note, because each
 was made on evidence recorded there: **balance and symmetry outrank straightness —
 a box is never moved off the middle of its fan to straighten a wire** (the owner
@@ -444,11 +444,13 @@ in a view or in a container's own block — is drawn, and no "hint conflict … 
 upward" diagnostic exists at build or layout time; a band is kept whole whatever
 unlisted node lies between its members; two members of one expanded container may
 share a row with an edge between them; rank hints reach inside zones; `align` and
-`cols` are solved as constraints, inside containers too. Hint *contradictions* are
+`cols` are solved as constraints, inside containers too (an aligned set takes one
+node of a rank — two row-mates cannot share an axis, so the rest stay side by side
+and the check says so; no contradiction among hints can overlap boxes). Hint *contradictions* are
 still errors (`place a right-of b` + `place b right-of a`, a `place` against its
 band, a second `rows` line). Layout-time warnings that remain, each naming its hint:
 `align`/`cols` on one rank ("cannot share an axis") or across containers ("could not
-be put on `x`'s axis") — both currently unreliable, see below; `route` sides on a same-rank edge ("sides are ignored") or
+be put on `x`'s axis"); `route` sides on a same-rank edge ("sides are ignored") or
 where the wall is taken, the edge is in a `channel` or `wrap` trunk, or an end is a
 container ("could not use the side it asks for here"); a `wrap` that folds nothing;
 a `channel` not fully visible; and "`a` → `b` is not drawn — one end is inside the
@@ -459,19 +461,24 @@ a node is balanced as if it had no note) or beside the wire.
 ordering search is a descent with one restart and can stop at a local minimum on
 dense diagrams — some random diagrams cross more than ELK's did; a side-routed wire
 (`route … from/to`) takes the side asked, not the side nearer its destination, and
-`lookbook/cases/26-route-label` crosses wires because of it; a label can be crossed
-canvases are tighter than ELK's, so corner notes sit closer to content. And four
-things are **broken**, each recorded as an `it.fails` so it goes red when fixed:
-`align`/`cols` naming two nodes of one rank — or members of two containers on one
-row — draws them on top of each other where the promised warning should be; a
-`route` side on an edge ending at an expanded container is dropped without the
-warning; and a label can lie across a neighbouring wire where labelled wires run
-16px apart (29 pills in 13 corpus views, counted as `labelOnWire` in the quality
-baseline so it cannot grow). SPEC and the skill state the promise on those points
-and are ahead of the code. What *is* held everywhere — on every corpus view, on
-four diagram sets drawn both ways, and on seeded random Problems: no wire through a
-box it does not end on, every edge drawn, no two wires along one line outside a
-trunk, no label on a box or on another label.
+`lookbook/cases/26-route-label` crosses wires because of it; canvases are tighter
+than ELK's, so corner notes sit closer to content; and a label can still be crossed
+by another wire where room cannot be given — wires between two row-mate containers,
+whose ports are fixed by their insides (3 labels in one set turned rightward, about
+one random Problem in five hundred; counted as `labelOnWire` in the quality baseline
+so it cannot grow). What *is* held everywhere — on every corpus view, on four
+diagram sets drawn both ways, and on seeded random Problems: no boxes overlap
+whatever the hints say, no wire through a box it does not end on, every edge drawn,
+no two wires along one line outside a trunk, no label on a box or on another label,
+and in the corpus no label on another edge's wire. A label gets there in two steps:
+it moves along its own wire to a clear place, and only one with none is given room,
+the sheets then laid out again (never re-ordered), at most twice — the single place
+a drawing feeds back. Claiming room for every label up front was tried first and
+rejected (lopsided +8). Four breaks found after the swap — `align`/`cols` on one
+rank overlapping, the same across containers, a `route` side at a container dropped
+silently, labels across neighbouring wires — are fixed, and the note's §8 says how.
+Decided and not to be reopened without new evidence: a stage that branches stands
+between its two successors, in a pipeline too.
 **ELK was replaced, not wrapped** (commit `c95ab03`; `elkjs` is gone, and no
 dependency took its place). In Sugiyama layering a layer *is* a set of nodes with
 no edges between them, so ELK needed a second hand-written router beside it for
