@@ -596,18 +596,18 @@ of the code on these four points.
   track claims across the flow (`sheet.ts`, `lay.ts`), and it will cost
   width.
 
-**One more failing test is a disagreement, not a bug, and needs the owner's
-decision.** `test/view.test.ts`, "a side branch hangs off the row; the
-flow-through path stays straight" (from gauntlet round 23,
-`30-platform-pipeline`): a pipeline stage with a successor and a dead-end
-lookup. The ELK-era fix kept the stage that goes on somewhere on the row and
-hung the lookup below it. That is exactly the "dead end pulls less" rule the
-requirements withdrew (§5.5), so weft centres the stage between the two —
-`publish` 48 px above the row, `catalog` 48 px below — as the requirements
-now say it should. The test's comment records it as a break. Either the test
-is rewritten to state balance first, or the withdrawn rule comes back in some
-narrower form (a rightward pipeline is where it reads worst); it should not be
-settled by quietly changing one or the other.
+**Decided, not to be reopened without new evidence: a stage that branches
+stands between its two successors, even in a pipeline.** Gauntlet round 23
+(`30-platform-pipeline`) had a rightward pipeline stage with a successor and
+a dead-end lookup, and the ELK-era fix kept the stage that goes on somewhere
+on the row and hung the lookup below it. That is the "dead end pulls less"
+rule the requirements withdrew (§5.5). weft centres the stage between the
+two — `publish` 48 px above the row, `catalog` 48 px below. The owner looked
+at both pictures and chose balance: the exception produced the lopsided
+layouts the balance rule exists to stop, and under ELK it only ever held in
+one of the two views that draw that pipeline (inside its frame ELK drew the
+same symmetric fan). `test/view.test.ts`, "a stage that branches stands
+between its two successors, on the row's line", now states it.
 
 ### Weak spots — legal, but not as good as they could be
 

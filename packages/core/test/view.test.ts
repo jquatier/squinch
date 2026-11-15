@@ -1216,14 +1216,13 @@ pipe.publish -> sink
     expect(p.ports.filter((pt) => pt.edge === raw.id).map((pt) => pt.node).sort()).toEqual(["pipe.ingest", "src"]);
   });
 
-  // KNOWN BREAK, recorded rather than hidden. Gauntlet round 23,
-  // 30-platform-pipeline: a stage centred between its two successors steps a
-  // pipeline with one dead-end lookup off its row, and the fix then was to
-  // keep the stage that goes on somewhere on the row and hang the dead end
-  // below it. The layout centres a box over what it fans out to again:
-  // `publish` stands 48px above the row and `catalog` 48px below it. Delete
-  // the `.fails` when the flow-through path is straight again.
-  it.fails("a side branch hangs off the row; the flow-through path stays straight", async () => {
+  // A stage with two ways on stands between them, whichever leads further:
+  // balance outranks a straight main line (docs/notes/layout-engine.md). An
+  // earlier rule kept the stage that "goes on somewhere" on the row and hung
+  // the dead-end lookup below it — a dead end pulling less — and it was
+  // withdrawn: it made the lopsided pictures the balance rule exists to stop,
+  // and it only ever held in one of the two views that draw this pipeline.
+  it("a stage that branches stands between its two successors, on the row's line", async () => {
     const src = `system pipe "Pipeline" {
   extract = box "Extract"; validate = box "Validate"; enrich = box "Enrich"; publish = box "Publish"
   catalog = box "Catalog"
@@ -1237,13 +1236,17 @@ pipe.publish -> sink
 view v { expand pipe\n layout { rows [src] [pipe] [sink] } }
 `;
     const p = await lay(src, "v");
-    const row = ["extract", "validate", "enrich", "publish"].map((n) => node(p, `pipe.${n}`));
-    for (let i = 0; i + 1 < row.length; i++) {
-      const a = row[i], b = row[i + 1];
-      expect(a.y < b.y + b.h && b.y < a.y + a.h, `${a.label} shares a row with ${b.label}`).toBe(true);
-      expect(a.x + a.w).toBeLessThanOrEqual(b.x);
-    }
-    expect(node(p, "pipe.catalog").y).toBeGreaterThan(node(p, "pipe.enrich").y + node(p, "pipe.enrich").h - 1);
+    const mid = (n: { y: number; h: number }) => n.y + n.h / 2;
+    const [extract, validate, enrich, publish, catalog] = ["extract", "validate", "enrich", "publish", "catalog"].map((n) => node(p, `pipe.${n}`));
+    // the run up to the branch is one straight line, left to right
+    expect(mid(extract)).toBe(mid(validate));
+    expect(mid(validate)).toBe(mid(enrich));
+    expect(extract.x + extract.w).toBeLessThanOrEqual(validate.x);
+    expect(validate.x + validate.w).toBeLessThanOrEqual(enrich.x);
+    // and the two branches stand evenly either side of it, in one column
+    expect(publish.x).toBe(catalog.x);
+    expect(mid(enrich) - mid(publish)).toBe(mid(catalog) - mid(enrich));
+    expect(mid(publish)).toBeLessThan(mid(enrich));
   });
 
   it("a declared direction equal to the enclosing one is a no-op, byte for byte", async () => {
