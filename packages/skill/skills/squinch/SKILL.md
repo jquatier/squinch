@@ -231,9 +231,9 @@ Rules that matter:
   behind it and a zoom that goes nowhere; `check` warns that the system is
   empty. Write `partner = box "Partner System" external` instead.
 - A `layout { }` block goes inside a `view` (arranging the view) **or inside a
-  `system`** (arranging that system's own interior — `rows`, `cols`, `place`
-  and `direction`, written by short name; see Layout hints). Everything else
-  — `channel`, `align`, `wrap`, `density`, `highlight`, `note`, `expand` —
+  `system`** (arranging that system's own interior — `rows`, `cols`, `place`,
+  `direction` and `wrap`, written by short name; see Layout hints). Everything
+  else — `channel`, `align`, `density`, `highlight`, `note`, `expand` —
   belongs to a view alone.
 
 Tables — a database is one node until the reader asks what is *in* it. Then
@@ -499,10 +499,9 @@ system needs none of this: keep it flat.
   everyone shares — a gateway, an event bus — stays top-level.
 - **One caller with many targets is the shape that runs off the page**: a UI
   or gateway calling every service draws them all in one row. Grouping the
-  targets is the fix. `wrap N` folds a fan-out only when the targets do not
-  call each other, and a real system's usually do. Never answer it by listing
-  every target in one `rows` band — that forces exactly the strip you are
-  trying to avoid. Leave the targets unhinted and let the engine rank them.
+  targets is the fix; `wrap N` folds the row when they really are peers.
+  Never answer it by listing every target in one `rows` band — that forces
+  exactly the strip you are trying to avoid.
 - **Hand over altitudes, not one page.** Declare the landscape first, then a
   view for each area worth opening; the interactive HTML lets the reader
   click down. `view full { expand * }` is for when they ask for everything at
@@ -521,10 +520,10 @@ don't add them yourself; if one appears that you don't want, `context off`.
 
 ## Layout hints (in a `layout { }` block — a view's, or a system's own)
 
-Hint conflicts are the single biggest source of failed `check` runs in this
-project's history — almost always a `rows` that pins every node, colliding with
-one feedback edge. The engine ranks a clean pipeline correctly on its own;
-every hint you add is a constraint you have to keep true.
+The engine lays a clean diagram out well on its own — ranks follow the arrows,
+fans are centred, wires do not cross boxes. Add a hint when the render shows
+something you want changed, not before: every hint is a constraint the engine
+then keeps, even where its own choice would have crossed fewer wires.
 
 ```squinch
 view shop {
@@ -540,37 +539,29 @@ view shop {
                                       // (the edges stay declared in the model;
                                       //  this only merges how they are drawn)
     route api -> db from south to north   // which side an edge exits/enters —
-                                          // only for edges that SPAN rows; a
-                                          // same-rank edge is routed for you
+                                          // only for edges that SPAN rows
     route api -> db "write" from south    // label disambiguates parallels
   }
 }
 view steps { include *
-  layout { wrap 5 } }                     // a long chain or a wide fan-out, folded
+  layout { wrap 5 } }                     // no row wider than 5: wide ones fold
 ```
 
 - `rows` is the workhorse: one bracket group per horizontal band, listed top to
   bottom; order inside a bracket is left to right. Unlisted nodes place
-  themselves — only list a node when you care where it lands. Do **not** use
-  it to fold a long chain or a wide fan-out into several bands by hand: the
-  edges that skip a band detour around it and the fold reads worse than the
-  wide version. That is what `wrap N` is for — it folds the chain as a
-  serpentine, or the fan-out onto a bus, and routes the fold cleanly.
-- **`wrap N` puts N in each band, and N sets the shape** — for a chain and a
-  fan-out alike. For a slide, roughly 16:9, use N ≈ √(nodes being folded),
-  rounded up: a 14-step chain is `wrap 4`, and so are twelve workers under
-  one dispatcher. Half per band (`wrap 7` on fourteen) is a ribbon, not a
-  slide. Leave `direction right` out of a wide fold: a band is a rank, and
-  under `direction right` ranks are columns, so `wrap 7` becomes two tall
-  columns of seven.
-- **Every edge must point down your bands** — check each band against your
-  arrows before you write it. The bands are a claim about direction, and a node
-  pointing back *up* the list is a check error, not a nudge. This bites on
-  monitoring, feedback and retry paths: `mon -> api` under
-  `rows [api] [svc] [db] [mon]` is refused. Two fixes, both fine: put the
-  observer in the **same** band as what it watches (`rows [api mon] [svc] [db]`
-  — equal ranks are legal and route side to side), or leave it out of `rows`
-  and let the engine rank it.
+  themselves — only list a node when you care where it lands. Two nodes in
+  one band may have an edge between them, and an edge may point back *up* the
+  bands (a monitor, a retry path): both are drawn. Do not fold a wide row into
+  several bands by hand; that is `wrap`.
+- **`wrap N` means no row holds more than N.** It folds every wider row — in
+  the view and inside every system the view opens — a chain as a serpentine,
+  a fan-out into bands under its source with one trunk feeding them. A
+  system may carry its own (`layout { wrap 4 }`), which follows it into every
+  view. Never beside `rows`/`cols` in one block. For a slide, roughly 16:9,
+  use N ≈ √(nodes being folded), rounded up: a 14-step chain is `wrap 4`, and
+  so are twelve workers under one dispatcher. Leave `direction right` out of
+  a wide fold: a band is a rank, and under `direction right` ranks are
+  columns, so `wrap 7` becomes two tall columns of seven.
 - `cols` is its transpose: one bracket group per vertical band, left to right.
   Members of a column share an exact axis, so a service and its database line
   up. `rows` and `cols` compose — they pin different axes, so using both gives
@@ -578,11 +569,11 @@ view steps { include *
 - **`cols` and `align` work across bands, never within one.** Six collectors
   that all feed one normaliser are siblings on a single rank — they are already
   drawn side by side, and no two of them can share an axis, so `cols [c1 … c6]`
-  is refused. If you want them beside each other, that is `rows [c1 … c6]`. The
+  warns. If you want them beside each other, that is `rows [c1 … c6]`. The
   trap is worst under `direction right`, where a rank *looks* like a column on
   screen: the words name the model, not the picture.
 - **A system's interior is arranged by the system itself.** Give the system
-  its own `layout { }` with `rows`/`cols`/`place` in short names, and that
+  its own `layout { }` with `rows`/`cols`/`place`/`wrap` in short names, and that
   arrangement follows it into every view that opens it — expanded beside its
   siblings, or standing inside it in the system's own view. Direct members
   only: a nested container gets its own block. The view then only ranks
@@ -615,26 +606,18 @@ view detail {
   A view may still name interior paths (`rows [gw] [checkout.api]`); when its
   hints relate two or more of a system's members they replace that system's
   block in that view, whole — bands are never merged. Naming one member only
-  ranks the whole system from outside. Two members of one system asked to
-  share a row with an edge between them is a warning: same-rank edges route
-  between systems, not inside one, so put one below the other or collapse the
-  system in that view.
-- **Rank hints don't reach inside a zone.** A zone lays out as a single block —
-  `rows`/`cols`/`place` order zones *relative to each other*, and the engine
-  arranges the members within. To rank a zone, name **one** member of it (or
-  the zone's own id): `rows [gw] [prod_vpc]` puts the whole boundary below the
-  gateway. Listing every member does nothing but earn a warning. If the ranking
-  matters more than the boundary, drop the zone. Two zones *may* share a band
-  with edges running between them — `rows [batch orders]` on two namespaces
-  holds, and the edge routes through the gutter like one between expanded
-  containers.
+  ranks the whole system from outside.
+- **A zone is arranged like a system.** To place the whole boundary, name the
+  zone's own id or one member: `rows [gw] [prod_vpc]` puts it below the
+  gateway, `rows [batch orders]` sets two namespaces side by side. Hints
+  naming two or more of its members arrange them inside it.
 - A node may be in a band **and** carry a `place`, so long as the two agree —
   `rows [db bus]` with `place bus right-of db` is fine; a `place` that puts the
   node somewhere the band does not is refused.
 - `place x right-of y` is the whole side-car idiom (stream processors, caches,
   DLQs). Do **not** add `route y ~> x from east to west` to it: `place` puts
-  the two on the same row, and same-rank edges route side to side
-  automatically — a `from`/`to` on one is ignored, and says so.
+  the two on the same row, where the edge already runs straight across — a
+  `from`/`to` on a same-row edge is ignored, and says so.
 
 The cookbook in `references/cookbook.md` is the next step when a diagnostic is
 not self-explanatory or the render shows a shape you cannot name the hint for —
