@@ -1,12 +1,11 @@
 // `wrap` inside containers: a container that is too wide folds its own
-// members, wherever it is opened. Under ELK a view holding an expanded
-// container or a zone cannot be folded at all ("wrap has no effect").
-//   npx vitest run test/weft/wrap-containers.test.ts --disable-console-intercept
+// members, wherever it is opened — expanded in a view, as a zone, nested in
+// another folded container, flowing rightward, or as the root of a view
+// scoped to it.
 import { it, expect } from "vitest";
 import { buildProject } from "../../src/index.js";
 import { layoutView, type Positioned } from "../../src/layout/layout.js";
 import { checkLayout } from "../invariants.js";
-import { layoutViewWeft } from "../../src/layout/weft-view.js";
 
 const boxes = (ids: string[], indent = "  ") => ids.map((id) => `${indent}${id} = box "${id}"`).join("\n");
 const range = (p: string, n: number) => Array.from({ length: n }, (_, i) => `${p}${i + 1}`);
@@ -67,31 +66,19 @@ function widestRow(p: Positioned, container: string, built: ReturnType<typeof bu
   return Math.max(0, ...rows.values());
 }
 
-it("wrap folds containers: no row holds more than was asked", async () => {
-  const bad: string[] = [];
-  let elkFolded = 0, gridFolded = 0, asks = 0;
-  console.log(`${"case".padEnd(70)} ELK canvas   weft canvas  widest row ELK/weft/asked`);
-  for (const c of cases) {
+for (const c of cases)
+  it(`${c.name}: no row holds more than was asked`, async () => {
     const built = buildProject([{ name: c.name, src: c.src }]);
-    const errs = built.diagnostics.filter((d) => d.severity === "error");
-    if (errs.length) throw new Error(`${c.name}: ${errs[0].message}`);
+    expect(built.diagnostics.filter((d) => d.severity === "error")).toEqual([]);
     const v = built.model.views.find((x) => x.name === "v")!;
-    const elk = await layoutView(built.model, v);
-    const grid = layoutViewWeft(built.model, v).positioned;
-    const strict = { ...grid, edges: grid.edges.map((e) => ({ ...e, coplanar: true as const })) };
-    const trunks = new Set(grid.edges.filter((e) => e.via === "bus").map((e) => e.to));
-    bad.push(...checkLayout(strict, { channelTargets: trunks, zoneMembers: new Map(built.model.zones.map((z) => [z.id, z.members])) }).map((b) => `${c.name}: ${b}`));
-    const rows = Object.entries(c.folds).map(([container, n]) => {
-      const right = !!c.right?.includes(container);
-      const e = widestRow(elk.positioned, container, built, right), g = widestRow(grid, container, built, right);
-      asks++; if (e <= n) elkFolded++; if (g <= n) gridFolded++;
-      if (g > n) bad.push(`${c.name}: ${container || "the view"} has a row of ${g}, asked for ${n}`);
-      return `${e}/${g}/${n}`;
-    });
-    const warn = elk.diagnostics.filter((d) => /wrap/.test(d.message)).length;
-    console.log(`${c.name.padEnd(70)} ${`${elk.positioned.width}×${elk.positioned.height}`.padEnd(12)} ${`${grid.width}×${grid.height}`.padEnd(12)} ${rows.join("  ")}${warn ? "   ELK: wrap has no effect" : ""}`);
-  }
-  console.log(`\nfolded as asked: ELK ${elkFolded}/${asks} · weft ${gridFolded}/${asks}`);
-  console.log(bad.join("\n"));
-  expect(bad).toEqual([]);
-}, 300_000);
+    const { positioned, diagnostics } = await layoutView(built.model, v);
+    // a fold that happened is never also reported as having no effect
+    expect(diagnostics).toEqual([]);
+    expect(checkLayout(positioned, { zoneMembers: new Map(built.model.zones.map((z) => [z.id, z.members])) })).toEqual([]);
+    for (const [container, n] of Object.entries(c.folds)) {
+      const widest = widestRow(positioned, container, built, !!c.right?.includes(container));
+      expect(widest, `${container || "the view"} has a row of ${widest}, asked for ${n}`).toBeLessThanOrEqual(n);
+      // and it did fold to that width rather than into a single file
+      expect(widest, `${container || "the view"} was asked for rows of ${n}`).toBeGreaterThan(1);
+    }
+  });

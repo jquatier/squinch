@@ -1,5 +1,5 @@
-// What "a better layout" means, as numbers — the same function over either
-// engine's `Positioned`, so the comparison cannot favour one by construction.
+// What "a better layout" means, as numbers — a function of the `Positioned`
+// alone, so the same picture always measures the same.
 //
 // The invariant sweep says whether a layout is *legal*. These say how good a
 // legal one is, in the terms DESIGN §9 reviews by eye: how big, how much wire,

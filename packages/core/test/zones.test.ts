@@ -4,6 +4,7 @@ import { describe, it, expect } from "vitest";
 import { buildModel, buildProject, render, themes } from "../src/index.js";
 import { layoutView } from "../src/layout/layout.js";
 import { validateSVG } from "../src/render/validate.js";
+import { checkLayout } from "./invariants.js";
 
 const BASE = `pack aws
 
@@ -200,8 +201,8 @@ view landscape { include * }
 
   it("chips slide along the border away from crossing edges, and carry a halo", async () => {
     // adversarial: src feeds the zone's leftmost member, so the edge drops
-    // through the default chip spot (top-left). ELK won't avoid labels
-    // (spiked) — placeZoneChips must slide the chip right.
+    // through the default chip spot (top-left). Wires are not routed round
+    // chips, so the chip has to slide right, off the wire.
     const src = `pack aws
 src = aws/lambda "Source"
 a = aws/lambda "Alpha"
@@ -328,23 +329,25 @@ a -> b
 b -> c
 `;
 
-  it("says so when a rank hint is inert because one zone swallows it", async () => {
-    // unitOf() ranks by outermost zone, so members of one zone collapse to a
-    // single unit: rows between them are discarded AND the "runs upward" check
-    // compares that unit against itself. The render came out byte-identical to
-    // having no layout block, with check exiting 0 and reporting nothing.
+  it("rank hints between members of one zone are honoured", async () => {
+    // A zone is laid out like any container, so `rows` naming its members
+    // arranges them inside it. (They used to collapse to one unit: the hint
+    // was discarded with a warning, and before that, silently.)
     const src = `${SRC}zone z "Z" account { contains a, b, c }
 view v {
   include *
   layout { rows [c] [b] [a] }
 }
 `;
-    const r = await render(src, { view: "v", theme: "light" });
-    expect(r.ok).toBe(true);
-    const w = r.diagnostics.find((d) => d.message.includes("have no effect"));
-    expect(w?.severity).toBe("warning");
-    expect(w?.message).toContain("`z`");
-    expect(w?.fix).toContain("between* zones");
+    const built = buildModel(src);
+    const { positioned: p, diagnostics } = await layoutView(built.model, built.model.views.find((v) => v.name === "v")!);
+    expect(diagnostics).toEqual([]);
+    expect(checkLayout(p, { zoneMembers: new Map([["z", ["a", "b", "c"]]]) })).toEqual([]);
+    const at = (path: string) => p.nodes.find((n) => n.path === path)!;
+    expect(at("c").y + at("c").h).toBeLessThanOrEqual(at("b").y);
+    expect(at("b").y + at("b").h).toBeLessThanOrEqual(at("a").y);
+    // both edges are still there, running up the rows the author stacked
+    expect(p.edges).toHaveLength(2);
   });
 
   it("stays quiet when one member is named — that ranks the zone, and it works", async () => {
@@ -396,10 +399,9 @@ view v {
   });
 
   it("two zones in one band with an edge between them hold the row, without a warning", async () => {
-    // The old rule sent any same-rank edge touching a zone back to ELK with a
-    // warning whose only advice was to stop asking, and ELK then re-layered
-    // the zones apart — so `rows [batch orders]` on two namespaces silently
-    // stacked them. Zones are router units now (coplanar.md, approach #6).
+    // `rows [batch orders]` on two namespaces once silently stacked them, with
+    // a warning whose only advice was to stop asking. A zone is placed like
+    // any box: the two stand side by side and the wire crosses the gap.
     const src = `${SRC}zone z1 "Z1" account { contains a }
 zone z2 "Z2" account { contains b }
 view v {
@@ -409,32 +411,40 @@ view v {
 `;
     const built = buildModel(src);
     const r = await layoutView(built.model, built.model.views.find((v) => v.name === "v")!);
-    expect(r.diagnostics.filter((d) => d.severity === "warning" || d.severity === "error")).toEqual([]);
+    expect(r.diagnostics).toEqual([]);
+    expect(checkLayout(r.positioned, { zoneMembers: new Map([["z1", ["a"]], ["z2", ["b"]]]) })).toEqual([]);
     const [z1, z2] = [r.positioned.zones.find((z) => z.id === "z1")!, r.positioned.zones.find((z) => z.id === "z2")!];
-    expect(z1.y < z2.y + z2.h && z2.y < z1.y + z1.h).toBe(true);
-    expect(r.positioned.edges.find((e) => e.from === "a" && e.to === "b")?.coplanar).toBe(true);
+    expect(z1.y).toBe(z2.y);
+    expect(z1.x + z1.w).toBeLessThanOrEqual(z2.x);
+    // the wire between them is one straight run from leaf to leaf
+    const wire = r.positioned.edges.find((e) => e.from === "a" && e.to === "b")!;
+    expect(wire.points).toHaveLength(2);
+    expect(wire.points[0].y).toBe(wire.points[1].y);
   });
 
-  it("still reports a real rank conflict when no zone is involved", async () => {
+  it("rows written against the edges are kept, zone or no zone", async () => {
+    // `rows [c] [b] [a]` with `a -> b -> c`: every edge runs up. The rows
+    // are the author's and the wires follow them.
     const src = `${SRC}view v {
   include *
   layout { rows [c] [b] [a] }
 }
 `;
     const r = await render(src, { view: "v", theme: "light" });
-    expect(r.ok).toBe(false);
-    expect(r.diagnostics.some((d) => d.message.includes("runs upward"))).toBe(true);
+    expect(r.ok).toBe(true);
+    expect(r.diagnostics).toEqual([]);
+    const built = buildModel(src);
+    const { positioned: p } = await layoutView(built.model, built.model.views.find((v) => v.name === "v")!);
+    expect(checkLayout(p)).toEqual([]);
+    expect(p.nodes.slice().sort((x, y) => x.y - y.y).map((n) => n.path)).toEqual(["c", "b", "a"]);
+    for (const e of p.edges) expect(e.points[0].y).toBeGreaterThan(e.points[e.points.length - 1].y);
   });
 
-  it("refuses an align that would drag a member outside its own boundary", async () => {
-    // The zone frame is sized by ELK long before the align pass moves nodes, so
-    // an unchecked snap drew the member outside the boundary containing it —
-    // a false claim, rendered cleanly, check exit 0.
-    // `far` deliberately has no edges: it sits on rank 0 beside `web`, so the
-    // pair crosses ranks and reaches the snap. When it shared pg's rank the
-    // align used to slip through only because zoned nodes carried
-    // `rank: undefined` — with real ranks that misuse now (correctly) gets the
-    // same-rank "cannot share an axis" warning before the zone guard runs.
+  it("aligns a node with a member of a zone, and the member stays inside its boundary", async () => {
+    // Moving `pg` onto `far`'s axis after the zone was sized once drew it
+    // outside the boundary that contains it — a false claim, rendered cleanly
+    // — and for a while the align was refused instead. The axis and the
+    // boundary are solved together now: both hold.
     const src = `pack logos
 pg = logos/postgresql "PG" datastore
 far = logos/redis "Far"
@@ -448,9 +458,12 @@ view v {
 `;
     const r = await render(src, { view: "v", theme: "light" });
     expect(r.ok).toBe(true);
-    const w = r.diagnostics.find((d) => d.message.includes("outside zone"));
-    expect(w?.severity).toBe("warning");
-    expect(w?.message).toContain("`onprem`");
+    expect(r.diagnostics).toEqual([]);
+    const built = buildModel(src);
+    const { positioned: p } = await layoutView(built.model, built.model.views.find((v) => v.name === "v")!);
+    expect(checkLayout(p, { zoneMembers: new Map([["onprem", ["pg"]]]) })).toEqual([]);
+    const mid = (path: string) => { const n = p.nodes.find((x) => x.path === path)!; return n.x + Math.round(n.w / 2); };
+    expect(mid("far")).toBe(mid("pg"));
 
     // and the node really is still inside the frame it claims to be in
     const zone = r.svg!.match(

@@ -1,26 +1,15 @@
-// Left to right. Three questions, both engines:
+// Left to right. Two questions:
 //   1. does a rightward diagram read rightward — every wire out of an east
 //      wall and into a west one, every column on one left edge?
 //   2. are arrangements stated under a rightward flow honoured (there a
 //      `rows` band is a column)?
-//   3. turned on its side, is every view we own still legal, and how good?
-//   npx vitest run test/weft/direction-right.test.ts --disable-console-intercept
-import { it, expect } from "vitest";
-import { readdirSync, readFileSync } from "node:fs";
-import { fileURLToPath } from "node:url";
-import { dirname, join } from "node:path";
+// Whether everything we own is still legal turned on its side is
+// `sets.test.ts`.
+import { describe, it, expect } from "vitest";
 import { buildProject } from "../../src/index.js";
 import { layoutView, type Positioned } from "../../src/layout/layout.js";
-import type { SView } from "../../src/model/types.js";
-import { corpus } from "../helpers/corpus.js";
 import { checkLayout } from "../invariants.js";
-import { column, flush, leftOf, level, row, stack, sys, zone, view, rectOf, type Ask } from "./asks.js";
-import { layoutViewWeft } from "../../src/layout/weft-view.js";
-import { measureLayout, type Metrics } from "./metrics.js";
-
-const here = dirname(fileURLToPath(import.meta.url));
-const right = (v: SView): SView => ({ ...v, layout: { ...v.layout, direction: "right" } });
-const strictly = (p: Positioned) => ({ ...p, edges: p.edges.map((e) => ({ ...e, coplanar: true as const })) });
+import { column, flush, leftOf, level, row, sys, zone, view, type Ask } from "./asks.js";
 
 // ── 1. reading rightward ─────────────────────────────────────────────────────
 /** Acyclic and unhinted, so every wire should run left to right. */
@@ -100,88 +89,42 @@ export const cases: { name: string; src: string; asks: Ask[] }[] = [
     asks: [leftOf("db.orders", "db.customers")] },
 ];
 
-it("left to right: does it read rightward, is it arranged as asked, and is everything still legal on its side?", async () => {
-  const bad: string[] = [];
-  const strict = (name: string, p: Positioned, ctx = {}) => bad.push(...checkLayout(strictly(p), ctx).map((b) => `${name}: ${b}`));
+const lay = async (name: string, src: string) => {
+  const built = buildProject([{ name, src }]);
+  const errs = built.diagnostics.filter((d) => d.severity === "error");
+  if (errs.length) throw new Error(`${name}: ${errs[0].message}`);
+  const { positioned } = await layoutView(built.model, built.model.views.find((x) => x.name === "v")!);
+  return { positioned, illegal: checkLayout(positioned, { zoneMembers: new Map(built.model.zones.map((z) => [z.id, z.members])) }) };
+};
 
-  // 1 ─ reading
-  console.log(`\n1. Reading rightward — ${flows.length} acyclic diagrams, nothing arranged by hand`);
-  console.log(`${"".padEnd(30)} wires east→west      columns flush left    size ELK     size weft   bends ELK/weft`);
-  const sum = { elk: { wires: 0, eastToWest: 0, columns: 0, flushColumns: 0 }, grid: { wires: 0, eastToWest: 0, columns: 0, flushColumns: 0 } };
-  for (const f of flows) {
-    const built = buildProject([{ name: f.name, src: f.src }]);
-    const errs = built.diagnostics.filter((d) => d.severity === "error");
-    if (errs.length) throw new Error(`${f.name}: ${errs[0].message}`);
-    const v = built.model.views.find((x) => x.name === "v")!;
-    const elk = (await layoutView(built.model, v)).positioned, grid = layoutViewWeft(built.model, v).positioned;
-    strict(f.name, grid);
-    const e = reading(elk), g = reading(grid), me = measureLayout(elk), mg = measureLayout(grid);
-    for (const k of ["wires", "eastToWest", "columns", "flushColumns"] as const) { sum.elk[k] += e[k]; sum.grid[k] += g[k]; }
-    console.log(`${f.name.padEnd(30)} ELK ${`${e.eastToWest}/${e.wires}`.padEnd(6)} weft ${`${g.eastToWest}/${g.wires}`.padEnd(6)} ELK ${`${e.flushColumns}/${e.columns}`.padEnd(5)} weft ${`${g.flushColumns}/${g.columns}`.padEnd(5)}  ${`${me.width}×${me.height}`.padEnd(11)} ${`${mg.width}×${mg.height}`.padEnd(11)} ${me.bends}/${mg.bends}`);
-  }
-  console.log(`${"total".padEnd(30)} ELK ${sum.elk.eastToWest}/${sum.elk.wires}  weft ${sum.grid.eastToWest}/${sum.grid.wires}     ELK ${sum.elk.flushColumns}/${sum.elk.columns}  weft ${sum.grid.flushColumns}/${sum.grid.columns}`);
+describe("an acyclic diagram with nothing arranged by hand reads left to right", () => {
+  for (const f of flows)
+    it(f.name, async () => {
+      const { positioned, illegal } = await lay(f.name, f.src);
+      expect(illegal).toEqual([]);
+      const r = reading(positioned);
+      expect(`${r.eastToWest}/${r.wires} wires leave an east wall and enter a west one`).toBe(`${r.wires}/${r.wires} wires leave an east wall and enter a west one`);
+      expect(`${r.flushColumns}/${r.columns} columns flush left`).toBe(`${r.columns}/${r.columns} columns flush left`);
+    });
+});
 
-  // 2 ─ arrangements
-  console.log(`\n2. Arrangements under a rightward flow — ${cases.length} diagrams`);
-  let elkWhole = 0, gridWhole = 0, elkTidy = 0, gridTidy = 0, tidy = 0;
-  for (const c of cases) {
-    const built = buildProject([{ name: c.name, src: c.src }]);
-    const errs = built.diagnostics.filter((d) => d.severity === "error");
-    if (errs.length) throw new Error(`${c.name}: ${errs[0].message}`);
-    const v = built.model.views.find((x) => x.name === "v")!;
-    const elkOut = await layoutView(built.model, v);
-    const elk = elkOut.positioned, grid = layoutViewWeft(built.model, v).positioned;
-    strict(c.name, grid, { zoneMembers: new Map(built.model.zones.map((z) => [z.id, z.members])) });
-    const e = c.asks.map((a) => a.holds(elk)), g = c.asks.map((a) => a.holds(grid));
-    const placed = (ok: boolean[]) => c.asks.every((a, i) => a.polish || ok[i]);
-    c.asks.forEach((a, i) => { if (a.polish) { tidy++; if (e[i]) elkTidy++; if (g[i]) gridTidy++; } });
-    if (placed(e)) elkWhole++;
-    if (placed(g)) gridWhole++;
-    const verdict = (ok: boolean[]) => (ok.every(Boolean) ? "as asked" : placed(ok) ? "uneven" : "NOT as asked");
-    const diag = elkOut.diagnostics.length;
-    console.log(`${c.name.padEnd(54)} ELK ${verdict(e).padEnd(13)} weft ${verdict(g).padEnd(13)} ${`${elk.width}×${elk.height}`.padEnd(10)} ${`${grid.width}×${grid.height}`.padEnd(10)}${diag ? ` ELK:${diag} diagnostic` : ""}`);
-    c.asks.forEach((a, i) => { if (!a.polish && (!e[i] || !g[i])) console.log(`      ${a.say}: ELK ${e[i] ? "yes" : "NO"}, weft ${g[i] ? "yes" : "NO"}`); });
-    if (!placed(g)) bad.push(`${c.name}: not arranged as asked`);
-  }
-  console.log(`arranged as asked: ELK ${elkWhole}/${cases.length} · weft ${gridWhole}/${cases.length}    tidy (level, flush): ELK ${elkTidy}/${tidy} · weft ${gridTidy}/${tidy}`);
+describe("arrangements stated under a rightward flow are honoured", () => {
+  const uneven: string[] = [];
+  for (const c of cases)
+    it(c.name, async () => {
+      const { positioned, illegal } = await lay(c.name, c.src);
+      expect(illegal).toEqual([]);
+      const missed = c.asks.filter((a) => !a.holds(positioned));
+      uneven.push(...missed.filter((a) => a.polish).map((a) => `${c.name}: ${a.say}`));
+      expect(missed.filter((a) => !a.polish).map((a) => a.say)).toEqual([]);
+    });
 
-  // 3 ─ everything we own, turned on its side
-  const sources = [
-    ...corpus(),
-    ...readdirSync(join(here, "trial")).filter((f) => f.endsWith(".squinch")).sort().map((f) => ({ name: `trial/${f}`, src: readFileSync(join(here, "trial", f), "utf8") })),
-  ];
-  const keys: (keyof Metrics)[] = ["area", "wire", "bends", "crossings", "kinks", "throughNode", "nearMiss"];
-  const total = { elk: {} as Record<string, number>, grid: {} as Record<string, number> };
-  for (const k of keys) { total.elk[k] = 0; total.grid[k] = 0; }
-  let views = 0, elkBad = 0, elkErr = 0, elkCrash = 0;
-  for (const f of sources) {
-    const built = buildProject([{ name: f.name, src: f.src }]);
-    if (built.diagnostics.some((d) => d.severity === "error")) continue;
-    const ctx = {
-      zoneMembers: new Map(built.model.zones.map((z) => [z.id, z.members])),
-      channelTargets: new Set(built.model.views.flatMap((v) => v.layout.channels.map((c) => c.target))),
-    };
-    for (const original of built.model.views) {
-      if (original.layout.direction === "right") continue; // already counted where it lives
-      const v = right(original);
-      const grid = layoutViewWeft(built.model, v).positioned;
-      const trunks = new Set([...ctx.channelTargets, ...grid.edges.filter((e) => e.via === "bus").map((e) => e.to)]);
-      strict(`${f.name}#${v.name}`, grid, { ...ctx, channelTargets: trunks });
-      views++;
-      try {
-        const elk = await layoutView(built.model, v);
-        elkErr += elk.diagnostics.filter((d) => d.severity === "error").length;
-        elkBad += checkLayout(elk.positioned, ctx).length;
-        const a = measureLayout(elk.positioned), b = measureLayout(grid);
-        for (const k of keys) { total.elk[k] += a[k]; total.grid[k] += b[k]; }
-      } catch { elkCrash++; }
-    }
-  }
-  console.log(`\n3. Every corpus and trial view, turned to flow rightward — ${views} views`);
-  console.log(`   ELK: ${elkErr} errors, ${elkBad} invariant violations, ${elkCrash} crashes · weft: ${bad.length} violations`);
-  for (const k of keys) console.log(`   ${k.padEnd(12)} ELK ${String(total.elk[k]).padStart(10)}  weft ${String(total.grid[k]).padStart(10)}  ×${(total.grid[k] / (total.elk[k] || 1)).toFixed(2)}`);
-  console.log(bad.slice(0, 30).join("\n"));
-  expect(bad).toEqual([]);
-}, 900_000);
-
-void rectOf; void stack;
+  // `level` and `flush` are tidiness, not arrangement: the boxes are where
+  // they were asked to be, on lines that do not quite match. One case is
+  // uneven today — three zones of different heights that nobody arranged are
+  // centred on the flow rather than standing on one top line — and the list
+  // is spelled out so that a second one is noticed.
+  it("and tidily: tops level and left edges flush, with the one exception known", () => {
+    expect(uneven).toEqual(["three zones, one after another: a, b, c level"]);
+  });
+});

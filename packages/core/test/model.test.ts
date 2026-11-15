@@ -3,6 +3,8 @@ import { readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { join, dirname } from "node:path";
 import { buildModel } from "../src/model/build.js";
+import { layoutView } from "../src/layout/layout.js";
+import { checkLayout } from "./invariants.js";
 
 const pkg = join(dirname(fileURLToPath(import.meta.url)), "..");
 const canonical = readFileSync(join(pkg, "examples/orders.squinch"), "utf8");
@@ -321,19 +323,27 @@ describe("grammar + model builder", () => {
     expect(w.fix).toContain("view overview { expand platform }");
   });
 
-  it("a container's block that runs against its own edges is a check error, whether or not a view opens it", () => {
-    // Round 22: the block's rows contradicted the container's own edges, the
-    // one declared view kept the container collapsed (block dormant), check
-    // passed, and the HTML export failed through the auto view. The claim is
-    // about the interior's edges, so it is checked here, once, with every
-    // edge resolved.
+  it("a container's block may stack its rows against its own edges: it builds clean and the edge is drawn upward", async () => {
+    // Round 22: the block's rows ran against one of the container's own
+    // edges, the one declared view kept the container collapsed (block
+    // dormant), check passed, and the HTML export failed through the auto
+    // view. That was closed by refusing the block at build time. Nothing is
+    // refused now, because nothing fails: the rows are kept and `monitor ->
+    // api` runs up from row 2 to row 0, in every view that opens the block.
     const src = `system platform "P" {\n api = box "API"\n db = box "DB"\n monitor = box "Mon"\n api -> db\n monitor -> api\n layout { rows [api] [db] [monitor] }\n}\nuser = box "U"\nuser -> platform.api\nview main { include * }\n`;
     const r = buildModel(src);
-    const errs = r.diagnostics.filter((d) => d.severity === "error");
-    expect(errs.map((e) => e.message)).toContainEqual(expect.stringContaining("`platform.monitor` → `platform.api` runs upward inside `platform` — row 2 to row 0"));
-    expect(errs[0].loc.line).toBe(7);
-    // the same block with the bands the edges allow is clean
-    expect(buildModel(src.replace("rows [api] [db] [monitor]", "rows [monitor] [api] [db]")).diagnostics.filter((d) => d.severity === "error")).toEqual([]);
+    expect(r.diagnostics).toEqual([]);
+    // the auto view of the container is where the block wakes up
+    const inside = r.model.views.find((v) => v.name !== "main" && v.scope === "platform")!;
+    expect(inside).toBeDefined();
+    const { positioned: p, diagnostics } = await layoutView(r.model, inside);
+    expect(diagnostics).toEqual([]);
+    expect(checkLayout(p)).toEqual([]);
+    const y = (path: string) => p.nodes.find((n) => n.path === path)!.y;
+    expect(y("platform.api")).toBeLessThan(y("platform.db"));
+    expect(y("platform.db")).toBeLessThan(y("platform.monitor"));
+    const up = p.edges.find((e) => e.from === "platform.monitor" && e.to === "platform.api")!;
+    expect(up.points[0].y).toBeGreaterThan(up.points.at(-1)!.y);
   });
 
   it("rows bands continued on the next line get one error naming the fix, not syntax debris", () => {

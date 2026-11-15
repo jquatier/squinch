@@ -165,8 +165,8 @@ describe("the resolver itself", () => {
 // had one, which is how every case below shipped broken: the resolver held
 // frames and zones as solid obstacles, so the note left the compound — up to
 // 240px along its side, onto whatever was there — and wires were not obstacles
-// at all. The room is the anchor's own now (an outside label on its ELK node),
-// so the compound grows to hold it.
+// at all. The room is the anchor's own now — the layout keeps it clear beside
+// the node — so the compound grows to hold it.
 describe("notes inside containers and zones", () => {
   const MODEL = `pack aws
 person user "User"
@@ -212,8 +212,8 @@ zone vpc "VPC prod" vpc { contains shop.svc, shop.db }
   });
 
   it("keeps the row a noted node shares in one line", async () => {
-    // ELK clamps a node inside its own margins, so the margin a note adds
-    // along the flow lifted its anchor 26px out of its row.
+    // the room a note takes above or below its node must not lift that node
+    // out of its row (it once did, by 26px)
     const { node } = await lay(` expand svc\n note below svc.pay "PCI scope"\n note above svc.orders "Node 20"`);
     expect(node("shop.svc.orders").y).toBe(node("shop.svc.pay").y);
   });
@@ -228,12 +228,14 @@ zone vpc "VPC prod" vpc { contains shop.svc, shop.db }
   });
 
   it("stands a note beside the wires on a face it shares with them", async () => {
-    // `above` a node fed from the top: centred, it would sit on the wire
+    // `above` a node fed from the top: centred, it would sit on the wire. It
+    // stands to one side of the wire instead, still directly over its node.
     const { p, node } = await lay(` expand svc\n note above svc.pay "Calls Stripe"`);
     const pay = node("shop.svc.pay"), note = p.notes![0];
     const wire = p.ports.find((pt) => pt.node === "shop.svc.pay" && pt.side === "north")!;
     expect(note.y + note.h).toBe(pay.y - 24);
-    expect(note.x).toBeGreaterThan(wire.x);
+    expect(note.x >= wire.x || note.x + note.w <= wire.x, "the note is on the wire").toBe(true);
+    expect(note.x < pay.x + pay.w && note.x + note.w > pay.x, "the note is not over its node").toBe(true);
   });
 
   it("draws a note anchored to an expanded container", async () => {
@@ -261,8 +263,8 @@ view v {
   });
 
   it("gives way to a same-rank wire leaving the face the note wants", async () => {
-    // the coplanar router's wires are drawn after ELK, through the room the
-    // note reserved — the one obstacle the reservation cannot see
+    // `a -> b` leaves `a` by the very wall the note is asked to stand at: the
+    // note keeps that side and stands clear of the wire
     const built = buildModel(`pack aws
 a = aws/lambda "A"
 b = aws/lambda "B"
@@ -276,7 +278,8 @@ view v {
 }`);
     const { positioned: p } = await layoutView(built.model, built.model.views[0]);
     expect(checkLayout(p)).toEqual([]);
-    const a = p.nodes.find((n) => n.path === "a")!;
+    const a = p.nodes.find((n) => n.path === "a")!, b = p.nodes.find((n) => n.path === "b")!;
     expect(p.notes![0].x).toBeGreaterThanOrEqual(a.x + a.w);
+    expect(p.notes![0].x + p.notes![0].w).toBeLessThanOrEqual(b.x);
   });
 });

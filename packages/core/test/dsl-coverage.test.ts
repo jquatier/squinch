@@ -238,8 +238,8 @@ describe("density", () => {
 });
 
 describe("route sides", () => {
-  // Sides only apply to edges that span rows; a same-rank edge is routed by our
-  // own coplanar router and warns if you try (see layout.ts).
+  // Sides only apply to edges that span rows; an edge between two row-mates
+  // runs straight across and warns if you try (`test/weft/language.test.ts`).
   const src = (hint: string) =>
     `system s "S" {\n a = aws/lambda "A"\n b = aws/dynamodb "B" datastore\n a -> b\n}\n` +
     `view v { scope s\n layout { rows [a] [b]\n ${hint} } }`;

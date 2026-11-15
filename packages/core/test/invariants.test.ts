@@ -216,6 +216,11 @@ describe("the invariants themselves", () => {
     expect(checkLayout(base({ ports })).join()).toContain("stack at b");
     // merging N sources into one entry port is exactly what `channel` does
     expect(checkLayout(base({ ports }), { channelTargets: new Set(["b"]) })).toEqual([]);
+    // and what a `wrap` trunk does, at whichever end its wires share — but a
+    // wire that is not part of the trunk may not join them on that port
+    const bus = (id: string) => ({ ...edge([{ x: 60, y: 64 }, { x: 60, y: 100 }, { x: 260, y: 100 }, { x: 260, y: 64 }]), id, via: "bus" });
+    expect(checkLayout(base({ ports, edges: [bus("e1"), bus("e2")] }))).toEqual([]);
+    expect(checkLayout(base({ ports, edges: [bus("e1"), { ...bus("e2"), via: undefined }] })).join()).toContain("stack at b");
   });
 
   it("catches a label overlapping a node, and two labels overlapping", () => {

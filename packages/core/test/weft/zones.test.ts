@@ -1,15 +1,11 @@
-// Placement with zones and expanded containers: does each engine put things
-// where the author asked? Every case states an arrangement in the source and
+// Placement with zones and expanded containers: is the arrangement the author
+// asked for the one drawn? Every case states an arrangement in the source and
 // then checks the rectangles for it — side by side means side by side.
-//   npx vitest run test/weft/zones.test.ts --disable-console-intercept
-import { it, expect } from "vitest";
+import { describe, it, expect } from "vitest";
 import { buildProject } from "../../src/index.js";
 import { layoutView } from "../../src/layout/layout.js";
 import { checkLayout } from "../invariants.js";
-import { layoutViewWeft } from "../../src/layout/weft-view.js";
-import { measureLayout } from "./metrics.js";
-
-import { rectOf, row, stack, level, leftOf, sys, zone, view, type Ask } from "./asks.js";
+import { row, stack, level, leftOf, sys, zone, view, type Ask } from "./asks.js";
 
 const web = sys("web", "Web", ["ui", "bff"], ["ui -> bff"]);
 const api = sys("api", "API", ["gw", "svc", "db"], ["gw -> svc", "svc -> db"]);
@@ -125,50 +121,35 @@ function randomRow(seed: number): Case {
   return { name: `random row of ${n} (${seed})`, src, asks: [row(...zs), level(...zs)] };
 }
 
-it("zones and expanded containers: is the arrangement the author asked for the one drawn?", async () => {
-  const run = async (list: Case[], print: boolean) => {
-    const tally = { n: list.length, elkPlaced: 0, gridPlaced: 0, placed: 0, elkLevel: 0, gridLevel: 0, level: 0, elkWhole: 0, gridWhole: 0, elkErr: 0, elkWarn: 0, elkBad: 0 };
-    const gridViolations: string[] = [];
-    for (const c of list) {
-      const built = buildProject([{ name: c.name, src: c.src }]);
-      const errs = built.diagnostics.filter((d) => d.severity === "error");
-      if (errs.length) throw new Error(`${c.name}: ${errs[0].message}`);
-      const v = built.model.views.find((x) => x.name === "v")!;
-      const elk = await layoutView(built.model, v);
-      const grid = layoutViewWeft(built.model, v).positioned;
-      const strict = { ...grid, edges: grid.edges.map((e) => ({ ...e, coplanar: true as const })) };
-      const zoneMembers = new Map(built.model.zones.map((z) => [z.id, z.members]));
-      gridViolations.push(...checkLayout(strict, { zoneMembers }).map((b) => `${c.name}: ${b}`));
-      const e = c.asks.map((a) => a.holds(elk.positioned)), g = c.asks.map((a) => a.holds(grid));
-      const elkErr = elk.diagnostics.filter((d) => d.severity === "error").length, elkWarn = elk.diagnostics.filter((d) => d.severity === "warning").length;
-      const elkBad = checkLayout(elk.positioned, { zoneMembers }).length;
-      c.asks.forEach((a, i) => {
-        if (a.polish) { tally.level++; if (e[i]) tally.elkLevel++; if (g[i]) tally.gridLevel++; }
-        else { tally.placed++; if (e[i]) tally.elkPlaced++; if (g[i]) tally.gridPlaced++; }
-      });
-      tally.elkErr += elkErr; tally.elkWarn += elkWarn; tally.elkBad += elkBad;
-      const placedOk = (ok: boolean[]) => c.asks.every((a, i) => a.polish || ok[i]);
-      if (placedOk(e)) tally.elkWhole++;
-      if (placedOk(g)) tally.gridWhole++;
-      if (print) {
-        const me = measureLayout(elk.positioned), mg = measureLayout(grid);
-        const verdict = (ok: boolean[]) => (ok.every(Boolean) ? "as asked" : placedOk(ok) ? "uneven" : "NOT as asked");
-        console.log(`${c.name.padEnd(64)} ELK ${verdict(e).padEnd(13)} weft ${verdict(g).padEnd(13)} ${`${me.width}×${me.height}`.padEnd(10)} ${`${mg.width}×${mg.height}`.padEnd(10)}${elkErr ? ` ELK:${elkErr} error` : ""}${elkWarn ? ` ELK:${elkWarn} warning` : ""}`);
-        c.asks.forEach((a, i) => { if (!a.polish && (!e[i] || !g[i])) console.log(`      ${a.say}: ELK ${e[i] ? "yes" : "NO"}, weft ${g[i] ? "yes" : "NO"}`); });
-      }
-    }
-    return { tally, gridViolations };
+/** Lay the case out: what broke a hard rule, and which asks do not hold. */
+export async function arranged(c: Case) {
+  const built = buildProject([{ name: c.name, src: c.src }]);
+  const errs = built.diagnostics.filter((d) => d.severity === "error");
+  if (errs.length) throw new Error(`${c.name}: ${errs[0].message}`);
+  const { positioned } = await layoutView(built.model, built.model.views.find((x) => x.name === "v")!);
+  return {
+    illegal: checkLayout(positioned, { zoneMembers: new Map(built.model.zones.map((z) => [z.id, z.members])) }),
+    // `level` and `flush` are tidiness, and held to the same standard: a row
+    // whose members start on different lines is not the row that was asked for
+    missed: c.asks.filter((a) => !a.holds(positioned)).map((a) => a.say),
   };
-  console.log(`${"case".padEnd(64)} ${"ELK".padEnd(17)} ${"weft".padEnd(18)} size ELK   size weft`);
-  const hand = await run(cases, true);
-  const random = await run(Array.from({ length: 60 }, (_, i) => randomRow(i)), false);
-  for (const [label, r] of [["hand-written", hand], ["random rows", random]] as const) {
-    const t = r.tally;
-    console.log(`\n${label}: ${t.n} diagrams`);
-    console.log(`  arranged as asked   ELK ${t.elkWhole}/${t.n} diagrams (${t.elkPlaced}/${t.placed} asks)   weft ${t.gridWhole}/${t.n} (${t.gridPlaced}/${t.placed})`);
-    console.log(`  rows level          ELK ${t.elkLevel}/${t.level}   weft ${t.gridLevel}/${t.level}`);
-    console.log(`  ELK diagnostics     ${t.elkErr} errors, ${t.elkWarn} warnings, ${t.elkBad} invariant violations`);
-  }
-  console.log([...hand.gridViolations, ...random.gridViolations].slice(0, 20).join("\n"));
-  expect([...hand.gridViolations, ...random.gridViolations]).toEqual([]);
-}, 600_000);
+}
+
+describe("zones and expanded containers are arranged as asked", () => {
+  for (const c of cases)
+    it(c.name, async () => {
+      const { illegal, missed } = await arranged(c);
+      expect(illegal).toEqual([]);
+      expect(missed).toEqual([]);
+    });
+
+  it("sixty random rows of two to four zones, wires anywhere between them", async () => {
+    const bad: string[] = [];
+    for (let seed = 0; seed < 60; seed++) {
+      const c = randomRow(seed);
+      const { illegal, missed } = await arranged(c);
+      bad.push(...illegal.map((b) => `${c.name}: ${b}`), ...missed.map((m) => `${c.name}: not ${m}`));
+    }
+    expect(bad).toEqual([]);
+  });
+});

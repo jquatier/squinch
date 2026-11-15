@@ -314,15 +314,17 @@ export function checkLayout(p: Positioned, ctx: Ctx = {}): string[] {
   // sources into one entry port and a `wrap` trunk leaves its box by one, and
   // that is exactly what those features do.
   const seen = new Map<string, string>();
-  const busSources = new Set(p.edges.filter((e) => e.via === "bus").map((e) => e.from));
+  // the layout marks a `wrap` trunk itself (`via: "bus"`): its wires share
+  // one port on the box they fan out of — or, folded the other way, into —
+  // so no caller has to know; a channel's target is the caller's to name
+  const trunk = new Set(p.edges.filter((e) => e.via === "bus").map((e) => e.id));
   for (const pt of p.ports) {
-    // the layout marks a `wrap` trunk itself (`via: "bus"`), so no caller has
-    // to know; a channel's target is the caller's to name
-    if (ctx.channelTargets?.has(pt.node) || busSources.has(pt.node)) continue;
+    if (ctx.channelTargets?.has(pt.node)) continue;
     const key = `${pt.node}|${pt.side}|${pt.x},${pt.y}`;
     const prev = seen.get(key);
-    if (prev) bad.push(`ports for ${prev} and ${pt.edge} stack at ${pt.node} ${pt.side} (${pt.x},${pt.y})`);
-    else seen.set(key, pt.edge);
+    if (prev === undefined) seen.set(key, pt.edge);
+    else if (!(trunk.has(prev) && trunk.has(pt.edge)))
+      bad.push(`ports for ${prev} and ${pt.edge} stack at ${pt.node} ${pt.side} (${pt.x},${pt.y})`);
   }
 
   return bad;
