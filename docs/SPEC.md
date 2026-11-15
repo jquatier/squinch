@@ -833,7 +833,9 @@ sep         = nl | ";" | "," ;                (* interchangeable *)
 Whitespace-insensitive; statements end at newline or `;`. **A comma is never required
 where whitespace already separates, and never an error where a list is being written** —
 `rows [a, b]`, `align a, b`, `highlight #a, #b` and `{ style: dashed, animate: slow }`
-all parse, as principle 3 above has promised since v0. The two exceptions are a path
+all parse, as principle 3 above has promised since v0 — and so does
+`{ style: dashed  animate: slow }`: attributes on one line need nothing between them,
+since a value is one run and the next attribute starts `key:`. The two exceptions are a path
 list, where the comma is what distinguishes `a -> b, c` from a label
 (`contains`, `channel`, `only` follow it), and a tag *value* — `tags: #a #b`, because
 after a comma there the parser cannot tell another tag from the next attribute key.

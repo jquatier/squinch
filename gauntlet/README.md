@@ -93,9 +93,15 @@ Of the eleven prompts with more than one call: three ran a clean `check` twice
 (02, 20, 34 — nothing to fix); three re-ran on warnings (22 and 35 a long
 subtitle, 26 above); five had errors, each fixed in one step from its
 diagnostic — attributes written outside the braces (21, 38), two icon ids that
-do not exist (30), chained edges (32), `scope` naming a leaf (39). None of
-these has a change in this commit: they are the old classes, and the
-diagnostics already carry the fix.
+do not exist (30), chained edges (32), `scope` naming a leaf (39). Two of
+these became changes after the round. Attributes on one line with nothing
+between them — `{ tags: #poll  animate: pulse }`, what 21 and 38 wrote — now
+parse: a value is one run and the next attribute starts `key:`, so the
+grammar had no reason to refuse it. And an icon id that is a word rather
+than a typo (`sys/download`) is answered with the real ids that carry the
+word (`closest: sys/hard-drive-download …`) where it used to say only
+"run a search". Chained edges and `scope` on a leaf are unchanged: their
+diagnostics already write the fix.
 
 **The pictures were looked at, all 68 declared views.** Every one renders
 with no diagnostic. Nothing overlaps, no label sits on another wire, fans

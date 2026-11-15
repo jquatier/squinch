@@ -222,7 +222,7 @@ Rules that matter:
 - Statements end at newline (or `;`). Labels are quoted strings.
 - **Commas are optional wherever whitespace already separates** — `rows [a, b]`,
   `align a, b`, `highlight #a, #b`, `{ style: dashed, animate: slow }` all parse,
-  as does a trailing comma. They stay *required* in a path list (`a -> b, c`,
+  as do a trailing comma and no comma at all (`{ style: dashed  animate: slow }`). They stay *required* in a path list (`a -> b, c`,
   `contains`, `channel`, `only`, `expand`), and stay wrong inside a tag value: write
   `tags: #a #b`, never `tags: #a, #b`.
 - Parallel edges between the same pair are fine — give each a label.

@@ -7,6 +7,21 @@ import { drawable, labelFits } from "../metrics.js";
 // @ts-ignore generated
 import { parser } from "../grammar/parser.js";
 import { iconExists, packExists, iconIds, allPackNames } from "./packs.js";
+
+/** What to say about an icon id nothing is one typo from: the real ids that
+ *  carry the same word — in the pack that was asked first, then the others —
+ *  and the search command for the rest. Round 34: `sys/download` and
+ *  `sys/upload` were guessed, the fix was "run a search", and the answer
+ *  (`sys/hard-drive-download`) was one command away instead of in the error. */
+function searchHint(pack: string, id: string): string {
+  const words = id.split("-").filter((w) => w.length > 2);
+  const hit = (cand: string) => cand.includes(id) || words.some((w) => cand.split("-").includes(w));
+  const near: string[] = [];
+  for (const p of [pack, ...allPackNames().filter((x) => x !== pack).sort()])
+    for (const cand of iconIds(p)) if (near.length < 3 && hit(cand)) near.push(`\`${p}/${cand}\``);
+  const search = `run \`squinch icons search ${id}\``;
+  return near.length ? `closest: ${near.join(", ")} — or ${search}` : search;
+}
 import { suggest } from "./suggest.js";
 import { normalizeFiles } from "./source.js";
 import { themes } from "../themes/index.js";
@@ -645,7 +660,7 @@ export function buildProject(input: ProjectFile[]): BuildResult {
         } else if (!iconExists(p, i)) {
           const s = suggest(i, iconIds(p));
           error(ctx, iconRef, `unknown icon \`${p}/${i}\``,
-            s ? `did you mean \`${p}/${s}\`?` : `run \`squinch icons search ${i}\``);
+            s ? `did you mean \`${p}/${s}\`?` : searchHint(p, i));
         } else icon = { pack: p, id: i };
       }
       const meta = attrsOf(ctx, decl.getChild("AttrBlock"));
@@ -692,7 +707,7 @@ export function buildProject(input: ProjectFile[]): BuildResult {
         } else if (!iconExists(p, i)) {
           const s = suggest(i, iconIds(p));
           error(ctx, decl, `unknown icon \`${p}/${i}\` in badge`,
-            s ? `did you mean \`${p}/${s}\`?` : `run \`squinch icons search ${i}\``);
+            s ? `did you mean \`${p}/${s}\`?` : searchHint(p, i));
         }
       }
       const kinds = decl.getChildren("NodeKind").map((k) => ctx.text(k)) as SNode["kinds"];
@@ -867,7 +882,7 @@ export function buildProject(input: ProjectFile[]): BuildResult {
           } else if (!iconExists(p, i)) {
             const s = suggest(i, iconIds(p));
             error(ctx, body, `unknown icon \`${p}/${i}\` in ${key}`,
-              s ? `did you mean \`${p}/${s}\`?` : `run \`squinch icons search ${i}\``);
+              s ? `did you mean \`${p}/${s}\`?` : searchHint(p, i));
           }
         }
       }
@@ -1545,7 +1560,7 @@ export function buildProject(input: ProjectFile[]): BuildResult {
       } else if (!iconExists(p, i)) {
         const s = suggest(i, iconIds(p));
         error(ctx, z, `unknown icon \`${p}/${i}\``,
-          s ? `did you mean \`${p}/${s}\`?` : `run \`squinch icons search ${i}\``);
+          s ? `did you mean \`${p}/${s}\`?` : searchHint(p, i));
       } else icon = { pack: p, id: i };
     }
     // Zones took theme *roles* before the hue vocabulary existed (`account`,

@@ -276,7 +276,9 @@ Two surface rules, both from measuring what cold agents actually write (367
 gauntlet check calls plus a 5-agent probe): **a tag may sit in kind position**
 (`db = aws/dynamodb "L" datastore #pci` — 5/5 probe agents wrote that and none
 reached for `tags:`), and **a comma is optional wherever whitespace already
-separates** (`rows [a, b]`, `align a, b`, `{ style: dashed, animate: slow }`).
+separates** (`rows [a, b]`, `align a, b`, `{ style: dashed, animate: slow }` — and,
+since round 34, attributes on one line with nothing between them at all:
+`{ tags: #poll  animate: pulse }` was a bare syntax error two agents hit).
 Commas stay *required* in a path list, and stay wrong inside a tag value —
 `tags: #a #b` — because after a comma there an LR(1) parser cannot tell another
 tag from the next attr key; that one is a check error naming the fix. Both

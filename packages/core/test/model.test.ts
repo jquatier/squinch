@@ -473,6 +473,16 @@ describe("grammar + model builder", () => {
       );
     });
 
+    it("names the real ids that carry the word, when the guess is a word and not a typo", () => {
+      // round 34: `sys/download` — the icon exists as `sys/hard-drive-download`,
+      // and the old fix only said to go and search for it
+      const r = buildModel(`a = sys/download "Fetch"\n`);
+      expect(r.ok).toBe(false);
+      const fix = r.diagnostics.find((x) => x.message.includes("unknown icon `sys/download`"))?.fix;
+      expect(fix).toContain("closest: `sys/hard-drive-download`");
+      expect(fix).toContain("squinch icons search download");
+    });
+
     it("rejects an unknown pack, and suggests a real one", () => {
       const r = buildModel(src("sysx/api"));
       expect(r.ok).toBe(false);
@@ -558,6 +568,25 @@ describe("commas as optional separators", () => {
       expect(r.model.nodes.get("t.x")!.description).toBe("d");
       expect(r.model.nodes.get("t.x")!.attrs["owner"]).toBe("team");
     }
+  });
+
+  it("accepts attrs on one line with nothing but space between them", () => {
+    // round 34, prompts 21 and 38: `{ tags: #poll  animate: pulse }` and
+    // `{ subtitle: "x"  description: "y" }`. A value is one run and the next
+    // attr starts `key:`, so whitespace is separator enough.
+    const src = (attrs: string) =>
+      `pack aws\nsystem t "T" {\n  x = aws/lambda "X" ${attrs}\n  y = aws/lambda "Y"\n  x -> y "calls" ${attrs.includes("tags") ? "" : "{ style: dashed  color: red }"}\n}\n`;
+    const spaced = buildModel(src(`{ description: "d"  owner: team  tags: #pci #core  subtitle: "s" }`));
+    const comma = buildModel(src(`{ description: "d", owner: team, tags: #pci #core, subtitle: "s" }`));
+    expect(spaced.ok, JSON.stringify(spaced.diagnostics)).toBe(true);
+    const x = spaced.model.nodes.get("t.x")!;
+    expect([x.description, x.attrs["owner"], x.tags, x.subtitle]).toEqual(["d", "team", ["pci", "core"], "s"]);
+    expect(JSON.stringify(spaced.model.nodes.get("t.x"), (k, v) => (k === "loc" ? undefined : v)))
+      .toBe(JSON.stringify(comma.model.nodes.get("t.x"), (k, v) => (k === "loc" ? undefined : v)));
+    const edge = buildModel(src(`{ description: "d" }`));
+    expect(edge.ok, JSON.stringify(edge.diagnostics)).toBe(true);
+    expect(edge.model.edges[0].attrs["style"]).toBe("dashed");
+    expect(edge.model.edges[0].color).toBe("red");
   });
 
   it("accepts commas in align and highlight", () => {
