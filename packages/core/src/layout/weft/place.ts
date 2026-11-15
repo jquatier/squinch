@@ -50,7 +50,11 @@ export function place(s: Sheet, p: Placing): { u: number[]; low: number[]; off: 
   /** Least distance between the centres of two neighbours in a row. */
   const sep = (a: number, b: number): number => {
     const A = s.slots[a], B = s.slots[b];
-    const gap = A.kind === "box" && B.kind === "box" ? s.gap.lane : A.kind === "box" || B.kind === "box" ? Math.max(16, s.gap.lane / 2) : 16;
+    // a lane or port whose wire carries a label on the stub beside it keeps its neighbours half the label's width off
+    // …and a lane beside a leaf with such a label at one of its ports stands off the label's end (a port is 8 px in from the corner at least)
+    const stub = A.kind === "box" && B.kind !== "box" ? A.stub ?? 0 : B.kind === "box" && A.kind !== "box" ? B.stub ?? 0 : 0;
+    const room = Math.max(A.room ?? 0, B.room ?? 0), wide = Math.max(room ? room / 2 + 4 : 0, stub ? stub / 2 - 4 : 0);
+    const gap = Math.max(wide, A.kind === "box" && B.kind === "box" ? s.gap.lane : A.kind === "box" || B.kind === "box" ? Math.max(16, s.gap.lane / 2) : 16);
     return ceilTo(p.w[a] / 2 + p.bleed[a] + Math.max(gap, p.gutter.get(a) ?? 0) + p.lead[b] + p.w[b] / 2, GRID);
   };
   /** Least distance between two slots of one row, whatever stands between them. */
@@ -72,7 +76,7 @@ export function place(s: Sheet, p: Placing): { u: number[]; low: number[]; off: 
     // a wire that has to turn comes in clear of the title; one that runs
     // straight into a box of the first rank may pass the end of it (§5.7)
     const turns = s.slots[slot].kind === "port" ? !downs[slot].some((l) => s.slots[l.down].kind === "box") : k === 1 && s.slots[slot].kind === "lane";
-    low[slot] = ceilTo(k <= 1 && titled && turns ? titled : s.slots[slot].kind === "box" ? s.pad.w + p.lead[slot] + p.w[slot] / 2 : 16, GRID);
+    low[slot] = ceilTo(k <= 1 && titled && turns ? titled : s.slots[slot].kind === "box" ? s.pad.w + p.lead[slot] + p.w[slot] / 2 : Math.max(16, p.w[slot] / 2 + 8), GRID);
     if (!i || (k <= 1 && titled && turns)) gaps.push({ left: WALL, right: rep[slot], gap: low[slot] });
   }));
   // `columns`: each band wholly before the next, in every rank — through a line between them
@@ -220,10 +224,14 @@ export function place(s: Sheet, p: Placing): { u: number[]; low: number[]; off: 
       return !short(d) || short(gapOf(l)) || !rigid(l.up === slot ? l.down : l.up);
     });
   };
-  for (const links of s.chan) for (const l of links) {
-    const d = gapOf(l);
-    if (!short(d) || !rigid(l.up) || !rigid(l.down)) continue;
-    if (free(l.down, d)) at[l.down] += d; else if (free(l.up, -d)) at[l.up] -= d;
+  // (more than once: a lane may only have room to step after its neighbour has)
+  for (let pass = 0, moved = true; moved && pass < 3; pass++) {
+    moved = false;
+    for (const links of s.chan) for (const l of links) {
+      const d = gapOf(l);
+      if (!short(d) || !rigid(l.up) || !rigid(l.down)) continue;
+      if (free(l.down, d)) { at[l.down] += d; moved = true; } else if (free(l.up, -d)) { at[l.up] -= d; moved = true; }
+    }
   }
   // No two boxes overlap, whatever was asked (§3.1). Statements that cannot
   // all hold — an aligned set against `columns`, against the order the

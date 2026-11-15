@@ -45,6 +45,56 @@ export function weave(tree: Tree): Sheet[] {
   return sheets;
 }
 
+/** Give the label on link `l` of sheet `s` room on its wire's own line: the
+ *  wires either side of the stub it stands on keep half its width away. Asked
+ *  for only once the picture has been drawn and the label found to have no
+ *  clear place anywhere along its wire (`engine.ts`).
+ *
+ *  Which stub carries the label: the one at the less crowded wall. A leaf
+ *  with many wires on that wall cannot hold its ports a label's width apart;
+ *  the other end may — and a lane or a container's port always can. (A
+ *  trunk's wire has only its own stub, chosen when the trunk was made.) */
+export function giveRoom(s: Sheet, l: Link): void {
+  if (!l.label || l.label.room) return;
+  const crowd = (slot: number, n: number) => (s.slots[slot].kind === "box" && !s.slots[slot].kid!.sheet ? n : 0);
+  const first = l.net ? l.label.at : crowd(l.up, s.busy.down[l.up]) < crowd(l.down, s.busy.up[l.down]) ? "top" : "bottom";
+  l.label.room = true;
+  // …and failing that the other: a container of the other direction has no ports to move apart on that wall
+  // (a container of the other direction last of all: there the room is a matter of the levels its box's wires leave at)
+  for (const across of [false, true])
+    for (const at of l.net ? [first] : [first, first === "top" ? "bottom" : "top"] as const)
+      if (claim(s, at === "bottom" ? l.down : l.up, at === "bottom" ? "n" : "s", l.key, l.label.u, across)) { l.label.at = at; return; }
+}
+
+/** A label stands across its wire on the stub at one end of a link, and is
+ *  as wide as it is: the wires either side of that stub must keep half its
+ *  width away or they run through it (§5.6). Where the stub ends at a lane
+ *  that is the lane's to keep; where it ends at a container, the container's
+ *  port keeps it, and so does whatever the wire runs straight on to inside —
+ *  port after port, down to the leaf whose wall it finally meets. */
+function claim(s: Sheet, slot: number, wall: "n" | "s", key: string, room: number, across = true): boolean {
+  const x = s.slots[slot];
+  if (x.kind !== "box") { x.room = Math.max(x.room ?? 0, room); return true; }
+  const inner = x.kid!.sheet;
+  // a leaf: its ports are spaced when they are placed, and a lane beside it stands off
+  if (!inner) { x.stub = Math.max(x.stub ?? 0, room); return true; }
+  if (inner.dir !== s.dir) {
+    // a container of the other direction: the wire leaves it by a side wall, level with its box
+    const out = inner.through.get(`${turn(wall, s.dir, inner.dir)}|${key}`);
+    if (!across || !out || !("x" in out)) return false;
+    out.room = Math.max(out.room ?? 0, room);
+    return true;
+  }
+  const port = inner.port.get(`${wall}|${key}`);
+  if (port === undefined) return false;
+  inner.slots[port].room = Math.max(inner.slots[port].room ?? 0, room);
+  const link = inner.chan[wall === "n" ? 0 : inner.R].find((l) => (wall === "n" ? l.up : l.down) === port);
+  if (!link) return true;
+  link.room = Math.max(link.room ?? 0, room);
+  claim(inner, wall === "n" ? link.down : link.up, wall, key, room);
+  return true;
+}
+
 function buildSheet(tree: Tree, cell: Cell, arriving: Thru[], inbound: Map<string, Thru[]>, parent?: Sheet, self?: number): Sheet {
   const g = cell.group, dir = g.dir, down = dir === "down";
   const mine = tree.paths.filter((p) => p.lca === cell);

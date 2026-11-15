@@ -68,6 +68,12 @@ export interface Slot {
   idle: boolean;
   /** place in the declared order of its row — worth a tie, not a crossing */
   decl: number;
+  /** the width of a label on the stub that runs into this lane or port: room
+   *  on the wire's own line, which its neighbours in the row keep out of */
+  room?: number;
+  /** on a leaf: the width of a label given room on a stub at one of its
+   *  ports — a lane passing beside the box keeps out of that too */
+  stub?: number;
   /** a hook's lane: the box it stands beside, and whether after it or before */
   beside?: { box: number; after: boolean };
 }
@@ -83,11 +89,15 @@ export interface Link {
   back: boolean;
   /** links of one trunk share a track where they part */
   net?: string;
+  /** the width of a label standing on this wire just outside the wall the
+   *  link starts from — the link runs straight on under it, and wants the
+   *  same room at its own ends */
+  room?: number;
   /** the link's number among all the picture's links, for the ordering stage's tables */
   n?: number;
   /** a label rides on this link's stub — the one into its lower end, or
    *  (a trunk that gathers) the one out of its upper end */
-  label?: { u: number; v: number; wire: string; at: "top" | "bottom" };
+  label?: { u: number; v: number; wire: string; at: "top" | "bottom"; /** the wires beside its stub keep clear of it (`giveRoom`) */ room?: boolean };
 }
 
 /** A wire between two boxes of one rank. `a` stands before `b`. */
@@ -113,6 +123,9 @@ export interface Side {
   via: "auto" | "straight" | "over" | "under";
   /** the wire runs from the box out to the wall */
   out: boolean;
+  /** the width of a label standing on this wire just outside the wall: the
+   *  wires that leave the box beside it keep half of it away */
+  room?: number;
 }
 
 /** A wire that ends at this container's own east or west wall. */
@@ -199,6 +212,8 @@ export interface Geo {
   /** wire id → its polyline in this sheet, in the direction the wire runs */
   wires: Map<string, { x: number; y: number }[]>;
   labels: Map<string, { x: number; y: number; w: number; h: number }>;
+  /** wires whose label another wire runs through, with no clear place for it anywhere along the wire */
+  stuck: string[];
   /** boxes of an `aligned` set that placement could not keep on its line */
   unaligned: string[];
 }

@@ -112,6 +112,7 @@ export function lay(s: Sheet, root: boolean): Geo {
   };
   /** the hooks of wires asked to use a wall (`types.ts`, `Hook`), each with its wire and port key */
   const hooks = [...s.pieces].flatMap(([wire, piece]) => (piece.kind === "vert" ? [piece.head, piece.tail].flatMap((h) => (h ? [{ ...h, wire, key: keyOf(s, piece.slots, wire) }] : [])) : []));
+  const roomAt = new Map<string, number>(); // port → the width of a label given room on its stub
   const space = new Map<number, Wallspace>();
   const spaceOf = (slot: number) => space.get(slot) ?? space.set(slot, wallspace(s, slot, u[slot], w[slot])).get(slot)!;
   for (let k = 0; k <= R; k++) {
@@ -129,6 +130,11 @@ export function lay(s: Sheet, root: boolean): Geo {
     for (const l of s.chan[k]) {
       const a = add(l.up, "s", l.key, isLeaf(l.down) ? u[l.down] : endU(l.down, "n", l.key));
       const b = add(l.down, "n", l.key, isLeaf(l.up) ? u[l.up] : endU(l.up, "s", l.key));
+      // a label rides on the stub at one of the two ports; where the wire runs straight, at both
+      // a label stands on the stub at one of the two ports, and wants room there — as does a wire that ran in under a label outside
+      const tagged = l.label?.room && (l.label.at === "top" ? a : b);
+      if (tagged) tagged.label = Math.max(tagged.label ?? 0, l.label!.u);
+      if (l.room) for (const e of [a, b]) if (e) e.label = Math.max(e.label ?? 0, l.room);
       if (a && b) { a.mate ??= b; b.mate ??= a; }
       // a lane or a container's port is a point: the leaf's port goes to it, if its wall reaches
       else if (a && a.far >= spaceOf(l.up).lo && a.far <= spaceOf(l.up).hi) a.meet ??= a.far;
@@ -149,17 +155,18 @@ export function lay(s: Sheet, root: boolean): Geo {
     // a hook out of a north or south wall: its port at the end of the wall its lane stands beside
     for (const h of hooks) if ((h.wall === "n" && s.slots[h.box].row === k + 1) || (h.wall === "s" && s.slots[h.box].row === k)) add(h.box, h.wall, h.key, s.slots[h.lane].beside!.after ? EDGE : -EDGE);
     meetAcross(walls);
-    for (const wall of walls.values()) for (const e of wall.ends) port.set(e.id, e.at);
+    for (const wall of walls.values()) for (const e of wall.ends) { port.set(e.id, e.at); if (e.room) roomAt.set(e.id, e.room); }
     // Nothing almost-right (§4.3): a link whose ends are less than 16 px
     // apart would turn twice within a corner's width. A leaf's port comes
     // level with the other end if its wall has the place free — or, if not,
     // steps away until the jog is a full one.
     const move = (slot: number, wall: "n" | "s", key: string, to: number): boolean => {
       if (!isLeaf(slot)) return false;
-      const id = `${slot}|${wall}|${key}`, sp = spaceOf(slot);
-      const now = port.get(id)!;
-      // never past a neighbour, never within 8 px of one
-      if (to < sp.lo || to > sp.hi || walls.get(`${slot}|${wall}`)!.ends.some((e) => e.id !== id && (Math.abs(port.get(e.id)! - to) < 8 || port.get(e.id)! > now !== port.get(e.id)! > to))) return false;
+      const id = `${slot}|${wall}|${key}`, sp = spaceOf(slot), ends = walls.get(`${slot}|${wall}`)!.ends;
+      const now = port.get(id)!, mine = ends.find((e) => e.id === id)?.room ?? 0;
+      // never past a neighbour, never within 8 px of one — nor into the room a label on either stub has
+      const clear = (e: End) => Math.max(8, Math.max(mine, e.room ?? 0) ? Math.max(mine, e.room ?? 0) / 2 + 1 : 0);
+      if (to < sp.lo || to > sp.hi || ends.some((e) => e.id !== id && (Math.abs(port.get(e.id)! - to) < clear(e) || port.get(e.id)! > now !== port.get(e.id)! > to))) return false;
       port.set(id, to);
       return true;
     };
@@ -282,10 +289,10 @@ export function lay(s: Sheet, root: boolean): Geo {
       const id = `${slot}|${wall}|${key}`;
       if (!isLeaf(slot) || port.get(id) === undefined && u[slot] !== x) return false;
       const { lo, hi } = spaceOf(slot);
-      const others = [...port].filter(([o]) => o.startsWith(`${slot}|${wall}|`) && o !== id).map(([, at]) => at);
+      const others = [...port].filter(([o]) => o.startsWith(`${slot}|${wall}|`) && o !== id).map(([o, at]) => ({ at, clear: Math.max(8, Math.max(roomAt.get(o) ?? 0, roomAt.get(id) ?? 0) / 2 + 1) }));
       for (const d of [16, -16, 8, -8, 24, -24, 32, -32]) {
         const to = x + d;
-        if (to < lo || to > hi || used.has(to) || others.some((o) => Math.abs(o - to) < 8)) continue;
+        if (to < lo || to > hi || used.has(to) || others.some((o) => Math.abs(o.at - to) < o.clear)) continue;
         port.set(id, to);
         return true;
       }
@@ -354,7 +361,7 @@ export function lay(s: Sheet, root: boolean): Geo {
 
   // ── draw ───────────────────────────────────────────────────────────────────
   const top = s.slots.map((x) => (x.kid ? rowTop[x.row] + dv[x.i] : 0));
-  const geo: Geo = { W, H, u, top, ports: new Map(), wires: new Map(), labels: new Map(), unaligned: offLine.map((i) => s.slots[i].kid!.id) };
+  const geo: Geo = { W, H, u, top, ports: new Map(), wires: new Map(), labels: new Map(), stuck: [], unaligned: offLine.map((i) => s.slots[i].kid!.id) };
   const northOf = (slot: number) => (s.slots[slot].kind === "port" ? (s.slots[slot].row ? H : 0) : top[slot]);
   const southOf = (slot: number) => (s.slots[slot].kind === "port" ? (s.slots[slot].row ? H : 0) : top[slot] + (s.slots[slot].kid?.h ?? 0));
   const trackOf = (k: number, id: string): number => channels[k].trackV[channels[k].stack.track.get(id)!];
@@ -366,7 +373,11 @@ export function lay(s: Sheet, root: boolean): Geo {
     const out = s.sides.filter((d) => d.x === x && d.wall === wall && how.get(d) === "straight"), kid = s.slots[x].kid!;
     const lo = top[x] + 8, hi = top[x] + Math.min(kid.h, kid.faceV ?? kid.h) - 8, mid = Math.round((lo + hi) / 2);
     const step = (out.length - 1) * 16 > hi - lo ? (hi - lo) / Math.max(1, out.length - 1) : 16;
-    out.forEach((d, i) => level.set(d, fixedPort(s, kid, wall, d.key) !== undefined ? top[x] + fixedPort(s, kid, wall, d.key)! : Math.round(mid + (i - (out.length - 1) / 2) * step)));
+    // each a step from the next — or, beside a wire that carries a label just outside the wall, half that label's width
+    const gaps = out.slice(1).map((d, i) => Math.max(step, Math.max(d.room ?? 0, out[i].room ?? 0) ? ceilTo(Math.max(d.room ?? 0, out[i].room ?? 0) / 2 + 4, GRID) : 0));
+    const wide = gaps.reduce((a, g) => a + g, 0) <= hi - lo ? gaps : gaps.map(() => step), span = wide.reduce((a, g) => a + g, 0);
+    let at = mid - span / 2;
+    out.forEach((d, i) => { level.set(d, fixedPort(s, kid, wall, d.key) !== undefined ? top[x] + fixedPort(s, kid, wall, d.key)! : Math.round(at)); at += wide[i] ?? 0; });
   }
   const sideLevels = new Map<string, number[]>(); // `box|wall` → the places hooks have taken on a side wall
   for (const [wire, piece] of s.pieces) {
@@ -461,7 +472,45 @@ export function lay(s: Sheet, root: boolean): Geo {
     const at = geo.ports.get(`${piece.wall}|${piece.key}`)!;
     geo.wires.set(wire, [piece.wall === "n" ? { x: at, y: 0 } : piece.wall === "s" ? { x: at, y: H } : piece.wall === "e" ? { x: W, y: at } : { x: 0, y: at }]);
   }
+  clearLabels(s, geo);
   return geo;
+}
+
+/** A label is crossed by nothing but its own wire (§5.6). Each label was
+ *  given its place with room of its own; where another wire runs through it
+ *  all the same — a neighbour's stub, a wire passing — the label moves along
+ *  its own wire to the nearest place where nothing does: no other wire, no
+ *  box or its room, no other label, inside the sheet. A label that is clear
+ *  where it stands is not looked at twice; one with no clear place stays. */
+function clearLabels(s: Sheet, geo: Geo): void {
+  type R = { x: number; y: number; w: number; h: number };
+  const boxes: R[] = s.slots.flatMap((x) => {
+    const k = x.kid;
+    return k ? [{ x: geo.u[x.i] - k.w / 2 - k.room.w, y: geo.top[x.i] - k.room.n, w: k.w + k.room.w + k.bleedU, h: k.h + k.room.n + k.room.s + k.bleedV }] : [];
+  });
+  const lines = [...geo.wires].flatMap(([wire, pts]) => pts.slice(1).map((b, i) => ({ wire, x0: Math.min(pts[i].x, b.x), x1: Math.max(pts[i].x, b.x), y0: Math.min(pts[i].y, b.y), y1: Math.max(pts[i].y, b.y) })));
+  const crossed = (r: R, wire: string) => lines.some((l) => l.wire !== wire && l.x0 < r.x + r.w && l.x1 > r.x && l.y0 < r.y + r.h && l.y1 > r.y);
+  const overlaps = (a: R, b: R, by = 0) => a.x < b.x + b.w + by && a.x + a.w + by > b.x && a.y < b.y + b.h + by && a.y + a.h + by > b.y;
+  for (const [wire, at] of geo.labels) {
+    if (!crossed(at, wire)) continue;
+    const pts = geo.wires.get(wire);
+    if (!pts) continue;
+    const mid = { x: at.x + at.w / 2, y: at.y + at.h / 2 };
+    const free = (r: R) => r.x >= 4 && r.y >= 4 && r.x + r.w <= geo.W - 4 && r.y + r.h <= geo.H - 4
+      && !crossed({ x: r.x - 3, y: r.y - 3, w: r.w + 6, h: r.h + 6 }, wire) && !boxes.some((b) => overlaps(r, b))
+      && ![...geo.labels].some(([other, o]) => other !== wire && overlaps(r, o, 4));
+    let best: R | undefined, near = Infinity;
+    for (let i = 0; i + 1 < pts.length; i++) {
+      const a = pts[i], b = pts[i + 1], upright = a.x === b.x;
+      const lo = (upright ? Math.min(a.y, b.y) + at.h / 2 : Math.min(a.x, b.x) + at.w / 2) + 4, hi = (upright ? Math.max(a.y, b.y) - at.h / 2 : Math.max(a.x, b.x) - at.w / 2) - 4;
+      for (let c = Math.ceil(lo / 4) * 4; c <= hi; c += 4) {
+        const r = upright ? { x: Math.round(a.x - at.w / 2), y: Math.round(c - at.h / 2), w: at.w, h: at.h } : { x: Math.round(c - at.w / 2), y: Math.round(a.y - at.h / 2), w: at.w, h: at.h };
+        const far = Math.abs(r.x + r.w / 2 - mid.x) + Math.abs(r.y + r.h / 2 - mid.y);
+        if (far < near && free(r)) { best = r; near = far; }
+      }
+    }
+    if (best) geo.labels.set(wire, best); else geo.stuck.push(wire);
+  }
 }
 
 /** Move the place where the wire `key` crosses a laid-out container's side

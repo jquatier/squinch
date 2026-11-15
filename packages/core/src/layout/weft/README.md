@@ -138,7 +138,15 @@ across a gutter: `gutter.ts`, and `slide` in `lay.ts` for two containers.
   (`IDLE`, `FAR`), and the picture comes back to the west wall (`spare`);
 - two containers joined by several wires stand in a column: `aim` (`column`);
 - `aligned` as one variable, `columns` as lines between bands: the
-  constraints at the top of `place`;
+  constraints at the top of `place`. A set takes **one box of a rank** — two
+  boxes of one rank stand side by side and cannot share a centre line — the
+  first as given; the rest are left out and placed like any box
+  (`sheet.rep`, built at the end of `buildSheet`). And where the statements
+  cannot all hold (a set against `columns`, against a held row, against
+  another set) every row is pushed apart to its gaps after the solve, so no
+  two boxes overlap whatever was asked (the last block of `place`). Both
+  kinds of member that are off their line are reported in
+  `Solution.unaligned`;
 - the 8-pixel grid: every gap a multiple of it, positions rounded once
   (`snap`); a container's width a whole number of steps (`fit` in `lay.ts`);
 - top-aligned ranks: `rows` in `lay.ts`.
@@ -153,6 +161,27 @@ or a wall port in `lay.ts` (after `meetAcross`), between two containers by
 of a channel and their depth in `lay.ts` (`band`, depths); gutter labels in
 `gutter.ts`. A bundle is a `trunk` in `buildSheet`: one port key, shared
 lanes, links with one `net` — which `tracks.ts` gives one track.
+
+**A label is crossed by nothing but its own wire (§5.6)** — in two steps,
+the cheap one first.
+- *The label moves along its own wire* to the nearest place no other wire,
+  box, room or label is in: `clearLabels` at the end of `lay.ts`. It costs
+  the picture nothing — no box or wire moves — and a label that is clear
+  where it stands is not touched.
+- *A label with no clear place is given room*, and only such a label
+  (`giveRoom` in `sheet.ts`, asked for by `engine.ts` once the sheets are
+  drawn): the wires either side of the stub it stands on keep half its
+  width away. Where that room is kept: between the ports of a leaf's wall
+  (`settleWide` in `ports.ts`, `End.room`); beside a lane or a container's
+  port (`Slot.room`, in `sep` of `place.ts`); on through a container's wall,
+  port after port, to the leaf inside (`claim`, `Link.room`) — or, in a
+  container of the other direction, between the levels its box's wires
+  leave at (`Side.room`); beside a leaf, for a lane passing it
+  (`Slot.stub`). The stub that carries the label is the one at the less
+  crowded wall. Nothing that closes a short jog afterwards may step into
+  that room (`move`, `stepAside` in `lay.ts`).
+- Wires between two row-mates stand a label's depth apart where the label
+  lies across them — a rightward sheet (`gutter.ts`, `pitch`).
 
 **Containers and titles (§5.7)** — a turning wire's port and lane keep clear
 of the title, a straight one may pass: the `titled` bound in `place.ts`; a
@@ -216,6 +245,11 @@ by screen side, that nothing enters but the box's own wires on that wall.
   step twice (at most 6) to keep stubs off each other.
 - The one message from outside to inside: `slide` in `lay.ts`, which moves a
   finished container's side port to come level with a wire.
+- `engine.ts`: the sheets are laid out again (not ordered again) when a
+  label was found with no clear place along its wire and has been given
+  room — at most `ROOMS` (2) more times. Whether a label has a clear place
+  is only known once the wires are drawn; a picture whose labels are all
+  clear is laid out once.
 
 ## How to extend it
 
@@ -280,6 +314,9 @@ The list, with what each costs and what to try next, is §8 of
 - `lay.ts`: a container's north and south ports stand where its inside puts
   them; only `slide` (across a gutter) moves a finished container's port to
   meet a wire.
-- A label can be crossed by another wire (never by a box or a label).
+- A label can still be crossed by another wire where room cannot be given:
+  two wires between row-mates that are both containers (their ports are
+  fixed by their insides — 3 labels in the trial set turned rightward), and
+  about one random Problem in five hundred.
 - In a rightward container the title lies along the wall wires enter by; a
   wire may run under it and the renderer draws the title on a halo.

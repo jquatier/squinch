@@ -107,6 +107,13 @@ export function audit(problem: Problem, sol: Solution): string[] {
     }
     if (drawn.label) for (const id of boxes.keys()) if (!boxes.get(id)!.group && inside(drawn.label, rect(id))) bad.push(`label of ${wire.id} overlaps ${id}`);
   }
+  // a label is crossed by nothing but its own wire, and stands on the canvas
+  for (const [id, { label }] of sol.wires) {
+    if (!label) continue;
+    if (label.x < 0 || label.y < 0 || label.x + label.w > sol.width || label.y + label.h > sol.height) bad.push(`label of ${id} leaves the canvas`);
+    for (const [other, { points }] of sol.wires)
+      if (other !== id && points.slice(1).some((q, i) => through(points[i], q, label))) bad.push(`label of ${id} lies on the wire ${other}`);
+  }
   const labels = [...sol.wires].flatMap(([id, w]) => (w.label ? [{ id, r: w.label }] : []));
   for (let i = 0; i < labels.length; i++) for (let j = i + 1; j < labels.length; j++) if (inside(labels[i].r, labels[j].r)) bad.push(`labels of ${labels[i].id} and ${labels[j].id} overlap`);
 

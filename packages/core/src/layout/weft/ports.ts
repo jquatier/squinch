@@ -26,6 +26,10 @@ export interface End {
   mate?: End;
   /** where the port would let the wire run straight, if anywhere */
   meet?: number;
+  /** the width of a label riding on this end's stub… */
+  label?: number;
+  /** …which is room on the wire's own line that the ports either side keep out of (§5.6) */
+  room?: number;
   at: number;
 }
 
@@ -47,6 +51,7 @@ function even(n: number, space: Wallspace): number[] {
 
 /** Place the ports of one wall: `ends` in wall order, each at its `meet` or its even place. */
 export function settle(ends: End[], space: Wallspace): void {
+  if (ends.some((e) => e.room)) return settleWide(ends, space);
   const n = ends.length, spread = even(n, space);
   const tight = (n - 1) * 16 > space.hi - space.lo;
   const gap = tight ? (space.hi - space.lo) / Math.max(1, n - 1) : 16;
@@ -59,13 +64,39 @@ export function settle(ends: End[], space: Wallspace): void {
   ends.forEach((e, i) => { e.at = e.meet !== undefined && Math.abs(at[i] - e.meet) < 0.5 ? e.meet : tight ? Math.round(at[i]) : snap(at[i]); });
 }
 
+/** The same, for a wall where a wire carries its label on the stub at its
+ *  port. A label is as wide as it is and stands across its wire, so the
+ *  wires either side would run through it: each neighbour keeps half the
+ *  label's width away (two labelled neighbours, the wider's half — they
+ *  stand at different depths). Where the wall is too short for that the
+ *  extra is shared out, down to the 16 px any two ports keep. */
+function settleWide(ends: End[], space: Wallspace): void {
+  const n = ends.length, room = space.hi - space.lo;
+  let gaps = ends.slice(1).map((e, i) => Math.max(16, ceilTo(Math.max(ends[i].room ?? 0, e.room ?? 0) / 2 + 4, GRID)));
+  const base = 16 * (n - 1), extra = gaps.reduce((a, g) => a + g - 16, 0);
+  if (base + extra > room) {
+    const share = Math.max(0, room - base) / extra;
+    gaps = base > room ? gaps.map(() => room / Math.max(1, n - 1)) : gaps.map((g) => 16 + floorTo((g - 16) * share, GRID));
+  }
+  const total = gaps.reduce((a, g) => a + g, 0);
+  const spread: number[] = [space.mid - total / 2];
+  for (const g of gaps) spread.push(spread[spread.length - 1] + g);
+  const at = project(ends.map((e, i) => e.meet ?? spread[i]), ends.map((e) => (e.meet === undefined ? 1 : 4)), gaps.map((gap, i) => ({ left: i, right: i + 1, gap })));
+  for (let i = 0; i < n; i++) at[i] = Math.max(at[i], i ? at[i - 1] + gaps[i - 1] : space.lo);
+  for (let i = n - 1; i >= 0; i--) at[i] = Math.min(at[i], i < n - 1 ? at[i + 1] - gaps[i] : space.hi);
+  ends.forEach((e, i) => { e.at = e.meet !== undefined && Math.abs(at[i] - e.meet) < 0.5 ? e.meet : base > room ? Math.round(at[i]) : snap(at[i]); });
+}
+
 /** Ports for the walls facing one channel. `walls`: each leaf wall's ends,
  *  unsorted. Ends whose `mate` is on another leaf's wall are brought level
  *  where both walls allow. */
 export function meetAcross(walls: Map<string, { ends: End[]; space: Wallspace }>): void {
   const sorted = [...walls.values()];
   for (const w of sorted) w.ends.sort((p, q) => p.far - q.far);
-  const solve = () => { for (const w of sorted) settle(w.ends, w.space); };
+  const solve = () => {
+    for (const w of sorted) for (const e of w.ends) e.room = e.label;
+    for (const w of sorted) settle(w.ends, w.space);
+  };
   const spaceOf = (e: End) => walls.get(`${e.slot}|${e.wall}`)!.space;
   // a link between two leaves runs straight where their walls overlap: at
   // the middle of the wall with fewer wires, so that one stays centred

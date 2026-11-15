@@ -15,17 +15,35 @@ import type { Problem, Pt, Rect, Solution } from "./contract.js";
 import { pagePt, pageRect } from "./frame.js";
 import { lay } from "./lay.js";
 import { order } from "./order.js";
-import { weave } from "./sheet.js";
+import { giveRoom, weave } from "./sheet.js";
 import { grow } from "./tree.js";
 import type { Sheet } from "./types.js";
 
 export type { Box, Dir, Group, Problem, Solution, Wire } from "./contract.js";
 
+/** How many times the sheets may be laid out again to give stuck labels room. */
+const ROOMS = 2;
+
 export function solve(problem: Problem): Solution {
   const tree = grow(problem);
   const sheets = weave(tree);
   order(sheets);
-  for (const s of [...sheets].reverse()) s.geo = lay(s, s === sheets[0]);
+  const draw = () => { for (const s of [...sheets].reverse()) s.geo = lay(s, s === sheets[0]); };
+  draw();
+  // A label is crossed by nothing but its own wire (§5.6). Each sheet moves a
+  // crossed label along its wire to a clear place, which costs the picture
+  // nothing. Whether there is such a place is only known once the wires are
+  // drawn; a label with none — parallel wires 16 px apart, each under the
+  // other's label — is then given room on its wire's own line (its
+  // neighbours stand half its width off, through a container's wall too) and
+  // the sheets are laid out again. Bounded: every pass gives room to at least
+  // one more label, and at most `ROOMS` passes are made.
+  for (let pass = 0; pass < ROOMS; pass++) {
+    const stuck = sheets.flatMap((s) => s.geo!.stuck.flatMap((wire) => s.chan.flatMap((links) => links.filter((l) => l.label?.wire === wire && !l.label.room).map((l) => ({ s, l })))));
+    if (!stuck.length) break;
+    for (const { s, l } of stuck) giveRoom(s, l);
+    draw();
+  }
 
   // ── onto the page ──────────────────────────────────────────────────────────
   const root = sheets[0], geo = root.geo!;

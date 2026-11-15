@@ -480,3 +480,62 @@ describe("an aligned set that names two boxes of one rank", () => {
     expect(audit(p, s)).toEqual([]);
   });
 });
+
+// ── a label is crossed by nothing but its own wire (§5.6) ────────────────────
+describe("a label and the wires beside it", () => {
+  const labelled = (boxes: Box[], wires: [string, number?][], over: Partial<Group> = {}): Problem =>
+    ({ root: group(boxes, over), wires: wires.map(([s, w]) => ({ ...wire(s), id: `${s}${w ?? ""}`, label: w ? { w, h: 18 } : undefined })) });
+  /** Labels another wire runs through. */
+  const covered = (s: ReturnType<typeof solve>) => {
+    const hit: string[] = [];
+    for (const [id, { label }] of s.wires) {
+      if (!label) continue;
+      for (const [other, { points }] of s.wires)
+        if (other !== id && points.slice(1).some((q, i) => Math.min(points[i].x, q.x) < label.x + label.w && Math.max(points[i].x, q.x) > label.x && Math.min(points[i].y, q.y) < label.y + label.h && Math.max(points[i].y, q.y) > label.y)) hit.push(`${id} under ${other}`);
+    }
+    return hit;
+  };
+  it("stands two parallel labelled wires far enough apart for both labels", () => {
+    // `read` and `write` between the same two boxes: 16 px apart, each label would lie on the other wire
+    const p = labelled([leaf("a"), leaf("b")], [["a>b", 44], ["a>b", 52]]), s = solve(p);
+    expect(covered(s)).toEqual([]);
+    expect(audit(p, s)).toEqual([]);
+    const [x1, x2] = [...s.wires.values()].map((w) => w.points[0].x);
+    expect(Math.abs(x1 - x2)).toBeGreaterThanOrEqual(52 / 2);     // half the wider label, at least
+    for (const w of s.wires.values()) expect(w.points).toHaveLength(2); // and both still straight
+  });
+  it("does the same for a wire and its return (a mutual pair)", () => {
+    const p = labelled([leaf("a"), leaf("b")], [["a>b", 60], ["b>a", 60]]), s = solve(p);
+    expect(covered(s)).toEqual([]);
+    expect(audit(p, s)).toEqual([]);
+  });
+  it("keeps an unlabelled neighbour off a label too", () => {
+    const p = labelled([leaf("a"), leaf("b")], [["a>b", 70], ["a>b"]]), s = solve(p);
+    expect(covered(s)).toEqual([]);
+    expect(audit(p, s)).toEqual([]);
+  });
+  it("finds room for the labels of three wires into one box", () => {
+    const p = labelled([leaf("x"), leaf("y"), leaf("z"), leaf("bus", 160)], [["x>bus", 80], ["y>bus", 80], ["z>bus", 80]]), s = solve(p);
+    expect(covered(s)).toEqual([]);
+    expect(audit(p, s)).toEqual([]);
+  });
+  it("moves a label along its own wire before it moves any wire", () => {
+    // the labelled wire turns: its label goes onto the run, and the boxes and wires stand where they would without the label's trouble
+    const boxes = () => [leaf("a"), leaf("b"), leaf("c"), leaf("d")];
+    const p = labelled(boxes(), [["a>c"], ["a>d"], ["b>d", 90], ["b>c"]]), s = solve(p);
+    expect(covered(s)).toEqual([]);
+    expect(audit(p, s)).toEqual([]);
+  });
+  it("carries the room through a container's wall to the box inside", () => {
+    const sys = (): Box => ({ id: "sys", w: 0, h: 0, group: group([leaf("sys.x")], { pad: { top: 44, right: 16, bottom: 16, left: 16 } }) });
+    const p = labelled([leaf("a"), leaf("b"), sys()], [["a>sys.x", 60], ["b>sys.x", 60]], pin({ a: 0, b: 0, sys: 1 })), s = solve(p);
+    expect(covered(s)).toEqual([]);
+    expect(audit(p, s)).toEqual([]);
+  });
+  it("leaves a picture whose labels are clear exactly as it was", () => {
+    const p = labelled([leaf("a"), leaf("b"), leaf("c")], [["a>b", 40], ["b>c", 40]]), s = solve(p);
+    const { label } = s.wires.get("a>b40")!, a = s.boxes.get("a")!;
+    expect(label!.x + 20).toBe(a.x + 60);              // centred on its wire, in the gap, where it always stood
+    expect(s.boxes.get("b")!.y - (a.y + 64)).toBe(56); // and the gap no deeper for it
+  });
+});

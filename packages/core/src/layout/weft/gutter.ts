@@ -70,8 +70,13 @@ export function gutters(s: Sheet, dv: number[], fixed: (kid: Kid, wall: "e" | "w
     // two leaves: level, about the middle of what their walls share
     const lo = Math.max(ra[0], rb[0]), hi = Math.min(ra[1], rb[1]);
     const mid = lo <= hi ? Math.round((lo + hi) / 2) : undefined;
+    // …and far enough apart that none runs through another's label: a label
+    // lies along its wire in a downward sheet, but across it in a rightward
+    // one, where it is as deep as it is long
+    const deep = Math.max(0, ...loose.map((e) => e.f.label?.v ?? 0)), far = Math.max(PORT, Math.ceil((deep / 2 + 4) / 8) * 8);
+    const pitch = loose.length > 1 && lo <= hi && (loose.length - 1) * far <= hi - lo ? far : PORT;
     loose.forEach((e, i) => {
-      const off = Math.round((i - (loose.length - 1) / 2) * PORT);
+      const off = Math.round((i - (loose.length - 1) / 2) * pitch);
       const va = free(taken.a, clamp((mid ?? Math.round((ra[0] + ra[1]) / 2)) + off, ra), ra);
       const vb = free(taken.b, clamp(mid === undefined ? Math.round((rb[0] + rb[1]) / 2) + off : va, rb), rb);
       taken.a.push(va); taken.b.push(vb);

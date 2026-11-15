@@ -3,13 +3,13 @@
     "views": 259,
     "totals": {
       "crossings": 25,
-      "bends": 713,
+      "bends": 717,
       "kinks": 0,
       "nearMiss": 0,
       "lopsided": 102,
       "offCentre": 0,
       "unstraight": 6,
-      "labelOnWire": 29
+      "labelOnWire": 0
     }
   },
   "corpus, turned right": {
@@ -22,20 +22,20 @@
       "lopsided": 99,
       "offCentre": 0,
       "unstraight": 3,
-      "labelOnWire": 5
+      "labelOnWire": 0
     }
   },
   "trial": {
     "views": 35,
     "totals": {
       "crossings": 64,
-      "bends": 556,
+      "bends": 560,
       "kinks": 1,
       "nearMiss": 0,
-      "lopsided": 86,
+      "lopsided": 89,
       "offCentre": 0,
       "unstraight": 3,
-      "labelOnWire": 34
+      "labelOnWire": 0
     }
   },
   "trial, turned right": {
@@ -48,20 +48,20 @@
       "lopsided": 85,
       "offCentre": 0,
       "unstraight": 4,
-      "labelOnWire": 7
+      "labelOnWire": 3
     }
   },
   "round2": {
     "views": 35,
     "totals": {
       "crossings": 2,
-      "bends": 361,
+      "bends": 373,
       "kinks": 1,
       "nearMiss": 0,
-      "lopsided": 51,
+      "lopsided": 52,
       "offCentre": 0,
       "unstraight": 4,
-      "labelOnWire": 17
+      "labelOnWire": 0
     }
   },
   "round2, turned right": {
@@ -74,33 +74,33 @@
       "lopsided": 46,
       "offCentre": 0,
       "unstraight": 2,
-      "labelOnWire": 4
+      "labelOnWire": 0
     }
   },
   "random": {
     "views": 80,
     "totals": {
       "crossings": 281,
-      "bends": 2496,
-      "kinks": 10,
+      "bends": 2502,
+      "kinks": 11,
       "nearMiss": 0,
-      "lopsided": 580,
+      "lopsided": 579,
       "offCentre": 2,
       "unstraight": 13,
-      "labelOnWire": 65
+      "labelOnWire": 0
     }
   },
   "random, turned right": {
     "views": 64,
     "totals": {
       "crossings": 236,
-      "bends": 2340,
+      "bends": 2342,
       "kinks": 2,
       "nearMiss": 0,
       "lopsided": 451,
       "offCentre": 4,
       "unstraight": 16,
-      "labelOnWire": 10
+      "labelOnWire": 0
     }
   }
 }
