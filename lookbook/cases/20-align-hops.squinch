@@ -1,5 +1,7 @@
-// `align` puts two nodes on exactly the same axis, for when the automatic
-// layout leaves them a few pixels apart and the near-miss looks like a mistake.
+// `align` puts two nodes on exactly the same axis. Left alone, a node stands
+// under whatever it is wired to — here the record store would sit off to the
+// right, under the one handler that writes to it; `align gw db` puts it on
+// the gateway's axis instead, down the middle of the diagram.
 pack aws
 
 system s "Aligned + Hopped" {
@@ -10,9 +12,7 @@ system s "Aligned + Hopped" {
   db = aws/aurora "System of Record" datastore
 
   gw -> a, b, c
-  b -> db
-  a -> db "writes"
-  c -> db "reads"
+  c -> db "writes"
 }
 
 view s {

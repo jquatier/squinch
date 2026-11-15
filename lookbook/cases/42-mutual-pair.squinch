@@ -1,9 +1,7 @@
 // A bus that one area both publishes to and consumes from — `catalog -> bus`
-// and `bus ~> catalog` lift to a mutual pair with no `rows` anywhere. Ranks
-// break the cycle in declaration order (the first-declared edge keeps its
-// direction), so the pair lands on two ranks: one wire runs down, the other
-// back up. An earlier engine tied the pair on one rank by accident and drew
-// each wire ending in canvas beside the other card.
+// and `bus ~> catalog` are a mutual pair, with no `rows` anywhere. The pair
+// stands on two ranks, in the direction of the edge declared first: one wire
+// runs down, the other back up, each with its own label clear of the other.
 pack logos
 
 identity = sys/lock "Identity"

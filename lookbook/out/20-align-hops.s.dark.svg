@@ -21,16 +21,8 @@
 <path d="M 432 152 L 438 144 L 426 144 Z" fill="#8D8C84"/>
 </g>
 <g>
-<path d="M 264 216 L 264 272" fill="none" stroke="#8D8C84" stroke-width="1.5"/>
+<path d="M 432 216 L 432 227 Q 432 235 424 235 L 272 235 Q 264 235 264 243 L 264 272" fill="none" stroke="#8D8C84" stroke-width="1.5"/>
 <path d="M 264 272 L 270 264 L 258 264 Z" fill="#8D8C84"/>
-</g>
-<g>
-<path d="M 96 216 L 96 227 Q 96 235 104 235 L 208 235 Q 216 235 216 243 L 216 272" fill="none" stroke="#8D8C84" stroke-width="1.5"/>
-<path d="M 216 272 L 222 264 L 210 264 Z" fill="#8D8C84"/>
-</g>
-<g>
-<path d="M 432 216 L 432 227 Q 432 235 424 235 L 320 235 Q 312 235 312 243 L 312 272" fill="none" stroke="#8D8C84" stroke-width="1.5"/>
-<path d="M 312 272 L 318 264 L 306 264 Z" fill="#8D8C84"/>
 </g>
 <g data-path="s.gw" data-kind="leaf">
 <rect x="164" y="32" width="200" height="64" rx="4" fill="url(#sq-surface)" stroke="#3B3B40" stroke-width="1" filter="url(#sq-shadow)"/>
@@ -57,6 +49,5 @@
 <rect x="176" y="284" width="40" height="40" rx="6" fill="#2F2F34"/><clipPath id="clip-sq-aws-aurora-183-291-26"><rect x="183" y="291" width="26" height="26" rx="3"/></clipPath><g clip-path="url(#clip-sq-aws-aurora-183-291-26)"><use href="#sq-aws-aurora" x="183" y="291" width="26" height="26"/></g>
 <text x="228" y="309" font-size="13" font-weight="500" fill="#EDEDEA">System of Record</text>
 </g>
-<g><rect x="194" y="243" width="44" height="18" rx="2" fill="#212124" stroke="#3B3B40" stroke-width="1"/><text x="216" y="256" text-anchor="middle" font-size="11" fill="#9C9B94">writes</text></g>
-<g><rect x="292" y="243" width="41" height="18" rx="2" fill="#212124" stroke="#3B3B40" stroke-width="1"/><text x="313" y="256" text-anchor="middle" font-size="11" fill="#9C9B94">reads</text></g>
+<g><rect x="242" y="243" width="44" height="18" rx="2" fill="#212124" stroke="#3B3B40" stroke-width="1"/><text x="264" y="256" text-anchor="middle" font-size="11" fill="#9C9B94">writes</text></g>
 </svg>

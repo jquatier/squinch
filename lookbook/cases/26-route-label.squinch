@@ -20,9 +20,9 @@ view api {
   scope api
   layout {
     rows [gw] [fn] [db audit]
-    // pick one of the pair by its label, and send it out sideways
-    route fn -> db "write" from east to west
-    // and steer another one the long way round
-    route fn -> audit from west to north
+    // pick one of the pair by its label, and send it out of the side
+    route fn -> db "write" from west
+    // the audit log sits to the right, so its connection leaves that way
+    route fn -> audit from east
   }
 }
