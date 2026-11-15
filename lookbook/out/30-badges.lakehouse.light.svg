@@ -145,7 +145,7 @@
 <g><rect x="265" y="475" width="47" height="18" rx="2" fill="#FFFFFF" stroke="#C7C7C3" stroke-width="1"/><text x="289" y="488" text-anchor="middle" font-size="11" fill="#474744">serves</text></g>
 <g><rect x="437" y="475" width="54" height="18" rx="2" fill="#FFFFFF" stroke="#C7C7C3" stroke-width="1"/><text x="464" y="488" text-anchor="middle" font-size="11" fill="#474744">embeds</text></g>
 <g><rect x="229" y="650" width="54" height="18" rx="2" fill="#FFFFFF" stroke="#C7C7C3" stroke-width="1"/><text x="256" y="663" text-anchor="middle" font-size="11" fill="#474744">retrieval</text></g>
-<g><rect x="483" y="592" width="42" height="18" rx="2" fill="#FFFFFF" stroke="#C7C7C3" stroke-width="1"/><text x="504" y="605" text-anchor="middle" font-size="11" fill="#474744">query</text></g>
+<g><rect x="459" y="592" width="42" height="18" rx="2" fill="#FFFFFF" stroke="#C7C7C3" stroke-width="1"/><text x="480" y="605" text-anchor="middle" font-size="11" fill="#474744">query</text></g>
 <g><rect x="468" y="650" width="41" height="18" rx="2" fill="#FFFFFF" stroke="#C7C7C3" stroke-width="1"/><text x="489" y="663" text-anchor="middle" font-size="11" fill="#474744">JDBC</text></g>
 </g>
 <text x="18" y="32" font-size="19" font-weight="600" letter-spacing="-.01em" fill="#111111">One platform, two licences</text>

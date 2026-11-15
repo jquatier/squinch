@@ -71,6 +71,6 @@
 <text x="952" y="69" font-size="13" font-weight="500" fill="#111111">Foxtrot</text>
 </g>
 <g><rect x="332" y="146" width="33" height="18" rx="2" fill="#FFFFFF" stroke="#C7C7C3" stroke-width="1"/><text x="349" y="159" text-anchor="middle" font-size="11" fill="#474744">skip</text></g>
-<g><rect x="591" y="112" width="51" height="18" rx="2" fill="#FFFFFF" stroke="#C7C7C3" stroke-width="1"/><text x="617" y="125" text-anchor="middle" font-size="11" fill="#474744">far skip</text></g>
+<g><rect x="603" y="112" width="51" height="18" rx="2" fill="#FFFFFF" stroke="#C7C7C3" stroke-width="1"/><text x="629" y="125" text-anchor="middle" font-size="11" fill="#474744">far skip</text></g>
 <g><rect x="840" y="63" width="30" height="18" rx="2" fill="#FFFFFF" stroke="#C7C7C3" stroke-width="1"/><text x="855" y="76" text-anchor="middle" font-size="11" fill="#474744">ack</text></g>
 </svg>

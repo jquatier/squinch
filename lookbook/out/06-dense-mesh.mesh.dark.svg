@@ -136,10 +136,10 @@
 <g><rect x="614" y="240" width="52" height="18" rx="2" fill="#212124" stroke="#3B3B40" stroke-width="1"/><text x="640" y="253" text-anchor="middle" font-size="11" fill="#9C9B94">reserve</text></g>
 <g><rect x="475" y="264" width="42" height="18" rx="2" fill="#212124" stroke="#3B3B40" stroke-width="1"/><text x="496" y="277" text-anchor="middle" font-size="11" fill="#9C9B94">notify</text></g>
 <g><rect x="432" y="450" width="32" height="18" rx="2" fill="#212124" stroke="#3B3B40" stroke-width="1"/><text x="448" y="463" text-anchor="middle" font-size="11" fill="#9C9B94">flag</text></g>
-<g><rect x="294" y="426" width="37" height="18" rx="2" fill="#212124" stroke="#3B3B40" stroke-width="1"/><text x="313" y="439" text-anchor="middle" font-size="11" fill="#9C9B94">case</text></g>
-<g><rect x="295" y="450" width="67" height="18" rx="2" fill="#212124" stroke="#3B3B40" stroke-width="1"/><text x="329" y="463" text-anchor="middle" font-size="11" fill="#9C9B94">movement</text></g>
+<g><rect x="294" y="363" width="37" height="18" rx="2" fill="#212124" stroke="#3B3B40" stroke-width="1"/><text x="313" y="376" text-anchor="middle" font-size="11" fill="#9C9B94">case</text></g>
+<g><rect x="335" y="377" width="67" height="18" rx="2" fill="#212124" stroke="#3B3B40" stroke-width="1"/><text x="369" y="390" text-anchor="middle" font-size="11" fill="#9C9B94">movement</text></g>
 <g><rect x="471" y="426" width="34" height="18" rx="2" fill="#212124" stroke="#3B3B40" stroke-width="1"/><text x="488" y="439" text-anchor="middle" font-size="11" fill="#9C9B94">sent</text></g>
 <g><rect x="803" y="313" width="42" height="18" rx="2" fill="#212124" stroke="#3B3B40" stroke-width="1"/><text x="824" y="326" text-anchor="middle" font-size="11" fill="#9C9B94">views</text></g>
 <g><rect x="440" y="240" width="49" height="18" rx="2" fill="#212124" stroke="#3B3B40" stroke-width="1"/><text x="465" y="253" text-anchor="middle" font-size="11" fill="#9C9B94">invoice</text></g>
-<g><rect x="171" y="426" width="43" height="18" rx="2" fill="#212124" stroke="#3B3B40" stroke-width="1"/><text x="193" y="439" text-anchor="middle" font-size="11" fill="#9C9B94">logins</text></g>
+<g><rect x="143" y="409" width="43" height="18" rx="2" fill="#212124" stroke="#3B3B40" stroke-width="1"/><text x="165" y="422" text-anchor="middle" font-size="11" fill="#9C9B94">logins</text></g>
 </svg>

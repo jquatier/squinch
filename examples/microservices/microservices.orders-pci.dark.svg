@@ -37,12 +37,12 @@
 <path d="M 256 152 L 262 144 L 250 144 Z" fill="#8D8C84"/>
 </g>
 <g opacity="0.35">
-<path d="M 320 216 L 320 379 Q 320 387 328 387 L 368 387 Q 376 387 376 395 L 376 544" fill="none" stroke="#8D8C84" stroke-width="1.5"/>
-<path d="M 376 544 L 382 536 L 370 536 Z" fill="#8D8C84"/>
+<path d="M 320 216 L 320 379 Q 320 387 328 387 L 368 387 Q 376 387 376 395 L 376 499 Q 376 507 384 507 L 384 507 Q 392 507 392 515 L 392 544" fill="none" stroke="#8D8C84" stroke-width="1.5"/>
+<path d="M 392 544 L 398 536 L 386 536 Z" fill="#8D8C84"/>
 </g>
 <g opacity="0.35">
-<path d="M 336 488 L 336 544" fill="none" stroke="#8D8C84" stroke-width="1.5"/>
-<path d="M 336 544 L 342 536 L 330 536 Z" fill="#8D8C84"/>
+<path d="M 328 488 L 328 544" fill="none" stroke="#8D8C84" stroke-width="1.5"/>
+<path d="M 328 544 L 334 536 L 322 536 Z" fill="#8D8C84"/>
 </g>
 <g>
 <path d="M 328 216 L 328 227 Q 328 235 336 235 L 456 235 Q 464 235 464 243 L 464 272" fill="none" stroke="#8D8C84" stroke-width="1.5"/>
@@ -111,10 +111,10 @@
 </g>
 <rect x="341" y="269" width="246" height="102" rx="7" fill="none" stroke="#8B88E8" stroke-width="1.5" opacity="0.8"/>
 <g><rect x="164" y="243" width="57" height="18" rx="2" fill="#212124" stroke="#3B3B40" stroke-width="1"/><text x="193" y="256" text-anchor="middle" font-size="11" fill="#9C9B94">enqueue</text></g>
-<g><rect x="119" y="507" width="83" height="18" rx="2" fill="#212124" stroke="#3B3B40" stroke-width="1"/><text x="161" y="520" text-anchor="middle" font-size="11" fill="#9C9B94">mark shipped</text></g>
+<g><rect x="119" y="515" width="83" height="18" rx="2" fill="#212124" stroke="#3B3B40" stroke-width="1"/><text x="161" y="528" text-anchor="middle" font-size="11" fill="#9C9B94">mark shipped</text></g>
 <g opacity="0.35"><rect x="226" y="115" width="60" height="18" rx="2" fill="#212124" stroke="#3B3B40" stroke-width="1"/><text x="256" y="128" text-anchor="middle" font-size="11" fill="#9C9B94">checkout</text></g>
 <g opacity="0.35"><rect x="340" y="395" width="73" height="18" rx="2" fill="#212124" stroke="#3B3B40" stroke-width="1"/><text x="377" y="408" text-anchor="middle" font-size="11" fill="#9C9B94">price check</text></g>
-<g opacity="0.35"><rect x="286" y="507" width="100" height="18" rx="2" fill="#212124" stroke="#3B3B40" stroke-width="1"/><text x="336" y="520" text-anchor="middle" font-size="11" fill="#9C9B94">decrement stock</text></g>
+<g opacity="0.35"><rect x="278" y="515" width="100" height="18" rx="2" fill="#212124" stroke="#3B3B40" stroke-width="1"/><text x="328" y="528" text-anchor="middle" font-size="11" fill="#9C9B94">decrement stock</text></g>
 <g><rect x="423" y="243" width="83" height="18" rx="2" fill="#212124" stroke="#3B3B40" stroke-width="1"/><text x="465" y="256" text-anchor="middle" font-size="11" fill="#9C9B94">verify identity</text></g>
 <g data-note="below:orders.db">
 <line x1="112" y1="648" x2="112" y2="624" stroke="#3B3B40" stroke-width="1" stroke-dasharray="2 3"/>

@@ -20,19 +20,19 @@
 </defs>
 <g transform="translate(0, 46)">
 <g data-kind="zone" data-zone="onprem" data-zone-kind="onprem"><rect x="48" y="32" width="416" height="112" rx="8" fill="none" stroke="#62625C" stroke-width="1.5" stroke-dasharray="8 5"/></g>
-<g data-kind="zone" data-zone="cloud" data-zone-kind="cloud"><rect x="32" y="200" width="368" height="344" rx="8" fill="none" stroke="#6B5FC9" stroke-width="1.5" stroke-dasharray="8 5"/></g>
-<g data-kind="zone" data-zone="vpc1" data-zone-kind="vpc"><rect x="56" y="380" width="320" height="144" rx="8" fill="none" stroke="#3A6EA8" stroke-width="1.5" stroke-dasharray="8 5"/></g>
+<g data-kind="zone" data-zone="cloud" data-zone-kind="cloud"><rect x="32" y="200" width="384" height="344" rx="8" fill="none" stroke="#6B5FC9" stroke-width="1.5" stroke-dasharray="8 5"/></g>
+<g data-kind="zone" data-zone="vpc1" data-zone-kind="vpc"><rect x="72" y="380" width="320" height="144" rx="8" fill="none" stroke="#3A6EA8" stroke-width="1.5" stroke-dasharray="8 5"/></g>
 <g>
 <path class="sq-flow" d="M 152 124 L 152 155 Q 152 163 160 163 L 184 163 Q 192 163 192 171 L 192 228" fill="none" stroke="#4C47C2" stroke-width="1.5" stroke-dasharray="4 7" stroke-linecap="round"/>
 <path d="M 198 220 L 192 228 L 186 220" fill="none" stroke="#4C47C2" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
 </g>
 <g>
-<path d="M 208 324 L 208 408" fill="none" stroke="#2F2F2C" stroke-width="1.5"/>
-<path d="M 208 408 L 214 400 L 202 400 Z" fill="#2F2F2C"/>
+<path d="M 200 324 L 200 408" fill="none" stroke="#2F2F2C" stroke-width="1.5"/>
+<path d="M 200 408 L 206 400 L 194 400 Z" fill="#2F2F2C"/>
 </g>
 <g>
-<path d="M 360 120 L 360 335 Q 360 343 352 343 L 232 343 Q 224 343 224 351 L 224 408" fill="none" stroke="#2F2F2C" stroke-width="1.5"/>
-<path d="M 224 408 L 230 400 L 218 400 Z" fill="#2F2F2C"/>
+<path d="M 360 120 L 360 335 Q 360 343 352 343 L 272 343 Q 264 343 264 351 L 264 408" fill="none" stroke="#2F2F2C" stroke-width="1.5"/>
+<path d="M 264 408 L 270 400 L 258 400 Z" fill="#2F2F2C"/>
 </g>
 <g data-path="ops" data-kind="person">
 <rect x="280" y="64" width="160" height="56" rx="8" fill="url(#sq-actor)" filter="url(#sq-shadow)"/>
@@ -60,26 +60,26 @@
 <clipPath id="clip-sq-aws-api-gateway-63-301-16"><rect x="63" y="301" width="16" height="16" rx="2"/></clipPath><g clip-path="url(#clip-sq-aws-api-gateway-63-301-16)"><use href="#sq-aws-api-gateway" x="63" y="301" width="16" height="16"/></g>
 <clipPath id="clip-sq-aws-lambda-85-301-16"><rect x="85" y="301" width="16" height="16" rx="2"/></clipPath><g clip-path="url(#clip-sq-aws-lambda-85-301-16)"><use href="#sq-aws-lambda" x="85" y="301" width="16" height="16"/></g>
 </g>
-<path d="M100 504 V508 A8 8 0 0 0 108 516 H324 A8 8 0 0 0 332 508 V504 Z" fill="#E9E9E6" filter="url(#sq-shadow)"/><path d="M100 504 V508 A8 8 0 0 0 108 516 H324 A8 8 0 0 0 332 508 V504" fill="none" stroke="#BDBDB8" stroke-width="1"/><path d="M88.25 504 A8 8 0 0 0 96 510 H336 A8 8 0 0 0 343.75 504 Z" fill="#F3F3F1" filter="url(#sq-shadow)"/><path d="M88.25 504 A8 8 0 0 0 96 510 H336 A8 8 0 0 0 343.75 504" fill="none" stroke="#BDBDB8" stroke-width="1"/>
+<path d="M116 504 V508 A8 8 0 0 0 124 516 H340 A8 8 0 0 0 348 508 V504 Z" fill="#E9E9E6" filter="url(#sq-shadow)"/><path d="M116 504 V508 A8 8 0 0 0 124 516 H340 A8 8 0 0 0 348 508 V504" fill="none" stroke="#BDBDB8" stroke-width="1"/><path d="M104.25 504 A8 8 0 0 0 112 510 H352 A8 8 0 0 0 359.75 504 Z" fill="#F3F3F1" filter="url(#sq-shadow)"/><path d="M104.25 504 A8 8 0 0 0 112 510 H352 A8 8 0 0 0 359.75 504" fill="none" stroke="#BDBDB8" stroke-width="1"/>
 <g data-path="core" data-kind="card">
-<rect x="76" y="408" width="280" height="96" rx="8" fill="url(#sq-surface)" stroke="#C7C7C3" stroke-width="1" filter="url(#sq-shadow)"/>
+<rect x="92" y="408" width="280" height="96" rx="8" fill="url(#sq-surface)" stroke="#C7C7C3" stroke-width="1" filter="url(#sq-shadow)"/>
 <clipPath id="sq-cardclip-280-96"><rect x="0" y="0" width="280" height="96" rx="8"/></clipPath>
-<g transform="translate(76,408)" clip-path="url(#sq-cardclip-280-96)"><rect x="0" y="0" width="3" height="96" fill="url(#sq-accent)"/></g>
-<g transform="translate(76,408)" clip-path="url(#sq-cardclip-280-96)"><rect x="3" y="66" width="277" height="30" fill="#F5F5F4"/><line x1="3" y1="66" x2="280" y2="66" stroke="#E6E6E3" stroke-width="1"/></g>
-<rect x="93" y="421" width="40" height="40" rx="6" fill="#E4E4E1"/><clipPath id="clip-sq-aws-lambda-100-428-26"><rect x="100" y="428" width="26" height="26" rx="3"/></clipPath><g clip-path="url(#clip-sq-aws-lambda-100-428-26)"><use href="#sq-aws-lambda" x="100" y="428" width="26" height="26"/></g>
-<text x="145" y="439" font-size="15" font-weight="500" fill="#111111">Core Platform</text>
-<text x="145" y="454" font-size="11" fill="#474744">APIs and the system of record</text>
-<rect x="319" y="418" width="26" height="26" rx="5" fill="#FFFFFF" stroke="#C7C7C3" stroke-width="1"/>
-<g color="#474744"><use href="#sq-sys-code" x="324" y="423" width="16" height="16"/></g>
-<clipPath id="clip-sq-aws-lambda-87-481-16"><rect x="87" y="481" width="16" height="16" rx="2"/></clipPath><g clip-path="url(#clip-sq-aws-lambda-87-481-16)"><use href="#sq-aws-lambda" x="87" y="481" width="16" height="16"/></g>
-<clipPath id="clip-sq-aws-aurora-109-481-16"><rect x="109" y="481" width="16" height="16" rx="2"/></clipPath><g clip-path="url(#clip-sq-aws-aurora-109-481-16)"><use href="#sq-aws-aurora" x="109" y="481" width="16" height="16"/></g>
+<g transform="translate(92,408)" clip-path="url(#sq-cardclip-280-96)"><rect x="0" y="0" width="3" height="96" fill="url(#sq-accent)"/></g>
+<g transform="translate(92,408)" clip-path="url(#sq-cardclip-280-96)"><rect x="3" y="66" width="277" height="30" fill="#F5F5F4"/><line x1="3" y1="66" x2="280" y2="66" stroke="#E6E6E3" stroke-width="1"/></g>
+<rect x="109" y="421" width="40" height="40" rx="6" fill="#E4E4E1"/><clipPath id="clip-sq-aws-lambda-116-428-26"><rect x="116" y="428" width="26" height="26" rx="3"/></clipPath><g clip-path="url(#clip-sq-aws-lambda-116-428-26)"><use href="#sq-aws-lambda" x="116" y="428" width="26" height="26"/></g>
+<text x="161" y="439" font-size="15" font-weight="500" fill="#111111">Core Platform</text>
+<text x="161" y="454" font-size="11" fill="#474744">APIs and the system of record</text>
+<rect x="335" y="418" width="26" height="26" rx="5" fill="#FFFFFF" stroke="#C7C7C3" stroke-width="1"/>
+<g color="#474744"><use href="#sq-sys-code" x="340" y="423" width="16" height="16"/></g>
+<clipPath id="clip-sq-aws-lambda-103-481-16"><rect x="103" y="481" width="16" height="16" rx="2"/></clipPath><g clip-path="url(#clip-sq-aws-lambda-103-481-16)"><use href="#sq-aws-lambda" x="103" y="481" width="16" height="16"/></g>
+<clipPath id="clip-sq-aws-aurora-125-481-16"><rect x="125" y="481" width="16" height="16" rx="2"/></clipPath><g clip-path="url(#clip-sq-aws-aurora-125-481-16)"><use href="#sq-aws-aurora" x="125" y="481" width="16" height="16"/></g>
 </g>
 <g><rect x="153" y="171" width="79" height="18" rx="2" fill="#FFFFFF" stroke="#C7C7C3" stroke-width="1"/><text x="193" y="184" text-anchor="middle" font-size="11" fill="#474744">nightly batch</text></g>
-<g><rect x="154" y="351" width="108" height="18" rx="2" fill="#FFFFFF" stroke="#C7C7C3" stroke-width="1"/><text x="208" y="364" text-anchor="middle" font-size="11" fill="#474744">normalized events</text></g>
+<g><rect x="146" y="351" width="108" height="18" rx="2" fill="#FFFFFF" stroke="#C7C7C3" stroke-width="1"/><text x="200" y="364" text-anchor="middle" font-size="11" fill="#474744">normalized events</text></g>
 <g><rect x="331" y="171" width="58" height="18" rx="2" fill="#FFFFFF" stroke="#C7C7C3" stroke-width="1"/><text x="360" y="184" text-anchor="middle" font-size="11" fill="#474744">operates</text></g>
 <clipPath id="sq-chip-60-21-85-22"><rect x="60" y="21" width="85" height="22" rx="3"/></clipPath><g data-kind="zone-chip" data-zone="onprem"><rect x="57" y="18" width="91" height="28" rx="4" fill="#E3E3E1"/><rect x="60" y="21" width="85" height="22" clip-path="url(#sq-chip-60-21-85-22)" fill="#62625C1F"/><rect x="60" y="21" width="85" height="22" rx="3" fill="none" stroke="#62625C59" stroke-width="1"/><text x="68" y="36" font-size="11" font-weight="500" fill="#62625C">On-Premises</text></g>
-<clipPath id="sq-chip-182-533-206-22"><rect x="182" y="533" width="206" height="22" rx="3"/></clipPath><g data-kind="zone-chip" data-zone="cloud"><rect x="179" y="530" width="212" height="28" rx="4" fill="#E3E3E1"/><rect x="182" y="533" width="22" height="22" clip-path="url(#sq-chip-182-533-206-22)" fill="#FFFFFF"/><rect x="204" y="533" width="76" height="22" clip-path="url(#sq-chip-182-533-206-22)" fill="#6B5FC91F"/><rect x="280" y="533" width="108" height="22" clip-path="url(#sq-chip-182-533-206-22)" fill="#6B5FC933"/><text x="288" y="548" font-size="11" font-family="SquinchMono, IBM Plex Mono, ui-monospace, monospace" fill="#6B5FC9">acct 4821-7730</text><rect x="182" y="533" width="206" height="22" rx="3" fill="none" stroke="#6B5FC959" stroke-width="1"/><clipPath id="clip-sq-aws-cloud-182-533-22"><rect x="182" y="533" width="22" height="22" rx="2"/></clipPath><g clip-path="url(#clip-sq-aws-cloud-182-533-22)"><use href="#sq-aws-cloud" x="182" y="533" width="22" height="22"/></g><text x="212" y="548" font-size="11" font-weight="500" fill="#6B5FC9">AWS Cloud</text></g>
-<clipPath id="sq-chip-68-369-208-22"><rect x="68" y="369" width="208" height="22" rx="3"/></clipPath><g data-kind="zone-chip" data-zone="vpc1"><rect x="65" y="366" width="214" height="28" rx="4" fill="#E3E3E1"/><rect x="68" y="369" width="22" height="22" clip-path="url(#sq-chip-68-369-208-22)" fill="#FFFFFF"/><rect x="90" y="369" width="97" height="22" clip-path="url(#sq-chip-68-369-208-22)" fill="#3A6EA81F"/><rect x="187" y="369" width="89" height="22" clip-path="url(#sq-chip-68-369-208-22)" fill="#3A6EA833"/><text x="195" y="384" font-size="11" font-family="SquinchMono, IBM Plex Mono, ui-monospace, monospace" fill="#3A6EA8">10.0.0.0/16</text><rect x="68" y="369" width="208" height="22" rx="3" fill="none" stroke="#3A6EA859" stroke-width="1"/><clipPath id="clip-sq-aws-virtual-private-cloud-vpc-68-369-22"><rect x="68" y="369" width="22" height="22" rx="2"/></clipPath><g clip-path="url(#clip-sq-aws-virtual-private-cloud-vpc-68-369-22)"><use href="#sq-aws-virtual-private-cloud-vpc" x="68" y="369" width="22" height="22"/></g><text x="98" y="384" font-size="11" font-weight="500" fill="#3A6EA8">VPC prod-main</text></g>
+<clipPath id="sq-chip-198-533-206-22"><rect x="198" y="533" width="206" height="22" rx="3"/></clipPath><g data-kind="zone-chip" data-zone="cloud"><rect x="195" y="530" width="212" height="28" rx="4" fill="#E3E3E1"/><rect x="198" y="533" width="22" height="22" clip-path="url(#sq-chip-198-533-206-22)" fill="#FFFFFF"/><rect x="220" y="533" width="76" height="22" clip-path="url(#sq-chip-198-533-206-22)" fill="#6B5FC91F"/><rect x="296" y="533" width="108" height="22" clip-path="url(#sq-chip-198-533-206-22)" fill="#6B5FC933"/><text x="304" y="548" font-size="11" font-family="SquinchMono, IBM Plex Mono, ui-monospace, monospace" fill="#6B5FC9">acct 4821-7730</text><rect x="198" y="533" width="206" height="22" rx="3" fill="none" stroke="#6B5FC959" stroke-width="1"/><clipPath id="clip-sq-aws-cloud-198-533-22"><rect x="198" y="533" width="22" height="22" rx="2"/></clipPath><g clip-path="url(#clip-sq-aws-cloud-198-533-22)"><use href="#sq-aws-cloud" x="198" y="533" width="22" height="22"/></g><text x="228" y="548" font-size="11" font-weight="500" fill="#6B5FC9">AWS Cloud</text></g>
+<clipPath id="sq-chip-84-369-208-22"><rect x="84" y="369" width="208" height="22" rx="3"/></clipPath><g data-kind="zone-chip" data-zone="vpc1"><rect x="81" y="366" width="214" height="28" rx="4" fill="#E3E3E1"/><rect x="84" y="369" width="22" height="22" clip-path="url(#sq-chip-84-369-208-22)" fill="#FFFFFF"/><rect x="106" y="369" width="97" height="22" clip-path="url(#sq-chip-84-369-208-22)" fill="#3A6EA81F"/><rect x="203" y="369" width="89" height="22" clip-path="url(#sq-chip-84-369-208-22)" fill="#3A6EA833"/><text x="211" y="384" font-size="11" font-family="SquinchMono, IBM Plex Mono, ui-monospace, monospace" fill="#3A6EA8">10.0.0.0/16</text><rect x="84" y="369" width="208" height="22" rx="3" fill="none" stroke="#3A6EA859" stroke-width="1"/><clipPath id="clip-sq-aws-virtual-private-cloud-vpc-84-369-22"><rect x="84" y="369" width="22" height="22" rx="2"/></clipPath><g clip-path="url(#clip-sq-aws-virtual-private-cloud-vpc-84-369-22)"><use href="#sq-aws-virtual-private-cloud-vpc" x="84" y="369" width="22" height="22"/></g><text x="114" y="384" font-size="11" font-weight="500" fill="#3A6EA8">VPC prod-main</text></g>
 </g>
 <rect x="0" y="622" width="520" height="34" fill="#E3E3E1"/><line x1="0" y1="622" x2="520" y2="622" stroke="#C7C7C3" stroke-width="1"/><text x="502" y="643" text-anchor="end" font-size="11" font-weight="500" letter-spacing=".02em" fill="#85857F">squinch</text>
 <text x="18" y="32" font-size="19" font-weight="600" letter-spacing="-.01em" fill="#111111">Hybrid Estate</text>
