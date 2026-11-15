@@ -1,5 +1,5 @@
 // Semantic diff: what changed in the *architecture*, not in the rendering.
-// Compares two built models — no layout, no ELK, no SVG — so it is fast and
+// Compares two built models — no layout, no SVG — so it is fast and
 // deterministic, and its output is something a human can review in a PR.
 //
 // The load-bearing distinction is structural vs cosmetic: re-ordering rows is

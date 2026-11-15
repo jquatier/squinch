@@ -97,7 +97,7 @@ export function placeNotes(input: NoteInput): NonNullable<Positioned["notes"]> {
   let noteIdx = -1;
   for (const note of list) {
     noteIdx++;
-    // An edge note's inline label, where ELK put it: the room the ladder
+    // The room the engine kept on the wire for an edge note: what the ladder
     // below works in, and where the note goes if no rung of it is clear.
     const reserved = p.noteBoxes?.get(noteIdx);
     // `noteBox`, not a second copy of its arithmetic — see the comment there.
@@ -221,9 +221,9 @@ export function placeNotes(input: NoteInput): NonNullable<Positioned["notes"]> {
     ];
     let x = Math.round(cands[0]?.x ?? 16), y = Math.round(cands[0]?.y ?? 16);
     let found = false;
-    // The room a node-anchored note reserved (sideNotes) is where it goes —
-    // unless something the layout could not see is in it: a coplanar wire off
-    // that face, an earlier note. Then the ladder runs as it would have.
+    // The room a node-anchored note reserved (`Box.room`, plan.ts) is where it goes —
+    // unless something the engine did not place is in it: a pill, a badge, an
+    // earlier note. Then the ladder runs as it would have.
     const room = noteRoom.get(noteIdx);
     if (room && anchor) {
       const L = { x: anchor.x + room.dx, y: anchor.y + room.dy, w: room.w, h: room.h };
@@ -231,7 +231,7 @@ export function placeNotes(input: NoteInput): NonNullable<Positioned["notes"]> {
       const face = NOTE_FACE[rp];
       const along = face === "north" || face === "south";
       const at = ports.filter((pt) => pt.node === anchor!.path && pt.side === face);
-      // centred on a room that may be narrower than the note (leafChild)
+      // centred on a room that may be narrower than the note
       const r = along
         ? { x: L.x + Math.round((L.w - w) / 2), y: L.y, w, h }
         : { x: L.x, y: L.y + Math.round((L.h - h) / 2), w, h };

@@ -1190,7 +1190,8 @@ export function buildProject(input: ProjectFile[]): BuildResult {
           layout.place.push({ node: n, target: tg, relpos: ctx.text(relposNode) as RelPos, loc: ctx.loc(child) });
       } else if (t === "DirectionStmt") {
         // the container's interior flows this way wherever it is opened —
-        // as an expanded frame (its own ELK run, layout.ts) or as the root of
+        // as an expanded frame (the engine lays each container out in its own
+        // direction, layout/plan.ts) or as the root of
         // a view scoped to it
         layout.direction = ctx.text(child.lastChild!) as "down" | "right";
       } else if (t.endsWith("Stmt")) {

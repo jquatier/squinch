@@ -1,9 +1,9 @@
 // The contract between Squinch and a layout engine: what an engine is given
 // and what it gives back. Nothing here says how.
 //
-// `grid/problem.ts` turns a Squinch view into a `Problem`; `grid/layout.ts`
-// turns the `Solution` into the `Positioned` the renderer draws. An engine is
-// one function, `solve(problem: Problem): Solution`.
+// `../plan.ts` turns a Squinch view into a `Problem`; `../layout.ts` turns
+// the `Solution` into the `Positioned` the renderer draws. An engine is one
+// function, `solve(problem: Problem): Solution`.
 
 export type Dir = "down" | "right";
 export type Side = "north" | "south" | "east" | "west";

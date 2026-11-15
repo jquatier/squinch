@@ -220,7 +220,7 @@ for (const p of prompts) {
     // here, though round 3's finding #1 was exactly that. Tried and removed: a
     // render-diff cannot tell a *discarded* hint from a merely *redundant* one,
     // and redundant is the common case — `rows [fd] [app] [sql cache kv ai]`
-    // over a fan-out describes what ELK already does, so the SVGs match and the
+    // over a fan-out describes what the layout already does, so the SVGs match and the
     // hint is still honoured. It fired on 6 of 20 good solutions.
     //
     // The real defect has a real detector instead: the engine warns on hints it

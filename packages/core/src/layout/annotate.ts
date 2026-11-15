@@ -53,8 +53,9 @@ export function annotate(
     }
     return best;
   };
-  /** Halfway along the polyline, not the middle vertex — a two-point coplanar
-   *  run has no middle vertex, and its "middle" would be the arrowhead. */
+  /** Halfway along the polyline, not the middle vertex — a two-point run
+   *  straight across a gutter has no middle vertex, and its "middle" would
+   *  be the arrowhead. */
   const midOfRun = (pts: { x: number; y: number }[]) => {
     const segs = pts.slice(1).map((p, i) => Math.hypot(p.x - pts[i].x, p.y - pts[i].y));
     let left = segs.reduce((a, b) => a + b, 0) / 2;
@@ -74,10 +75,10 @@ export function annotate(
       if (!nums.length) continue;
       const bw = badgeW(e.id);
       const r = e.labelRect;
-      // No pill: the badge is a bead on the wire, centred on the point of the
-      // edge nearest its own label dummy — which ELK placed at the median layer
-      // of *this* edge, so the number can no longer end up beside a neighbour's
-      // line. Falls back to the middle vertex for an edge ELK gave no label.
+      // No pill: the badge is a bead on the wire and reserves nothing. It
+      // sits halfway along this edge's own run — or, if the edge carries a
+      // reservation without a label, at the point of the wire nearest it — so
+      // the number cannot end up beside a neighbour's line.
       if (!r || !e.label) {
         const at = r ? nearestPoint(e.points, r.x + r.w / 2, r.y + r.h / 2) : midOfRun(e.points);
         badges.push({ edgeId: e.id, x: Math.round(at.x - bw / 2), y: at.y - 9, w: bw, h: 18, nums });
@@ -106,9 +107,8 @@ export function annotate(
   // doubles as the gap spacer), and chips historically avoided the 18-tall
   // pill the renderer draws centred inside it — feeding them the raw
   // reservation shifted 7 views by 3px at the gate
-  // e.label too, not just labelRect: unlabelled edges carry 2px spacer labels
-  // (the gap-arithmetic trick), and those come back as ghost labelRects. The
-  // renderer always ignored them (`if (!e.label)`); obstacles must too.
+  // e.label too, not just labelRect: a reservation without a label is not a
+  // pill. The renderer ignores it (`if (!e.label)`); obstacles must too.
   const pillRects = pEdges.filter((e) => e.label && e.labelRect).map((e) => ({
     x: e.labelRect!.x,
     y: e.labelRect!.y + Math.round((e.labelRect!.h - 18) / 2),

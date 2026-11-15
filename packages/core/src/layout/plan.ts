@@ -7,8 +7,8 @@
 //
 // One rule covers every container — root, zone, expanded frame: project the
 // hints onto that container's direct children and hand the engine the result.
-// The ELK engine needed a separate mechanism per kind of container, and had
-// none at all for a zone's inside.
+// (The engine this replaced needed a separate mechanism per kind of container
+// and had none for a zone's inside — docs/notes/layout-engine.md.)
 
 import type { Diagnostic, SModel, SView, RelPos } from "../model/types.js";
 import { resolveView, type ViewGraph, type VNode } from "../view/resolve.js";
@@ -100,8 +100,8 @@ export function arrange(
  * one that is too wide into bands of N; the wires from one source into the
  * later bands of a folded rank are a `bundle`, drawn as one trunk.
  *
- * (The ELK engine could fold exactly two shapes, one chain or one fan-out,
- * and warned on every other.)
+ * (Before weft, `wrap` folded exactly two shapes — one chain or one fan-out —
+ * and warned on every other; docs/notes/wrap.md.)
  */
 export function wrapRows(
   nodes: readonly string[], edges: readonly Edge[], n: number,
@@ -329,8 +329,7 @@ export function plan(model: SModel, view: SView, font: Font): Plan {
   const viewHints: Hints = { rows: view.layout.rows, cols: view.layout.cols, place: view.layout.place };
   // `wrap N` folds whatever it is asked of: the view's reaches every
   // container the view opens, a container's own reaches that container.
-  // (Under ELK a view holding an expanded container or a zone could not be
-  // folded at all.) Each container folds its own direct children.
+  // Each container folds its own direct children.
   const folds = new Map<string, Fold>();
   const foldOf = (container: string, members: readonly string[], edges: readonly Edge[]) => {
     // a container's own `wrap` follows it into every view; the view's reaches the rest
