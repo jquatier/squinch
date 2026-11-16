@@ -1,0 +1,163 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>squinch montage</title>
+<style>
+/*{{FONT_FACES}}*/
+:root {
+/*{{TOKENS}}*/
+}
+html, body { margin: 0; background: var(--canvas); }
+/* The reel is a pure function of time: scripts/montage-video.mts pauses every
+   animation and seeks it, so nothing here reads a clock. One 30.7 s loop; every
+   keyframe percentage is a fraction of it (1 s = 3.257 %). The two zoom dives
+   and their rings are computed from the rendered shop SVGs and spliced in at
+   the placeholder below; all colours are theme tokens. There are no
+   will-change hints on purpose: they pin a layer's raster scale and blur the zooms. */
+
+/* One 30.7s loop at the prompt GIF's size, 940 x 780. 1s = 4.167%. */
+
+/* 0–3.5s · the wall */
+@keyframes sq-wall{0%{opacity:0}1.306%{opacity:1}8.795%{opacity:1}11.398%{opacity:0}100%{opacity:0}}
+@keyframes sq-driftA{0%{transform:translateX(0)}11.398%{transform:translateX(-210px)}100%{transform:translateX(-210px)}}
+@keyframes sq-driftB{0%{transform:translateX(-210px)}11.398%{transform:translateX(0)}100%{transform:translateX(0)}}
+@keyframes sq-band{0%{transform:translateX(-110%)}0.978%{transform:translateX(-110%)}2.932%{transform:translateX(0)}8.145%{transform:translateX(0)}10.421%{transform:translateX(-110%)}100%{transform:translateX(-110%)}}
+
+/* 3–23.6s · the ask, the work, the picture */
+/* The prompt card starts large and centred, then shrinks to a bar on top */
+@keyframes sq-card{
+  0%{left:70px;top:300px;width:800px;height:160px;font-size:34px}
+  16.284%{left:70px;top:300px;width:800px;height:160px;font-size:34px}
+  18.238%{left:30px;top:28px;width:880px;height:56px;font-size:22px}
+  100%{left:30px;top:28px;width:880px;height:56px;font-size:22px}}
+@keyframes sq-caretwin{0%{opacity:1}12.351%{opacity:1}12.43%{opacity:0}100%{opacity:0}}
+@keyframes sq-blink{0%,49%{opacity:1}50%,100%{opacity:0}}
+/* The two dives. One camera, two layers: the outgoing picture scales up about
+   the card that was clicked while that card travels to the middle of the pane;
+   the incoming picture is that card's interior, so it grows from the card's size
+   in lockstep and its centre rides the card's centre. Stops are baked with an
+   ease-in-out and an exponential scale so the zoom keeps one apparent speed.
+   Dive 1 runs 11.2–12.7s, dive 2 runs 16.0–17.5s. */
+/* Late starters carry an animation-delay and put themselves away before the loop wraps, so the next pass never shows stale text. */
+@keyframes sq-type{0%{clip-path:inset(0 100% 0 0)}3.257%{clip-path:inset(0 -2px 0 0)}78.176%{clip-path:inset(0 -2px 0 0)}78.502%{clip-path:inset(0 100% 0 0)}100%{clip-path:inset(0 100% 0 0)}}
+@keyframes sq-line{0%{opacity:0;transform:translateY(8px)}1.173%{opacity:1;transform:translateY(0)}66.775%{opacity:1;transform:translateY(0)}67.101%{opacity:0;transform:translateY(8px)}100%{opacity:0;transform:translateY(8px)}}
+@keyframes sq-lines{0%{opacity:1}28.339%{opacity:1}30.945%{opacity:0}100%{opacity:0}}
+@keyframes sq-pane{0%{opacity:0;transform:translateY(36px)}29.316%{opacity:0;transform:translateY(36px)}31.922%{opacity:1;transform:translateY(0)}100%{opacity:1;transform:translateY(0)}}
+/*{{DIVE_KEYFRAMES}}*/
+@keyframes sq-app{0%{opacity:0}9.772%{opacity:0}11.726%{opacity:1}60.586%{opacity:1}63.844%{opacity:0}100%{opacity:0}}
+/* 19.6–24.8s · the montage: twelve of the densest views in the corpus, cutting faster */
+@keyframes sq-mont{0%{opacity:0}63.518%{opacity:0}63.844%{opacity:1}81.075%{opacity:1}82.704%{opacity:0}100%{opacity:0}}
+@keyframes sq-m0{0%{opacity:0;transform:scale(1.06)}63.844%{opacity:0;transform:scale(1.06)}63.909%{opacity:1;transform:scale(1.06)}64.658%{opacity:1;transform:scale(1)}66.124%{opacity:1;transform:scale(1)}66.189%{opacity:0;transform:scale(1)}100%{opacity:0;transform:scale(1)}}
+@keyframes sq-m1{0%{opacity:0;transform:scale(1.06)}66.124%{opacity:0;transform:scale(1.06)}66.189%{opacity:1;transform:scale(1.06)}66.938%{opacity:1;transform:scale(1)}68.143%{opacity:1;transform:scale(1)}68.208%{opacity:0;transform:scale(1)}100%{opacity:0;transform:scale(1)}}
+@keyframes sq-m2{0%{opacity:0;transform:scale(1.06)}68.143%{opacity:0;transform:scale(1.06)}68.208%{opacity:1;transform:scale(1.06)}68.958%{opacity:1;transform:scale(1)}69.935%{opacity:1;transform:scale(1)}70%{opacity:0;transform:scale(1)}100%{opacity:0;transform:scale(1)}}
+@keyframes sq-m3{0%{opacity:0;transform:scale(1.06)}69.935%{opacity:0;transform:scale(1.06)}70%{opacity:1;transform:scale(1.06)}70.749%{opacity:1;transform:scale(1)}71.564%{opacity:1;transform:scale(1)}71.629%{opacity:0;transform:scale(1)}100%{opacity:0;transform:scale(1)}}
+@keyframes sq-m4{0%{opacity:0;transform:scale(1.06)}71.564%{opacity:0;transform:scale(1.06)}71.629%{opacity:1;transform:scale(1.06)}72.378%{opacity:1;transform:scale(1)}73.029%{opacity:1;transform:scale(1)}73.094%{opacity:0;transform:scale(1)}100%{opacity:0;transform:scale(1)}}
+@keyframes sq-m5{0%{opacity:0;transform:scale(1.06)}73.029%{opacity:0;transform:scale(1.06)}73.094%{opacity:1;transform:scale(1.06)}73.844%{opacity:1;transform:scale(1)}74.397%{opacity:1;transform:scale(1)}74.463%{opacity:0;transform:scale(1)}100%{opacity:0;transform:scale(1)}}
+@keyframes sq-m6{0%{opacity:0;transform:scale(1.06)}74.397%{opacity:0;transform:scale(1.06)}74.463%{opacity:1;transform:scale(1.06)}75.212%{opacity:1;transform:scale(1)}75.635%{opacity:1;transform:scale(1)}75.7%{opacity:0;transform:scale(1)}100%{opacity:0;transform:scale(1)}}
+@keyframes sq-m7{0%{opacity:0;transform:scale(1.06)}75.635%{opacity:0;transform:scale(1.06)}75.7%{opacity:1;transform:scale(1.06)}76.433%{opacity:1;transform:scale(1)}76.775%{opacity:1;transform:scale(1)}76.84%{opacity:0;transform:scale(1)}100%{opacity:0;transform:scale(1)}}
+@keyframes sq-m8{0%{opacity:0;transform:scale(1.06)}76.775%{opacity:0;transform:scale(1.06)}76.84%{opacity:1;transform:scale(1.06)}77.505%{opacity:1;transform:scale(1)}77.818%{opacity:1;transform:scale(1)}77.883%{opacity:0;transform:scale(1)}100%{opacity:0;transform:scale(1)}}
+@keyframes sq-m9{0%{opacity:0;transform:scale(1.06)}77.818%{opacity:0;transform:scale(1.06)}77.883%{opacity:1;transform:scale(1.06)}78.502%{opacity:1;transform:scale(1)}78.795%{opacity:1;transform:scale(1)}78.86%{opacity:0;transform:scale(1)}100%{opacity:0;transform:scale(1)}}
+@keyframes sq-m10{0%{opacity:0;transform:scale(1.06)}78.795%{opacity:0;transform:scale(1.06)}78.86%{opacity:1;transform:scale(1.06)}79.479%{opacity:1;transform:scale(1)}79.772%{opacity:1;transform:scale(1)}79.837%{opacity:0;transform:scale(1)}100%{opacity:0;transform:scale(1)}}
+@keyframes sq-m11{0%{opacity:0;transform:scale(1.06)}79.772%{opacity:0;transform:scale(1.06)}79.837%{opacity:1;transform:scale(1.06)}80.456%{opacity:1;transform:scale(1)}80.749%{opacity:1;transform:scale(1)}80.814%{opacity:0;transform:scale(1)}100%{opacity:0;transform:scale(1)}}
+/* 25.1–30.6s · the close: the two install commands, typed */
+@keyframes sq-inst{0%{opacity:0;transform:translateY(14px)}81.759%{opacity:0;transform:translateY(14px)}83.713%{opacity:1;transform:translateY(0)}98.371%{opacity:1;transform:translateY(0)}99.674%{opacity:0;transform:translateY(0)}100%{opacity:0;transform:translateY(0)}}
+@keyframes sq-type2{0%{clip-path:inset(0 100% 0 0)}2.932%{clip-path:inset(0 -2px 0 0)}21.173%{clip-path:inset(0 -2px 0 0)}21.498%{clip-path:inset(0 100% 0 0)}100%{clip-path:inset(0 100% 0 0)}}
+/* The view bar, as the playground draws it: home, then one hop per altitude. It changes as each zoom lands. */
+@keyframes sq-bar1{0%{opacity:1}39.414%{opacity:1}40.717%{opacity:0}100%{opacity:0}}
+@keyframes sq-bar2{0%{opacity:0}39.414%{opacity:0}40.717%{opacity:1}49.511%{opacity:1}50.814%{opacity:0}100%{opacity:0}}
+@keyframes sq-bar3{0%{opacity:0}49.511%{opacity:0}50.814%{opacity:1}100%{opacity:1}}
+</style>
+</head>
+<body>
+<div style="position: relative; width: 940px; height: 780px; overflow: hidden; background: var(--canvas); color: var(--fg); font-family: Inter, system-ui, sans-serif">
+
+  <!-- Scene 1 · the wall: every kind of view drifting past, then the pitch -->
+  <div style="position: absolute; inset: 0; opacity: 0; animation: sq-wall 30.7s linear infinite">
+    <div style="position: absolute; left: 470px; top: 390px; display: flex; flex-direction: column; align-items: center; gap: 14px; transform: translate(-50%, -50%) rotate(-10deg)">
+      <!--{{WALL}}-->
+    </div>
+    <div style="position: absolute; left: 0; bottom: 78px; padding: 26px 54px 30px 58px; background: var(--canvas); border: 1px solid var(--line-strong); border-left: 0; animation: sq-band 30.7s cubic-bezier(.2,.8,.2,1) infinite">
+      <div style="font-size: 64px; font-weight: 600; letter-spacing: -0.04em; line-height: 1.02">So many<br>possibilities.</div>
+    </div>
+  </div>
+
+  <!-- Scene 2 · the ask, the work, the picture -->
+  <div style="position: absolute; inset: 0; opacity: 0; animation: sq-app 30.7s linear infinite">
+
+    <!-- the prompt: large and centred, then a bar across the top -->
+    <div style="position: absolute; left: 70px; top: 300px; width: 800px; height: 160px; box-sizing: border-box; padding: 0 28px; display: flex; align-items: center; gap: 16px; background: var(--surface); border: 1px solid var(--line); border-radius: 14px; box-shadow: 0 24px 70px var(--shadow); font-size: 34px; font-weight: 500; animation: sq-card 30.7s cubic-bezier(.6,0,.2,1) infinite">
+      <span style="color: var(--accent); font-weight: 600; line-height: 1">›</span>
+      <span style="display: inline-block; white-space: nowrap; clip-path: inset(0 100% 0 0); animation: sq-type 30.7s steps(16, end) infinite; animation-delay: 3.8s">diagram this app</span>
+      <span aria-hidden="true" style="position: absolute; left: 62px; top: 50%; margin-top: -0.55em; width: 3px; height: 1.1em; opacity: 0; animation: sq-caretwin 30.7s linear infinite">
+        <span style="display: block; width: 3px; height: 1.1em; background: var(--fg); animation: sq-blink 1.06s steps(1, end) infinite"></span>
+      </span>
+    </div>
+
+    <!-- what the agent does, until the picture arrives -->
+    <div style="position: absolute; left: 36px; top: 112px; display: flex; flex-direction: column; gap: 16px; font-size: 22px; font-weight: 500; animation: sq-lines 30.7s linear infinite">
+      <div style="display: flex; gap: 14px; align-items: center; opacity: 0; animation: sq-line 30.7s ease-out infinite; animation-delay: 5.8s"><span aria-hidden="true" style="flex: none; width: 10px; height: 10px; border-radius: 50%; background: var(--ok)"></span><span>Using the <span style="color: var(--accent)">squinch</span> skill</span></div>
+      <div style="display: flex; gap: 14px; align-items: center; opacity: 0; animation: sq-line 30.7s ease-out infinite; animation-delay: 6.4s"><span aria-hidden="true" style="flex: none; width: 10px; height: 10px; border-radius: 50%; background: var(--ok)"></span><span>Reading the repo <span style="color: var(--muted)">· {{COUNTS}}</span></span></div>
+      <div style="display: flex; gap: 14px; align-items: center; opacity: 0; animation: sq-line 30.7s ease-out infinite; animation-delay: 7s"><span aria-hidden="true" style="flex: none; width: 10px; height: 10px; border-radius: 50%; background: var(--ok)"></span><span>Writing <span style="font-family: 'IBM Plex Mono', ui-monospace, monospace; font-size: 20px; color: var(--muted)">architecture/shop.squinch</span></span></div>
+      <div style="margin-top: 8px; font-size: 25px; font-weight: 600; letter-spacing: -0.01em; opacity: 0; animation: sq-line 30.7s ease-out infinite; animation-delay: 7.6s">Done. An overview, plus a page for each service.</div>
+    </div>
+
+    <!-- the picture: landscape, zoom into the app, zoom into its database -->
+    <div style="position: absolute; left: 30px; top: 108px; width: 880px; opacity: 0; transform: translateY(36px); animation: sq-pane 30.7s cubic-bezier(.2,.8,.2,1) infinite">
+      <div style="position: relative; width: 880px; height: 664px; background: var(--canvas); border-radius: 14px; box-shadow: 0 0 0 1px var(--line), 0 24px 70px var(--shadow); overflow: hidden">
+        <div style="position: absolute; inset: 48px 0 0 0; opacity: 0; animation: sq-A 30.7s linear infinite">
+          <!--{{shop:landscape}}-->
+          <div aria-hidden="true" style="position: absolute; {{RING_A}}; box-sizing: border-box; border: 2px solid var(--accent); border-radius: 12px; box-shadow: 0 0 0 4px var(--accent-25), 0 0 26px var(--accent-55); opacity: 0; animation: sq-ringA 30.7s linear infinite"></div>
+        </div>
+        <div style="position: absolute; inset: 48px 0 0 0; opacity: 0; animation: sq-B 30.7s linear infinite">
+          <!--{{shop:service}}-->
+          <div aria-hidden="true" style="position: absolute; {{RING_B}}; box-sizing: border-box; border: 2px solid var(--accent); border-radius: 12px; box-shadow: 0 0 0 4px var(--accent-25), 0 0 26px var(--accent-55); opacity: 0; animation: sq-ringB 30.7s linear infinite"></div>
+        </div>
+        <div style="position: absolute; inset: 48px 0 0 0; opacity: 0; animation: sq-C 30.7s linear infinite">
+          <!--{{shop:database}}-->
+        </div>
+        <nav aria-label="Views" style="position: absolute; left: 14px; top: 10px; z-index: 2; display: flex; align-items: center; transform: scale(1.15); transform-origin: 0 0; opacity: 1; animation: sq-bar1 30.7s linear infinite">
+          <div style="display: flex; align-items: center; gap: 1px; padding: 3px; border-radius: 9px; background: var(--pill); box-shadow: 0 0 0 1px var(--line); font-family: Inter, system-ui, sans-serif"><span style="display: flex; flex: none; width: 28px; height: 28px; align-items: center; justify-content: center; border-radius: 6px; background: var(--control); color: var(--accent)"><svg width="15" height="15" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2.5 7.25 8 2.75l5.5 4.5"/><path d="M4 6.25v6.25a1 1 0 0 0 1 1h2V10h2v3.5h2a1 1 0 0 0 1-1V6.25"/></svg></span><span style="flex: none; width: 1px; height: 16px; margin: 0 4px; background: var(--line)"></span><span style="display: flex; align-items: center; gap: 4px; height: 28px; white-space: nowrap; border-radius: 6px; padding: 0 8px 0 10px; font-size: 12.5px; font-style: italic; color: var(--ghost)">8 inside<svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="flex: none; color: var(--text-3)"><path d="m4.5 6.5 3.5 3.5 3.5-3.5"/></svg></span></div>
+        </nav>
+        <nav aria-label="Views" style="position: absolute; left: 14px; top: 10px; z-index: 2; display: flex; align-items: center; transform: scale(1.15); transform-origin: 0 0; opacity: 0; animation: sq-bar2 30.7s linear infinite">
+          <div style="display: flex; align-items: center; gap: 1px; padding: 3px; border-radius: 9px; background: var(--pill); box-shadow: 0 0 0 1px var(--line); font-family: Inter, system-ui, sans-serif"><span style="display: flex; flex: none; width: 28px; height: 28px; align-items: center; justify-content: center; border-radius: 6px; color: var(--muted)"><svg width="15" height="15" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2.5 7.25 8 2.75l5.5 4.5"/><path d="M4 6.25v6.25a1 1 0 0 0 1 1h2V10h2v3.5h2a1 1 0 0 0 1-1V6.25"/></svg></span><span style="flex: none; width: 1px; height: 16px; margin: 0 4px; background: var(--line)"></span><span style="display: flex; align-items: center; gap: 4px; height: 28px; white-space: nowrap; border-radius: 6px; padding: 0 8px 0 10px; font-size: 12.5px; font-weight: 600; color: var(--fg)">Orders<svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="flex: none; color: var(--text-3)"><path d="m4.5 6.5 3.5 3.5 3.5-3.5"/></svg></span><span style="padding: 0 1px; font-size: 13px; color: var(--line-strong)">/</span><span style="display: flex; align-items: center; gap: 4px; height: 28px; white-space: nowrap; border-radius: 6px; padding: 0 8px 0 10px; font-size: 12.5px; font-style: italic; color: var(--ghost)">1 lens<svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="flex: none; color: var(--text-3)"><path d="m4.5 6.5 3.5 3.5 3.5-3.5"/></svg></span><span style="padding: 0 1px; font-size: 13px; color: var(--line-strong)">/</span><span style="display: flex; align-items: center; gap: 4px; height: 28px; white-space: nowrap; border-radius: 6px; padding: 0 10px 0 10px; font-size: 12.5px; font-style: italic; color: var(--ghost)">1 inside</span></div>
+        </nav>
+        <nav aria-label="Views" style="position: absolute; left: 14px; top: 10px; z-index: 2; display: flex; align-items: center; transform: scale(1.15); transform-origin: 0 0; opacity: 0; animation: sq-bar3 30.7s linear infinite">
+          <div style="display: flex; align-items: center; gap: 1px; padding: 3px; border-radius: 9px; background: var(--pill); box-shadow: 0 0 0 1px var(--line); font-family: Inter, system-ui, sans-serif"><span style="display: flex; flex: none; width: 28px; height: 28px; align-items: center; justify-content: center; border-radius: 6px; color: var(--muted)"><svg width="15" height="15" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2.5 7.25 8 2.75l5.5 4.5"/><path d="M4 6.25v6.25a1 1 0 0 0 1 1h2V10h2v3.5h2a1 1 0 0 0 1-1V6.25"/></svg></span><span style="flex: none; width: 1px; height: 16px; margin: 0 4px; background: var(--line)"></span><span style="display: flex; align-items: center; gap: 4px; height: 28px; white-space: nowrap; border-radius: 6px; padding: 0 8px 0 10px; font-size: 12.5px; color: var(--muted)">Orders<svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="flex: none; color: var(--text-3)"><path d="m4.5 6.5 3.5 3.5 3.5-3.5"/></svg></span><span style="padding: 0 1px; font-size: 13px; color: var(--line-strong)">/</span><span style="display: flex; align-items: center; gap: 4px; height: 28px; white-space: nowrap; border-radius: 6px; padding: 0 10px 0 10px; font-size: 12.5px; font-weight: 600; color: var(--fg)">Postgres</span></div>
+        </nav>
+      </div>
+    </div>
+  </div>
+  <!-- Scene 3 · montage -->
+  <div style="position: absolute; inset: 0; opacity: 0; animation: sq-mont 30.7s linear infinite">
+    <img src="{{board:microservices.full}}" alt="microservices, every service open" style="position: absolute; left: 20px; top: 30px; width: 900px; height: 720px; object-fit: contain; opacity: 0; animation: sq-m0 30.7s linear infinite">
+    <img src="{{board:06-dense-mesh.mesh}}" alt="a dense mesh of services" style="position: absolute; left: 20px; top: 30px; width: 900px; height: 720px; object-fit: contain; opacity: 0; animation: sq-m1 30.7s linear infinite">
+    <img src="{{board:27-k8s.cluster}}" alt="a Kubernetes cluster" style="position: absolute; left: 20px; top: 30px; width: 900px; height: 720px; object-fit: contain; opacity: 0; animation: sq-m2 30.7s linear infinite">
+    <img src="{{board:29-google-cloud.platform}}" alt="a Google Cloud platform" style="position: absolute; left: 20px; top: 30px; width: 900px; height: 720px; object-fit: contain; opacity: 0; animation: sq-m3 30.7s linear infinite">
+    <img src="{{board:28-azure.storefront}}" alt="an Azure storefront" style="position: absolute; left: 20px; top: 30px; width: 900px; height: 720px; object-fit: contain; opacity: 0; animation: sq-m4 30.7s linear infinite">
+    <img src="{{board:14-sidecar-routes.app}}" alt="an app with sidecars" style="position: absolute; left: 20px; top: 30px; width: 900px; height: 720px; object-fit: contain; opacity: 0; animation: sq-m5 30.7s linear infinite">
+    <img src="{{board:17-zones.landscape}}" alt="a hybrid estate in zones" style="position: absolute; left: 20px; top: 30px; width: 900px; height: 720px; object-fit: contain; opacity: 0; animation: sq-m6 30.7s linear infinite">
+    <img src="{{board:30-badges.lakehouse}}" alt="a lakehouse platform" style="position: absolute; left: 20px; top: 30px; width: 900px; height: 720px; object-fit: contain; opacity: 0; animation: sq-m7 30.7s linear infinite">
+    <img src="{{board:43-fields.overview}}" alt="tables with their schemas" style="position: absolute; left: 20px; top: 30px; width: 900px; height: 720px; object-fit: contain; opacity: 0; animation: sq-m8 30.7s linear infinite">
+    <img src="{{board:38-container-direction.load}}" alt="a load path, laid out rightward" style="position: absolute; left: 20px; top: 30px; width: 900px; height: 720px; object-fit: contain; opacity: 0; animation: sq-m9 30.7s linear infinite">
+    <img src="{{board:41-preview-card.landscape}}" alt="cards that preview their children" style="position: absolute; left: 20px; top: 30px; width: 900px; height: 720px; object-fit: contain; opacity: 0; animation: sq-m10 30.7s linear infinite">
+    <img src="{{board:21-logos.landscape}}" alt="a stack of vendor logos" style="position: absolute; left: 20px; top: 30px; width: 900px; height: 720px; object-fit: contain; opacity: 0; animation: sq-m11 30.7s linear infinite">
+  </div>
+  <!-- Scene 4 · the close -->
+  <div style="position: absolute; inset: 0; opacity: 0; transform: translateY(14px); animation: sq-inst 30.7s linear infinite">
+    <div style="position: absolute; left: 70px; top: 292px; width: 800px; box-sizing: border-box; padding: 40px 44px; display: flex; flex-direction: column; gap: 28px; background: var(--surface); border: 1px solid var(--line); border-radius: 14px; box-shadow: 0 24px 70px var(--shadow)">
+      <div style="display: flex; align-items: baseline; gap: 20px; font-family: 'IBM Plex Mono', ui-monospace, monospace; font-size: 34px; font-weight: 500">
+        <span style="color: var(--accent); font-weight: 600">$</span>
+        <span style="display: inline-block; white-space: nowrap; clip-path: inset(0 100% 0 0); animation: sq-type2 30.7s steps(16, end) infinite; animation-delay: 25.1s">npm i -g squinch</span>
+        <span style="margin-left: auto; font-family: Inter, system-ui, sans-serif; font-size: 20px; font-weight: 500; color: var(--muted); opacity: 0; animation: sq-line 30.7s ease-out infinite; animation-delay: 26.1s">the CLI</span>
+      </div>
+      <div style="display: flex; align-items: baseline; gap: 20px; font-family: 'IBM Plex Mono', ui-monospace, monospace; font-size: 34px; font-weight: 500">
+        <span style="color: var(--accent); font-weight: 600">$</span>
+        <span style="display: inline-block; white-space: nowrap; clip-path: inset(0 100% 0 0); animation: sq-type2 30.7s steps(17, end) infinite; animation-delay: 26.2s">npx squinch skill</span>
+        <span style="margin-left: auto; font-family: Inter, system-ui, sans-serif; font-size: 20px; font-weight: 500; color: var(--muted); opacity: 0; animation: sq-line 30.7s ease-out infinite; animation-delay: 27.2s">teach your agent</span>
+      </div>
+    </div>
+  </div>
+</div>
+</body>
+</html>
