@@ -1,0 +1,162 @@
+pack aws
+pack logos
+
+person customer "Customer"
+
+system web "Storefront" {
+  description: "React SPA on CloudFront"
+  icon: aws/cloudfront
+  cdn    = aws/cloudfront "CloudFront" { subtitle: "CDN · edge cache" }
+  bucket = aws/s3         "React SPA"  { subtitle: "S3 static site" }
+  cdn -> bucket "origin"
+}
+
+gw = aws/api-gateway "Edge Gateway" { subtitle: "API Gateway · REST" }
+
+system accounts "Accounts" {
+  description: "Sign-in and profiles"
+  icon: aws/cognito
+  api      = aws/lambda   "Accounts API" { subtitle: "Lambda · Node 20" }
+  pool     = aws/cognito  "User Pool"    { subtitle: "Cognito" }
+  profiles = aws/dynamodb "Profiles"     { subtitle: "DynamoDB" }
+  api -> pool
+  api -> profiles
+}
+
+system orders "Orders" {
+  description: "Cart, checkout, fulfilment"
+  icon: aws/lambda
+  tags: #pci
+
+  api    = aws/lambda "Orders API"        { subtitle: "Lambda · Node 20" }
+  queue  = aws/sqs    "Fulfilment Queue"  { subtitle: "SQS FIFO" }
+  worker = aws/lambda "Fulfilment Worker" { subtitle: "Lambda · batch 10" }
+
+  container pg "Postgres" {
+    description: "Orders database"
+    icon: logos/postgresql
+    preview: [orders order_items shipments]
+
+    orders = sys/table "orders" datastore {
+      fields {
+        id           uuid         pk
+        customer_id  uuid         fk ref accounts.profiles
+        status       enum(pending, paid, shipped)
+        total_cents  bigint
+        currency     char(3)
+        created_at   timestamptz
+      }
+    }
+
+    order_items = sys/table "order_items" datastore {
+      fields {
+        order_id    uuid           pk fk ref orders.id
+        sku         text           pk
+        quantity    int
+        unit_price  numeric(10,2)
+      }
+    }
+
+    shipments = sys/table "shipments" datastore {
+      fields {
+        id           uuid         pk
+        order_id     uuid         fk ref orders.id
+        carrier      text
+        tracking_no  text         nullable
+        shipped_at   timestamptz  nullable
+      }
+    }
+
+    order_items -> orders "order_id"
+    shipments   -> orders "order_id"
+  }
+
+  api -> pg             "writes"
+  api ~> queue          "enqueue"
+  queue ~> worker
+  worker -> pg          "records"
+}
+
+system payments "Payments" {
+  description: "Charges and refunds"
+  icon: aws/lambda
+  tags: #pci
+  api    = aws/lambda   "Payments API" { subtitle: "Lambda · Node 20" }
+  ledger = aws/dynamodb "Ledger"       { subtitle: "DynamoDB" }
+  api -> ledger
+}
+
+system catalog "Catalog" {
+  description: "Browse and search"
+  icon: aws/opensearch
+  api      = aws/lambda     "Catalog API"   { subtitle: "Lambda · Node 20" }
+  products = aws/dynamodb   "Products"      { subtitle: "DynamoDB" }
+  index    = aws/opensearch "Product Index" { subtitle: "OpenSearch" }
+  api -> products
+  api -> index "search"
+}
+
+system inventory "Inventory" {
+  description: "Stock and reservations"
+  icon: aws/dynamodb
+  api   = aws/lambda   "Inventory API" { subtitle: "Lambda · Node 20" }
+  stock = aws/dynamodb "Stock"         { subtitle: "DynamoDB" }
+  api -> stock
+}
+
+system notify "Notifications" {
+  description: "Receipts and emails"
+  icon: aws/ses
+  worker = aws/lambda "Notifier" { subtitle: "Lambda · Node 20" }
+  mail   = aws/ses    "SES"      { subtitle: "Email" }
+  worker -> mail
+}
+
+system analytics "Analytics" {
+  description: "Events into the warehouse"
+  icon: aws/redshift
+  stream    = aws/data-firehose "Firehose"  { subtitle: "Delivery stream" }
+  lake      = aws/s3            "Data Lake" { subtitle: "S3 · parquet" }
+  warehouse = aws/redshift      "Warehouse" { subtitle: "Redshift" }
+  stream -> lake
+  lake -> warehouse "load"
+}
+
+bus = aws/eventbridge "Event Bus" { subtitle: "EventBridge" }
+
+customer -> web.cdn "browses"
+web.cdn  -> gw      "REST /api"
+
+gw -> accounts.api "sign in"
+gw -> orders.api   "checkout"
+gw -> catalog.api  "browse"
+
+orders.api -> payments.api   "charge"
+orders.api -> inventory.api  "reserve"
+
+orders.api ~> bus       "OrderPlaced"
+bus ~> notify.worker    "receipt"
+bus ~> analytics.stream "events"
+
+view landscape {
+  title "Shop — landscape"
+  include *
+  exclude customer, inventory, notify, analytics, bus
+  color #pci amber
+  layout { density spacious }
+}
+
+view service {
+  title "Orders — inside the service"
+  scope orders
+  preview pg
+  exclude inventory, bus, worker
+  layout { density spacious }
+}
+
+view database {
+  title "Postgres — the orders database"
+  scope orders
+  expand pg
+  only pg
+}
