@@ -1,6 +1,5 @@
-// Expanded systems side by side, with calls running between them. Same-rank
-// edges route through the gutters between the frames and continue to the
-// card itself where the way in is clear.
+// Expanded systems side by side, with calls running between them. Each call
+// crosses the gutter between the frames and runs on to the card it names.
 pack aws
 
 person customer "Customer"

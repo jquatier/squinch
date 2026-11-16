@@ -117,6 +117,9 @@ export interface SContainer {
     cols?: string[][];
     place: { node: string; relpos: RelPos; target: string; loc: Loc }[];
     direction?: "down" | "right";
+    /** `wrap N` — no row of this container's interior holds more than N
+     *  members, wherever it is opened. */
+    wrap?: { n: number; loc: Loc };
     loc: Loc;
   };
   loc: Loc;

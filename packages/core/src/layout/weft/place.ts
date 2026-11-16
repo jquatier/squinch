@@ -1,0 +1,249 @@
+// Where every slot stands along its row (REQUIREMENTS §5.5): balance first.
+//
+// Each slot has one place it wants, read off its wires, and a weight that
+// says who gives way when two wants collide:
+//
+//   a fan    a slot with two or more wires on its busier side stands over
+//            the middle of them — the middle of the span, or the middle one
+//            of an odd number. This is the heavy want: nothing lighter
+//            moves a box off its balanced place, least of all a wire that
+//            would like to be straight.
+//   a single a slot with one wire on its busier side takes its place among
+//            the others of the fan it belongs to: the boxes one box feeds
+//            stand packed and centred under it. A fan of one is a chain,
+//            and a chain is a straight line.
+//   a chain  one wire in, one out: under whichever end is a fan, so one of
+//            eleven wires leaving a hub does not drag its far end; else
+//            where it already is nearest.
+//   nothing  a slot no forward wire pulls keeps beside its neighbour —
+//            no gaps that nothing is holding open. A wire running back
+//            against the flow follows its boxes and never leads them.
+//
+// Rows are solved one at a time, down the sheet and back up, a fixed number
+// of times; each solve is exact (`project`). Positions are then rounded to
+// the 8-pixel grid, which every gap is a multiple of, so rounding cannot
+// break a gap.
+import { ceilTo, GRID, snap } from "./frame.js";
+import { project, type Gap } from "./project.js";
+import type { Link, Sheet, Wall } from "./types.js";
+
+const HEAVY = 100, LIGHT = 1, THIN = 0.1, IDLE = 1e-9, FAR = 1e6;
+const SWEEPS = 4;
+
+export interface Placing {
+  /** width of each slot along the row, and room past its high side nothing may enter */
+  w: number[]; bleed: number[];
+  /** room before a slot's low side nothing may enter (a leaf's west `room`) */
+  lead: number[];
+  /** clear room wanted between a slot and the next, where a gutter holds more than a gap */
+  gutter: Map<number, number>;
+  /** where on a slot the wire `key` attaches at wall `wall`, measured from the slot's centre */
+  off(slot: number, wall: Wall, key: string): number;
+}
+
+/** Where each slot stands, and the nearest to the west wall each may. */
+export function place(s: Sheet, p: Placing): { u: number[]; low: number[]; off: number[] } {
+  const n = s.slots.length;
+  const ups: Link[][] = Array.from({ length: n }, () => []), downs: Link[][] = Array.from({ length: n }, () => []);
+  for (const links of s.chan) for (const l of links) { downs[l.up].push(l); ups[l.down].push(l); }
+
+  /** Least distance between the centres of two neighbours in a row. */
+  const sep = (a: number, b: number): number => {
+    const A = s.slots[a], B = s.slots[b];
+    // a lane or port whose wire carries a label on the stub beside it keeps its neighbours half the label's width off
+    // …and a lane beside a leaf with such a label at one of its ports stands off the label's end (a port is 8 px in from the corner at least)
+    const stub = A.kind === "box" && B.kind !== "box" ? A.stub ?? 0 : B.kind === "box" && A.kind !== "box" ? B.stub ?? 0 : 0;
+    const room = Math.max(A.room ?? 0, B.room ?? 0), wide = Math.max(room ? room / 2 + 4 : 0, stub ? stub / 2 - 4 : 0);
+    const gap = Math.max(wide, A.kind === "box" && B.kind === "box" ? s.gap.lane : A.kind === "box" || B.kind === "box" ? Math.max(16, s.gap.lane / 2) : 16);
+    return ceilTo(p.w[a] / 2 + p.bleed[a] + Math.max(gap, p.gutter.get(a) ?? 0) + p.lead[b] + p.w[b] / 2, GRID);
+  };
+  /** Least distance between two slots of one row, whatever stands between them. */
+  const apart = (a: number, b: number): number => {
+    const row = s.rows[s.slots[a].row];
+    let d = 0;
+    for (let i = s.at[a]; i < s.at[b]; i++) d += sep(row[i], row[i + 1]);
+    return d;
+  };
+
+  // ── what never changes: the gaps, the walls ────────────────────────────────
+  // variable n is the west wall, held at 0; `aligned` boxes are one variable
+  const rep = s.rep;
+  const WALL = n;
+  const gaps: Gap[] = [], low = new Array<number>(n).fill(0);
+  const titled = s.dir === "down" && s.title ? ceilTo(s.title.u + 8, GRID) : 0;
+  s.rows.forEach((row, k) => row.forEach((slot, i) => {
+    if (i) gaps.push({ left: rep[row[i - 1]], right: rep[slot], gap: sep(row[i - 1], slot) });
+    // a wire that has to turn comes in clear of the title; one that runs
+    // straight into a box of the first rank may pass the end of it (§5.7)
+    const turns = s.slots[slot].kind === "port" ? !downs[slot].some((l) => s.slots[l.down].kind === "box") : k === 1 && s.slots[slot].kind === "lane";
+    low[slot] = ceilTo(k <= 1 && titled && turns ? titled : s.slots[slot].kind === "box" ? s.pad.w + p.lead[slot] + p.w[slot] / 2 : Math.max(16, p.w[slot] / 2 + 8), GRID);
+    if (!i || (k <= 1 && titled && turns)) gaps.push({ left: WALL, right: rep[slot], gap: low[slot] });
+  }));
+  // `columns`: each band wholly before the next, in every rank — through a line between them
+  const bands = s.cell.group.columns ?? [];
+  let lines = 0;
+  bands.slice(1).forEach((band, b) => {
+    const line = n + 1 + lines++;
+    for (const [ids, before] of [[bands[b], true], [band, false]] as const)
+      for (const id of ids) {
+        const x = s.slots.find((q) => q.kid?.id === id);
+        if (!x) continue;
+        const half = ceilTo(p.w[x.i] / 2 + (before ? p.bleed[x.i] : p.lead[x.i]) + s.gap.lane / 2, GRID);
+        gaps.push(before ? { left: rep[x.i], right: line, gap: half } : { left: line, right: rep[x.i], gap: half });
+      }
+  });
+  const vars = n + 1 + lines;
+  const crossRow = lines > 0 || rep.some((r, i) => r !== i);
+
+  // ── a first picture: every row packed, and centred on the widest ───────────
+  const u = new Array<number>(n).fill(0);
+  let widest = 0;
+  const span = s.rows.map((row) => {
+    row.forEach((slot, i) => { u[slot] = i ? u[row[i - 1]] + sep(row[i - 1], slot) : 0; });
+    const len = row.length ? u[row[row.length - 1]] : 0;
+    widest = Math.max(widest, len);
+    return len;
+  });
+  s.rows.forEach((row, k) => row.forEach((slot) => { u[slot] += (widest - span[k]) / 2; }));
+  // …the whole of it clear of the west wall, moved as one so that what was in line stays in line
+  const clear = Math.max(0, ...u.map((x, i) => low[i] - x));
+  for (let i = 0; i < n; i++) u[i] += ceilTo(clear, GRID);
+  const want = [...u], weight = new Array<number>(n).fill(LIGHT);
+  /** how firmly a slot is held: 1 for a fan, halving along each wire that merely follows */
+  const firm = new Array<number>(n).fill(0);
+  const solve = (rows: number[][]) => {
+    if (crossRow) {
+      // one variable per aligned set: it stands where the wires of all its members together put it
+      const W = new Array<number>(vars).fill(0), T = new Array<number>(vars).fill(0);
+      for (let i = 0; i < n; i++) { W[rep[i]] += weight[i]; T[rep[i]] += weight[i] * want[i]; }
+      for (let i = 0; i < vars; i++) T[i] = W[i] ? T[i] / W[i] : 0;
+      W[WALL] = 1e12; T[WALL] = 0;
+      for (let i = n + 1; i < vars; i++) { W[i] = IDLE; T[i] = 0; }
+      const at = project(T, W, gaps);
+      for (let i = 0; i < n; i++) u[i] = at[rep[i]] - at[WALL];
+      return;
+    }
+    for (const row of rows) {
+      if (!row.length) continue;
+      const local = new Map(row.map((slot, i) => [slot, i]));
+      const g = gaps.filter((x) => local.has(x.right) && (x.left === WALL || local.has(x.left)))
+        .map((x) => ({ left: x.left === WALL ? row.length : local.get(x.left)!, right: local.get(x.right)!, gap: x.gap }));
+      const at = project([...row.map((slot) => want[slot]), 0], [...row.map((slot) => weight[slot]), 1e12], g);
+      row.forEach((slot, i) => { u[slot] = at[i] - at[row.length]; });
+    }
+  };
+  solve(s.rows);
+
+  // ── what a slot wants ──────────────────────────────────────────────────────
+  const end = (slot: number, wall: Wall, key: string) => u[slot] + p.off(slot, wall, key);
+  /** Middle of a fan: of the span — or of an odd number, the middle one. */
+  const middle = (xs: number[]): number => {
+    const v = [...xs].sort((a, b) => a - b);
+    return v.length % 2 ? v[v.length >> 1] : (v[0] + v[v.length - 1]) / 2;
+  };
+  /** Where `slot` would stand for the link `l` to run straight. */
+  const straight = (slot: number, l: Link): number =>
+    l.down === slot ? end(l.up, "s", l.key) - p.off(slot, "n", l.key) : end(l.down, "n", l.key) - p.off(slot, "s", l.key);
+  /** `slot`'s place among the slots its neighbour along `l` fans out to:
+   *  packed side by side in row order, centred on the neighbour. */
+  const among = (slot: number, l: Link, forward: (x: Link) => boolean): number => {
+    const below = l.down === slot, hub = below ? l.up : l.down;
+    const fan = (below ? downs[hub] : ups[hub]).filter(forward);
+    if (fan.length < 2 || s.slots[hub].kid?.sheet) return straight(slot, l);
+    const far = (x: Link) => (below ? x.down : x.up), wall: Wall = below ? "n" : "s";
+    const sorted = [...fan].sort((a, b) => s.at[far(a)] - s.at[far(b)] || p.off(far(a), wall, a.key) - p.off(far(b), wall, b.key));
+    const at: number[] = [];
+    sorted.forEach((x, i) => { at.push(i ? at[i - 1] + (far(x) === far(sorted[i - 1]) ? 0 : apart(far(sorted[i - 1]), far(x))) : 0); });
+    const tip = sorted.map((x, i) => at[i] + p.off(far(x), wall, x.key));
+    // an even fan whose ends are an odd number of grid steps apart stands
+    // one step wider, so its middle is on the grid too
+    if (tip.length % 2 === 0 && ((tip[tip.length - 1] - tip[0]) / GRID) % 2) for (let i = tip.length >> 1; i < tip.length; i++) { tip[i] += GRID; at[i] += GRID; }
+    return end(hub, below ? "s" : "n", l.key) + at[sorted.indexOf(l)] - middle(tip);
+  };
+  const aim = (slot: number): void => {
+    const kind = s.slots[slot].kind, hook = s.slots[slot].beside;
+    // a hook's lane keeps close beside its box: the hook is the short way round, not a run along the rank
+    if (hook) { want[slot] = hook.after ? u[hook.box] + apart(hook.box, slot) : u[hook.box] - apart(slot, hook.box); weight[slot] = LIGHT * THIN; firm[slot] = 0; return; }
+    // a wire running back against the flow follows and never leads; so does
+    // a wire to the sheet's own wall — its port goes where the box is
+    let forward = (l: Link) => !l.back && (kind === "port" || (s.slots[l.up].kind !== "port" && s.slots[l.down].kind !== "port"));
+    let up = ups[slot].filter(forward), down = downs[slot].filter(forward), scale = kind === "box" ? 1 : THIN;
+    if (!up.length && !down.length) { up = ups[slot]; down = downs[slot]; forward = () => true; scale *= 0.05; }
+    if (!up.length && !down.length) { want[slot] = s.at[slot] ? -FAR : FAR; weight[slot] = IDLE; firm[slot] = 0; return; }
+    const side = down.length > up.length || (down.length === up.length && down.length > 1) ? down : up.length > down.length ? up : undefined;
+    if (side && side.length > 1) {
+      const runs = side.map((l) => straight(slot, l)), far = side[0].down === slot ? side[0].up : side[0].down;
+      // two containers joined by several wires stand in a column, middle to
+      // middle, unless every wire leans the same way
+      const column = s.slots[slot].kid?.sheet && s.slots[far].kid?.sheet && side.every((l) => (l.down === slot ? l.up : l.down) === far);
+      want[slot] = column ? Math.max(Math.min(...runs), Math.min(Math.max(...runs), u[far])) : middle(runs);
+      weight[slot] = HEAVY * side.length * scale;
+      firm[slot] = 1;
+      return;
+    }
+    weight[slot] = LIGHT * scale;
+    if (side) { want[slot] = among(slot, side[0], forward); firm[slot] = firm[side === up ? up[0].up : down[0].down] / 2; return; }
+    // one in, one out: stay with the end that is a fan; else with the end
+    // that is itself held more firmly — a chain hangs from whatever it leads
+    // to that has a balanced place of its own — and failing that, the one below
+    const a = among(slot, up[0], forward), b = among(slot, down[0], forward);
+    const fanUp = downs[up[0].up].filter(forward).length > 1, fanDown = ups[down[0].down].filter(forward).length > 1;
+    // …but a lane is not a box: it runs straight on to where its wire is
+    // going, and the fan it left is measured out to it
+    const above = fanUp !== fanDown ? fanUp === (kind === "box") : firm[up[0].up] > firm[down[0].down];
+    want[slot] = above ? a : b;
+    firm[slot] = firm[above ? up[0].up : down[0].down] / 2;
+  };
+
+  for (let sweep = 0; sweep < SWEEPS; sweep++)
+    for (const rows of [s.rows, [...s.rows].reverse()])
+      for (const row of rows) {
+        for (const slot of row) aim(slot);
+        // a row nothing pulls stays where it is, centred on its neighbours
+        if (row.every((slot) => weight[slot] <= IDLE)) for (const slot of row) want[slot] = u[slot];
+        solve([row]);
+      }
+  // Nothing almost-right (§4.3). Two ends that cannot slide — a container's
+  // port, a lane — left one grid step out of line would make a jog too short
+  // to draw. One of the two slots takes the step, if its row-mates leave it
+  // room and no other wire of its own is thrown out of line by it. (A leaf's
+  // end is not looked at here: its port slides, later.)
+  const at = u.map(snap);
+  const rigid = (slot: number) => !!s.slots[slot].kid?.sheet || s.slots[slot].kind !== "box";
+  const tip = (slot: number, wall: Wall, key: string) => at[slot] + p.off(slot, wall, key);
+  const gapOf = (l: Link) => tip(l.up, "s", l.key) - tip(l.down, "n", l.key);
+  const short = (d: number) => d !== 0 && Math.abs(d) < 2 * GRID;
+  const free = (slot: number, by: number): boolean => {
+    const row = s.rows[s.slots[slot].row], i = s.at[slot], to = at[slot] + by;
+    if (crossRow || to < low[slot] || (!i && to < at[slot])) return false;
+    if (i && to - at[row[i - 1]] < sep(row[i - 1], slot)) return false;
+    if (i + 1 < row.length && at[row[i + 1]] - to < sep(slot, row[i + 1])) return false;
+    // its other wires: still straight, or a full step out, or ending at a leaf that will slide
+    return [...ups[slot], ...downs[slot]].every((l) => {
+      const d = gapOf(l) + (l.up === slot ? by : -by);
+      return !short(d) || short(gapOf(l)) || !rigid(l.up === slot ? l.down : l.up);
+    });
+  };
+  // (more than once: a lane may only have room to step after its neighbour has)
+  for (let pass = 0, moved = true; moved && pass < 3; pass++) {
+    moved = false;
+    for (const links of s.chan) for (const l of links) {
+      const d = gapOf(l);
+      if (!short(d) || !rigid(l.up) || !rigid(l.down)) continue;
+      if (free(l.down, d)) { at[l.down] += d; moved = true; } else if (free(l.up, -d)) { at[l.up] -= d; moved = true; }
+    }
+  }
+  // No two boxes overlap, whatever was asked (§3.1). Statements that cannot
+  // all hold — an aligned set against `columns`, against the order the
+  // author held a row in, against another set — leave the solver with gaps
+  // it could not keep; each row is then pushed apart to its gaps, and the
+  // members that came off their line are reported.
+  const off: number[] = [];
+  if (crossRow) {
+    for (const row of s.rows) row.forEach((slot, i) => { at[slot] = Math.max(at[slot], low[slot], i ? at[row[i - 1]] + sep(row[i - 1], slot) : -Infinity); });
+    for (let i = 0; i < n; i++) if (at[i] !== at[rep[i]]) off.push(i);
+  }
+  // nothing holds the picture off the west wall: it comes back as far as its nearest slot allows
+  const spare = Math.min(...at.map((x, i) => x - low[i]));
+  return { u: at.map((x) => x - (n ? spare : 0)), low, off };
+}

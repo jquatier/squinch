@@ -196,7 +196,7 @@ let T = themes.light;
 let NAV: NavView[] = [];
 
 /** Which view the bar stands on, and which hop's menu is open (a segment key;
- *  the top level's is ""). */
+ *  the top level's is "#top"). */
 interface BarState { view: string; open?: string }
 type Pt = { x: number; y: number };
 
@@ -474,8 +474,8 @@ const build = async (theme: string) => {
   // pointer reaches it the way the app does: the top hop's menu. A lateral cut,
   // not a dive — siblings have no card to anchor on — and home closes the loop.
   const full = await view("full", theme);
-  const TOP = bar({ view: "landscape" }).hops.get("")!;
-  const menuOpen: BarState = { view: "landscape", open: "" };
+  const TOP = bar({ view: "landscape" }).hops.get("#top")!;
+  const menuOpen: BarState = { view: "landscape", open: "#top" };
   const FULL_ROW = bar(menuOpen).rows.get("full")!;
   frames.push(...approach(land, "a", { view: "landscape" }, from, TOP, 4, 12, 6));
   frames.push(...approach(land, "a", menuOpen, TOP, FULL_ROW, 4, 10, 6));

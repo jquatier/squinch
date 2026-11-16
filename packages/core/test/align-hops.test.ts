@@ -1,9 +1,10 @@
-// align (SPEC §6): an EXACT shared axis — ELK plateaus ~7px off, which is the
-// one thing DESIGN §1.4 forbids, so layout snaps it. Crossing hops (DESIGN
+// align (SPEC §6): an EXACT shared axis — a few pixels off is the one thing
+// DESIGN §1.4 forbids, so the layout solves it as a constraint. Crossing hops (DESIGN
 // §4): crossings break the later edge so they can't read as junctions.
 import { describe, it, expect } from "vitest";
 import { buildModel, layoutView, render, themes } from "../src/index.js";
 import { validateSVG } from "../src/render/validate.js";
+import { checkLayout } from "./invariants.js";
 
 const SRC = `pack aws
 system s "S" {
@@ -57,14 +58,19 @@ describe("align", () => {
       }
   });
 
-  it("refuses to create an overlap, and says why", async () => {
-    // aligning `a` onto gw's axis would drop it on top of `b`
+  it("aligns onto a node that has row-mates without overlapping anything", async () => {
+    // `a` shares a row with `b` and `c`. Sliding `a` under gw would drop it on
+    // `b`; the layout moves what is free to move instead, and the axis is exact.
     const src = SRC.replace("align gw db", "align gw a");
     const built = buildModel(src);
-    const { diagnostics } = await layoutView(built.model, built.model.views.find((v) => v.name === "s")!);
-    const d = diagnostics.find((x) => x.message.includes("align skipped"));
-    expect(d?.message).toContain("would collide");
-    expect(d?.fix).toBeTruthy();
+    const { positioned, diagnostics } = await layoutView(built.model, built.model.views.find((v) => v.name === "s")!);
+    expect(diagnostics).toEqual([]);
+    const at = (path: string) => positioned.nodes.find((n) => n.path === path)!;
+    expect(centre(at("s.a"))).toBe(centre(at("s.gw")));
+    expect(checkLayout(positioned)).toEqual([]);
+    // the row is still a row, in the order written
+    expect(at("s.a").x + at("s.a").w).toBeLessThanOrEqual(at("s.b").x);
+    expect(at("s.b").x + at("s.b").w).toBeLessThanOrEqual(at("s.c").x);
   });
 
   it("align with one element warns", () => {
@@ -308,40 +314,37 @@ view s {
   });
 });
 
-describe("a rank conflict offers the line to paste", () => {
-  // Round 17: 27-rank-conflict hit the *same* conflict on two consecutive
-  // attempts — the edit between them addressed nothing, so the agent was
-  // guessing at arrangements rather than applying the fix. The diagnostics in
-  // this engine that get applied in one iteration write the corrected text out;
-  // the ones offering a choice between two abstract edits get guessed at.
-  const conflict = async (rows: string) => {
-    const built = buildModel(
-      `pack aws\nsystem s "S" {\n  x = aws/lambda "x"\n  y = aws/lambda "y"\n  c = aws/lambda "c"\n  z = aws/lambda "z"\n  x -> y\n  y -> c\n  z -> y\n}\nview v {\n  scope s\n  layout { rows ${rows} }\n}\n`,
-    );
-    const { diagnostics } = await layoutView(
-      built.model, built.model.views.find((v) => v.name === "v")!,
-    );
-    return diagnostics.find((d) => d.message.includes("runs upward"));
+describe("an edge that runs up the declared rows is drawn", () => {
+  // `rows [x] [y] [z]` with `z -> y` used to be refused as a hint conflict,
+  // and round 17's agents hit it twice running. The rows are what the author
+  // asked for and the edge is a fact about the system: both are kept, and the
+  // wire simply runs upward.
+  const lay = async (body: string, rows: string) => {
+    const built = buildModel(`pack aws\nsystem s "S" {\n${body}\n}\nview v {\n  scope s\n  layout { rows ${rows} }\n}\n`);
+    expect(built.diagnostics.filter((d) => d.severity === "error")).toEqual([]);
+    return layoutView(built.model, built.model.views.find((v) => v.name === "v")!);
   };
+  const leaf = (...ids: string[]) => ids.map((id) => `  ${id} = aws/lambda "${id}"`).join("\n");
 
-  it("writes the merged bands out when the merge is safe", async () => {
-    // no `y -> c` in the way here: c sits with z, so moving y down is clean
-    const built = buildModel(
-      `pack aws\nsystem s "S" {\n  x = aws/lambda "x"\n  y = aws/lambda "y"\n  z = aws/lambda "z"\n  x -> y\n  z -> y\n}\nview v {\n  scope s\n  layout { rows [x] [y] [z] }\n}\n`,
-    );
-    const { diagnostics } = await layoutView(
-      built.model, built.model.views.find((v) => v.name === "v")!,
-    );
-    const d = diagnostics.find((x) => x.message.includes("runs upward"))!;
-    expect(d).toBeDefined();
-    expect(d.fix).toBe("write `rows [s.x] [s.y s.z]` — equal ranks are legal, and route side to side");
+  it("keeps the rows as written and runs the wire from the lower row to the upper", async () => {
+    const { positioned, diagnostics } = await lay(`${leaf("x", "y", "z")}\n  x -> y\n  z -> y`, "[x] [y] [z]");
+    expect(diagnostics).toEqual([]);
+    expect(checkLayout(positioned)).toEqual([]);
+    const at = (path: string) => positioned.nodes.find((n) => n.path === path)!;
+    expect(at("s.x").y + at("s.x").h).toBeLessThanOrEqual(at("s.y").y);
+    expect(at("s.y").y + at("s.y").h).toBeLessThanOrEqual(at("s.z").y);
+    const up = positioned.edges.find((e) => e.from === "s.z" && e.to === "s.y")!;
+    expect(up.points[0].y).toBeGreaterThan(up.points[up.points.length - 1].y);
   });
 
-  it("falls back to prose when the merge would break a different edge", async () => {
-    // moving `y` into `z`'s band puts it below `c`, so `y -> c` would then run
-    // upward — a suggestion that trades one conflict for another
-    const d = (await conflict("[x] [y c] [z]"))!;
-    expect(d).toBeDefined();
-    expect(d.fix).toBe("put `s.y` in a row below `s.z`, or drop one of them from `rows`");
+  it("does so beside a same-row edge out of the node it points at", async () => {
+    // `y -> c` runs along the middle row while `z -> y` comes up into it
+    const { positioned, diagnostics } = await lay(`${leaf("x", "y", "c", "z")}\n  x -> y\n  y -> c\n  z -> y`, "[x] [y c] [z]");
+    expect(diagnostics).toEqual([]);
+    expect(checkLayout(positioned)).toEqual([]);
+    const at = (path: string) => positioned.nodes.find((n) => n.path === path)!;
+    expect(at("s.y").y).toBe(at("s.c").y);
+    expect(at("s.z").y).toBeGreaterThanOrEqual(at("s.y").y + at("s.y").h);
+    expect(positioned.edges.map((e) => `${e.from}>${e.to}`).sort()).toEqual(["s.x>s.y", "s.y>s.c", "s.z>s.y"]);
   });
 });

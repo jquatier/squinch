@@ -1,0 +1,23 @@
+// Trial diagram for the grid engine — not part of the corpus, never tuned against.
+start = box "Place order"
+reserve = box "Reserve stock"
+charge = box "Charge card"
+ship = box "Create shipment"
+done = box "Confirm"
+refund = box "Refund"
+release = box "Release stock"
+cancel = box "Cancel order"
+start -> reserve
+reserve -> charge
+charge -> ship
+ship -> done
+ship -> refund "shipment failed"
+refund -> release
+charge -> release "declined"
+release -> cancel
+cancel -> start "retry"
+view saga { include *
+  layout { rows [start] [reserve] [charge] [ship] [done]
+    place refund right-of ship
+    place release right-of reserve
+    place cancel right-of start } }

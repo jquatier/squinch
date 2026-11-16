@@ -1,0 +1,34 @@
+// Trial diagram for the grid engine — not part of the corpus, never tuned against.
+crm = box "CRM export"
+web = box "Web events"
+pos = box "POS feed"
+erp = box "ERP dump"
+iot = box "Sensor stream"
+ingest = box "Ingest"
+validate = box "Validate"
+enrich = box "Enrich"
+dedupe = box "Dedupe"
+merge = box "Merge"
+wh = box "Warehouse"
+bi = box "Dashboards"
+ml = box "Feature store"
+export = box "Partner export"
+dlq = box "Dead letters"
+crm -> ingest
+web ~> ingest
+pos -> ingest
+erp -> ingest "nightly"
+iot ~> ingest "stream"
+ingest -> validate
+validate -> enrich "valid rows"
+validate -> dedupe
+validate ~> dlq "rejects"
+enrich -> merge
+dedupe -> merge
+merge -> wh "load"
+wh -> bi
+wh -> ml
+wh -> export "weekly"
+view down { include * }
+view right { include *
+  layout { direction right } }

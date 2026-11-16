@@ -3,6 +3,7 @@
 import { describe, it, expect } from "vitest";
 import { buildModel, layoutView, render } from "../src/index.js";
 import { validateSVG } from "../src/render/validate.js";
+import { checkLayout } from "./invariants.js";
 
 const SRC = `pack aws
 system s "Orders" {
@@ -39,15 +40,20 @@ describe("channel", () => {
     // every member ends at the same point: one arrow into the target
     const tips = new Set(members.map((e) => `${e.points.at(-1)!.x},${e.points.at(-1)!.y}`));
     expect(tips.size).toBe(1);
-    // and they share the trunk's y
-    const trunkYs = new Set(members.map((e) => e.points[1].y));
-    expect(trunkYs.size).toBe(1);
-    // the trunk sits between the sources and the target
+    // the members that have to turn do so on one line — the trunk — which
+    // lies between the sources and the target
     const db = positioned.nodes.find((n) => n.path === "s.db")!;
     const create = positioned.nodes.find((n) => n.path === "s.create")!;
-    const trunkY = members[0].points[1].y;
+    const turning = members.filter((e) => e.points.length > 2);
+    expect(turning.length).toBeGreaterThanOrEqual(2);
+    const trunkYs = new Set(turning.map((e) => e.points.at(-2)!.y));
+    expect(trunkYs.size).toBe(1);
+    const [trunkY] = trunkYs;
     expect(trunkY).toBeGreaterThan(create.y + create.h);
     expect(trunkY).toBeLessThan(db.y);
+    // and the single entry is from above, on the target's top edge
+    expect(members[0].points.at(-1)!.y).toBe(db.y);
+    expect(checkLayout(positioned, { channelTargets: new Set(["s.db"]) })).toEqual([]);
   });
 
   it("moves the ports with the geometry so labels follow the wire", async () => {

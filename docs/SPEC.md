@@ -184,13 +184,17 @@ system checkout "Checkout" {
 }
 ```
 
-It accepts `rows`, `cols`, `place` and `direction` (§6); the other layout statements
-describe a view and are refused with the view named as the fix. Members are the
+It accepts `rows`, `cols`, `place`, `direction` and `wrap` (§6); the other layout
+statements describe a view and are refused with the view named as the fix. `wrap N`
+there is the container's own fold — no row of its interior holds more than N members
+— and it follows the container wherever it is opened, expanded inside another view or
+as the root of the view scoped to it. Members are the
 container's direct children — a leaf, or a child container ranked as one unit — so a
 deeper path is an error naming the child's own block, and an outside path is an error
 naming the view-level band to write instead. Two blocks in one container is an error.
 The block is dormant while the container is collapsed, and a member a view has filtered
-out drops from its band without comment.
+out drops from its band without comment. An edge that runs against the block's rows —
+from a lower row to a higher one — is drawn running upward; it is not an error.
 
 A view's own hints win, per container and all or nothing: when a view's
 `rows`/`cols`/`place` relate two or more of a container's members, they replace that
@@ -326,10 +330,12 @@ expansion (recursive, and independent of declaration order), so the model record
 shared members either way — `contains` still yields a set of nodes, and a zone id
 remains a hard error anywhere a node is meant, such as an edge endpoint.
 
-For layout, a zone is one unit — like an expanded container, ranks apply to the
-zone as a whole and the engine lays out freely inside it (`rows` can pin a zone
-by its id). A zone that would cut through an expanded container (containing some
-of its children but not the container itself) is a render error in that view.
+For layout, a zone is a container like any other. From outside it is one unit —
+a hint naming one of its members, or the zone's own id (`rows [gw] [prod_vpc]`),
+places the whole boundary. Inside it, hints naming two or more of its members
+arrange them (§6), and what no hint names is laid out automatically. A zone that
+would cut through an expanded container (containing some of its children but not
+the container itself) is a render error in that view.
 
 ### Flows (numbered paths)
 
@@ -461,7 +467,9 @@ view shop {
 Notes are view-level commentary (never model facts): anchored relative to a node
 (`right-of`/`left-of`/`above`/`below`), to an edge (`on a -> b`), or to a canvas
 corner (`top-left`…`bottom-right`) — the no-coordinates principle applies to notes
-too. Themes style them as callouts.
+too. Themes style them as callouts. A note beside a node has its room kept there by
+the layout — inside the node's own container or zone when it is in one — and a note
+on an edge has its room kept beside that wire; the authored side never changes.
 
 - Every `system`/`container` gets an auto-generated default view (`view <path>`), so
   double-click-to-zoom always works even with zero `view` blocks written. Declaring
@@ -597,13 +605,13 @@ In an `expand *` view no in-scope endpoint has anywhere to lift — every leaf i
 visible — so every interior edge is native and nothing aggregates; only edges
 to context cards still lift. Full detail *means* de-aggregated.
 
-Same-rank edges between the interiors of two units — expanded containers or
-zones, banded side by side by a `rows` line — route **wall-to-wall**: the wire
-leaves one boundary at its leaf's height, crosses the gutter — jogging at
-mid-gutter when the two heights differ — and enters the other's. Each end then
-continues straight to the leaf's own edge when the corridor between boundary
-and leaf is empty, and stops at the boundary otherwise; it never turns inside
-a container or zone (docs/notes/coplanar.md, approaches #5 and #6).
+**Every drawn edge ends on the element it names.** An edge whose end is a
+leaf inside an expanded container or a zone crosses that boundary and runs on
+to the leaf itself, whatever the two ends' ranks — between the interiors of
+two containers banded side by side, between rows, or against the flow. The one
+edge a view cannot draw is one whose end still contains the other after
+lifting and that rule 2 did not hide: it is left out with a warning,
+"`a` → `b` is not drawn — one end is inside the other".
 
 ### Zoom navigation
 
@@ -615,8 +623,15 @@ SVGs — click-to-zoom works in committed SVGs on GitHub with zero JavaScript.
 ## 6. Layout (the three tiers)
 
 Inside a `layout { ... }` block — a view's, or a container's own (§3, which takes
-`rows`/`cols`/`place`/`direction` only). Everything optional; auto-layout (ELK,
-deterministic, declaration-order-stable) fills every gap.
+`rows`/`cols`/`place`/`direction`/`wrap` only). Everything optional; auto-layout
+(deterministic, declaration-order-stable) fills every gap.
+
+What auto-layout promises, with or without hints: no edge passes through an
+element it does not end on; every edge that can be drawn is drawn, including
+one between two elements of the same row and one that runs against the flow;
+elements nobody placed keep their declared order unless leaving it removes a
+crossing; an element whose edges fan out stands over the middle of them. How
+that is achieved is not part of the language (docs/notes/layout-engine.md).
 
 ### Tier 0 — view-level knobs
 
@@ -625,31 +640,30 @@ layout {
   direction down          // down | right (default down)
   lines orthogonal        // orthogonal | curved | straight (default orthogonal, rounded)
   density comfortable     // compact | comfortable | spacious
-  wrap 5                  // fold a chain or a fan-out into bands of at most 5
+  wrap 5                  // no row holds more than 5: wider ones fold into bands
 }
 ```
 
-`wrap N` is aspect-ratio control for the two shapes that have none: a single
-chain folds into a serpentine (bands alternate direction, so the hop between
-bands is one short vertical), and a single source fanning out to leaves folds
-its targets into bands under it, the band-skipping edges drawn as one bus —
-a spine down the first band's middle gap, one trunk per band, a drop into each
-target — or down a lane beside the widest band when the spine has no clear
-run. It is a `rows` line the engine writes, so `wrap` beside `rows` or `cols`
-is an error, and on any other graph — a diamond, a second source, an expanded
-container, a zone, or a fold that would leave one band — it warns and writes
-the `rows` line to use by hand instead (docs/notes/wrap.md records what was
-tried and why a hand-written fold cannot be fixed by routing alone).
+`wrap N` is the aspect-ratio control: no row holds more than N. It folds
+every row wider than N — in the view, and in every container the view opens;
+a container's own `wrap` (§3) is used for that container instead, and follows
+it into every view. A single chain folds into a serpentine (bands alternate
+direction, so the hop between bands is one short step); any other row keeps
+its rank and splits into bands of N that stand in columns, with the edges
+from one source into the later bands — and from the earlier bands on to one
+shared target — drawn as one trunk with branches. A fold is a `rows` line
+written for you, so `wrap` beside `rows` or `cols` in one block is an error.
+The one warning is "`wrap N` has no effect — no row here is wider than N".
+A band is a rank, so under `direction right` a fold makes columns, not rows
+(docs/notes/wrap.md).
 
 `direction` is also the one Tier-0 knob a container's own block takes (§3): a
 pipeline that reads left to right inside a view that flows down says `direction
 right` in its own `layout { }`, and that holds wherever the container is opened.
-An expanded container with its own direction is laid out as its own run; edges
-crossing its wall enter and leave through the wall and continue to the leaf
-(docs/notes/coplanar.md, approach #7). A wire that runs through a frame's title
-strip on the way in is drawn behind the title, which sits on a halo — the
-zone-chip rule, applied to frame titles. A direction equal to the one already in
-effect around the container is a no-op.
+Edges crossing its boundary enter and leave through it and continue to the
+leaf. A wire that runs through a frame's title on the way in is drawn behind
+the title, which sits on a halo — the zone-chip rule, applied to frame titles.
+A direction equal to the one already in effect around the container is a no-op.
 
 ### Tier 1 — placement hints (where 90% of tuning happens)
 
@@ -666,9 +680,23 @@ layout {
 - Hints reach inside expanded containers: `rows [gw] [app.api] [app.db app.cache]`
   ranks and orders `app`'s members within its frame. The container's own `layout { }`
   (§3) is the primary spelling for that — it follows the container into every view —
-  and view-level paths are the per-view override. Two members of one container asked to
-  share a row *with an edge between them* is a warning: same-rank edges route between
-  units, not inside a frame, so the engine layers them apart.
+  and view-level paths are the per-view override. The same holds for a zone: hints
+  naming its members arrange them inside it, and a hint may name the zone itself by
+  its id to place the whole boundary.
+- Two elements may share a row *with an edge between them* — at the top level, inside
+  an expanded container, inside a zone. Neighbours join straight across; an edge that
+  reaches past a row-mate goes round under the row.
+- An edge may run **against** the rows: `rows [a] [b]` with `b -> a` is drawn, leaving
+  the top of `b` and entering the bottom of `a`. Rows say where things stand; they are
+  not a claim about which way every edge points.
+- A row is kept whole. An unlisted element on a path between two row-mates is ranked
+  around the row; it never splits it.
+- `align a b` puts `b` on `a`'s axis exactly, and `cols` gives each column one axis;
+  both hold inside a container too. They relate elements in *different* rows: asked of
+  elements in one row it is a warning ("… sit on the same rank, so they cannot share
+  an axis" — that is `rows`), and where elements sit in different containers, or
+  another hint holds them apart, it is a warning naming the ones that "could not be
+  put on" the first one's axis.
 - One `rows` (or `cols`, `direction`) line per block: a second is an error, never a
   silent winner.
 - A full fixed grid needs no separate construct: `rows` and `cols` pin different
@@ -677,10 +705,14 @@ layout {
   (The once-planned `grid` statement was dropped as redundant on that basis.)
 - Hints are per-view, keyed by node id (semantic + diffable). A hint referencing a
   removed/renamed id is a *warning*, never a silent relayout.
-- **Contradictions are errors, never silent**: conflicting hints (`place a right-of b`
-  + `place b right-of a`, a `rows` rank fighting an `align`) and constraint cycles
-  fail `check` with both locations named. A silently dropped hint would strand the
-  agent loop; a clear conflict error gets fixed in one iteration.
+- **Nothing is dropped in silence.** Hints that contradict each other are errors:
+  `place a right-of b` + `place b right-of a`, a `place` that puts a banded element
+  somewhere its band does not, an element listed in `rows` twice, a second `rows` line,
+  `wrap` beside `rows`. A hint that is consistent but cannot be given in this view is
+  a warning that names it: the `align`/`cols` cases above, a `route` side that cannot
+  be used (Tier 2), a `wrap` that folds nothing, a `channel` whose edges are not all
+  visible. A silently dropped hint would strand the agent loop; a diagnostic gets
+  fixed in one iteration.
 
 ### Tier 2 — edge routing
 
@@ -691,8 +723,20 @@ layout {
 }
 ```
 
-`from`/`to` name the sides an edge leaves and enters; sides only apply to edges
-that span rows, since a same-rank edge already runs face to face. Waypoint
+`from`/`to` name the sides an edge leaves and enters. They apply to edges that
+span rows: on an edge between two elements of one row the sides are ignored with a
+warning ("sides are ignored — it is a same-rank edge"), since such an edge already
+runs face to face. Where a side cannot be used the edge keeps its natural side and
+the check warns "could not use the side it asks for here": that wall already carries
+an edge running straight across to a neighbour, the edge is part of a `channel` or a
+`wrap` trunk, or that end is a container. A `route` matching several edges between
+one pair needs the edge's label to say which; without it, it is an error.
+
+`channel a, b, c -> t` draws the listed edges into `t` as one trunk with a branch
+per source. It applies where the target and at least two of the edges are visible
+in the view, and warns otherwise.
+
+Waypoint
 modifiers were considered and rejected — [notes/routing-hints.md](notes/routing-hints.md)
 records why, so the case does not get reopened from memory.
 
@@ -789,7 +833,9 @@ sep         = nl | ";" | "," ;                (* interchangeable *)
 Whitespace-insensitive; statements end at newline or `;`. **A comma is never required
 where whitespace already separates, and never an error where a list is being written** —
 `rows [a, b]`, `align a, b`, `highlight #a, #b` and `{ style: dashed, animate: slow }`
-all parse, as principle 3 above has promised since v0. The two exceptions are a path
+all parse, as principle 3 above has promised since v0 — and so does
+`{ style: dashed  animate: slow }`: attributes on one line need nothing between them,
+since a value is one run and the next attribute starts `key:`. The two exceptions are a path
 list, where the comma is what distinguishes `a -> b, c` from a label
 (`contains`, `channel`, `only` follow it), and a tag *value* — `tags: #a #b`, because
 after a comma there the parser cannot tell another tag from the next attribute key.
@@ -835,7 +881,7 @@ order-service.squinch:44:3   `rows` lists `files` twice
   a node can hold only one rank position; remove one occurrence
 
 order-service.squinch:18:5   `lines` describes a view, not a container's interior
-  move it to the view's `layout { }`; inside `shop` only rows, cols, place and direction apply
+  move it to the view's `layout { }`; inside `shop` only rows, cols, place, direction and wrap apply
 
 order-service.squinch:19:11  `workers.sync` is inside `workers`, not a direct member of `shop`
   arrange it in `workers`'s own layout block: `container workers { … layout { rows [sync] } }`

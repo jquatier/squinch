@@ -28,7 +28,7 @@ gw -> checkout.api
 gw -> identity.api
 
 view landscape {
-  title "Microservices Landscape"
+  title "System Landscape"
   include *
 }
 

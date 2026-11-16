@@ -25,10 +25,17 @@ diagrams before shipping:
 | `17-zones` (nested zones, frames) | 0 | 1 |
 | `14-sidecar-routes` | 0 | 0 |
 
-ELK's `ORTHOGONAL` routing avoids nodes reliably, with clearance. Deliberate
-attempts to force a crossing all failed: a rank-skipping edge with a node
-directly in line, a target directly below the obstacle, and a widened obstacle
-box were each routed cleanly around.
+The router of the time (ELK's `ORTHOGONAL` routing) avoided nodes reliably,
+with clearance. Deliberate attempts to force a crossing all failed: a
+rank-skipping edge with a node directly in line, a target directly below the
+obstacle, and a widened obstacle box were each routed cleanly around.
+
+**Still true, and stronger, since 2026-11.** The layout engine is now `weft`
+([`layout-engine.md`](layout-engine.md)), where "a wire never passes through a
+box that is not one of its ends" is a hard rule: wires run only in the
+channels between ranks and the gutters between neighbours, and the rule is
+asserted on every view in the corpus and on random diagrams. There is no
+wire for `around` to move.
 
 So the hint would parse, appear in the docs and the agent skill, and then do
 nothing on essentially every real diagram. That is the same defect `align` and
@@ -42,12 +49,12 @@ no-op.
 Implement it the day a routed edge actually collides with something. Likely
 triggers, none of which exist yet:
 
-- a router of our own that does not do obstacle avoidance (the coplanar router
-  keeps to lanes between bands, and `channel` trunks likewise — but a future
-  Tier-2 addition might not),
-- much denser graphs than the lookbook covers, where ELK runs out of room,
-- `grid`, the fixed-placement escape hatch, which by definition overrides the
-  layouter's spacing and can put a node on top of a wire.
+- a routing feature that draws outside the engine's channels and gutters
+  (nothing does today),
+- a wire that is legal but reads as too *close* to something unrelated —
+  clearance, not collision, which the hard rule does not measure,
+- a fixed-placement escape hatch, which by definition overrides the
+  layouter's spacing and could put a node on top of a wire.
 
 The measurement above is one command, and it is the right first step next time:
 

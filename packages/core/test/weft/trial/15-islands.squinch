@@ -1,0 +1,17 @@
+// Trial diagram for the grid engine — not part of the corpus, never tuned against.
+a1 = box "Site"
+a2 = box "CMS"
+a3 = box "Media"
+b1 = box "Mailer"
+b2 = box "Templates"
+c1 = box "Cron"
+c2 = box "Reports"
+c3 = box "Archive"
+c4 = box "Mail drop"
+a1 -> a2
+a2 -> a3
+b1 -> b2
+c1 -> c2
+c2 -> c3
+c2 -> c4
+view islands { include * }

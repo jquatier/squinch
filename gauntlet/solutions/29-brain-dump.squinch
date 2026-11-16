@@ -1,15 +1,18 @@
+pack aws
+pack logos
+
 person customer "Customer"
 person data_team "Data Team"
 
 mobile  = sys/smartphone "Mobile App"
 website = sys/globe "Website"
-gw      = sys/network "Gateway"
+gw      = sys/webhook "Gateway"
 account = sys/server "Account Service"
 billing = sys/server "Billing Service"
-pg      = logos/postgres "Main Postgres" datastore
-billdb  = sys/database "Billing Database" datastore
 stripe  = logos/stripe "Stripe" external
-export  = aws/s3 "Nightly Export"
+pg      = logos/postgres "Main Postgres" datastore
+billdb  = logos/postgres "Billing Database" datastore
+export  = aws/s3 "Nightly Export" { subtitle: "S3" }
 
 customer -> mobile
 customer -> website
@@ -17,9 +20,9 @@ mobile -> gw
 website -> gw
 gw -> account
 gw -> billing
+billing -> stripe
 account -> pg "writes"
 billing -> billdb
-billing -> stripe
 pg ~> export "nightly"
 export ~> data_team
 

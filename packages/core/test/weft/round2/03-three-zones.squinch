@@ -1,0 +1,29 @@
+// Round-two diagram for the grid engine: written after the engine, never tuned against.
+pack aws
+person user "Users"
+edge = aws/cloudfront "CDN"
+waf = box "WAF"
+lb = aws/elb "Load balancer"
+web1 = aws/fargate "Web A"
+web2 = aws/fargate "Web B"
+svc = aws/fargate "Orders service"
+db = aws/rds "Primary" datastore
+replica = aws/rds "Replica" datastore
+cache = aws/elasticache "Cache" datastore
+user -> edge
+edge -> waf
+waf -> lb
+lb -> web1
+lb -> web2
+web1 -> svc
+web2 -> svc
+svc -> db "write"
+svc -> replica "read"
+svc -> cache
+db ~> replica "replication"
+zone public "Public subnet" vpc { contains lb }
+zone private "Private subnet" vpc { contains web1, web2, svc }
+zone data "Data subnet" vpc { contains db, replica, cache }
+view tiers { include * }
+view across { include *
+  layout { direction right } }

@@ -12,11 +12,12 @@ zone sub "Azure Subscription" account {
   contains gw, aks, acr, sql
 }
 zone vnet "Virtual Network" network {
+  icon: azure/vnet
   contains aks, acr, sql
 }
 zone snet "Private Subnet" subnet {
-  contains aks, acr
   color: teal
+  contains aks, acr
 }
 
 view landscape {

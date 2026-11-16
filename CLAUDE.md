@@ -11,7 +11,12 @@ engine, CLI, playground and extension all ship (see §Where things stand).
 - `docs/DESIGN.md` — diagram design language + app chrome. These are renderer
   **requirements**, not decoration.
 - `docs/ENGINEERING.md` — performance budgets (CI-enforced), the verification
-  strategy, and why ELK/Lezer.
+  strategy, and why Lezer and a layout engine of our own.
+- `docs/notes/layout-engine.md` — the layout engine (`weft`): why it replaced
+  ELK, how it works stage by stage, every decision with its evidence and every
+  rejected alternative, how quality is measured and gated, the known weak
+  spots, and how to change it safely. `layout-engine-requirements.md` beside it
+  holds the rules the engine is held to. Read both before touching layout.
 - `docs/notes/` — engineering notes on decisions that got relitigated once too
   often (e.g. `edge-labels.md` and `note-placement.md`: the placement policies,
   every rejected approach and why, and how to diagnose the next odd label).
@@ -229,7 +234,8 @@ extension + language server, six icon packs, and the light/dark pair. The accept
 bar — an agent producing clean diagrams from prose using only the skill + CLI —
 is certified at **39/39
 by independent cold agents** on the committed corpus; the latest full round scored
-38/39 with **29/39 clean on the first `check`** (round 33, run after the first
+39/39 with **28/39 clean on the first `check`** (round 34, the first on the
+`weft` layout engine — `gauntlet/README.md`; round 33 before it, 38/39 and 29/39, run after the first
 outside test of `fields` changed where they draw — `gauntlet/README.md`,
 `docs/notes/fields.md`; round 32 before it, 28/39, added a leaf's `fields` and
 a schema prompt;
@@ -242,10 +248,9 @@ nothing the request does not support, and ends with plain bullets — where to
 open it, what it guessed, what it saw. Round 30's first failures became two
 grammar fixes, a block on top-level `person` and a comma list on
 `expand`/`preview`/`detail`, and its confirmation runs surfaced a seam
-between the two edge routers — ELK parks a cross-rank edge's inline label at
-its median layer, which is the layer of any coplanar wire that edge threads
-the gutter of, so the pill landed on the crossing; a pass after the routers
-merge now slides that pill along its own run (`docs/notes/edge-labels.md`). 34, the large-system prompt that had varied
+between the two edge routers layout had then — a label parked on the crossing
+of a wire the other router drew — which is one of the reasons there is now
+one (`docs/notes/layout-engine.md` §1). 34, the large-system prompt that had varied
 since round 26, now says what it is for — "an overview page that fits on one
 screen, and then a page for each part of the system" — because six cold runs
 on the old wording passed none, every one declaring a single view and calling
@@ -259,21 +264,29 @@ whose call they then left out. Positional tags work on nodes, container heads an
 edges; a comma is optional wherever whitespace already separates. `gauntlet/README.md` writes up the latest round only: every round's
 findings land as a code or docs change in the same commit, so the fixes are the
 record. The number is never the point — a round that scores full marks and
-surfaces a crash beats one that scores full marks and surfaces nothing.
+surfaces a crash beats one that scores full marks and surfaces nothing. Round
+34 (2026-11-15) was the first on `weft`: 39/39 deep, 28/39 clean on the first
+`check`, and no agent hit a layout error — 01 and 27, which always failed first
+on "runs upward", were clean in one call. The count did not move because what is
+left was never layout: attributes outside the braces, guessed icon ids, chained
+edges, `scope` on a leaf, each fixed in one step from its diagnostic. Every round
+before 34 ran on the ELK-based layout.
 
 Two surface rules, both from measuring what cold agents actually write (367
 gauntlet check calls plus a 5-agent probe): **a tag may sit in kind position**
 (`db = aws/dynamodb "L" datastore #pci` — 5/5 probe agents wrote that and none
 reached for `tags:`), and **a comma is optional wherever whitespace already
-separates** (`rows [a, b]`, `align a, b`, `{ style: dashed, animate: slow }`).
+separates** (`rows [a, b]`, `align a, b`, `{ style: dashed, animate: slow }` — and,
+since round 34, attributes on one line with nothing between them at all:
+`{ tags: #poll  animate: pulse }` was a bare syntax error two agents hit).
 Commas stay *required* in a path list, and stay wrong inside a tag value —
 `tags: #a #b` — because after a comma there an LR(1) parser cannot tell another
 tag from the next attr key; that one is a check error naming the fix. Both
 spellings build the same model and render byte-identically.
 
 **Container layout blocks** (2026-09): a `layout { }` inside a `system`/`container`
-body arranges its *direct* interior — `rows`/`cols`/`place` and `direction`, written
-by short name — wherever that interior is opened: expanded in any view, or as
+body arranges its *direct* interior — `rows`/`cols`/`place`, `direction` and `wrap`,
+written by short name — wherever that interior is opened: expanded in any view, or as
 the root of a view scoped to it (its auto view included). It was "the most common
 authoring mistake" for a year, refused with a special-case error; cold agents kept
 writing it because that is where the fact lives, and restating one interior in every
@@ -284,43 +297,36 @@ container, all or nothing** — never merged — when they relate two or more of
 members, or, for a scoped view, when it declares any hint at all (SPEC §5's "declaring
 `view <path>` *is* the customization" rule); a collapsed container's block is dormant
 with no warning; diagnostics point at the block, not the view; the semantic diff
-classes it cosmetic like a view's. View-level hints naming leaves inside an expanded
-frame (`rows [gw] [app.api]`) now take effect too — they used to render byte-identical
-to no hint, silently — via per-frame `semiInteractive` crossing minimisation plus
-`elk.position` and interior scaffold edges; `docs/notes/coplanar.md` carries the table
-of ELK levers that do and do not reach inside a compound. A second `rows`/`cols`/
-`direction` line in one block is a check error (it used to be read as `[0]`).
+classes it cosmetic like a view's. A second `rows`/`cols`/`direction` line in one
+block is a check error (it used to be read as `[0]`). View-level hints naming leaves
+inside an expanded frame (`rows [gw] [app.api]`) take effect by the same rule that
+serves the block: the planner projects every hint onto each container's direct
+children (`src/layout/plan.ts`), and a zone is a container like any other, so hints
+reach inside zones too and may name a zone by its id.
 **Per-container direction** rides the same block: `direction right` in a system's
-`layout { }` makes its expanded frame its *own ELK call* — laid out first, deepest
-first, with its wall ports as external ports on fixed sides; the root call then sees a
-fixed-size leaf with `FIXED_POS` ports (under `INCLUDE_CHILDREN` a compound's own
-direction is ignored outright, coplanar.md attempt 4). Every edge crossing a wall is
-cut into one segment per call at an ELK *hierarchical port*, then stitched back into
-one polyline after layout — the step attempt 4 never tried (approach #7). No directed
-frame means one root segment per edge, one ELK call, and the graph built before this
-existed. Three ELK behaviours shaped the mechanism, all measured and recorded in the
-note: `SEPARATE_CHILDREN` inside the single root call lets the parent drag a port to
-the wrong wall; `forceNodeModelOrder` does the same to a `FIXED_POS` port, so a view
-holding a directed frame swaps it for semi-interactive ordering with explicit
-positions; and a ported compound crashes elkjs when included directly, so the frame
-runs `INCLUDE_CHILDREN` beneath a `SEPARATE_CHILDREN` wrapper. Wall ports are
-registered as ports so the router's free-port probe and the ports-never-stack
-invariant see them; a declared direction equal to the enclosing one is a no-op. A wire
-reaching a nested directed frame's wall runs through the enclosing frame's title strip
-by geometry (widening the padding only moves the letter it crosses), so a frame title a
-final wire crosses is flagged `titleCrossed` and drawn last on a canvas halo — the
-zone-chip rule, and it fixed three shipped views that already had a wire through a title.
-**`wrap N`** (2026-09) is the one aspect-ratio knob: a Tier-0 statement that folds a
-single chain into a serpentine or a single-source fan-out into bands under its
-source, as synthesized `rows` (so it is exclusive with `rows`/`cols`, and every
-other graph shape warns with the hand-written line to use). The fan's band-skipping
-edges are hidden from ELK exactly as coplanar edges are — the engine's own
-co-ranking trick — and drawn afterwards as a bus (spine, trunks, drops) by the
-router, which is why a hand-written `rows` fold cannot be fixed by routing alone:
-ELK's long-edge dummies push the second band outward and no option moves them.
-`docs/notes/wrap.md` records the measured negatives (hub-in-the-middle, SIMPLE
-placement on chains, left-to-right with a return wire). Fan views alone use SIMPLE
-node placement and a FIXED_ORDER source face with a reserved spine slot.
+`layout { }` lays its interior out rightward wherever it is opened, inside a view that
+still flows down. In the engine a rightward container is a downward one with the axes
+exchanged, exactly (`weft/frame.ts` is the only file that knows which axis is x), so
+it needs no second layout and a directed frame inside a frame of the other direction
+is nothing special; a declared direction equal to the enclosing one is a no-op. Edges
+crossing its wall run on to the leaf they name. A wire that has to turn anyway enters
+a titled frame clear of the title; one running straight on into the first box may
+pass the end of the title, and a frame title a final wire crosses is flagged
+`titleCrossed` and drawn last on a canvas halo — the zone-chip rule. A jog to avoid a
+title was judged worse than a wire behind it; do not "fix" it by widening padding.
+**`wrap N`** (2026-09; any shape since 2026-11) is the one aspect-ratio knob: no row
+holds more than N. It folds every row wider than N, in the view and in every
+container the view opens; a container's own `wrap` follows it wherever it is opened,
+expanded or scoped. A fold is synthesized `rows` (`wrapRows` in `plan.ts`), so it is
+exclusive with `rows`/`cols` — a check error — and a container the view arranges by
+hand is not folded. One chain folds as a serpentine; anything else keeps its ranks
+and splits each wide one into bands that stand in columns, with the wires from one
+source into the later bands (and from the earlier bands on to one target) drawn as
+one trunk — the engine's ordinary `bundle`, the same thing `channel` is; `via: "bus"`
+on a `PEdge` only tells the renderer a wire is a wrap trunk. The one warning left is
+"`wrap N` has no effect — no row here is wider than N". `docs/notes/wrap.md` keeps
+the picture-level decisions (serpentine over a return wire, the source above its
+bands, why `direction right` turns a fold into columns).
 v1.1's DSL is done: zones, flows, tags, channels, cols, align, legend/titleblock,
 plus `only`/`detail` (below) and `badge:` — a vendor mark composited onto a leaf's
 icon plate at render time (SPEC §nodes, DESIGN §3). It exists because vendors like
@@ -339,8 +345,9 @@ for a legacy name writes the replacement line. Leaf and actor spines are
 separate elements emitted only when coloured, which is what keeps every
 uncoloured render byte-identical.
 Deliberately *not* built, with reasons recorded: `route … around`/`via`
-(`docs/notes/routing-hints.md` — ELK already avoids nodes) and `grid` (rows and
-cols compose to the same thing).
+(`docs/notes/routing-hints.md` — no wire passes through a node it does not end
+on, so there is nothing to steer around) and `grid` (rows and cols compose to
+the same thing).
 `expand *` is the one deliberate depth ladder (2026-08): it opens every visible
 container to leaf depth with frames nesting (fill at depth 0 only — the zones
 no-compounding rule), while explicit nested expands stay a check error;
@@ -407,40 +414,85 @@ contrast themes were retired in the same work: the anatomy has no hand-drawn or
 pure-black translation, and three unreviewed palettes riding every geometry
 change cost more than they returned.
 
-Key architecture, still binding: same-rank edges bypass ELK and use
-our coplanar router; declared ranks are enforced via invisible scaffold edges; an
-expanded container is one "entity" for ranking, and ELK layers freely inside it.
-`docs/notes/coplanar.md` records why the router cannot be handed to ELK — four
-measured attempts, all closed. In Sugiyama layering a layer *is* a set of nodes
-with no edges between them, so no option puts two edge-connected nodes on one
-rank; the router is what makes `rows` a feature rather than a suggestion.
-Approach #5 (2026-08) extended it to expanded frames: same-rank cross-frame
-edges route wall-to-wall through reserved gutters (straight, mid-gutter jog,
-or below-row shelf over *unit* rects), which is what lets a full-detail view
-lay out wide — hiding the edge from ELK is the entire co-ranking mechanism,
-and the router's wires carry `coplanar: true` so the invariant sweep can hold
-them to crossing nothing. Approach #6 (2026-09) admitted zones as units on
-the same terms — the old "cannot cross a zone boundary" warning is gone, not
-reworded, because nothing is unroutable any more — and let each end continue
-past the wall to the leaf itself when the corridor between them is provably
-empty (never turning inside a compound; that interior is still ELK's).
-Round 26 (2026-09) closed two ways a coplanar wire could end in empty canvas: a
-*container* endpoint is its own unit but is not a bare leaf, so it jogs through
-the gutter rather than taking the straight path; and a hand-written band that
-ELK lays out as two tiers — an unlisted bus on the path between band-mates,
-scaffold edges being lower bounds — is a check error that writes the `rows`
-line to paste, measured off the result because the split is not predictable
-from the graph.
-Round 27 (2026-09) closed a third: an unhinted mutual pair (`a -> bus`,
-`bus ~> a` lifted to a 2-cycle) tied on one rank by accident — the rank
-relaxation has no fixpoint on a cycle and ran out its pass budget — so both
-edges were hidden from ELK and each ended in canvas. Ranks now break cycles
-ahead of the relaxation the way ELK does (first-declared edge wins, `acyclic`
-in `layout.ts`); a pair the author pins to one row is unchanged.
-The hand-built spike harness that proved this is retired, and its canonical
-oracle followed (2026-08): label-space reservation legitimately moves node
-positions, so second-implementation parity stopped being a meaningful claim.
-The architecture it certified is still enforced by the corpus invariant sweep.
+**Layout is an engine of our own, `weft`** (2026-11; `src/layout/weft/`,
+`docs/notes/layout-engine.md`). Key architecture, still binding:
+`layoutView` is plan → solve → dress → annotate. `plan.ts` is the only file that
+knows both vocabularies: it turns a view into a `Problem` — a tree of containers
+(root ⊃ zones ⊃ expanded frames ⊃ leaves) with the hints projected onto each
+container's direct children, sizes, note room and route sides — and raises the
+diagnostics. `weft/` solves it knowing nothing about Squinch. `layout.ts` dresses the
+`Solution` as `Positioned`; `annotate.ts` and `notes.ts` place badges, chips, crossed
+titles and notes on the result. Inside the engine: a rank is a constraint, not a
+property of the algorithm, so two connected nodes may share one and a pinned band
+never splits; every container gets a *sheet* whose slots (boxes, a lane per passing
+wire, a port per wire through a wall) are fixed before anything has a position; the
+order of every row in the whole tree is searched as one state against **one exact
+count of the crossings that will be drawn**, a container's wall counted on both
+sides; and only then is geometry laid, innermost first, once. Nothing later sends
+anything back to ranking or ordering, and no layout is drawn to be compared with
+another — the two engines that did that were the ones replaced.
+Decisions that are not to be relitigated without reading the note, because each
+was made on evidence recorded there: **balance and symmetry outrank straightness —
+a box is never moved off the middle of its fan to straighten a wire** (the owner
+rejected an engine, `braid`, that had better bend counts and did the opposite);
+**declaration order is worth a tie, not a crossing**; boxes line up on centres on
+one 8px grid and ports slide to meet wires; canvas size is not a goal; **leaves do
+not grow to straighten their fans** (tried: corpus bends 707 → 425, no violations,
+pictures not better — width reads as importance, and adding a wire would resize a
+box; if it returns it is author-asked, never wiring-decided).
+What the language gained, all of it things that were errors or warnings only
+because the old engine could not draw them: every wire ends on the leaf it names,
+also inside containers and zones; an edge running upward between declared rows —
+in a view or in a container's own block — is drawn, and no "hint conflict … runs
+upward" diagnostic exists at build or layout time; a band is kept whole whatever
+unlisted node lies between its members; two members of one expanded container may
+share a row with an edge between them; rank hints reach inside zones; `align` and
+`cols` are solved as constraints, inside containers too (an aligned set takes one
+node of a rank — two row-mates cannot share an axis, so the rest stay side by side
+and the check says so; no contradiction among hints can overlap boxes). Hint *contradictions* are
+still errors (`place a right-of b` + `place b right-of a`, a `place` against its
+band, a second `rows` line). Layout-time warnings that remain, each naming its hint:
+`align`/`cols` on one rank ("cannot share an axis") or across containers ("could not
+be put on `x`'s axis"); `route` sides on a same-rank edge ("sides are ignored") or
+where the wall is taken, the edge is in a `channel` or `wrap` trunk, or an end is a
+container ("could not use the side it asks for here"); a `wrap` that folds nothing;
+a `channel` not fully visible; and "`a` → `b` is not drawn — one end is inside the
+other". The zone errors are unchanged. Notes get room reserved by the engine: beside
+the anchor node (`Box.room` — inside its frame or zone, and never part of the box, so
+a node is balanced as if it had no note) or beside the wire.
+**Not guaranteed**, and written down so nobody assumes otherwise (the note's §8): the
+ordering search is a descent with one restart and can stop at a local minimum on
+dense diagrams — some random diagrams cross more than ELK's did; a side-routed wire
+(`route … from/to`) takes the side asked, not the side nearer its destination, and
+`lookbook/cases/26-route-label` crosses wires because of it; canvases are tighter
+than ELK's, so corner notes sit closer to content; and a label can still be crossed
+by another wire where room cannot be given — wires between two row-mate containers,
+whose ports are fixed by their insides (3 labels in one set turned rightward, about
+one random Problem in five hundred; counted as `labelOnWire` in the quality baseline
+so it cannot grow). What *is* held everywhere — on every corpus view, on four
+diagram sets drawn both ways, and on seeded random Problems: no boxes overlap
+whatever the hints say, no wire through a box it does not end on, every edge drawn,
+no two wires along one line outside a trunk, no label on a box or on another label,
+and in the corpus no label on another edge's wire. A label gets there in two steps:
+it moves along its own wire to a clear place, and only one with none is given room,
+the sheets then laid out again (never re-ordered), at most twice — the single place
+a drawing feeds back. Claiming room for every label up front was tried first and
+rejected (lopsided +8). Four breaks found after the swap — `align`/`cols` on one
+rank overlapping, the same across containers, a `route` side at a container dropped
+silently, labels across neighbouring wires — are fixed, and the note's §8 says how.
+Decided and not to be reopened without new evidence: a stage that branches stands
+between its two successors, in a pipeline too.
+**ELK was replaced, not wrapped** (commit `c95ab03`; `elkjs` is gone, and no
+dependency took its place). In Sugiyama layering a layer *is* a set of nodes with
+no edges between them, so ELK needed a second hand-written router beside it for
+same-rank edges, a third for `wrap`, and post-passes for `channel` and `align` — and
+every bug class of the last year lived in the seams between them. Four engines were
+written to get out (`grid`, `loom`, then two cold rewrites from a requirements
+document, `braid` and `weft`); the first three are in git history only. At the swap,
+ELK → weft on the corpus: crossings 73 → 22, bends 1,174 → 705, layout time 2.5 s →
+0.25 s. The record is `docs/notes/layout-engine.md`, with the round-by-round history
+in `layout-engine-spike.md`; `coplanar.md`, `wrap.md`, `edge-labels.md` and
+`note-placement.md` are cut down to the policies that survived the engine.
 
 ## Commands
 
@@ -448,6 +500,15 @@ The architecture it certified is still enforced by the corpus invariant sweep.
   byte-compare, XML validity, determinism, corpus geometry. `UPDATE_GOLDEN=1`
   to rebless goldens after an *intentional* visual change.
 - `pnpm -r typecheck` — tsc across packages (CI runs this first).
+- `cd packages/core && npx vitest run test/weft/` — the layout engine's own
+  suites: module and whole-Problem unit tests, a legality audit over seeded
+  random Problems, the language suites (hints drawn as asked), and
+  `sets.test.ts`, which draws every view of four diagram sets both ways,
+  allows no broken rule, and fails when a quality total (crossings, bends,
+  jogs, near-misses, lopsided boxes…) is worse than
+  `test/weft/quality.baseline.json`. `UPDATE_QUALITY=1` re-records the
+  baseline — same commit as the change that earned it, and only after looking
+  at the pictures that moved (`docs/notes/layout-engine.md` §9).
 - `node scripts/version.mjs [x.y.z]` — print, or set, the **one** version the
   whole workspace shares (root `package.json` is the truth; a guardrail asserts
   every member matches). The engine, CLI and extension are one product cut
@@ -506,8 +567,11 @@ The architecture it certified is still enforced by the corpus invariant sweep.
 ## Layout of @squinch/core
 
 `src/grammar` (Lezer DSL grammar → generated parser) → `src/model` (tree → semantic
-model + SPEC §9 diagnostics, did-you-mean) → `src/layout` (hints → ELK + scaffold
-edges + coplanar router) → `src/render` (Positioned + theme → SVG, icons inlined as
+model + SPEC §9 diagnostics, did-you-mean) → `src/layout` (`plan.ts`: a view → a
+`Problem` of boxes and wires; `weft/`: the engine that solves it, with its own
+README mapping modules to rules; `layout.ts`: the solution dressed as `Positioned`;
+`annotate.ts`/`notes.ts`: badges, chips, notes; `sizes.ts`: the one source of
+sizes) → `src/render` (Positioned + theme → SVG, icons inlined as
 deduplicated `<symbol>`/`<use>`) → `src/themes` (DESIGN.md token sets);
 `src/packs` holds the pack registry + sanitizer. Grammar note: comments are `//` only — `#` is
 reserved for tags.

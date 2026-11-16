@@ -18,13 +18,20 @@
    ransom-note diagrams.
 4. **Nothing almost-aligned.** Elements share an axis *exactly* or are clearly
    apart — a 3px offset reads as a mistake, 40px reads as a decision. Exactness is
-   enforced where the author asks for it (`align`, `cols`), and positions are
-   whole pixels everywhere (§8). Note this is deliberately **not** "every position
-   sits on the 8px grid": node widths step by 40, so half-widths alternate on and
-   off the grid, and equalising two centres therefore *must* put one of the pair
-   at a multiple of 4. Exact alignment and gridded positions cannot both hold, and
-   exactness is the one that matters — snapping to 8 would turn a straight edge
-   into a 4px dogleg, which is the artefact this rule exists to forbid.
+   enforced where the author asks for it (`align`, `cols`) and everywhere else
+   by the layout engine: every box's **centre line** stands on one 8px grid, in
+   every container and across them, so two boxes are on one line or a clear
+   step apart; no wire jogs by less than 16px; a wall's only wire meets it in
+   the middle. Positions are whole pixels everywhere (§8). It is centres that
+   sit on the grid, deliberately not corners: node widths step by 40, so
+   half-widths alternate on and off the grid, and two boxes of different width
+   on one centre line cannot both have gridded edges. Exactness of the shared
+   axis is the one that matters.
+   The same eye that wants exactness wants **balance**: a box whose wires fan
+   out stands over the middle of them, and is never moved off that place to
+   make one wire straight — a symmetric fan with two bent wires reads better
+   than a parent hanging over one child on a dead-straight wire
+   (docs/notes/layout-engine.md records the engine that tried the opposite).
 5. **Quiet structure, loud meaning.** Neutrals carry structure; color is spent only on
    semantics (status, `highlight`, flows, async). Provider icons supply the color;
    our chrome stays out of the way.
@@ -36,8 +43,8 @@
 - **Grid**: base unit `8px`, and it governs the numbers *we* choose: node
   dimensions (tiers `120/160/200/240`, plus `280/320` a leaf's label can earn, and `200/240/280/320`, heights `64` leaf,
   `96` card, `56` actor), padding, radii, stroke widths, and the `16` minimum
-  edge stub. Positions are ELK's and are whole pixels rather than multiples of
-  8 — see §1.4.
+  edge stub. Positions are the layout engine's — centre lines on the same
+  8px grid, corners whole pixels; see §1.4.
   Two deliberate exceptions, both container paddings, both holding a label
   against a border: zone padding is `28` top / `20` sides, and frame padding is
   `44` top. Each is tuned to seat its label, and rounding them onto the grid only
@@ -158,19 +165,20 @@ it gets none of the marks that imply one.
   bundled subsets do not carry the glyph, and text from a system font is
   environment in the output. **Wires land on the head, never on a row**, on
   every wall: a wire that meets a row reads as pointing at that field
-  (docs/notes/coplanar.md).
+  (docs/notes/coplanar.md; the layout engine is told the head as the box's
+  `face`).
 - **Stacked sheets**: two solid sheets peeking out below every container, each
   `6` further down and `12` further in on both sides than the one in front, on
   the same contact shadow. "There is more inside", said by the shape before
   anyone clicks. Straight down only, so nothing bleeds right, where `direction
   right` wires leave; and only the strip that shows is drawn, so a dimmed card
   (translucent) has nothing under it to ghost through. They bleed past the
-  card rather than being sized into it — inflating the node would put ELK's
+  card rather than being sized into it — inflating the node would put its
   ports on the inflated face and every edge would stop short of the card it
-  points at — so the `12` below is reserved another way: an invisible node
-  label hung outside the card's bottom, which ELK counts when it spaces the
-  next layer, so a label on a wire leaving the card lands below the sheets, not
-  in them. A corpus invariant asserts the bleed lands in empty space, labels
+  points at — so the `12` below is reserved another way: the layout engine is
+  told of it as something drawn below the box that nothing may be placed over
+  (the box's `bleed`), so a label on a wire leaving the card lands below the
+  sheets, not in them. A corpus invariant asserts the bleed lands in empty space, labels
   included (`test/invariants.ts`). They are emitted *outside* the node's own
   group, because the playground styles the group's first rect on hover and
   measures its bounding box for the dive.
@@ -195,9 +203,11 @@ it gets none of the marks that imply one.
 - **Orthogonal, rounded** (radius `8`) by default; `curved`/`straight` per view.
 - **Stubs**: an edge leaves and enters perpendicular to the node side, running ≥ `16`
   before its first turn. No diagonal escapes from a box edge.
-- **Port distribution**: multiple edges on one side spread at even offsets on the
-  grid — never stacked into a single point. Order chosen to minimize crossings,
-  deterministically.
+- **Port distribution**: multiple edges on one side spread evenly about the
+  side's middle, `16` apart where it has room and never within `8` of a corner
+  — never stacked into a single point. A port may slide along its side to
+  where its wire then runs straight, keeping its order. A side's only edge
+  meets it in the middle. Order chosen to minimize crossings, deterministically.
 - **Crossing hops**: where two edges cross, the minor edge takes a small gap (`6`)
   — the strongest "drawn by a person who cared" signal there is.
 - **Arrowheads**: filled chevron `8×6`, matched to stroke color; open chevron for
@@ -212,11 +222,11 @@ it gets none of the marks that imply one.
   the vocabulary promises. Adding a pattern means revisiting that number.
 - **Edge labels**: pill chips (11px, surface bg, radius 2, 1px border) with a canvas
   halo — a label never sits raw on a line, and never collides with another chip.
-  Placement: space is **reserved at layout** — ELK inline labels on cross-rank
-  edges, sized gutters and lanes on coplanar ones — and the pill draws in its
-  reservation. A label can never collide or detach; the corpus invariant sweep
-  enforces it geometrically. History of the placement-search era:
-  `docs/notes/edge-labels.md`.
+  Placement: space is **reserved at layout** — a label is an item in the row
+  or the gap its wire passes, half-way along the wire — and the pill draws in
+  its reservation. A label can never collide with a node or another label, or
+  detach; the corpus invariant sweep enforces it geometrically. The policy and
+  the rejected approaches: `docs/notes/edge-labels.md`.
 - **Aggregate edges** (from lifting): medium weight, neutral, count badge as pill.
 - **Animation** (`~>`, and opted-in sync edges): CSS `stroke-dashoffset`,
   constant speed in px/s (not per-edge duration — long edges must not "flow

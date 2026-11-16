@@ -1,26 +1,28 @@
-person shopper "Shopper"
+person shopper "Shoppers"
 cdn = sys/globe "CDN"
 
 system checkout "Checkout" {
-  description: "Checkout API through to the Orders table"
-  api    = sys/app-window "Checkout API"
+  description: "Checkout API, order handling and payment"
+  api    = sys/server "Checkout API"
   svc    = sys/server "Order Service"
   cache  = sys/database "Session Cache" datastore
-  events = sys/workflow "Order Events"
+  queue  = sys/workflow "Order Events"
   worker = sys/cog "Payment Worker"
   orders = sys/table "Orders" datastore
 
   api -> svc
   svc -> cache
-  svc ~> events
-  events ~> worker
+  svc ~> queue
+  queue ~> worker
   svc -> orders "writes"
   worker -> orders "writes"
-
-  layout { rows [api] [svc] [cache events] [worker] [orders] }
+  layout { rows [api] [svc] [cache queue] [worker] [orders] }
 }
 
-fulfillment = box "Fulfillment"
+system fulfillment "Fulfillment" {
+  description: "Downstream of Checkout"
+  core = sys/package-check "Fulfillment Service"
+}
 
 shopper -> cdn
 cdn -> checkout.api
@@ -30,8 +32,8 @@ view landscape {
   title "Checkout landscape"
   include *
   expand checkout
+  layout { rows [shopper] [cdn] [checkout fulfillment] }
 }
-
 view checkout {
   title "Checkout"
   scope checkout

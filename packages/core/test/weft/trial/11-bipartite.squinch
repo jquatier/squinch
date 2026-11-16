@@ -1,0 +1,24 @@
+// Trial diagram for the grid engine — not part of the corpus, never tuned against.
+s1 = box "Service 1"
+s2 = box "Service 2"
+s3 = box "Service 3"
+s4 = box "Service 4"
+s5 = box "Service 5"
+d1 = box "Store 1"
+d2 = box "Store 2"
+d3 = box "Store 3"
+d4 = box "Store 4"
+d5 = box "Store 5"
+s1 -> d1
+s1 -> d3
+s1 -> d4
+s2 -> d1
+s2 -> d3
+s2 -> d4
+s4 -> d1
+s4 -> d3
+s4 -> d4
+s5 -> d1
+s5 -> d3
+s5 -> d4
+view dense { include * }

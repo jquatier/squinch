@@ -3,6 +3,8 @@ import { readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { join, dirname } from "node:path";
 import { buildModel } from "../src/model/build.js";
+import { layoutView } from "../src/layout/layout.js";
+import { checkLayout } from "./invariants.js";
 
 const pkg = join(dirname(fileURLToPath(import.meta.url)), "..");
 const canonical = readFileSync(join(pkg, "examples/orders.squinch"), "utf8");
@@ -321,19 +323,27 @@ describe("grammar + model builder", () => {
     expect(w.fix).toContain("view overview { expand platform }");
   });
 
-  it("a container's block that runs against its own edges is a check error, whether or not a view opens it", () => {
-    // Round 22: the block's rows contradicted the container's own edges, the
-    // one declared view kept the container collapsed (block dormant), check
-    // passed, and the HTML export failed through the auto view. The claim is
-    // about the interior's edges, so it is checked here, once, with every
-    // edge resolved.
+  it("a container's block may stack its rows against its own edges: it builds clean and the edge is drawn upward", async () => {
+    // Round 22: the block's rows ran against one of the container's own
+    // edges, the one declared view kept the container collapsed (block
+    // dormant), check passed, and the HTML export failed through the auto
+    // view. That was closed by refusing the block at build time. Nothing is
+    // refused now, because nothing fails: the rows are kept and `monitor ->
+    // api` runs up from row 2 to row 0, in every view that opens the block.
     const src = `system platform "P" {\n api = box "API"\n db = box "DB"\n monitor = box "Mon"\n api -> db\n monitor -> api\n layout { rows [api] [db] [monitor] }\n}\nuser = box "U"\nuser -> platform.api\nview main { include * }\n`;
     const r = buildModel(src);
-    const errs = r.diagnostics.filter((d) => d.severity === "error");
-    expect(errs.map((e) => e.message)).toContainEqual(expect.stringContaining("`platform.monitor` → `platform.api` runs upward inside `platform` — row 2 to row 0"));
-    expect(errs[0].loc.line).toBe(7);
-    // the same block with the bands the edges allow is clean
-    expect(buildModel(src.replace("rows [api] [db] [monitor]", "rows [monitor] [api] [db]")).diagnostics.filter((d) => d.severity === "error")).toEqual([]);
+    expect(r.diagnostics).toEqual([]);
+    // the auto view of the container is where the block wakes up
+    const inside = r.model.views.find((v) => v.name !== "main" && v.scope === "platform")!;
+    expect(inside).toBeDefined();
+    const { positioned: p, diagnostics } = await layoutView(r.model, inside);
+    expect(diagnostics).toEqual([]);
+    expect(checkLayout(p)).toEqual([]);
+    const y = (path: string) => p.nodes.find((n) => n.path === path)!.y;
+    expect(y("platform.api")).toBeLessThan(y("platform.db"));
+    expect(y("platform.db")).toBeLessThan(y("platform.monitor"));
+    const up = p.edges.find((e) => e.from === "platform.monitor" && e.to === "platform.api")!;
+    expect(up.points[0].y).toBeGreaterThan(up.points.at(-1)!.y);
   });
 
   it("rows bands continued on the next line get one error naming the fix, not syntax debris", () => {
@@ -463,6 +473,16 @@ describe("grammar + model builder", () => {
       );
     });
 
+    it("names the real ids that carry the word, when the guess is a word and not a typo", () => {
+      // round 34: `sys/download` — the icon exists as `sys/hard-drive-download`,
+      // and the old fix only said to go and search for it
+      const r = buildModel(`a = sys/download "Fetch"\n`);
+      expect(r.ok).toBe(false);
+      const fix = r.diagnostics.find((x) => x.message.includes("unknown icon `sys/download`"))?.fix;
+      expect(fix).toContain("closest: `sys/hard-drive-download`");
+      expect(fix).toContain("squinch icons search download");
+    });
+
     it("rejects an unknown pack, and suggests a real one", () => {
       const r = buildModel(src("sysx/api"));
       expect(r.ok).toBe(false);
@@ -548,6 +568,25 @@ describe("commas as optional separators", () => {
       expect(r.model.nodes.get("t.x")!.description).toBe("d");
       expect(r.model.nodes.get("t.x")!.attrs["owner"]).toBe("team");
     }
+  });
+
+  it("accepts attrs on one line with nothing but space between them", () => {
+    // round 34, prompts 21 and 38: `{ tags: #poll  animate: pulse }` and
+    // `{ subtitle: "x"  description: "y" }`. A value is one run and the next
+    // attr starts `key:`, so whitespace is separator enough.
+    const src = (attrs: string) =>
+      `pack aws\nsystem t "T" {\n  x = aws/lambda "X" ${attrs}\n  y = aws/lambda "Y"\n  x -> y "calls" ${attrs.includes("tags") ? "" : "{ style: dashed  color: red }"}\n}\n`;
+    const spaced = buildModel(src(`{ description: "d"  owner: team  tags: #pci #core  subtitle: "s" }`));
+    const comma = buildModel(src(`{ description: "d", owner: team, tags: #pci #core, subtitle: "s" }`));
+    expect(spaced.ok, JSON.stringify(spaced.diagnostics)).toBe(true);
+    const x = spaced.model.nodes.get("t.x")!;
+    expect([x.description, x.attrs["owner"], x.tags, x.subtitle]).toEqual(["d", "team", ["pci", "core"], "s"]);
+    expect(JSON.stringify(spaced.model.nodes.get("t.x"), (k, v) => (k === "loc" ? undefined : v)))
+      .toBe(JSON.stringify(comma.model.nodes.get("t.x"), (k, v) => (k === "loc" ? undefined : v)));
+    const edge = buildModel(src(`{ description: "d" }`));
+    expect(edge.ok, JSON.stringify(edge.diagnostics)).toBe(true);
+    expect(edge.model.edges[0].attrs["style"]).toBe("dashed");
+    expect(edge.model.edges[0].color).toBe("red");
   });
 
   it("accepts commas in align and highlight", () => {

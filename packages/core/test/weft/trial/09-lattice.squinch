@@ -1,0 +1,23 @@
+// Trial diagram for the grid engine — not part of the corpus, never tuned against.
+t = box "Request"
+a1 = box "Auth"
+a2 = box "Rate limit"
+b1 = box "Route"
+b2 = box "Validate"
+b3 = box "Transform"
+c1 = box "Execute"
+c2 = box "Log"
+z = box "Response"
+t -> a1
+t -> a2
+a1 -> b1
+a1 -> b2
+a2 -> b2
+a2 -> b3
+b1 -> c1
+b2 -> c1
+b2 -> c2
+b3 -> c2
+c1 -> z
+c2 -> z
+view lattice { include * }

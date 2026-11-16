@@ -234,8 +234,9 @@ export function resolveView(model: SModel, view: SView): ViewGraph {
         loc: view.loc,
       });
     // Recursively open everything. An empty container stays a card: a
-    // childless frame is the 0×0 ELK failure the one-level rule was built
-    // against, and the "everything" view must never silently drop an element.
+    // childless frame has nothing to size it — the 0×0 rect the one-level
+    // rule was built against — and the "everything" view must never silently
+    // drop an element.
     const opened: string[] = [];
     const open = (path: string, parent?: string) => {
       const c = model.containers.get(path);
@@ -409,8 +410,8 @@ export function resolveView(model: SModel, view: SView): ViewGraph {
   /** Lift targets: the visible set plus expanded frames that still hold at
    *  least one visible member. An expanded container is spliced out of
    *  `visible`, but its frame is a real drawable entity — an edge naming the
-   *  container attaches to the frame border (layout hands ELK the compound
-   *  id, layout.ts's "ports live on leaves" comment). A frame `only` or
+   *  container attaches to the frame border (the planner hands the engine a
+   *  wire whose end is the container's own box). A frame `only` or
    *  `exclude` has emptied is dead: it must neither render nor catch lifts. */
   const liveFramePaths = () =>
     frames.filter((f) => visible.some((p) => p.startsWith(`${f.path}.`))).map((f) => f.path);
@@ -957,6 +958,6 @@ export function resolveView(model: SModel, view: SView): ViewGraph {
     });
 
   // liveFrames, not frames: a frame `exclude`/`only` emptied has no members
-  // to size it and would reach ELK as a childless compound — a 0×0 rect.
+  // to size it and would reach layout as an empty container — a 0×0 rect.
   return { nodes, edges: finalEdges, frames: liveFrames, flow, diagnostics };
 }

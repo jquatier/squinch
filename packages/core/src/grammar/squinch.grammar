@@ -94,8 +94,12 @@ Path { Ident ("." Ident)* }
 // JS-object prior and it cost real iterations (three times in one session).
 // A separate separator set, NOT `s`: a comma as a *statement* separator
 // conflicts with PathList's commas in edge fan-out. Trailing comma legal.
+// …and on one line nothing at all: `{ tags: #poll  animate: pulse }`. A value
+// is one token run and the next attr starts `Ident ":"`, so whitespace is
+// separator enough, and two round-34 agents wrote exactly that (prompts 21
+// and 38) — the comma-optional rule the layout lists already had.
 as { nl | ";" | "," }
-AttrBlock { "{" as* (attrItem as+)* attrItem? "}" }
+AttrBlock { "{" as* (attrItem as*)* "}" }
 attrItem { Attr | FieldsBlock }
 Attr { Ident ":" Value }
 

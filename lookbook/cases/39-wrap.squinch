@@ -1,7 +1,8 @@
-// `wrap N` folds a diagram to an aspect ratio: a single chain becomes a
-// serpentine, and a single source's fan-out folds into bands under it with
-// the band-skipping edges drawn as one bus. Any other shape warns and names
-// the `rows` line to write.
+// `wrap N` folds a diagram to an aspect ratio: no row holds more than N. A
+// single chain becomes a serpentine, and a source's fan-out folds into bands
+// under it with the band-skipping edges drawn as one trunk. Any row wider
+// than N folds — the third view is a tier of eight under two entry points —
+// in the view and in every container it opens.
 pack aws
 
 system etl "Nightly ETL" {
@@ -53,6 +54,21 @@ system fleet "Render Fleet" {
   gw -> w1, w2, w3, w4, w5, w6, w7, w8, w9, w10, w11, w12
 }
 
+system shop "Storefront" {
+  web = aws/cloudfront "Web"
+  mobile = aws/api-gateway "Mobile API"
+  cart = aws/lambda "Cart"
+  search = aws/lambda "Search"
+  pricing = aws/lambda "Pricing"
+  reviews = aws/lambda "Reviews"
+  accounts = aws/lambda "Accounts"
+  orders = aws/lambda "Orders"
+  shipping = aws/lambda "Shipping"
+  returns = aws/lambda "Returns"
+  web -> cart, search, pricing, reviews
+  mobile -> accounts, orders, shipping, returns
+}
+
 view chain {
   title "Fifteen steps, five to a band"
   scope etl
@@ -63,4 +79,10 @@ view fan {
   title "Twelve workers, six to a band"
   scope fleet
   layout { wrap 6 }
+}
+
+view tier {
+  title "Eight services under two entry points, four to a band"
+  scope shop
+  layout { wrap 4 }
 }

@@ -36,7 +36,7 @@ connection.onInitialize((): InitializeResult => ({
 }));
 
 // Diagnostics are debounced per document: layout runs on every publish, and a
-// fast typist shouldn't queue up a dozen ELK passes.
+// fast typist shouldn't queue up a dozen layout passes.
 const timers = new Map<string, NodeJS.Timeout>();
 function schedule(uri: string) {
   clearTimeout(timers.get(uri));

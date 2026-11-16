@@ -7,6 +7,21 @@ import { drawable, labelFits } from "../metrics.js";
 // @ts-ignore generated
 import { parser } from "../grammar/parser.js";
 import { iconExists, packExists, iconIds, allPackNames } from "./packs.js";
+
+/** What to say about an icon id nothing is one typo from: the real ids that
+ *  carry the same word — in the pack that was asked first, then the others —
+ *  and the search command for the rest. Round 34: `sys/download` and
+ *  `sys/upload` were guessed, the fix was "run a search", and the answer
+ *  (`sys/hard-drive-download`) was one command away instead of in the error. */
+function searchHint(pack: string, id: string): string {
+  const words = id.split("-").filter((w) => w.length > 2);
+  const hit = (cand: string) => cand.includes(id) || words.some((w) => cand.split("-").includes(w));
+  const near: string[] = [];
+  for (const p of [pack, ...allPackNames().filter((x) => x !== pack).sort()])
+    for (const cand of iconIds(p)) if (near.length < 3 && hit(cand)) near.push(`\`${p}/${cand}\``);
+  const search = `run \`squinch icons search ${id}\``;
+  return near.length ? `closest: ${near.join(", ")} — or ${search}` : search;
+}
 import { suggest } from "./suggest.js";
 import { normalizeFiles } from "./source.js";
 import { themes } from "../themes/index.js";
@@ -645,7 +660,7 @@ export function buildProject(input: ProjectFile[]): BuildResult {
         } else if (!iconExists(p, i)) {
           const s = suggest(i, iconIds(p));
           error(ctx, iconRef, `unknown icon \`${p}/${i}\``,
-            s ? `did you mean \`${p}/${s}\`?` : `run \`squinch icons search ${i}\``);
+            s ? `did you mean \`${p}/${s}\`?` : searchHint(p, i));
         } else icon = { pack: p, id: i };
       }
       const meta = attrsOf(ctx, decl.getChild("AttrBlock"));
@@ -692,7 +707,7 @@ export function buildProject(input: ProjectFile[]): BuildResult {
         } else if (!iconExists(p, i)) {
           const s = suggest(i, iconIds(p));
           error(ctx, decl, `unknown icon \`${p}/${i}\` in badge`,
-            s ? `did you mean \`${p}/${s}\`?` : `run \`squinch icons search ${i}\``);
+            s ? `did you mean \`${p}/${s}\`?` : searchHint(p, i));
         }
       }
       const kinds = decl.getChildren("NodeKind").map((k) => ctx.text(k)) as SNode["kinds"];
@@ -867,7 +882,7 @@ export function buildProject(input: ProjectFile[]): BuildResult {
           } else if (!iconExists(p, i)) {
             const s = suggest(i, iconIds(p));
             error(ctx, body, `unknown icon \`${p}/${i}\` in ${key}`,
-              s ? `did you mean \`${p}/${s}\`?` : `run \`squinch icons search ${i}\``);
+              s ? `did you mean \`${p}/${s}\`?` : searchHint(p, i));
           }
         }
       }
@@ -1149,11 +1164,20 @@ export function buildProject(input: ProjectFile[]): BuildResult {
     const seenStmt = new Set<string>();
     for (let child = lb.firstChild; child; child = child.nextSibling) {
       const t = child.type.name;
-      if (t === "RowsStmt" || t === "ColsStmt" || t === "DirectionStmt") {
+      if (t === "RowsStmt" || t === "ColsStmt" || t === "DirectionStmt" || t === "WrapStmt") {
         if (seenStmt.has(t)) { secondStatement(ctx, child, t); continue; }
         seenStmt.add(t);
       }
-      if (t === "RowsStmt" || t === "ColsStmt") {
+      if (t === "WrapStmt") {
+        // a container too wide for its row folds wherever it is opened — the
+        // fact belongs to the container, as its rows and direction do
+        const num = child.getChild("Number");
+        const n = num ? Number(ctx.text(num)) : NaN;
+        if (!Number.isInteger(n) || n < 2)
+          error(ctx, child, `\`wrap ${num ? ctx.text(num) : ""}\` — the band width must be a whole number of at least 2`,
+            "wrap 5 puts up to five nodes in each band");
+        else layout.wrap = { n, loc: ctx.loc(child) };
+      } else if (t === "RowsStmt" || t === "ColsStmt") {
         const bands: string[][] = [];
         const placed = new Set<string>();
         for (const rank of child.getChildren("Rank")) {
@@ -1181,15 +1205,24 @@ export function buildProject(input: ProjectFile[]): BuildResult {
           layout.place.push({ node: n, target: tg, relpos: ctx.text(relposNode) as RelPos, loc: ctx.loc(child) });
       } else if (t === "DirectionStmt") {
         // the container's interior flows this way wherever it is opened —
-        // as an expanded frame (its own ELK run, layout.ts) or as the root of
+        // as an expanded frame (the engine lays each container out in its own
+        // direction, layout/plan.ts) or as the root of
         // a view scoped to it
         layout.direction = ctx.text(child.lastChild!) as "down" | "right";
       } else if (t.endsWith("Stmt")) {
         const word = ctx.text(child).split(/\s/)[0];
         error(ctx, child, `\`${word}\` describes a view, not a container's interior`,
-          `move it to the view's \`layout { }\`; inside \`${c.name}\` only rows, cols, place and direction apply`);
+          `move it to the view's \`layout { }\`; inside \`${c.name}\` only rows, cols, place, direction and wrap apply`);
       }
     }
+    // `wrap` *is* a rows statement, written by the engine (as in a view)
+    if (layout.wrap && (layout.rows || layout.cols))
+      diagnostics.push({
+        severity: "error",
+        message: `\`wrap ${layout.wrap.n}\` and \`${layout.rows ? "rows" : "cols"}\` both assign bands in \`${c.name}\``,
+        fix: "keep one: `wrap` folds the row for you; `rows`/`cols` spell the bands by hand",
+        loc: layout.wrap.loc, file: ctx.name,
+      });
     hintAgreement(layout, ctx);
     c.layout = layout;
   }
@@ -1381,35 +1414,6 @@ export function buildProject(input: ProjectFile[]): BuildResult {
     );
   }
 
-  // ── a container's block against its own edges (SPEC §3) ──────────────────
-  // The block's bands are a claim about the interior's edge direction, and the
-  // claim is checkable here, with every edge resolved — not only when some
-  // declared view happens to open the container. Round 22 found the gap: a
-  // block whose rows ran against its own edges passed `check` (the one
-  // declared view kept the container collapsed, so the block was dormant) and
-  // then failed the HTML export through the container's auto view, where the
-  // block is the root layout. Same words as the layout-time check, so the
-  // cookbook row that explains one explains both.
-  for (const c of model.containers.values()) {
-    const rows = c.layout?.rows;
-    if (!rows) continue;
-    const band = new Map<string, number>();
-    rows.forEach((row, i) => row.forEach((m) => band.set(m, i)));
-    const memberOf = (p: string) =>
-      p.startsWith(`${c.path}.`) ? `${c.path}.${p.slice(c.path.length + 1).split(".")[0]}` : undefined;
-    for (const e of model.edges) {
-      const a = memberOf(e.from), b = memberOf(e.to);
-      if (!a || !b || a === b || !band.has(a) || !band.has(b)) continue;
-      if (band.get(a)! > band.get(b)!)
-        diagnostics.push({
-          severity: "error",
-          message: `hint conflict: \`${e.from}\` → \`${e.to}\` runs upward inside \`${c.path}\` — row ${band.get(a)} to row ${band.get(b)}`,
-          fix: `put \`${e.to}\` in a row below \`${e.from}\`, or drop one of them from \`rows\``,
-          loc: c.layout!.loc, file: c.file,
-        });
-    }
-  }
-
   // ── phase C: views ────────────────────────────────────────────────────────
   // flows: chains resolve against the finished namespace AND must walk
   // existing edges — a flow annotates structure, it never creates it
@@ -1556,7 +1560,7 @@ export function buildProject(input: ProjectFile[]): BuildResult {
       } else if (!iconExists(p, i)) {
         const s = suggest(i, iconIds(p));
         error(ctx, z, `unknown icon \`${p}/${i}\``,
-          s ? `did you mean \`${p}/${s}\`?` : `run \`squinch icons search ${i}\``);
+          s ? `did you mean \`${p}/${s}\`?` : searchHint(p, i));
       } else icon = { pack: p, id: i };
     }
     // Zones took theme *roles* before the hue vocabulary existed (`account`,

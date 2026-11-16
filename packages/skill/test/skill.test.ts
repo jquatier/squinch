@@ -246,8 +246,7 @@ describe("the skill — diagnostic coverage", () => {
     "is stated twice with different hues — the last wins",
     "has no dark counterpart to pair with", "has no visible members in view",
     "is included, but", "is already here as a context card", "edges match `route",
-    "nothing is tagged #", "it sits inside an expanded container",
-    "'s axis would collide with", "'s axis would take it outside zone",
+    "nothing is tagged #",
     // Edge attr validation: every one names its own repair — the value list,
     // the did-you-mean, or both fixes spelled out ("add style: dashed, or use
     // animate: pulse"). SKILL.md teaches the vocabulary itself in the rules
@@ -292,6 +291,8 @@ describe("the skill — diagnostic coverage", () => {
     "appears twice in this block — one",
     // `wrap` (2026-09): the fix lines write the alternative out in full
     "both assign bands in this view", "the band width must be a whole number of at least 2",
+    // `wrap` in a container's own block (2026-11): the same two-way choice
+    "both assign bands in",
     // round 23: the fix writes the joined line
     "bands must sit on one line — the statement ends at newline",
     // The expand family (flexibility sweep, 2026-08): each fix writes the

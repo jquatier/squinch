@@ -1,23 +1,24 @@
 pack aws
 
-api    = aws/api-gateway "API Gateway"
-create = aws/lambda "Create Handler"
-read   = aws/lambda "Read Handler"
-update = aws/lambda "Update Handler"
-delete = aws/lambda "Delete Handler"
-search = aws/lambda "Search Handler"
-table  = aws/dynamodb "DynamoDB Table" datastore
+system crud "Items API" {
+  api    = aws/api-gateway "API Gateway"
+  create = aws/lambda "Create"
+  read   = aws/lambda "Read"
+  update = aws/lambda "Update"
+  delete = aws/lambda "Delete"
+  search = aws/lambda "Search"
+  table  = aws/dynamodb "Table" datastore
 
-api -> create, read, update, delete, search
-create -> table
-read -> table
-update -> table
-delete -> table
-search -> table
+  api -> create, read, update, delete, search
+  create -> table
+  read -> table
+  update -> table
+  delete -> table
+  search -> table
+}
 
-view landscape {
-  title "Channel Fan-in"
-  include *
+view crud {
+  title "Items API"
   layout {
     channel create, read, update, delete, search -> table
   }

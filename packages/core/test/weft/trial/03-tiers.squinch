@@ -1,0 +1,34 @@
+// Trial diagram for the grid engine — not part of the corpus, never tuned against.
+w1 = box "Storefront"
+w2 = box "Admin"
+w3 = box "Mobile BFF"
+w4 = box "Partner portal"
+a1 = box "Catalog API"
+a2 = box "Orders API"
+a3 = box "Identity API"
+c1 = box "Session cache"
+c2 = box "Page cache"
+d1 = box "Catalog DB"
+d2 = box "Orders DB"
+d3 = box "Users DB"
+w1 -> a1
+w1 -> a2
+w1 -> a3 "sign in"
+w2 -> a1
+w2 -> a2
+w2 -> a3
+w3 -> a1
+w3 -> a2
+w3 -> a3
+w4 -> a2 "orders only"
+w4 -> a3
+a1 -> c2
+a1 -> d1
+a2 -> d2
+a2 -> a1 "stock check"
+a3 -> c1
+a3 -> d3
+w1 -> c2 "cached pages"
+view tiers { include *
+  layout { rows [w1 w2 w3 w4] [a1 a2 a3] [c1 c2 d1 d2 d3] } }
+view free { include * }

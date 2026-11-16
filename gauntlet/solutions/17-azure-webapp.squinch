@@ -9,9 +9,9 @@ redis = azure/cache-redis "Redis Cache" datastore
 kv    = azure/key-vault "Key Vault"
 ai    = azure/application-insights "Application Insights"
 
-customer -> fd
+customer -> fd "HTTPS"
 fd -> app
-app -> sql "reads / writes"
+app -> sql "reads/writes"
 app -> redis "caches"
 app -> kv "secrets"
 app ~> ai "telemetry"

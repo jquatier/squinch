@@ -133,7 +133,7 @@ and fails if they disagree.
 ## Where things live
 
 `packages/core` is the engine: `grammar/` (Lezer) → `model/` (semantic model +
-diagnostics) → `layout/` (ELK + our coplanar router) → `render/` (themed SVG).
+diagnostics) → `layout/` (a view planned as boxes and wires, solved by our own engine, `weft`) → `render/` (themed SVG).
 `packages/cli` is a thin wrapper over it. [CLAUDE.md](CLAUDE.md) is the fullest
 map of the architecture and its non-negotiables — it's written for AI agents
 working in the repo, but it's the best orientation for humans too.

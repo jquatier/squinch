@@ -1,0 +1,37 @@
+// Round-two diagram for the grid engine: written after the engine, never tuned against.
+person customer "Customer"
+person teller "Teller"
+system channels "Channels" {
+  mobile = box "Mobile app"
+  web = box "Web bank"
+  branch = box "Branch terminal"
+}
+system core "Core banking" {
+  accounts = box "Accounts"
+  payments = box "Payments"
+  ledger = box "General ledger" datastore
+  accounts -> ledger
+  payments -> ledger
+  payments -> accounts "debit / credit"
+}
+system risk "Risk" {
+  fraud = box "Fraud scoring"
+  aml = box "AML screening"
+}
+swift = box "SWIFT"
+cards = box "Card network"
+customer -> channels.mobile
+customer -> channels.web
+teller -> channels.branch
+channels.mobile -> core.payments "transfer"
+channels.web -> core.accounts "balance"
+channels.branch -> core.accounts
+core.payments -> risk.fraud "score"
+core.payments -> risk.aml "screen"
+core.payments -> swift
+core.payments -> cards
+view context { include * }
+view inside { include *
+  expand * }
+view core { include *
+  expand core, risk }

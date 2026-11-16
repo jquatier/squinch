@@ -1,0 +1,34 @@
+// Round-two diagram for the grid engine: written after the engine, never tuned against.
+pack aws
+person user "Users"
+system web "Web tier" {
+  nginx = box "Nginx"
+  app = box "App server"
+  nginx -> app
+}
+system core "Core" {
+  api = box "API"
+  worker = box "Workers"
+  q = box "Queue"
+  api -> q
+  q -> worker
+}
+db = aws/rds "Database" datastore
+blob = aws/s3 "Blobs" datastore
+siem = box "SIEM"
+user -> web.nginx
+web.app -> core.api
+core.api -> db
+core.worker -> blob
+core.worker -> db
+web.nginx ~> siem "logs"
+core.api ~> siem "logs"
+zone dmz "DMZ" vpc { contains web }
+zone app "App network" vpc { contains core }
+zone store "Storage" vpc { contains db, blob }
+zone cloud "Cloud account" account { contains dmz, app, store }
+view account { include *
+  expand web, core }
+view side { include *
+  expand web, core
+  layout { rows [user] [web core] [db blob siem] } }

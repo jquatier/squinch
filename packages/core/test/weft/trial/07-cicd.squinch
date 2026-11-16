@@ -1,0 +1,31 @@
+// Trial diagram for the grid engine — not part of the corpus, never tuned against.
+person dev "Developer"
+repo = box "Repository"
+system ci "Pipeline" {
+  checkout = box "Checkout"
+  lint = box "Lint"
+  test = box "Unit tests"
+  build = box "Build image"
+  scan = box "Security scan"
+  publish = box "Publish"
+  checkout -> lint
+  lint -> test
+  test -> build
+  build -> scan
+  scan -> publish
+  layout { direction right }
+}
+registry = box "Registry"
+staging = box "Staging"
+prod = box "Production"
+slack = box "Chat alerts"
+dev -> repo "push"
+repo -> ci.checkout "webhook"
+ci.publish -> registry "image"
+registry -> staging "auto deploy"
+staging -> prod "promote"
+ci.test ~> slack "failures"
+ci.scan ~> slack "findings"
+view flow { include *
+  expand ci }
+view inside { scope ci }

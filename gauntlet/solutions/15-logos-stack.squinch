@@ -4,22 +4,25 @@ person dev "Developers"
 
 gh   = logos/github "GitHub"
 k8s  = logos/kubernetes "Kubernetes"
-web  = logos/nextdotjs "Next.js Frontend"
+web  = logos/nextjs "Next.js Frontend"
 api  = logos/nestjs "NestJS API"
 pg   = logos/postgresql "PostgreSQL" datastore
-cache = logos/redis "Redis Cache" datastore
-kafka = logos/apachekafka "Kafka"
+rd   = logos/redis "Redis Cache" datastore
+kf   = logos/apachekafka "Kafka"
 graf = logos/grafana "Grafana"
 
 dev -> gh "push"
 gh -> k8s "deploys"
 web -> api
 api -> pg
-api -> cache "caching"
-api ~> kafka "events"
-graf -> web, api, pg, cache, kafka "monitors"
+api -> rd "cache"
+api ~> kf "events"
+graf -> api "monitors"
+graf -> kf "monitors"
+graf -> pg "monitors"
+graf -> rd "monitors"
 
 view landscape {
-  title "Product Stack"
+  title "Logos Stack"
   include *
 }

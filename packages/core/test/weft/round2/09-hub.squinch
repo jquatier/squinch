@@ -1,0 +1,23 @@
+// Round-two diagram for the grid engine: written after the engine, never tuned against.
+idp = box "Identity provider"
+hr = box "HR system"
+mail = box "Mail"
+chat = box "Chat"
+wiki = box "Wiki"
+crm = box "CRM"
+erp = box "ERP"
+repo = box "Code hosting"
+ci = box "CI"
+vpn = box "VPN"
+hr -> idp "joiners / leavers"
+idp -> mail "SSO"
+idp -> chat "SSO"
+idp -> wiki "SSO"
+idp -> crm "SSO"
+idp -> erp "SSO"
+idp -> repo "SSO"
+idp -> ci
+idp -> vpn
+view sso { include * }
+view wrapped { include *
+  layout { wrap 4 } }

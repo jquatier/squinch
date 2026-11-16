@@ -80,17 +80,4 @@ describe("golden renders", () => {
       });
     }
   }
-
-  // The Phase-0 parity oracle lived here until label-space reservation
-  // (2026-08). test/golden/phase0-canonical.svg was the untouched output of
-  // the Phase-0 hand-built harness — a second implementation of the same
-  // layout decisions — and node positions were diffed against it to catch
-  // drift the engine's own goldens cannot (those get re-blessed alongside a
-  // bug). Reserving label space moves node positions *by design*: the
-  // canonical example's coplanar gutters widen to hold their pills, so the
-  // premise "both implementations should place nodes identically" no longer
-  // holds — the harness never reserved label space. The architectural claims
-  // the oracle guarded (same-rank edges bypass ELK, declared ranks via
-  // scaffold edges) are unchanged and remain covered by the corpus invariant
-  // sweep. Retired with its file; history has both.
 });

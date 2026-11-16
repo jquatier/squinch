@@ -1,0 +1,106 @@
+{
+  "corpus": {
+    "views": 263,
+    "totals": {
+      "crossings": 23,
+      "bends": 719,
+      "kinks": 0,
+      "nearMiss": 0,
+      "lopsided": 107,
+      "offCentre": 0,
+      "unstraight": 8,
+      "labelOnWire": 0
+    }
+  },
+  "corpus, turned right": {
+    "views": 260,
+    "totals": {
+      "crossings": 24,
+      "bends": 1074,
+      "kinks": 0,
+      "nearMiss": 0,
+      "lopsided": 104,
+      "offCentre": 0,
+      "unstraight": 4,
+      "labelOnWire": 0
+    }
+  },
+  "trial": {
+    "views": 35,
+    "totals": {
+      "crossings": 64,
+      "bends": 560,
+      "kinks": 1,
+      "nearMiss": 0,
+      "lopsided": 89,
+      "offCentre": 0,
+      "unstraight": 3,
+      "labelOnWire": 0
+    }
+  },
+  "trial, turned right": {
+    "views": 32,
+    "totals": {
+      "crossings": 65,
+      "bends": 642,
+      "kinks": 2,
+      "nearMiss": 0,
+      "lopsided": 85,
+      "offCentre": 0,
+      "unstraight": 4,
+      "labelOnWire": 3
+    }
+  },
+  "round2": {
+    "views": 35,
+    "totals": {
+      "crossings": 2,
+      "bends": 373,
+      "kinks": 1,
+      "nearMiss": 0,
+      "lopsided": 52,
+      "offCentre": 0,
+      "unstraight": 4,
+      "labelOnWire": 0
+    }
+  },
+  "round2, turned right": {
+    "views": 30,
+    "totals": {
+      "crossings": 2,
+      "bends": 413,
+      "kinks": 0,
+      "nearMiss": 0,
+      "lopsided": 46,
+      "offCentre": 0,
+      "unstraight": 2,
+      "labelOnWire": 0
+    }
+  },
+  "random": {
+    "views": 80,
+    "totals": {
+      "crossings": 281,
+      "bends": 2502,
+      "kinks": 11,
+      "nearMiss": 0,
+      "lopsided": 579,
+      "offCentre": 2,
+      "unstraight": 13,
+      "labelOnWire": 0
+    }
+  },
+  "random, turned right": {
+    "views": 64,
+    "totals": {
+      "crossings": 236,
+      "bends": 2342,
+      "kinks": 2,
+      "nearMiss": 0,
+      "lopsided": 451,
+      "offCentre": 4,
+      "unstraight": 16,
+      "labelOnWire": 0
+    }
+  }
+}

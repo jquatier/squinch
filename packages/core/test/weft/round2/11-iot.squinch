@@ -1,0 +1,28 @@
+// Round-two diagram for the grid engine: written after the engine, never tuned against.
+pack aws
+devices = box "Devices" { subtitle: "40k sensors" }
+gw = box "Field gateways"
+iot = aws/iot-core "IoT Core"
+rules = box "Rules engine"
+hot = aws/kinesis "Hot path"
+cold = aws/s3 "Cold path" datastore
+ts = aws/timestream "Time series" datastore
+alert = aws/lambda "Alerting"
+ops = person "Operators"
+dash = box "Dashboards"
+twin = box "Device shadow" datastore
+devices -> gw "MQTT"
+gw -> iot "TLS"
+iot -> rules
+iot -> twin
+rules -> hot
+rules -> cold
+hot -> ts
+hot -> alert
+alert -> ops "page"
+ts -> dash
+ops -> dash
+dash -> twin "commands"
+view telemetry { include * }
+view right { include *
+  layout { direction right } }

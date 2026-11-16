@@ -1,0 +1,42 @@
+// Trial diagram for the grid engine — not part of the corpus, never tuned against.
+client = box "Clients"
+gw = box "API Gateway"
+s0 = box "Accounts"
+s1 = box "Billing"
+s2 = box "Catalog"
+s3 = box "Search"
+s4 = box "Cart"
+s5 = box "Orders"
+s6 = box "Shipping"
+s7 = box "Reviews"
+s8 = box "Notify"
+s9 = box "Reports"
+pg = box "Postgres"
+redis = box "Redis"
+es = box "Search index"
+client -> gw "HTTPS"
+gw -> s0
+gw -> s1
+gw -> s2
+gw -> s3
+gw -> s4
+gw -> s5
+gw -> s6
+gw -> s7
+gw -> s8
+gw -> s9
+s0 -> pg
+s1 -> pg
+s2 -> pg
+s3 -> es
+s2 ~> es "index"
+s4 -> redis
+s5 -> pg
+s5 ~> s8 "order placed"
+s6 -> pg
+s7 -> pg
+s9 -> pg "read replica"
+s4 -> s2 "prices"
+view all { include * }
+view folded { include *
+  layout { wrap 5 } }

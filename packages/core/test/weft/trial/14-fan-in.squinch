@@ -1,0 +1,27 @@
+// Trial diagram for the grid engine — not part of the corpus, never tuned against.
+k1 = box "Collector 1"
+k2 = box "Collector 2"
+k3 = box "Collector 3"
+k4 = box "Collector 4"
+k5 = box "Collector 5"
+k6 = box "Collector 6"
+k7 = box "Collector 7"
+k8 = box "Collector 8"
+k9 = box "Collector 9"
+agg = box "Aggregator"
+store = box "Time series"
+alert = box "Alerting"
+k1 -> agg
+k2 -> agg
+k3 -> agg
+k4 -> agg
+k5 -> agg
+k6 -> agg
+k7 -> agg
+k8 -> agg
+k9 -> agg
+agg -> store
+agg ~> alert "thresholds"
+view wide { include * }
+view folded { include *
+  layout { wrap 3 } }

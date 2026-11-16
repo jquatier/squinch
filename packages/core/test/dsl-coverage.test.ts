@@ -16,6 +16,7 @@ import { describe, it, expect } from "vitest";
 import { buildModel, buildProject, render, themes } from "../src/index.js";
 import { layoutView } from "../src/layout/layout.js";
 import { validateSVG } from "../src/render/validate.js";
+import { checkLayout } from "./invariants.js";
 
 const svgOf = async (src: string, view?: string) => {
   const r = await render(src, { theme: "light", ...(view ? { view } : {}) });
@@ -157,8 +158,11 @@ describe("note anchors", () => {
 
 describe("line styles", () => {
   const src = (l: string) =>
-    `system s "S" {\n a = aws/lambda "A"\n b = aws/lambda "B"\n c = aws/lambda "C"\n` +
-    ` a -> b\n a -> c\n}\nview v { scope s\n layout { lines ${l}\n rows [a] [b c] } }`;
+    `system s "S" {\n a = aws/lambda "A"\n b = aws/lambda "B"\n c = aws/lambda "C"\n d = aws/lambda "D"\n` +
+    ` a -> b\n a -> c\n a -> d\n}\nview v { scope s\n layout { lines ${l}\n rows [a] [b c d] } }`;
+  // Three targets under one source, so the outer two wires have to turn: a
+  // fan of two is drawn as two straight drops, and a line style has nothing
+  // to restyle on a wire with no corner.
 
   it("all three are distinguishable", async () => {
     // `curved` and `straight` parse at build.ts and branch in svg.ts and had
@@ -181,6 +185,8 @@ describe("line styles", () => {
       .map((m) => m.slice(1).map(Number));
     expect(lines.length).toBeGreaterThan(1);
     expect(heads.length).toBe(lines.length);
+    // the premise: at least one of them really is a diagonal
+    expect(lines.some(([x1, y1, x2, y2]) => x1 !== x2 && y1 !== y2)).toBe(true);
     const deg = (ax: number, ay: number, bx: number, by: number) =>
       (Math.atan2(by - ay, bx - ax) * 180) / Math.PI;
     lines.forEach(([x1, y1, x2, y2], i) => {
@@ -232,8 +238,8 @@ describe("density", () => {
 });
 
 describe("route sides", () => {
-  // Sides only apply to edges that span rows; a same-rank edge is routed by our
-  // own coplanar router and warns if you try (see layout.ts).
+  // Sides only apply to edges that span rows; an edge between two row-mates
+  // runs straight across and warns if you try (`test/weft/language.test.ts`).
   const src = (hint: string) =>
     `system s "S" {\n a = aws/lambda "A"\n b = aws/dynamodb "B" datastore\n a -> b\n}\n` +
     `view v { scope s\n layout { rows [a] [b]\n ${hint} } }`;
@@ -612,8 +618,8 @@ view v { include *
 
   it("a container's layout block moves a member both ways", async () => {
     // Same bar as the zone rank: a hint that only ever pushes one way is
-    // describing the default. ELK's own order for api's two targets is the
-    // premise, and the block must be able to invert it.
+    // describing the default. Whatever order the layout would choose for
+    // api's two targets, the block must be able to set it either way.
     const src = (block: string) => `system app "App" {
   api = box "API"; a = box "A"; b = box "B"
   api -> a; api -> b
@@ -635,7 +641,10 @@ view v { expand app }`;
     expect(ba.b).toBeLessThan(ba.a);
   });
 
-  it("still refuses an edge that runs up the bands, naming the zone to move", async () => {
+  it("a zone placed above the node that calls into it: the edge is drawn upward", async () => {
+    // `rows [vpc] [gw]` with `gw -> a` asks for the caller under the zone it
+    // calls. That was refused as a hint conflict; the arrangement is the
+    // author's to choose, so the zone stands above and the wire runs up into it.
     const built = buildProject([{ name: "t.squinch", src: `pack aws
 gw = aws/api-gateway "GW"
 a = aws/lambda "A"
@@ -646,16 +655,15 @@ zone vpc "VPC" vpc { contains a, b }
 view v { include *
   layout { rows [vpc] [gw] } }` }]);
     const view = built.model.views.find((v) => v.name === "v")!;
-    const { diagnostics } = await layoutView(built.model, view, {
+    const { positioned, diagnostics } = await layoutView(built.model, view, {
       metrics: "inter" as const, scale: 1,
     });
-    const d = diagnostics?.find((x) => x.message.includes("runs upward"));
-    expect(d).toBeDefined();
-    // the endpoint is `a`, but `a` is not something `rows` can hold — the fix
-    // has to name the unit the author can actually move. Since round 17 the
-    // fix is the corrected `rows` line itself, so the same requirement reads
-    // as: the line is built from units, and the endpoint never appears in it.
-    expect(d!.fix).toContain("vpc");
-    expect(d!.fix).not.toMatch(/\ba\b/);
+    expect(diagnostics).toEqual([]);
+    expect(checkLayout(positioned, { zoneMembers: new Map([["vpc", ["a", "b"]]]) })).toEqual([]);
+    const zone = positioned.zones.find((z) => z.id === "vpc")!;
+    const at = (path: string) => positioned.nodes.find((n) => n.path === path)!;
+    expect(zone.y + zone.h).toBeLessThanOrEqual(at("gw").y);
+    const up = positioned.edges.find((e) => e.from === "gw" && e.to === "a")!;
+    expect(up.points[0].y).toBeGreaterThan(up.points[up.points.length - 1].y);
   });
 });

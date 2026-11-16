@@ -6,6 +6,21 @@ history too. Sections are drafted by `pnpm release` from the commits since the
 previous tag, then edited by a human before anything is written; the release
 workflow lifts the matching section verbatim into the GitHub Release notes.
 
+## Unreleased
+
+- **A new layout engine, written for Squinch.** ELK is gone, and so is the `elkjs` dependency. One engine now places every node and draws every wire, where there used to be ELK plus three routers of our own. **Every view redraws**, so run `--sync` after upgrading.
+- What the pictures gain: fewer crossings (73 → 22 across the 259 views this repo owns), fewer bends (1,174 → 705), no jog too short to draw as a corner, and nothing almost-aligned — every node's centre line sits on one 8px grid. A node whose edges fan out stands over the middle of them.
+- Every edge ends on the node it names, also inside an expanded container or a zone. A wire no longer stops at a container's wall.
+- Things that were errors or warnings now just draw: an edge running back up between declared rows (the "hint conflict … runs upward" errors are gone, in a view and in a container's own `layout { }`); a `rows` band with an unlisted node on a path between its members (the band is kept); two members of an expanded container sharing a row with an edge between them; `rows`/`cols`/`place` between the members of one zone, which may also name the zone by its id.
+- `wrap N` folds any row wider than N, in the view and in every container it opens, and a container's own `layout { wrap N }` follows it wherever it is opened. It used to fold one chain or one fan-out and warn on everything else. The only warning left is "`wrap N` has no effect — no row here is wider than N".
+- `align` and `cols` hold exactly, inside containers too. `route … from/to` is honoured on edges that span rows; where a side cannot be used `check` says "could not use the side it asks for here". New warning: "`a` → `b` is not drawn — one end is inside the other".
+- A note beside a node keeps its place inside that node's container or zone; a note on an edge stands beside its wire.
+- Layout is about ten times faster (the same 259 views: 2.5 s → 0.25 s), and core's install is smaller by ELK.
+- An edge label is crossed by no wire but its own: it moves along its wire to a clear place, and where there is none its neighbours make room.
+- `align` or `cols` naming two nodes that sit on the same row leaves them side by side and warns that they "cannot share an axis"; side by side is `rows`. No combination of hints can draw two nodes on top of each other.
+- Known rough edges: a few very dense diagrams draw more crossings than before; `route … from/to` does not yet pick the side nearer the edge's destination; canvases are a little tighter, so a note pinned to a corner sits closer to the content.
+- Re-run `squinch skill` to teach agents: the layout section and the cookbook drop the guidance that only worked around the old engine. `docs/notes/layout-engine.md` records why the engine was replaced and how the new one works.
+
 ## 0.19.0 — 2026-11-11
 
 - Tables show their fields wherever their container is open. Inside an expanded container (`expand db`, `expand *`) each table draws a compact list with no `preview` needed; a view scoped to the container still shows every field. `preview <table>` is now only for a table at the top level.
