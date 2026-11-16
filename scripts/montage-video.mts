@@ -68,7 +68,7 @@ import { tmpdir } from "node:os";
 import { basename, dirname, join } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
 import { buildProject, renderProject } from "../packages/core/dist/index.js";
-import { diveCss, LOOP } from "./montage/dive.mts";
+import { diveCss, installDelays, LOOP, T, timelineCss } from "./montage/dive.mts";
 
 const root = join(dirname(fileURLToPath(import.meta.url)), "..");
 const W = 940, H = 780;
@@ -84,7 +84,7 @@ const PREVIEW = env.PREVIEW ? env.PREVIEW.split(",").map(Number) : null;
 /** RANGE=10.5,14.5 encodes just that stretch into the kept temp dir (no assets written) — for comparing FPS/CRF/preset on real motion. */
 const RANGE = env.RANGE ? env.RANGE.split(",").map(Number) : null;
 /** The tables view is on screen from the end of dive 2 until the app scene fades at 18.6 s. */
-const POSTER_AT = 18.4;
+const POSTER_AT = T.appFade - 0.2;
 /** x264 at its slowest, tuned for flat vector art — the same settings, and the same reasons, as the
  *  other clips' mp4 (prompt-gif.mts), one notch softer: CRF 28 is indistinguishable from 22 at 2× on this
  *  artwork and 40% smaller; at 1.5× a CRF of 30 lands the clip near 1.5 MB a theme. */
@@ -268,7 +268,10 @@ async function main() {
       let html = readFileSync(join(root, "scripts/montage/reel.html"), "utf8");
       const tokens = Object.entries(TOKENS[theme]).map(([k, v]) => `  --${k}: ${v};`).join("\n");
       html = html.replace("/*{{FONT_FACES}}*/", () => faces).replace("/*{{TOKENS}}*/", () => tokens)
-        .replace("/*{{DIVE_KEYFRAMES}}*/", () => dive.css)
+        .replace("/*{{DIVE_KEYFRAMES}}*/", () => dive.css).replace("/*{{TIMELINE_KEYFRAMES}}*/", () => timelineCss())
+        .replace(/\{\{LOOP\}\}/g, String(LOOP))
+        .replace("{{T_INST_1}}", installDelays().t1).replace("{{T_INST_N1}}", installDelays().n1)
+        .replace("{{T_INST_2}}", installDelays().t2).replace("{{T_INST_N2}}", installDelays().n2)
         .replace("{{RING_A}}", dive.ringA).replace("{{RING_B}}", dive.ringB).replace("{{COUNTS}}", readout);
       // the wall: eight rows dealt by index mod 8, brick-offset, alternate rows drifting the other way
       const rows = [0, 1, 2, 3, 4, 5, 6, 7].map((r) => {
