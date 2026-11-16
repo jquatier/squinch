@@ -14,7 +14,7 @@
 // Easing is baked into the stops (an ease-in-out evaluated numerically, with an
 // exponential scale so the zoom keeps one apparent speed), so the timing
 // function between stops is linear and the dive is the same on every browser.
-// A stop per 60 fps frame (90 across a 1.5 s dive) keeps the motion smooth at
+// A stop per 60 fps frame (60 across a 1 s dive) keeps the motion smooth at
 // 30 or 60 fps: with a coarser grid (the page this was ported from used 16) the
 // stops do not divide into frames evenly, velocity steps at each one, and the
 // dive beats at three frames in a way a still can't show.
@@ -23,14 +23,31 @@
 // the box of the card the camera dives through, both in that SVG's own px.
 // Nothing here knows a pixel of the output — only the picture box it is drawn in.
 
-export const LOOP = 30.7; // seconds — every keyframe percentage is a fraction of this
-export const DIVE_S = 1.5; // one dive
-const STOPS = 90; // keyframes per dive
+/** One dive, seconds. 1.0 (not the 1.5 it first shipped at): the zoom is the clip's showpiece, but a reader
+ *  has seen where it is going by 0.7 s and the rest is waiting. DIVE=1.5 brings the slower cut back. */
+export const DIVE_S = Number(process.env.DIVE ?? 1.0);
+const STOPS = Math.round(DIVE_S * 60); // keyframes per dive: one per 60 fps frame
 const PANE = { w: 880, h: 616 }; // the box a picture is contained in (reel.html: inset 48px 0 0 0 of 880×664)
 const C = { x: PANE.w / 2, y: PANE.h / 2 };
 
-/** The reel's timeline, seconds. */
-export const T = { appear: 9.0, dive1: 11.6, dive2: 14.7 };
+/** The montage's cuts, seconds each: they accelerate. */
+const MONT = [0.70, 0.62, 0.55, 0.50, 0.45, 0.42, 0.38, 0.35, 0.32, 0.30, 0.30, 0.30];
+
+/** The reel's timeline, seconds — every other time in the clip is computed from these. The holds are what a
+ *  reader needs to take a picture in: GAP between the two dives, TABLES on the finished tables view, FADE
+ *  out of the app scene into the montage. */
+const HOLD = { gap: 1.6, tables: 2.4, fade: 1.0, install: 5.6 };
+export const T = (() => {
+  const appear = 9.0, dive1 = 11.6;
+  const dive2 = dive1 + DIVE_S + HOLD.gap;
+  const appFade = dive2 + DIVE_S + HOLD.tables; // the app scene starts leaving
+  const appEnd = appFade + HOLD.fade;           // …and the montage takes over
+  const montEnd = appEnd + MONT.reduce((a, b) => a + b, 0);
+  const inst = montEnd + 0.31;                  // the install card starts typing
+  return { appear, dive1, dive2, appFade, appEnd, montStart: appEnd, montEnd, inst, loop: inst + HOLD.install };
+})();
+/** seconds — every keyframe percentage is a fraction of this */
+export const LOOP = Math.round(T.loop * 100) / 100;
 
 export interface Size { w: number; h: number }
 export interface Box { x: number; y: number; w: number; h: number }
@@ -144,4 +161,63 @@ export function diveCss(i: DiveInput) {
     ringA: ringBox(d1), ringB: ringBox(d2),
     info: { k0: [d1.k0, d2.k0], S: [d1.S, d2.S], p1: [d1.px, d1.py], p2: [d2.px, d2.py] },
   };
+}
+
+// ---- everything else on the timeline -----------------------------------------------------------------
+const kf = (name: string, rows: [s: number, decl: string][]) =>
+  `@keyframes ${name}{${rows.map(([t, d]) => `${pct(t)}%{${d}}`).join("")}}\n`;
+const hide = "opacity:0", show = "opacity:1";
+
+/** The keyframes that are not a dive: the wall, the prompt, the agent's lines, the pane, the app / montage /
+ *  close scenes and the view bar. Seconds in, percentages of LOOP out — change a number in `T` or `HOLD` and
+ *  everything after it moves with it. (Late starters — the typed lines — carry an animation-delay and put
+ *  themselves away before the loop wraps, so the next pass never shows stale text.) */
+export function timelineCss() {
+  const out: string[] = [];
+  const bar = (d: number) => [d + DIVE_S / 3, d + 0.6 * DIVE_S]; // the bar changes mid-dive
+  const [a1, a2] = bar(T.dive1), [b1, b2] = bar(T.dive2);
+  // the wall, 0–3.5 s
+  out.push(kf("sq-wall", [[0, hide], [0.4, show], [2.7, show], [3.5, hide], [LOOP, hide]]));
+  out.push(kf("sq-driftA", [[0, "transform:translateX(0)"], [3.5, "transform:translateX(-210px)"], [LOOP, "transform:translateX(-210px)"]]));
+  out.push(kf("sq-driftB", [[0, "transform:translateX(-210px)"], [3.5, "transform:translateX(0)"], [LOOP, "transform:translateX(0)"]]));
+  out.push(kf("sq-band", [[0, "transform:translateX(-110%)"], [0.3, "transform:translateX(-110%)"], [0.9, "transform:translateX(0)"],
+    [2.5, "transform:translateX(0)"], [3.2, "transform:translateX(-110%)"], [LOOP, "transform:translateX(-110%)"]]));
+  // the prompt card starts large and centred, then shrinks to a bar on top
+  const big = "left:70px;top:300px;width:800px;height:160px;font-size:34px", small = "left:30px;top:28px;width:880px;height:56px;font-size:22px";
+  out.push(kf("sq-card", [[0, big], [5.0, big], [5.6, small], [LOOP, small]]));
+  out.push(kf("sq-caretwin", [[0, show], [3.79, show], [3.82, hide], [LOOP, hide]]));
+  out.push(`@keyframes sq-blink{0%,49%{opacity:1}50%,100%{opacity:0}}\n`);
+  // typed text and the agent's lines: reveal, hold, put away
+  const clip = (r: number) => `clip-path:inset(0 ${r}% 0 0)`;
+  out.push(kf("sq-type", [[0, clip(100)], [1.0, "clip-path:inset(0 -2px 0 0)"], [24.0, "clip-path:inset(0 -2px 0 0)"], [24.1, clip(100)], [LOOP, clip(100)]]));
+  const up = "opacity:0;transform:translateY(8px)", on = "opacity:1;transform:translateY(0)";
+  out.push(kf("sq-line", [[0, up], [0.36, on], [20.5, on], [20.6, up], [LOOP, up]]));
+  out.push(kf("sq-lines", [[0, show], [T.appear - 0.3, show], [T.appear + 0.5, hide], [LOOP, hide]]));
+  out.push(kf("sq-pane", [[0, "opacity:0;transform:translateY(36px)"], [T.appear, "opacity:0;transform:translateY(36px)"],
+    [T.appear + 0.8, "opacity:1;transform:translateY(0)"], [LOOP, "opacity:1;transform:translateY(0)"]]));
+  // the scenes
+  out.push(kf("sq-app", [[0, hide], [3.0, hide], [3.6, show], [T.appFade, show], [T.appEnd, hide], [LOOP, hide]]));
+  out.push(kf("sq-mont", [[0, hide], [T.montStart - 0.1, hide], [T.montStart, show], [T.montEnd + 0.1, show], [T.montEnd + 0.6, hide], [LOOP, hide]]));
+  let t = T.montStart;
+  MONT.forEach((dur, i) => {
+    const big = "opacity:1;transform:scale(1.06)", flat = "opacity:1;transform:scale(1)";
+    const b0 = t + Math.min(0.25, dur * 0.7), c0 = t + dur;
+    out.push(kf(`sq-m${i}`, [[0, "opacity:0;transform:scale(1.06)"], [t, "opacity:0;transform:scale(1.06)"], [t + 0.02, big], [b0, flat],
+      [c0, flat], [c0 + 0.02, "opacity:0;transform:scale(1)"], [LOOP, "opacity:0;transform:scale(1)"]]));
+    t += dur;
+  });
+  const rise = "opacity:0;transform:translateY(14px)", rest = "opacity:1;transform:translateY(0)";
+  out.push(kf("sq-inst", [[0, rise], [T.inst, rise], [T.inst + 0.6, rest], [T.inst + 5.1, rest], [T.inst + 5.5, "opacity:0;transform:translateY(0)"], [LOOP, "opacity:0;transform:translateY(0)"]]));
+  out.push(kf("sq-type2", [[0, clip(100)], [0.9, "clip-path:inset(0 -2px 0 0)"], [6.5, "clip-path:inset(0 -2px 0 0)"], [6.6, clip(100)], [LOOP, clip(100)]]));
+  // the view bar: home, then one hop per altitude, changing as each zoom lands
+  out.push(kf("sq-bar1", [[0, show], [a1, show], [a2, hide], [LOOP, hide]]));
+  out.push(kf("sq-bar2", [[0, hide], [a1, hide], [a2, show], [b1, show], [b2, hide], [LOOP, hide]]));
+  out.push(kf("sq-bar3", [[0, hide], [b1, hide], [b2, show], [LOOP, show]]));
+  return out.join("");
+}
+
+/** The animation-delays of the install card's two typed commands and their notes, seconds. */
+export function installDelays() {
+  const f = (v: number) => strip(v.toFixed(2));
+  return { t1: f(T.inst), n1: f(T.inst + 1.0), t2: f(T.inst + 1.1), n2: f(T.inst + 2.1) };
 }

@@ -27,10 +27,10 @@ const FILES: [string, string][] = [
   ["mark.svg", "favicon.svg"],
   // The landing's two demo clips, as video with a poster still. The GIFs in
   // docs/assets are the README's — GitHub will not autoplay a video — and the
-  // site does not serve them. All four are written by scripts/prompt-gif.mts
-  // and scripts/hero-gif.mts.
-  ["prompt-dark.mp4", "prompt-dark.mp4"],
-  ["prompt-dark.webp", "prompt-dark.webp"],
+  // site does not serve them. The montage pair is written by
+  // scripts/montage-video.mts, the zoom pair by scripts/hero-gif.mts.
+  ["montage-dark.mp4", "montage-dark.mp4"],
+  ["montage-dark.webp", "montage-dark.webp"],
   ["zoom-dark.mp4", "zoom-dark.mp4"],
   ["zoom-dark.webp", "zoom-dark.webp"],
   // The mascot stands beside the landing's quotes. mascot.png is the full

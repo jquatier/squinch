@@ -31,8 +31,8 @@ apps/spa/public/lookbook/
 # apps/spa/scripts/sync-media.ts — docs/assets stays the one committed copy.
 # favicon.svg is docs/assets/mark.svg, serving as both tab icon and page logo.
 apps/spa/public/favicon.svg
-apps/spa/public/prompt-dark.mp4
-apps/spa/public/prompt-dark.webp
+apps/spa/public/montage-dark.mp4
+apps/spa/public/montage-dark.webp
 apps/spa/public/zoom-dark.mp4
 apps/spa/public/zoom-dark.webp
 apps/spa/public/mascot.png
