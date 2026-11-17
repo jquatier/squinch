@@ -335,6 +335,20 @@ describe("the skill — diagnostic coverage", () => {
     "lists something that reads as an endpoint", "needs the id it points at",
     "picks fields, and it has none", "preview` is none, auto or a list of fields", "preview` on",
     "{ }` nests fields — a nested field is a dotted name",
+    // Relationship marks (2026-11): every one writes the whole corrected edge
+    // line — both ends filled in, the foreign notation translated, the arrow
+    // swapped — or the one word to change (`to: zero-or-one`).
+    "a relationship is marked at both ends or neither",
+    "is Mermaid — squinch marks a relationship with `from:` and `to:` on an edge",
+    "is `nullable", "is a side, and", "on an edge counts rows", "says every",
+    "is declared twice with different relationship marks",
+    "is not an edge attribute — a relationship is marked at each end",
+    "reads backwards against the column",
+    "relationship marks are attributes — they go in the edge's braces",
+    "relationship marks replace the arrowhead, and",
+    "relationship marks sit between two tables, and",
+    "relationship marks sit on a plain solid edge",
+    "route` names its sides without a colon — `from:` and `to:` are an edge's relationship marks",
   ]);
 
   it("every diagnostic that needs a technique is in the cookbook", () => {

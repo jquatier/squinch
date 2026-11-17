@@ -141,6 +141,14 @@ export type EdgeStyle = (typeof EDGE_STYLES)[number];
 export const EDGE_ANIMATE = ["false", "flow", "reverse", "slow", "fast", "packets", "pulse", "comet"] as const;
 export type EdgeAnimate = Exclude<(typeof EDGE_ANIMATE)[number], "false">;
 
+/** Relationship marks (SPEC §4): what `from:` / `to:` on an edge between two
+ *  tables may say. Each counts the rows at its own end. `one` and `many` leave
+ *  optionality unstated; the other four state it. */
+export const EDGE_MARKS = ["one", "many", "exactly-one", "zero-or-one", "one-or-many", "zero-or-many"] as const;
+export type EdgeMark = (typeof EDGE_MARKS)[number];
+/** The marks that count one row, whatever they say about optionality. */
+export const MARKS_ONE: readonly EdgeMark[] = ["one", "exactly-one", "zero-or-one"];
+
 export interface SEdge {
   id: string; // e1, e2… declaration order after fan-out expansion
   from: string; // resolved path
@@ -152,6 +160,10 @@ export interface SEdge {
   /** `color:` — stroke, head and comet. Survives lifting only when every
    *  aggregated member agrees, like `style`/`animate`. */
   color?: Hue;
+  /** `from:` / `to:` — the crow's-foot mark at each end, both or neither. Set
+   *  only on an edge that may carry them: two leaves, `->` or `--`, no
+   *  `style:` or `animate:`. */
+  marks?: { from: EdgeMark; to: EdgeMark };
   loc: Loc;
   file?: string;
 }

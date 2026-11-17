@@ -28,7 +28,10 @@ import { themes } from "../themes/index.js";
 import type {
   ArrowKind, BuildResult, Diagnostic, Hue, Loc, RelPos, SContainer, SEdge, SField, SModel, SNode, SNote, SView, Side, SFlow, SZone, ZoneKind, ZoneLabelPos,
 } from "./types.js";
-import { ZONE_KINDS, HUES, EDGE_STYLES, EDGE_ANIMATE, PREVIEW_MAX, PREVIEW_FIELDS_PICK_MAX } from "./types.js";
+import { ZONE_KINDS, HUES, EDGE_STYLES, EDGE_ANIMATE, EDGE_MARKS, MARKS_ONE, PREVIEW_MAX, PREVIEW_FIELDS_PICK_MAX } from "./types.js";
+import type { EdgeMark } from "./types.js";
+
+import { RELATION_KEYS, markWord, relationEnds, repairMarks } from "./marks.js";
 import { resolveView } from "../view/resolve.js";
 
 export interface ProjectFile {
@@ -363,6 +366,11 @@ export function buildProject(input: ProjectFile[]): BuildResult {
 
   // ── phase A: declarations, per file ───────────────────────────────────────
   const rawEdges: { node: SyntaxNode; scope: string; ctx: Ctx }[] = [];
+  /** Edges whose marks were refused, by id — a duplicate of one is not a
+   *  second mistake. */
+  const marksRefused = new Set<string>();
+  /** `file:line` of an edge whose marks stood outside its braces. */
+  const refusedLines = new Set<string>();
   /** `layout { }` blocks found inside container bodies, resolved after every
    *  node is declared — exactly as edges are. */
   const rawLayouts: { node: SyntaxNode; scope: string; ctx: Ctx }[] = [];
@@ -372,7 +380,15 @@ export function buildProject(input: ProjectFile[]): BuildResult {
 
   for (const f of files) {
     const ctx = makeCtx(f.name, f.src);
-    const tree = parser.parse(f.src);
+    // relationship marks in another notation are repaired before the parse,
+    // offsets unchanged; `ctx` still reads the author's text (model/marks.ts)
+    const repaired = repairMarks(f.src);
+    const tree = parser.parse(repaired.src);
+    for (const n of repaired.notes) {
+      const loc = ctx.loc({ from: n.from, to: n.to } as SyntaxNode);
+      error(ctx, loc, n.message, n.fix);
+      if (n.refused) refusedLines.add(`${ctx.name}:${loc.line}`);
+    }
 
     let sawSyntaxError = false;
     const errorLines = new Set<number>(); // one syntax error per line, not a cascade
@@ -1264,11 +1280,16 @@ export function buildProject(input: ProjectFile[]): BuildResult {
     // check contract forbids. Values follow the zone-colour pattern; keys get
     // a warning because SPEC names an attr (`description`) that parses ahead
     // of being wired.
-    const EDGE_ATTR_KEYS = ["description", "animate", "style", "color"];
+    const EDGE_ATTR_KEYS = ["description", "animate", "style", "color", "from", "to"];
     const color = meta.attrs.color ? checkHue(ctx, node, meta.attrs.color) : undefined;
+    // one attribute for both ends is the other natural spelling of a
+    // relationship; it is answered with the marks, below
+    const relKey = Object.keys(meta.attrs).find((k) => RELATION_KEYS.includes(k));
     for (const key of Object.keys(meta.attrs)) {
-      if (EDGE_ATTR_KEYS.includes(key)) continue;
-      const sug = suggest(key, EDGE_ATTR_KEYS);
+      if (EDGE_ATTR_KEYS.includes(key) || key === relKey) continue;
+      // `to` is two letters: offered as a did-you-mean it would claim every
+      // short unknown key (`tls`, `on`, `ttl`)
+      const sug = suggest(key, EDGE_ATTR_KEYS.filter((k) => k !== "to"));
       warn(ctx, node, `unknown edge attribute \`${key}\``,
         sug ? `did you mean \`${sug}\`?` : `one of: ${EDGE_ATTR_KEYS.join(", ")}`);
     }
@@ -1298,10 +1319,90 @@ export function buildProject(input: ProjectFile[]): BuildResult {
     if (animate === "packets" && style !== undefined)
       error(ctx, node, "`animate: packets` draws its own sparse pattern — `style:` has nothing to add",
         "drop the `style:` attribute");
+    // Relationship marks: `from:` / `to:`, a crow's-foot mark at each end
+    // (SPEC §4). Checked once per statement, one diagnostic per statement: an
+    // edge that may not carry them gets an error with the whole line to write
+    // — a line that itself checks clean — never a mark quietly dropped.
+    let marks: SEdge["marks"];
+    const ends = (["from", "to"] as const).filter((k) => meta.attrs[k] !== undefined);
+    const wantsMarks = ends.length > 0 || relKey !== undefined;
+    const edgeLine = (marksText: string) => {
+      const keep = Object.entries(meta.attrs)
+        .filter(([k]) => k !== "from" && k !== "to" && !RELATION_KEYS.includes(k)
+          && !(marksText && (k === "style" || k === "animate")))
+        .map(([k, v]) => `${k}: ${/^[\w.-]+$/.test(v) ? v : JSON.stringify(v)}`);
+      const attrs = [marksText, ...keep, meta.tags.length ? `tags: ${meta.tags.map((t) => `#${t}`).join(" ")}` : ""]
+        .filter(Boolean).join(" ");
+      const list = node.getChild("PathList");
+      return `${ctx.text(pathNode)} ${marksText && arrow !== "->" && arrow !== "--" ? "->" : arrow} ${list ? ctx.text(list) : "…"}`
+        + `${labelNode ? ` ${ctx.text(labelNode)}` : ""}${attrs ? ` { ${attrs} }` : ""}`
+        + node.getChildren("Tag").map((t) => ` ${ctx.text(t)}`).join("");
+    };
+    if (wantsMarks) {
+      const isMark = (v: string | undefined): v is EdgeMark => v !== undefined && (EDGE_MARKS as readonly string[]).includes(v);
+      const word = (k: "from" | "to") => {
+        const v = meta.attrs[k];
+        return v === undefined || isMark(v) ? v : markWord(v) ?? (suggest(v, [...EDGE_MARKS]) as EdgeMark | undefined);
+      };
+      const rel = relKey ? relationEnds(meta.attrs[relKey]) : undefined;
+      const bad = ends.filter((k) => !isMark(meta.attrs[k]));
+      const line = (f: string = word("from") ?? rel?.[0] ?? "many", t: string = word("to") ?? rel?.[1] ?? "one") =>
+        edgeLine(`from: ${f} to: ${t}`);
+      const words = `each end is one of: ${EDGE_MARKS.join(", ")}`;
+      const SIDES = ["north", "south", "east", "west"];
+      const style = meta.attrs.style, anim = meta.attrs.animate;
+      if (relKey) {
+        error(ctx, node, `\`${relKey}:\` is not an edge attribute — a relationship is marked at each end`,
+          rel ? `write \`${line()}\`` : `write \`from:\` and \`to:\` instead — ${words}`);
+      } else if (bad.length && bad.every((k) => SIDES.includes(meta.attrs[k]))) {
+        const k = bad[0], v = meta.attrs[k];
+        error(ctx, node, `\`${k}: ${v}\` — \`${v}\` is a side, and \`${k}:\` on an edge counts rows`,
+          `to choose the wall a wire leaves by, write \`route ${fromPath ?? ctx.text(pathNode)} ${arrow} ${targets[0] ? lookup(ctx.text(targets[0]), scope) ?? ctx.text(targets[0]) : "…"}`
+          + `${bad.map((b) => ` ${b} ${meta.attrs[b]}`).join("")}\` in the view's \`layout { }\`; a relationship is \`${line("many", "one")}\``);
+      } else if (bad.length) {
+        const k = bad[0], v = meta.attrs[k];
+        error(ctx, node,
+          v === "*" ? "`*` is not a relationship mark — each end is a word"
+            : /^\d+\.\./.test(v) ? `\`${v}\` is a UML range — a relationship mark is a word`
+            : `unknown relationship mark \`${k}: ${v}\``,
+          bad.every((b) => word(b)) ? `write \`${line()}\`${ends.length === 2 ? "" : ` — ${words}`}` : words);
+      } else if (ends.length === 1) {
+        const have = ends[0], miss = have === "from" ? "to" : "from";
+        error(ctx, node, `\`${have}:\` without \`${miss}:\` — a relationship is marked at both ends or neither`,
+          `write \`${line()}\`, with the word that counts the ${miss === "from" ? "source" : "target"}'s rows: ${EDGE_MARKS.join(", ")}`);
+      } else if (arrow !== "->" && arrow !== "--") {
+        error(ctx, node, `relationship marks replace the arrowhead, and \`${arrow}\` ${arrow === "~>" ? "is an async call" : "has two"}`,
+          `write \`${line()}\`, or \`--\` when neither table holds the key`);
+      } else if ((style !== undefined && style !== "solid") || (anim !== undefined && anim !== "false")) {
+        const what = style !== undefined && style !== "solid" ? `style: ${style}` : `animate: ${anim}`;
+        error(ctx, node, `relationship marks sit on a plain solid edge — \`${what}\` cannot share it`,
+          `write \`${line()}\`, or drop \`from:\` and \`to:\` to keep \`${what}\``);
+      } else {
+        marks = { from: meta.attrs.from as EdgeMark, to: meta.attrs.to as EdgeMark };
+      }
+    }
+    let endSaid = false;
     for (const target of targets) {
       const toPath = resolve(ctx.text(target), scope, target, ctx);
       edgeN++;
       if (!fromPath || !toPath) continue;
+      // marks sit between two tables: a container has no rows to count, and a
+      // person is not a table
+      let edgeMarks = marks;
+      if (marks)
+        for (const end of [fromPath, toPath]) {
+          const isContainer = model.containers.has(end);
+          if (!isContainer && !model.nodes.get(end)?.kinds.includes("person")) continue;
+          if (!endSaid)
+            error(ctx, node, `relationship marks sit between two tables, and \`${end}\` is a ${isContainer ? model.containers.get(end)!.kind : "person"}`,
+              isContainer
+                ? `name the table inside \`${end}\` that holds the rows, or drop the marks: \`${edgeLine("")}\``
+                : `drop the marks: \`${edgeLine("")}\``);
+          endSaid = true;
+          edgeMarks = undefined;
+          break;
+        }
+      if ((wantsMarks && !edgeMarks) || refusedLines.has(`${ctx.name}:${ctx.loc(node).line}`)) marksRefused.add(`e${edgeN}`);
       model.edges.push({
         id: `e${edgeN}`,
         from: fromPath, to: toPath, arrow,
@@ -1310,6 +1411,7 @@ export function buildProject(input: ProjectFile[]): BuildResult {
         // trailing `#tag`s merge with any in the attr block, same as a node's
         tags: [...new Set([...node.getChildren("Tag").map((t) => ctx.text(t).slice(1)), ...meta.tags])],
         color,
+        ...(edgeMarks ? { marks: edgeMarks } : {}),
         loc: ctx.loc(node), file: ctx.name,
       });
     }
@@ -1332,17 +1434,60 @@ export function buildProject(input: ProjectFile[]): BuildResult {
   const seen = new Map<string, SEdge>();
   model.edges = model.edges.filter((e) => {
     const key = `${e.from}|${e.arrow}|${e.to}|${e.label ?? ""}`;
-    if (seen.has(key)) {
+    const first = seen.get(key);
+    // on `--` the same two tables written the other way round are the same
+    // relationship; they are not merged (they never were), only compared
+    const back = e.arrow === "--" ? seen.get(`${e.to}|--|${e.from}|${e.label ?? ""}`) : undefined;
+    const say = (m: SEdge["marks"]) => (m ? `from: ${m.from} to: ${m.to}` : "no marks");
+    const differ = (o: SEdge, flip: boolean) =>
+      !marksRefused.has(o.id) && !marksRefused.has(e.id)
+      && say(o.marks) !== say(flip && e.marks ? { from: e.marks.to, to: e.marks.from } : e.marks);
+    const other = first ?? back;
+    // merging would have to pick one line's marks and drop the other's
+    if (other && (other.marks || e.marks) && differ(other, !first))
+      diagnostics.push({
+        severity: "error",
+        message: `${e.from} ${e.arrow} ${e.to}${e.label ? ` "${e.label}"` : ""} is declared twice with different relationship marks — \`${say(other.marks)}\` on line ${other.loc.line}${other.file !== e.file && other.file ? ` of ${other.file}` : ""}, \`${say(e.marks)}\` here`,
+        fix: "keep one of the two lines; two relationships between the same tables need different labels",
+        loc: e.loc, file: e.file,
+      });
+    else if (first && !marksRefused.has(first.id) && !marksRefused.has(e.id))
       diagnostics.push({
         severity: "warning",
         message: `duplicate edge ${e.from} ${e.arrow} ${e.to} merged`,
         loc: e.loc, file: e.file,
       });
-      return false;
-    }
+    if (first) return false;
     seen.set(key, e);
     return true;
   });
+
+  // Marks against the column. When the label names a column of the source
+  // table whose `ref` is the target, the row already says which end holds the
+  // key and whether it may be empty. Nothing is inferred from it — the marks
+  // are the author's — but two contradictions are worth a warning. Plain `one`
+  // never contradicts, and a column without `nullable` proves nothing.
+  for (const e of model.edges) {
+    if (!e.marks || !e.label) continue;
+    const col = model.nodes.get(e.from)?.fields?.find((f) => f.name === e.label && f.ref?.target === e.to);
+    if (!col) continue;
+    const { from, to } = e.marks;
+    const src = e.from.split(".").pop()!, tgt = e.to.split(".").pop()!;
+    if (MARKS_ONE.includes(from) && !MARKS_ONE.includes(to))
+      diagnostics.push({
+        severity: "warning",
+        message: `\`from: ${from} to: ${to}\` reads backwards against the column — \`${src}.${col.name}\` refs \`${tgt}\`, so many \`${src}\` rows point at one \`${tgt}\``,
+        fix: `swap the ends: \`{ from: ${to} to: ${from} }\` — \`from:\` counts \`${src}\`'s rows, \`to:\` counts \`${tgt}\`'s`,
+        loc: e.loc, file: e.file,
+      });
+    else if (col.markers.includes("nullable") && (to === "exactly-one" || to === "one-or-many"))
+      diagnostics.push({
+        severity: "warning",
+        message: `\`to: ${to}\` says every \`${src}\` row has a \`${tgt}\`, and \`${src}.${col.name}\` is \`nullable\``,
+        fix: `write \`to: ${to === "exactly-one" ? "zero-or-one" : "zero-or-many"}\`, or drop \`nullable\` from the column if it is always set`,
+        loc: e.loc, file: e.file,
+      });
+  }
 
   // An edge a node draws to itself is never drawn (a loop is a layout project
   // of its own). Said here, once, on the edge's own line: it used to be said

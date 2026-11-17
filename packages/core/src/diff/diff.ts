@@ -270,6 +270,15 @@ export function diffModels(before: SModel, after: SModel): DiffResult {
           detail: `${a.from} → ${a.to} label`,
           before: b.label ?? "(none)", after: a.label ?? "(none)",
         });
+      // A relationship mark is a claim about the data, not styling: "many
+      // orders per customer" becoming "one" is a change to the model.
+      const marks = (e: SEdge) => (e.marks ? `${e.marks.from} to ${e.marks.to}` : "(none)");
+      if (marks(b) !== marks(a))
+        add({
+          kind: "changed", weight: "structural", subject: "edge", id: edgeId(a),
+          detail: `${a.from} → ${a.to} relationship`,
+          before: marks(b), after: marks(a),
+        });
       // Styling attrs are cosmetic by definition, but invisible changes make a
       // reviewer distrust the diff — a PR that switches an edge to `packets`
       // should say so.
