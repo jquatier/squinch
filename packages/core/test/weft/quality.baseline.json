@@ -1,25 +1,25 @@
 {
   "corpus": {
-    "views": 263,
+    "views": 266,
     "totals": {
       "crossings": 23,
-      "bends": 719,
+      "bends": 727,
       "kinks": 0,
       "nearMiss": 0,
-      "lopsided": 107,
+      "lopsided": 108,
       "offCentre": 0,
       "unstraight": 8,
       "labelOnWire": 0
     }
   },
   "corpus, turned right": {
-    "views": 260,
+    "views": 262,
     "totals": {
       "crossings": 24,
-      "bends": 1074,
+      "bends": 1082,
       "kinks": 0,
       "nearMiss": 0,
-      "lopsided": 104,
+      "lopsided": 105,
       "offCentre": 0,
       "unstraight": 4,
       "labelOnWire": 0

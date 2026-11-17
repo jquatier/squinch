@@ -1,0 +1,57 @@
+// Relationship marks between tables (SPEC §4): every one of the six words,
+// a nullable key, a many-to-many, and the same schema flowing rightward.
+system shop "Shop" {
+  container db "Postgres" {
+    orders = sys/table "orders" {
+      fields {
+        id uuid pk
+        customer_id uuid fk ref customers
+        coupon_id uuid fk nullable ref coupons
+      }
+    }
+    customers = sys/table "customers" {
+      fields {
+        id uuid pk
+        email text
+      }
+    }
+    coupons = sys/table "coupons" {
+      fields {
+        id uuid pk
+        code text
+      }
+    }
+    order_items = sys/table "order_items" {
+      fields {
+        order_id uuid pk fk ref orders
+        product_id uuid pk fk ref products
+      }
+    }
+    products = sys/table "products" {
+      fields {
+        id uuid pk
+        name text
+      }
+    }
+    tags = sys/table "tags" {
+      fields {
+        id uuid pk
+        label text
+      }
+    }
+    orders -> customers "customer_id" { from: many to: one }
+    orders -> coupons "coupon_id" { from: many to: zero-or-one }
+    order_items -> orders "order_id" { from: one-or-many to: exactly-one }
+    order_items -> products "product_id" { from: zero-or-many to: exactly-one }
+    products -- tags { from: many to: many }
+  }
+}
+view schema {
+  scope shop.db
+}
+view right {
+  scope shop.db
+  layout {
+    direction right
+  }
+}

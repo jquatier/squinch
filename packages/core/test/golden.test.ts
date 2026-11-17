@@ -28,6 +28,9 @@ const CASES: { file: string; themes: string[]; view?: string }[] = [
   { file: "examples/fields-wires.squinch", themes: ["light"], view: "right" },
   { file: "examples/fields-wires.squinch", themes: ["light", "dark"], view: "row" },
   { file: "examples/fields-wires.squinch", themes: ["light"], view: "noted" },
+  // relationship marks: all six words, down and rightward (tight turns)
+  { file: "examples/relationships.squinch", themes: ["light", "dark"], view: "schema" },
+  { file: "examples/relationships.squinch", themes: ["light"], view: "right" },
 ];
 
 describe("golden renders", () => {

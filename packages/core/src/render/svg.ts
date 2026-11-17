@@ -10,7 +10,8 @@ import type { Theme } from "../themes/index.js";
 // strip the renderer fills and the room the card reserves are one number.
 import { pillDims, NOTE_GUTTER, SHELF_H, ROW_H, CARD_HEAD_H, FIELD_ROW_H, CHIP_PAD, CHIP_GAP, FIELD_GAP, REF_ARROW_W } from "../layout/layout.js";
 import type { Positioned, PEdge, PNode, PZone, PFrame } from "../layout/layout.js";
-import type { EdgeAnimate, Hue, SNote, ZoneKind } from "../model/types.js";
+import type { EdgeAnimate, EdgeMark, Hue, SNote, ZoneKind } from "../model/types.js";
+import { MARK_HALF } from "../layout/sizes.js";
 import { hueOf } from "../themes/index.js";
 
 const PLATE = 40;
@@ -453,6 +454,51 @@ function arrow(e: PEdge, t: Theme, lines: Positioned["lines"], col: string, cls 
   return e.heads === "both"
     ? forward + head(e.points[0], after, col, e.async, exact, cls)
     : forward;
+}
+
+/**
+ * Relationship marks (DESIGN §4, SPEC §4): crow's-foot notation, drawn on the
+ * straight run a wire makes out of its table, in place of the arrowhead. Read
+ * from the table outward — a bar is "one", a foot is "many", and a second
+ * bar or a ring says whether there must be one.
+ *
+ * Geometry is in whole and half pixels along the wire's axis, never rotated:
+ * a mark is only drawn on an axis-aligned run (layout drops marks where
+ * `lines: straight` would need anything else). Everything fits inside
+ * `MARK_REACH` of the wall, short of where an 8px corner on the shortest stub
+ * has moved the wire by more than a pixel.
+ *
+ * The ring is open: the wire stops at its far edge (`markGap` says where) and
+ * the mark draws the short piece between the wall and the ring's near edge.
+ * An open ring needs to know nothing about what it stands on — canvas, frame
+ * fill — which a ring filled to hide the wire would.
+ */
+const MARK_SHAPES: Record<EdgeMark, { bars: number[]; foot?: number; ring?: number }> = {
+  "one": { bars: [6] },
+  "many": { bars: [], foot: 10 },
+  "exactly-one": { bars: [4, 8] },
+  "zero-or-one": { bars: [4], ring: 8.5 },
+  "one-or-many": { bars: [10], foot: 7 },
+  "zero-or-many": { bars: [], foot: 7, ring: 9.5 },
+};
+const RING_R = 2.5;
+/** How far from the wall the wire itself begins: past the ring, or at the wall. */
+const markGap = (kind: EdgeMark): number => {
+  const ring = MARK_SHAPES[kind].ring;
+  return ring === undefined ? 0 : ring + RING_R;
+};
+/** One mark where the wire meets the wall at `p`, running out toward `q`. */
+function markAt(p: { x: number; y: number }, q: { x: number; y: number }, kind: EdgeMark, col: string): string {
+  const dx = Math.sign(q.x - p.x), dy = Math.sign(q.y - p.y);
+  // `k` px out along the wire, `o` px across it; (dy, dx) is the perpendicular
+  const at = (k: number, o: number) => `${p.x + dx * k + dy * o} ${p.y + dy * k + dx * o}`;
+  const { bars, foot, ring } = MARK_SHAPES[kind];
+  let d = "";
+  if (foot !== undefined) d += `M ${at(0, MARK_HALF)} L ${at(foot, 0)} L ${at(0, -MARK_HALF)}`;
+  for (const k of bars) d += `${d ? " " : ""}M ${at(k, MARK_HALF)} L ${at(k, -MARK_HALF)}`;
+  if (ring !== undefined) d += ` M ${at(0, 0)} L ${at(ring - RING_R, 0)}`;
+  return `<path d="${d}" fill="none" stroke="${col}" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>`
+    + (ring === undefined ? "" : `<circle cx="${p.x + dx * ring}" cy="${p.y + dy * ring}" r="${RING_R}" fill="none" stroke="${col}" stroke-width="1.5"/>`);
 }
 
 /** class per animate value — `sq-flow` predates the vocabulary and keeps its
@@ -1630,6 +1676,7 @@ export function renderSVG(p: Positioned, t: Theme, opts: RenderOpts = {}): strin
   const crossedTitle = (f: PFrame): string => frameHeader(f, true);
 
   const hops = hopPoints(p.edges);
+  const markedEnds = new Map<string, { weight: number; svg: string }>(); // wire end → the mark it carries
   for (const e of p.edges) {
     const dimmed = !edgeMatches(e);
     // the hop being narrated right now: accent-coloured and heavier, so the
@@ -1656,13 +1703,40 @@ export function renderSVG(p: Positioned, t: Theme, opts: RenderOpts = {}): strin
     const cls = e.animate ? ANIM_CLASS[e.animate] : undefined;
     const anim = cls ? ` class="${cls}"` : "";
     const op = dimmed ? ` opacity="${DIM}"` : "";
-    const myHops = hops.get(e.id);
+    // A ring is open: the wire begins at its far edge. The piece of wire
+    // before that is skipped with a dash pattern that starts with a gap — a
+    // marked edge is always solid, so the pattern is free — which leaves the
+    // path, and its corners, exactly what every other wire has. A pattern
+    // counts from the start of a path, so the run that reaches the `to` end
+    // is drawn from that end. One run with a ring at both ends is drawn
+    // twice over the same path, once from each end and each a little past
+    // half-way: the two overlap in the middle, so there is no seam to show
+    // at any scale, and no corner is recomputed from a shortened stretch.
+    const gapFrom = e.marks ? markGap(e.marks.from) : 0, gapTo = e.marks ? markGap(e.marks.to) : 0;
+    // A crossing hop right beside a ring would leave the ring with no wire
+    // (the stretch between ring and hop is all gap) — there the wire runs
+    // through the crossing instead.
+    const near = (h: { x: number; y: number }, end: { x: number; y: number }, gap: number) => gap > 0 && Math.abs(h.x - end.x) + Math.abs(h.y - end.y) < gap + 12;
+    const myHops = hops.get(e.id)?.filter((h) => !near(h, e.points[0], gapFrom) && !near(h, e.points[e.points.length - 1], gapTo));
     const runs = myHops?.length ? splitAtHops(e.points, myHops) : [e.points];
     body.push(`<g${op}>`);
-    for (const run of runs) {
-      const d = edgePath(run, p.lines);
+    const pieces: { pts: { x: number; y: number }[]; skip?: string }[] = runs.map((pts) => ({ pts }));
+    if (gapFrom || gapTo) {
+      const back = [...runs[runs.length - 1]].reverse();
+      if (runs.length === 1 && gapFrom && gapTo) {
+        let len = 0;
+        for (let i = 1; i < back.length; i++) len += Math.abs(back[i].x - back[i - 1].x) + Math.abs(back[i].y - back[i - 1].y);
+        const half = Math.ceil(len / 2) + 4;
+        pieces.splice(0, 1, { pts: runs[0], skip: `0 ${gapFrom} ${half - gapFrom} 100000` }, { pts: back, skip: `0 ${gapTo} ${half - gapTo} 100000` });
+      } else {
+        if (gapFrom) pieces[0].skip = `0 ${gapFrom} 100000`;
+        if (gapTo) pieces[pieces.length - 1] = { pts: back, skip: `0 ${gapTo} 100000` };
+      }
+    }
+    for (const { pts, skip } of pieces) {
+      const d = edgePath(pts, p.lines);
       body.push(
-        `<path${anim} d="${d}" fill="none" stroke="${col}" stroke-width="${weight}"${dash}/>`,
+        `<path${anim} d="${d}" fill="none" stroke="${col}" stroke-width="${weight}"${skip ? ` stroke-dasharray="${skip}"` : dash}/>`,
       );
     }
     if (e.animate === "comet") {
@@ -1689,9 +1763,21 @@ export function renderSVG(p: Positioned, t: Theme, opts: RenderOpts = {}): strin
     }
     // pulse breathes the whole edge, arrowhead included; travel animations
     // stay off the head — a drifting chevron reads as the head detaching
-    body.push(arrow(e, t, p.lines, col, e.animate === "pulse" ? anim : ""));
+    if (e.marks) {
+      // One drawn end carries one mark: the wires of a trunk share a port,
+      // and layout has checked that they agree on it. They may still differ
+      // in colour and emphasis, so the mark goes to the one that stands out
+      // most — the flow's current step, else one that is not dimmed.
+      const n = e.points.length, weightOf = current ? 2 : dimmed ? 0 : 1;
+      for (const [at, toward, kind] of [[e.points[0], e.points[1], e.marks.from], [e.points[n - 1], e.points[n - 2], e.marks.to]] as const) {
+        const key = `${at.x},${at.y}`, had = markedEnds.get(key);
+        if (!had || weightOf > had.weight) markedEnds.set(key, { weight: weightOf, svg: `${dimmed ? `<g opacity="${DIM}">` : ""}${markAt(at, toward, kind, col)}${dimmed ? "</g>" : ""}` });
+      }
+    } else body.push(arrow(e, t, p.lines, col, e.animate === "pulse" ? anim : ""));
     body.push(`</g>`);
   }
+  // the marks, over every wire: one per drawn end, in the order the ends were first met
+  for (const m of markedEnds.values()) body.push(m.svg);
 
   for (const n of p.nodes) {
     const dimmed = !nodeMatches(n);
