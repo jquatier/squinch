@@ -289,6 +289,31 @@ it is expanded. A table at the top level needs `preview <table>`; the
 landscape and collapsed cards never change. `preview: none` keeps a table
 plain inside an expanded system.
 
+Relationships — when the request or the schema states how many rows take
+part, say it on the edge between the two tables with `from:` and `to:`, one
+word per end, both ends or neither. They draw as crow's-foot marks at the
+wire's ends, where both tables are drawn.
+
+```squinch
+orders      -> customers "customer_id" { from: many         to: one }          // many orders, one customer
+orders      -> coupons   "coupon_id"   { from: many         to: zero-or-one }  // the key is nullable
+order_items -> orders    "order_id"    { from: one-or-many  to: exactly-one }  // the request states both
+products    -- tags                    { from: many         to: many }
+```
+
+`from:` counts the rows of the table the edge starts at, `to:` those of the
+table it ends at. Six words: `one` and `many` say nothing about optionality;
+`exactly-one`, `zero-or-one`, `one-or-many` and `zero-or-many` state it. Write
+`one` or `many` unless the request or the schema states optionality. A
+nullable key is the usual reason for `zero-or-one`. "At least one" is almost
+never in a schema: write `one-or-many` only when the request says it. Put
+marks on an edge only when the request or the schema gives the cardinality; a
+tables request that states none draws none. Many-to-many is a direct `--`
+edge, or a join table with two edges, as the source has it — never invent a
+join table. The marks are the whole statement: keep the label for the key
+column, not for "1:N". The edge is a plain `->` or `--` between two tables —
+no `style:`, no `animate:`, not a service or a person.
+
 Edge motion — `~>` edges animate on their own (dashes drift toward the target,
 off under `prefers-reduced-motion`). Opt out with `{ animate: false }`, or pick
 a variant: `reverse` (acks flowing back), `slow`/`fast` (cadence), `packets`

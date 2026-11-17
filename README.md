@@ -118,6 +118,19 @@ container db "Orders DB" {
   each of its columns.
 - **`ref <path>`** names the column or table a field points at. It is text on
   the row; the relationship itself is an edge between the two tables.
+- **Relationships are marked on that edge**, when you know how many rows take
+  part: `from:` and `to:`, one word per end, drawn as crow's-foot marks.
+
+  ```squinch
+  orders      -> customers "customer_id" { from: many        to: one }
+  orders      -> coupons   "coupon_id"   { from: many        to: zero-or-one }  // nullable key
+  order_items -> orders    "order_id"    { from: one-or-many to: exactly-one }
+  products    -- tags                    { from: many        to: many }
+  ```
+
+  `one` and `many` say nothing about optionality; `exactly-one`,
+  `zero-or-one`, `one-or-many` and `zero-or-many` state it. Both ends or
+  neither, between two tables, on a plain `->` or `--` edge.
 - **Fields draw where the table's container is open.** A view scoped to the
   database (`view db { scope shop.db }`) shows every field. Wherever the
   database is expanded (`expand db`, `expand *`) each table shows a compact
@@ -129,7 +142,8 @@ container db "Orders DB" {
 
 `squinch check` warns when fields are written that no view can draw. The full
 rules are in [docs/SPEC.md](docs/SPEC.md); the lookbook's
-[Fields case](lookbook/cases/43-fields.squinch) shows all three placements.
+[Fields case](lookbook/cases/43-fields.squinch) shows all three placements, and
+the [Relationships case](lookbook/cases/44-relationships.squinch) all six marks.
 
 ## Features
 

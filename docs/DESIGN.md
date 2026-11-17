@@ -212,6 +212,20 @@ it gets none of the marks that imply one.
   — the strongest "drawn by a person who cared" signal there is.
 - **Arrowheads**: filled chevron `8×6`, matched to stroke color; open chevron for
   `~>` async. Small, sharp, consistent — never SVG default markers.
+- **Relationship marks** (crow's foot, between tables): drawn on the stub, in
+  place of the head, read from the table outward — a bar is one, a foot is
+  many, a second bar or a ring says whether there must be one. Stroke `1.5`
+  in the wire's colour, round caps; `10` across (a foot's toes are `10` apart
+  at the wall) and never more than `12` out from it, so the whole mark sits
+  on the straight part of the shortest stub and the wire keeps the same
+  radius-`8` corner as every other. The ring (radius `2.5`) is **open**: the
+  wire starts at its far edge, so a ring needs to know nothing about the
+  canvas or frame fill behind it. A port moved to straighten its wire keeps
+  `16` from a marked neighbour, and a label band stands `4` clear of the mark.
+  A table's 64px head holds four marked wires `16` apart; from five they
+  touch, and the view says so. Never rotated: where
+  lines are `straight` there is no stub and no mark. One drawn end, one mark —
+  a trunk's shared port carries it once.
 - **Async dashes** are `4 7` with round caps — beads on a string rather than
   chopped line. Each cap adds half the stroke to a dash, so at 1.5px the beads
   read as about 5.5 on, 5.5 off; dotted and `packets` keep butt caps, or a 3px

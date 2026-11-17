@@ -1,20 +1,24 @@
+pack logos
+
 gw     = sys/webhook "API Gateway"
 auth   = sys/key-round "Auth Service"
-ledger = logos/postgres "Ledger" datastore { subtitle: "Postgres" }
-worker = sys/cog "Settlement Worker" { subtitle: "Nightly batch" }
+ledger = logos/postgres "Ledger" datastore {
+  subtitle: "Postgres"
+}
+worker = sys/cog "Settlement Worker"
 bank   = box "Bank" external
 
 gw -> auth
 gw -> ledger
-worker -> ledger
-worker ~> bank "overnight batch"
+worker -> ledger "reads"
+worker ~> bank "nightly batch"
 
 view landscape {
   title "Payments Architecture"
   include *
   titleblock {
     version: "2.1"
-    owner: payments-team
+    owner: "Payments team"
     date: "2026 Q4"
   }
 }

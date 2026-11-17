@@ -74,6 +74,16 @@ interface Expect {
   /** No leaf may declare fields: the prompt asked for tables, not columns,
    *  and an unasked schema is noise (the negative half of the probe). */
   forbidFields?: boolean;
+  /** Relationship marks (docs/notes/relationship-marks.md). Each entry is
+   *  [from label, to label, from word, to word], all patterns: some edge from
+   *  a leaf labelled like the first to one like the second carries marks like
+   *  the last two — or runs the other way with the words the other way. */
+  marks?: [string, string, string, string][];
+  /** Some view lays out an edge with its marks: they can be seen. */
+  requireMarksShown?: boolean;
+  /** No edge may carry marks: the prompt gave no cardinality, and a guessed
+   *  mark on a reviewed diagram reads as a fact. */
+  forbidMarks?: boolean;
   icons?: string[][];
   /** Ownership, read off the model. Each pair is [container, thing]: something
    *  labelled like the second sits inside a container labelled like the first,
@@ -387,6 +397,37 @@ for (const p of prompts) {
         if (positioned.nodes.some((n) => n.fields?.length)) { shown = true; break; }
       }
       if (!shown) problems.push("fields are written but no view draws them");
+    }
+  }
+
+  if (e.marks || e.requireMarksShown || e.forbidMarks) {
+    const label = (path: string) => { const x = m.nodes.get(path); return x ? (x.label ?? x.name) : ""; };
+    const marked = m.edges.filter((ed) => ed.marks);
+    if (e.forbidMarks && marked.length)
+      problems.push(`relationship marks written unasked on ${marked.map((ed) => `${label(ed.from)} → ${label(ed.to)}`).join(", ")}`);
+    for (const [a, b, fw, tw] of e.marks ?? []) {
+      const A = new RegExp(a, "i"), B = new RegExp(b, "i"), F = new RegExp(fw), T = new RegExp(tw);
+      const between = m.edges.filter((ed) => (A.test(label(ed.from)) && B.test(label(ed.to))) || (B.test(label(ed.from)) && A.test(label(ed.to))));
+      const ok = between.some((ed) => ed.marks && (A.test(label(ed.from)) && B.test(label(ed.to))
+        ? F.test(ed.marks.from) && T.test(ed.marks.to) : F.test(ed.marks.to) && T.test(ed.marks.from)));
+      if (!ok) {
+        const got = between.map((ed) => (ed.marks ? `${label(ed.from)} ${ed.marks.from} → ${ed.marks.to} ${label(ed.to)}` : `${label(ed.from)} → ${label(ed.to)} unmarked`));
+        problems.push(`no edge between /${a}/i and /${b}/i marked /${fw}/ … /${tw}/${got.length ? ` (found: ${got.join("; ")})` : " (no edge between them)"}`);
+      }
+    }
+    // the marks are the statement; a label that repeats them is the placement
+    // probe's artefact ("book_id · many to exactly one", "0..* loans : 1 book", "N:1")
+    const COUNT = "(?:exactly[ -])?(?:zero|one|many|[01nm*])(?:[ -]or[ -](?:one|many|more))?";
+    const ECHO = new RegExp(`\\b${COUNT}\\s*(?::|-to-|\\bto\\b)\\s*${COUNT}\\b|\\b[01]\\.\\.[1nm*]`, "i");
+    const echo = marked.filter((ed) => ed.label && ECHO.test(ed.label));
+    if (echo.length) problems.push(`cardinality repeated in a label: ${echo.map((ed) => `"${ed.label}"`).join(", ")}`);
+    if (e.requireMarksShown) {
+      let shown = false;
+      for (const v of m.views) {
+        const { positioned } = await layoutView(m, v);
+        if (positioned.edges.some((ed) => ed.marks)) { shown = true; break; }
+      }
+      if (!shown) problems.push("relationship marks are written but no view draws them");
     }
   }
 

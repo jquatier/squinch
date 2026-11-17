@@ -347,10 +347,11 @@ describe("the skill — diagnostic coverage", () => {
     "relationship marks sit between two tables, and",
     "relationship marks sit on a plain solid edge",
     "unknown relationship mark",
-    // …and at layout time: each fix names the attribute to make agree, the
-    // line to drop, or the three ways to give a crowded wall room.
+    // …and at layout time: each fix names the attribute to make agree or the
+    // line to drop. The crowded-wall warning needs a technique; it is in the
+    // cookbook.
     "as one wire, and they mark that end differently",
-    "lines straight` draws no relationship marks", "the relationship marks at",
+    "lines straight` draws no relationship marks",
   ]);
 
   it("every diagnostic that needs a technique is in the cookbook", () => {

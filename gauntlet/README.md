@@ -1,13 +1,14 @@
 # The gauntlet (end-to-end acceptance)
 
-Thirty-nine architecture prompts — thirty-eight in prose, and one that hands
+Forty architecture prompts — thirty-nine in prose, and one that hands
 the agent a real repository. An agent, armed with only
 [`packages/skill/skills/squinch/SKILL.md`](../packages/skill/skills/squinch/SKILL.md) and the `squinch` CLI,
 must produce a clean diagram for each. **v1 ships at ≥ 16/20 with zero human
 layout fixes** (the original ≥ 8/10 bar, at the current prompt count).
 
-> **Current standing: the committed corpus scores 39/39 on the deep scorer; the
-> latest round itself — the first on the `weft` layout engine — scored 39/39, with 28 of 39 clean on the first `check`.** The
+> **Current standing: the committed corpus scores 40/40 on the deep scorer; the
+> latest round itself — the first with relationship marks — scored 39/40, with
+> 29 of 40 answered in one `check` call.** The
 > solutions those agents wrote are committed in `solutions/` and re-scored by CI
 > on every push, so the claim is inspectable rather than asserted.
 >
@@ -69,46 +70,48 @@ nothing.
 
 ## Latest round
 
-**Round 34 — 39/39 on the deep scorer; 28 of 39 clean on the first `check`**
-(2026-11-15, Sonnet). The first round on `weft`, the layout engine that
-replaced ELK (docs/notes/layout-engine.md). Run to find out what the swap did
-to a cold agent's loop and to the pictures it hands over — every earlier round
-certified the language and the skill on the old engine.
+**Round 35 — 39/40 from the round itself, 40/40 committed; 29 of 40 with one
+`check` call** (2026-11-17, Sonnet). Run after relationship marks went in
+(docs/notes/relationship-marks.md): the skill gained a passage, the scorer
+three expectations (`marks`, `requireMarksShown`, `forbidMarks`), and the set
+one prompt, `40-relationships` — a clinic schema that states a NOT NULL key,
+a nullable key, a many-to-many, a "none or many", and one relationship with no
+optionality at all.
 
-**No agent hit a layout error, and the two prompts that always did were clean
-in one call.** 01 and 27 — `27-rank-conflict` is written to provoke it — used
-to fail their first `check` on "hint conflict … runs upward" and fix it from
-the diagnostic. That error no longer exists: an edge against the declared rows
-is drawn, and both were one call, exit 0, no warnings. No band split, no
-row-mates-inside-a-container, no hints-inside-a-zone, no `wrap` shape warning
-either; those classes cannot occur now.
+**The marks went on the right ends, with the right words, in both runs.** Both
+answers end at `appointments -> patients { from: zero-or-many to:
+exactly-one }` (the request says "including none" and NOT NULL), `to:
+zero-or-one` for the nullable `clinic_id`, plain `from: many to: one` for the
+relationship whose optionality is not stated, and `doctors -- specialties {
+from: many to: many }` with no invented join table. The pilot got there in
+one `check` call. The round's session first wrote `from: many` for patients,
+checked clean, then changed it to `zero-or-many` on re-reading the request
+and checked again — a second call after an edit to a mark, not a diagnostic.
+No mark diagnostic fired in any session, and no label repeated the
+cardinality, the habit the placement probe showed when the CLI drew nothing.
+Two sessions is what this rests on: the pilot and the round, one model.
 
-**One layout diagnostic fired, and it was right.** 26 wrote `cols [wh idx]`
-for two nodes on one rank; `check` said they "cannot share an axis" and wrote
-the `rows` line, and the second call was clean. Before the fix made during the
-swap that hint drew the two boxes on top of each other in silence.
+**The negative controls held.** 36 names tables and says which belongs to
+which, with no counts — the borderline case — and drew no mark in the pilot
+or the round. 37's two tables are unrelated, so it could hardly fail. No
+other prompt's answer carries a mark.
 
-**The first-check count did not move, because what is left was never layout.**
-Of the eleven prompts with more than one call: three ran a clean `check` twice
-(02, 20, 34 — nothing to fix); three re-ran on warnings (22 and 35 a long
-subtitle, 26 above); five had errors, each fixed in one step from its
-diagnostic — attributes written outside the braces (21, 38), two icon ids that
-do not exist (30), chained edges (32), `scope` naming a leaf (39). Two of
-these became changes after the round. Attributes on one line with nothing
-between them — `{ tags: #poll  animate: pulse }`, what 21 and 38 wrote — now
-parse: a value is one run and the next attribute starts `key:`, so the
-grammar had no reason to refuse it. And an icon id that is a word rather
-than a typo (`sys/download`) is answered with the real ids that carry the
-word (`closest: sys/hard-drive-download …`) where it used to say only
-"run a search". Chained edges and `scope` on a leaf are unchanged: their
-diagnostics already write the fix.
+**One prompt failed, and it is not about marks.** 28 (`how-deep`) scoped a
+view to `orders` that showed as many elements as its landscape, so "no view
+narrows the picture". Three re-runs passed three times; the committed answer
+is the last of them. It passed in round 34 and nothing in its path changed,
+so it is recorded as variance, not fixed.
 
-**The pictures were looked at, all 68 declared views.** Every one renders
-with no diagnostic. Nothing overlaps, no label sits on another wire, fans
-stand centred over what they feed. The weak spots the engine note lists did
-not show at this size; the largest views (34, 35, 38) are where to look first
-if they ever do.
+**Five first failures, fixed from their diagnostics**: a fan-in written
+`c1, c2 … -> norm` (26), chained edges (32), a fan-out list inside a
+`channel` (33), `preview:` naming a grandchild (34), `scope` on a leaf (39).
+All five are the classes round 34 already listed. 32's chained edges were
+followed by a one-line `layout { wrap 4 }`, and that pair cascaded into
+twelve errors before the agent fixed it in one step — worth a look, and not
+this round's change. 39 took three failing calls, two of them on the agent's
+own truncated edit. Six more prompts ran `check` again with nothing to fix
+or on a warning (22 and 31 three times).
 
-No agent read outside its sandbox, none opened the cookbook, one opened the
-icon list. The corpus in `solutions/` is this round's answers for all
-thirty-nine prompts.
+No agent read outside its sandbox; one opened the cookbook, one the icon
+list. The corpus in `solutions/` is this round's answers for all forty
+prompts.

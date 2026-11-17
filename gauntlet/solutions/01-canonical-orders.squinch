@@ -1,6 +1,8 @@
 pack aws
 
-system api_stack "Orders API" {
+system api "Orders API" {
+  description: "Lambda handlers behind API Gateway"
+
   gw     = aws/api-gateway "API Gateway"
   create = aws/lambda "Create Handler"
   get    = aws/lambda "Get Handler"
@@ -8,7 +10,9 @@ system api_stack "Orders API" {
   db     = aws/dynamodb "DynamoDB Table" datastore
   files  = aws/s3 "S3 Bucket" datastore
   idx    = aws/opensearch "OpenSearch Index" datastore
-  sync   = aws/lambda "Index Sync"
+  sync   = aws/lambda "Index Sync" {
+    subtitle: "Stream listener"
+  }
 
   gw -> create, get, search
   create -> db
@@ -16,12 +20,13 @@ system api_stack "Orders API" {
   get -> db
   search -> idx
   db ~> sync "DynamoDB stream"
-  sync -> idx "updates index"
-}
+  sync -> idx "updates"
 
-view api_stack {
-  title "Lambda API"
   layout {
     rows [gw] [create get search] [db files idx] [sync]
   }
+}
+
+view api {
+  title "Lambda API"
 }

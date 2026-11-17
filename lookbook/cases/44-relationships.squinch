@@ -1,0 +1,90 @@
+// Relationship marks. An edge between two tables may say how many rows take
+// part at each end: `from:` counts the rows of the table the edge starts at,
+// `to:` those of the table it ends at. They draw as crow's-foot marks in
+// place of the arrowhead, read from the table outward — a bar is one, a foot
+// is many, and a second bar or a ring says whether there must be one. `one`
+// and `many` leave optionality unstated; write the other four only when the
+// schema or the request states it (the nullable `coupon_id` is why coupons
+// gets `zero-or-one`; order_items states both of its ends only so that all
+// six marks are on one page). Many-to-many is a direct `--` edge. The marks
+// belong to the altitude where both tables are drawn: opened inside the
+// system, the tables keep them, and the service's edge into `orders` is an
+// ordinary arrow.
+system shop "Shop" {
+  description: "Takes orders, bills them"
+  icon: sys/cart
+
+  api = sys/server "Order API" { subtitle: "writes orders" }
+
+  container db "Postgres" {
+    description: "Orders database · 6 tables"
+    icon: logos/postgresql
+
+    orders = sys/table "orders" datastore {
+      fields {
+        id           uuid  pk
+        customer_id  uuid  fk ref customers
+        coupon_id    uuid  fk nullable ref coupons
+        placed_at    timestamptz
+      }
+    }
+    customers = sys/table "customers" datastore {
+      fields {
+        id     uuid  pk
+        email  text  unique
+      }
+    }
+    coupons = sys/table "coupons" datastore {
+      fields {
+        id    uuid  pk
+        code  text  unique
+      }
+    }
+    order_items = sys/table "order_items" datastore {
+      fields {
+        order_id    uuid  pk fk ref orders
+        product_id  uuid  pk fk ref products
+        quantity    int
+      }
+    }
+    products = sys/table "products" datastore {
+      fields {
+        id    uuid  pk
+        name  text
+      }
+    }
+    tags = sys/table "tags" datastore {
+      fields {
+        id     uuid  pk
+        label  text
+      }
+    }
+
+    orders      -> customers "customer_id" { from: many         to: one }
+    orders      -> coupons   "coupon_id"   { from: many         to: zero-or-one }
+    order_items -> orders    "order_id"    { from: one-or-many  to: exactly-one }
+    order_items -> products  "product_id"  { from: zero-or-many to: exactly-one }
+    products    -- tags                    { from: many         to: many }
+  }
+
+  api -> db.orders "writes"
+}
+
+view schema {
+  title "The database — all six marks"
+  scope shop.db
+}
+
+view rightward {
+  title "The same schema flowing rightward"
+  scope shop.db
+  layout {
+    direction right
+  }
+}
+
+view opened {
+  title "The system with its database opened — marks between tables, an arrow from the service"
+  scope shop
+  expand shop.db
+}

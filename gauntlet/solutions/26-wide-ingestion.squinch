@@ -9,15 +9,13 @@ wh = sys/database "Warehouse" datastore
 idx = sys/search "Search Index" datastore
 alert = sys/siren "Alerting Service"
 
-c1 ~> norm
-c2 ~> norm
-c3 ~> norm
-c4 ~> norm
-c5 ~> norm
-c6 ~> norm
-norm -> wh
-norm -> idx
-norm -> alert
+c1 -> norm
+c2 -> norm
+c3 -> norm
+c4 -> norm
+c5 -> norm
+c6 -> norm
+norm -> wh, idx, alert
 
 view landscape {
   title "Ingestion Estate"

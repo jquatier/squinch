@@ -1,11 +1,8 @@
 pack aws
 
 person customer "Customer"
-cdn = aws/cloudfront "CloudFront"
-store = sys/app-window "Storefront"
+store = aws/cloudfront "Storefront"
 gw = aws/api-gateway "API Gateway"
-bus = aws/eventbridge "EventBridge"
-worker = sys/cog "Fulfilment Worker"
 
 system catalog "Catalog" {
   description: "Product catalog service"
@@ -27,8 +24,10 @@ system payments "Payments" {
   fn -> db
 }
 
-customer -> cdn "browses"
-cdn -> store
+bus = aws/eventbridge "EventBridge"
+worker = sys/cog "Fulfilment Worker"
+
+customer -> store "browses"
 store -> gw
 gw -> catalog.fn
 gw -> orders.fn
@@ -36,7 +35,7 @@ gw -> payments.fn { tags: #sensitive }
 orders.fn ~> bus "order events"
 bus ~> worker "consumes"
 
-zone prod "Production VPC" vpc {
+zone prod_vpc "Production VPC" vpc {
   contains gw, catalog, orders, payments, bus, worker
 }
 
@@ -49,4 +48,5 @@ view landscape {
 view orders {
   title "Orders Service"
   scope orders
+  legend auto
 }

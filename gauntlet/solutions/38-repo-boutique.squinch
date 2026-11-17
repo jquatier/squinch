@@ -1,77 +1,54 @@
 pack gcp
 pack logos
-pack sys
 
-person shopper "Shopper" { description: "Browses products and checks out in the web UI" }
-loadgen = box "Load Generator" { subtitle: "Locust · Python"
-    description: "Synthetic traffic against the frontend" }
-
-system storefront "Storefront" {
-  description: "Web UI and the services that decorate its pages"
-  web = sys/globe "Frontend" {
-    subtitle: "Go · HTTP" }
-  ads = sys/code "Ad Service" {
-    subtitle: "Java" }
-  recs = sys/code "Recommendation Service" {
-    subtitle: "Python" }
-  assistant = gcp/gemini "Shopping Assistant" {
-    subtitle: "Python · Gemini"
-    description: "Optional component; the frontend calls it over HTTP" }
-  vectors = gcp/alloydb "AlloyDB Vector Store" datastore { description: "Product embeddings the assistant searches" }
-  web -> ads
-  web -> recs
-  web -> assistant
-  assistant -> vectors
+person shopper "Shopper" {
+  description: "Browses products and checks out in the web UI"
 }
 
-system catalog "Catalog & Pricing" {
-  description: "Product data and currency conversion"
-  products = sys/code "Product Catalog Service" {
-    subtitle: "Go" }
-  productsfile = sys/file-json "products.json" datastore { description: "Default catalog source; AlloyDB is used instead when ALLOYDB_CLUSTER_NAME is set" }
-  currency = sys/code "Currency Service" {
-    subtitle: "Node.js" }
-  products -> productsfile
+load = sys/activity "Load Generator" {
+  subtitle: "Python · Locust"
+  description: "Simulated shoppers hitting the frontend"
 }
 
-system buying "Cart & Checkout" {
-  description: "Carts, orders, payment and fulfilment"
-  cart = sys/code "Cart Service" {
-    subtitle: ".NET" }
-  cartstore = logos/redis "Cart Store" datastore {
-    subtitle: "Redis"
-    description: "Default cart store; Spanner or AlloyDB are alternatives" }
-  checkout = sys/code "Checkout Service" {
-    subtitle: "Go" }
-  payment = sys/code "Payment Service" {
-    subtitle: "Node.js" }
-  shipping = sys/code "Shipping Service" {
-    subtitle: "Go" }
-  email = sys/code "Email Service" {
-    subtitle: "Python" }
-  cart -> cartstore
-  checkout -> cart
-  checkout -> payment
-  checkout -> shipping
-  checkout -> email
+zone cluster "Kubernetes cluster" network {
+  contains frontend, ad, cart, checkout, currency, email, payment, catalog, recommend, shipping, assistant, redis, products
 }
 
-shopper -> storefront.web "browses, checks out"
-loadgen -> storefront.web "simulated traffic"
+frontend  = sys/app-window "Frontend" { subtitle: "Go · HTTP :8080" }
+ad        = sys/megaphone "Ad Service" { subtitle: "Java" }
+cart      = sys/shopping-cart "Cart Service" { subtitle: "C#" }
+checkout  = sys/package-check "Checkout Service" { subtitle: "Go" }
+currency  = sys/circle "Currency Service" { subtitle: "Node.js" }
+email     = sys/mail "Email Service" { subtitle: "Python" }
+payment   = sys/credit-card "Payment Service" { subtitle: "Node.js" }
+catalog   = sys/search "Product Catalog Service" { subtitle: "Go" }
+recommend = sys/star "Recommendation Service" { subtitle: "Python" }
+shipping  = sys/truck "Shipping Service" { subtitle: "Go" }
+assistant = sys/cog "Shopping Assistant Service" { subtitle: "Python · Flask" }
 
-storefront.web -> catalog.products "lists products"
-storefront.web -> catalog.currency "converts prices"
-storefront.web -> buying.cart "cart"
-storefront.web -> buying.shipping "quotes"
-storefront.web -> buying.checkout "places order"
-storefront.recs -> catalog.products "reads catalog"
-buying.checkout -> catalog.products
-buying.checkout -> catalog.currency
+redis    = logos/redis "redis-cart" datastore { subtitle: "Cart contents" }
+products = sys/file "products.json" datastore { subtitle: "Product catalogue" }
+
+alloydb = gcp/alloydb "AlloyDB" external datastore { subtitle: "Product vectors" }
+gemini  = gcp/gemini "Gemini" external
+secrets = gcp/secret-manager "Secret Manager" external
+
+shopper -> frontend "browses, buys"
+load -> frontend "simulated traffic"
+
+frontend -> catalog, currency, cart, recommend, shipping, checkout, ad, assistant
+
+checkout -> catalog, shipping, payment, email, currency, cart
+recommend -> catalog
+
+cart -> redis
+catalog -> products
+assistant -> alloydb
+assistant -> gemini
+assistant -> secrets
 
 view landscape {
   title "Online Boutique"
   include *
+  legend auto
 }
-view storefront { title "Storefront" }
-view catalog { title "Catalog & Pricing" }
-view buying { title "Cart & Checkout" }

@@ -232,10 +232,14 @@ visibility/lifting → layout → themed SVG), the CLI (check/render/diff/icons/
 init/watch + sync/check model + Actions), the SPA playground, the VS Code
 extension + language server, six icon packs, and the light/dark pair. The acceptance
 bar — an agent producing clean diagrams from prose using only the skill + CLI —
-is certified at **39/39
+is certified at **40/40
 by independent cold agents** on the committed corpus; the latest full round scored
-39/39 with **28/39 clean on the first `check`** (round 34, the first on the
-`weft` layout engine — `gauntlet/README.md`; round 33 before it, 38/39 and 29/39, run after the first
+39/40 with **29/40 answered in one `check` call** (round 35, the first with
+relationship marks: the new schema prompt put every mark on the right end and
+the two table prompts that give no counts drew none; the one miss, 28, was a
+view that did not narrow, and passed three re-runs — `gauntlet/README.md`;
+round 34 before it, 39/39 and 28/39, the first on the
+`weft` layout engine; round 33 before it, 38/39 and 29/39, run after the first
 outside test of `fields` changed where they draw — `gauntlet/README.md`,
 `docs/notes/fields.md`; round 32 before it, 28/39, added a leaf's `fields` and
 a schema prompt;
@@ -364,6 +368,24 @@ what `include` used to smuggle — draw an outside node at its own depth rather
 than as its system card — and splitting that out is what made `only` possible at
 all: a verb that also controls altitude cannot be redefined to control
 membership. Rule stack: SPEC §5.
+**Relationship marks** (2026-11): an edge between two tables may carry `from:`
+and `to:`, one of six words per end (`one many exactly-one zero-or-one
+one-or-many zero-or-many`), drawn as crow's-foot marks in place of the
+arrowhead. Rules that are not negotiable: both ends or neither; only between
+two leaves on a plain `->`/`--` edge; any lift drops both marks; a trunk's
+shared end carries one mark and refuses edges that disagree; `lines straight`
+draws none and says so; nothing is derived from `fields` or `ref`. Plain `one`
+and `many` exist because optionality is usually not in the source — a guessed
+ring on a reviewed diagram reads as a fact. Wrong spellings that parse
+(`zero-or-more`, `cardinality: many-to-one`, `from: east`) get an error that
+writes the line; ones that do not (UML ranges, Mermaid operators, marks
+outside the braces) are plain syntax errors on purpose — a step that
+repaired them before the parse was built, reviewed twice and removed, because
+no cold agent writes them once the skill teaches the syntax. The
+engine's part is `Wire.tips`: labels keep off a marked end, and a port moved
+to straighten its wire keeps 16px from a marked neighbour. A table's head in a
+rightward view holds four; from five the view warns, naming the table. `docs/notes/relationship-marks.md` has the two
+probes, the rejected shapes and what four reviews changed.
 **The detailed card** (2026-09): `preview <path>` / `preview *` in a view draws a
 collapsed card taller, with the children its `preview:` attr names as readable
 rows (up to three; `auto` = the first three declared, *direct* children — a

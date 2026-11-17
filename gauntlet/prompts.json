@@ -641,7 +641,8 @@
           "refunds"
         ]
       ],
-      "forbidFields": true
+      "forbidFields": true,
+      "forbidMarks": true
     }
   },
   {
@@ -670,7 +671,8 @@
           "queue|sqs"
         ]
       ],
-      "forbidFields": true
+      "forbidFields": true,
+      "forbidMarks": true
     }
   },
   {
@@ -792,6 +794,60 @@
         ]
       ],
       "requireFieldsShown": true
+    }
+  },
+  {
+    "id": "40-relationships",
+    "prompt": "Our clinic booking service is an API on ECS with one Postgres database, and I want the database page to show its tables and how they relate, crow's-foot style. The tables are patients, doctors, appointments, clinics and specialties. Every appointment is for exactly one patient and exactly one doctor (appointments.patient_id and appointments.doctor_id are both NOT NULL); a patient can have any number of appointments, including none. An appointment's clinic_id is nullable, because video visits have no clinic. Doctors and specialties are many-to-many: a doctor can have several specialties and a specialty several doctors. Doctors are attached to clinics through doctors.clinic_id, and a clinic has many doctors. The API reads and writes appointments.",
+    "expect": {
+      "minNodes": 6,
+      "inside": [
+        [
+          "db|database|postgres|rds|sql",
+          "patients"
+        ],
+        [
+          "db|database|postgres|rds|sql",
+          "appointments"
+        ],
+        [
+          "db|database|postgres|rds|sql",
+          "specialt"
+        ]
+      ],
+      "marks": [
+        [
+          "^appointments$",
+          "^patients$",
+          "^(zero-or-many|many)$",
+          "^exactly-one$"
+        ],
+        [
+          "^appointments$",
+          "^doctors$",
+          "^many$",
+          "^exactly-one$"
+        ],
+        [
+          "^appointments$",
+          "^clinics$",
+          "^many$",
+          "^zero-or-one$"
+        ],
+        [
+          "^doctors$",
+          "^specialt",
+          "^many$",
+          "^many$"
+        ],
+        [
+          "^doctors$",
+          "^clinics$",
+          "^many$",
+          "^one$"
+        ]
+      ],
+      "requireMarksShown": true
     }
   }
 ]

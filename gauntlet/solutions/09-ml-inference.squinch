@@ -1,21 +1,22 @@
 pack aws
 
-client = sys/app-window "Client Apps"
+client = sys/smartphone "Client Apps"
 gw     = aws/api-gateway "API Gateway"
-fn     = aws/lambda "Front-end Lambda"
-ep     = aws/sagemaker "SageMaker Endpoint"
+fn     = aws/lambda "Inference Front End"
+sm     = aws/sagemaker "SageMaker Endpoint"
 fs     = aws/dynamodb "Feature Store" datastore
-batch  = sys/clock "Nightly Retraining Job" { subtitle: "batch" }
-data   = aws/s3 "Training Data" datastore
+batch  = aws/batch "Nightly Retraining Job" { subtitle: "Nightly" }
+s3     = aws/s3 "Training Data" datastore
 
 client -> gw "request"
 gw -> fn
-fn -> ep "predict"
-fn -> fs "features"
-batch -> data "reads"
-batch ~> ep "retrains model"
+fn -> sm "query"
+fn -> fs "fetch features"
+batch -> s3 "reads"
+batch ~> sm "retrains model"
 
 view landscape {
   title "Realtime ML Inference"
   include *
+  legend auto
 }

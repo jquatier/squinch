@@ -1,123 +1,120 @@
-pack aws
 pack logos
 
 web = logos/react "Web App" {
   subtitle: "apps/web · React SPA"
 }
-bff = logos/nodedotjs "BFF" {
+bff = logos/nodejs "BFF" {
   subtitle: "apps/bff · Node"
 }
 kafka = logos/kafka "Kafka" {
   description: "Order and payment events"
 }
-stripe = logos/stripe "Stripe" external
-carrier = box "Carrier API" external
+stripe = box "Stripe" external
 sendgrid = box "SendGrid" external
+carrier = box "Carrier API" external
 
 system identity "Identity" {
   description: "Accounts, sessions and profiles"
   preview: [users auth profile]
-  users = box "Users" { subtitle: "services/users" }
-  users_db = logos/postgres "Users DB" datastore
-  auth = box "Auth" { subtitle: "services/auth" }
-  auth_cache = logos/redis "Session Store" datastore
-  profile = box "Profile" { subtitle: "services/profile" }
-  profile_db = logos/postgres "Profile DB" datastore
-  users -> users_db
-  auth -> auth_cache
-  profile -> profile_db
+  users = sys/server "Users" { subtitle: "services/users" }
+  usersdb = logos/postgres "Users DB" datastore
+  auth = sys/server "Auth" { subtitle: "services/auth" }
+  sessions = logos/redis "Session Store" datastore
+  profile = sys/server "Profile" { subtitle: "services/profile" }
+  profiledb = logos/postgres "Profile DB" datastore
+  users -> usersdb
+  auth -> sessions
+  profile -> profiledb
 }
 
-system catalog "Catalog" {
-  description: "Products, search, prices and reviews"
-  preview: [catalog search recommendations]
-  catalog = box "Catalog" { subtitle: "services/catalog" }
-  catalog_db = logos/postgres "Catalog DB" datastore
-  search = box "Search" { subtitle: "services/search" }
-  search_index = aws/opensearch "Search Index" datastore
-  pricing = box "Pricing" { subtitle: "services/pricing" }
-  pricing_cache = logos/redis "Pricing Cache" datastore
-  reviews = box "Reviews" { subtitle: "services/reviews" }
-  reviews_db = logos/mongodb "Reviews DB" datastore
-  recommendations = box "Recommendations" { subtitle: "services/recommendations" }
-  recs_cache = logos/redis "Recommendations Cache" datastore
-  catalog -> catalog_db
-  search -> search_index
-  pricing -> pricing_cache
-  reviews -> reviews_db
-  recommendations -> recs_cache
+system discovery "Discovery" {
+  description: "Catalogue, search, pricing and reviews"
+  preview: [catalog search recs]
+  catalog = sys/server "Catalog" { subtitle: "services/catalog" }
+  catalogdb = logos/postgres "Catalog DB" datastore
+  search = sys/server "Search" { subtitle: "services/search" }
+  index = aws/opensearch "Search Index" datastore
+  pricing = sys/server "Pricing" { subtitle: "services/pricing" }
+  pricingcache = logos/redis "Pricing Cache" datastore
+  reviews = sys/server "Reviews" { subtitle: "services/reviews" }
+  reviewsdb = logos/mongodb "Reviews DB" datastore
+  recs = sys/server "Recommendations" { subtitle: "services/recommendations" }
+  recscache = logos/redis "Recommendations Store" datastore
+  catalog -> catalogdb
+  search -> index
+  pricing -> pricingcache
+  reviews -> reviewsdb
+  recs -> recscache
   search -> catalog "reads"
-  recommendations -> catalog "reads"
-  recommendations -> reviews "reads"
+  recs -> catalog "reads"
+  recs -> reviews "reads"
 }
 
 system buying "Buying" {
   description: "Cart, checkout, orders and payments"
   preview: [cart checkout orders]
-  cart = box "Cart" { subtitle: "services/cart" }
-  cart_cache = logos/redis "Cart Store" datastore
-  checkout = box "Checkout" { subtitle: "services/checkout" }
-  checkout_db = logos/postgres "Checkout DB" datastore
-  orders = box "Orders" { subtitle: "services/orders" }
-  orders_db = logos/postgres "Orders DB" datastore
-  payments = box "Payments" { subtitle: "services/payments" }
-  payments_db = logos/postgres "Payments DB" datastore
-  cart -> cart_cache
-  checkout -> checkout_db
-  orders -> orders_db
-  payments -> payments_db
+  cart = sys/server "Cart" { subtitle: "services/cart" }
+  cartstore = logos/redis "Cart Store" datastore
+  checkout = sys/server "Checkout" { subtitle: "services/checkout" }
+  checkoutdb = logos/postgres "Checkout DB" datastore
+  orders = sys/server "Orders" { subtitle: "services/orders" }
+  ordersdb = logos/postgres "Orders DB" datastore
+  payments = sys/server "Payments" { subtitle: "services/payments" }
+  paymentsdb = logos/postgres "Payments DB" datastore
+  cart -> cartstore
+  checkout -> checkoutdb
+  orders -> ordersdb
+  payments -> paymentsdb
   checkout -> cart
   checkout -> payments
   checkout -> orders
 }
 
 system fulfilment "Fulfilment" {
-  description: "Stock and delivery"
+  description: "Stock and shipping"
   preview: [inventory shipping]
-  inventory = box "Inventory" { subtitle: "services/inventory" }
-  inventory_db = logos/postgres "Inventory DB" datastore
-  shipping = box "Shipping" { subtitle: "services/shipping" }
-  shipping_db = logos/postgres "Shipping DB" datastore
-  inventory -> inventory_db
-  shipping -> shipping_db
+  inventory = sys/server "Inventory" { subtitle: "services/inventory" }
+  inventorydb = logos/postgres "Inventory DB" datastore
+  shipping = sys/server "Shipping" { subtitle: "services/shipping" }
+  shippingdb = logos/postgres "Shipping DB" datastore
+  inventory -> inventorydb
+  shipping -> shippingdb
 }
 
 system care "Customer Care" {
   description: "Notifications and support"
   preview: [notifications support]
-  notifications = box "Notifications" { subtitle: "services/notifications" }
-  support = box "Support" { subtitle: "services/support" }
-  support_db = logos/postgres "Support DB" datastore
-  support -> support_db
+  notifications = sys/server "Notifications" { subtitle: "services/notifications" }
+  support = sys/server "Support" { subtitle: "services/support" }
+  supportdb = logos/postgres "Support DB" datastore
+  support -> supportdb
 }
 
-web -> bff
+web -> bff "HTTP"
 bff -> identity.users, identity.auth, identity.profile
-bff -> catalog.catalog, catalog.search, catalog.pricing, catalog.reviews, catalog.recommendations
+bff -> discovery.catalog, discovery.search, discovery.pricing, discovery.reviews, discovery.recs
 bff -> buying.cart, buying.checkout, buying.orders, buying.payments
-bff -> fulfilment.shipping, fulfilment.inventory
+bff -> fulfilment.inventory, fulfilment.shipping
 bff -> care.notifications, care.support
 
-buying.checkout -> catalog.pricing
+buying.checkout -> discovery.pricing
 buying.orders -> fulfilment.inventory
 buying.payments -> stripe
 fulfilment.shipping -> carrier
 care.notifications -> sendgrid
 
-buying.orders ~> kafka "order events"
-buying.payments ~> kafka "payment events"
-kafka ~> care.notifications, fulfilment.shipping, catalog.recommendations
+buying.orders ~> kafka "publishes"
+buying.payments ~> kafka "publishes"
+kafka ~> care.notifications, fulfilment.shipping, discovery.recs "consume"
 
 view landscape {
   title "System Landscape"
   include *
   preview *
-  layout {
-    rows [web] [bff] [identity catalog buying fulfilment care] [kafka] [stripe carrier sendgrid]
-  }
+  layout { rows [web] [bff] [identity discovery buying fulfilment care] [kafka stripe carrier sendgrid] }
 }
 view identity { title "Identity" }
-view catalog { title "Catalog" }
+view discovery { title "Discovery" }
 view buying { title "Buying" }
 view fulfilment { title "Fulfilment" }
 view care { title "Customer Care" }

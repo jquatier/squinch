@@ -2,19 +2,23 @@ pack aws
 
 partner = box "Partner System" external
 
-gw  = aws/api-gateway "Public API Gateway"
-sfn = aws/step-functions "Request Workflow"
-validate = aws/lambda "Validation"
-billing  = aws/lambda "Billing"
-db = aws/aurora "Aurora" datastore
+gw = aws/api-gateway "Public API Gateway"
+
+system platform "Request Processing" {
+  sfn      = aws/step-functions "Request Workflow"
+  validate = aws/lambda "Validation"
+  billing  = aws/lambda "Billing"
+  db       = aws/aurora "Aurora" datastore
+  sfn -> validate
+  sfn -> billing
+  billing -> db "writes"
+}
 
 partner -> gw "calls API"
-gw -> sfn "starts workflow"
-sfn -> validate
-sfn -> billing
-billing -> db "writes"
+gw -> platform.sfn "starts workflow"
 
 view landscape {
-  title "Partner B2B Flow"
+  title "Partner B2B Integration"
   include *
+  expand platform
 }

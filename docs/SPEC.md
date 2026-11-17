@@ -415,6 +415,66 @@ survives a GitHub README `<img>` embed and switches off for readers who ask.
 Unknown values and misspelled attribute keys are diagnosed with did-you-mean;
 attributes are never silently dropped.
 
+### Relationship marks (between tables)
+
+Two attributes on an edge between two tables say how many rows take part, one
+per end. They draw as crow's-foot marks where the wire meets each table, in
+place of the arrowhead.
+
+```squinch
+orders      -> customers "customer_id" { from: many         to: one }          // optionality not stated
+orders      -> coupons   "coupon_id"   { from: many         to: zero-or-one }  // the key is nullable
+order_items -> orders    "order_id"    { from: one-or-many  to: exactly-one }  // both stated
+products    -- tags                    { from: many         to: many }
+```
+
+`from:` counts the rows at the source end of the edge as written, `to:` those
+at the target end; on an undirected `--` edge they are the left and right ends
+as written. `from: many` on `orders -> customers` means many orders.
+
+| Word | Mark, from the table outward | Says |
+| --- | --- | --- |
+| `one` | bar | one; optionality not stated |
+| `many` | crow's foot | many; optionality not stated |
+| `exactly-one` | bar, bar | one, and required |
+| `zero-or-one` | bar, ring | one, and optional |
+| `one-or-many` | foot, bar | many, and at least one |
+| `zero-or-many` | foot, ring | many, and possibly none |
+
+Each end is chosen on its own. **Both ends or neither**: one alone is a check
+error. `->` keeps its meaning for layout direction; the marks only replace the
+head.
+
+- **Where marks are legal.** Both ends are leaves — not a container, not a
+  person; the arrow is `->` or `--`; the edge has no `style:` (but `solid`) and
+  no `animate:` (but `false`). Anything else is a check error that writes the
+  line to use instead — as does a single `cardinality: many-to-one`
+  attribute, or a near word like `zero-or-more`. There is no UML range
+  (`0..*`) and no Mermaid operator: those are not Squinch and do not parse.
+- **Lifting.** If either end of the edge lifts to an ancestor in a view, both
+  marks drop and the edge draws as it always did — a wire that ends on a card
+  does not end on a table.
+- **Shared ends.** Where several wires share one drawn end (a `channel`, a
+  `wrap` trunk) that end carries one mark; edges that mark it differently are
+  a check error on the `channel` or `wrap` line.
+- **Duplicates** (same ends, same label) with different marks are an error,
+  not a merge — `--` written both ways round included.
+- **`lines straight`** draws no marks, and the view says so: a straight line
+  has no run out of the table for a mark to stand on.
+- **Against the column.** When the edge's label names a column of the source
+  table whose `ref` is the target, two warnings and nothing inferred: the ends
+  look swapped (`from:` a "one" word, `to:` a "many" word), or the column is
+  `nullable` and `to:` says `exactly-one` or `one-or-many`. Plain `one` never
+  contradicts a column, and a column without `nullable` proves nothing.
+- **Crowding.** The layout keeps labels, badges and notes off a mark. Where
+  it cannot — a wall with more relationships than it holds apart, a label
+  with nowhere else to stand — the view warns and names the table.
+
+Nothing is derived from `fields`, markers or `ref`: the marks are what the
+author wrote. A table's reference to itself stays on its row (`manager_id uuid
+fk ref employees`); a self-edge is not drawn. Decisions and rejected shapes:
+`docs/notes/relationship-marks.md`.
+
 **Parallel edges & edge identity**: multiple edges between the same pair are legal and
 distinguished by label (`api -> db "read"` / `api -> db "write"`). `route` may include
 the label to disambiguate — `route api -> db "write" from east` — and referencing an
@@ -600,6 +660,8 @@ re-anchors them deterministically:
    reappears at the altitude where those edges are native. (An all-`~>` bundle
    has always kept its dashes and drift; this codifies that.)
 5. Lifting is a pure model operation — identical results in SPA, VSCode, CLI, CI.
+6. Relationship marks (§4) never lift: an edge with either end lifted draws
+   without them, singly or in a trunk.
 
 In an `expand *` view no in-scope endpoint has anywhere to lift — every leaf is
 visible — so every interior edge is native and nothing aggregates; only edges
@@ -860,7 +922,9 @@ squinch diff --fail-on structural     # exit 1 when topology changes
 
 A leaf's `fields` are structure, matched by name so a reorder is nothing: a field
 added, dropped or retyped, a marker or a `ref` changed, each reports on its own
-line. A field's caption and a leaf's `preview:` pick are cosmetic.
+line. A field's caption and a leaf's `preview:` pick are cosmetic. An edge's
+relationship marks are structure too: `to: one` becoming `to: zero-or-one` is
+a claim about the data changing, as is adding or removing the pair.
 
 Renames are reported as a removal plus an addition, with a *possible rename*
 note when the icon and neighbours match — a hint, never a silent assumption.

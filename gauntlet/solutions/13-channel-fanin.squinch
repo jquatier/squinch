@@ -1,13 +1,13 @@
 pack aws
 
-system crud "Items API" {
+system crud "CRUD API" {
   api    = aws/api-gateway "API Gateway"
-  create = aws/lambda "Create"
-  read   = aws/lambda "Read"
-  update = aws/lambda "Update"
-  delete = aws/lambda "Delete"
-  search = aws/lambda "Search"
-  table  = aws/dynamodb "Table" datastore
+  create = aws/lambda "Create Handler"
+  read   = aws/lambda "Read Handler"
+  update = aws/lambda "Update Handler"
+  delete = aws/lambda "Delete Handler"
+  search = aws/lambda "Search Handler"
+  table  = aws/dynamodb "Items Table" datastore
 
   api -> create, read, update, delete, search
   create -> table
@@ -17,8 +17,13 @@ system crud "Items API" {
   search -> table
 }
 
+view landscape {
+  title "CRUD API"
+  include *
+}
+
 view crud {
-  title "Items API"
+  title "CRUD API handlers"
   layout {
     channel create, read, update, delete, search -> table
   }

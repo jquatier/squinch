@@ -1,14 +1,14 @@
 pack aws
 
-system notifications "Notifications Service" {
-  description: "Accepts send requests and delivers them through SES"
-  api    = aws/api-gateway "API Gateway"
-  intake = aws/lambda "API Lambda" { subtitle: "takes send requests" }
-  queue  = aws/sqs "Send Queue"
-  sender = aws/lambda "Sender Lambda" { subtitle: "works the queue" }
-  prefs  = aws/dynamodb "preferences" datastore
-  log    = aws/dynamodb "delivery-log" datastore
-  ses    = aws/ses "SES"
+system notifications "Notifications" {
+  description: "Accepts send requests and delivers them"
+  api     = aws/api-gateway "API Gateway"
+  intake  = aws/lambda "API Lambda" { subtitle: "takes send requests" }
+  queue   = aws/sqs "Send Queue"
+  sender  = aws/lambda "Sender Lambda" { subtitle: "works the queue" }
+  prefs   = aws/dynamodb "preferences" datastore
+  log     = aws/dynamodb "delivery-log" datastore
+  ses     = aws/ses "SES"
 
   api -> intake
   intake -> prefs "reads"
@@ -19,9 +19,11 @@ system notifications "Notifications Service" {
 }
 
 view landscape {
-  title "Notifications Service"
+  title "Notifications"
   include *
 }
+
 view notifications {
-  title "Notifications Service"
+  title "Notifications service"
+  scope notifications
 }
