@@ -31,7 +31,6 @@ import type {
 import { ZONE_KINDS, HUES, EDGE_STYLES, EDGE_ANIMATE, EDGE_MARKS, MARKS_ONE, PREVIEW_MAX, PREVIEW_FIELDS_PICK_MAX } from "./types.js";
 import type { EdgeMark } from "./types.js";
 
-import { RELATION_KEYS, markWord, relationEnds } from "./marks.js";
 import { resolveView } from "../view/resolve.js";
 
 export interface ProjectFile {
@@ -1274,7 +1273,7 @@ export function buildProject(input: ProjectFile[]): BuildResult {
     const color = meta.attrs.color ? checkHue(ctx, node, meta.attrs.color) : undefined;
     // one attribute for both ends is the other natural spelling of a
     // relationship; it is answered with the marks, below
-    const relKey = Object.keys(meta.attrs).find((k) => RELATION_KEYS.includes(k));
+    const relKey = meta.attrs.cardinality !== undefined ? "cardinality" : undefined;
     for (const key of Object.keys(meta.attrs)) {
       if (EDGE_ATTR_KEYS.includes(key) || key === relKey) continue;
       // `to` is two letters: offered as a did-you-mean it would claim every
@@ -1318,7 +1317,7 @@ export function buildProject(input: ProjectFile[]): BuildResult {
     const wantsMarks = ends.length > 0 || relKey !== undefined;
     const edgeLine = (marksText: string) => {
       const keep = Object.entries(meta.attrs)
-        .filter(([k]) => k !== "from" && k !== "to" && !RELATION_KEYS.includes(k)
+        .filter(([k]) => k !== "from" && k !== "to" && k !== "cardinality"
           && !(marksText && (k === "style" || k === "animate")))
         .map(([k, v]) => `${k}: ${/^[\w.-]+$/.test(v) ? v : JSON.stringify(v)}`);
       const attrs = [marksText, ...keep, meta.tags.length ? `tags: ${meta.tags.map((t) => `#${t}`).join(" ")}` : ""]
@@ -1332,9 +1331,20 @@ export function buildProject(input: ProjectFile[]): BuildResult {
       const isMark = (v: string | undefined): v is EdgeMark => v !== undefined && (EDGE_MARKS as readonly string[]).includes(v);
       const word = (k: "from" | "to") => {
         const v = meta.attrs[k];
-        return v === undefined || isMark(v) ? v : markWord(v) ?? (suggest(v, [...EDGE_MARKS]) as EdgeMark | undefined);
+        if (v === undefined || isMark(v)) return v;
+        // `zero-or-more` is the one near word agents wrote; nearest-spelling
+        // alone would offer `zero-or-one` for it
+        const more = v.replace(/-or-more$/, "-or-many");
+        return isMark(more) ? more : (suggest(v, [...EDGE_MARKS]) as EdgeMark | undefined);
       };
-      const rel = relKey ? relationEnds(meta.attrs[relKey]) : undefined;
+      // `many-to-one`: the two ends one attribute meant, where both are words
+      const rel = ((v: string | undefined): [EdgeMark, EdgeMark] | undefined => {
+        for (let at = v?.indexOf("-to-") ?? -1; v && at > 0; at = v.indexOf("-to-", at + 1)) {
+          const a = v.slice(0, at), b = v.slice(at + 4);
+          if (isMark(a) && isMark(b)) return [a, b];
+        }
+        return undefined;
+      })(relKey && meta.attrs[relKey]);
       const bad = ends.filter((k) => !isMark(meta.attrs[k]));
       const line = (f: string = word("from") ?? rel?.[0] ?? "many", t: string = word("to") ?? rel?.[1] ?? "one") =>
         edgeLine(`from: ${f} to: ${t}`);

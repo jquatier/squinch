@@ -202,13 +202,9 @@ describe("relationship marks: the semantic diff", () => {
 // once it did. docs/notes/relationship-marks.md.)
 describe("relationship marks: one mistake, one diagnostic, wherever it sits", () => {
   const WRONG: [string, string][] = [
-    [`orders -> customers { from: 1 to: n }`, `orders -> customers { from: one to: many }`],
-    [`orders -> customers { from: zero-or-more to: 1 }`, `orders -> customers { from: zero-or-many to: one }`],
     [`orders -> customers { from: Many to: ONE }`, `orders -> customers { from: many to: one }`],
-    [`orders -> customers { multiplicity: "N:1" }`, `orders -> customers { from: many to: one }`],
-    [`orders -> customers { relationship: many-to-many }`, `orders -> customers { from: many to: many }`],
     [`orders ~> customers { from: many }`, `orders -> customers { from: many to: one }`],
-    [`orders <-> customers { from: n to: 1 }`, `orders -> customers { from: many to: one }`],
+    [`orders <-> customers { from: one-or-more to: one }`, `orders -> customers { from: one-or-many to: one }`],
     [`orders -> customers { from: one-or-more to: one style: dashed }`, `orders -> customers { from: one-or-many to: one }`],
     [`orders -> customers { from: many to: one color: red animate: pulse }`, `orders -> customers { from: many to: one color: red }`],
   ];
@@ -303,12 +299,18 @@ describe("relationship marks: valid neighbours", () => {
     expect(diagnostics.filter((d) => d.message.includes("field line"))).toEqual([]);
   });
 
-  it("one attribute in other casings; an untranslatable one writes no guess", () => {
-    for (const v of ["one_to_many", "OneToMany", `"one to many"`])
-      expect(only(`${O} -> ${C} { cardinality: ${v} }`).fix, v).toContain("{ from: one to: many }");
-    const d = only(`${O} -> ${C} { cardinality: sometimes }`);
-    expect(d.fix).not.toContain("from: many to: one");
-    expect(d.fix).toContain("write `from:` and `to:` instead");
+  it("`cardinality:` with words writes both ends; anything else writes no guess", () => {
+    expect(only(`${O} -> ${C} { cardinality: one-or-many-to-exactly-one }`).fix).toContain("{ from: one-or-many to: exactly-one }");
+    for (const v of ["sometimes", "one_to_many", `"1:N"`]) {
+      const d = only(`${O} -> ${C} { cardinality: ${v} }`);
+      expect(d.fix, v).not.toContain("from: many to: one");
+      expect(d.fix).toContain("write `from:` and `to:` instead");
+    }
+  });
+
+  it("other one-attribute names are ordinary unknown attributes", () => {
+    const d = only(`${O} -> ${C} { multiplicity: many }`, "warning");
+    expect(d.message).toBe("unknown edge attribute `multiplicity`");
   });
 
   it("the route line for a side names full paths, so it resolves in a view", () => {

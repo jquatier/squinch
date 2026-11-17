@@ -111,6 +111,13 @@ the owner in one line: the wires should match every other wire.
   probe or in round 35 wrote any of them. They are ordinary syntax errors.
   What stayed is what needs no parser trick: a wrong word, one attribute for
   both ends, a side where a word goes.
+- **Answers for spellings nobody wrote.** The first build also recognised
+  `multiplicity:`, `relationship:` and `relation:`, the words `only-one` and
+  `optional`, bare `1` and `n`, and `1:N`, `one_to_many`, `OneToMany` as
+  values. None has a probe or gauntlet session behind it. What has: one agent
+  wrote `zero-or-more`, and the brief named `cardinality: many-to-one`. Those
+  two keep their own answer; the rest get the ordinary unknown-attribute or
+  unknown-mark diagnostic, which lists the six words.
 - **Deriving marks from `ref` and `nullable`.** A render is a function of what
   was written; and the child end is not in the columns.
 - **Wires to columns.** Never (`preview-card.md`): a wire that may land on a
