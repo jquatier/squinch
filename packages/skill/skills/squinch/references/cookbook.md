@@ -46,7 +46,7 @@ themselves.
 | "an edge has one source — `x, y` cannot fan in" error | Fan-out exists (`a -> b, c`), fan-in does not: write one edge per source. If the point is the *drawing* — many arrows converging as one trunk — that is `channel x, y -> z` in the view's layout |
 | Several things all write to one store, crossing each other | `channel a, b, c -> db` — they merge into one trunk |
 | "channel into `x`" warning | The trunk needs the target visible in this view and at least two of its member edges. Check that nothing is `exclude`d or folded into a collapsed card |
-| "`x` connects to itself — a self-edge is not drawn" warning | Squinch draws connections between things, not loops on one thing. Put it on the node: `note right-of x "retries"`, or fold it into the label |
+| "`x` connects to itself — a self-edge is not drawn" warning | Squinch draws connections between things, not loops on one thing. Put it on the node: `note right-of x "retries"`, or fold it into the label. A table that references itself says it on the row: `manager_id uuid fk ref employees` |
 | "edges do not chain — `a -> b -> c` is one statement per hop" error | Only a `flow` chains hops. Write each connection on its own line — `a -> b`, then `b -> c` — and, if the sequence itself is the point, declare a `flow` that walks them |
 | "N edges match route …" error | Add the edge's label to the `route` statement |
 | A numbered step's badge sits past its target node | The edge label is too wide for that run — shorten it, or the badge gets evicted and the reading order looks wrong |

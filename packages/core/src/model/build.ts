@@ -1344,6 +1344,24 @@ export function buildProject(input: ProjectFile[]): BuildResult {
     return true;
   });
 
+  // An edge a node draws to itself is never drawn (a loop is a layout project
+  // of its own). Said here, once, on the edge's own line: it used to be said
+  // by every view at the view's line, including views that never showed the
+  // node. A table says it on the row instead — `ref` is the self-reference.
+  for (const e of model.edges) {
+    if (e.from !== e.to) continue;
+    const id = e.from.split(".").pop()!;
+    diagnostics.push({
+      severity: "warning",
+      message: `\`${e.from}\` connects to itself — a self-edge is not drawn`,
+      fix: model.nodes.get(e.from)?.fields?.length
+        ? `the edge stays in the model; say it on the row, where it is drawn: \`${e.label ?? "column"} … ref ${id}\` in \`${id}\`'s \`fields\``
+        : `say it on the node instead: a \`note right-of ${e.from} "${e.label ?? "…"}"\`, `
+          + `or fold it into the label`,
+      loc: e.loc, file: e.file,
+    });
+  }
+
   // A label that outgrows its widest box is cut, and the picture alone no longer
   // says what the thing is. Measured, because a count cannot tell: 40 characters
   // missed a card cut at 27, and warned on leaves that fit two lines whole.
