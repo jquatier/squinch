@@ -2,7 +2,7 @@
 // tables (SPEC §4). Every rule and every diagnostic for a wrong spelling —
 // each has to give the location, the problem and the line to write.
 import { describe, it, expect } from "vitest";
-import { buildModel, diffModels, render } from "../src/index.js";
+import { buildModel, diffModels } from "../src/index.js";
 
 const BASE = `system shop "Shop" {
   container db "DB" {
@@ -230,15 +230,6 @@ describe("relationship marks: the semantic diff", () => {
     expect(diffModels(plain, marked).changes[0]).toMatchObject({ weight: "structural", before: "(none)", after: "many to one" });
     expect(diffModels(marked, plain).changes[0]).toMatchObject({ weight: "structural", after: "(none)" });
     expect(diffModels(marked, model(`${O} -> ${C} { from: many to: one }`)).changes).toEqual([]);
-  });
-});
-
-describe("relationship marks: nothing is drawn yet", () => {
-  it("a marked edge renders byte-identically to the plain one", async () => {
-    const a = await render(BASE + `${O} -> ${C} "customer_id"\nview v { scope shop.db }\n`, { theme: "light", view: "v" });
-    const b = await render(BASE + `${O} -> ${C} "customer_id" { from: many to: one }\nview v { scope shop.db }\n`, { theme: "light", view: "v" });
-    expect(a.ok && b.ok).toBe(true);
-    expect(b.svg).toBe(a.svg);
   });
 });
 

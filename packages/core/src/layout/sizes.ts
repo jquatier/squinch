@@ -179,3 +179,10 @@ export function sizeOf(n: VNode, font: Pick<ThemeFont, "metrics" | "scale">): { 
   return { w, h: n.kind === "person" ? PERSON_H : LEAF_H };
 }
 
+
+/** How far a relationship mark reaches out from the wall along its wire: the
+ *  longest (foot and ring) ends here. Inside the 16px every wire runs
+ *  straight before it may turn, and what a label keeps clear of. */
+export const MARK_REACH = 12;
+/** Half the width of a mark across its wire. */
+export const MARK_HALF = 5;

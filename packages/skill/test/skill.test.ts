@@ -349,6 +349,10 @@ describe("the skill — diagnostic coverage", () => {
     "relationship marks sit between two tables, and",
     "relationship marks sit on a plain solid edge",
     "route` names its sides without a colon — `from:` and `to:` are an edge's relationship marks",
+    // …and at layout time: each fix names the attribute to make agree, the
+    // line to drop, or the three ways to give a crowded wall room.
+    "as one wire, and they mark that end differently",
+    "lines straight` draws no relationship marks", "the relationship marks at",
   ]);
 
   it("every diagnostic that needs a technique is in the cookbook", () => {

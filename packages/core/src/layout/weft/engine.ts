@@ -44,6 +44,9 @@ export function solve(problem: Problem): Solution {
     for (const { s, l } of stuck) giveRoom(s, l);
     draw();
   }
+  // a label still under another wire takes the place it would have had, on
+  // what is drawn at its wire's end (`Wire.tips`), rather than stay there
+  for (const s of sheets) for (const wire of s.geo!.stuck) { const at = s.geo!.spare.get(wire); if (at) s.geo!.labels.set(wire, at); }
 
   // ── onto the page ──────────────────────────────────────────────────────────
   const root = sheets[0], geo = root.geo!;

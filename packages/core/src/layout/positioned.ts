@@ -41,6 +41,9 @@ export interface PEdge {
   tags: string[];
   color?: Hue;
   heads: "one" | "both" | "none";
+  /** Relationship marks to draw in place of the head, one per end — absent
+   *  where the view's lines are straight (no stub to draw them on). */
+  marks?: { from: import("../model/types.js").EdgeMark; to: import("../model/types.js").EdgeMark };
   points: { x: number; y: number }[];
   /** The room the layout reserved for this edge's label, on the wire. The pill
    *  is drawn exactly here — no search, no fallback, no way to collide: the

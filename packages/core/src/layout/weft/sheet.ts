@@ -145,6 +145,10 @@ function buildSheet(tree: Tree, cell: Cell, arriving: Thru[], inbound: Map<strin
     gap: g.gap,
     title: cell.box?.title && (down ? { u: cell.box.title.w, v: cell.box.title.h } : { u: cell.box.title.h, v: cell.box.title.w }),
     minW: cell.box?.minW ?? 0, rough: 0, busy: { up: [], down: [] },
+    tips: new Map(tree.paths.filter((p) => p.wire.tips).map((p) => [p.wire.id, [
+      ...(p.wire.tips!.from ? [{ box: p.wire.from, len: p.wire.tips!.from }] : []),
+      ...(p.wire.tips!.to ? [{ box: p.wire.to, len: p.wire.tips!.to }] : []),
+    ]])),
   };
 
   /** Hand a wire on to the child container it continues into, with the wall it uses there. */

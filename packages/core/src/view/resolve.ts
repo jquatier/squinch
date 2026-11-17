@@ -3,7 +3,7 @@
 // include → exclude (exclude wins last) → edges/notes derive from what survived.
 // `scope` is the view's *where*; `only` is its *which*. They are separate axes
 // because a tag is a cross-cutting concern and can never be a place.
-import type { Diagnostic, EdgeAnimate, Hue, SEdge, SModel, SView } from "../model/types.js";
+import type { Diagnostic, EdgeAnimate, EdgeMark, Hue, SEdge, SModel, SView } from "../model/types.js";
 import { PREVIEW_MAX, PREVIEW_FIELDS_MAX } from "../model/types.js";
 
 /** One row of a leaf's schema, as drawn (docs/notes/fields.md). */
@@ -108,6 +108,10 @@ export interface VEdge {
    *  view graph used to reduce every arrow to `async: boolean`, so two of the
    *  four kinds the grammar accepts drew as a plain one-way arrow. */
   heads: "one" | "both" | "none";
+  /** Relationship marks, one per end (SPEC §4). Only on an edge drawn between
+   *  the two leaves it names: once either end lifts to an ancestor, the wire
+   *  no longer ends on a table and both marks drop. */
+  marks?: { from: EdgeMark; to: EdgeMark };
 }
 
 export interface ViewGraph {
@@ -616,6 +620,7 @@ export function resolveView(model: SModel, view: SView): ViewGraph {
         id: e.id, from: f, to: t, label: e.label, async: e.arrow === "~>",
         animate: animateOf(e), style: styleOf(e), count: 1,
         tags: e.tags, color: e.color, heads: headsOf(e.arrow),
+        ...(e.marks ? { marks: e.marks } : {}),
       });
       continue;
     }

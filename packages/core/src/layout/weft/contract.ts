@@ -67,6 +67,10 @@ export interface Wire {
    *  first. Where that cannot be drawn the end keeps its natural side and
    *  the wire is listed in `Solution.unhonoured`. */
   fromSide?: Side; toSide?: Side;
+  /** Something is drawn on the wire where it meets its `from` box, or its
+   *  `to` box, this far out from the wall and a little to either side. No
+   *  label stands on it — the wire's own or a neighbour's. Leaves only. */
+  tips?: { from?: number; to?: number };
 }
 export interface Problem { root: Group; wires: Wire[] }
 export interface Solution {

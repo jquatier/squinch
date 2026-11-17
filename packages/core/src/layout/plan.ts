@@ -11,8 +11,8 @@
 // and had none for a zone's inside — docs/notes/layout-engine.md.)
 
 import type { Diagnostic, SModel, SView, RelPos } from "../model/types.js";
-import { resolveView, type ViewGraph, type VNode } from "../view/resolve.js";
-import { noteBox, pillDims, sizeOf, SHEET_BLEED, CHIP_H, NOTE_CLEAR, NOTE_GAP } from "./sizes.js";
+import { resolveView, type ViewGraph, type VNode, type VEdge } from "../view/resolve.js";
+import { noteBox, pillDims, sizeOf, SHEET_BLEED, CHIP_H, NOTE_CLEAR, NOTE_GAP, MARK_REACH } from "./sizes.js";
 import { measure } from "../metrics.js";
 import { BADGE_GAP, badgeWidth } from "./annotate.js";
 import type { ThemeFont } from "../themes/index.js";
@@ -438,7 +438,9 @@ export function plan(model: SModel, view: SView, font: Font): Plan {
     const badge = badgeWidth(graph.flow, e.id, font);
     const pill = e.label ? pillDims(e.label, font).w + (badge ? badge + BADGE_GAP : 0) : 0;
     const note = edgeNote.has(e.id) ? noteBox(view.notes![edgeNote.get(e.id)!].text, font) : undefined;
-    if (!note) return pill ? { w: pill, h: 18 } : undefined;
+    // (a flow badge on an unlabelled wire is a bead that reserves nothing —
+    // except on a marked wire, where it needs a place clear of both marks)
+    if (!note) return pill ? { w: pill, h: 18 } : badge && e.marks && view.layout.lines !== "straight" ? { w: badge, h: 18 } : undefined;
     // The pill stays centred on the wire and the note stands off to one side
     // of it — so the reservation, which the engine centres on the wire, is
     // that much to both sides: across the wire where it runs down, along it
@@ -469,7 +471,35 @@ export function plan(model: SModel, view: SView, font: Font): Plan {
     label: reserve(e),
     bundle: bundleOf(e.from, e.to),
     ...sidesOf(e),
+    ...(e.marks && view.layout.lines !== "straight" ? { tips: { from: MARK_REACH, to: MARK_REACH } } : {}),
   }));
+  // Wires of one trunk share a drawn end, and that end carries one mark. If
+  // the edges mark it differently there is no one mark to draw (SPEC §4).
+  const trunks = new Map<string, VEdge[]>();
+  for (const w of wires) if (w.bundle) (trunks.get(w.bundle) ?? trunks.set(w.bundle, []).get(w.bundle)!).push(graph.edges.find((e) => e.id === w.id)!);
+  for (const [bundle, members] of trunks) {
+    if (members.length < 2 || !members.some((e) => e.marks)) continue;
+    // members that meet the same box share the drawn end there — all of them
+    // at the trunk's one end, and two edges between the same pair at both
+    for (const end of ["to", "from"] as const) {
+      const at = new Map<string, VEdge[]>();
+      for (const e of members) (at.get(e[end]) ?? at.set(e[end], []).get(e[end])!).push(e);
+      for (const [node, sharing] of at) {
+        const said = [...new Set(sharing.map((e) => e.marks?.[end] ?? "no mark"))];
+        if (sharing.length < 2 || said.length < 2) continue;
+        const ch = bundle.startsWith("channel:") ? view.layout.channels.find((c) => `channel:${c.target}` === bundle) : undefined;
+        const container = bundle.includes("@") ? bundle.slice(bundle.indexOf("@") + 1) : "";
+        const wrapLoc = model.containers.get(container)?.layout?.wrap?.loc ?? view.layout.wrap?.loc;
+        const bare = sharing.some((e) => !e.marks);
+        diagnostics.push({
+          severity: "error",
+          message: `${ch ? "this `channel`" : "`wrap`"} draws ${sharing.length} edges ${end === "to" ? "into" : "out of"} \`${node}\` as one wire, and they mark that end differently — ${said.map((x) => `\`${x}\``).join(", ")}`,
+          fix: `one drawn end carries one mark: give every one of these edges the same \`${end}:\`${bare ? " (an edge that cannot carry marks — async, styled, or lifted here — cannot share the wire)" : ""}, or ${ch ? "drop the `channel`" : "arrange the row by hand with `rows` instead of `wrap`"}`,
+          loc: ch?.loc ?? wrapLoc ?? view.loc,
+        });
+      }
+    }
+  }
   const depthOf = (id: string): number => (zoneParent.get(id) ? 1 + depthOf(zoneParent.get(id)!) : 0);
   return {
     problem: { root, wires }, graph, view, unitOf, parentOf: parent, noteRoom, edgeNote, diagnostics,

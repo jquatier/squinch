@@ -186,6 +186,9 @@ export interface Sheet {
   unaligned: string[];
   /** wires that asked for a side they could not be given here */
   unhonoured: string[];
+  /** wire → the boxes it meets with something drawn on its end, and how far
+   *  out from the wall that reaches (`Wire.tips`) */
+  tips: Map<string, { box: string; len: number }[]>;
   pad: { n: number; s: number; w: number; e: number };
   gap: { lane: number; rank: number };
   /** the title's corner, in this frame: along the north wall in a downward
@@ -214,6 +217,8 @@ export interface Geo {
   labels: Map<string, { x: number; y: number; w: number; h: number }>;
   /** wires whose label another wire runs through, with no clear place for it anywhere along the wire */
   stuck: string[];
+  /** for a stuck label: a place clear of everything but something drawn on a wire's end */
+  spare: Map<string, { x: number; y: number; w: number; h: number }>;
   /** boxes of an `aligned` set that placement could not keep on its line */
   unaligned: string[];
 }

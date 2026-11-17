@@ -12,6 +12,7 @@
 // engine is what it is: docs/notes/layout-engine.md.
 import type { Diagnostic, SModel, SView, Side } from "../model/types.js";
 import type { ThemeFont } from "../themes/index.js";
+import { crowdedMarks } from "./marks.js";
 import { annotate, BADGE_GAP, badgeWidth, markCrossedTitles } from "./annotate.js";
 import { placeNotes } from "./notes.js";
 import { noteOff, plan } from "./plan.js";
@@ -45,6 +46,18 @@ export async function layoutView(
     return { id: z.id, label: z.label ?? z.id, kind: z.kind, icon: z.icon, labelPos: z.labelPos, color: z.color, detail: z.detail, ...rect(pz.box), depth: pz.depth };
   });
 
+  // Straight lines run from first point to last: the stub a mark stands on
+  // is not in the picture, and a mark turned to the wire's angle would need
+  // geometry off the integer grid. So they are not drawn, and that is said.
+  const straight = view.layout.lines === "straight";
+  const unmarked = straight ? p.graph.edges.filter((e) => e.marks && sol.wires.has(e.id)).length : 0;
+  if (unmarked)
+    p.diagnostics.push({
+      severity: "warning",
+      message: `\`lines straight\` draws no relationship marks — ${unmarked} marked edge${unmarked > 1 ? "s" : ""} in this view ${unmarked > 1 ? "lose theirs" : "loses its"}`,
+      fix: "drop `lines straight` from this view's `layout { }`; the marks stand on the straight run a wire makes out of its table",
+      loc: view.loc,
+    });
   const ports: PPort[] = [];
   const edges: PEdge[] = p.graph.edges.filter((e) => sol.wires.has(e.id)).map((e) => {
     const w = sol.wires.get(e.id)!;
@@ -53,6 +66,7 @@ export async function layoutView(
     return {
       id: e.id, from: e.from, to: e.to, label: e.label, async: e.async, animate: e.animate, style: e.style,
       count: e.count, tags: e.tags, color: e.color, heads: e.heads, points: w.points, labelRect: w.label,
+      ...(e.marks && !straight ? { marks: e.marks } : {}),
       ...(p.problem.wires.find((x) => x.id === e.id)?.bundle?.startsWith("wrap") ? { via: "bus" as const } : {}),
     };
   });
@@ -158,6 +172,7 @@ export async function layoutView(
     room.set(i, face === "north" || face === "south" ? { ...r, w: r.w + NOTE_CLEAR + nt.w } : { ...r, h: r.h + NOTE_CLEAR + nt.h });
   });
   const notes = placeNotes({ view, font, width: sol.width, height: sol.height, nodes, edges, ports, frames, zones, chips, badges, pillRects, room, boxes });
+  diagnostics.push(...crowdedMarks({ edges, badges, chips, notes }, pillRects, view.loc));
 
   return {
     positioned: {
