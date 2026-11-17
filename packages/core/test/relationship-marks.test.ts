@@ -162,28 +162,11 @@ describe("relationship marks: what agents write instead", () => {
     expect(only(`${O} -> ${C} { from: many to: on }`).fix).toContain("{ from: many to: one }");
   });
 
-  it.each([
-    ["from: 0..* to: 1", "from: zero-or-many to: one", "`0..*` is a UML range"],
-    ["from: 1..n to: 0..1", "from: one-or-many to: zero-or-one", "`1..n` is a UML range"],
-    ["from: many to: 0..1", "from: many to: zero-or-one", "`0..1` is a UML range"],
-    ["from: * to: one", "from: many to: one", "`*` is not a relationship mark"],
-  ])("`%s` is one error with the corrected line", (wrote, fixed, says) => {
-    const d = only(`${O} -> ${C} "customer_id" { ${wrote} }`);
-    expect(d.message).toContain(says);
-    expect(d.fix).toContain(`\`${O} -> ${C} "customer_id" { ${fixed} }\``);
-  });
-
   it("`cardinality: many-to-one` is an error that writes both ends", () => {
     const d = only(`${O} -> ${C} { cardinality: many-to-one }`);
     expect(d.message).toContain("`cardinality:` is not an edge attribute");
     expect(d.fix).toContain(`\`${O} -> ${C} { from: many to: one }\``);
     expect(only(`${O} -> ${C} { cardinality: one-to-many }`).fix).toContain("{ from: one to: many }");
-  });
-
-  it("marks outside the braces", () => {
-    const d = only(`${O} -> ${C} "customer_id" from many to one`);
-    expect(d.message).toContain("go in the edge's braces");
-    expect(d.fix).toBe(`write \`${O} -> ${C} "customer_id" { from: many to: one }\``);
   });
 
   it("`from: east` points at `route`", () => {
@@ -192,27 +175,6 @@ describe("relationship marks: what agents write instead", () => {
     expect(d.fix).toContain(`\`route ${O} -> ${C} from east\``);
   });
 
-  it("`route … from: north` drops the colon", () => {
-    const ds = diags(`${O} -> ${C}\nview v { layout { route ${O} -> ${C} from: north to: south } }`);
-    expect(ds.map((d) => d.message)).toHaveLength(1);
-    expect(ds[0].loc.line).toBe(LINE + 1);
-    expect(ds[0].message).toContain("`route` names its sides without a colon");
-    expect(ds[0].fix).toBe(`write \`route ${O} -> ${C} from north to south\``);
-  });
-
-  it("Mermaid operators become a squinch edge, many side first", () => {
-    const d = only(`${O} }o--|| ${C}`);
-    expect(d.message).toContain("`}o--||` is Mermaid");
-    expect(d.fix).toBe(`write \`${O} -> ${C} { from: zero-or-many to: exactly-one }\``);
-    const r = only(`${C} ||--o{ ${O} : places`);
-    expect(r.fix).toBe(`write \`${O} -> ${C} "places" { from: zero-or-many to: exactly-one }\``);
-    expect(only(`${C} }|..|{ ${T}`).fix).toBe(`write \`${C} -- ${T} { from: one-or-many to: one-or-many }\``);
-  });
-
-  it("a Mermaid line does not bury the lines after it", () => {
-    const ds = diags(`${C} ||--o{ ${O} : places\n${O} -> ${K} "coupon_id" { from: many to: one }`);
-    expect(ds.map((d) => d.message)).toHaveLength(1);
-  });
 });
 
 describe("relationship marks: the semantic diff", () => {
@@ -233,30 +195,21 @@ describe("relationship marks: the semantic diff", () => {
   });
 });
 
-// What the independent review of this gate found: the wrong spellings were
-// only tested as the last line of a file, where nothing follows to cascade
-// into. Every one is tested here in the middle of a file, inside a container
-// body, and with the fix pasted back.
+// Every wrong spelling that parses, in the middle of a file and inside a
+// container body, with the fix pasted back. (Spellings that do not parse — a
+// UML range, a Mermaid operator, marks outside the braces — are ordinary
+// syntax errors: the skill teaches the syntax, and no cold agent wrote one
+// once it did. docs/notes/relationship-marks.md.)
 describe("relationship marks: one mistake, one diagnostic, wherever it sits", () => {
   const WRONG: [string, string][] = [
-    [`orders -> customers "customer_id" from many to one`, `orders -> customers "customer_id" { from: many to: one }`],
-    [`orders -> customers "customer_id" from many to one  // n:1`, `orders -> customers "customer_id" { from: many to: one }`],
-    [`orders -> customers, coupons from many to one`, `orders -> customers, coupons { from: many to: one }`],
-    [`orders -> customers #pci from many to one`, `orders -> customers { from: many to: one } #pci`],
-    [`orders }o--|| customers`, `orders -> customers { from: zero-or-many to: exactly-one }`],
-    [`customers ||--o{ orders : places`, `orders -> customers "places" { from: zero-or-many to: exactly-one }`],
-    [`customers ||--|{ orders : "places"`, `orders -> customers "places" { from: one-or-many to: exactly-one }`],
-    [`orders -> customers { from: 0..* to: 1 }`, `orders -> customers { from: zero-or-many to: one }`],
     [`orders -> customers { from: 1 to: n }`, `orders -> customers { from: one to: many }`],
     [`orders -> customers { from: zero-or-more to: 1 }`, `orders -> customers { from: zero-or-many to: one }`],
     [`orders -> customers { from: Many to: ONE }`, `orders -> customers { from: many to: one }`],
-    [`orders -> customers { cardinality: 1:n }`, `orders -> customers { from: one to: many }`],
-    [`orders -> customers { cardinality: 1-to-n style: dotted }`, `orders -> customers { from: one to: many }`],
     [`orders -> customers { multiplicity: "N:1" }`, `orders -> customers { from: many to: one }`],
     [`orders -> customers { relationship: many-to-many }`, `orders -> customers { from: many to: many }`],
     [`orders ~> customers { from: many }`, `orders -> customers { from: many to: one }`],
-    [`orders <-> customers { from: 0..* to: 1 }`, `orders -> customers { from: zero-or-many to: one }`],
-    [`orders -> customers { from: 1..* to: one style: dashed }`, `orders -> customers { from: one-or-many to: one }`],
+    [`orders <-> customers { from: n to: 1 }`, `orders -> customers { from: many to: one }`],
+    [`orders -> customers { from: one-or-more to: one style: dashed }`, `orders -> customers { from: one-or-many to: one }`],
     [`orders -> customers { from: many to: one color: red animate: pulse }`, `orders -> customers { from: many to: one color: red }`],
   ];
   const inBody = (stmt: string) => `system shop "Shop" {
@@ -284,36 +237,10 @@ view v {
     expect(buildModel(inBody(fixed)).diagnostics, fixed).toEqual([]);
   });
 
-  it("a multi-line attribute block with ranges is one error", () => {
-    const ds = buildModel(inBody(`orders -> customers {\n      from: 0..*\n      to: 1\n    }`)).diagnostics;
-    expect(ds).toHaveLength(1);
-    expect(ds[0].message).toContain("`0..*` is a UML range");
-    expect(ds[0].fix).toContain("`orders -> customers { from: zero-or-many to: one }`");
-  });
-
-  it("hyphenated ids", () => {
-    const src = (stmt: string) => `order-items = sys/table "order_items"\nline-items = sys/table "line_items"\n${stmt}\norder-items -> line-items "after"\n`;
-    for (const [wrote, fixed] of [
-      ["order-items -> line-items { from: 1..* to: 1 }", "order-items -> line-items { from: one-or-many to: one }"],
-      ["order-items -> line-items from many to one", "order-items -> line-items { from: many to: one }"],
-      ["order-items }o--|| line-items", "order-items -> line-items { from: zero-or-many to: exactly-one }"],
-    ]) {
-      const ds = buildModel(src(wrote)).diagnostics;
-      expect(ds.map((d) => d.message), wrote).toHaveLength(1);
-      expect(ds[0].fix).toContain(`\`${fixed}\``);
-    }
-  });
-
   it("two sides are one error with one route line", () => {
     const ds = diags(`${O} -> ${C} { from: east to: west }`);
     expect(ds).toHaveLength(1);
     expect(ds[0].fix).toContain(`\`route ${O} -> ${C} from east to west\``);
-  });
-
-  it("a value with no translation lists the words instead of guessing", () => {
-    const d = only(`${O} -> ${C} { from: 0..many to: 2..5 }`);
-    expect(d.message).toContain("`0..many` is a UML range");
-    expect(d.fix).toBe("each end is one of: one, many, exactly-one, zero-or-one, one-or-many, zero-or-many");
   });
 
   it("a refused line followed by the right one is one error, not a duplicate too", () => {
@@ -336,8 +263,8 @@ view v {
   });
 });
 
-describe("relationship marks: the repair leaves valid text alone", () => {
-  const BROKEN = `${T} -> ${K} "x" "y"`; // an unrelated syntax error, so the old heuristics would run
+describe("relationship marks: text that only looks like marks", () => {
+  const BROKEN = `${T} -> ${K} "x" "y"`; // an unrelated syntax error: nothing about marks may claim it
   it.each([
     `route = sys/server "Router"\nroute -> ${C} "forwards to: the customers table"\n${O} -> route "reads from: replica" { style: dotted }`,
     `// route a -> b from: north\n${O} -> ${C}`,
@@ -354,19 +281,6 @@ describe("relationship marks: the repair leaves valid text alone", () => {
     expect(ds[0].message).toContain("syntax error");
   });
 
-  it("a valid route with sides, and one with colons, in a view", () => {
-    const view = (r: string) => `${O} -> ${C}\nview v {\n  scope shop.db\n  layout {\n    ${r}\n  }\n}`;
-    expect(diags(view(`route ${O} -> ${C} from south to north`)).filter((d) => d.severity === "error")).toEqual([]);
-    const ds = diags(view(`route ${O} -> ${C} from: south to: north`)).filter((d) => d.severity === "error");
-    expect(ds).toHaveLength(1);
-    expect(ds[0].fix).toBe(`write \`route ${O} -> ${C} from south to north\``);
-  });
-
-  it("a Mermaid line does not hide a real error after it", () => {
-    const ds = diags(`${C} ||--o{ ${O} : places\n${O} -> ${K}\n${BROKEN}`);
-    expect(ds.map((d) => d.loc.line)).toEqual([LINE, LINE + 2]);
-  });
-
   it("short unknown keys are not told they meant `to`", () => {
     for (const key of ["tls", "on", "ttl", "ip"]) {
       const d = only(`${O} -> ${C} { ${key}: x }`, "warning");
@@ -376,36 +290,7 @@ describe("relationship marks: the repair leaves valid text alone", () => {
   });
 });
 
-// The second review: the value repair rewrote anything that was not a word,
-// which broke valid field lines and `;`-separated attributes.
-describe("relationship marks: the repair only touches another notation", () => {
-  it("returns valid text untouched, byte for byte", async () => {
-    const { repairMarks } = await import("../src/model/marks.js");
-    for (const valid of [
-      `t = sys/table "t" {\n  fields {\n    to: numeric(10,2)\n    from: timestamp(6); to: timestamp(6)\n    valid-to: numeric(10,2) nullable\n    range struct<from: decimal(10,2), to: date>\n    to : map<string,int>\n  }\n}`,
-      `a -> b { from: many; to: one }`,
-      `a -> b {\n  from: many;\n  to: one;\n}`,
-      `n = box "N" { to: abc; color: red }`,
-      `n = box "N" { relation: [a b] }`,
-      `titleblock { version: 1.2.3  date: 2026-11-17  to: "x" }`,
-      `route from -> to from north to south`,
-      `n = box "N" { link: "https://example.com/?from=1..n" }`,
-    ]) {
-      const r = repairMarks(valid);
-      expect(r.src, valid).toBe(valid);
-      expect(r.notes).toEqual([]);
-    }
-  });
-
-  it("always returns the length it was given", async () => {
-    const { repairMarks } = await import("../src/model/marks.js");
-    for (const s of [
-      `a }o--|| b : has "x" {`, `a -> b from many to one #pci`, `a -> b { from: 0..* to: * }`,
-      `route a -> b "l" from: north to: south`, `a -> b { cardinality: 1:n }  // to: 0..1`, `x\r\ny }|..|{ z\r\n`,
-    ])
-      expect(repairMarks(s).src.length, s).toBe(s.length);
-  });
-
+describe("relationship marks: valid neighbours", () => {
   it("`;` between the two marks is the separator it always was", () => {
     const { model, diagnostics } = build(`${O} -> ${C} { from: many; to: one }`);
     expect(diagnostics).toEqual([]);
@@ -415,16 +300,6 @@ describe("relationship marks: the repair only touches another notation", () => {
   it("a field named `to` with a bracketed type still checks clean", () => {
     const { diagnostics } = buildModel(`t = sys/table "t" {\n  fields {\n    id uuid pk\n    to: numeric(10,2)\n  }\n}\nview v { preview t }\n`);
     expect(diagnostics.filter((d) => d.message.includes("field line"))).toEqual([]);
-  });
-
-  it("letter-led ranges are one error", () => {
-    expect(only(`${O} -> ${C} { from: n..m to: 1 }`).message).toContain("unknown relationship mark `from: n..m`");
-  });
-
-  it("a tag after unbraced marks, and the right line after the wrong one", () => {
-    expect(only(`${O} -> ${C} from many to one #pci`).fix).toBe(`write \`${O} -> ${C} { from: many to: one } #pci\``);
-    const ds = diags(`${O} -> ${C} from many to one\n${O} -> ${C} { from: many to: one }`);
-    expect(ds.map((d) => d.message)).toHaveLength(1);
   });
 
   it("one attribute in other casings; an untranslatable one writes no guess", () => {
@@ -440,14 +315,4 @@ describe("relationship marks: the repair only touches another notation", () => {
     expect(buildModel(src).diagnostics[0].fix).toContain("`route shop.db.orders -> shop.db.customers from east`");
   });
 
-  it("a Mermaid label with quotes or a trailing brace still writes a line that parses", () => {
-    const fix = only(`${O} }o--|| ${C} : has "quoted" thing {`).fix!;
-    expect(fix).toBe(`write \`${O} -> ${C} "has quoted thing" { from: zero-or-many to: exactly-one }\``);
-    expect(diags(fix.slice(7, -1))).toEqual([]);
-  });
-
-  it("a route with a label and colons", () => {
-    const ds = diags(`${O} -> ${C} "reads"\nview v {\n  scope shop.db\n  layout {\n    route ${O} -> ${C} "reads" from: north\n  }\n}`).filter((d) => d.severity === "error");
-    expect(ds.map((d) => d.message)).toEqual(["`route` names its sides without a colon — `from:` and `to:` are an edge's relationship marks"]);
-  });
 });

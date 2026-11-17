@@ -31,7 +31,7 @@ import type {
 import { ZONE_KINDS, HUES, EDGE_STYLES, EDGE_ANIMATE, EDGE_MARKS, MARKS_ONE, PREVIEW_MAX, PREVIEW_FIELDS_PICK_MAX } from "./types.js";
 import type { EdgeMark } from "./types.js";
 
-import { RELATION_KEYS, markWord, relationEnds, repairMarks } from "./marks.js";
+import { RELATION_KEYS, markWord, relationEnds } from "./marks.js";
 import { resolveView } from "../view/resolve.js";
 
 export interface ProjectFile {
@@ -369,8 +369,6 @@ export function buildProject(input: ProjectFile[]): BuildResult {
   /** Edges whose marks were refused, by id — a duplicate of one is not a
    *  second mistake. */
   const marksRefused = new Set<string>();
-  /** `file:line` of an edge whose marks stood outside its braces. */
-  const refusedLines = new Set<string>();
   /** `layout { }` blocks found inside container bodies, resolved after every
    *  node is declared — exactly as edges are. */
   const rawLayouts: { node: SyntaxNode; scope: string; ctx: Ctx }[] = [];
@@ -380,15 +378,7 @@ export function buildProject(input: ProjectFile[]): BuildResult {
 
   for (const f of files) {
     const ctx = makeCtx(f.name, f.src);
-    // relationship marks in another notation are repaired before the parse,
-    // offsets unchanged; `ctx` still reads the author's text (model/marks.ts)
-    const repaired = repairMarks(f.src);
-    const tree = parser.parse(repaired.src);
-    for (const n of repaired.notes) {
-      const loc = ctx.loc({ from: n.from, to: n.to } as SyntaxNode);
-      error(ctx, loc, n.message, n.fix);
-      if (n.refused) refusedLines.add(`${ctx.name}:${loc.line}`);
-    }
+    const tree = parser.parse(f.src);
 
     let sawSyntaxError = false;
     const errorLines = new Set<number>(); // one syntax error per line, not a cascade
@@ -1361,10 +1351,7 @@ export function buildProject(input: ProjectFile[]): BuildResult {
           + `${bad.map((b) => ` ${b} ${meta.attrs[b]}`).join("")}\` in the view's \`layout { }\`; a relationship is \`${line("many", "one")}\``);
       } else if (bad.length) {
         const k = bad[0], v = meta.attrs[k];
-        error(ctx, node,
-          v === "*" ? "`*` is not a relationship mark — each end is a word"
-            : /^\d+\.\./.test(v) ? `\`${v}\` is a UML range — a relationship mark is a word`
-            : `unknown relationship mark \`${k}: ${v}\``,
+        error(ctx, node, `unknown relationship mark \`${k}: ${v}\``,
           bad.every((b) => word(b)) ? `write \`${line()}\`${ends.length === 2 ? "" : ` — ${words}`}` : words);
       } else if (ends.length === 1) {
         const have = ends[0], miss = have === "from" ? "to" : "from";
@@ -1402,7 +1389,7 @@ export function buildProject(input: ProjectFile[]): BuildResult {
           edgeMarks = undefined;
           break;
         }
-      if ((wantsMarks && !edgeMarks) || refusedLines.has(`${ctx.name}:${ctx.loc(node).line}`)) marksRefused.add(`e${edgeN}`);
+      if (wantsMarks && !edgeMarks) marksRefused.add(`e${edgeN}`);
       model.edges.push({
         id: `e${edgeN}`,
         from: fromPath, to: toPath, arrow,
