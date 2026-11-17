@@ -230,6 +230,46 @@ view openright {
     expect(a.positioned.nodes.map((n) => [n.path, n.x, n.y])).toEqual(b.positioned.nodes.map((n) => [n.path, n.x, n.y]));
   });
 
+  it.each([[4, 0], [5, 1], [6, 1]])("%i relationships on a table's head in a rightward view: %i warning", async (n, warnings) => {
+    const src = `system s "S" {
+  container db "DB" {
+    hub = sys/table "hub"
+    ${Array.from({ length: n }, (_, i) => `t${i} = sys/table "t${i}"`).join("\n    ")}
+    layout {
+      direction right
+    }
+  }
+}
+${Array.from({ length: n }, (_, i) => `s.db.t${i} -> s.db.hub { from: many to: one }`).join("\n")}
+view v {
+  scope s.db
+}
+`;
+    const { diagnostics } = await lay(src, "v");
+    expect(diagnostics.filter((d) => d.message.includes("crowded")).map((d) => d.message)).toHaveLength(warnings);
+  });
+
+  it("the fix the warning writes clears it", async () => {
+    const src = (extra: string) => `system s "S" {
+  container db "DB" {
+    hub = sys/table "hub"
+    ${Array.from({ length: 6 }, (_, i) => `t${i} = sys/table "t${i}"`).join("\n    ")}
+  }
+}
+${Array.from({ length: 6 }, (_, i) => `s.db.t${i} -> s.db.hub { from: many to: one }`).join("\n")}
+view v {
+  scope s.db
+  layout {
+    ${extra}
+  }
+}
+`;
+    const crowded = async (extra: string) => (await lay(src(extra), "v")).diagnostics.filter((d) => d.message.includes("crowded")).length;
+    expect(await crowded("direction right")).toBe(1);
+    expect(await crowded("direction right\n    route s.db.t0 -> s.db.hub from east to north\n    route s.db.t5 -> s.db.hub from east to south")).toBe(0);
+    expect(await crowded("direction down")).toBe(0);
+  });
+
   it("more relationships than a wall holds is one warning naming the table", async () => {
     const many = `system s "S" {
   container db "DB" {
@@ -252,7 +292,6 @@ view v {
     expect(crowded).toHaveLength(1);
     expect(crowded[0].severity).toBe("warning");
     expect(crowded[0].message).toBe("the relationship marks at `s.db.hub` are crowded — another mark stands on one of them");
-    expect(crowded[0].fix).toContain("route");
-    expect(crowded[0].fix).toContain("`density spacious`"); // the spelling the layout block takes
+    expect(crowded[0].fix).toContain("from <side> to <side>");
   });
 });

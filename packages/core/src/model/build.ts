@@ -1434,7 +1434,7 @@ export function buildProject(input: ProjectFile[]): BuildResult {
     if (other && (other.marks || e.marks) && differ(other, !first))
       diagnostics.push({
         severity: "error",
-        message: `${e.from} ${e.arrow} ${e.to}${e.label ? ` "${e.label}"` : ""} is declared twice with different relationship marks — \`${say(other.marks)}\` on line ${other.loc.line}${other.file !== e.file && other.file ? ` of ${other.file}` : ""}, \`${say(e.marks)}\` here`,
+        message: `${e.from} ${e.arrow} ${e.to}${e.label ? ` "${e.label}"` : ""} is declared twice with different relationship marks — \`${say(other.marks)}\` on line ${other.loc.line}${other.file !== e.file && other.file ? ` of ${other.file}` : ""}, \`${say(e.marks)}\` here${first ? "" : ", written the other way round"}`,
         fix: "keep one of the two lines; two relationships between the same tables need different labels",
         loc: e.loc, file: e.file,
       });

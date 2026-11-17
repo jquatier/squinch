@@ -257,6 +257,7 @@ view v {
     const ds = diags(`${C} -- ${T} { from: many to: one }\n${T} -- ${C} { from: many to: one }`);
     expect(ds.map((d) => d.severity)).toEqual(["error"]);
     expect(ds[0].message).toContain("declared twice with different relationship marks");
+    expect(ds[0].message).toContain("written the other way round");
     expect(diags(`${C} -- ${T} { from: many to: one }\n${T} -- ${C} { from: one to: many }`)).toEqual([]);
     // unmarked edges both ways are untouched
     expect(diags(`${C} -- ${T}\n${T} -- ${C}`)).toEqual([]);

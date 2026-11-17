@@ -26,6 +26,7 @@ export function markRects(e: PEdge): { end: "from" | "to"; node: string; at: { x
   });
 }
 
+const grow = (r: Rect, by: number): Rect => ({ x: r.x - by, y: r.y - by, w: r.w + 2 * by, h: r.h + 2 * by });
 const hit = (a: Rect, b: Rect) => a.x < b.x + b.w && a.x + a.w > b.x && a.y < b.y + b.h && a.y + a.h > b.y;
 
 /** One warning per table whose marks something else stands on. */
@@ -41,8 +42,10 @@ export function crowdedMarks(
     if (pos.badges.some((r) => hit(m.rect, r))) say(m.node, "a flow badge");
     if (pos.chips.some((r) => hit(m.rect, r))) say(m.node, "a zone label");
     if ((pos.notes ?? []).some((r) => hit(m.rect, r))) say(m.node, "a note");
-    // another mark — unless it is the same drawn end (a trunk's shared port)
-    if (marks.some((o) => o !== m && !(o.at.x === m.at.x && o.at.y === m.at.y) && hit(m.rect, o.rect))) say(m.node, "another mark");
+    // another mark — unless it is the same drawn end (a trunk's shared port).
+    // Round caps carry a mark 0.75 past its box, so two marks 12 apart leave
+    // half a pixel between them and read as one line: "on" is within 3.
+    if (marks.some((o) => o !== m && !(o.at.x === m.at.x && o.at.y === m.at.y) && hit(grow(m.rect, 1.5), grow(o.rect, 1.5)))) say(m.node, "another mark");
     // another wire passing through it; one that shares this very end is the same trunk
     for (const o of pos.edges) {
       if (o === m.edge) continue;
@@ -57,8 +60,11 @@ export function crowdedMarks(
   return [...crowded].map(([node, what]) => ({
     severity: "warning" as const,
     message: `the relationship marks at \`${node}\` are crowded — ${[...what].join(", ")} stands on one of them`,
-    fix: `give the wires at \`${node}\` more room: move one to another wall with \`route … from <side>\` (or \`to <side>\`), `
-      + "widen the spacing with `density spacious` in the view's `layout { }`, or drop the marks on the least important edge",
+    // what clears it, tried on the cases that raise it: naming both walls of
+    // one wire, or a view that flows down. Wider spacing and fewer marks do
+    // not — the wall is as long as it is, and an unmarked wire keeps its port.
+    fix: `spread the wires at \`${node}\` over more of its walls: \`route <a> -> <b> from <side> to <side>\` in the view's \`layout { }\` moves one `
+      + "(name both sides); or let this view flow down — in a `direction right` view a table takes side wires only on its 64px head, four at most",
     loc,
   }));
 }
