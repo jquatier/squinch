@@ -6,6 +6,40 @@ history too. Sections are drafted by `pnpm release` from the commits since the
 previous tag, then edited by a human before anything is written; the release
 workflow lifts the matching section verbatim into the GitHub Release notes.
 
+## 0.21.0 — 2026-11-18
+
+**Relationships between tables.** An edge between two tables can now say how many rows take part at each end, and it draws as crow's-foot marks in place of the arrowhead.
+
+```squinch
+orders      -> customers "customer_id" { from: many         to: one }
+orders      -> coupons   "coupon_id"   { from: many         to: zero-or-one }  // the key is nullable
+order_items -> orders    "order_id"    { from: one-or-many  to: exactly-one }
+products    -- tags                    { from: many         to: many }
+```
+
+![A database of six tables with crow's-foot marks on the edges between them](https://github.com/jquatier/squinch/blob/v0.21.0/lookbook/out/44-relationships.schema.light.svg?raw=true)
+
+No existing diagram redraws. Re-run `squinch skill` so your agents learn the new attributes.
+
+### Relationship marks
+
+- **Two attributes, six words.** `from:` counts the rows of the table the edge starts at, `to:` those of the table it ends at. `one` and `many` say nothing about optionality; `exactly-one`, `zero-or-one`, `one-or-many` and `zero-or-many` state it. Write the plain words unless your schema says more.
+- **Both ends or neither**, between two tables, on a plain `->` or `--` edge. Anything else is a check error that writes the line to use.
+- **Drawn where both tables are.** In a view where the tables are inside a collapsed card, their edges and marks are inside it too. An edge with either end lifted draws as an ordinary arrow.
+- **Nothing is inferred.** The marks are what you wrote. `check` warns when they contradict the column the label names: the ends look swapped, or a `nullable` key is marked as required.
+- **Labels keep clear of the marks**, and a table with more relationships on one wall than it can hold apart gets a warning that names it. In a view that flows rightward that starts at five on one side.
+- **A changed mark is structural** in `squinch diff`.
+- The lookbook has a new [Relationships case](https://github.com/jquatier/squinch/blob/main/lookbook/cases/44-relationships.squinch) with all six marks.
+
+### Fixed
+
+- **A self-edge warns once, on its own line.** It used to warn once per view, at the view's line, including views that never showed the node. For a table, the warning now says to state the self-reference on the row: `manager_id uuid fk ref employees`.
+
+### Agents
+
+- The skill teaches the marks: plain `one` / `many` unless optionality is stated, a nullable key for `zero-or-one`, and marks only when the request or the schema gives the cardinality.
+- Gauntlet round 35: 39 of 40 from the round, and the committed corpus scores 41 of 41. The new schema prompt put every mark on the right end, and a tables prompt with nothing said between its tables drew none.
+
 ## 0.20.0 — 2026-11-16
 
 **Squinch has a layout engine of its own.** Until now every diagram was laid out by ELK, a general-purpose graph library, with three routers of ours bolted on for the things it could not draw. This release replaces all of it with one engine written for architecture diagrams, and nothing else. `elkjs` is gone and no dependency took its place.
