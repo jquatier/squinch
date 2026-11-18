@@ -182,7 +182,11 @@ the owner in one line: the wires should match every other wire.
   or many" and one relationship with no optionality, got every mark on the
   right end with the right word, in a pilot and in the round; the
   relationship with nothing stated was left `many` / `one`. Prompts 36 and
-  37, which name tables and no counts, drew no marks. No mark diagnostic
+  37, which name tables and no counts, drew no marks. On a later re-run 36's
+  agent marked its four "belongs to" edges `many` / `one`: a fair reading,
+  with no optionality guessed, so 36 now forbids only the four explicit
+  words, and prompt 41 (tables that jobs read and write, nothing said
+  between them) is the clean control — no marks in three cold runs. No mark diagnostic
   fired in any session and no label repeated the cardinality.
 - **No existing output changed**: every golden, every example's `render
   --check` and the lookbook are byte-identical; the three new goldens are

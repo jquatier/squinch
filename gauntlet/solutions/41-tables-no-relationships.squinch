@@ -1,0 +1,34 @@
+pack aws
+
+system reporting "Reporting Service" {
+  rollup = aws/lambda "Rollup Job" { subtitle: "nightly" }
+  export = aws/lambda "Export Job"
+  files  = aws/s3 "CSV Exports" datastore
+
+  container db "Reporting DB" {
+    icon: logos/postgres
+    description: "Postgres · 4 tables"
+    events       = sys/table "events" datastore
+    sessions     = sys/table "sessions" datastore
+    daily_totals = sys/table "daily_totals" datastore
+    exports      = sys/table "exports" datastore
+  }
+
+  rollup -> db.events "reads"
+  rollup -> db.sessions "reads"
+  rollup -> db.daily_totals "writes"
+  export -> db.daily_totals "reads"
+  export -> db.exports "records files"
+  export -> files "writes CSV"
+}
+
+view landscape {
+  title "Reporting Service"
+  include *
+}
+
+view detail {
+  title "Reporting DB tables"
+  scope reporting
+  expand db
+}

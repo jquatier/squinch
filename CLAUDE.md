@@ -232,12 +232,13 @@ visibility/lifting → layout → themed SVG), the CLI (check/render/diff/icons/
 init/watch + sync/check model + Actions), the SPA playground, the VS Code
 extension + language server, six icon packs, and the light/dark pair. The acceptance
 bar — an agent producing clean diagrams from prose using only the skill + CLI —
-is certified at **40/40
+is certified at **41/41
 by independent cold agents** on the committed corpus; the latest full round scored
 39/40 with **29/40 answered in one `check` call** (round 35, the first with
 relationship marks: the new schema prompt put every mark on the right end and
-the two table prompts that give no counts drew none; the one miss, 28, was a
-view that did not narrow, and passed three re-runs — `gauntlet/README.md`;
+the two table prompts that give no counts drew none — prompt 41, added after
+it, is the clean control, tables with nothing said between them; the one
+miss, 28, was a view that did not narrow, and passed three re-runs — `gauntlet/README.md`;
 round 34 before it, 39/39 and 28/39, the first on the
 `weft` layout engine; round 33 before it, 38/39 and 29/39, run after the first
 outside test of `fields` changed where they draw — `gauntlet/README.md`,

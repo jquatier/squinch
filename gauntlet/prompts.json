@@ -642,7 +642,7 @@
         ]
       ],
       "forbidFields": true,
-      "forbidMarks": true
+      "forbidOptionality": true
     }
   },
   {
@@ -848,6 +848,33 @@
         ]
       ],
       "requireMarksShown": true
+    }
+  },
+  {
+    "id": "41-tables-no-relationships",
+    "prompt": "Our reporting service keeps everything in one Postgres database with four tables: events, sessions, daily_totals and exports. A rollup job (a Lambda) reads events and sessions every night and writes daily_totals. An export job (another Lambda) reads daily_totals, writes a CSV to S3 and records each file in exports. I want a reader to be able to open the database and see the tables and which job touches which.",
+    "expect": {
+      "minNodes": 7,
+      "inside": [
+        [
+          "db|database|postgres|rds|sql",
+          "events"
+        ],
+        [
+          "db|database|postgres|rds|sql",
+          "sessions"
+        ],
+        [
+          "db|database|postgres|rds|sql",
+          "daily.?totals"
+        ],
+        [
+          "db|database|postgres|rds|sql",
+          "exports"
+        ]
+      ],
+      "forbidFields": true,
+      "forbidMarks": true
     }
   }
 ]

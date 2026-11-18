@@ -1,12 +1,12 @@
 # The gauntlet (end-to-end acceptance)
 
-Forty architecture prompts — thirty-nine in prose, and one that hands
+Forty-one architecture prompts — forty in prose, and one that hands
 the agent a real repository. An agent, armed with only
 [`packages/skill/skills/squinch/SKILL.md`](../packages/skill/skills/squinch/SKILL.md) and the `squinch` CLI,
 must produce a clean diagram for each. **v1 ships at ≥ 16/20 with zero human
 layout fixes** (the original ≥ 8/10 bar, at the current prompt count).
 
-> **Current standing: the committed corpus scores 40/40 on the deep scorer; the
+> **Current standing: the committed corpus scores 41/41 on the deep scorer; the
 > latest round itself — the first with relationship marks — scored 39/40, with
 > 29 of 40 answered in one `check` call.** The
 > solutions those agents wrote are committed in `solutions/` and re-scored by CI
@@ -91,10 +91,17 @@ No mark diagnostic fired in any session, and no label repeated the
 cardinality, the habit the placement probe showed when the CLI drew nothing.
 Two sessions is what this rests on: the pilot and the round, one model.
 
-**The negative controls held.** 36 names tables and says which belongs to
-which, with no counts — the borderline case — and drew no mark in the pilot
-or the round. 37's two tables are unrelated, so it could hardly fail. No
-other prompt's answer carries a mark.
+**The negative controls, and what a re-run changed.** 36 names tables and
+says which belongs to which, with no counts; it drew no mark in the pilot or
+the round. 37's two tables are unrelated, so it could hardly fail. No other
+prompt's answer carries a mark. A re-run of the four table prompts after the
+round then had 36's agent write `{ from: many to: one }` on all four
+"belongs to" edges — plain words, no guessed ring. That is a fair reading of
+"belongs to", and the plain words exist for it, so 36 now forbids only the
+four words that state optionality (`forbidOptionality`). The clean control is
+a new prompt, `41-tables-no-relationships`: four tables that two jobs read
+and write, with nothing said between the tables. Three cold runs drew no
+mark on it; its committed answer is the last of them.
 
 **One prompt failed, and it is not about marks.** 28 (`how-deep`) scoped a
 view to `orders` that showed as many elements as its landscape, so "no view
@@ -114,4 +121,4 @@ or on a warning (22 and 31 three times).
 
 No agent read outside its sandbox; one opened the cookbook, one the icon
 list. The corpus in `solutions/` is this round's answers for all forty
-prompts.
+of its prompts, plus 41's from the runs after it.

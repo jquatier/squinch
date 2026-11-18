@@ -84,6 +84,11 @@ interface Expect {
   /** No edge may carry marks: the prompt gave no cardinality, and a guessed
    *  mark on a reviewed diagram reads as a fact. */
   forbidMarks?: boolean;
+  /** No mark may state optionality (`exactly-one`, `zero-or-one`,
+   *  `one-or-many`, `zero-or-many`): the prompt says which table belongs to
+   *  which and nothing about required or optional. Plain `one` / `many` are
+   *  a fair reading of "belongs to"; a ring or a second bar is a guess. */
+  forbidOptionality?: boolean;
   icons?: string[][];
   /** Ownership, read off the model. Each pair is [container, thing]: something
    *  labelled like the second sits inside a container labelled like the first,
@@ -400,11 +405,14 @@ for (const p of prompts) {
     }
   }
 
-  if (e.marks || e.requireMarksShown || e.forbidMarks) {
+  if (e.marks || e.requireMarksShown || e.forbidMarks || e.forbidOptionality) {
     const label = (path: string) => { const x = m.nodes.get(path); return x ? (x.label ?? x.name) : ""; };
     const marked = m.edges.filter((ed) => ed.marks);
     if (e.forbidMarks && marked.length)
       problems.push(`relationship marks written unasked on ${marked.map((ed) => `${label(ed.from)} → ${label(ed.to)}`).join(", ")}`);
+    const guessed = marked.filter((ed) => ![ed.marks!.from, ed.marks!.to].every((w) => w === "one" || w === "many"));
+    if (e.forbidOptionality && guessed.length)
+      problems.push(`optionality stated unasked on ${guessed.map((ed) => `${label(ed.from)} ${ed.marks!.from} → ${ed.marks!.to} ${label(ed.to)}`).join(", ")}`);
     for (const [a, b, fw, tw] of e.marks ?? []) {
       const A = new RegExp(a, "i"), B = new RegExp(b, "i"), F = new RegExp(fw), T = new RegExp(tw);
       const between = m.edges.filter((ed) => (A.test(label(ed.from)) && B.test(label(ed.to))) || (B.test(label(ed.from)) && A.test(label(ed.to))));
