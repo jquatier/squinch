@@ -496,6 +496,21 @@ describe("sides a wire is asked to use", () => {
     // the natural wall, asked for: nothing changes
     expect(JSON.stringify([...solve(p({ fromSide: "south" })).wires])).toBe(JSON.stringify([...solve(p({})).wires]));
   });
+  it("takes a wire out of the north wall round the side of its box nearer where it is going", () => {
+    // `b` stands below and to the west of `a`, `c` below and to the east: each hook goes round its own way, and crosses nothing
+    const p = (to: string): Problem => ({
+      root: group([leaf("x"), leaf("a"), leaf("z"), leaf("b"), leaf("y"), leaf("c")], pin({ x: 0, a: 0, z: 0, b: 1, y: 1, c: 1 })),
+      wires: [wire("x>b"), wire("a>y"), wire("z>c"), { id: "hook", from: "a", to, fromSide: "north" }],
+    });
+    for (const [to, west] of [["b", true], ["c", false]] as const) {
+      const q = p(to), s = solve(q), pts = s.wires.get("hook")!.points, a = s.boxes.get("a")!;
+      expect(audit(q, s)).toEqual([]);
+      expect(wallAt(a, pts[0])).toBe("north");
+      expect(pts[2].x < a.x).toBe(west);            // the lane it comes down stands on that side of `a`
+      expect(pts[2].x > a.x + a.w).toBe(!west);
+      expect(crossed(s)).toBe(0);
+    }
+  });
   it("goes round a box's own room, not through it", () => {
     const p: Problem = { root: group([{ ...leaf("a"), room: { east: 64, north: 40 } }, leaf("b")]), wires: [{ id: "e", from: "a", to: "b", fromSide: "east" }, { id: "n", from: "a", to: "b", fromSide: "north" }] };
     const s = solve(p);

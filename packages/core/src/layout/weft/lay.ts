@@ -555,9 +555,10 @@ function clearLabels(s: Sheet, geo: Geo, zones: { x: number; y: number; w: numbe
         if (zones.some((z) => overlaps(r, z))) { if (far < nearSpare) { spare = r; nearSpare = far; } } else if (far < near) { best = r; near = far; }
       }
     }
-    // one that only stands on a tip, with nowhere else to go, stays
+    // one with nowhere else to go is stuck, and will be given room (`solve`) — also one that only
+    // stands on a tip: its neighbour's port is then moved off, as a neighbour's wire would be
     if (best) geo.labels.set(wire, best);
-    else if (crossed(at, wire)) { geo.stuck.push(wire); if (spare) geo.spare.set(wire, spare); }
+    else { geo.stuck.push(wire); if (spare && crossed(at, wire)) geo.spare.set(wire, spare); }
   }
 }
 

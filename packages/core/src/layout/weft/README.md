@@ -96,7 +96,8 @@ cannot point down runs up instead (`constraints`); network simplex
   wall's ports from the rank behind it, so inside and outside share the order.
 - *Count exactly*: `Count.channel` (two links cross when their ends stand in
   opposite orders; an end at a container stands where its wire meets that
-  container's wall) and `Count.along` (same-rank wires, wires to side walls).
+  container's wall) and `Count.along` (same-rank wires, wires to side walls,
+  a hook's stretch from its wall to its lane).
   Crossings in gutters and between round-the-row wires are left out.
 - *A passing wire takes a place in the row*: lanes are slots (`sheet.ts`).
 - *Declaration order is worth a tie*: `Search.sift` (a box passes a box only
@@ -106,7 +107,8 @@ cannot point down runs up instead (`constraints`); network simplex
 - *Straighter among equals, in real sizes*: `Count.rough`.
 - *Several things at once*: `untangle` (lanes follow a trade, through walls),
   `reroute` (a wire's lanes change sides whole), `sift(…, carry)` (a box moves
-  with its wires' lanes), `mirror` (a container turned about).
+  with its wires' lanes), `mirror` (a container turned about), `turn` (a hook
+  out of a north or south wall, round the other side of its box).
 - *What the author placed*: `Search.free` (`held`, `columns`, same-rank
   ends), `Search.sound` (nothing between two boxes a straight wire joins).
 
@@ -216,6 +218,13 @@ by screen side, that nothing enters but the box's own wires on that wall.
   its own rank, and the wire's path starts (ends) at that lane instead of
   at the box. So to the ordering stage the detour is what it is — a wire
   passing the box — and it is counted like one;
+- which side of the box the lane stands on: the wall asked, for an east or
+  west one; for a north or south one either will do (`beside.free`, where
+  neither side of the box is taken), it starts on the east and the ordering
+  stage chooses — `Search.turn`, kept for fewer crossings or, at a tie, a
+  straighter picture, so the wire goes round the side nearer where it is
+  going. The hook's own stretch is counted (`Count.along`): it crosses every
+  lane that passes between the box and the hook's lane;
 - the lane stays beside its box: `Search.beside` / `sound` (its side, no box
   and no other box's hook lane between), `trade` (a box that moves takes its
   hooks' lanes along), the seed, and `aim` in `place.ts` (close beside it);
@@ -329,9 +338,7 @@ The list, with what each costs and what to try next, is §8 of
   search. Dense diagrams can stop at a local minimum.
 - `count.ts`: crossings inside a gutter, and between two round-the-row wires,
   are not counted.
-- `sheet.ts` (`hookFor`): a hook takes the side asked — out of a north or
-  south wall, the east side unless taken — not the side nearer where the wire
-  is going; its stub is not counted and does not pull its box in `place.ts`.
+- `place.ts`: a hook does not pull its box.
 - `lay.ts`: a container's north and south ports stand where its inside puts
   them; only `slide` (across a gutter) moves a finished container's port to
   meet a wire.

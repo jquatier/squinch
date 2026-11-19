@@ -212,6 +212,18 @@ describe("count", () => {
     root.rows[2] = [a, lane, b]; root.rows[2].forEach((slot, i) => { root.at[slot] = i; });
     expect(new Count(all).cross).toBe(1);
   });
+  it("counts a hook — from the wall asked to its lane beside the box — against the lanes that pass between", () => {
+    // `a` leaves by its east wall to a lane beside it; the wire top → low passes a's rank on a lane of its own
+    const p = problem([leaf("top"), leaf("a"), leaf("b"), leaf("low")], ["top>low"], pin({ top: 0, a: 1, b: 2, low: 2 }));
+    p.wires.push({ id: "ab", from: "a", to: "b", fromSide: "east" });
+    const all = sheets(p), root = all[0];
+    const hook = root.slots.find((x) => x.beside)!.i, pass = root.slots.find((x) => x.kind === "lane" && !x.beside)!.i, a = root.slots.find((x) => x.kid?.id === "a")!.i;
+    const put = (row: number[]) => { root.rows[2] = row; row.forEach((slot, i) => { root.at[slot] = i; }); return new Count(all).cross; };
+    // beside the box, nothing between, and each wire straight down to its own: no crossing
+    expect(put([a, hook, pass])).toBe(0);
+    // with the passing lane between: the hook's stretch crosses it, and the two wires cross again below
+    expect(put([a, pass, hook])).toBe(2);
+  });
 });
 
 describe("order", () => {

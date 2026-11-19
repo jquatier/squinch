@@ -13,7 +13,9 @@
 //               lane between its ends (or, going round under the row, every
 //               wire leaving the boxes it passes); a wire to a side wall
 //               crosses what stands between its box and the wall, or the
-//               wires of the row-mates it climbs over.
+//               wires of the row-mates it climbs over; a hook — a wire asked
+//               to use a wall, on its way from that wall to its lane beside
+//               the box — crosses every lane standing between the two.
 //
 // Beside each count goes a `rough` length — how far from straight the links
 // are, each row packed at its real sizes — which only ever breaks a tie.
@@ -27,8 +29,8 @@ export interface Tally {
   parent?: Tally;
   /** per slot: the links above it and below it */
   ups: Link[][]; downs: Link[][];
-  /** per row: the wires drawn along it */
-  flats: Sheet["flats"][]; sides: Side[][];
+  /** per row: the wires drawn along it, and the lanes of hooks standing in it */
+  flats: Sheet["flats"][]; sides: Side[][]; hooks: number[][];
   /** per slot: rough centre, measured from the middle of its row */
   x: number[]; stale: boolean[];
   /** per slot: the room it takes in a rough row */
@@ -56,6 +58,7 @@ export class Count {
       const t: Tally = {
         sheet, ups: Array.from({ length: n }, () => []), downs: Array.from({ length: n }, () => []),
         flats: Array.from({ length: rows }, () => []), sides: Array.from({ length: rows }, () => []),
+        hooks: sheet.rows.map((_, k) => sheet.slots.filter((x) => x.beside && x.row === k).map((x) => x.i)),
         x: new Array(n).fill(0), stale: new Array(rows).fill(true), cell: [], chan: [], row: [],
       };
       t.chan = sheet.chan.map((_, k) => ({ tally: t, channel: true, k, cross: 0, rough: 0, dirty: false }));
@@ -232,6 +235,12 @@ export class Count {
     for (const side of t.sides[u.k]) {
       const how = sideWay(s, side);
       for (const m of beyond(s, side)) cross += how === "straight" ? 1 : how === "over" ? s.busy.up[m] : s.busy.down[m];
+    }
+    // a hook's stretch from its box's wall to its lane: across every lane that passes between them
+    // (another hook's lane of the same box does not pass the row, and is not counted)
+    for (const lane of t.hooks[u.k]) {
+      const i = s.at[lane], j = s.at[s.slots[lane].beside!.box], row = s.rows[u.k];
+      for (let m = Math.min(i, j) + 1; m < Math.max(i, j); m++) if (!s.slots[row[m]].beside) cross++;
     }
     u.cross = cross; u.rough = 0;
   }

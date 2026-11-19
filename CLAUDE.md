@@ -498,8 +498,9 @@ a node is balanced as if it had no note) or beside the wire.
 **Not guaranteed**, and written down so nobody assumes otherwise (the note's §8): the
 ordering search is a descent with one restart and can stop at a local minimum on
 dense diagrams — some random diagrams cross more than ELK's did; a side-routed wire
-(`route … from/to`) takes the side asked, not the side nearer its destination, and
-`lookbook/cases/26-route-label` crosses wires because of it; canvases are tighter
+(`route … from/to`) does not pull its node toward where it is going (which way round
+its node a wire out of the top or bottom goes is chosen by the ordering search, for
+fewer crossings and then the nearer side — it used to turn east always); canvases are tighter
 than ELK's, so corner notes sit closer to content; and a label can still be crossed
 by another wire where room cannot be given — wires between two row-mate containers,
 whose ports are fixed by their insides (3 labels in one set turned rightward, about

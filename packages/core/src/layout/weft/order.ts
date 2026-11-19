@@ -18,6 +18,8 @@
 //             "port, place in the row inside, row outside, all at once"
 //             where each alone would cross something.
 //   mirror    a container nobody arranged, turned about whole.
+//   turn      a hook out of a north or south wall, taken round the other
+//             side of its box.
 //   restore   boxes that left their declared order for nothing go back.
 //
 // What decides between two orders, in this order: fewer crossings; then —
@@ -158,6 +160,7 @@ class Search {
             if (this.sift(t, slot) || (count.cross > 0 && t.sheet.slots[slot].kind === "box" && this.sift(t, slot, [], true))) moved = true;
       }
       for (const t of count.tallies) if (this.mirror(t)) moved = true;
+      for (const t of count.tallies) for (const lane of this.hooked(t.sheet)) if (this.turn(t, lane)) moved = true;
       for (const thread of this.threads) if (count.cross > 0 && this.reroute(thread)) moved = true;
       if (!moved) break;
     }
@@ -167,7 +170,29 @@ class Search {
   snapshot(): number[][][] { return this.count.tallies.map((t) => t.sheet.rows.map((row) => [...row])); }
   revert(rows: number[][][]): void {
     this.count.tallies.forEach((t, i) => rows[i].forEach((row, k) => this.set(t, k, [...row])));
+    // which side of its box a free hook goes round is part of the order: read it back off the rows
+    for (const t of this.count.tallies) for (const lane of this.hooked(t.sheet)) { const b = t.sheet.slots[lane].beside!; if (b.free) b.after = t.sheet.at[lane] > t.sheet.at[b.box]; }
     this.count.settle();
+  }
+
+  /** A hook out of a north or south wall goes round one side of its box or
+   *  the other (`beside.free`); it starts on the east. Tried on the other
+   *  side — its lane taken across the box, and what its wire leads to put
+   *  back in step — and kept if the whole picture crosses less, or as much
+   *  and runs straighter: the side nearer where the wire is going. */
+  turn(t: Tally, lane: number): boolean {
+    const s = t.sheet, b = s.slots[lane].beside!, count = this.count, row = s.slots[lane].row;
+    if (!b.free) return false;
+    count.settle();
+    const base = { cross: count.cross, rough: count.rough }, log: Swap[] = [];
+    b.after = !b.after;
+    for (let n = s.rows[row].length; n > 0 && !this.beside(s, lane); n--) this.swap(t, row, s.at[lane] < s.at[b.box] ? s.at[lane] : s.at[lane] - 1, log);
+    for (const step of [-1, 1]) this.untangle(t, row + step, step, log);
+    count.settle();
+    if (this.sound(s, row) && (count.cross < base.cross || (count.cross === base.cross && count.rough < base.rough - 0.5))) return true;
+    this.undo(log);
+    b.after = !b.after;
+    return false;
   }
   private set(t: Tally, k: number, row: number[]): void {
     t.sheet.rows[k] = row;

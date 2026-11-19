@@ -74,8 +74,11 @@ export interface Slot {
   /** on a leaf: the width of a label given room on a stub at one of its
    *  ports — a lane passing beside the box keeps out of that too */
   stub?: number;
-  /** a hook's lane: the box it stands beside, and whether after it or before */
-  beside?: { box: number; after: boolean };
+  /** a hook's lane: the box it stands beside, and whether after it or before.
+   *  `free`: the hook leaves by the box's north or south wall and may go
+   *  round either side of it, so the ordering stage chooses (`Search.turn`);
+   *  a hook out of a side wall stands on that side. */
+  beside?: { box: number; after: boolean; free?: boolean };
 }
 
 /** A stretch of wire from a slot in one row to a slot in the next. Wires of

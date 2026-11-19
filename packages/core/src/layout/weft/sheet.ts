@@ -340,7 +340,9 @@ function buildSheet(tree: Tree, cell: Cell, arriving: Thru[], inbound: Map<strin
     const side = ask.wall === "e" || ask.wall === "w" ? ask.wall : !taken("e") ? "e" : "w";
     if (v.wire.bundle || taken(side)) { if (ask.named) refuse(v.wire.id, ask.end, v.wire.bundle ? "trunk" : "taken"); return undefined; }
     const lane = thin("lane", slots[box].row, v.key);
-    slots[lane].beside = { box, after: side === "e" };
+    // out of a north or south wall the hook may go round either side of its box, where both are open: the ordering stage chooses
+    const free = ask.wall !== "e" && ask.wall !== "w" && !taken("e") && !taken("w");
+    slots[lane].beside = free ? { box, after: side === "e", free } : { box, after: side === "e" };
     ask.turn?.(ask.wall);
     return { box, wall: ask.wall, lane };
   };

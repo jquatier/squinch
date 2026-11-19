@@ -217,7 +217,8 @@ order of slots in every row. Two links between adjacent rows cross when their
 ends stand in opposite orders; an end at a container stands where its wire
 meets that container's wall, which is the container's own port order. That is
 how the two sides of a wall are decided together: one order, counted on both
-sides. Same-rank wires and wires to side walls are counted along their row.
+sides. Same-rank wires, wires to side walls and hooks (a wire asked to use a
+wall, from that wall to its lane beside the box) are counted along their row.
 The count is a sum of small units, so a move re-counts only what it touched.
 Measured on the 80 random diagrams: the model counts 275 crossings, the
 drawing has 281 — the six are in gutters and round-the-row wires, which the
@@ -240,6 +241,8 @@ can answer it. The search is a descent with these moves:
   inside and the row outside at once, where each alone would cross something;
 - *reroute* — a wire's lanes change sides as a whole;
 - *mirror* — a container nobody arranged, turned about whole;
+- *turn* — a hook out of a north or south wall, taken round the other side of
+  its box: kept if the picture crosses less, or as much and runs straighter;
 - *restore* — boxes that left their declared order for nothing go back.
 
 What decides between two orders: fewer crossings; then, only if no box has
@@ -699,14 +702,12 @@ Written down at acceptance, less what has been fixed since.
   diagrams — several expanded groups, wired freely — it draws more crossings
   than ELK did, though fewer in total. `random-21` was the standing outlier
   through every engine (ELK 8 crossings; `loom` 19).
-- **A side-routed wire does not choose the nearer side.** A hook takes the
-  lane on the side asked — or, out of a north or south wall, the east side
-  unless that is taken — not the side of the box nearer where the wire is
-  going. A hooked wire is also not felt in placement (the box is not pulled
-  by it), and its short stretch between wall and lane is not in the crossing
-  count.
-- **`lookbook/cases/26-route-label` crosses wires.** A consequence of the
-  previous item.
+- **A side-routed wire is not felt in placement**: its box is not pulled by
+  it. (Which side of its box a wire out of a north or south wall goes round
+  is no longer fixed: the ordering stage chooses it — `Search.turn` — and the
+  hook's stretch from wall to lane is in the crossing count, so
+  `lookbook/cases/26-route-label` turned rightward no longer crosses. A hook
+  out of a side wall stands on that side, as asked.)
 - **Canvases are tighter than ELK's**, so a note pinned to a corner sits
   closer to the content than it used to.
 - **Crossings inside a gutter are not counted** (two containers side by side
@@ -732,10 +733,8 @@ Written down at acceptance, less what has been fixed since.
    incremental and a restart is cheap (80 random views take 1.4 s in all), so
    there is room. Judge it on the random set's crossings and on time; the
    corpus will barely move.
-2. **Let a hook choose its side** by where the wire is going, and put its
-   stub in the count. That should fix `26-route-label`.
-3. **Count gutter crossings** — a new unit in `count.ts`.
-4. **Tell the inside where the outside would like a port** (requirements
+2. **Count gutter crossings** — a new unit in `count.ts`.
+3. **Tell the inside where the outside would like a port** (requirements
    §5.4, §5.7 "arrival lane"), within the extent of the container's own
    boxes.
 
