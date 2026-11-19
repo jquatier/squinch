@@ -477,10 +477,22 @@ still errors (`place a right-of b` + `place b right-of a`, a `place` against its
 band, a second `rows` line). Layout-time warnings that remain, each naming its hint:
 `align`/`cols` on one rank ("cannot share an axis") or across containers ("could not
 be put on `x`'s axis"); `route` sides on a same-rank edge ("sides are ignored") or
-where the wall is taken, the edge is in a `channel` or `wrap` trunk, or an end is a
-container ("could not use the side it asks for here"); a `wrap` that folds nothing;
-a `channel` not fully visible; and "`a` → `b` is not drawn — one end is inside the
-other". The zone errors are unchanged. Notes get room reserved by the engine: beside
+where the named node's own side cannot be given — one sentence per cause, naming the
+node and the side: the side carries a wire to a neighbour, the edge is in a `channel`
+or `wrap` trunk, the node is row-mate to the container holding the other end, or the
+edge leaves the node's container sideways ("could not use the east side of `a` — …");
+a `route` that names no edge the view draws (it says whether to write the card or the
+node inside); a `wrap` that folds nothing; a `channel` not fully visible; and "`a` →
+`b` is not drawn — one end is inside the other".
+**A `route` side carries through container walls while the run is clear** (2026-11):
+`route shop.api -> audit from east` leaves API eastward and, where API is the last
+thing on that side of Shop, leaves Shop's east wall too — through each frame and zone
+in turn, stopping at the first wall something stands before; there the node keeps its
+side and the wire its ordinary way out, with no warning. An edge that ends at the
+expanded container is asked of the frame's wall. Carrying through every wall always
+was measured and rejected (a row-mate in the way costs the node its own side), and so
+was naming a side per wall (zones are in no path; frames depend on each view's
+`expand`; `rows [cache api]` already says it) — `docs/notes/layout-engine.md` §8. The zone errors are unchanged. Notes get room reserved by the engine: beside
 the anchor node (`Box.room` — inside its frame or zone, and never part of the box, so
 a node is balanced as if it had no note) or beside the wire.
 **Not guaranteed**, and written down so nobody assumes otherwise (the note's §8): the

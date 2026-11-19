@@ -2,7 +2,7 @@
 // container's own frame — `u` runs along a rank (the lane axis), `v` runs
 // across the ranks — so every stage is written once, for a downward flow, and
 // `frame.ts` is the only place that knows which of the two is x.
-import type { Box, Dir, Group, Wire } from "./contract.js";
+import type { Box, Dir, Group, Refusal, Wire } from "./contract.js";
 
 /** A wall of a box or of a container, in the frame of the sheet being laid out. */
 export type Wall = "n" | "s" | "e" | "w";
@@ -184,8 +184,8 @@ export interface Sheet {
   rep: number[];
   /** boxes named in an `aligned` set and left out of it: a second member in one rank */
   unaligned: string[];
-  /** wires that asked for a side they could not be given here */
-  unhonoured: string[];
+  /** ends of wires that asked for a side they could not be given here, and why */
+  unhonoured: Refusal[];
   /** wire → the boxes it meets with something drawn on its end, and how far
    *  out from the wall that reaches (`Wire.tips`) */
   tips: Map<string, { box: string; len: number }[]>;
@@ -199,6 +199,10 @@ export interface Sheet {
   busy: { up: number[]; down: number[] };
   /** rough width, for judging straightness before anything has a position */
   rough: number;
+  /** a label given room here was still crossed by another wire: a lane that
+   *  steps aside to close a short jog (`shift` in lay.ts) had stepped into
+   *  that room. From then on it keeps out of every label's room here. */
+  firm?: boolean;
   geo?: Geo;
 }
 

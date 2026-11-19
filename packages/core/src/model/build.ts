@@ -2081,14 +2081,18 @@ export function buildProject(input: ProjectFile[]): BuildResult {
         const [a, b] = rt.getChildren("Path");
         const from = resolve(ctx.text(a), inScope, a, ctx);
         const to = resolve(ctx.text(b), inScope, b, ctx);
+        // a side belongs to the keyword before it: `to west` alone is the entry side, not the exit
+        const toKw = rt.getChild("to");
         const sidesNodes = rt.getChildren("Side");
+        const fromNode = sidesNodes.find((n) => !toKw || n.from < toKw.from);
+        const toNode = toKw ? sidesNodes.find((n) => n.from > toKw.from) : undefined;
         const labelNode = rt.getChild("String");
         if (from && to)
           view.layout.routes.push({
             from, to,
             label: labelNode ? ctx.str(labelNode) : undefined,
-            fromSide: sidesNodes[0] ? (ctx.text(sidesNodes[0]) as Side) : undefined,
-            toSide: sidesNodes[1] ? (ctx.text(sidesNodes[1]) as Side) : undefined,
+            fromSide: fromNode ? (ctx.text(fromNode) as Side) : undefined,
+            toSide: toNode ? (ctx.text(toNode) as Side) : undefined,
             loc: ctx.loc(rt),
           });
       }

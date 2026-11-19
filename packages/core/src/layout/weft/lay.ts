@@ -188,7 +188,9 @@ export function lay(s: Sheet, root: boolean): Geo {
       const x = s.slots[slot];
       if (x.kind === "box" || (x.kind === "lane" && x.row !== k + 1)) return false;
       const row = s.rows[x.row], i = s.at[slot];
-      const clear = [row[i - 1], row[i + 1]].every((o, side) => o === undefined || (side ? u[o] - to : to - u[o]) >= w[o] / 2 + (side ? s.slots[o].kid?.room.w ?? 0 : s.slots[o].kid?.bleedU ?? 0) + w[slot] / 2 + (s.slots[o].kind === "box" ? STUB : GRID));
+      // …nor, once a label given room was found crossed all the same (`Sheet.firm`), into that room (`Slot.room`, as `sep` in place.ts keeps it)
+      const off = (o: number) => { const room = s.firm ? Math.max(x.room ?? 0, s.slots[o].room ?? 0) : 0; return Math.max(s.slots[o].kind === "box" ? STUB : GRID, room ? room / 2 + 4 : 0); };
+      const clear = [row[i - 1], row[i + 1]].every((o, side) => o === undefined || (side ? u[o] - to : to - u[o]) >= w[o] / 2 + (side ? s.slots[o].kid?.room.w ?? 0 : s.slots[o].kid?.bleedU ?? 0) + w[slot] / 2 + off(o));
       if (!clear || (x.kind === "port" && to < (i ? -Infinity : STUB))) return false;
       u[slot] = to;
       return true;
@@ -432,6 +434,9 @@ export function lay(s: Sheet, root: boolean): Geo {
       const k = s.slots[h.box].row - (h.wall === "n" ? 1 : 0), at = endU(h.box, h.wall, key), y = trackOf(k, `hook:${wire}:${h.wall}`);
       return [{ x: at, y: h.wall === "n" ? top[h.box] : top[h.box] + kid.h }, { x: at, y }, { x, y }];
     }
+    // a container: the wire crosses its side wall where its inside put it
+    const fixed = fixedPort(s, kid, h.wall, key);
+    if (fixed !== undefined) return [{ x: h.wall === "e" ? u[h.box] + kid.w / 2 : u[h.box] - kid.w / 2, y: top[h.box] + fixed }, { x, y: top[h.box] + fixed }];
     const taken = sideLevels.get(`${h.box}|${h.wall}`) ?? sideLevels.set(`${h.box}|${h.wall}`, []).get(`${h.box}|${h.wall}`)!;
     const lo = top[h.box] + 8, hi = top[h.box] + Math.min(kid.h, kid.faceV ?? kid.h) - 8, mid = Math.round((lo + hi) / 2);
     let y = mid;

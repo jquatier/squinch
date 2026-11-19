@@ -91,9 +91,9 @@ export function audit(problem: Problem, sol: Solution): string[] {
       const out = wall === "north" ? next.y < p.y : wall === "south" ? next.y > p.y : wall === "east" ? next.x > p.x : next.x < p.x;
       if (leaf && !out) bad.push(`wire ${wire.id}: ${verb} ${id} along or into its ${wall} wall`);
       if (n > 2 && Math.abs(next.x - p.x) + Math.abs(next.y - p.y) < 16) bad.push(`wire ${wire.id}: ${verb} ${id} with less than 16 px before a turn`);
-      if (asked && leaf && !rowMates(wire.from, wire.to) && wall !== asked && !sol.unhonoured?.includes(wire.id)) bad.push(`wire ${wire.id}: ${verb} ${id} by its ${wall} wall, asked ${asked}`);
+      if (asked && leaf && !rowMates(wire.from, wire.to) && wall !== asked && !sol.unhonoured?.some((u) => u.wire === wire.id)) bad.push(`wire ${wire.id}: ${verb} ${id} by its ${wall} wall, asked ${asked}`);
     }
-    if (sol.unhonoured?.includes(wire.id) && !wire.fromSide && !wire.toSide) bad.push(`wire ${wire.id}: unhonoured, but asked nothing`);
+    if (sol.unhonoured?.some((u) => u.wire === wire.id && !(u.end === "from" ? wire.fromSide : wire.toSide))) bad.push(`wire ${wire.id}: unhonoured, but asked nothing`);
     for (let i = 0; i + 1 < n; i++) {
       for (const id of boxes.keys()) if (!holds(id, wire.from) && !holds(id, wire.to) && through(pts[i], pts[i + 1], rect(id))) bad.push(`wire ${wire.id} runs through ${id}`);
       for (const id of [wire.from, wire.to]) if (!boxes.get(id)!.group && through(pts[i], pts[i + 1], rect(id))) bad.push(`wire ${wire.id} runs through its own end ${id}`);

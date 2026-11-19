@@ -103,8 +103,8 @@ drawn below it that nothing may overlap — a card's stacked sheets), a `title`
 joins two boxes anywhere in the tree and may carry a `label` size, a `bundle`
 id, and `fromSide`/`toSide`. The `Solution` is integer rectangles, each box's
 rank, an orthogonal polyline per wire with its label rectangle, `skipped`
-(wires not drawn because one end contains the other) and `unhonoured` (wires
-drawn, but not by the side they asked for).
+(wires not drawn because one end contains the other) and `unhonoured` (ends of
+wires drawn, but not by the side they asked for, each with the reason).
 
 Two fields were added after acceptance, for product parity, and are opt-in:
 
@@ -116,8 +116,16 @@ Two fields were added after acceptance, for product parity, and are opt-in:
   the one facing where the wire is going gets a lane right beside its box, in
   the box's own rank, and the wire's path starts at that lane. So the ordering
   stage sees the detour for what it is — a wire passing the box — and counts
-  it. A side that cannot be used is reported in `Solution.unhonoured`, never
-  dropped in silence.
+  it. A container takes a hook on the same terms, and the wire then crosses
+  that wall of it instead of its north or south one: the side asked of a box
+  **carries outward while the box has a clear run** to the same wall of the
+  container around it (last in its row on that side, or in the first or last
+  rank), through each container in turn, and stops at the first wall something
+  stands before. That is known from ranks and declared order alone, so it is
+  settled before any sheet inside is built, like every other wall. A side
+  that the box the wire names cannot be given is reported in
+  `Solution.unhonoured` with its reason, never dropped in silence; a container
+  the wire only passes through keeps its natural wall and says nothing.
 
 ## 3. The hard rules and the priority order
 
@@ -620,8 +628,10 @@ kept here because each fix added a rule to the engine.
   one row overlapped the frames. Same mechanism: the frames stay apart and
   the warning is "… could not be put on `x`'s axis".
 - **A `route` side on an edge ending at an expanded container was dropped in
-  silence.** It now warns "could not use the side it asks for here"
-  (`layout.ts`): a side is a leaf's wall.
+  silence.** It first became a warning ("a side is a leaf's wall"), and is now
+  drawn: a container takes a hook like a leaf, and a side asked of a box
+  inside one carries through the container's wall while the box has a clear
+  run to it (§2, and "Sides through a container's wall" below).
 - **A label could lie across a neighbouring wire** — 29 pills in 13 corpus
   views at the swap, because wires 16 px apart each carried a pill far wider
   than that. Fixed in two steps, the cheap one first (`7af1ee7`; §4, "Labels
@@ -629,6 +639,38 @@ kept here because each fix added a rule to the engine.
   as written, and on every set turned rightward except trial (3). The price,
   across all sets: 28 more bends, lopsided +3 on trial and +1 on round 2, one
   more short jog on random, canvas area ×1.0008.
+
+**Sides through a container's wall (added after acceptance).** A wire to
+another rank used to cross a container's north or south wall whatever side
+was asked, so `route shop.api -> audit from east` left the box eastward,
+turned down inside the frame and came out of the bottom — half the hint
+honoured and nothing said. Three rules were drawn against each other on 48
+views and 1,136 sided ends in random Problems:
+
+| | sides at the leaf only | every wall, always | **while the run is clear** |
+|---|---|---|---|
+| the named box gets its side | 997 | 1,020 | **1,071** |
+| the box loses its side while the container gets it | 19 | 88 | **17** |
+| ends reported as refused | 140 | 159 | **70** |
+| crossings | 2,246 | 2,674 | 2,531 |
+
+"Every wall, always" takes the box's own side away when a row-mate stands
+between it and the wall (the wire leaves by the north wall to get over the
+row-mate) and moves boxes to make room; "while clear" gives the box its side
+more often than either, and where something is in the way draws exactly what
+was drawn before. Naming a side per wall was considered and not built: a zone
+is in no path, which frames exist depends on each view's `expand`, no diagram
+in the corpus wants the box and the container to differ, and the author who
+does can put the box at that edge of its row. A picture with no asked side is
+byte-identical to before — a wire is still handed to the container inside at
+the same point, with its natural wall, and only turned if a hook is given.
+
+The same work found a lane stepping into a label's room: `shift` in `lay.ts`
+closes a short jog by moving a lane to within 8 px of its neighbour, and did
+not know of `Slot.room`. Mostly that is harmless — the label moves along its
+wire — so the room is held firm only on a sheet where a label given room was
+found crossed all the same (`Sheet.firm`, set by `engine.ts` in the same
+bounded loop). Holding it always cost four bends on `random-72` for nothing.
 
 **Decided, not to be reopened without new evidence: a stage that branches
 stands between its two successors, even in a pipeline.** Gauntlet round 23

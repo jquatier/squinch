@@ -772,7 +772,7 @@ layout {
   somewhere its band does not, an element listed in `rows` twice, a second `rows` line,
   `wrap` beside `rows`. A hint that is consistent but cannot be given in this view is
   a warning that names it: the `align`/`cols` cases above, a `route` side that cannot
-  be used (Tier 2), a `wrap` that folds nothing, a `channel` whose edges are not all
+  be used or a `route` that names no edge the view draws (Tier 2), a `wrap` that folds nothing, a `channel` whose edges are not all
   visible. A silently dropped hint would strand the agent loop; a diagnostic gets
   fixed in one iteration.
 
@@ -785,14 +785,34 @@ layout {
 }
 ```
 
-`from`/`to` name the sides an edge leaves and enters. They apply to edges that
-span rows: on an edge between two elements of one row the sides are ignored with a
-warning ("sides are ignored — it is a same-rank edge"), since such an edge already
-runs face to face. Where a side cannot be used the edge keeps its natural side and
-the check warns "could not use the side it asks for here": that wall already carries
-an edge running straight across to a neighbour, the edge is part of a `channel` or a
-`wrap` trunk, or that end is a container. A `route` matching several edges between
-one pair needs the edge's label to say which; without it, it is an error.
+`from`/`to` name the sides an edge leaves and enters, on the element the `route`
+line names — screen sides, whatever direction a container flows. They apply to
+edges that span rows: on an edge between two elements of one row the sides are
+ignored with a warning ("sides are ignored — it is a same-rank edge"), since such
+an edge already runs face to face.
+
+A side carries outward. Where the element is the last thing on that side inside an
+expanded container or a zone — nothing stands between it and that wall — the edge
+crosses the wall by the same side, and so on through each boundary around it.
+Where something stands between, the edge still leaves the element by the side
+asked, and takes its ordinary way out of the container; to carry the side through,
+put the element at that edge of its row (`rows [cache api]` in the container's own
+block). An edge that ends at an expanded container itself (`route shop -> db from
+east`) is asked of that frame's wall.
+
+Where the named element's own side cannot be used the edge keeps its natural side
+and the check warns, naming the element, the side and the cause — "could not use
+the east side of `a` — …": that side already carries an edge running straight
+across to a neighbour; the edge is part of a `channel` or a `wrap` trunk; the
+element is in the same row as the container that holds the other end; or the edge
+leaves the element's container sideways and the element was asked for the side
+facing the other way, or has a row-mate standing between.
+
+A `route` names an edge as the view draws it: with a container collapsed the edge
+runs from its card (`route shop -> db`), and opened, from the node inside (`route
+shop.api -> db`). A line that names no edge drawn in the view warns and says which
+spelling the view needs. A `route` matching several edges between one pair needs
+the edge's label to say which; without it, it is an error.
 
 `channel a, b, c -> t` draws the listed edges into `t` as one trunk with a branch
 per source. It applies where the target and at least two of the edges are visible

@@ -6,7 +6,7 @@
       "bends": 793,
       "kinks": 0,
       "nearMiss": 0,
-      "lopsided": 118,
+      "lopsided": 119,
       "offCentre": 0,
       "unstraight": 8,
       "labelOnWire": 0
@@ -16,7 +16,7 @@
     "views": 267,
     "totals": {
       "crossings": 25,
-      "bends": 1176,
+      "bends": 1178,
       "kinks": 1,
       "nearMiss": 0,
       "lopsided": 109,

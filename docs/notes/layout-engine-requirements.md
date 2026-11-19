@@ -85,7 +85,8 @@ per wire.
   wire an orthogonal polyline from the `from` box's wall to the `to` box's
   wall, and its label rectangle if it has one; `skipped` — ids of wires not
   drawn (one end contains the other, or an end is not in the picture);
-  `unhonoured` — wires drawn, but not by the side they asked for;
+  `unhonoured` — ends of wires drawn, but not by the side they asked for,
+  each with why;
   `unaligned` — boxes left out of an `aligned` set or pushed off their line
   (two boxes of one rank cannot share a centre line: a set takes one box of
   a rank, the first given).
@@ -96,12 +97,18 @@ per wire.
     own wires on that wall, and the container's walls stay outside it. It is
     not part of the box: the box's rectangle, ports and balanced place are
     its own.
-  - `Wire.fromSide` / `toSide` — the wall a wire is asked to leave or enter a
-    leaf by. Only for a wire whose ends are in different ranks or containers.
-    A side that is the natural one changes nothing; any other is drawn the
-    long way round, at least 16 px straight out of the wall first. Where that
-    cannot be drawn the end keeps its natural side and the wire is listed in
-    `unhonoured`.
+  - `Wire.fromSide` / `toSide` — the wall a wire is asked to leave or enter
+    its box by. Only for a wire whose ends are in different ranks or
+    containers. A side that is the natural one changes nothing; any other is
+    drawn the long way round, at least 16 px straight out of the wall first.
+    The side carries outward: where the box has a clear run to the same wall
+    of the container around it (it is last in its row on that side, or in
+    the first or last rank), the wire crosses that wall by the same side, and
+    so on through each container; where something stands between, that
+    container keeps its natural wall. A wire that ends at a container is
+    asked of the container's own wall. Where the named box's wall cannot be
+    given the end keeps its natural side and is listed in `unhonoured`, with
+    the reason.
 - Treat the `Problem` as read-only. `solve` must be a pure function of it.
 
 ## 3. Hard rules — a layout that breaks one is wrong

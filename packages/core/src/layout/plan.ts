@@ -233,7 +233,9 @@ function wireDiagnostics(view: SView, graph: ViewGraph): Diagnostic[] {
   const out: Diagnostic[] = [];
   const visible = new Set([...graph.nodes.map((n) => n.path), ...graph.frames.map((f) => f.path)]);
   const between = (from: string, to: string) => graph.edges.filter((e) => e.from === from && e.to === to).length;
-  for (const r of view.layout.routes)
+  // one drawn path is the other, or stands inside it: the same edge at another altitude
+  const kin = (a: string, b: string) => a === b || a.startsWith(`${b}.`) || b.startsWith(`${a}.`);
+  for (const r of view.layout.routes) {
     if (!r.label && between(r.from, r.to) > 1)
       out.push({
         severity: "error",
@@ -241,6 +243,28 @@ function wireDiagnostics(view: SView, graph: ViewGraph): Diagnostic[] {
         fix: "add the edge's label to the route statement to disambiguate",
         loc: r.loc,
       });
+    // A route names an edge as this view draws it. With a container collapsed
+    // the edge is drawn from its card, and opened, from the node inside — so
+    // a line written for one view can name nothing in another, and said
+    // nothing. It says which spelling this view needs.
+    if (graph.edges.some((e) => e.from === r.from && e.to === r.to && (!r.label || e.label === r.label))) continue;
+    const sides = `${r.fromSide ? ` from ${r.fromSide}` : ""}${r.toSide ? ` to ${r.toSide}` : ""}`;
+    const labels = graph.edges.filter((e) => e.from === r.from && e.to === r.to).map((e) => (e.label ? `"${e.label}"` : "one with no label"));
+    const drawn = [...new Set(graph.edges.filter((e) => kin(e.from, r.from) && kin(e.to, r.to)).map((e) => `${e.from} -> ${e.to}`))];
+    const here = (written: string, at: string | undefined) => (!at || at === written ? "" : at.length < written.length ? `\`${at}\` is collapsed here` : `\`${written}\` is open here`);
+    const [from, to] = drawn.length ? drawn[0].split(" -> ") : [];
+    const why = [here(r.from, from), here(r.to, to)].filter(Boolean).join(" and ");
+    out.push({
+      severity: "warning",
+      message: `\`route ${r.from} -> ${r.to}${r.label ? ` "${r.label}"` : ""}\` names no edge drawn in this view`,
+      fix: labels.length
+        ? `the edge${labels.length > 1 ? "s" : ""} between them here: ${labels.join(", ")} — name one of those labels, or drop the label`
+        : drawn.length
+          ? `${why ? `${why}, so ` : ""}the edge is drawn as \`${drawn.slice(0, 3).join("`, `")}\` — write \`route ${drawn[0]}${sides}\``
+          : "no edge between them is drawn here — drop the line, or bring both ends into the view",
+      loc: r.loc,
+    });
+  }
   for (const ch of view.layout.channels) {
     const members = ch.sources.filter((src) => visible.has(src) && between(src, ch.target) > 0);
     if (visible.has(ch.target) && members.length >= 2) continue;

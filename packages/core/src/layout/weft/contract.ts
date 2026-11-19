@@ -60,12 +60,22 @@ export interface Wire {
    *  one track where they part. (`wrap` on a fan-out; `channel`.) */
   bundle?: string;
   /** The wall a wire is asked to leave its `from` box by, and to enter its
-   *  `to` box by — screen sides, leaves only, and only for a wire whose ends
-   *  are in different ranks or containers (between two row-mates it is
-   *  ignored). A side that is the natural one changes nothing; any other is
-   *  drawn the long way round, at least 16 px straight out of the wall
-   *  first. Where that cannot be drawn the end keeps its natural side and
-   *  the wire is listed in `Solution.unhonoured`. */
+   *  `to` box by — screen sides, and only for a wire whose ends are in
+   *  different ranks or containers (between two row-mates it is ignored). A
+   *  side that is the natural one changes nothing; any other is drawn the
+   *  long way round, at least 16 px straight out of the wall first.
+   *
+   *  The side is asked of the box the wire names, and carries outward: where
+   *  that box has a clear run to the same wall of the container around it —
+   *  it is the last box of its row on that side, or in the first (last) rank
+   *  for north (south) — the wire crosses the container's wall by that side
+   *  too, and so on through each container out to where the wire's two ends
+   *  part. Where something stands between, the wire crosses that container
+   *  by its natural wall. A wire that ends at a container is asked of that
+   *  container's wall.
+   *
+   *  Where the named box's own wall cannot be given, the end keeps its
+   *  natural side and is listed in `Solution.unhonoured`. */
   fromSide?: Side; toSide?: Side;
   /** Something is drawn on the wire where it meets its `from` box, or its
    *  `to` box, this far out from the wall and a little to either side. No
@@ -87,6 +97,17 @@ export interface Solution {
    *  contradicts (`columns`, `held`, another set) gives way rather than let
    *  two boxes overlap. Absent when every member is on its line. */
   unaligned?: string[];
-  /** Wires drawn, but not by the side they asked for (`fromSide`, `toSide`). Absent when there are none. */
-  unhonoured?: string[];
+  /** Ends of wires drawn, but not by the side they asked for (`fromSide`, `toSide`). Absent when there are none. */
+  unhonoured?: Refusal[];
 }
+/** An end of a wire that was not given the side it asked for, and why:
+ *  - `trunk`: the wire is one of a bundle, which shares its port and lanes;
+ *  - `taken`: that side of the box already carries a wire straight across to
+ *    a neighbour, or out to the container's wall;
+ *  - `row`: the box stands in one rank with the container the other end is
+ *    in, so the wire runs along the rank;
+ *  - `far`: the wire leaves the box's container by a side wall, and the box
+ *    was asked for the wall facing the other way;
+ *  - `blocked`: it was asked for the wall facing that way, with a row-mate
+ *    standing between. */
+export interface Refusal { wire: string; end: "from" | "to"; why: "trunk" | "taken" | "row" | "far" | "blocked" }

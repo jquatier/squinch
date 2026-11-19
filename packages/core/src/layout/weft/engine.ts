@@ -36,12 +36,17 @@ export function solve(problem: Problem): Solution {
   // drawn; a label with none — parallel wires 16 px apart, each under the
   // other's label — is then given room on its wire's own line (its
   // neighbours stand half its width off, through a container's wall too) and
-  // the sheets are laid out again. Bounded: every pass gives room to at least
-  // one more label, and at most `ROOMS` passes are made.
+  // the sheets are laid out again. A label that was given room and is crossed
+  // all the same had a lane step into that room to close a short jog; its
+  // sheet then holds every room firm (`Sheet.firm`). Bounded: every pass
+  // gives room to at least one more label or makes one more sheet firm, and
+  // at most `ROOMS` passes are made.
   for (let pass = 0; pass < ROOMS; pass++) {
-    const stuck = sheets.flatMap((s) => s.geo!.stuck.flatMap((wire) => s.chan.flatMap((links) => links.filter((l) => l.label?.wire === wire && !l.label.room).map((l) => ({ s, l })))));
-    if (!stuck.length) break;
+    const labelled = sheets.flatMap((s) => s.geo!.stuck.flatMap((wire) => s.chan.flatMap((links) => links.filter((l) => l.label?.wire === wire).map((l) => ({ s, l })))));
+    const stuck = labelled.filter(({ l }) => !l.label!.room), crowded = [...new Set(labelled.filter(({ s, l }) => l.label!.room && !s.firm).map(({ s }) => s))];
+    if (!stuck.length && !crowded.length) break;
     for (const { s, l } of stuck) giveRoom(s, l);
+    for (const s of crowded) s.firm = true;
     draw();
   }
   // a label still under another wire takes the place it would have had, on
@@ -81,8 +86,8 @@ export function solve(problem: Problem): Solution {
     wires.set(path.wire.id, { points: tidy(points), label });
   }
   const size = root.dir === "down" ? { width: geo.W, height: geo.H } : { width: geo.H, height: geo.W };
-  // wires that asked for a side and could not be given it, once each
-  const unhonoured = [...new Set(sheets.flatMap((s) => s.unhonoured))];
+  // ends of wires that asked for a side and could not be given it, once each
+  const unhonoured = sheets.flatMap((s) => s.unhonoured).filter((r, i, all) => all.findIndex((o) => o.wire === r.wire && o.end === r.end) === i);
   // boxes of an aligned set that are not on its line: left out for standing in a rank it already has a member in, or pushed off it
   const unaligned = [...new Set(sheets.flatMap((s) => [...s.unaligned, ...s.geo!.unaligned]))];
   return { ...size, boxes, ranks, wires, skipped: tree.skipped, ...(unhonoured.length ? { unhonoured } : {}), ...(unaligned.length ? { unaligned } : {}) };

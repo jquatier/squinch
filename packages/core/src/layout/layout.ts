@@ -21,6 +21,8 @@ import { INTER, NOTE_CLEAR, noteBox, pillDims } from "./sizes.js";
 import { solve } from "./weft/engine.js";
 import type { Rect, Pt } from "./weft/contract.js";
 
+const OPPOSITE: Record<Side, Side> = { north: "south", south: "north", east: "west", west: "east" };
+
 export * from "./sizes.js";
 export type * from "./positioned.js";
 
@@ -131,28 +133,53 @@ export async function layoutView(
     else delete e.labelRect;
   }
 
-  // `route … from/to` names walls; say where one could not be used
+  // `route … from/to` names walls; say where one could not be used, and why
   const drawnBy = new Map(p.problem.wires.map((w) => [w.id, w]));
-  const frameAt = new Set(p.graph.frames.map((f) => f.path)); // a side is a leaf's wall: an expanded container has none to give
   for (const r of view.layout.routes) {
     if (!r.fromSide && !r.toSide) continue;
     const e = p.graph.edges.find((x) => x.from === r.from && x.to === r.to && (!r.label || x.label === r.label));
-    if (!e || !drawnBy.has(e.id)) continue;
+    if (!e || !drawnBy.has(e.id)) continue; // not drawn here: the plan said so
     const mates = p.parentOf.get(e.from) === p.parentOf.get(e.to) && sol.ranks.get(e.from) === sol.ranks.get(e.to);
-    if (mates)
+    if (mates) {
       diagnostics.push({
         severity: "warning",
         message: `\`route ${r.from} -> ${r.to}\` sides are ignored — it is a same-rank edge`,
         fix: "same-rank edges are routed side-to-side automatically; drop the `from`/`to`, or move one end to another row so the edge spans ranks",
         loc: r.loc,
       });
-    else if (sol.unhonoured?.includes(e.id) || (r.fromSide && frameAt.has(e.from)) || (r.toSide && frameAt.has(e.to)))
+      continue;
+    }
+    // one warning per end that was not given its side, each with its own cause
+    for (const u of sol.unhonoured ?? []) {
+      if (u.wire !== e.id) continue;
+      const box = u.end === "from" ? r.from : r.to, other = u.end === "from" ? r.to : r.from, side = (u.end === "from" ? r.fromSide : r.toSide)!;
+      // the box beside `box` that holds the other end, and a zone's box by the zone's own id
+      const holder = (path: string) => { let at = path; while (p.parentOf.get(at) !== undefined && p.parentOf.get(at) !== p.parentOf.get(box)) at = p.parentOf.get(at)!; return at; };
+      const name = (id: string) => id.replace(/^zone:/, "");
+      const [why, fix] =
+        u.why === "trunk" ? [
+          "the edge is drawn as part of a trunk, which shares one port",
+          "take the edge out of the `channel` (or drop the `wrap`) to route it on its own, or drop the `from`/`to`",
+        ] : u.why === "taken" ? [
+          `the ${side} side of \`${box}\` already carries a wire running straight across to a neighbour`,
+          `ask for another side, or move that neighbour to another row so the ${side} side is free`,
+        ] : u.why === "row" ? [
+          `\`${box}\` is in the same row as \`${name(holder(other))}\`, which holds the other end, so the edge runs straight across`,
+          `drop the \`${u.end}\`, or move \`${box}\` to another row`,
+        ] : u.why === "far" ? [
+          `the edge leaves \`${name(p.parentOf.get(box) ?? "")}\` by its ${OPPOSITE[side]} side, the other way`,
+          `drop the \`${u.end}\`, or ask for north or south`,
+        ] : [
+          `another box stands between \`${box}\` and the ${side} side of \`${name(p.parentOf.get(box) ?? "")}\`, which the edge leaves by`,
+          `drop the \`${u.end}\`, ask for north or south, or put \`${box}\` at the ${side} end of its row`,
+        ];
       diagnostics.push({
         severity: "warning",
-        message: `\`route ${r.from} -> ${r.to}\` could not use the side it asks for here`,
-        fix: "that wall is taken by a wire running straight across to a neighbour, the edge is part of a `channel` or a `wrap` trunk, or one end is a container — drop the `from`/`to`, or free the wall",
+        message: `\`route ${r.from} -> ${r.to}\` could not use the ${side} side of \`${box}\` — ${why}`,
+        fix,
         loc: r.loc,
       });
+    }
   }
 
   // what stands on the layout beside its boxes and wires

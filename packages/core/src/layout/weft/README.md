@@ -180,7 +180,9 @@ the cheap one first.
   leave at (`Side.room`); beside a leaf, for a lane passing it
   (`Slot.stub`). The stub that carries the label is the one at the less
   crowded wall. Nothing that closes a short jog afterwards may step into
-  that room (`move`, `stepAside` in `lay.ts`).
+  that room (`move`, `stepAside` in `lay.ts`); a lane stepping aside
+  (`shift`) keeps out of it once a label given room was found crossed all
+  the same (`Sheet.firm`).
 - Wires between two row-mates stand a label's depth apart where the label
   lies across them — a rightward sheet (`gutter.ts`, `pitch`).
 
@@ -225,13 +227,28 @@ by screen side, that nothing enters but the box's own wires on that wall.
 - a wire to the sheet's own side wall, from a leaf: north and south are
   `Side.via` over and under; the near wall is kept by keeping the box last
   (`sheet.last`);
-- not given, and reported in `Solution.unhonoured` (collected in
-  `engine.ts`): a wire of a bundle; a box that already has a wire straight
-  across that side's gutter or out to that side's wall; the far wall, or a
-  blocked near wall, of a box whose wire leaves its container sideways; a
-  leaf standing in one rank with the container the other end is in. Between
-  two row-mates of one container the side is ignored without report (the
-  caller can see that), and so is a side asked of a container.
+- **through a container's wall**: the side asked of a box carries on through
+  the same wall of the container around it while the box has a clear run to
+  it — last in its row on that side, or in the first (last) rank for north
+  (south) — at every level on the way in (`clear`, read off `ranked`: ranks
+  and declared order, so it is known before the sheet inside is built). The
+  container then takes a hook like a leaf (`hookFor`), and the wire, already
+  handed to the sheet inside by its natural wall to keep its place among that
+  sheet's wires, is turned to the wall given (`Ask.turn`); inside, it is a
+  wire to a side wall, as between row-mates. Its place on the container's
+  side wall is the inside's (`fixedPort` in `hookOf`). Where the run is not
+  clear the container keeps its natural wall and the box takes its hook
+  inside, as before. A wire that ends at the container is asked of the
+  container's wall (`Ask.named`);
+- not given, and reported in `Solution.unhonoured` with the reason
+  (`Refusal`, collected in `engine.ts`) — only for the box the wire names: a
+  wire of a bundle (`trunk`); a box that already has a wire straight across
+  that side's gutter or out to that side's wall (`taken`); the far wall
+  (`far`), or a blocked near wall (`blocked`), of a box whose wire leaves its
+  container sideways; a leaf standing in one rank with the container the
+  other end is in (`row`). Between two row-mates of one container the side
+  is ignored without report (the caller can see that), and a container the
+  wire only passes through keeps its natural wall without report.
 
 ## Iteration, where there is any
 
@@ -248,7 +265,10 @@ by screen side, that nothing enters but the box's own wires on that wall.
   finished container's side port to come level with a wire.
 - `engine.ts`: the sheets are laid out again (not ordered again) when a
   label was found with no clear place along its wire and has been given
-  room — at most `ROOMS` (2) more times. Whether a label has a clear place
+  room — or was given room and is crossed all the same, because a lane
+  stepped into it to close a jog, and its sheet now holds rooms firm
+  (`Sheet.firm`, read by `shift` in `lay.ts`) — at most `ROOMS` (2) more
+  times. Whether a label has a clear place
   is only known once the wires are drawn; a picture whose labels are all
   clear is laid out once.
 
