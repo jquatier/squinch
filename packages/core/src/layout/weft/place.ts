@@ -25,6 +25,7 @@
 // break a gap.
 import { ceilTo, GRID, snap } from "./frame.js";
 import { project, type Gap } from "./project.js";
+import { hookAfter } from "./sheet.js";
 import type { Link, Sheet, Wall } from "./types.js";
 
 const HEAVY = 100, LIGHT = 1, THIN = 0.1, IDLE = 1e-9, FAR = 1e6;
@@ -163,7 +164,7 @@ export function place(s: Sheet, p: Placing): { u: number[]; low: number[]; off: 
   const aim = (slot: number): void => {
     const kind = s.slots[slot].kind, hook = s.slots[slot].beside;
     // a hook's lane keeps close beside its box: the hook is the short way round, not a run along the rank
-    if (hook) { want[slot] = hook.after ? u[hook.box] + apart(hook.box, slot) : u[hook.box] - apart(slot, hook.box); weight[slot] = LIGHT * THIN; firm[slot] = 0; return; }
+    if (hook) { want[slot] = hookAfter(s, slot) ? u[hook.box] + apart(hook.box, slot) : u[hook.box] - apart(slot, hook.box); weight[slot] = LIGHT * THIN; firm[slot] = 0; return; }
     // a wire running back against the flow follows and never leads; so does
     // a wire to the sheet's own wall — its port goes where the box is
     let forward = (l: Link) => !l.back && (kind === "port" || (s.slots[l.up].kind !== "port" && s.slots[l.down].kind !== "port"));

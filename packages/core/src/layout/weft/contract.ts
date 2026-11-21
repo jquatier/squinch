@@ -67,8 +67,8 @@ export interface Wire {
    *
    *  The side is asked of the box the wire names, and carries outward: where
    *  that box has a clear run to the same wall of the container around it —
-   *  it is the last box of its row on that side, or in the first (last) rank
-   *  for north (south) — the wire crosses the container's wall by that side
+   *  it is the last box of its row on that side as declared, or in the first
+   *  (last) rank for north (south) — the wire crosses the container's wall by that side
    *  too, and so on through each container out to where the wire's two ends
    *  part. Where something stands between, the wire crosses that container
    *  by its natural wall. A wire that ends at a container is asked of that
@@ -100,14 +100,22 @@ export interface Solution {
   /** Ends of wires drawn, but not by the side they asked for (`fromSide`, `toSide`). Absent when there are none. */
   unhonoured?: Refusal[];
 }
-/** An end of a wire that was not given the side it asked for, and why:
+/** An end of a wire that was not given the side it asked for, and why — with
+ *  what the caller needs to say so, in screen sides:
  *  - `trunk`: the wire is one of a bundle, which shares its port and lanes;
- *  - `taken`: that side of the box already carries a wire straight across to
- *    a neighbour, or out to the container's wall;
- *  - `row`: the box stands in one rank with the container the other end is
- *    in, so the wire runs along the rank;
- *  - `far`: the wire leaves the box's container by a side wall, and the box
- *    was asked for the wall facing the other way;
+ *  - `taken`: that side of the box already carries a wire straight out of it
+ *    — across to a neighbour, or on to the container's wall. Asked for north
+ *    or south, the wire has to go round one side of its box, and both are in
+ *    use. `inUse`: those sides;
+ *  - `row`: the box stands in one rank with the box that holds the other end
+ *    (`mate`), so the wire runs along the rank;
+ *  - `far`: the wire leaves the box's container by a side wall (`by`), and
+ *    the box was asked for the wall facing the other way;
  *  - `blocked`: it was asked for the wall facing that way, with a row-mate
- *    standing between. */
-export interface Refusal { wire: string; end: "from" | "to"; why: "trunk" | "taken" | "row" | "far" | "blocked" }
+ *    standing between. For both, `open` is the two sides it could be given
+ *    there: over and under the row. */
+export interface Refusal {
+  wire: string; end: "from" | "to";
+  why: "trunk" | "taken" | "row" | "far" | "blocked";
+  inUse?: Side[]; mate?: string; by?: Side; open?: Side[];
+}

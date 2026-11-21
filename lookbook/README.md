@@ -581,3 +581,21 @@ Source: [`cases/44-relationships.squinch`](cases/44-relationships.squinch)
 | light | dark |
 |---|---|
 | ![](out/44-relationships.opened.light.svg) | ![](out/44-relationships.opened.dark.svg) |
+
+## Route Through Walls
+
+A `route` side carries through walls. Asked to leave by its east side, the API leaves the Shop frame by its east wall as well, and the zone around it — through each boundary in turn, for as long as nothing stands between the node and that wall. In the second view Cache has been put east of the API, so the side stops at the node: it still leaves by the east, and the edge takes its ordinary way out of the frame. Nothing warns there — the node was given the side it was asked for. An edge declared on the system itself (`shop -> archive`) is asked of the frame's own wall.
+
+Source: [`cases/45-route-through-walls.squinch`](cases/45-route-through-walls.squinch)
+
+**`carried`**
+
+| light | dark |
+|---|---|
+| ![](out/45-route-through-walls.carried.light.svg) | ![](out/45-route-through-walls.carried.dark.svg) |
+
+**`stopped`**
+
+| light | dark |
+|---|---|
+| ![](out/45-route-through-walls.stopped.light.svg) | ![](out/45-route-through-walls.stopped.dark.svg) |

@@ -2081,11 +2081,16 @@ export function buildProject(input: ProjectFile[]): BuildResult {
         const [a, b] = rt.getChildren("Path");
         const from = resolve(ctx.text(a), inScope, a, ctx);
         const to = resolve(ctx.text(b), inScope, b, ctx);
-        // a side belongs to the keyword before it: `to west` alone is the entry side, not the exit
-        const toKw = rt.getChild("to");
-        const sidesNodes = rt.getChildren("Side");
-        const fromNode = sidesNodes.find((n) => !toKw || n.from < toKw.from);
-        const toNode = toKw ? sidesNodes.find((n) => n.from > toKw.from) : undefined;
+        // a side belongs to the keyword before it — `to west` alone is the entry side, not the exit —
+        // and the two may come in either order; a second `from` (or `to`) is a contradiction
+        let fromNode: SyntaxNode | undefined, toNode: SyntaxNode | undefined, kw = "";
+        for (let c = rt.firstChild; c; c = c.nextSibling) {
+          if (c.name === "from" || c.name === "to") kw = c.name;
+          if (c.name !== "Side") continue;
+          if (kw === "from" ? fromNode : toNode)
+            error(ctx, c, `\`route\` gives two \`${kw}\` sides`, `an edge ${kw === "from" ? "leaves" : "enters"} by one side — keep one \`${kw} <side>\``);
+          else if (kw === "from") fromNode = c; else toNode = c;
+        }
         const labelNode = rt.getChild("String");
         if (from && to)
           view.layout.routes.push({

@@ -169,9 +169,47 @@ view v { include *
   layout { rows [a c] [b]
   route a -> b from east } }`);
     expect(r.illegal).toEqual([]);
-    expect(r.diagnostics.map((d) => [d.severity, d.message])).toEqual([["warning", "`route a -> b` could not use the east side of `a` — the east side of `a` already carries a wire running straight across to a neighbour"]]);
-    expect(r.diagnostics[0].fix).toContain("another row");
+    expect(r.diagnostics.map((d) => [d.severity, d.message])).toEqual([["warning", "`route a -> b` could not use the east side of `a` — the east side of `a` already carries a wire running straight out of it"]]);
+    expect(r.diagnostics[0].fix).toContain("neighbour in the same row");
     expect(r.sides("a", "b")).toEqual(["south", "north"]);
+  });
+
+  // out of the top or bottom a wire goes round one side of its node: it is the sides that are in use, not the top
+  it("a route out of the north side with both sides of the node in use says which sides are", async () => {
+    const r = await lay(`l = box "L"
+a = box "A"
+r = box "R"
+c = box "C"
+l -> a
+a -> r
+a -> c
+view v { include *
+  layout { rows [l a r] [c]
+  route a -> c from north } }`);
+    expect(r.illegal).toEqual([]);
+    expect(r.diagnostics.map((d) => d.message)).toEqual(["`route a -> c` could not use the north side of `a` — a wire out of the north side of `a` has to go round one side of it, and its east and west sides both carry a wire running straight out"]);
+    expect(r.diagnostics[0].fix).toContain("free one of those sides");
+  });
+
+  // one edge may have a line for each end; each warning is raised at the line that asked that end
+  it("two route lines for one edge each ask their own end, and two for one end are an error", async () => {
+    const src = (routes: string) => `l = box "L"
+a = box "A"
+r = box "R"
+c = box "C"
+l -> a
+a -> r
+a -> c
+view v { include *
+  layout { rows [l a r] [c]
+  ${routes} } }`;
+    const each = await lay(src("route a -> c from east\n  route a -> c to west"));
+    expect(each.illegal).toEqual([]);
+    expect(each.diagnostics.map((d) => d.message)).toEqual(["`route a -> c` could not use the east side of `a` — the east side of `a` already carries a wire running straight out of it"]);
+    expect(each.sides("a", "c")[1]).toBe("west");      // the second line's end was given
+    const built = buildModel(src("route a -> c from east\n  route a -> c from west"));
+    const { diagnostics } = await layoutView(built.model, built.model.views.find((v) => v.name === "v")!);
+    expect(diagnostics.filter((d) => d.severity === "error").map((d) => d.message)).toEqual(["`route a -> c` asks `a` for its west side, and another `route` line asks it for its east"]);
   });
 
   // each cause has its own sentence, naming the box and the side, and its own fix
@@ -186,8 +224,8 @@ view v { include *
   channel a, b -> db
   route a -> db from west } }`, ["db"]);
     expect(r.illegal).toEqual([]);
-    expect(r.diagnostics.map((d) => d.message)).toEqual(["`route a -> db` could not use the west side of `a` — the edge is drawn as part of a trunk, which shares one port"]);
-    expect(r.diagnostics[0].fix).toContain("`channel`");
+    expect(r.diagnostics.map((d) => d.message)).toEqual(["`route a -> db` could not use the west side of `a` — the edge is drawn in a `channel` trunk, whose wires share one port"]);
+    expect(r.diagnostics[0].fix).toContain("out of the `channel`");
   });
 
   it("a route side on a box beside the container the other end is in says they share a row", async () => {
@@ -200,6 +238,30 @@ view v { expand s
     expect(r.illegal).toEqual([]);
     expect(r.diagnostics.map((d) => d.message)).toEqual(["`route u -> s.x` could not use the south side of `u` — `u` is in the same row as `s`, which holds the other end, so the edge runs straight across"]);
     expect(r.diagnostics[0].fix).toContain("another row");
+  });
+
+  // the same for an edge that ends at an open container beside the one its other end is in (it was dropped in silence),
+  // and beside a zone, which is named by its own id
+  it("a route side on a container, or beside a zone, that shares a row with what holds the other end says so", async () => {
+    const frames = await lay(`system s "S" { a = box "A"; b = box "B"; a -> b }
+system o "O" { x = box "X"; y = box "Y"; x -> y }
+s -> o.x
+view v { expand s, o
+  layout { rows [s o]
+  route s -> o.x from south } }`);
+    expect(frames.illegal).toEqual([]);
+    expect(frames.diagnostics.map((d) => d.message)).toEqual(["`route s -> o.x` could not use the south side of `s` — `s` is in the same row as `o`, which holds the other end, so the edge runs straight across"]);
+    const zone = await lay(`u = box "U"
+x = box "X"
+y = box "Y"
+x -> y
+u -> x
+zone vpc "VPC" { contains x, y }
+view v { include *
+  layout { rows [u vpc]
+  route u -> x from south } }`);
+    expect(zone.illegal).toEqual([]);
+    expect(zone.diagnostics.map((d) => d.message)).toEqual(["`route u -> x` could not use the south side of `u` — `u` is in the same row as `vpc`, which holds the other end, so the edge runs straight across"]);
   });
 
   it("a route side on a box whose edge leaves its container sideways says which way the edge leaves, or what is in the way", async () => {
@@ -220,6 +282,23 @@ view v { expand s
     expect(blocked.diagnostics[0].fix).toContain("at the east end of its row");
     // north and south are the ways over and under the row: given
     expect((await lay(src("north"))).diagnostics).toEqual([]);
+  });
+
+  // in a view that flows rightward a row stands upright: the ways over and under it are west and east, and the fix says so
+  it("the fix for a side refused in a rightward view names the sides that are given there", async () => {
+    const src = (side: string) => `system s "S" { x = box "X"; y = box "Y"
+  layout { rows [x y] } }
+t = box "T"
+s.x -> t
+view v { expand s
+  layout { direction right
+  rows [s t]
+  route s.x -> t from ${side} } }`;
+    const far = await lay(src("north"));
+    expect(far.diagnostics.map((d) => d.message)).toEqual(["`route s.x -> t` could not use the north side of `s.x` — the edge leaves `s` by its south side, the other way"]);
+    expect(far.diagnostics[0].fix).toBe("drop the `from`, or ask for west or east");
+    expect((await lay(src("east"))).diagnostics).toEqual([]);
+    expect((await lay(src("west"))).diagnostics).toEqual([]);
   });
 
   // a side belongs to the keyword before it (it used to be read by position: `to west` alone turned the *from* end)
@@ -248,6 +327,61 @@ view v { ${view} }`;
     // …and each spelling is silent where it is the right one
     expect((await lay(src("include *\n  layout { route s -> b from east }"))).diagnostics).toEqual([]);
     expect((await lay(src("expand s\n  layout { route s.x -> b from east }"))).diagnostics).toEqual([]);
+  });
+
+  it("…and why, read off the view: an end left out of an open container is not called collapsed", async () => {
+    const r = await lay(`system s "S" { x = box "X"; y = box "Y" }
+b = box "B"
+s.y -> b
+view v { expand s
+  exclude s.y
+  layout { route s.y -> b from east } }`);
+    expect(r.diagnostics.map((d) => d.fix)).toEqual(["`s.y` is not drawn in this view, so its edge runs from `s`, so the edge is drawn as `s -> b` — write `route s -> b from east`"]);
+  });
+
+  it("…with the label the line named, the edge's own arrow, and its own direction", async () => {
+    const twins = `system s "S" { x = box "X"; y = box "Y" }
+b = box "B"
+s.x -> b "read"
+s.y -> b "write"
+`;
+    // the label says which of two edges: the fix writes that one
+    const labelled = await lay(`${twins}view v { expand s
+  layout { route s -> b "write" from east } }`);
+    expect(labelled.diagnostics.map((d) => d.fix)).toEqual(["`s` is open here, so the edge is drawn as `s.y -> b` — write `route s.y -> b from east`"]);
+    // collapsed, the two are one edge with a count: there is no label to name
+    const merged = await lay(`${twins}view v { include *
+  layout { route s -> b "write" from east } }`);
+    expect(merged.diagnostics.map((d) => d.fix)).toEqual(["the one edge between them here stands for 2 edges merged into one — drop the label from this line"]);
+    // written against the edge's direction, and for an edge with no arrowhead
+    const back = await lay(`a = box "A"
+b = box "B"
+c = box "C"
+a -> b
+b -- c
+view v { include *
+  layout { rows [a] [b] [c]
+  route b -> a from north to south
+  route c -- b from north } }`);
+    expect(back.diagnostics.map((d) => d.fix)).toEqual([
+      "the edge between them runs from `a` to `b`, and a route names an edge in its own direction — write `route a -> b from south to north`",
+      "the edge between them runs from `b` to `c`, and a route names an edge in its own direction — write `route b -- c to north`",
+    ]);
+    // a line that asks for no side does nothing anywhere
+    const idle = await lay(`${twins}view v { include *
+  layout { route s.x -> b } }`);
+    expect(idle.diagnostics.map((d) => d.fix)).toEqual(["the line asks for no side, so it does nothing anywhere — drop it"]);
+  });
+
+  // `from` and `to` in either order (SPEC §8); one of each
+  it("`to` may come before `from`, and a second `from` is an error", async () => {
+    const r = await lay(`${fan}view v { include *
+  layout { route a -> b to west from east } }`);
+    expect(r.diagnostics).toEqual([]);
+    expect(r.sides("a", "b")).toEqual(["east", "west"]);
+    const twice = buildModel(`${fan}view v { include *
+  layout { route a -> b from east from west } }`);
+    expect(twice.diagnostics.filter((d) => d.severity === "error").map((d) => d.message)).toEqual(["`route` gives two `from` sides"]);
   });
 
   it("`wrap` with nothing to fold says so", async () => {

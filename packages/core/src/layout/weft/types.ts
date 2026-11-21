@@ -74,11 +74,13 @@ export interface Slot {
   /** on a leaf: the width of a label given room on a stub at one of its
    *  ports — a lane passing beside the box keeps out of that too */
   stub?: number;
-  /** a hook's lane: the box it stands beside, and whether after it or before.
-   *  `free`: the hook leaves by the box's north or south wall and may go
-   *  round either side of it, so the ordering stage chooses (`Search.turn`);
-   *  a hook out of a side wall stands on that side. */
-  beside?: { box: number; after: boolean; free?: boolean };
+  /** a hook's lane: the box it stands beside, the wall of it the hook leaves
+   *  by, and whether the lane stands after the box or before. `free`: the
+   *  hook leaves by the north or south wall and may go round either side of
+   *  its box, so the ordering stage chooses (`Search.flip`) — `after` is then
+   *  only where the lane starts, and the rows are the one record of where it
+   *  stands: read it with `hookAfter` (sheet.ts), never from here. */
+  beside?: { box: number; wall: Wall; after: boolean; free?: boolean };
 }
 
 /** A stretch of wire from a slot in one row to a slot in the next. Wires of
@@ -151,7 +153,7 @@ export type Piece =
   | { kind: "term"; wall: Wall; key: string };
 
 /** One container's inside: the static structure every later stage works on.
- *  `rows` is the one thing the ordering stage changes. */
+ *  `rows` (with `at`, its index) is the one thing the ordering stage changes. */
 export interface Sheet {
   cell: Cell;
   dir: Dir;

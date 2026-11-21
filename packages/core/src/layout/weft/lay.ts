@@ -15,7 +15,7 @@ import { ceilTo, floorTo, GRID, snap, turn } from "./frame.js";
 import { gutters } from "./gutter.js";
 import { place } from "./place.js";
 import { meetAcross, wallspace, type End, type Wallspace } from "./ports.js";
-import { sideWay } from "./sheet.js";
+import { hookAfter, sideWay } from "./sheet.js";
 import { pitch, stack, type Net, type Stack } from "./tracks.js";
 import type { Flat, Geo, Hook, Kid, Link, Sheet, Side, Wall } from "./types.js";
 
@@ -166,7 +166,7 @@ export function lay(s: Sheet, root: boolean): Geo {
       if ((way === "over" && row === k + 1) || (way === "under" && row === k)) add(side.x, way === "over" ? "n" : "s", side.key, side.wall === "e" ? EDGE : -EDGE);
     }
     // a hook out of a north or south wall: its port at the end of the wall its lane stands beside
-    for (const h of hooks) if ((h.wall === "n" && s.slots[h.box].row === k + 1) || (h.wall === "s" && s.slots[h.box].row === k)) add(h.box, h.wall, h.key, s.slots[h.lane].beside!.after ? EDGE : -EDGE);
+    for (const h of hooks) if ((h.wall === "n" && s.slots[h.box].row === k + 1) || (h.wall === "s" && s.slots[h.box].row === k)) add(h.box, h.wall, h.key, hookAfter(s, h.lane) ? EDGE : -EDGE);
     meetAcross(walls);
     for (const wall of walls.values()) for (const e of wall.ends) { port.set(e.id, e.at); if (e.room) roomAt.set(e.id, e.room); }
     // Nothing almost-right (§4.3): a link whose ends are less than 16 px
@@ -482,12 +482,24 @@ export function lay(s: Sheet, root: boolean): Geo {
 
   // where wires cross this sheet's own walls
   for (const [id, slot] of s.port) geo.ports.set(id, u[slot]);
-  for (const t of s.terms) {
-    // a wire that ends at this container's side wall: the free place nearest the middle
-    const used = [...geo.ports].filter(([id]) => id.startsWith(`${t.wall}|`)).map(([, at]) => at);
-    let y = snap(H / 2);
-    for (let d = 0; d < H; d += 16) { const hit = [y - d, y + d].find((c) => c >= 8 && c <= H - 8 && used.every((o) => Math.abs(o - c) >= 16)); if (hit !== undefined) { y = hit; break; } }
-    geo.ports.set(`${t.wall}|${t.key}`, y);
+  // A wire that ends at this container's side wall takes a free place near
+  // the middle of it. Several on one wall take those places in the order
+  // they come to the wall outside, where that order is already settled — the
+  // container stands in one of the other direction, whose row runs along
+  // this wall — so that no two trade places in the gap between the walls.
+  for (const wall of ["e", "w"] as const) {
+    const terms = s.terms.filter((t) => t.wall === wall);
+    if (!terms.length) continue;
+    const used = [...geo.ports].filter(([id]) => id.startsWith(`${wall}|`)).map(([, at]) => at), places: number[] = [];
+    for (let i = 0; i < terms.length; i++) {
+      let y = snap(H / 2);
+      for (let d = 0; d < H; d += 16) { const hit = [y - d, y + d].find((c) => c >= 8 && c <= H - 8 && [...used, ...places].every((o) => Math.abs(o - c) >= 16)); if (hit !== undefined) { y = hit; break; } }
+      places.push(y);
+    }
+    const outside = terms.map((t) => comesAt(s, wall, t.key));
+    const order = outside.every((at) => at !== undefined) ? terms.map((_, i) => i).sort((p, q) => outside[p]! - outside[q]! || p - q) : undefined;
+    if (order) places.sort((p, q) => p - q);
+    terms.forEach((_, i) => geo.ports.set(`${wall}|${terms[order ? order[i] : i].key}`, places[i]));
   }
   for (const [wire, piece] of s.pieces) if (piece.kind === "term") {
     const at = geo.ports.get(`${piece.wall}|${piece.key}`)!;
@@ -555,11 +567,26 @@ function clearLabels(s: Sheet, geo: Geo, zones: { x: number; y: number; w: numbe
         if (zones.some((z) => overlaps(r, z))) { if (far < nearSpare) { spare = r; nearSpare = far; } } else if (far < near) { best = r; near = far; }
       }
     }
-    // one with nowhere else to go is stuck, and will be given room (`solve`) — also one that only
-    // stands on a tip: its neighbour's port is then moved off, as a neighbour's wire would be
+    // one that only stands on a tip, with nowhere else to go, stays
     if (best) geo.labels.set(wire, best);
-    else { geo.stuck.push(wire); if (spare && crossed(at, wire)) geo.spare.set(wire, spare); }
+    else if (crossed(at, wire)) { geo.stuck.push(wire); if (spare) geo.spare.set(wire, spare); }
   }
+}
+
+/** Where along the row outside the wire `key` comes to this sheet's side
+ *  wall, when the sheet stands in one of the other direction — there the
+ *  wall lies along that row, and the row's order is settled before anything
+ *  is placed. Undefined where it does not (the sheet outside runs the same
+ *  way, and reaches this wall across a gutter, at the level the inside gives). */
+function comesAt(s: Sheet, wall: "e" | "w", key: string): number | undefined {
+  const p = s.parent;
+  if (!p || p.dir === s.dir) return undefined;
+  const self = s.self!, row = p.slots[self].row, north = turn(wall, s.dir, p.dir) === "n";
+  const link = p.chan[north ? row - 1 : row].find((l) => (north ? l.down : l.up) === self && l.key === key);
+  if (link) return p.at[north ? link.up : link.down];
+  // …or hooked round the container out there: at the end of the wall its lane stands beside
+  const lane = p.slots.find((x) => x.beside?.box === self && x.key === key && x.beside.wall === (north ? "n" : "s"));
+  return lane ? (hookAfter(p, lane.i) ? Infinity : -Infinity) : undefined;
 }
 
 /** Move the place where the wire `key` crosses a laid-out container's side

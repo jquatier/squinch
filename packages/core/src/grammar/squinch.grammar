@@ -186,9 +186,10 @@ PlaceStmt { kw<"place"> Path RelPos Path }
 AlignStmt { kw<"align"> Path (","? Path)+ }
 // channel a, b, c -> db  — several edges share one trunk into the target
 ChannelStmt { kw<"channel"> PathList Arrow Path }
+// `from` and `to` in either order (SPEC §8: `{ routemod }`); one of each at most, which the model checks
 RouteStmt {
   kw<"route"> Path Arrow Path String?
-  (kw<"from"> Side)? (kw<"to"> Side)?
+  (kw<"from"> Side | kw<"to"> Side)*
 }
 RelPos { kw<"right-of"> | kw<"left-of"> | kw<"above"> | kw<"below"> }
 Side { kw<"north"> | kw<"south"> | kw<"east"> | kw<"west"> }

@@ -236,11 +236,19 @@ export class Count {
       const how = sideWay(s, side);
       for (const m of beyond(s, side)) cross += how === "straight" ? 1 : how === "over" ? s.busy.up[m] : s.busy.down[m];
     }
-    // a hook's stretch from its box's wall to its lane: across every lane that passes between them
-    // (another hook's lane of the same box does not pass the row, and is not counted)
-    for (const lane of t.hooks[u.k]) {
-      const i = s.at[lane], j = s.at[s.slots[lane].beside!.box], row = s.rows[u.k];
-      for (let m = Math.min(i, j) + 1; m < Math.max(i, j); m++) if (!s.slots[row[m]].beside) cross++;
+    // a hook's stretch from its box's wall to its lane: across every lane that stands between them —
+    // a wire passing the row, or a hook of the same box out of another wall (out of the north wall
+    // and round, across the lane of one that came round to the south). Two hooks out of one wall
+    // nest, the nearer lane inside the further one's stretch, and are not counted against each other.
+    // (every slot between, less the hooks out of the same wall — counted off a running total per wall)
+    if (t.hooks[u.k].length) {
+      const row = s.rows[u.k], before: Record<string, number[]> = {};
+      for (const lane of t.hooks[u.k]) before[s.slots[lane].beside!.wall] ??= [];
+      for (const wall in before) { let n = 0; before[wall] = row.map((m) => (s.slots[m].beside?.wall === wall ? n++ : n)); }
+      for (const lane of t.hooks[u.k]) {
+        const h = s.slots[lane].beside!, lo = Math.min(s.at[lane], s.at[h.box]), hi = Math.max(s.at[lane], s.at[h.box]);
+        cross += hi - lo - 1 - (before[h.wall][hi] - before[h.wall][lo] - (s.slots[row[lo]].beside?.wall === h.wall ? 1 : 0));
+      }
     }
     u.cross = cross; u.rough = 0;
   }

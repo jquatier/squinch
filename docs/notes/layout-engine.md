@@ -181,7 +181,8 @@ lay      lay.ts      one sheet's geometry at a time, innermost first
 
 The idea that makes one pass possible: **nothing in a sheet waits on a
 position.** Ranks are final once computed. Which wall of a container a wire
-uses is settled by ranks and by the declared order of same-rank ends. So the
+uses is settled by ranks and by declared order — of same-rank ends, and, for a
+wire asked to use a side, of the boxes in each container on its way in. So the
 set of things to be ordered never changes, the order of every row in the tree
 can be searched as one state against one exact count, and geometry is the last
 thing decided rather than something ordering has to guess. The earlier engines
@@ -241,8 +242,10 @@ can answer it. The search is a descent with these moves:
   inside and the row outside at once, where each alone would cross something;
 - *reroute* — a wire's lanes change sides as a whole;
 - *mirror* — a container nobody arranged, turned about whole;
-- *turn* — a hook out of a north or south wall, taken round the other side of
-  its box: kept if the picture crosses less, or as much and runs straighter;
+- *flip* — a hook out of a north or south wall, taken round the other side of
+  its box: kept if the picture crosses less, or as much and runs straighter.
+  Which side a hook's lane stands on is read off the row and kept nowhere
+  else, so the state of the search is still the order of the rows alone;
 - *restore* — boxes that left their declared order for nothing go back.
 
 What decides between two orders: fewer crossings; then, only if no box has
@@ -329,9 +332,14 @@ leaf's ports (`settleWide` in `ports.ts`), beside a lane (`sep` in
 `place.ts`), on through a container's wall, and between row-mates of a
 rightward sheet (`gutter.ts`) — and the sheets are laid out again. Laid out,
 not ordered again, and at most twice more; a picture whose labels are all
-clear is laid out once. This is the one place a drawing feeds back, and it is
-bounded and explicit for the reason the requirements give: whether a label
-has a clear place is only known once the wires are drawn. A label on a lane at
+clear is laid out once. This is the one place a drawing feeds back — to `lay`,
+never to ranking or ordering — and it is bounded and explicit for the reason
+the requirements give: whether a label has a clear place is only known once
+the wires are drawn. It has a second trigger in the same loop: a label that
+was given room and is crossed all the same makes its sheet hold every room
+firm against a lane stepping aside (`Sheet.firm`; §8). That can only take
+effect on the last of the passes, so a label first found stuck in the last
+draw gets nothing. A label on a lane at
 the west edge can no longer poke off the canvas.
 
 **Containers, directions, titles** (`lay.ts`, `frame.ts`). Sheets are laid
@@ -647,10 +655,18 @@ kept here because each fix added a rule to the engine.
 another rank used to cross a container's north or south wall whatever side
 was asked, so `route shop.api -> audit from east` left the box eastward,
 turned down inside the frame and came out of the bottom — half the hint
-honoured and nothing said. Three rules were drawn against each other on 48
-views and 1,136 sided ends in random Problems:
+honoured and nothing said. A side asked of a box now carries on through the
+wall of each container around it **while the box has a clear run to that
+wall, as declared**: it is the last box of its row on that side, or in the
+first or last rank. It stops at the first wall something stands before; there
+the box keeps its side and the wire its ordinary way out.
 
-| | sides at the leaf only | every wall, always | **while the run is clear** |
+Three rules were compared before this one was chosen, by a one-off harness
+that is not in the tree, on the standard random generator (one level of
+containers) and before `flip` existed — so the figures say which rule, not
+what the engine draws today:
+
+| 1,136 sided ends | sides at the leaf only | every wall, always | **while the run is clear** |
 |---|---|---|---|
 | the named box gets its side | 997 | 1,020 | **1,071** |
 | the box loses its side while the container gets it | 19 | 88 | **17** |
@@ -659,21 +675,59 @@ views and 1,136 sided ends in random Problems:
 
 "Every wall, always" takes the box's own side away when a row-mate stands
 between it and the wall (the wire leaves by the north wall to get over the
-row-mate) and moves boxes to make room; "while clear" gives the box its side
-more often than either, and where something is in the way draws exactly what
-was drawn before. Naming a side per wall was considered and not built: a zone
-is in no path, which frames exist depends on each view's `expand`, no diagram
-in the corpus wants the box and the container to differ, and the author who
-does can put the box at that edge of its row. A picture with no asked side is
-byte-identical to before — a wire is still handed to the container inside at
-the same point, with its natural wall, and only turned if a hook is given.
+row-mate) and moves boxes to make room. "While clear" gives the box its side
+more often than either. It is not free: a box that carries is held last in
+its row (`sheet.last`), and a wire sent out of the side asked can cross more
+than one left to find its own way. Naming a side per wall was considered and
+not built: a zone is in no path, which frames exist depends on each view's
+`expand`, no diagram in the corpus wants the box and the container to differ,
+and the author who does can put the box at that edge of its row.
 
-The same work found a lane stepping into a label's room: `shift` in `lay.ts`
-closes a short jog by moving a lane to within 8 px of its neighbour, and did
-not know of `Slot.room`. Mostly that is harmless — the label moves along its
-wire — so the room is held firm only on a sheet where a label given room was
-found crossed all the same (`Sheet.firm`, set by `engine.ts` in the same
-bounded loop). Holding it always cost four bends on `random-72` for nothing.
+What this rule does not do, each on purpose or for want of a cheap way:
+
+- **Toward a row-mate the side is not carried.** Where the wire's other end
+  stands in the container's own rank the wire leaves the container toward it,
+  as every same-rank wire does, whatever the box was asked. A side asked of
+  the container itself there is reported (`row`), like a leaf's.
+- **Two wires asked for one side wall of a box**: the one that carries
+  through the container's wall is a wire straight out of that side, so the
+  other is refused (`taken`). Before the carry both had a hook there and both
+  then turned inside — a review found 40 such ends in 4,740 over 600
+  generated diagrams. Giving both would mean a hook sharing a wall with a
+  wire straight out of it, which is the "wall already in use" case that was
+  looked at and not built.
+- **A hook round a container, into its side wall**: the inside fixes the
+  level of each such wire and the lanes outside are ordered without knowing
+  it, so two of them may cross once between wall and lane.
+
+A review of the first version found, and this one fixes: a side asked of a
+*container* end beside the container holding the other end, dropped with no
+report (the "named box" test was written twice and the two disagreed — it is
+one function now); two wires asked into one side wall of a container, through
+a container of the other direction, drawn along one line (they take their
+places in the order they arrive, `comesAt`); the port of a wire hooked round a
+container standing at the far end of the wall from its lane, so that the hook
+crossed the container's other wires unseen; a refusal reported for an end the
+ordering stage then drew by the wall asked (a refusal is now dropped unless
+the picture bears it out). On that review's 600 generated diagrams with sides
+(its sources, not in the tree), as written: 2,872 crossings at 0.21.0, 2,759
+in the first version, 2,619 now; bends 20,851, 20,393, 20,329.
+
+**A picture with no asked side** is drawn by the same rules as before, with
+one exception, which is the label fix below. A wire is still handed to the
+container inside at the same point, with its natural wall, and only turned if
+a hook is given.
+
+**A lane stepping into a label's room.** `shift` in `lay.ts` closes a short
+jog by moving a lane to within 8 px of its neighbour, and did not know of
+`Slot.room`. Mostly that is harmless — the label moves along its wire — so
+the room is held firm only on a sheet where a label given room was found
+crossed all the same (`Sheet.firm`, set by `engine.ts` in the same bounded
+loop). Holding it always cost four bends on `random-72` for nothing. This
+does move pictures that ask for no side: 9 of 10,422 route-less views in a
+review's sweep (none in the corpus, none in the first 80 random diagrams),
+each losing a label under another wire for two to four more bends. The seeds
+of the audit's generator that need it are named in `audit.test.ts`.
 
 **Decided, not to be reopened without new evidence: a stage that branches
 stands between its two successors, even in a pipeline.** Gauntlet round 23
@@ -704,10 +758,22 @@ Written down at acceptance, less what has been fixed since.
   through every engine (ELK 8 crossings; `loom` 19).
 - **A side-routed wire is not felt in placement**: its box is not pulled by
   it. (Which side of its box a wire out of a north or south wall goes round
-  is no longer fixed: the ordering stage chooses it — `Search.turn` — and the
+  is no longer fixed: the ordering stage chooses it — `Search.flip` — and the
   hook's stretch from wall to lane is in the crossing count, so
   `lookbook/cases/26-route-label` turned rightward no longer crosses. A hook
   out of a side wall stands on that side, as asked.)
+- **A hook holds its box, and many hooks are slow.** A box is never sifted
+  past its own hook's lane, so a hook out of an east or west wall keeps the
+  box on that side of it where another order might cross less. And every hook
+  is a slot of its box's row: many beside one box — one container with dozens
+  of sided wires out of it — cost steeply more to order (80 about a quarter of
+  a second, 120 about a second; a handful cost nothing).
+- **Past one level of nesting, two hard rules are not held everywhere.** With
+  a container inside a container, about one random Problem in a hundred draws
+  two wires along one line between ends fixed 16 px apart, or leaves a label
+  under another wire — with or without sides asked, and the same before sides
+  carried. The standard generator nests one level and never showed it;
+  `nestedProblem` does, and `audit.test.ts` holds the count where it is.
 - **Canvases are tighter than ELK's**, so a note pinned to a corner sits
   closer to the content than it used to.
 - **Crossings inside a gutter are not counted** (two containers side by side

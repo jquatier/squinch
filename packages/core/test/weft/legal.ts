@@ -91,7 +91,11 @@ export function audit(problem: Problem, sol: Solution): string[] {
       const out = wall === "north" ? next.y < p.y : wall === "south" ? next.y > p.y : wall === "east" ? next.x > p.x : next.x < p.x;
       if (leaf && !out) bad.push(`wire ${wire.id}: ${verb} ${id} along or into its ${wall} wall`);
       if (n > 2 && Math.abs(next.x - p.x) + Math.abs(next.y - p.y) < 16) bad.push(`wire ${wire.id}: ${verb} ${id} with less than 16 px before a turn`);
-      if (asked && leaf && !rowMates(wire.from, wire.to) && wall !== asked && !sol.unhonoured?.some((u) => u.wire === wire.id)) bad.push(`wire ${wire.id}: ${verb} ${id} by its ${wall} wall, asked ${asked}`);
+      // a side asked of the box the wire names — a leaf, or the container it ends at — is the wall the
+      // wire uses there, or that end is reported; and an end reported is one that was not given its wall
+      const refused = sol.unhonoured?.some((u) => u.wire === wire.id && u.end === (verb === "leaves" ? "from" : "to"));
+      if (asked && !rowMates(wire.from, wire.to) && wall !== asked && !refused) bad.push(`wire ${wire.id}: ${verb} ${id} by its ${wall} wall, asked ${asked}`);
+      if (asked && wall === asked && refused) bad.push(`wire ${wire.id}: reported as refused the ${asked} wall of ${id}, which it ${verb} by`);
     }
     if (sol.unhonoured?.some((u) => u.wire === wire.id && !(u.end === "from" ? wire.fromSide : wire.toSide))) bad.push(`wire ${wire.id}: unhonoured, but asked nothing`);
     for (let i = 0; i + 1 < n; i++) {

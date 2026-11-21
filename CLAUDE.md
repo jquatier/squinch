@@ -474,13 +474,15 @@ share a row with an edge between them; rank hints reach inside zones; `align` an
 node of a rank — two row-mates cannot share an axis, so the rest stay side by side
 and the check says so; no contradiction among hints can overlap boxes). Hint *contradictions* are
 still errors (`place a right-of b` + `place b right-of a`, a `place` against its
-band, a second `rows` line). Layout-time warnings that remain, each naming its hint:
+band, a second `rows` line, two `route` lines asking one end of an edge for two sides). Layout-time warnings that remain, each naming its hint:
 `align`/`cols` on one rank ("cannot share an axis") or across containers ("could not
 be put on `x`'s axis"); `route` sides on a same-rank edge ("sides are ignored") or
 where the named node's own side cannot be given — one sentence per cause, naming the
-node and the side: the side carries a wire to a neighbour, the edge is in a `channel`
-or `wrap` trunk, the node is row-mate to the container holding the other end, or the
-edge leaves the node's container sideways ("could not use the east side of `a` — …");
+node and the side, and a fix line that names the sides that work there (the engine
+reports them in screen terms, `Refusal`; the words are not re-derived in `layout.ts`):
+the side already carries a wire straight out of the node, the edge is in a `channel`
+or `wrap` trunk, the node is row-mate to what holds the other end, or the edge leaves
+the node's container sideways ("could not use the east side of `a` — …");
 a `route` that names no edge the view draws (it says whether to write the card or the
 node inside); a `wrap` that folds nothing; a `channel` not fully visible; and "`a` →
 `b` is not drawn — one end is inside the other".
@@ -488,8 +490,13 @@ node inside); a `wrap` that folds nothing; a `channel` not fully visible; and "`
 `route shop.api -> audit from east` leaves API eastward and, where API is the last
 thing on that side of Shop, leaves Shop's east wall too — through each frame and zone
 in turn, stopping at the first wall something stands before; there the node keeps its
-side and the wire its ordinary way out, with no warning. An edge that ends at the
-expanded container is asked of the frame's wall. Carrying through every wall always
+side and the wire its ordinary way out, with no warning. "Last" is by declared order,
+which is why it is settled before anything is placed. An edge that ends at the
+expanded container is asked of the frame's wall. Three limits, each recorded with its
+reason: toward a row-mate of the container the side is not carried (the edge leaves
+toward it); two edges asked out of one side of a node cannot both carry — the first
+has the wall and the second is told it is taken, where 0.21.0 turned both inside;
+and many sided edges out of one container are slow to order (dozens, not a handful). Carrying through every wall always
 was measured and rejected (a row-mate in the way costs the node its own side), and so
 was naming a side per wall (zones are in no path; frames depend on each view's
 `expand`; `rows [cache api]` already says it) — `docs/notes/layout-engine.md` §8. The zone errors are unchanged. Notes get room reserved by the engine: beside

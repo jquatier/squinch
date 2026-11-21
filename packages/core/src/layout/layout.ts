@@ -15,13 +15,11 @@ import type { ThemeFont } from "../themes/index.js";
 import { crowdedMarks } from "./marks.js";
 import { annotate, BADGE_GAP, badgeWidth, markCrossedTitles } from "./annotate.js";
 import { placeNotes } from "./notes.js";
-import { noteOff, plan } from "./plan.js";
+import { noteOff, plan, routesOf } from "./plan.js";
 import type { Positioned, PEdge, PPort } from "./positioned.js";
 import { INTER, NOTE_CLEAR, noteBox, pillDims } from "./sizes.js";
 import { solve } from "./weft/engine.js";
 import type { Rect, Pt } from "./weft/contract.js";
-
-const OPPOSITE: Record<Side, Side> = { north: "south", south: "north", east: "west", west: "east" };
 
 export * from "./sizes.js";
 export type * from "./positioned.js";
@@ -133,52 +131,54 @@ export async function layoutView(
     else delete e.labelRect;
   }
 
-  // `route … from/to` names walls; say where one could not be used, and why
+  // `route … from/to` names walls; say where one could not be used, and why.
+  // An edge may have a line for each end; each warning is raised at the line
+  // that asked that end, and reads from what the engine reports (`Refusal`).
   const drawnBy = new Map(p.problem.wires.map((w) => [w.id, w]));
-  for (const r of view.layout.routes) {
-    if (!r.fromSide && !r.toSide) continue;
-    const e = p.graph.edges.find((x) => x.from === r.from && x.to === r.to && (!r.label || x.label === r.label));
-    if (!e || !drawnBy.has(e.id)) continue; // not drawn here: the plan said so
-    const mates = p.parentOf.get(e.from) === p.parentOf.get(e.to) && sol.ranks.get(e.from) === sol.ranks.get(e.to);
-    if (mates) {
-      diagnostics.push({
-        severity: "warning",
-        message: `\`route ${r.from} -> ${r.to}\` sides are ignored — it is a same-rank edge`,
-        fix: "same-rank edges are routed side-to-side automatically; drop the `from`/`to`, or move one end to another row so the edge spans ranks",
-        loc: r.loc,
-      });
+  const name = (id: string) => id.replace(/^zone:/, ""); // a zone's box, by the zone's own id
+  for (const e of p.graph.edges) {
+    const lines = routesOf(view, e).filter((r) => r.fromSide || r.toSide);
+    if (!lines.length || !drawnBy.has(e.id)) continue; // not drawn here: the plan said so
+    const said = (r: (typeof lines)[number]) => `route ${r.from} -> ${r.to}${r.label ? ` "${r.label}"` : ""}`;
+    if (p.parentOf.get(e.from) === p.parentOf.get(e.to) && sol.ranks.get(e.from) === sol.ranks.get(e.to)) {
+      for (const r of lines)
+        diagnostics.push({
+          severity: "warning",
+          message: `\`${said(r)}\` sides are ignored — it is a same-rank edge`,
+          fix: "same-rank edges are routed side-to-side automatically; drop the `from`/`to`, or move one end to another row so the edge spans ranks",
+          loc: r.loc,
+        });
       continue;
     }
-    // one warning per end that was not given its side, each with its own cause
     for (const u of sol.unhonoured ?? []) {
-      if (u.wire !== e.id) continue;
-      const box = u.end === "from" ? r.from : r.to, other = u.end === "from" ? r.to : r.from, side = (u.end === "from" ? r.fromSide : r.toSide)!;
-      // the box beside `box` that holds the other end, and a zone's box by the zone's own id
-      const holder = (path: string) => { let at = path; while (p.parentOf.get(at) !== undefined && p.parentOf.get(at) !== p.parentOf.get(box)) at = p.parentOf.get(at)!; return at; };
-      const name = (id: string) => id.replace(/^zone:/, "");
+      const r = u.wire === e.id ? lines.find((x) => (u.end === "from" ? x.fromSide : x.toSide)) : undefined;
+      if (!r) continue;
+      const box = u.end === "from" ? e.from : e.to, side = (u.end === "from" ? r.fromSide : r.toSide)!;
+      const around = name(p.parentOf.get(box) ?? ""), crosses = u.end === "from" ? "leaves" : "enters", either = (u.open ?? []).join(" or ");
       const [why, fix] =
-        u.why === "trunk" ? [
-          "the edge is drawn as part of a trunk, which shares one port",
-          "take the edge out of the `channel` (or drop the `wrap`) to route it on its own, or drop the `from`/`to`",
-        ] : u.why === "taken" ? [
-          `the ${side} side of \`${box}\` already carries a wire running straight across to a neighbour`,
-          `ask for another side, or move that neighbour to another row so the ${side} side is free`,
-        ] : u.why === "row" ? [
-          `\`${box}\` is in the same row as \`${name(holder(other))}\`, which holds the other end, so the edge runs straight across`,
+        u.why === "trunk" ? (drawnBy.get(e.id)!.bundle?.startsWith("channel:") ? [
+          "the edge is drawn in a `channel` trunk, whose wires share one port",
+          `take the edge out of the \`channel\` to route it on its own, or drop the \`${u.end}\``,
+        ] : [
+          "the edge is drawn in a trunk a `wrap` fold made, whose wires share one port",
+          `drop the \`${u.end}\`, or arrange the row by hand (\`rows\`) in place of \`wrap\``,
+        ]) : u.why === "taken" ? (u.inUse!.length === 1 ? [
+          `the ${side} side of \`${box}\` already carries a wire running straight out of it`,
+          `ask for another side, or free that one: the wire it carries runs to a neighbour in the same row, or straight out through the wall of what \`${box}\` is in`,
+        ] : [
+          `a wire out of the ${side} side of \`${box}\` has to go round one side of it, and its ${u.inUse!.join(" and ")} sides both carry a wire running straight out`,
+          `drop the \`${u.end}\`, or free one of those sides: move a neighbour that wire runs to into another row`,
+        ]) : u.why === "row" ? [
+          `\`${box}\` is in the same row as \`${name(u.mate!)}\`, which holds the other end, so the edge runs straight across`,
           `drop the \`${u.end}\`, or move \`${box}\` to another row`,
         ] : u.why === "far" ? [
-          `the edge leaves \`${name(p.parentOf.get(box) ?? "")}\` by its ${OPPOSITE[side]} side, the other way`,
-          `drop the \`${u.end}\`, or ask for north or south`,
+          `the edge ${crosses} \`${around}\` by its ${u.by} side, the other way`,
+          `drop the \`${u.end}\`, or ask for ${either}`,
         ] : [
-          `another box stands between \`${box}\` and the ${side} side of \`${name(p.parentOf.get(box) ?? "")}\`, which the edge leaves by`,
-          `drop the \`${u.end}\`, ask for north or south, or put \`${box}\` at the ${side} end of its row`,
+          `another box stands between \`${box}\` and the ${side} side of \`${around}\`, which the edge ${crosses} by`,
+          `drop the \`${u.end}\`, ask for ${either}, or put \`${box}\` at the ${side} end of its row`,
         ];
-      diagnostics.push({
-        severity: "warning",
-        message: `\`route ${r.from} -> ${r.to}\` could not use the ${side} side of \`${box}\` — ${why}`,
-        fix,
-        loc: r.loc,
-      });
+      diagnostics.push({ severity: "warning", message: `\`${said(r)}\` could not use the ${side} side of \`${box}\` — ${why}`, fix, loc: r.loc });
     }
   }
 

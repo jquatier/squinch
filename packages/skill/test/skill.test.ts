@@ -352,6 +352,8 @@ describe("the skill — diagnostic coverage", () => {
     // cookbook.
     "as one wire, and they mark that end differently",
     "lines straight` draws no relationship marks",
+    // `route a -> b from east from west`: the fix says which word to keep one of
+    "route` gives two",
   ]);
 
   it("every diagnostic that needs a technique is in the cookbook", () => {

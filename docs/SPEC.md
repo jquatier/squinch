@@ -792,21 +792,30 @@ ignored with a warning ("sides are ignored — it is a same-rank edge"), since s
 an edge already runs face to face.
 
 A side carries outward. Where the element is the last thing on that side inside an
-expanded container or a zone — nothing stands between it and that wall — the edge
-crosses the wall by the same side, and so on through each boundary around it.
-Where something stands between, the edge still leaves the element by the side
-asked, and takes its ordinary way out of the container; to carry the side through,
-put the element at that edge of its row (`rows [cache api]` in the container's own
-block). An edge that ends at an expanded container itself (`route shop -> db from
-east`) is asked of that frame's wall.
+expanded container or a zone, as its row is declared — nothing stands between it
+and that wall — the edge crosses the wall by the same side, and so on through each
+boundary around it. Where something stands between, the edge still leaves the
+element by the side asked, and takes its ordinary way out of the container; to
+carry the side through, put the element at that edge of its row (`rows [cache api]`
+in the container's own block). An edge that ends at an expanded container itself
+(`route shop -> db from east`) is asked of that frame's wall. One exception: where
+the edge's other end stands in the same row as the container, the edge leaves the
+container toward it, as every same-row edge does, whatever side was carried.
+
+`from` and `to` may come in either order, and on separate `route` lines for one
+edge. Two lines that ask one end for different sides are an error.
 
 Where the named element's own side cannot be used the edge keeps its natural side
 and the check warns, naming the element, the side and the cause — "could not use
-the east side of `a` — …": that side already carries an edge running straight
-across to a neighbour; the edge is part of a `channel` or a `wrap` trunk; the
-element is in the same row as the container that holds the other end; or the edge
-leaves the element's container sideways and the element was asked for the side
-facing the other way, or has a row-mate standing between.
+the east side of `a` — …": that side already carries an edge running straight out
+of it, across to a neighbour or on through the container's wall (asked for north
+or south, the edge has to go round one side of the element, and it is refused only
+when both are so taken); the edge is part of a `channel` or a `wrap` trunk; the
+element is in the same row as what holds the other end; or the edge leaves the
+element's container sideways and the element was asked for the side facing the
+other way, or has a row-mate standing between. The fix line names the sides that
+are given there. Two edges out of one element cannot both carry through one wall:
+the first has that side, and the second is told it is taken.
 
 A `route` names an edge as the view draws it: with a container collapsed the edge
 runs from its card (`route shop -> db`), and opened, from the node inside (`route

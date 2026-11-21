@@ -13,6 +13,8 @@
 // a wire asked to use a side — the engine's known weak spot
 // (docs/notes/layout-engine.md §8), reached because a tipped port keeps a
 // full 16 px from its neighbours and the label's old place is now a mark's.
+// (Since a label's room is held firm where it was stepped into — `Sheet.firm`
+// — 819 and 1316 are whole again; 30 remains, and is the one named below.)
 import { it, expect } from "vitest";
 import { solve } from "../../src/layout/weft/engine.js";
 import { audit } from "./legal.js";
