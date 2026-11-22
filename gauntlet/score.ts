@@ -57,6 +57,13 @@ interface Expect {
   requireBadge?: string;
   /** a view must carry a titleblock */
   requireTitleblock?: boolean;
+  /** Some declared view carries `about` — the context section above the
+   *  diagram (docs/notes/prose.md), rather than a note stretched to hold it
+   *  or text added to the rendered file. */
+  requireAbout?: boolean;
+  /** Patterns (multiline) the `about` of one view must all match: the
+   *  formatting the prompt asked for came through as prose formatting. */
+  aboutMatches?: string[];
   /** A leaf's schema (docs/notes/fields.md). Each pair is [label pattern, n]:
    *  some leaf labelled like the first declares at least n fields. */
   fields?: [string, number][];
@@ -337,6 +344,13 @@ for (const p of prompts) {
     problems.push(`no node badged \`${e.requireBadge}\``);
   if (e.requireTitleblock && !m.views.some((v) => v.titleblock))
     problems.push("no view carries a titleblock");
+  if ((e.requireAbout || e.aboutMatches) && !m.views.some((v) => !v.auto && v.about))
+    problems.push("no view carries an `about`");
+  else if (e.aboutMatches) {
+    const missing = (v: (typeof m.views)[number]) => e.aboutMatches!.filter((p) => !new RegExp(p, "m").test(v.about ?? ""));
+    const best = m.views.filter((v) => v.about).map(missing).sort((a, b) => a.length - b.length)[0];
+    for (const p of best) problems.push(`\`about\` does not match /${p}/`);
+  }
   if (e.requirePack && !nodes.some((n) => n.icon?.pack === e.requirePack))
     problems.push(`no icon from the \`${e.requirePack}\` pack`);
   for (const anyOf of e.icons ?? [])

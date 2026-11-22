@@ -876,5 +876,23 @@
       "forbidFields": true,
       "forbidMarks": true
     }
+  },
+  {
+    "id": "42-context",
+    "prompt": "Draw our order-processing system for an architecture review: customers place orders through a web storefront, which calls an Orders API on Lambda; the API writes to a DynamoDB table and publishes an OrderPlaced event to an SQS queue that a fulfilment worker consumes, and the worker calls our shipping partner's API. Above the diagram I need a context section for the reviewers: a short intro saying this is the current state, before the queue migration, then three bullet points — order writes are synchronous (make that word bold), the migration is tracked in OPS-412 (format the ticket id as code), and a link to the runbook at https://runbooks.example.com/orders. Also put a note on the database saying it is encrypted at rest and keeps 18 months of orders.",
+    "expect": {
+      "minNodes": 5,
+      "requirePerson": true,
+      "requireExternal": true,
+      "minAsync": 1,
+      "minNotes": 1,
+      "requireAbout": true,
+      "aboutMatches": [
+        "^- ",
+        "\\*\\*synchronous\\*\\*",
+        "`OPS-412`",
+        "\\[[^\\]\\n]+\\]\\(https://runbooks\\.example\\.com/orders/?\\)"
+      ]
+    }
   }
 ]
