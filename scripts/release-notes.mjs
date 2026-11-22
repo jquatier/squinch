@@ -5,7 +5,7 @@
 // The release workflow uses this as the GitHub Release notes, and fails the
 // release when the section is missing — cutting a release *requires* writing
 // what changed, which is the point of keeping a changelog at all. It fails too
-// when a screenshot in the section (scripts/release-shots.mjs) is linked at
+// when a picture in the section (scripts/release-shots.mjs) is linked at
 // another version or names a file the tree does not have: a broken image on
 // the release page is a release that does not show what it shipped.
 import { readFileSync } from "node:fs";

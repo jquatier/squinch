@@ -156,15 +156,16 @@ not the changelog), bumps every workspace manifest together, commits
 `release: <version>`, tags `v<version>`, and pushes branch + tag in one go.
 `--dry-run` shows everything and writes nothing; `--no-edit` accepts the draft.
 
-The draft also carries a **screenshot of every new feature**: each lookbook
-case (`lookbook/cases/`) and example project (`examples/`) added since the last
-tag becomes a picture of its committed light render, linked at the new tag —
-`blob/v<version>/…svg?raw=true` — under a `### Screenshots` heading. Move each
-one beside the feature it shows while editing, or drop it; notes given with
-`--notes` keep any picture they already place and get the rest appended. So a
-feature gets its picture by getting a lookbook case. The release stops before
-tagging, and the workflow refuses the notes, if a picture is linked at another
-version or names a file the tree does not have (`scripts/release-shots.mjs`).
+The draft also **embeds the SVG of every new feature** where it is announced:
+each lookbook case (`lookbook/cases/`) and example project (`examples/`) added
+since the last tag is embedded — its committed light render, linked at the new
+tag, `blob/v<version>/…svg?raw=true` — under the commit that added it, indented
+into that bullet so it stays with the feature as the draft is rewritten into
+prose. Notes given with `--notes` are placed by their author: the command names
+any new feature they show no picture of, with the line to paste. So a feature
+gets its picture by getting a lookbook case. The release stops before tagging,
+and the workflow refuses the notes, if a picture is linked at another version or
+names a file the tree does not have (`scripts/release-shots.mjs`).
 
 From there [release.yml](.github/workflows/release.yml) builds the VSIX from
 the tagged commit, re-runs the whole suite as its own gate, publishes the

@@ -6,11 +6,11 @@
 //   pnpm release 0.1.0 --notes "Initial release."   # your notes, no editor
 //   pnpm release --dry-run      # show everything, write nothing
 //
-// It drafts the CHANGELOG section from the commits since the last tag, with a
-// screenshot of every lookbook case and example project added since then
-// (scripts/release-shots.mjs), opens it in $EDITOR to be trimmed into
-// something a reader deserves — each picture moved beside the feature it
-// shows — bumps every
+// It drafts the CHANGELOG section from the commits since the last tag, the SVG
+// of every lookbook case and example project added since then embedded under
+// the commit that added it (scripts/release-shots.mjs), opens it in $EDITOR to
+// be trimmed into something a reader deserves — the pictures stay with the
+// features they show — bumps every
 // workspace manifest via scripts/version.mjs, commits, tags vX.Y.Z, and pushes
 // branch + tag together. From there .github/workflows/release.yml builds the
 // VSIX from that exact commit, re-runs the suite, publishes the GitHub
@@ -102,22 +102,33 @@ if (subjects.length === 0) fail(`nothing to release — no commits since ${lastT
 
 const today = new Date().toISOString().slice(0, 10);
 const heading = `## ${version} — ${today}`;
-let body = givenNotes ?? subjects.map((c) => `- ${c.subject} (${c.sha})`).join("\n");
-
 // Pictures of what is new: added files only, renames not counted as additions
-// so a moved case does not reappear. Notes given with --notes keep their own
-// placement of any picture they already show; the rest are appended.
+// so a moved case does not reappear. Each is embedded under the commit that
+// added its case or example — the line announcing the feature — indented into
+// that bullet so it stays with it when the draft is rewritten into prose.
 const added = lastTag
   ? git("diff", "--name-only", "--no-renames", "--diff-filter=A", `${lastTag}..HEAD`, "--", "lookbook/cases", "examples").split("\n").filter(Boolean)
   : [];
-const shots = screenshots(root, added).filter((s) => !body.includes(s.path));
-if (shots.length) {
-  const repo = repoUrl(root);
-  body += `\n\n### Screenshots\n\n${shots.map((s) => shotMarkdown(repo, version, s)).join("\n\n")}`;
+const repo = repoUrl(root);
+const shots = screenshots(root, added);
+const addedBy = (file) => git("log", "--format=%h", "--no-renames", "--diff-filter=A", range, "--", file).split("\n")[0];
+const pictured = new Map();
+for (const s of shots) {
+  const sha = addedBy(s.source);
+  const at = subjects.find((c) => sha && (c.sha.startsWith(sha) || sha.startsWith(c.sha))) ?? subjects[0];
+  pictured.set(at, [...(pictured.get(at) ?? []), shotMarkdown(repo, version, s)]);
 }
+let body = givenNotes ??
+  subjects.map((c) => `- ${c.subject} (${c.sha})` + (pictured.get(c) ?? []).map((md) => `\n\n  ${md}\n`).join("")).join("\n");
+// Notes given whole are placed by their author: name what they show no picture
+// of, with the line to paste, rather than gather pictures at the end of them.
+const unshown = givenNotes ? shots.filter((s) => !body.includes(s.path)) : [];
 
 console.log(`\n${subjects.length} commit(s) since ${lastTag ?? "the beginning"}` +
-  (shots.length ? `, ${shots.length} screenshot(s) of what is new.\n` : ".\n"));
+  (shots.length ? `, ${shots.length} picture(s) of what is new.\n` : ".\n"));
+if (unshown.length)
+  console.log(`your notes show no picture of ${unshown.length} new feature(s) — paste each where the notes talk about it:\n` +
+    unshown.map((s) => `  ${s.title}: ${shotMarkdown(repo, version, s)}`).join("\n") + "\n");
 
 // ── edit ────────────────────────────────────────────────────────────────────
 if (!givenNotes && !noEdit && process.stdout.isTTY) {

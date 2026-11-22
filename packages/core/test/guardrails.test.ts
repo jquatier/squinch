@@ -413,10 +413,11 @@ describe("the workspace ships one version", () => {
     expect(wf, "release.yml must not carry an npm token — OIDC only").not.toMatch(/NPM_TOKEN|NODE_AUTH_TOKEN/);
   });
 
-  it("the release notes picture every new lookbook case and example, and only at their own tag", async () => {
+  it("the release notes embed every new lookbook case and example, and only at their own tag", async () => {
     // A release shows what it adds (scripts/release-shots.mjs): each new case
-    // or example becomes a picture linked at the new tag, and the workflow's
-    // notes step refuses a picture at another version or of a missing file.
+    // or example is embedded as its SVG, linked at the new tag, under the
+    // commit that added it; the workflow's notes step refuses a picture at
+    // another version or of a missing file.
     const { screenshots, shotMarkdown, shotProblems, repoUrl } = await import(join(root, "scripts/release-shots.mjs"));
     const cases = readdirSync(join(root, "lookbook/cases")).filter((f) => f.endsWith(".squinch"));
     const examples = readdirSync(join(root, "examples")).filter((d) => existsSync(join(root, "examples", d)) && statSync(join(root, "examples", d)).isDirectory());
@@ -425,9 +426,9 @@ describe("the workspace ships one version", () => {
     // one picture per light render of each new case and example, nothing for other files
     const lights = (dir: string, prefix: string) => readdirSync(join(root, dir)).filter((f) => f.startsWith(prefix) && f.endsWith(".light.svg")).length;
     expect(shots.length).toBe(lights("lookbook/out", cases[cases.length - 1].replace(/\.squinch$/, ".")) + examples.reduce((n, d) => n + lights(`examples/${d}`, ""), 0));
-    for (const s of shots) expect(s.alt.length, s.path).toBeGreaterThan(0);
+    for (const s of shots) { expect(s.alt.length, s.path).toBeGreaterThan(0); expect(added).toContain(s.source); }
     const md = shots.map((s: unknown) => shotMarkdown(repoUrl(root), "9.9.9", s)).join("\n\n");
-    expect(md).toContain(`https://github.com/jquatier/squinch/blob/v9.9.9/${shots[0].path}?raw=true`);
+    expect(md.split("\n\n")[0]).toBe(`![${shots[0].alt}](https://github.com/jquatier/squinch/blob/v9.9.9/${shots[0].path}?raw=true)`);
     expect(shotProblems(root, "9.9.9", md)).toEqual([]);
     expect(shotProblems(root, "9.9.8", md)[0]).toMatch(/is linked at v9\.9\.9, not v9\.9\.8$/);
     expect(shotProblems(root, "9.9.9", "![x](https://github.com/o/r/blob/v9.9.9/lookbook/out/nope.svg?raw=true)")).toEqual(["lookbook/out/nope.svg does not exist"]);
