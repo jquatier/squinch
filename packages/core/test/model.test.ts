@@ -629,9 +629,39 @@ describe("a chained edge (round 24)", () => {
     expect(errs[0].fix).toBe("write `a -> b`, `b ~> c` on their own lines; a `flow` is where hops chain");
   });
 
+  it("says the same, and only that, for a long chain — and draws none of it (round 36)", () => {
+    // Four hops or more sent the parser's recovery into a brace-less attr block
+    // that swallowed the next line: four "`fields` on an edge" errors, a lost
+    // view, and the true error sixth. The grammar now parses the chain.
+    const ids = ["a", "b", "c", "d", "e", "f"];
+    const r = buildModel(ids.map((i) => `${i} = box "${i}"`).join("\n") + `\na -> b -> c -> d -> e -> f "label"\nview v { include * }\n`);
+    expect(r.diagnostics.map((d) => d.message)).toEqual(["edges do not chain — `a -> b -> c -> d -> e -> f` is one statement per hop"]);
+    expect(r.model.edges).toEqual([]);
+    expect(r.model.views.map((v) => v.name)).toContain("v");
+  });
+
   it("leaves a flow's chain alone", () => {
     const r = buildModel(`pack aws\na = aws/lambda "A"\nb = aws/lambda "B"\nc = aws/lambda "C"\na -> b\nb -> c\nflow f "F" {\n  a -> b -> c\n}\n`);
     expect(r.diagnostics.filter((d) => d.severity === "error")).toEqual([]);
+  });
+});
+
+describe("two statements on one line (round 36)", () => {
+  // `view db { title "Schema"  scope shop.db }` — a short view written on one
+  // line; statements end at a newline or `;`, and the bare syntax error said
+  // nothing about why.
+  it("names the second statement and both ways to write it", () => {
+    const r = buildModel(`system shop "Shop" {\n  api = box "API"\n}\nview v { title "Schema"  scope shop }\n`);
+    expect(r.diagnostics.map((d) => [d.message, d.fix])).toEqual([[
+      "`scope` starts a second statement on this line — statements end at a newline or `;`",
+      'put `scope shop` on a line of its own, or write `title "Schema"; scope shop`',
+    ]]);
+  });
+  it("is not said where the statement stands first, or where `;` already separates", () => {
+    expect(buildModel(`system shop "Shop" {\n  api = box "API"\n}\nview v { title "Schema"; scope shop }\n`).diagnostics).toEqual([]);
+    // a word that starts no statement is a plain syntax error
+    const r = buildModel(`system shop "Shop" {\n  api = box "API"\n}\nview v { title "Schema" bogus }\n`);
+    expect(r.diagnostics.map((d) => d.message)).toEqual([expect.stringMatching(/^syntax error near/)]);
   });
 });
 

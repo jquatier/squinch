@@ -10,7 +10,7 @@ cache = aws/elasticache "ElastiCache" datastore
 user -> alb "requests"
 alb -> app
 app -> db "reads/writes"
-app -> cache "reads/writes"
+app -> cache "caches"
 
 view landscape {
   title "Three-Tier Web App"

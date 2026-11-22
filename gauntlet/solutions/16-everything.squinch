@@ -1,8 +1,11 @@
 pack aws
 
 person customer "Customer"
-store = aws/cloudfront "Storefront"
+cdn = aws/cloudfront "CloudFront"
+storefront = box "Storefront"
 gw = aws/api-gateway "API Gateway"
+bus = aws/eventbridge "EventBridge"
+worker = sys/cog "Fulfilment Worker"
 
 system catalog "Catalog" {
   description: "Product catalog service"
@@ -24,18 +27,16 @@ system payments "Payments" {
   fn -> db
 }
 
-bus = aws/eventbridge "EventBridge"
-worker = sys/cog "Fulfilment Worker"
-
-customer -> store "browses"
-store -> gw
+customer -> cdn "browses"
+cdn -> storefront
+storefront -> gw "calls"
 gw -> catalog.fn
 gw -> orders.fn
 gw -> payments.fn { tags: #sensitive }
 orders.fn ~> bus "order events"
 bus ~> worker "consumes"
 
-zone prod_vpc "Production VPC" vpc {
+zone prod "Production VPC" vpc {
   contains gw, catalog, orders, payments, bus, worker
 }
 

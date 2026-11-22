@@ -5,20 +5,22 @@ auth   = sys/key-round "Auth Service"
 ledger = logos/postgres "Ledger" datastore {
   subtitle: "Postgres"
 }
-worker = sys/cog "Settlement Worker"
+settle = sys/clock "Settlement Worker" {
+  subtitle: "Nightly batch"
+}
 bank   = box "Bank" external
 
 gw -> auth
 gw -> ledger
-worker -> ledger "reads"
-worker ~> bank "nightly batch"
+settle -> ledger "reads"
+settle ~> bank "overnight batch"
 
 view landscape {
   title "Payments Architecture"
   include *
   titleblock {
     version: "2.1"
-    owner: "Payments team"
     date: "2026 Q4"
+    owner: "Payments team"
   }
 }

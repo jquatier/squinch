@@ -1,15 +1,18 @@
+pack aws
+pack logos
+
 person customer "Customer"
 person data_team "Data Team"
 
 mobile  = sys/smartphone "Mobile App"
 website = sys/globe "Website"
-gw      = sys/router "Gateway"
+gw      = sys/network "Gateway"
 account = sys/server "Account Service"
 billing = sys/server "Billing Service"
-main_db = logos/postgres "Main Postgres" datastore
-bill_db = logos/postgres "Billing Database" datastore
+pg      = logos/postgres "Main Postgres" datastore
+billdb  = sys/database "Billing Database" datastore
 stripe  = logos/stripe "Stripe" external
-export  = aws/s3 "Nightly Export" datastore
+export  = aws/s3 "Nightly Export" datastore { subtitle: "S3" }
 
 customer -> mobile
 customer -> website
@@ -17,11 +20,11 @@ mobile -> gw
 website -> gw
 gw -> account
 gw -> billing
-account -> main_db "writes"
-billing -> bill_db
+account -> pg "writes"
+billing -> billdb
 billing -> stripe
-main_db ~> export "nightly export"
-export ~> data_team
+pg ~> export "nightly export"
+data_team -> export "reads"
 
 view landscape {
   title "Platform Overview"

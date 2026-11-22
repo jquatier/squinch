@@ -1,11 +1,11 @@
 pack aws
 
-gw     = aws/api-gateway "API Gateway"
-cart   = aws/lambda "Cart" { subtitle: "Lambda" }
-pay    = aws/lambda "Payment" { subtitle: "Lambda" }
-db     = aws/dynamodb "DynamoDB" datastore
-queue  = aws/sqs "SQS Queue"
-worker = sys/cog "Fulfilment Worker"
+gw      = aws/api-gateway "API Gateway"
+cart    = aws/lambda "Cart" { subtitle: "Lambda" }
+pay     = aws/lambda "Payment" { subtitle: "Lambda" }
+db      = aws/dynamodb "DynamoDB" datastore
+queue   = aws/sqs "Fulfilment Queue"
+worker  = sys/cog "Fulfilment Worker"
 
 gw -> cart
 cart -> pay
@@ -13,15 +13,14 @@ pay -> db "writes"
 pay ~> queue "publishes"
 queue ~> worker "drains"
 
-flow checkout "Checkout" {
-  gw -> cart
-  cart -> pay
+flow checkout "Checkout journey" {
+  gw -> cart -> pay
   pay -> db
   pay ~> queue
   queue ~> worker
 }
 
-view checkout {
+view landscape {
   title "Checkout path"
   include *
   show flow checkout

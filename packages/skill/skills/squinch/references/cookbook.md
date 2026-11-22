@@ -96,6 +96,7 @@ themselves.
 
 | Symptom | Fix |
 |---|---|
+| "`scope` starts a second statement on this line — statements end at a newline or `;`" error | Statements end at a newline or `;`. A short view on one line needs the `;`: `view db { title "Schema"; scope shop.db }` — or one statement per line |
 | "view `v` has nothing to draw" warning | Everything got filtered out. Check `scope` (a leaf has no insides — scope a system, not a node), then `include`/`only`/`exclude`. An empty `system x { }` does this too: make it a node instead |
 | Too many boxes at once | Group into `system`s by area and let the landscape show their cards — see "When the system is big". Splitting into views alone does not help while everything is still top-level |
 | Everything open on one page, no clicking into containers | `view full { expand * }` — every container becomes a nested frame, every edge shows natively |

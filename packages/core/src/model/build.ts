@@ -439,6 +439,28 @@ export function buildProject(input: ProjectFile[]): BuildResult {
     });
     const inFields = (at: number) => fieldSpans.some(([a, b]) => at >= a && at < b);
     if (sawSyntaxError) {
+      // Two statements on one line: `view db { title "Schema"  scope shop.db }`.
+      // Statements end at a newline or `;`, so the second keyword is garbage
+      // to the parser — and agents write a short view on one line (round 36).
+      // Whitespace cannot be the separator: after a label, a word may be a
+      // kind (`datastore`) as well as the next statement.
+      const STATEMENTS = new Set([
+        "title", "theme", "scope", "only", "include", "exclude", "detail", "expand", "preview", "context",
+        "highlight", "color", "show", "legend", "titleblock", "about", "note", "layout",
+        "direction", "lines", "density", "rows", "cols", "place", "align", "route", "channel", "wrap",
+        "pack", "person", "system", "container", "zone", "flow", "view",
+      ]);
+      for (const d of diagnostics.filter((x) => x.file === ctx.name && x.message.startsWith("syntax error near"))) {
+        const rest = f.src.slice(d.loc.from), lineStart = f.src.lastIndexOf("\n", d.loc.from - 1) + 1;
+        const m = /^[ \t]*([a-z-]+)\b([^\n};]*)/.exec(rest);
+        const before = f.src.slice(lineStart, d.loc.from).trimEnd();
+        if (!m || !STATEMENTS.has(m[1]) || !before || /[{;]$/.test(before)) continue;
+        const second = `${m[1]}${m[2]}`.trim(), first = before.replace(/^.*\{\s*/, "");
+        diagnostics.splice(diagnostics.indexOf(d), 1);
+        error(ctx, ctx.loc({ from: d.loc.from, to: d.loc.from + m[0].length } as SyntaxNode),
+          `\`${m[1]}\` starts a second statement on this line — statements end at a newline or \`;\``,
+          `put \`${second}\` on a line of its own, or write \`${first}; ${second}\``);
+      }
       // An opening brace on its own line. The C#/Java habit; statements end
       // at newline, so `system s "S"` terminates and the lone `{` is noise.
       for (const m of f.src.matchAll(/^([ \t]*(?:system|container|zone|view|flow)\b[^{\n]*?)[ \t]*\n[ \t]*\{/gm)) {
@@ -470,25 +492,6 @@ export function buildProject(input: ProjectFile[]): BuildResult {
           const d = diagnostics[i];
           if (d.file === ctx.name && d.message.startsWith("syntax error near")
               && d.loc.from >= m.index! && d.loc.from <= at + 1)
-            diagnostics.splice(i, 1);
-        }
-      }
-      // Chains. A `flow` chains hops (`a -> b -> c`), and two round-24 agents
-      // wrote a pipeline the same way as edges; the second arrow is garbage to
-      // the parser and the bare syntax error said nothing about why.
-      for (const m of f.src.matchAll(/^[ \t]*([\w.]+)[ \t]*(->|~>|<->|--)[ \t]*([\w.]+)((?:[ \t]*(?:->|~>|<->|--)[ \t]*[\w.]+)+)/gm)) {
-        if (strings.some(([a2, b2]) => m.index! >= a2 && m.index! < b2) || inFields(m.index!)) continue;
-        if ([...tree.topNode.getChildren("Flow")].some((n) => m.index! >= n.from && m.index! < n.to)) continue;
-        const hops = [m[1], m[3], ...[...m[4].matchAll(/[\w.]+/g)].map((x) => x[0])];
-        const arrows = [m[2], ...[...m[4].matchAll(/->|~>|<->|--/g)].map((x) => x[0])];
-        const lines = hops.slice(0, -1).map((h, i) => `\`${h} ${arrows[i]} ${hops[i + 1]}\``);
-        error(ctx, ctx.loc({ from: m.index!, to: m.index! + m[0].length } as SyntaxNode),
-          `edges do not chain — \`${m[0].trim()}\` is one statement per hop`,
-          `write ${lines.join(", ")} on their own lines; a \`flow\` is where hops chain`);
-        for (let i = diagnostics.length - 1; i >= 0; i--) {
-          const d = diagnostics[i];
-          if (d.file === ctx.name && d.message.startsWith("syntax error near")
-              && d.loc.from >= m.index! && d.loc.from <= m.index! + m[0].length)
             diagnostics.splice(i, 1);
         }
       }
@@ -1276,6 +1279,21 @@ export function buildProject(input: ProjectFile[]): BuildResult {
     const pathNode = node.getChild("Path");
     const arrowNode = node.getChild("Arrow");
     if (!pathNode || !arrowNode) continue; // partial node from error recovery
+    // Chains. A `flow` chains hops (`a -> b -> c`), and agents write a
+    // pipeline the same way as edges (rounds 24 and 36). The grammar parses
+    // the chain so its recovery cannot run wild; the statement is refused
+    // whole — drawing its first hop would half-honour it — with the lines to
+    // write instead.
+    const arrows = node.getChildren("Arrow");
+    if (arrows.length > 1) {
+      const hops = node.getChildren("PathList").map((l) => ctx.text(l));
+      const kinds = arrows.map((a) => ctx.text(a));
+      const lines = [ctx.text(pathNode), ...hops].slice(0, -1).map((h, i) => `\`${h} ${kinds[i]} ${hops[i]}\``);
+      const chain = [ctx.text(pathNode), ...hops.flatMap((h, i) => [kinds[i], h])].join(" ");
+      error(ctx, node, `edges do not chain — \`${chain}\` is one statement per hop`,
+        `write ${lines.join(", ")} on their own lines; a \`flow\` is where hops chain`);
+      continue;
+    }
     const fromPath = resolve(ctx.text(pathNode), scope, node, ctx);
     const arrow = ctx.text(arrowNode) as ArrowKind;
     const labelNode = node.getChild("String");

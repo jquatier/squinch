@@ -235,9 +235,16 @@ visibility/lifting → layout → themed SVG), the CLI (check/render/diff/icons/
 init/watch + sync/check model + Actions), the SPA playground, the VS Code
 extension + language server, six icon packs, and the light/dark pair. The acceptance
 bar — an agent producing clean diagrams from prose using only the skill + CLI —
-is certified at **41/41
+is certified at **42/42
 by independent cold agents** on the committed corpus; the latest full round scored
-39/40 with **29/40 answered in one `check` call** (round 35, the first with
+41/42 with **31/42 answered in one `check` call** (round 36, the first with
+`about` and formatted prose: prompt 42 asks for a context section above the
+diagram without naming the feature, and its agent wrote a formatted `about` in
+one call; the round's two engine findings — a chain of four hops or more
+cascading into "`fields` on an edge" errors, and two view statements on one
+line getting a bare syntax error — are fixed, the first by parsing the chain;
+the miss, 20, drew a sync job as an edge and passed two of three re-runs;
+round 35 before it, 39/40 and 29/40, the first with
 relationship marks: the new schema prompt put every mark on the right end and
 the two table prompts that give no counts drew none — prompt 41, added after
 it, is the clean control, tables with nothing said between them; the one

@@ -2,12 +2,13 @@ pack aws
 pack logos
 
 system booking "Clinic Booking" {
+  description: "Booking API and its database"
   api = aws/ecs "Booking API" {
     subtitle: "ECS"
   }
-  container db "Clinic DB" {
+  container db "Postgres" {
     icon: logos/postgres
-    description: "Postgres · 5 tables"
+    description: "5 tables"
     patients     = sys/table "patients" datastore
     doctors      = sys/table "doctors" datastore
     appointments = sys/table "appointments" datastore
@@ -15,10 +16,10 @@ system booking "Clinic Booking" {
     specialties  = sys/table "specialties" datastore
 
     appointments -> patients "patient_id" { from: zero-or-many to: exactly-one }
-    appointments -> doctors  "doctor_id"  { from: many to: exactly-one }
-    appointments -> clinics  "clinic_id"  { from: many to: zero-or-one }
-    doctors      -> clinics  "clinic_id"  { from: many to: one }
-    doctors      -- specialties           { from: many to: many }
+    appointments -> doctors  "doctor_id"  { from: many         to: exactly-one }
+    appointments -> clinics  "clinic_id"  { from: many         to: zero-or-one }
+    doctors      -> clinics  "clinic_id"  { from: many         to: one }
+    doctors      -- specialties           { from: many         to: many }
   }
   api -> db.appointments "reads, writes"
 }

@@ -1,8 +1,6 @@
 pack aws
 
-gw = aws/api-gateway "API Gateway" {
-  description: "Single entry point for all services"
-}
+gw = aws/api-gateway "API Gateway"
 
 system catalog "Catalog" {
   description: "Product listings and search"

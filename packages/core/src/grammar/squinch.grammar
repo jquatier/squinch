@@ -85,7 +85,12 @@ IconRef { Ident "/" Ident }
 // `handler -> db #sensitive` twice in one file, having been given positional
 // tags on nodes the round before — the generalisation is the obvious one, and
 // refusing it here would make the rule "positional tags, except on edges".
-EdgeStmt { Path Arrow PathList String? (AttrBlock | Tag)* }
+// `(Arrow PathList)*`: edges do not chain — a `flow` does — but agents write
+// `a -> b -> c -> d -> e` for a pipeline, and as garbage it sent the parser's
+// recovery into a brace-less attr block that swallowed the next line: four
+// "`fields` on an edge" errors, a lost view, and the one true error sixth
+// (round 36). Parsed, it is a statement the model refuses in one error.
+EdgeStmt { Path Arrow PathList (Arrow PathList)* String? (AttrBlock | Tag)* }
 PathList { Path ("," Path)* }
 Path { Ident ("." Ident)* }
 

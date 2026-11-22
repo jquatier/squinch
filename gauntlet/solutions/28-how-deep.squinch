@@ -1,43 +1,43 @@
 system orders "Orders" {
-  description: "Takes and tracks customer orders"
+  description: "Order lifecycle, from placement to completion"
+  icon: sys/package-check
   preview: [api workflow store]
-  api      = sys/webhook  "Orders API" { subtitle: "entry point" }
-  workflow = sys/workflow "Order Workflow" { subtitle: "order lifecycle" }
-  validate = sys/shield-check "Validation" { subtitle: "checks an order" }
+  api      = sys/app-window "Orders API" { subtitle: "Entry point" }
+  workflow = sys/workflow "Order Workflow" { subtitle: "Order state changes" }
+  worker   = sys/cog "Order Worker" { subtitle: "Background jobs" }
   store    = sys/database "Orders Store" datastore
-  events   = sys/radio-tower "Order Events" { subtitle: "published changes" }
-  api -> validate
   api -> workflow
   workflow -> store
-  workflow ~> events "order changes"
+  workflow ~> worker "async jobs"
+  worker -> store
+  layout { rows [api] [workflow] [worker store] }
 }
-
 system inventory "Inventory" {
-  description: "Tracks stock levels"
-  preview: [api stock]
-  api   = sys/webhook "Inventory API"
-  stock = sys/database "Stock Store" datastore
-  api -> stock
+  description: "Stock levels and reservations"
+  icon: sys/warehouse
+  api   = sys/app-window "Inventory API"
+  logic = sys/cog "Stock Logic"
+  store = sys/database "Inventory Store" datastore
+  api -> logic
+  logic -> store
 }
-
 system notifications "Notifications" {
-  description: "Tells customers about their orders"
-  preview: [worker sender]
-  worker = sys/cog "Notification Worker"
-  sender = sys/send "Sender"
-  worker -> sender
+  description: "Messages sent to customers"
+  icon: sys/radio-tower
+  intake = sys/webhook "Event Intake"
+  sender = sys/cog "Sender"
+  queue  = sys/archive "Outbox" datastore
+  intake ~> queue
+  queue ~> sender
 }
-
-orders.workflow -> inventory.api "reserves stock"
-orders.events ~> notifications.worker "order events"
+orders.workflow -> inventory.api "reserve stock"
+orders.workflow ~> notifications.intake "order events"
 
 view landscape {
   title "Order Platform"
   include *
-  preview *
+  preview orders
 }
-
 view orders {
   title "Orders — how it is put together"
-  scope orders
 }

@@ -7,22 +7,18 @@ ctrl = sys/cpu "Local Controller"
 sorter = sys/cog "Conveyor Sorter"
 printer = sys/printer "Label Printer"
 board = sys/monitor "Status Board"
-erp = sys/database "ERP" external
+erp = box "ERP" external
 
-scan1 -> ctrl "scans"
-scan2 -> ctrl "scans"
-scan3 -> ctrl "scans"
+scan1 ~> ctrl "scans"
+scan2 ~> ctrl "scans"
+scan3 ~> ctrl "scans"
 ctrl -> sorter "drives"
 ctrl -> printer "drives"
-ctrl -> erp "syncs once a minute" { style: dotted }
+ctrl -> erp "syncs every minute" { animate: pulse }
 ctrl -> board "status"
 supervisor -> board "watches"
 
-zone site "Warehouse Site" onprem {
-  contains scan1, scan2, scan3, ctrl, sorter, printer, board
-}
-
-view landscape {
+view floor {
   title "Warehouse Floor"
   include *
 }

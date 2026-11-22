@@ -1,26 +1,33 @@
-exchange = box "Exchange" external
-clearing = box "Clearing House" external
+exchange = sys/building-2 "Exchange" external
+clearing = sys/building-2 "Clearing House" external
 
-feed    = sys/radio-tower "Feed Handler" { subtitle: "ingest + normalise" }
-pricing = sys/cpu "Pricing Engine"
-ui      = sys/app-window "Trading UI"
-risk    = sys/shield-check "Risk Service"
-recon   = sys/clock "Reconciliation Batch" { subtitle: "nightly" }
+system md "Market Data Path" {
+  feed    = sys/radio-tower "Feed Handler" { subtitle: "ingest + normalise" }
+  pricing = sys/cpu "Pricing Engine"
+  ui      = sys/monitor "Trading UI"
+  risk    = sys/shield-check "Risk Service"
+  batch   = sys/clock "Reconciliation Batch" { subtitle: "nightly" }
 
-exchange ~> feed "price stream" { color: blue, animate: packets, tags: #continuous }
-feed ~> pricing "ticks" { color: blue, animate: packets, tags: #continuous }
-pricing ~> ui "tick subscription" { color: blue, animate: packets, tags: #continuous }
-risk -> pricing "health poll, every few seconds" { color: violet, animate: pulse, tags: #poll }
-recon -> clearing "reconcile day's fills, overnight" { color: amber, style: dotted, tags: #nightly }
+  feed ~> pricing "ticks" { tags: #continuous }
+  pricing ~> ui "subscription" { tags: #continuous }
+  risk -> pricing "health poll" { tags: #poll  style: dotted  animate: pulse }
+  layout { rows [feed] [pricing] [ui risk] [batch] }
+}
+
+exchange ~> md.feed "price stream" { tags: #continuous }
+md.batch ~> clearing "fills reconciliation" { tags: #nightly  animate: slow }
 
 view landscape {
   title "Market Data Path"
   include *
+  expand md
   color #continuous blue
-  color #poll violet
   color #nightly amber
+  color #poll violet
   legend auto
-  layout {
-    rows [exchange recon] [feed clearing] [pricing] [ui risk]
-  }
+  about """
+  - **Continuous**: live stream, ticks and subscription
+  - **Nightly**: overnight fills reconciliation
+  - **Poll**: risk checks pricing health every few seconds
+  """
 }

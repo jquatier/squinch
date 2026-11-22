@@ -1,14 +1,14 @@
 # The gauntlet (end-to-end acceptance)
 
-Forty-one architecture prompts — forty in prose, and one that hands
+Forty-two architecture prompts — forty-one in prose, and one that hands
 the agent a real repository. An agent, armed with only
 [`packages/skill/skills/squinch/SKILL.md`](../packages/skill/skills/squinch/SKILL.md) and the `squinch` CLI,
 must produce a clean diagram for each. **v1 ships at ≥ 16/20 with zero human
 layout fixes** (the original ≥ 8/10 bar, at the current prompt count).
 
-> **Current standing: the committed corpus scores 41/41 on the deep scorer; the
-> latest round itself — the first with relationship marks — scored 39/40, with
-> 29 of 40 answered in one `check` call.** The
+> **Current standing: the committed corpus scores 42/42 on the deep scorer; the
+> latest round itself — the first with `about` and formatted prose — scored
+> 41/42, with 31 of 42 answered in one `check` call.** The
 > solutions those agents wrote are committed in `solutions/` and re-scored by CI
 > on every push, so the claim is inspectable rather than asserted.
 >
@@ -70,55 +70,48 @@ nothing.
 
 ## Latest round
 
-**Round 35 — 39/40 from the round itself, 40/40 committed; 29 of 40 with one
-`check` call** (2026-11-17, Sonnet). Run after relationship marks went in
-(docs/notes/relationship-marks.md): the skill gained a passage, the scorer
-three expectations (`marks`, `requireMarksShown`, `forbidMarks`), and the set
-one prompt, `40-relationships` — a clinic schema that states a NOT NULL key,
-a nullable key, a many-to-many, a "none or many", and one relationship with no
-optionality at all.
+**Round 36 — 41/42 from the round itself, 42/42 committed; 31 of 42 with one
+`check` call** (2026-11-22, Sonnet). Run after `about`, block strings and
+formatted notes went in (docs/notes/prose.md), with the side-wall routing and
+the payments example since round 35: the skill gained the prose passage and
+cookbook rows for the new `route` warnings, the scorer two expectations
+(`requireAbout`, `aboutMatches`), and the set one prompt, `42-context` — an
+architecture review that wants a context section above the diagram with an
+intro, three bullets, a bold word, a ticket id as code and a runbook link,
+and a note on the database. It is the situation a user hit before `about`
+existed: their agent edited the rendered SVG.
 
-**The marks went on the right ends, with the right words, in both runs.** Both
-answers end at `appointments -> patients { from: zero-or-many to:
-exactly-one }` (the request says "including none" and NOT NULL), `to:
-zero-or-one` for the nullable `clinic_id`, plain `from: many to: one` for the
-relationship whose optionality is not stated, and `doctors -- specialties {
-from: many to: many }` with no invented join table. The pilot got there in
-one `check` call. The round's session first wrote `from: many` for patients,
-checked clean, then changed it to `zero-or-many` on re-reading the request
-and checked again — a second call after an edit to a mark, not a diagnostic.
-No mark diagnostic fired in any session, and no label repeated the
-cardinality, the habit the placement probe showed when the CLI drew nothing.
-Two sessions is what this rests on: the pilot and the round, one model.
+**42 was clean in one call.** The prompt never names the feature; the agent
+wrote an `about` block string with the intro, `- ` bullets, `**synchronous**`,
+`` `OPS-412` `` and `[orders runbook](https://…)`, and put the database fact
+in a note. No prose diagnostic fired in any session, and no agent touched a
+rendered file.
 
-**The negative controls, and what a re-run changed.** 36 names tables and
-says which belongs to which, with no counts; it drew no mark in the pilot or
-the round. 37's two tables are unrelated, so it could hardly fail. No other
-prompt's answer carries a mark. A re-run of the four table prompts after the
-round then had 36's agent write `{ from: many to: one }` on all four
-"belongs to" edges — plain words, no guessed ring. That is a fair reading of
-"belongs to", and the plain words exist for it, so 36 now forbids only the
-four words that state optionality (`forbidOptionality`). The clean control is
-a new prompt, `41-tables-no-relationships`: four tables that two jobs read
-and write, with nothing said between the tables. Three cold runs drew no
-mark on it; its committed answer is the last of them.
+**Two first failures were the engine's messages, and both are fixed.**
 
-**One prompt failed, and it is not about marks.** 28 (`how-deep`) scoped a
-view to `orders` that showed as many elements as its landscape, so "no view
-narrows the picture". Three re-runs passed three times; the committed answer
-is the last of them. It passed in round 34 and nothing in its path changed,
-so it is recorded as variance, not fixed.
+- **A long chain** — `extract -> validate -> … -> notify`, fourteen hops (32).
+  Up to three hops drew the right error; from four, the parser's recovery
+  read the tail as a brace-less attr block that swallowed the next line, and
+  the agent got four "`fields` on an edge" errors, a lost view and the true
+  error sixth. Round 35 saw the same cascade on this prompt and set it aside.
+  The grammar now parses a chain, and the model refuses it in one error that
+  lists every hop to write.
+- **Two statements on one line** — `view db { title "Postgres schema"  scope
+  checkout.db }` (39), three views written that way. It was a bare syntax
+  error; it now says that `scope` starts a second statement and writes the
+  line both ways (own line, or `;`). Whitespace cannot be the separator:
+  after a label a word may be a kind as well as the next statement.
 
-**Five first failures, fixed from their diagnostics**: a fan-in written
-`c1, c2 … -> norm` (26), chained edges (32), a fan-out list inside a
-`channel` (33), `preview:` naming a grandchild (34), `scope` on a leaf (39).
-All five are the classes round 34 already listed. 32's chained edges were
-followed by a one-line `layout { wrap 4 }`, and that pair cascaded into
-twelve errors before the agent fixed it in one step — worth a look, and not
-this round's change. 39 took three failing calls, two of them on the agent's
-own truncated edit. Six more prompts ran `check` again with nothing to fix
-or on a warning (22 and 31 three times).
+The third first failure, a fan-in `c1, c2 … -> norm` (26), already had a
+diagnostic that writes the six lines, and the agent fixed it from that.
+Eight more prompts ran `check` a second time after an edit with nothing to
+fix.
 
-No agent read outside its sandbox; one opened the cookbook, one the icon
-list. The corpus in `solutions/` is this round's answers for all forty
-of its prompts, plus 41's from the runs after it.
+**One prompt failed, and it is modelling, not the tool.** 20 drew the nightly
+sync job as an asynchronous edge rather than a node, so it had four nodes to
+the scorer's five. Three re-runs: one the same, two with the job as a node;
+the committed answer is the last of them.
+
+No agent read outside its sandbox; none opened the cookbook, two the icon
+list. The corpus in `solutions/` is this round's answers for all forty-two
+prompts, 20's from its last re-run.

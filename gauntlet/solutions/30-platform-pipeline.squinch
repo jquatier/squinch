@@ -1,37 +1,35 @@
 pack aws
 
 stream = aws/kinesis "Event Stream" external
+warehouse = aws/redshift "Warehouse" datastore external
 
 system platform "Data Platform" {
   description: "Ingestion pipeline and catalog"
-
-  system pipeline "Ingestion Pipeline" {
-    extract  = sys/code "Extract"
-    validate = sys/code "Validate"
-    enrich   = sys/code "Enrich"
-    publish  = sys/code "Publish"
-    extract -> validate
-    validate -> enrich
-    enrich -> publish
-    layout { direction right }
-  }
-
-  catalog = sys/book-open "Catalog"
-  pipeline.enrich -> catalog "lookups"
+  icon: sys/workflow
+  extract  = sys/cog "Extract"
+  validate = sys/shield-check "Validate"
+  enrich   = sys/cog "Enrich"
+  publish  = sys/share-2 "Publish"
+  catalog  = sys/book-open "Catalog"
+  extract -> validate
+  validate -> enrich
+  enrich -> publish
+  enrich -> catalog "looks up"
+  layout { direction right
+    place catalog below enrich }
 }
 
-warehouse = aws/redshift "Warehouse" external datastore
-
-stream ~> platform.pipeline.extract "events"
-platform.pipeline.publish -> warehouse "writes"
+stream ~> platform.extract "events"
+platform.publish -> warehouse "writes"
 
 view landscape {
   title "System Landscape"
   include *
 }
 
-view platform {
-  title "Data Platform"
-  scope platform
-  expand pipeline
+view detail {
+  title "Platform opened up"
+  include *
+  expand platform
+  layout { rows [stream] [platform] [warehouse] }
 }

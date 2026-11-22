@@ -1,17 +1,16 @@
 pack aws
 
+bucket  = aws/s3          "Upload Bucket"
+fn      = aws/lambda      "Image Processor"
+rek     = aws/rekognition "Rekognition"
+meta    = aws/dynamodb    "Image Metadata" datastore
+topic   = aws/sns         "Notifications"
 person subscribers "Subscribers"
 
-uploads = aws/s3 "Image Bucket"
-labeler = aws/lambda "Labeler"
-rek = aws/rekognition "Rekognition"
-meta = aws/dynamodb "Image Metadata" datastore
-topic = aws/sns "Notifications"
-
-uploads ~> labeler "object created"
-labeler -> rek "detect labels"
-labeler -> meta "write metadata"
-labeler ~> topic "publish"
+bucket ~> fn "object created"
+fn -> rek "detect labels"
+fn -> meta "write metadata"
+fn ~> topic "publish"
 topic ~> subscribers "notify"
 
 view landscape {

@@ -1,22 +1,37 @@
+pack logos
+
 person analyst "Analyst"
 
-kafka = logos/apachekafka "Order Events" external {
-  subtitle: "Kafka · external"
+kafka = logos/kafka "Order Events" external {
+  subtitle: "Kafka · not Databricks"
 }
 
 system dbx "Databricks Lakehouse" {
-  color: red
   description: "Everything inside this frame is Databricks' own"
+  icon: logos/databricks
+
   loader = sys/stream "Auto Loader" { badge: logos/databricks }
-  bronze = sys/table "Bronze Orders" datastore { badge: logos/databricks, subtitle: "Delta table" }
-  job    = sys/workflow "Nightly Merge" { badge: logos/databricks, subtitle: "Workflows job" }
-  silver = sys/table "Silver Customers" datastore { badge: logos/databricks, subtitle: "Delta table" }
+  bronze = sys/table "Bronze Orders" datastore {
+    badge: logos/databricks
+    subtitle: "Delta table"
+  }
+  job    = sys/workflow "Nightly Merge" {
+    badge: logos/databricks
+    subtitle: "Workflows job"
+  }
+  silver = sys/table "Silver Customers" datastore {
+    badge: logos/databricks
+    subtitle: "Delta table"
+  }
   uc     = sys/catalog "Unity Catalog" { badge: logos/databricks }
-  wh     = sys/database "SQL Warehouse" { badge: logos/databricks, subtitle: "Databricks SQL" }
-  vs     = sys/vector-search "Vector Search Index" { badge: logos/databricks }
+  wh     = sys/database "SQL Warehouse" {
+    badge: logos/databricks
+    subtitle: "Databricks SQL"
+  }
+  vs     = sys/waypoints "Vector Search Index" { badge: logos/databricks }
   serve  = sys/model "Model Serving Endpoint" { badge: logos/databricks }
 
-  loader -> bronze "writes"
+  loader -> bronze "lands"
   job -> bronze "reads"
   job -> silver "merges"
   uc -> silver "governs"
@@ -32,4 +47,7 @@ view landscape {
   include *
   expand dbx
   legend auto
+  about """
+  Hatched box = **not Databricks** (Kafka). Everything inside the frame, marked with the Databricks badge, is Databricks' own.
+  """
 }

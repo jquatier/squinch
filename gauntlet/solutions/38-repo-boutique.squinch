@@ -1,54 +1,63 @@
 pack gcp
 pack logos
 
-person shopper "Shopper" {
-  description: "Browses products and checks out in the web UI"
-}
+person shopper "Shopper" { description: "Browses, fills a cart, checks out" }
 
-load = sys/activity "Load Generator" {
-  subtitle: "Python · Locust"
-  description: "Simulated shoppers hitting the frontend"
-}
+loadgen = sys/activity "Load Generator" { subtitle: "Python · Locust" }
 
-zone cluster "Kubernetes cluster" network {
-  contains frontend, ad, cart, checkout, currency, email, payment, catalog, recommend, shipping, assistant, redis, products
-}
+fe = sys/app-window "Frontend" { subtitle: "Go · HTTP"; description: "Serves the website, generates session IDs" }
 
-frontend  = sys/app-window "Frontend" { subtitle: "Go · HTTP :8080" }
-ad        = sys/megaphone "Ad Service" { subtitle: "Java" }
-cart      = sys/shopping-cart "Cart Service" { subtitle: "C#" }
-checkout  = sys/package-check "Checkout Service" { subtitle: "Go" }
-currency  = sys/circle "Currency Service" { subtitle: "Node.js" }
-email     = sys/mail "Email Service" { subtitle: "Python" }
-payment   = sys/credit-card "Payment Service" { subtitle: "Node.js" }
-catalog   = sys/search "Product Catalog Service" { subtitle: "Go" }
-recommend = sys/star "Recommendation Service" { subtitle: "Python" }
-shipping  = sys/truck "Shipping Service" { subtitle: "Go" }
-assistant = sys/cog "Shopping Assistant Service" { subtitle: "Python · Flask" }
+ads      = sys/megaphone "Ad Service" { subtitle: "Java" }
+reco     = sys/sparkles "Recommendation Service" { subtitle: "Python" }
+assist   = sys/bot "Shopping Assistant" { subtitle: "Python · optional" }
+catalog  = sys/book-open "Product Catalog Service" { subtitle: "Go" }
+currency = sys/coins "Currency Service" { subtitle: "Node.js" }
+cart     = sys/shopping-cart "Cart Service" { subtitle: "C#" }
+checkout = sys/package-check "Checkout Service" { subtitle: "Go" }
+shipping = sys/truck "Shipping Service" { subtitle: "Go" }
+payment  = sys/credit-card "Payment Service" { subtitle: "Node.js · mock" }
+email    = sys/mail "Email Service" { subtitle: "Python · mock" }
 
-redis    = logos/redis "redis-cart" datastore { subtitle: "Cart contents" }
-products = sys/file "products.json" datastore { subtitle: "Product catalogue" }
+redis     = logos/redis "Redis (redis-cart)" datastore
+products  = sys/file-json "products.json" datastore { subtitle: "read at startup" }
+alloydb   = gcp/alloydb "AlloyDB" datastore { subtitle: "product vectors" }
+secrets   = gcp/secret-manager "Secret Manager" external
+gemini    = gcp/gemini "Gemini" external
 
-alloydb = gcp/alloydb "AlloyDB" external datastore { subtitle: "Product vectors" }
-gemini  = gcp/gemini "Gemini" external
-secrets = gcp/secret-manager "Secret Manager" external
+shopper -> fe "browses, checks out"
+loadgen -> fe "simulated shopping flows"
 
-shopper -> frontend "browses, buys"
-load -> frontend "simulated traffic"
+fe -> ads
+fe -> reco
+fe -> catalog
+fe -> currency
+fe -> cart
+fe -> checkout
+fe -> shipping
+fe -> assist "HTTP"
 
-frontend -> catalog, currency, cart, recommend, shipping, checkout, ad, assistant
-
-checkout -> catalog, shipping, payment, email, currency, cart
-recommend -> catalog
+reco -> catalog
+checkout -> cart
+checkout -> catalog
+checkout -> currency
+checkout -> shipping
+checkout -> payment
+checkout -> email
 
 cart -> redis
 catalog -> products
-assistant -> alloydb
-assistant -> gemini
-assistant -> secrets
+assist -> alloydb
+assist -> secrets
+assist -> gemini
 
 view landscape {
   title "Online Boutique"
   include *
   legend auto
+  about """
+    gRPC between services, except the shopper and load generator (HTTP) and the shopping assistant (HTTP from the frontend).
+
+    - The shopping assistant is an optional add-on
+    - Cart storage defaults to Redis; Spanner and AlloyDB are alternatives in the cart service
+  """
 }

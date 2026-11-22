@@ -7,15 +7,15 @@ c6 = sys/radio-tower "Collector 6"
 norm = sys/workflow "Normaliser"
 wh = sys/database "Warehouse" datastore
 idx = sys/search "Search Index" datastore
-alert = sys/siren "Alerting Service"
+alert = sys/siren "Alerting"
 
-c1 -> norm
-c2 -> norm
-c3 -> norm
-c4 -> norm
-c5 -> norm
-c6 -> norm
-norm -> wh, idx, alert
+c1 ~> norm
+c2 ~> norm
+c3 ~> norm
+c4 ~> norm
+c5 ~> norm
+c6 ~> norm
+norm ~> wh, idx, alert
 
 view landscape {
   title "Ingestion Estate"

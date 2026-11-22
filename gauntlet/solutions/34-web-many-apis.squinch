@@ -1,120 +1,187 @@
+pack aws
 pack logos
 
 web = logos/react "Web App" {
   subtitle: "apps/web · React SPA"
 }
-bff = logos/nodejs "BFF" {
+bff = logos/nodedotjs "BFF" {
   subtitle: "apps/bff · Node"
+  description: "One HTTP client module per service"
 }
-kafka = logos/kafka "Kafka" {
+kafka = logos/apachekafka "Kafka" {
   description: "Order and payment events"
 }
-stripe = box "Stripe" external
-sendgrid = box "SendGrid" external
-carrier = box "Carrier API" external
+stripe = logos/stripe "Stripe" external
+sendgrid = sys/mail "SendGrid" external
+carrier = sys/truck "Carrier API" external
 
 system identity "Identity" {
   description: "Accounts, sessions and profiles"
   preview: [users auth profile]
-  users = sys/server "Users" { subtitle: "services/users" }
-  usersdb = logos/postgres "Users DB" datastore
-  auth = sys/server "Auth" { subtitle: "services/auth" }
-  sessions = logos/redis "Session Store" datastore
-  profile = sys/server "Profile" { subtitle: "services/profile" }
-  profiledb = logos/postgres "Profile DB" datastore
-  users -> usersdb
-  auth -> sessions
-  profile -> profiledb
+  system users "Users" {
+    description: "User accounts"
+    svc = sys/server "Users Service" { subtitle: "services/users" }
+    db = logos/postgresql "Users DB" datastore
+    svc -> db
+  }
+  system auth "Auth" {
+    description: "Login and sessions"
+    svc = sys/server "Auth Service" { subtitle: "services/auth" }
+    sessions = logos/redis "Sessions" datastore
+    svc -> sessions
+  }
+  system profile "Profile" {
+    description: "User profiles"
+    svc = sys/server "Profile Service" { subtitle: "services/profile" }
+    db = logos/postgresql "Profile DB" datastore
+    svc -> db
+  }
 }
 
-system discovery "Discovery" {
-  description: "Catalogue, search, pricing and reviews"
-  preview: [catalog search recs]
-  catalog = sys/server "Catalog" { subtitle: "services/catalog" }
-  catalogdb = logos/postgres "Catalog DB" datastore
-  search = sys/server "Search" { subtitle: "services/search" }
-  index = aws/opensearch "Search Index" datastore
-  pricing = sys/server "Pricing" { subtitle: "services/pricing" }
-  pricingcache = logos/redis "Pricing Cache" datastore
-  reviews = sys/server "Reviews" { subtitle: "services/reviews" }
-  reviewsdb = logos/mongodb "Reviews DB" datastore
-  recs = sys/server "Recommendations" { subtitle: "services/recommendations" }
-  recscache = logos/redis "Recommendations Store" datastore
-  catalog -> catalogdb
-  search -> index
-  pricing -> pricingcache
-  reviews -> reviewsdb
-  recs -> recscache
-  search -> catalog "reads"
-  recs -> catalog "reads"
-  recs -> reviews "reads"
+system discovery "Catalog & Discovery" {
+  description: "Products, search, prices, reviews, recommendations"
+  preview: [catalog search recommendations]
+  system catalog "Catalog" {
+    description: "Product catalogue"
+    svc = sys/server "Catalog Service" { subtitle: "services/catalog" }
+    db = logos/postgresql "Catalog DB" datastore
+    svc -> db
+  }
+  system search "Search" {
+    description: "Product search"
+    svc = sys/server "Search Service" { subtitle: "services/search" }
+    index = aws/opensearch "Search Index" datastore
+    svc -> index
+  }
+  system pricing "Pricing" {
+    description: "Prices"
+    svc = sys/server "Pricing Service" { subtitle: "services/pricing" }
+    cache = logos/redis "Pricing Redis" datastore
+    svc -> cache
+  }
+  system reviews "Reviews" {
+    description: "Product reviews"
+    svc = sys/server "Reviews Service" { subtitle: "services/reviews" }
+    db = logos/mongodb "Reviews DB" datastore
+    svc -> db
+  }
+  system recommendations "Recommendations" {
+    description: "Suggested products"
+    svc = sys/server "Recommendations Service" { subtitle: "services/recommendations" }
+    cache = logos/redis "Recommendations Redis" datastore
+    svc -> cache
+  }
+  search.svc -> catalog.svc "reads"
+  recommendations.svc -> catalog.svc "reads"
+  recommendations.svc -> reviews.svc "reads"
 }
 
 system buying "Buying" {
   description: "Cart, checkout, orders and payments"
   preview: [cart checkout orders]
-  cart = sys/server "Cart" { subtitle: "services/cart" }
-  cartstore = logos/redis "Cart Store" datastore
-  checkout = sys/server "Checkout" { subtitle: "services/checkout" }
-  checkoutdb = logos/postgres "Checkout DB" datastore
-  orders = sys/server "Orders" { subtitle: "services/orders" }
-  ordersdb = logos/postgres "Orders DB" datastore
-  payments = sys/server "Payments" { subtitle: "services/payments" }
-  paymentsdb = logos/postgres "Payments DB" datastore
-  cart -> cartstore
-  checkout -> checkoutdb
-  orders -> ordersdb
-  payments -> paymentsdb
-  checkout -> cart
-  checkout -> payments
-  checkout -> orders
+  system cart "Cart" {
+    description: "Shopping cart"
+    svc = sys/server "Cart Service" { subtitle: "services/cart" }
+    cache = logos/redis "Cart Redis" datastore
+    svc -> cache
+  }
+  system checkout "Checkout" {
+    description: "Checkout flow"
+    svc = sys/server "Checkout Service" { subtitle: "services/checkout" }
+    db = logos/postgresql "Checkout DB" datastore
+    svc -> db
+  }
+  system orders "Orders" {
+    description: "Order lifecycle"
+    svc = sys/server "Orders Service" { subtitle: "services/orders" }
+    db = logos/postgresql "Orders DB" datastore
+    svc -> db
+  }
+  system payments "Payments" {
+    description: "Payment processing"
+    svc = sys/server "Payments Service" { subtitle: "services/payments" }
+    db = logos/postgresql "Payments DB" datastore
+    svc -> db
+  }
+  checkout.svc -> cart.svc
+  checkout.svc -> orders.svc
+  checkout.svc -> payments.svc
 }
 
 system fulfilment "Fulfilment" {
-  description: "Stock and shipping"
+  description: "Stock and delivery"
   preview: [inventory shipping]
-  inventory = sys/server "Inventory" { subtitle: "services/inventory" }
-  inventorydb = logos/postgres "Inventory DB" datastore
-  shipping = sys/server "Shipping" { subtitle: "services/shipping" }
-  shippingdb = logos/postgres "Shipping DB" datastore
-  inventory -> inventorydb
-  shipping -> shippingdb
+  system inventory "Inventory" {
+    description: "Stock levels"
+    svc = sys/server "Inventory Service" { subtitle: "services/inventory" }
+    db = logos/postgresql "Inventory DB" datastore
+    svc -> db
+  }
+  system shipping "Shipping" {
+    description: "Shipments"
+    svc = sys/server "Shipping Service" { subtitle: "services/shipping" }
+    db = logos/postgresql "Shipping DB" datastore
+    svc -> db
+  }
 }
 
-system care "Customer Care" {
+system engagement "Customer Engagement" {
   description: "Notifications and support"
   preview: [notifications support]
-  notifications = sys/server "Notifications" { subtitle: "services/notifications" }
-  support = sys/server "Support" { subtitle: "services/support" }
-  supportdb = logos/postgres "Support DB" datastore
-  support -> supportdb
+  system notifications "Notifications" {
+    description: "Outbound messages"
+    svc = sys/server "Notifications Service" { subtitle: "services/notifications" }
+  }
+  system support "Support" {
+    description: "Customer support"
+    svc = sys/server "Support Service" { subtitle: "services/support" }
+    db = logos/postgresql "Support DB" datastore
+    svc -> db
+  }
 }
 
-web -> bff "HTTP"
-bff -> identity.users, identity.auth, identity.profile
-bff -> discovery.catalog, discovery.search, discovery.pricing, discovery.reviews, discovery.recs
-bff -> buying.cart, buying.checkout, buying.orders, buying.payments
-bff -> fulfilment.inventory, fulfilment.shipping
-bff -> care.notifications, care.support
+web -> bff
+bff -> identity.users.svc, identity.auth.svc, identity.profile.svc
+bff -> discovery.catalog.svc, discovery.search.svc, discovery.pricing.svc, discovery.reviews.svc, discovery.recommendations.svc
+bff -> buying.cart.svc, buying.checkout.svc, buying.orders.svc, buying.payments.svc
+bff -> fulfilment.inventory.svc, fulfilment.shipping.svc
+bff -> engagement.notifications.svc, engagement.support.svc
 
-buying.checkout -> discovery.pricing
-buying.orders -> fulfilment.inventory
-buying.payments -> stripe
-fulfilment.shipping -> carrier
-care.notifications -> sendgrid
+buying.checkout.svc -> discovery.pricing.svc
+buying.orders.svc -> fulfilment.inventory.svc
+buying.payments.svc -> stripe
+fulfilment.shipping.svc -> carrier
+engagement.notifications.svc -> sendgrid
 
-buying.orders ~> kafka "publishes"
-buying.payments ~> kafka "publishes"
-kafka ~> care.notifications, fulfilment.shipping, discovery.recs "consume"
+buying.orders.svc ~> kafka "publishes"
+buying.payments.svc ~> kafka "publishes"
+kafka ~> engagement.notifications.svc "consumes"
+kafka ~> fulfilment.shipping.svc "consumes"
+kafka ~> discovery.recommendations.svc "consumes"
 
 view landscape {
-  title "System Landscape"
+  title "Storefront Landscape"
   include *
   preview *
-  layout { rows [web] [bff] [identity discovery buying fulfilment care] [kafka stripe carrier sendgrid] }
+  legend auto
 }
-view identity { title "Identity" }
-view discovery { title "Discovery" }
-view buying { title "Buying" }
-view fulfilment { title "Fulfilment" }
-view care { title "Customer Care" }
+view identity {
+  title "Identity"
+  expand *
+}
+view discovery {
+  title "Catalog & Discovery"
+  expand *
+}
+view buying {
+  title "Buying"
+  expand *
+}
+view fulfilment {
+  title "Fulfilment"
+  expand *
+}
+view engagement {
+  title "Customer Engagement"
+  expand *
+}
