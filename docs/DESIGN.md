@@ -212,6 +212,20 @@ it gets none of the marks that imply one.
   — the strongest "drawn by a person who cared" signal there is.
 - **Arrowheads**: filled chevron `8×6`, matched to stroke color; open chevron for
   `~>` async. Small, sharp, consistent — never SVG default markers.
+- **Relationship marks** (crow's foot, between tables): drawn on the stub, in
+  place of the head, read from the table outward — a bar is one, a foot is
+  many, a second bar or a ring says whether there must be one. Stroke `1.5`
+  in the wire's colour, round caps; `10` across (a foot's toes are `10` apart
+  at the wall) and never more than `12` out from it, so the whole mark sits
+  on the straight part of the shortest stub and the wire keeps the same
+  radius-`8` corner as every other. The ring (radius `2.5`) is **open**: the
+  wire starts at its far edge, so a ring needs to know nothing about the
+  canvas or frame fill behind it. A port moved to straighten its wire keeps
+  `16` from a marked neighbour, and a label band stands `4` clear of the mark.
+  A table's 64px head holds four marked wires `16` apart; from five they
+  touch, and the view says so. Never rotated: where
+  lines are `straight` there is no stub and no mark. One drawn end, one mark —
+  a trunk's shared port carries it once.
 - **Async dashes** are `4 7` with round caps — beads on a string rather than
   chopped line. Each cap adds half the stroke to a dash, so at 1.5px the beads
   read as about 5.5 on, 5.5 off; dotted and `packets` keep butt caps, or a 3px
@@ -280,7 +294,8 @@ it gets none of the marks that imply one.
   glyph — a circle-i, or a triangle for `style: warning`. The glyph is what
   carries "this is commentary, not a diagram object"; an amber fill used to,
   and it was the only third hue in a two-hue palette, reading as a sticky note
-  stuck onto the drawing rather than part of it. Max width `200`, three lines.
+  stuck onto the drawing rather than part of it. Max width `200`, as many lines
+  as the text takes — never cut — in the prose set (§5 Chrome, `about`).
   Placement: the anchor's own side, in room the layout reserved for it — so a
   note on a node inside an expanded container or a zone stays inside it, beside
   its node, and the container grows to hold it. Where that room is taken, it
@@ -297,13 +312,24 @@ it gets none of the marks that imply one.
   author writes keeps its key beside its value, because `platform` alone says
   nothing. Nothing is derived — no git, no clock — because a render is a pure
   function of its source (§1.6).
+- **`about`**, under the header: the view's prose at 12px in the subtitle's
+  muted ink, on a 19px pitch, aligned with the title. The measure follows the
+  canvas between 360 and 560px — past 560 a line is too long to read — and the
+  canvas widens to the narrow end rather than squeeze it. Bullets are a 1.75px
+  dot in `faint`. Bold is Inter 600; code is the bundled mono at one size down
+  on the meta chip's treatment (surface, hairline border, radius 3) — a plate
+  alone is the canvas's own tone and vanished; a link is the accent,
+  underlined, because a PNG has no hover. Runs of different faces on one line
+  are drawn unkerned at their measured widths: the metrics carry advances only,
+  and a kerned run fell short of where the next began.
 - **Footer**, full width under a hairline: the legend on the left, the `squinch`
   wordmark on the right. The legend shows only what the diagram earned — a
   drawing with no async edge never explains dashes.
 - Both are drawn in canvas coordinates, never inside the body's transform. A
   note can push the diagram right and down, and chrome that rode along would
   slide with it.
-- A diagram with no title, no legend and no titleblock gets no chrome at all.
+- A diagram with no title, no `about`, no legend and no titleblock gets no
+  chrome at all.
 
 ## 6. Themes
 

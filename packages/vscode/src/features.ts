@@ -117,6 +117,8 @@ export function blockStack(src: string, offset: number): BlockKind[] {
     const ch = src[i];
     if (inComment) { if (ch === "\n") inComment = false; continue; }
     if (inString) { if (ch === '"' || ch === "\n") inString = false; continue; }
+    // a block string runs over lines, and its prose may hold a brace
+    if (src.startsWith('"""', i)) { const end = src.indexOf('"""', i + 3); if (end < 0 || end + 3 > offset) break; i = end + 2; continue; }
     if (ch === '"') { inString = true; continue; }
     if (ch === "/" && src[i + 1] === "/") { inComment = true; i++; continue; }
     if (ch === "{") {
@@ -138,7 +140,7 @@ export function blockStack(src: string, offset: number): BlockKind[] {
 const TOP_KEYWORDS = ["pack", "person", "system", "container", "zone", "flow", "view", "theme"];
 const VIEW_KEYWORDS = [
   "title", "theme", "scope", "only", "include", "exclude", "detail", "expand", "preview", "context",
-  "highlight", "color", "show", "legend", "titleblock", "note", "layout",
+  "highlight", "color", "show", "legend", "titleblock", "about", "note", "layout",
 ];
 const LAYOUT_KEYWORDS = ["direction", "density", "lines", "rows", "cols", "place", "align", "route", "channel", "wrap"];
 /** A container's own `layout { }` arranges its interior: rows/cols/place and

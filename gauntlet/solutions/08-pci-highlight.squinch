@@ -1,26 +1,26 @@
 pack aws
 
 system payments "Payments Service" {
-  api       = aws/lambda   "Payments API" { tags: #pci }
-  tokenizer = aws/lambda   "Tokenizer"    { tags: #pci }
+  description: "Card handling and settlement"
+  api       = aws/lambda   "Payments API"  { tags: #pci }
+  tokenizer = aws/lambda   "Tokenizer"     { tags: #pci }
   vault     = aws/dynamodb "Card Vault" datastore { tags: #pci }
   queue     = aws/sqs      "Settlement Queue"
   worker    = aws/lambda   "Settlement Worker"
 
   api -> tokenizer
-  tokenizer -> vault "stores tokens"
-  api ~> queue "settlement requests"
-  queue ~> worker
+  tokenizer -> vault
+  queue ~> worker "drains"
 }
 
-view landscape {
-  title "Payments Landscape"
-  include *
+view payments {
+  title "Payments Service"
 }
 
 view pci {
-  title "PCI surface"
+  title "PCI Surface"
   scope payments
   highlight #pci
   note right-of vault "Tokens are stored in the Card Vault (DynamoDB)"
+  legend auto
 }

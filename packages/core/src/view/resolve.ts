@@ -3,7 +3,7 @@
 // include → exclude (exclude wins last) → edges/notes derive from what survived.
 // `scope` is the view's *where*; `only` is its *which*. They are separate axes
 // because a tag is a cross-cutting concern and can never be a place.
-import type { Diagnostic, EdgeAnimate, Hue, SEdge, SModel, SView } from "../model/types.js";
+import type { Diagnostic, EdgeAnimate, EdgeMark, Hue, SEdge, SModel, SView } from "../model/types.js";
 import { PREVIEW_MAX, PREVIEW_FIELDS_MAX } from "../model/types.js";
 
 /** One row of a leaf's schema, as drawn (docs/notes/fields.md). */
@@ -108,6 +108,10 @@ export interface VEdge {
    *  view graph used to reduce every arrow to `async: boolean`, so two of the
    *  four kinds the grammar accepts drew as a plain one-way arrow. */
   heads: "one" | "both" | "none";
+  /** Relationship marks, one per end (SPEC §4). Only on an edge drawn between
+   *  the two leaves it names: once either end lifts to an ancestor, the wire
+   *  no longer ends on a table and both marks drop. */
+  marks?: { from: EdgeMark; to: EdgeMark };
 }
 
 export interface ViewGraph {
@@ -603,22 +607,7 @@ export function resolveView(model: SModel, view: SView): ViewGraph {
   for (const e of model.edges) {
     const f = liftIn(e.from, v);
     const t = liftIn(e.to, v);
-    // `f === t` covers two different things. An edge whose ends both lift into
-    // one card is genuinely internal at this altitude and drops on purpose. An
-    // edge a node draws to *itself* is not: it parsed, validated, sits in the
-    // model, and then vanished with nothing said — and a self-edge is the one
-    // shape where "from and to landed in the same place" is what the author
-    // wrote rather than a consequence of altitude.
-    if (f && t && f === t && e.from === e.to) {
-      diagnostics.push({
-        severity: "warning",
-        message: `\`${e.from}\` connects to itself — a self-edge is not drawn`,
-        fix: `say it on the node instead: a \`note right-of ${e.from} "${e.label ?? "…"}"\`, `
-          + `or fold it into the label`,
-        loc: view.loc,
-      });
-      continue;
-    }
+    // (a self-edge lands here too; the build said so once, on its own line)
     if (!f || !t || f === t) continue;
     // One end is an expanded frame and the other lifted to something inside
     // it: internal at this altitude — the same silent drop as both ends
@@ -631,6 +620,7 @@ export function resolveView(model: SModel, view: SView): ViewGraph {
         id: e.id, from: f, to: t, label: e.label, async: e.arrow === "~>",
         animate: animateOf(e), style: styleOf(e), count: 1,
         tags: e.tags, color: e.color, heads: headsOf(e.arrow),
+        ...(e.marks ? { marks: e.marks } : {}),
       });
       continue;
     }

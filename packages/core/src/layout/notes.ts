@@ -104,7 +104,7 @@ export function placeNotes(input: NoteInput): NonNullable<Positioned["notes"]> {
     // Integers, like every other rect (DESIGN §8): `measure` returns a float
     // and only x/y used to be rounded, so note widths once shipped as
     // `width="174.22411799999998"`.
-    const { lines, w, h } = noteBox(note.text, font);
+    const { prose, w, h } = noteBox(note.text, font);
 
     // Candidates, in preference order. The authored side is never changed: an
     // author who wrote `right-of` gets right-of, further out or slid along it,
@@ -328,7 +328,7 @@ export function placeNotes(input: NoteInput): NonNullable<Positioned["notes"]> {
     // canvas pad/shift is the renderer's: it recomputes the extent from these
     // rects exactly as it did when it owned placement, so the move is inert
     out.push({
-      i: noteIdx, x, y, w, h, lines,
+      i: noteIdx, x, y, w, h, prose,
       leader: leader
         ? { x1: Math.round(leader.x1), y1: Math.round(leader.y1), x2: Math.round(leader.x2), y2: Math.round(leader.y2) }
         : undefined,

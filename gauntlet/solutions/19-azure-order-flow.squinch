@@ -2,25 +2,36 @@ pack azure
 
 person shopper "Shopper"
 
-apim   = azure/api-management "API Management"
-orders = azure/functions "Order Function" { subtitle: "Azure Functions" }
-db     = azure/cosmos "Orders" datastore { subtitle: "Cosmos DB" }
-bus    = azure/service-bus "Service Bus"
-fulfil = azure/functions "Fulfilment Function" { subtitle: "Azure Functions" }
+system orders "Order Flow" {
+  apim    = azure/api-management "API Management"
+  place   = azure/functions "Order Function" { subtitle: "Azure Functions" }
+  cosmos  = azure/cosmos "Cosmos DB" datastore
+  bus     = azure/service-bus "Service Bus"
+  fulfil  = azure/functions "Fulfilment Function" { subtitle: "Azure Functions" }
 
-shopper -> apim "places order"
-apim -> orders "calls"
-orders -> db "writes order"
-orders ~> bus "publishes message"
-bus ~> fulfil "delivers message"
+  apim -> place
+  place -> cosmos "writes order"
+  place ~> bus "publishes message"
+  bus ~> fulfil "picks up"
+}
+
+shopper -> orders.apim "places order"
 
 flow order "Order path" {
-  shopper -> apim -> orders -> db
-  orders ~> bus ~> fulfil
+  shopper -> orders.apim
+  orders.apim -> orders.place
+  orders.place -> orders.cosmos
+  orders.place ~> orders.bus
+  orders.bus ~> orders.fulfil
 }
 
 view landscape {
-  title "How an order travels"
+  title "Order flow"
   include *
+}
+
+view orders {
+  title "Order path, step by step"
+  scope orders
   show flow order
 }

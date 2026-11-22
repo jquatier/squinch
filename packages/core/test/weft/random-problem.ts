@@ -73,3 +73,33 @@ export function randomProblem(seed: number, extensions = true, arranged = false)
   if (chance(0.125)) { const hub = `n${pick(n)}`; for (const w of wires) if (w.from === hub) w.bundle = "trunk"; }
   return { root, wires };
 }
+
+/**
+ * A `randomProblem` taken further, for what it never makes: a container
+ * inside a container (sometimes of the other direction), and wires that end
+ * at a container. Built on top of the standard Problem so that its seeds, and
+ * every list of known seeds elsewhere, stay as they are.
+ */
+export function nestedProblem(seed: number): Problem {
+  const p = randomProblem(seed * 3, true, false);
+  let s = seed * 7919 + 17;
+  const rnd = () => (s = (s * 1103515245 + 12345) % 2147483648) / 2147483648;
+  const groups = p.root.boxes.filter((b) => b.group);
+  // the first half of a container's boxes go one level deeper
+  for (const g of groups) {
+    const inner = g.group!.boxes;
+    if (inner.length < 3 || rnd() < 0.5) continue;
+    const cut = Math.ceil(inner.length / 2);
+    const deep: Box = { id: `${g.id}x`, w: 0, h: 0, title: { w: 60, h: 34 }, group: { ...g.group!, dir: rnd() < 0.3 ? "right" : "down", boxes: inner.slice(0, cut), pins: new Map() } };
+    g.group = { ...g.group!, boxes: [deep, ...inner.slice(cut)] };
+  }
+  // some wires end at a container, not at a leaf
+  const all = [...groups, ...groups.flatMap((g) => g.group!.boxes.filter((b) => b.group))];
+  if (all.length) for (const w of p.wires) {
+    if (rnd() < 0.2) w.from = all[Math.floor(rnd() * all.length)].id;
+    else if (rnd() < 0.2) w.to = all[Math.floor(rnd() * all.length)].id;
+  }
+  const seen = new Set<string>();
+  p.wires = p.wires.filter((w) => w.from !== w.to && !seen.has(`${w.from}>${w.to}`) && seen.add(`${w.from}>${w.to}`));
+  return p;
+}

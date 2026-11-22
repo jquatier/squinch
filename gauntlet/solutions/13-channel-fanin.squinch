@@ -1,15 +1,15 @@
 pack aws
 
-system crud "Items API" {
-  api    = aws/api-gateway "API Gateway"
-  create = aws/lambda "Create"
-  read   = aws/lambda "Read"
-  update = aws/lambda "Update"
-  delete = aws/lambda "Delete"
-  search = aws/lambda "Search"
+system api_svc "Items API" {
+  gw     = aws/api-gateway "API Gateway"
+  create = aws/lambda "Create Handler"
+  read   = aws/lambda "Read Handler"
+  update = aws/lambda "Update Handler"
+  delete = aws/lambda "Delete Handler"
+  search = aws/lambda "Search Handler"
   table  = aws/dynamodb "Table" datastore
 
-  api -> create, read, update, delete, search
+  gw -> create, read, update, delete, search
   create -> table
   read -> table
   update -> table
@@ -17,8 +17,9 @@ system crud "Items API" {
   search -> table
 }
 
-view crud {
+view landscape {
   title "Items API"
+  scope api_svc
   layout {
     channel create, read, update, delete, search -> table
   }

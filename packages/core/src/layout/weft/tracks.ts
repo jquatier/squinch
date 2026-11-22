@@ -42,6 +42,9 @@ export function above(a: Net, b: Net): number {
   return cost;
 }
 
+/** Would `a` above `b` lay a stub of one along a stub of the other? */
+const clashing = (a: Net, b: Net) => above(a, b) >= CLASH && a.under !== b.id;
+
 export interface Stack {
   /** net id → track, 0 nearest the row above */
   track: Map<string, number>;
@@ -50,9 +53,12 @@ export interface Stack {
   clash?: { upper: Net; lower: Net; at: number };
 }
 
-export function stack(nets: readonly Net[]): Stack {
+/** `anyOrder`: where the cheapest order found still lays one stub along
+ *  another, look for any order that does not — the last resort of a channel
+ *  whose wires could neither step aside nor step twice (`lay.ts`). */
+export function stack(nets: readonly Net[], anyOrder = false): Stack {
   // insert each net where it costs least among those already placed
-  const order: Net[] = [];
+  let order: Net[] = [];
   for (const n of [...nets].sort((p, q) => p.lo - q.lo || p.hi - q.hi || (p.id < q.id ? -1 : 1))) {
     let best = 0, least = Infinity;
     for (let at = 0; at <= order.length; at++) {
@@ -68,6 +74,21 @@ export function stack(nets: readonly Net[]): Stack {
     moved = false;
     for (let i = 0; i + 1 < order.length; i++)
       if (above(order[i + 1], order[i]) < above(order[i], order[i + 1])) { [order[i], order[i + 1]] = [order[i + 1], order[i]]; moved = true; }
+  }
+
+  // The insertion is greedy, and can leave a clash that some other order
+  // would not have: `b` must stand above `a` wherever `a` above `b` clashes,
+  // and where those musts make no ring there is an order that keeps them
+  // all — the one nearest the order found, taking the first net free to go
+  // next each time.
+  if (anyOrder && order.some((a, i) => order.slice(i + 1).some((b) => clashing(a, b)))) {
+    const left = [...order], out: Net[] = [];
+    while (left.length) {
+      const i = left.findIndex((n) => left.every((m) => m === n || above(n, m) < CLASH));
+      if (i < 0) break; // a ring: no order will do
+      out.push(...left.splice(i, 1));
+    }
+    if (!left.length) order = out;
   }
 
   // tracks: as near the row above as the order allows; a net with nothing
@@ -90,7 +111,7 @@ export function stack(nets: readonly Net[]): Stack {
   let clash: Stack["clash"];
   for (let i = 0; i < order.length && !clash; i++)
     for (let j = i + 1; j < order.length && !clash; j++)
-      if (above(order[i], order[j]) >= CLASH && order[i].under !== order[j].id) clash = { upper: order[i], lower: order[j], at: order[i].bots.find((x) => order[j].tops.includes(x))! };
+      if (clashing(order[i], order[j])) clash = { upper: order[i], lower: order[j], at: order[i].bots.find((x) => order[j].tops.includes(x))! };
   return { track, count, clash };
 }
 

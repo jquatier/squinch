@@ -1,77 +1,63 @@
 pack gcp
 pack logos
-pack sys
 
-person shopper "Shopper" { description: "Browses products and checks out in the web UI" }
-loadgen = box "Load Generator" { subtitle: "Locust · Python"
-    description: "Synthetic traffic against the frontend" }
+person shopper "Shopper" { description: "Browses, fills a cart, checks out" }
 
-system storefront "Storefront" {
-  description: "Web UI and the services that decorate its pages"
-  web = sys/globe "Frontend" {
-    subtitle: "Go · HTTP" }
-  ads = sys/code "Ad Service" {
-    subtitle: "Java" }
-  recs = sys/code "Recommendation Service" {
-    subtitle: "Python" }
-  assistant = gcp/gemini "Shopping Assistant" {
-    subtitle: "Python · Gemini"
-    description: "Optional component; the frontend calls it over HTTP" }
-  vectors = gcp/alloydb "AlloyDB Vector Store" datastore { description: "Product embeddings the assistant searches" }
-  web -> ads
-  web -> recs
-  web -> assistant
-  assistant -> vectors
-}
+loadgen = sys/activity "Load Generator" { subtitle: "Python · Locust" }
 
-system catalog "Catalog & Pricing" {
-  description: "Product data and currency conversion"
-  products = sys/code "Product Catalog Service" {
-    subtitle: "Go" }
-  productsfile = sys/file-json "products.json" datastore { description: "Default catalog source; AlloyDB is used instead when ALLOYDB_CLUSTER_NAME is set" }
-  currency = sys/code "Currency Service" {
-    subtitle: "Node.js" }
-  products -> productsfile
-}
+fe = sys/app-window "Frontend" { subtitle: "Go · HTTP"; description: "Serves the website, generates session IDs" }
 
-system buying "Cart & Checkout" {
-  description: "Carts, orders, payment and fulfilment"
-  cart = sys/code "Cart Service" {
-    subtitle: ".NET" }
-  cartstore = logos/redis "Cart Store" datastore {
-    subtitle: "Redis"
-    description: "Default cart store; Spanner or AlloyDB are alternatives" }
-  checkout = sys/code "Checkout Service" {
-    subtitle: "Go" }
-  payment = sys/code "Payment Service" {
-    subtitle: "Node.js" }
-  shipping = sys/code "Shipping Service" {
-    subtitle: "Go" }
-  email = sys/code "Email Service" {
-    subtitle: "Python" }
-  cart -> cartstore
-  checkout -> cart
-  checkout -> payment
-  checkout -> shipping
-  checkout -> email
-}
+ads      = sys/megaphone "Ad Service" { subtitle: "Java" }
+reco     = sys/sparkles "Recommendation Service" { subtitle: "Python" }
+assist   = sys/bot "Shopping Assistant" { subtitle: "Python · optional" }
+catalog  = sys/book-open "Product Catalog Service" { subtitle: "Go" }
+currency = sys/coins "Currency Service" { subtitle: "Node.js" }
+cart     = sys/shopping-cart "Cart Service" { subtitle: "C#" }
+checkout = sys/package-check "Checkout Service" { subtitle: "Go" }
+shipping = sys/truck "Shipping Service" { subtitle: "Go" }
+payment  = sys/credit-card "Payment Service" { subtitle: "Node.js · mock" }
+email    = sys/mail "Email Service" { subtitle: "Python · mock" }
 
-shopper -> storefront.web "browses, checks out"
-loadgen -> storefront.web "simulated traffic"
+redis     = logos/redis "Redis (redis-cart)" datastore
+products  = sys/file-json "products.json" datastore { subtitle: "read at startup" }
+alloydb   = gcp/alloydb "AlloyDB" datastore { subtitle: "product vectors" }
+secrets   = gcp/secret-manager "Secret Manager" external
+gemini    = gcp/gemini "Gemini" external
 
-storefront.web -> catalog.products "lists products"
-storefront.web -> catalog.currency "converts prices"
-storefront.web -> buying.cart "cart"
-storefront.web -> buying.shipping "quotes"
-storefront.web -> buying.checkout "places order"
-storefront.recs -> catalog.products "reads catalog"
-buying.checkout -> catalog.products
-buying.checkout -> catalog.currency
+shopper -> fe "browses, checks out"
+loadgen -> fe "simulated shopping flows"
+
+fe -> ads
+fe -> reco
+fe -> catalog
+fe -> currency
+fe -> cart
+fe -> checkout
+fe -> shipping
+fe -> assist "HTTP"
+
+reco -> catalog
+checkout -> cart
+checkout -> catalog
+checkout -> currency
+checkout -> shipping
+checkout -> payment
+checkout -> email
+
+cart -> redis
+catalog -> products
+assist -> alloydb
+assist -> secrets
+assist -> gemini
 
 view landscape {
   title "Online Boutique"
   include *
+  legend auto
+  about """
+    gRPC between services, except the shopper and load generator (HTTP) and the shopping assistant (HTTP from the frontend).
+
+    - The shopping assistant is an optional add-on
+    - Cart storage defaults to Redis; Spanner and AlloyDB are alternatives in the cart service
+  """
 }
-view storefront { title "Storefront" }
-view catalog { title "Catalog & Pricing" }
-view buying { title "Cart & Checkout" }

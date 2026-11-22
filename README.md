@@ -118,6 +118,19 @@ container db "Orders DB" {
   each of its columns.
 - **`ref <path>`** names the column or table a field points at. It is text on
   the row; the relationship itself is an edge between the two tables.
+- **Relationships are marked on that edge**, when you know how many rows take
+  part: `from:` and `to:`, one word per end, drawn as crow's-foot marks.
+
+  ```squinch
+  orders      -> customers "customer_id" { from: many        to: one }
+  orders      -> coupons   "coupon_id"   { from: many        to: zero-or-one }  // nullable key
+  order_items -> orders    "order_id"    { from: one-or-many to: exactly-one }
+  products    -- tags                    { from: many        to: many }
+  ```
+
+  `one` and `many` say nothing about optionality; `exactly-one`,
+  `zero-or-one`, `one-or-many` and `zero-or-many` state it. Both ends or
+  neither, between two tables, on a plain `->` or `--` edge.
 - **Fields draw where the table's container is open.** A view scoped to the
   database (`view db { scope shop.db }`) shows every field. Wherever the
   database is expanded (`expand db`, `expand *`) each table shows a compact
@@ -129,7 +142,8 @@ container db "Orders DB" {
 
 `squinch check` warns when fields are written that no view can draw. The full
 rules are in [docs/SPEC.md](docs/SPEC.md); the lookbook's
-[Fields case](lookbook/cases/43-fields.squinch) shows all three placements.
+[Fields case](lookbook/cases/43-fields.squinch) shows all three placements, and
+the [Relationships case](lookbook/cases/44-relationships.squinch) all six marks.
 
 ## Features
 
@@ -305,7 +319,7 @@ that both humans and LLMs can reason about:
 - **`rows [api] [create get search]`** — pin ranks and their order
 - **`place sync right-of db`** — relative placement, no geometry
 - **`align get db`** — put two nodes on a shared axis
-- **`route db ~> sync from east to west`** — pick the sides an edge leaves *and* enters
+- **`route create -> files from east`** — pick the side an edge leaves (or enters, with `to`), through every frame around it
 
 Three tiers, in the order you reach for them: auto-layout underneath, relative
 placement on top of it (`rows`, `cols`, `place`, `align`), explicit edge routing
@@ -379,7 +393,7 @@ Events arrive as <code>packets</code>, the archive job drifts <code>slow</code>,
   <img alt="Edge routing" src="lookbook/out/14-sidecar-routes.app.light.svg" width="100%">
 </picture>
 <b>Edge routing</b><br>
-<code>place</code> puts the sidecar beside its owner; <code>route … from east to west</code> picks the sides
+<code>place</code> puts the sidecar beside its owner, and the edge between them runs straight across
 </td>
 </tr>
 <tr>

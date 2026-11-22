@@ -420,6 +420,23 @@ c = aws/lambda "C"
 c -> s.a
 view land { include * }`;
     expect(await selfWarn(nested, "land")).toBe(0);
+
+    // One warning, on the edge's own line, however many views there are — it
+    // used to be raised by each view at the view's line, including views where
+    // the node is not drawn (here the landscape, where `emp` is inside a card).
+    const many = buildModel(`system s "S" {
+  container db "DB" {
+    emp = sys/table "employees" { fields { id uuid pk
+      manager_id uuid fk ref emp } }
+    emp -> emp "manager_id"
+  }
+}
+view land { }
+view db { scope s.db }`).diagnostics.filter((d) => d.message.includes("connects to itself"));
+    expect(many.length).toBe(1);
+    expect(many[0].loc?.line).toBe(5);
+    // a table is told to say it on the row, which is where it is drawn
+    expect(many[0].fix).toContain("manager_id … ref emp");
   });
 
   it("warns on a label long enough to be cut off (DESIGN §3)", () => {

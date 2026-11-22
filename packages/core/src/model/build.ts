@@ -23,12 +23,16 @@ function searchHint(pack: string, id: string): string {
   return near.length ? `closest: ${near.join(", ")} — or ${search}` : search;
 }
 import { suggest } from "./suggest.js";
-import { normalizeFiles } from "./source.js";
+import { normalizeFiles, unquote } from "./source.js";
+import { parseProse } from "../prose.js";
+import { noteBox, NOTE_LINES } from "../layout/sizes.js";
 import { themes } from "../themes/index.js";
 import type {
   ArrowKind, BuildResult, Diagnostic, Hue, Loc, RelPos, SContainer, SEdge, SField, SModel, SNode, SNote, SView, Side, SFlow, SZone, ZoneKind, ZoneLabelPos,
 } from "./types.js";
-import { ZONE_KINDS, HUES, EDGE_STYLES, EDGE_ANIMATE, PREVIEW_MAX, PREVIEW_FIELDS_PICK_MAX } from "./types.js";
+import { ZONE_KINDS, HUES, EDGE_STYLES, EDGE_ANIMATE, EDGE_MARKS, MARKS_ONE, PREVIEW_MAX, PREVIEW_FIELDS_PICK_MAX } from "./types.js";
+import type { EdgeMark } from "./types.js";
+
 import { resolveView } from "../view/resolve.js";
 
 export interface ProjectFile {
@@ -40,7 +44,11 @@ interface Ctx {
   name: string;
   src: string;
   text: (n: SyntaxNode) => string;
+  /** A string's text, on one line: a block string's line breaks read as
+   *  spaces, because everything but prose is drawn on one line. */
   str: (n: SyntaxNode) => string;
+  /** A string's text with its lines kept — for prose (`about`, a note). */
+  prose: (n: SyntaxNode) => string;
   loc: (n: SyntaxNode) => Loc;
 }
 
@@ -78,6 +86,7 @@ function textsInModel(model: SModel): [string, string, Loc, string | undefined][
     for (const [k, val] of Object.entries(v.titleblock ?? {}))
       out.push([`titleblock \`${k}\``, val, v.loc, v.file]);
     for (const note of v.notes) out.push([`note`, note.text, v.loc, v.file]);
+    if (v.about) out.push([`\`about\` of view \`${v.name}\``, v.about, v.loc, v.file]);
   }
   return out;
 }
@@ -101,7 +110,8 @@ export function buildProject(input: ProjectFile[]): BuildResult {
     name,
     src,
     text: (n) => src.slice(n.from, n.to),
-    str: (n) => src.slice(n.from + 1, n.to - 1),
+    str: (n) => unquote(src.slice(n.from, n.to)).replace(/\s*\n\s*/g, " "),
+    prose: (n) => unquote(src.slice(n.from, n.to)),
     loc: (n) => {
       const before = src.slice(0, n.from);
       return {
@@ -117,6 +127,18 @@ export function buildProject(input: ProjectFile[]): BuildResult {
       severity: "error", message, fix, file: ctx.name,
       loc: "from" in at && "line" in at ? (at as Loc) : ctx.loc(at as SyntaxNode),
     });
+  /** Prose (`about`, a note) takes a closed set of formatting (`prose.ts`).
+   *  What falls outside it is drawn as typed — say so, rather than let a
+   *  reader find the asterisks. */
+  const checkProse = (ctx: Ctx, at: SyntaxNode, text: string, where: string) => {
+    const p = parseProse(text);
+    if (p.unsupported.length)
+      warn(ctx, at, `${where} uses ${p.unsupported.join(" and ")}, which squinch draws as typed`,
+        "prose takes **bold**, `code`, [text](https://…) links, `- ` bullets and a blank line between paragraphs");
+    for (const url of p.badLinks)
+      warn(ctx, at, `the link to \`${url}\` in ${where} is drawn as text`,
+        "a link takes an absolute http or https URL: [text](https://…)");
+  };
   const warn = (ctx: Ctx, at: SyntaxNode | Loc, message: string, fix?: string) =>
     diagnostics.push({
       severity: "warning", message, fix, file: ctx.name,
@@ -363,6 +385,9 @@ export function buildProject(input: ProjectFile[]): BuildResult {
 
   // ── phase A: declarations, per file ───────────────────────────────────────
   const rawEdges: { node: SyntaxNode; scope: string; ctx: Ctx }[] = [];
+  /** Edges whose marks were refused, by id — a duplicate of one is not a
+   *  second mistake. */
+  const marksRefused = new Set<string>();
   /** `layout { }` blocks found inside container bodies, resolved after every
    *  node is declared — exactly as edges are. */
   const rawLayouts: { node: SyntaxNode; scope: string; ctx: Ctx }[] = [];
@@ -414,6 +439,28 @@ export function buildProject(input: ProjectFile[]): BuildResult {
     });
     const inFields = (at: number) => fieldSpans.some(([a, b]) => at >= a && at < b);
     if (sawSyntaxError) {
+      // Two statements on one line: `view db { title "Schema"  scope shop.db }`.
+      // Statements end at a newline or `;`, so the second keyword is garbage
+      // to the parser — and agents write a short view on one line (round 36).
+      // Whitespace cannot be the separator: after a label, a word may be a
+      // kind (`datastore`) as well as the next statement.
+      const STATEMENTS = new Set([
+        "title", "theme", "scope", "only", "include", "exclude", "detail", "expand", "preview", "context",
+        "highlight", "color", "show", "legend", "titleblock", "about", "note", "layout",
+        "direction", "lines", "density", "rows", "cols", "place", "align", "route", "channel", "wrap",
+        "pack", "person", "system", "container", "zone", "flow", "view",
+      ]);
+      for (const d of diagnostics.filter((x) => x.file === ctx.name && x.message.startsWith("syntax error near"))) {
+        const rest = f.src.slice(d.loc.from), lineStart = f.src.lastIndexOf("\n", d.loc.from - 1) + 1;
+        const m = /^[ \t]*([a-z-]+)\b([^\n};]*)/.exec(rest);
+        const before = f.src.slice(lineStart, d.loc.from).trimEnd();
+        if (!m || !STATEMENTS.has(m[1]) || !before || /[{;]$/.test(before)) continue;
+        const second = `${m[1]}${m[2]}`.trim(), first = before.replace(/^.*\{\s*/, "");
+        diagnostics.splice(diagnostics.indexOf(d), 1);
+        error(ctx, ctx.loc({ from: d.loc.from, to: d.loc.from + m[0].length } as SyntaxNode),
+          `\`${m[1]}\` starts a second statement on this line — statements end at a newline or \`;\``,
+          `put \`${second}\` on a line of its own, or write \`${first}; ${second}\``);
+      }
       // An opening brace on its own line. The C#/Java habit; statements end
       // at newline, so `system s "S"` terminates and the lone `{` is noise.
       for (const m of f.src.matchAll(/^([ \t]*(?:system|container|zone|view|flow)\b[^{\n]*?)[ \t]*\n[ \t]*\{/gm)) {
@@ -445,25 +492,6 @@ export function buildProject(input: ProjectFile[]): BuildResult {
           const d = diagnostics[i];
           if (d.file === ctx.name && d.message.startsWith("syntax error near")
               && d.loc.from >= m.index! && d.loc.from <= at + 1)
-            diagnostics.splice(i, 1);
-        }
-      }
-      // Chains. A `flow` chains hops (`a -> b -> c`), and two round-24 agents
-      // wrote a pipeline the same way as edges; the second arrow is garbage to
-      // the parser and the bare syntax error said nothing about why.
-      for (const m of f.src.matchAll(/^[ \t]*([\w.]+)[ \t]*(->|~>|<->|--)[ \t]*([\w.]+)((?:[ \t]*(?:->|~>|<->|--)[ \t]*[\w.]+)+)/gm)) {
-        if (strings.some(([a2, b2]) => m.index! >= a2 && m.index! < b2) || inFields(m.index!)) continue;
-        if ([...tree.topNode.getChildren("Flow")].some((n) => m.index! >= n.from && m.index! < n.to)) continue;
-        const hops = [m[1], m[3], ...[...m[4].matchAll(/[\w.]+/g)].map((x) => x[0])];
-        const arrows = [m[2], ...[...m[4].matchAll(/->|~>|<->|--/g)].map((x) => x[0])];
-        const lines = hops.slice(0, -1).map((h, i) => `\`${h} ${arrows[i]} ${hops[i + 1]}\``);
-        error(ctx, ctx.loc({ from: m.index!, to: m.index! + m[0].length } as SyntaxNode),
-          `edges do not chain — \`${m[0].trim()}\` is one statement per hop`,
-          `write ${lines.join(", ")} on their own lines; a \`flow\` is where hops chain`);
-        for (let i = diagnostics.length - 1; i >= 0; i--) {
-          const d = diagnostics[i];
-          if (d.file === ctx.name && d.message.startsWith("syntax error near")
-              && d.loc.from >= m.index! && d.loc.from <= m.index! + m[0].length)
             diagnostics.splice(i, 1);
         }
       }
@@ -1251,6 +1279,21 @@ export function buildProject(input: ProjectFile[]): BuildResult {
     const pathNode = node.getChild("Path");
     const arrowNode = node.getChild("Arrow");
     if (!pathNode || !arrowNode) continue; // partial node from error recovery
+    // Chains. A `flow` chains hops (`a -> b -> c`), and agents write a
+    // pipeline the same way as edges (rounds 24 and 36). The grammar parses
+    // the chain so its recovery cannot run wild; the statement is refused
+    // whole — drawing its first hop would half-honour it — with the lines to
+    // write instead.
+    const arrows = node.getChildren("Arrow");
+    if (arrows.length > 1) {
+      const hops = node.getChildren("PathList").map((l) => ctx.text(l));
+      const kinds = arrows.map((a) => ctx.text(a));
+      const lines = [ctx.text(pathNode), ...hops].slice(0, -1).map((h, i) => `\`${h} ${kinds[i]} ${hops[i]}\``);
+      const chain = [ctx.text(pathNode), ...hops.flatMap((h, i) => [kinds[i], h])].join(" ");
+      error(ctx, node, `edges do not chain — \`${chain}\` is one statement per hop`,
+        `write ${lines.join(", ")} on their own lines; a \`flow\` is where hops chain`);
+      continue;
+    }
     const fromPath = resolve(ctx.text(pathNode), scope, node, ctx);
     const arrow = ctx.text(arrowNode) as ArrowKind;
     const labelNode = node.getChild("String");
@@ -1264,11 +1307,16 @@ export function buildProject(input: ProjectFile[]): BuildResult {
     // check contract forbids. Values follow the zone-colour pattern; keys get
     // a warning because SPEC names an attr (`description`) that parses ahead
     // of being wired.
-    const EDGE_ATTR_KEYS = ["description", "animate", "style", "color"];
+    const EDGE_ATTR_KEYS = ["description", "animate", "style", "color", "from", "to"];
     const color = meta.attrs.color ? checkHue(ctx, node, meta.attrs.color) : undefined;
+    // one attribute for both ends is the other natural spelling of a
+    // relationship; it is answered with the marks, below
+    const relKey = meta.attrs.cardinality !== undefined ? "cardinality" : undefined;
     for (const key of Object.keys(meta.attrs)) {
-      if (EDGE_ATTR_KEYS.includes(key)) continue;
-      const sug = suggest(key, EDGE_ATTR_KEYS);
+      if (EDGE_ATTR_KEYS.includes(key) || key === relKey) continue;
+      // `to` is two letters: offered as a did-you-mean it would claim every
+      // short unknown key (`tls`, `on`, `ttl`)
+      const sug = suggest(key, EDGE_ATTR_KEYS.filter((k) => k !== "to"));
       warn(ctx, node, `unknown edge attribute \`${key}\``,
         sug ? `did you mean \`${sug}\`?` : `one of: ${EDGE_ATTR_KEYS.join(", ")}`);
     }
@@ -1298,10 +1346,98 @@ export function buildProject(input: ProjectFile[]): BuildResult {
     if (animate === "packets" && style !== undefined)
       error(ctx, node, "`animate: packets` draws its own sparse pattern — `style:` has nothing to add",
         "drop the `style:` attribute");
+    // Relationship marks: `from:` / `to:`, a crow's-foot mark at each end
+    // (SPEC §4). Checked once per statement, one diagnostic per statement: an
+    // edge that may not carry them gets an error with the whole line to write
+    // — a line that itself checks clean — never a mark quietly dropped.
+    let marks: SEdge["marks"];
+    const ends = (["from", "to"] as const).filter((k) => meta.attrs[k] !== undefined);
+    const wantsMarks = ends.length > 0 || relKey !== undefined;
+    const edgeLine = (marksText: string) => {
+      const keep = Object.entries(meta.attrs)
+        .filter(([k]) => k !== "from" && k !== "to" && k !== "cardinality"
+          && !(marksText && (k === "style" || k === "animate")))
+        .map(([k, v]) => `${k}: ${/^[\w.-]+$/.test(v) ? v : JSON.stringify(v)}`);
+      const attrs = [marksText, ...keep, meta.tags.length ? `tags: ${meta.tags.map((t) => `#${t}`).join(" ")}` : ""]
+        .filter(Boolean).join(" ");
+      const list = node.getChild("PathList");
+      return `${ctx.text(pathNode)} ${marksText && arrow !== "->" && arrow !== "--" ? "->" : arrow} ${list ? ctx.text(list) : "…"}`
+        + `${labelNode ? ` ${ctx.text(labelNode)}` : ""}${attrs ? ` { ${attrs} }` : ""}`
+        + node.getChildren("Tag").map((t) => ` ${ctx.text(t)}`).join("");
+    };
+    if (wantsMarks) {
+      const isMark = (v: string | undefined): v is EdgeMark => v !== undefined && (EDGE_MARKS as readonly string[]).includes(v);
+      const word = (k: "from" | "to") => {
+        const v = meta.attrs[k];
+        if (v === undefined || isMark(v)) return v;
+        // `zero-or-more` is the one near word agents wrote; nearest-spelling
+        // alone would offer `zero-or-one` for it
+        const more = v.replace(/-or-more$/, "-or-many");
+        return isMark(more) ? more : (suggest(v, [...EDGE_MARKS]) as EdgeMark | undefined);
+      };
+      // `many-to-one`: the two ends one attribute meant, where both are words
+      const rel = ((v: string | undefined): [EdgeMark, EdgeMark] | undefined => {
+        for (let at = v?.indexOf("-to-") ?? -1; v && at > 0; at = v.indexOf("-to-", at + 1)) {
+          const a = v.slice(0, at), b = v.slice(at + 4);
+          if (isMark(a) && isMark(b)) return [a, b];
+        }
+        return undefined;
+      })(relKey && meta.attrs[relKey]);
+      const bad = ends.filter((k) => !isMark(meta.attrs[k]));
+      const line = (f: string = word("from") ?? rel?.[0] ?? "many", t: string = word("to") ?? rel?.[1] ?? "one") =>
+        edgeLine(`from: ${f} to: ${t}`);
+      const words = `each end is one of: ${EDGE_MARKS.join(", ")}`;
+      const SIDES = ["north", "south", "east", "west"];
+      const style = meta.attrs.style, anim = meta.attrs.animate;
+      if (relKey) {
+        error(ctx, node, `\`${relKey}:\` is not an edge attribute — a relationship is marked at each end`,
+          rel ? `write \`${line()}\`` : `write \`from:\` and \`to:\` instead — ${words}`);
+      } else if (bad.length && bad.every((k) => SIDES.includes(meta.attrs[k]))) {
+        const k = bad[0], v = meta.attrs[k];
+        error(ctx, node, `\`${k}: ${v}\` — \`${v}\` is a side, and \`${k}:\` on an edge counts rows`,
+          `to choose the wall a wire leaves by, write \`route ${fromPath ?? ctx.text(pathNode)} ${arrow} ${targets[0] ? lookup(ctx.text(targets[0]), scope) ?? ctx.text(targets[0]) : "…"}`
+          + `${bad.map((b) => ` ${b} ${meta.attrs[b]}`).join("")}\` in the view's \`layout { }\`; a relationship is \`${line("many", "one")}\``);
+      } else if (bad.length) {
+        const k = bad[0], v = meta.attrs[k];
+        error(ctx, node, `unknown relationship mark \`${k}: ${v}\``,
+          bad.every((b) => word(b)) ? `write \`${line()}\`${ends.length === 2 ? "" : ` — ${words}`}` : words);
+      } else if (ends.length === 1) {
+        const have = ends[0], miss = have === "from" ? "to" : "from";
+        error(ctx, node, `\`${have}:\` without \`${miss}:\` — a relationship is marked at both ends or neither`,
+          `write \`${line()}\`, with the word that counts the ${miss === "from" ? "source" : "target"}'s rows: ${EDGE_MARKS.join(", ")}`);
+      } else if (arrow !== "->" && arrow !== "--") {
+        error(ctx, node, `relationship marks replace the arrowhead, and \`${arrow}\` ${arrow === "~>" ? "is an async call" : "has two"}`,
+          `write \`${line()}\`, or \`--\` when neither table holds the key`);
+      } else if ((style !== undefined && style !== "solid") || (anim !== undefined && anim !== "false")) {
+        const what = style !== undefined && style !== "solid" ? `style: ${style}` : `animate: ${anim}`;
+        error(ctx, node, `relationship marks sit on a plain solid edge — \`${what}\` cannot share it`,
+          `write \`${line()}\`, or drop \`from:\` and \`to:\` to keep \`${what}\``);
+      } else {
+        marks = { from: meta.attrs.from as EdgeMark, to: meta.attrs.to as EdgeMark };
+      }
+    }
+    let endSaid = false;
     for (const target of targets) {
       const toPath = resolve(ctx.text(target), scope, target, ctx);
       edgeN++;
       if (!fromPath || !toPath) continue;
+      // marks sit between two tables: a container has no rows to count, and a
+      // person is not a table
+      let edgeMarks = marks;
+      if (marks)
+        for (const end of [fromPath, toPath]) {
+          const isContainer = model.containers.has(end);
+          if (!isContainer && !model.nodes.get(end)?.kinds.includes("person")) continue;
+          if (!endSaid)
+            error(ctx, node, `relationship marks sit between two tables, and \`${end}\` is a ${isContainer ? model.containers.get(end)!.kind : "person"}`,
+              isContainer
+                ? `name the table inside \`${end}\` that holds the rows, or drop the marks: \`${edgeLine("")}\``
+                : `drop the marks: \`${edgeLine("")}\``);
+          endSaid = true;
+          edgeMarks = undefined;
+          break;
+        }
+      if (wantsMarks && !edgeMarks) marksRefused.add(`e${edgeN}`);
       model.edges.push({
         id: `e${edgeN}`,
         from: fromPath, to: toPath, arrow,
@@ -1310,6 +1446,7 @@ export function buildProject(input: ProjectFile[]): BuildResult {
         // trailing `#tag`s merge with any in the attr block, same as a node's
         tags: [...new Set([...node.getChildren("Tag").map((t) => ctx.text(t).slice(1)), ...meta.tags])],
         color,
+        ...(edgeMarks ? { marks: edgeMarks } : {}),
         loc: ctx.loc(node), file: ctx.name,
       });
     }
@@ -1332,17 +1469,78 @@ export function buildProject(input: ProjectFile[]): BuildResult {
   const seen = new Map<string, SEdge>();
   model.edges = model.edges.filter((e) => {
     const key = `${e.from}|${e.arrow}|${e.to}|${e.label ?? ""}`;
-    if (seen.has(key)) {
+    const first = seen.get(key);
+    // on `--` the same two tables written the other way round are the same
+    // relationship; they are not merged (they never were), only compared
+    const back = e.arrow === "--" ? seen.get(`${e.to}|--|${e.from}|${e.label ?? ""}`) : undefined;
+    const say = (m: SEdge["marks"]) => (m ? `from: ${m.from} to: ${m.to}` : "no marks");
+    const differ = (o: SEdge, flip: boolean) =>
+      !marksRefused.has(o.id) && !marksRefused.has(e.id)
+      && say(o.marks) !== say(flip && e.marks ? { from: e.marks.to, to: e.marks.from } : e.marks);
+    const other = first ?? back;
+    // merging would have to pick one line's marks and drop the other's
+    if (other && (other.marks || e.marks) && differ(other, !first))
+      diagnostics.push({
+        severity: "error",
+        message: `${e.from} ${e.arrow} ${e.to}${e.label ? ` "${e.label}"` : ""} is declared twice with different relationship marks — \`${say(other.marks)}\` on line ${other.loc.line}${other.file !== e.file && other.file ? ` of ${other.file}` : ""}, \`${say(e.marks)}\` here${first ? "" : ", written the other way round"}`,
+        fix: "keep one of the two lines; two relationships between the same tables need different labels",
+        loc: e.loc, file: e.file,
+      });
+    else if (first && !marksRefused.has(first.id) && !marksRefused.has(e.id))
       diagnostics.push({
         severity: "warning",
         message: `duplicate edge ${e.from} ${e.arrow} ${e.to} merged`,
         loc: e.loc, file: e.file,
       });
-      return false;
-    }
+    if (first) return false;
     seen.set(key, e);
     return true;
   });
+
+  // Marks against the column. When the label names a column of the source
+  // table whose `ref` is the target, the row already says which end holds the
+  // key and whether it may be empty. Nothing is inferred from it — the marks
+  // are the author's — but two contradictions are worth a warning. Plain `one`
+  // never contradicts, and a column without `nullable` proves nothing.
+  for (const e of model.edges) {
+    if (!e.marks || !e.label) continue;
+    const col = model.nodes.get(e.from)?.fields?.find((f) => f.name === e.label && f.ref?.target === e.to);
+    if (!col) continue;
+    const { from, to } = e.marks;
+    const src = e.from.split(".").pop()!, tgt = e.to.split(".").pop()!;
+    if (MARKS_ONE.includes(from) && !MARKS_ONE.includes(to))
+      diagnostics.push({
+        severity: "warning",
+        message: `\`from: ${from} to: ${to}\` reads backwards against the column — \`${src}.${col.name}\` refs \`${tgt}\`, so many \`${src}\` rows point at one \`${tgt}\``,
+        fix: `swap the ends: \`{ from: ${to} to: ${from} }\` — \`from:\` counts \`${src}\`'s rows, \`to:\` counts \`${tgt}\`'s`,
+        loc: e.loc, file: e.file,
+      });
+    else if (col.markers.includes("nullable") && (to === "exactly-one" || to === "one-or-many"))
+      diagnostics.push({
+        severity: "warning",
+        message: `\`to: ${to}\` says every \`${src}\` row has a \`${tgt}\`, and \`${src}.${col.name}\` is \`nullable\``,
+        fix: `write \`to: ${to === "exactly-one" ? "zero-or-one" : "zero-or-many"}\`, or drop \`nullable\` from the column if it is always set`,
+        loc: e.loc, file: e.file,
+      });
+  }
+
+  // An edge a node draws to itself is never drawn (a loop is a layout project
+  // of its own). Said here, once, on the edge's own line: it used to be said
+  // by every view at the view's line, including views that never showed the
+  // node. A table says it on the row instead — `ref` is the self-reference.
+  for (const e of model.edges) {
+    if (e.from !== e.to) continue;
+    const id = e.from.split(".").pop()!;
+    diagnostics.push({
+      severity: "warning",
+      message: `\`${e.from}\` connects to itself — a self-edge is not drawn`,
+      fix: model.nodes.get(e.from)?.fields?.length
+        ? `the edge stays in the model; say it on the row, where it is drawn: \`${e.label ?? "column"} … ref ${id}\` in \`${id}\`'s \`fields\``
+        : `say it on the node instead: a \`note right-of ${e.from} "${e.label ?? "…"}"\`, `
+          + `or fold it into the label`,
+      loc: e.loc, file: e.file,
+    });
+  }
 
   // A label that outgrows its widest box is cut, and the picture alone no longer
   // says what the thing is. Measured, because a count cannot tell: 40 characters
@@ -1643,6 +1841,14 @@ export function buildProject(input: ProjectFile[]): BuildResult {
     const titleStr = title?.getChild("String");
     if (title && !titleStr) error(ctx, title, "`title` needs a quoted string", 'title "My Diagram"');
     else if (titleStr) view.title = ctx.str(titleStr);
+    // `about`: one per view. A second would have to be joined to the first or
+    // dropped, and choosing silently is the dropped-hint class the check forbids.
+    const [about, ...more] = body.getChildren("AboutStmt");
+    const aboutStr = about?.getChild("String");
+    if (about && !aboutStr) error(ctx, about, "`about` needs a quoted string", 'about """What this view shows, and why"""');
+    else if (aboutStr) { view.about = ctx.prose(aboutStr); checkProse(ctx, about, view.about, "`about`"); }
+    for (const m of more)
+      error(ctx, m, `view \`${view.name}\` already has an \`about\``, "a view has one `about` — join the two into one block string, a blank line between them");
     const theme = body.getChildren("ThemeStmt")[0];
     const themeIdent = theme?.getChild("Ident");
     if (theme && !themeIdent) error(ctx, theme, "`theme` needs a theme name", "theme dark");
@@ -1774,7 +1980,14 @@ export function buildProject(input: ProjectFile[]): BuildResult {
       const anchorNode = n.getChild("NoteAnchor");
       const textNode = n.getChild("String");
       if (!anchorNode || !textNode) continue;
-      const noteText = ctx.str(textNode);
+      const noteText = ctx.prose(textNode);
+      checkProse(ctx, n, noteText, "this note");
+      // drawn whole, however long — but a note is a callout on one thing, and
+      // past a few lines it is context for the whole view, which has a place
+      const lines = noteBox(noteText, { metrics: "inter", scale: 1 }).prose.lines.length;
+      if (lines > NOTE_LINES)
+        warn(ctx, n, `this note runs to ${lines} lines`,
+          `a note is a callout on one thing — what the whole view needs said goes in the view's \`about\`, under its title`);
       const meta = attrsOf(ctx, n.getChild("AttrBlock"));
       // A note takes one attr, with one value. `style: warn` used to draw a
       // plain note and say nothing — the dropped-hint class the check forbids.
@@ -1921,14 +2134,23 @@ export function buildProject(input: ProjectFile[]): BuildResult {
         const [a, b] = rt.getChildren("Path");
         const from = resolve(ctx.text(a), inScope, a, ctx);
         const to = resolve(ctx.text(b), inScope, b, ctx);
-        const sidesNodes = rt.getChildren("Side");
+        // a side belongs to the keyword before it — `to west` alone is the entry side, not the exit —
+        // and the two may come in either order; a second `from` (or `to`) is a contradiction
+        let fromNode: SyntaxNode | undefined, toNode: SyntaxNode | undefined, kw = "";
+        for (let c = rt.firstChild; c; c = c.nextSibling) {
+          if (c.name === "from" || c.name === "to") kw = c.name;
+          if (c.name !== "Side") continue;
+          if (kw === "from" ? fromNode : toNode)
+            error(ctx, c, `\`route\` gives two \`${kw}\` sides`, `an edge ${kw === "from" ? "leaves" : "enters"} by one side — keep one \`${kw} <side>\``);
+          else if (kw === "from") fromNode = c; else toNode = c;
+        }
         const labelNode = rt.getChild("String");
         if (from && to)
           view.layout.routes.push({
             from, to,
             label: labelNode ? ctx.str(labelNode) : undefined,
-            fromSide: sidesNodes[0] ? (ctx.text(sidesNodes[0]) as Side) : undefined,
-            toSide: sidesNodes[1] ? (ctx.text(sidesNodes[1]) as Side) : undefined,
+            fromSide: fromNode ? (ctx.text(fromNode) as Side) : undefined,
+            toSide: toNode ? (ctx.text(toNode) as Side) : undefined,
             loc: ctx.loc(rt),
           });
       }

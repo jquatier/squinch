@@ -641,7 +641,8 @@
           "refunds"
         ]
       ],
-      "forbidFields": true
+      "forbidFields": true,
+      "forbidOptionality": true
     }
   },
   {
@@ -670,7 +671,8 @@
           "queue|sqs"
         ]
       ],
-      "forbidFields": true
+      "forbidFields": true,
+      "forbidMarks": true
     }
   },
   {
@@ -792,6 +794,105 @@
         ]
       ],
       "requireFieldsShown": true
+    }
+  },
+  {
+    "id": "40-relationships",
+    "prompt": "Our clinic booking service is an API on ECS with one Postgres database, and I want the database page to show its tables and how they relate, crow's-foot style. The tables are patients, doctors, appointments, clinics and specialties. Every appointment is for exactly one patient and exactly one doctor (appointments.patient_id and appointments.doctor_id are both NOT NULL); a patient can have any number of appointments, including none. An appointment's clinic_id is nullable, because video visits have no clinic. Doctors and specialties are many-to-many: a doctor can have several specialties and a specialty several doctors. Doctors are attached to clinics through doctors.clinic_id, and a clinic has many doctors. The API reads and writes appointments.",
+    "expect": {
+      "minNodes": 6,
+      "inside": [
+        [
+          "db|database|postgres|rds|sql",
+          "patients"
+        ],
+        [
+          "db|database|postgres|rds|sql",
+          "appointments"
+        ],
+        [
+          "db|database|postgres|rds|sql",
+          "specialt"
+        ]
+      ],
+      "marks": [
+        [
+          "^appointments$",
+          "^patients$",
+          "^(zero-or-many|many)$",
+          "^exactly-one$"
+        ],
+        [
+          "^appointments$",
+          "^doctors$",
+          "^many$",
+          "^exactly-one$"
+        ],
+        [
+          "^appointments$",
+          "^clinics$",
+          "^many$",
+          "^zero-or-one$"
+        ],
+        [
+          "^doctors$",
+          "^specialt",
+          "^many$",
+          "^many$"
+        ],
+        [
+          "^doctors$",
+          "^clinics$",
+          "^many$",
+          "^one$"
+        ]
+      ],
+      "requireMarksShown": true
+    }
+  },
+  {
+    "id": "41-tables-no-relationships",
+    "prompt": "Our reporting service keeps everything in one Postgres database with four tables: events, sessions, daily_totals and exports. A rollup job (a Lambda) reads events and sessions every night and writes daily_totals. An export job (another Lambda) reads daily_totals, writes a CSV to S3 and records each file in exports. I want a reader to be able to open the database and see the tables and which job touches which.",
+    "expect": {
+      "minNodes": 7,
+      "inside": [
+        [
+          "db|database|postgres|rds|sql",
+          "events"
+        ],
+        [
+          "db|database|postgres|rds|sql",
+          "sessions"
+        ],
+        [
+          "db|database|postgres|rds|sql",
+          "daily.?totals"
+        ],
+        [
+          "db|database|postgres|rds|sql",
+          "exports"
+        ]
+      ],
+      "forbidFields": true,
+      "forbidMarks": true
+    }
+  },
+  {
+    "id": "42-context",
+    "prompt": "Draw our order-processing system for an architecture review: customers place orders through a web storefront, which calls an Orders API on Lambda; the API writes to a DynamoDB table and publishes an OrderPlaced event to an SQS queue that a fulfilment worker consumes, and the worker calls our shipping partner's API. Above the diagram I need a context section for the reviewers: a short intro saying this is the current state, before the queue migration, then three bullet points — order writes are synchronous (make that word bold), the migration is tracked in OPS-412 (format the ticket id as code), and a link to the runbook at https://runbooks.example.com/orders. Also put a note on the database saying it is encrypted at rest and keeps 18 months of orders.",
+    "expect": {
+      "minNodes": 5,
+      "requirePerson": true,
+      "requireExternal": true,
+      "minAsync": 1,
+      "minNotes": 1,
+      "requireAbout": true,
+      "aboutMatches": [
+        "^- ",
+        "\\*\\*synchronous\\*\\*",
+        "`OPS-412`",
+        "\\[[^\\]\\n]+\\]\\(https://runbooks\\.example\\.com/orders/?\\)"
+      ]
     }
   }
 ]

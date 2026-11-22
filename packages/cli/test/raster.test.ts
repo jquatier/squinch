@@ -37,3 +37,25 @@ describe("PNG export draws mono text in the mono face", () => {
     expect(mono).toBeGreaterThan(inter * 2);
   });
 });
+
+// …and Inter in the weight it asked for. The subsetter dropped each face's
+// typographic family name (name id 16), leaving Medium and SemiBold called
+// "Inter Medium" and "Inter SemiBold": resvg, asked for Inter at 600, found
+// one face named Inter — the Regular — and drew every title in it.
+describe("PNG export draws Inter in the weight asked for", () => {
+  /** How much ink a word takes: a heavier weight takes more. */
+  const ink = (weight: string) => {
+    const img = rasterize(
+      `<svg xmlns="http://www.w3.org/2000/svg" width="300" height="40" viewBox="0 0 300 40">` +
+      `<text x="0" y="28" font-size="24" font-family="SquinchInter, Inter, system-ui, sans-serif" font-weight="${weight}">Checkout</text></svg>`,
+    );
+    let n = 0;
+    for (let i = 3; i < img.pixels.length; i += 4) n += img.pixels[i];
+    return n;
+  };
+  it("draws 500 heavier than 400, and 600 heavier than 500", () => {
+    const [regular, medium, semibold] = [ink("400"), ink("500"), ink("600")];
+    expect(medium).toBeGreaterThan(regular * 1.05);
+    expect(semibold).toBeGreaterThan(medium * 1.05);
+  }, 30_000);
+});

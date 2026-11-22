@@ -87,7 +87,8 @@ jobs:
           mv packages/vscode/squinch.vsix "squinch-vscode-${v}.vsix"
           sha256sum "squinch-vscode-${v}.vsix" > SHA256SUMS
       # Notes are the CHANGELOG section for this version, verbatim; a missing
-      # section fails the release rather than shipping an empty page.
+      # section fails the release rather than shipping an empty page, and so
+      # does a picture linked at another tag or of a file the tree lacks.
       - run: node scripts/release-notes.mjs "$(node scripts/version.mjs)" > notes.md
       - run: |
           gh release create "$GITHUB_REF_NAME" squinch-vscode-*.vsix SHA256SUMS \

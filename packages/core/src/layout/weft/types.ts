@@ -2,7 +2,7 @@
 // container's own frame — `u` runs along a rank (the lane axis), `v` runs
 // across the ranks — so every stage is written once, for a downward flow, and
 // `frame.ts` is the only place that knows which of the two is x.
-import type { Box, Dir, Group, Wire } from "./contract.js";
+import type { Box, Dir, Group, Refusal, Wire } from "./contract.js";
 
 /** A wall of a box or of a container, in the frame of the sheet being laid out. */
 export type Wall = "n" | "s" | "e" | "w";
@@ -56,7 +56,9 @@ export interface Slot {
   /** 0 is the north wall, 1..R the ranks, R+1 the south wall */
   row: number;
   kid?: Kid;
-  /** a lane's or port's wire, or the bundle it carries */
+  /** a lane's or port's wire, or the bundle it carries (a lane beside a box
+   *  for a wire round its row-mates is one of that box's: which wire takes
+   *  which is `Sheet.lanes`') */
   key?: string;
   /** a label riding on a lane: its extent along u and along v, and its wire */
   label?: { u: number; v: number; wire: string };
@@ -74,8 +76,13 @@ export interface Slot {
   /** on a leaf: the width of a label given room on a stub at one of its
    *  ports — a lane passing beside the box keeps out of that too */
   stub?: number;
-  /** a hook's lane: the box it stands beside, and whether after it or before */
-  beside?: { box: number; after: boolean };
+  /** a hook's lane: the box it stands beside, the wall of it the hook leaves
+   *  by, and whether the lane stands after the box or before. `free`: the
+   *  hook leaves by the north or south wall and may go round either side of
+   *  its box, so the ordering stage chooses (`Search.flip`) — `after` is then
+   *  only where the lane starts, and the rows are the one record of where it
+   *  stands: read it with `hookAfter` (sheet.ts), never from here. */
+  beside?: { box: number; wall: Wall; after: boolean; free?: boolean; /** the lane comes down to the hook from the row above (the hook is at the lower end of its wire's way through the sheet) */ tail?: boolean };
 }
 
 /** A stretch of wire from a slot in one row to a slot in the next. Wires of
@@ -126,6 +133,14 @@ export interface Side {
   /** the width of a label standing on this wire just outside the wall: the
    *  wires that leave the box beside it keep half of it away */
   room?: number;
+  /** The box was asked for the wall facing the sheet's own, with row-mates
+   *  standing between: the wire leaves it by that wall all the same, to a
+   *  lane right beside it, and goes over or under the row from there. This
+   *  is the lane made for it; several of one box going one way round take
+   *  theirs in the order the wall outside has them, so the one it is drawn
+   *  to is `Sheet.lanes`'. (Not used if the ordering stage leaves the box
+   *  last in its row after all.) */
+  hook?: number;
 }
 
 /** A wire that ends at this container's own east or west wall. */
@@ -148,7 +163,7 @@ export type Piece =
   | { kind: "term"; wall: Wall; key: string };
 
 /** One container's inside: the static structure every later stage works on.
- *  `rows` is the one thing the ordering stage changes. */
+ *  `rows` (with `at`, its index) is the one thing the ordering stage changes. */
 export interface Sheet {
   cell: Cell;
   dir: Dir;
@@ -184,8 +199,11 @@ export interface Sheet {
   rep: number[];
   /** boxes named in an `aligned` set and left out of it: a second member in one rank */
   unaligned: string[];
-  /** wires that asked for a side they could not be given here */
-  unhonoured: string[];
+  /** ends of wires that asked for a side they could not be given here, and why */
+  unhonoured: Refusal[];
+  /** wire → the boxes it meets with something drawn on its end, and how far
+   *  out from the wall that reaches (`Wire.tips`) */
+  tips: Map<string, { box: string; len: number }[]>;
   pad: { n: number; s: number; w: number; e: number };
   gap: { lane: number; rank: number };
   /** the title's corner, in this frame: along the north wall in a downward
@@ -196,6 +214,13 @@ export interface Sheet {
   busy: { up: number[]; down: number[] };
   /** rough width, for judging straightness before anything has a position */
   rough: number;
+  /** a label given room here was still crossed by another wire: a lane that
+   *  steps aside to close a short jog (`shift` in lay.ts) had stepped into
+   *  that room. From then on it keeps out of every label's room here. */
+  firm?: boolean;
+  /** the lane each wire round a row-mate takes (`Side.hook` names one of its box's; which is the wire's is
+   *  this), set by `order.ts` once the order is final (`sides.ts`, `laneOrder`) */
+  lanes?: Map<Side, number>;
   geo?: Geo;
 }
 
@@ -214,6 +239,8 @@ export interface Geo {
   labels: Map<string, { x: number; y: number; w: number; h: number }>;
   /** wires whose label another wire runs through, with no clear place for it anywhere along the wire */
   stuck: string[];
+  /** for a stuck label: a place clear of everything but something drawn on a wire's end */
+  spare: Map<string, { x: number; y: number; w: number; h: number }>;
   /** boxes of an `aligned` set that placement could not keep on its line */
   unaligned: string[];
 }

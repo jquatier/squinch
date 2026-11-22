@@ -57,6 +57,13 @@ interface Expect {
   requireBadge?: string;
   /** a view must carry a titleblock */
   requireTitleblock?: boolean;
+  /** Some declared view carries `about` — the context section above the
+   *  diagram (docs/notes/prose.md), rather than a note stretched to hold it
+   *  or text added to the rendered file. */
+  requireAbout?: boolean;
+  /** Patterns (multiline) the `about` of one view must all match: the
+   *  formatting the prompt asked for came through as prose formatting. */
+  aboutMatches?: string[];
   /** A leaf's schema (docs/notes/fields.md). Each pair is [label pattern, n]:
    *  some leaf labelled like the first declares at least n fields. */
   fields?: [string, number][];
@@ -74,6 +81,21 @@ interface Expect {
   /** No leaf may declare fields: the prompt asked for tables, not columns,
    *  and an unasked schema is noise (the negative half of the probe). */
   forbidFields?: boolean;
+  /** Relationship marks (docs/notes/relationship-marks.md). Each entry is
+   *  [from label, to label, from word, to word], all patterns: some edge from
+   *  a leaf labelled like the first to one like the second carries marks like
+   *  the last two — or runs the other way with the words the other way. */
+  marks?: [string, string, string, string][];
+  /** Some view lays out an edge with its marks: they can be seen. */
+  requireMarksShown?: boolean;
+  /** No edge may carry marks: the prompt gave no cardinality, and a guessed
+   *  mark on a reviewed diagram reads as a fact. */
+  forbidMarks?: boolean;
+  /** No mark may state optionality (`exactly-one`, `zero-or-one`,
+   *  `one-or-many`, `zero-or-many`): the prompt says which table belongs to
+   *  which and nothing about required or optional. Plain `one` / `many` are
+   *  a fair reading of "belongs to"; a ring or a second bar is a guess. */
+  forbidOptionality?: boolean;
   icons?: string[][];
   /** Ownership, read off the model. Each pair is [container, thing]: something
    *  labelled like the second sits inside a container labelled like the first,
@@ -322,6 +344,13 @@ for (const p of prompts) {
     problems.push(`no node badged \`${e.requireBadge}\``);
   if (e.requireTitleblock && !m.views.some((v) => v.titleblock))
     problems.push("no view carries a titleblock");
+  if ((e.requireAbout || e.aboutMatches) && !m.views.some((v) => !v.auto && v.about))
+    problems.push("no view carries an `about`");
+  else if (e.aboutMatches) {
+    const missing = (v: (typeof m.views)[number]) => e.aboutMatches!.filter((p) => !new RegExp(p, "m").test(v.about ?? ""));
+    const best = m.views.filter((v) => v.about).map(missing).sort((a, b) => a.length - b.length)[0];
+    for (const p of best) problems.push(`\`about\` does not match /${p}/`);
+  }
   if (e.requirePack && !nodes.some((n) => n.icon?.pack === e.requirePack))
     problems.push(`no icon from the \`${e.requirePack}\` pack`);
   for (const anyOf of e.icons ?? [])
@@ -387,6 +416,40 @@ for (const p of prompts) {
         if (positioned.nodes.some((n) => n.fields?.length)) { shown = true; break; }
       }
       if (!shown) problems.push("fields are written but no view draws them");
+    }
+  }
+
+  if (e.marks || e.requireMarksShown || e.forbidMarks || e.forbidOptionality) {
+    const label = (path: string) => { const x = m.nodes.get(path); return x ? (x.label ?? x.name) : ""; };
+    const marked = m.edges.filter((ed) => ed.marks);
+    if (e.forbidMarks && marked.length)
+      problems.push(`relationship marks written unasked on ${marked.map((ed) => `${label(ed.from)} → ${label(ed.to)}`).join(", ")}`);
+    const guessed = marked.filter((ed) => ![ed.marks!.from, ed.marks!.to].every((w) => w === "one" || w === "many"));
+    if (e.forbidOptionality && guessed.length)
+      problems.push(`optionality stated unasked on ${guessed.map((ed) => `${label(ed.from)} ${ed.marks!.from} → ${ed.marks!.to} ${label(ed.to)}`).join(", ")}`);
+    for (const [a, b, fw, tw] of e.marks ?? []) {
+      const A = new RegExp(a, "i"), B = new RegExp(b, "i"), F = new RegExp(fw), T = new RegExp(tw);
+      const between = m.edges.filter((ed) => (A.test(label(ed.from)) && B.test(label(ed.to))) || (B.test(label(ed.from)) && A.test(label(ed.to))));
+      const ok = between.some((ed) => ed.marks && (A.test(label(ed.from)) && B.test(label(ed.to))
+        ? F.test(ed.marks.from) && T.test(ed.marks.to) : F.test(ed.marks.to) && T.test(ed.marks.from)));
+      if (!ok) {
+        const got = between.map((ed) => (ed.marks ? `${label(ed.from)} ${ed.marks.from} → ${ed.marks.to} ${label(ed.to)}` : `${label(ed.from)} → ${label(ed.to)} unmarked`));
+        problems.push(`no edge between /${a}/i and /${b}/i marked /${fw}/ … /${tw}/${got.length ? ` (found: ${got.join("; ")})` : " (no edge between them)"}`);
+      }
+    }
+    // the marks are the statement; a label that repeats them is the placement
+    // probe's artefact ("book_id · many to exactly one", "0..* loans : 1 book", "N:1")
+    const COUNT = "(?:exactly[ -])?(?:zero|one|many|[01nm*])(?:[ -]or[ -](?:one|many|more))?";
+    const ECHO = new RegExp(`\\b${COUNT}\\s*(?::|-to-|\\bto\\b)\\s*${COUNT}\\b|\\b[01]\\.\\.[1nm*]`, "i");
+    const echo = marked.filter((ed) => ed.label && ECHO.test(ed.label));
+    if (echo.length) problems.push(`cardinality repeated in a label: ${echo.map((ed) => `"${ed.label}"`).join(", ")}`);
+    if (e.requireMarksShown) {
+      let shown = false;
+      for (const v of m.views) {
+        const { positioned } = await layoutView(m, v);
+        if (positioned.edges.some((ed) => ed.marks)) { shown = true; break; }
+      }
+      if (!shown) problems.push("relationship marks are written but no view draws them");
     }
   }
 

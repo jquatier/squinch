@@ -106,6 +106,14 @@ describe("block context", () => {
     expect(blockStack(top.src, top.offset).pop()).toBe("file");
   });
 
+  it("reads past a block string's braces and quotes, which span lines", () => {
+    const src = `view v {\n  about """\n    A { brace and a "quote"\n  """\n  |\n}\n`;
+    const after = at(src);
+    expect(blockStack(after.src, after.offset).pop()).toBe("view");
+    const inside = at(`view v {\n  about """\n    A { | \n  """\n}\n`);
+    expect(blockStack(inside.src, inside.offset).pop()).toBe("view");
+  });
+
   it("sees a layout block nested in a system as both", () => {
     const src = `system s "S" {\n  x = box "X"\n  layout {\n    |\n  }\n}\n`;
     const p = at(src);

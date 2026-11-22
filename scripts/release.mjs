@@ -4,21 +4,30 @@
 //   pnpm release 0.1.0          # same, version given up front
 //   pnpm release 0.1.0 --no-edit   # accept the drafted notes as-is
 //   pnpm release 0.1.0 --notes "Initial release."   # your notes, no editor
+//   pnpm release 0.1.0 --notes-file notes.md        # the same, from a file
 //   pnpm release --dry-run      # show everything, write nothing
 //
-// It drafts the CHANGELOG section from the commits since the last tag, opens
-// it in $EDITOR to be trimmed into something a reader deserves, bumps every
+// In Claude Code, `/release` (.claude/skills/release/) writes the notes as
+// prose from this draft, checks them with --dry-run, and runs this with
+// --notes-file once the maintainer has approved them.
+//
+// It drafts the CHANGELOG section from the commits since the last tag, the SVG
+// of every lookbook case and example project added since then embedded under
+// the commit that added it (scripts/release-shots.mjs), opens it in $EDITOR to
+// be trimmed into something a reader deserves — the pictures stay with the
+// features they show — bumps every
 // workspace manifest via scripts/version.mjs, commits, tags vX.Y.Z, and pushes
 // branch + tag together. From there .github/workflows/release.yml builds the
 // VSIX from that exact commit, re-runs the suite, publishes the GitHub
 // Release with this section as its notes, and publishes the npm packages. If
 // CI fails, no release exists — fix and run this again with the next number.
 import { execFileSync, spawnSync } from "node:child_process";
-import { readFileSync, writeFileSync, mkdtempSync, rmSync } from "node:fs";
+import { existsSync, readFileSync, writeFileSync, mkdtempSync, rmSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { tmpdir } from "node:os";
 import { createInterface } from "node:readline/promises";
 import { fileURLToPath } from "node:url";
+import { repoUrl, screenshots, shotMarkdown, shotProblems } from "./release-shots.mjs";
 
 const root = join(dirname(fileURLToPath(import.meta.url)), "..");
 const args = process.argv.slice(2);
@@ -27,12 +36,15 @@ const noEdit = args.includes("--no-edit");
 // --notes "text" supplies the section body directly — no draft, no editor.
 // This is the non-interactive path (an agent or CI has no $EDITOR), and the
 // honest spelling of "I already know what the notes should say".
-const notesAt = args.indexOf("--notes");
-const givenNotes = notesAt !== -1 ? args[notesAt + 1] : undefined;
-// The value after --notes is not the version; with no --notes there is nothing
-// to skip (notesAt + 1 would be 0 — the first argument — which is where the
-// version usually sits).
-const givenVersion = args.find((a, i) => !a.startsWith("--") && (notesAt === -1 || i !== notesAt + 1));
+// --notes-file reads it from a file: written notes are Markdown full of
+// backticks, which a shell argument mangles (the /release skill uses this).
+const notesAt = args.indexOf("--notes"), fileAt = args.indexOf("--notes-file");
+const notesFile = fileAt !== -1 ? args[fileAt + 1] : undefined;
+const readable = notesFile && !notesFile.startsWith("--") && existsSync(notesFile);
+const givenNotes = notesAt !== -1 ? args[notesAt + 1] : readable ? readFileSync(notesFile, "utf8").trim() : undefined;
+// The value after --notes / --notes-file is not the version.
+const values = new Set([notesAt, fileAt].filter((i) => i !== -1).map((i) => i + 1));
+const givenVersion = args.find((a, i) => !a.startsWith("--") && !values.has(i));
 
 // stderr piped, not inherited: the no-tags-yet probe (`git describe`) fails
 // by design on a fresh repo, and its "fatal:" would leak into our output.
@@ -46,6 +58,10 @@ const fail = (msg) => {
 // ── preflight rails ─────────────────────────────────────────────────────────
 if (notesAt !== -1 && (!givenNotes || givenNotes.startsWith("--")))
   fail("--notes needs a value — a following flag doesn't count");
+if (fileAt !== -1 && (!notesFile || notesFile.startsWith("--"))) fail("--notes-file needs a path");
+if (fileAt !== -1 && !readable) fail(`no such file: ${notesFile}`);
+if (notesAt !== -1 && fileAt !== -1) fail("--notes or --notes-file, not both");
+if (fileAt !== -1 && !givenNotes) fail(`${notesFile} is empty`);
 const branch = git("rev-parse", "--abbrev-ref", "HEAD");
 if (branch !== "main") fail(`on \`${branch}\` — releases cut from main`);
 if (git("status", "--porcelain") !== "") fail("working tree is dirty — commit or stash first");
@@ -98,9 +114,33 @@ if (subjects.length === 0) fail(`nothing to release — no commits since ${lastT
 
 const today = new Date().toISOString().slice(0, 10);
 const heading = `## ${version} — ${today}`;
-let body = givenNotes ?? subjects.map((c) => `- ${c.subject} (${c.sha})`).join("\n");
+// Pictures of what is new: added files only, renames not counted as additions
+// so a moved case does not reappear. Each is embedded under the commit that
+// added its case or example — the line announcing the feature — indented into
+// that bullet so it stays with it when the draft is rewritten into prose.
+const added = lastTag
+  ? git("diff", "--name-only", "--no-renames", "--diff-filter=A", `${lastTag}..HEAD`, "--", "lookbook/cases", "examples").split("\n").filter(Boolean)
+  : [];
+const repo = repoUrl(root);
+const shots = screenshots(root, added);
+const addedBy = (file) => git("log", "--format=%h", "--no-renames", "--diff-filter=A", range, "--", file).split("\n")[0];
+const pictured = new Map();
+for (const s of shots) {
+  const sha = addedBy(s.source);
+  const at = subjects.find((c) => sha && (c.sha.startsWith(sha) || sha.startsWith(c.sha))) ?? subjects[0];
+  pictured.set(at, [...(pictured.get(at) ?? []), shotMarkdown(repo, version, s)]);
+}
+let body = givenNotes ??
+  subjects.map((c) => `- ${c.subject} (${c.sha})` + (pictured.get(c) ?? []).map((md) => `\n\n  ${md}\n`).join("")).join("\n");
+// Notes given whole are placed by their author: name what they show no picture
+// of, with the line to paste, rather than gather pictures at the end of them.
+const unshown = givenNotes ? shots.filter((s) => !body.includes(s.path)) : [];
 
-console.log(`\n${subjects.length} commit(s) since ${lastTag ?? "the beginning"}.\n`);
+console.log(`\n${subjects.length} commit(s) since ${lastTag ?? "the beginning"}` +
+  (shots.length ? `, ${shots.length} picture(s) of what is new.\n` : ".\n"));
+if (unshown.length)
+  console.log(`your notes show no picture of ${unshown.length} new feature(s) — paste each where the notes talk about it:\n` +
+    unshown.map((s) => `  ${s.title}: ${shotMarkdown(repo, version, s)}`).join("\n") + "\n");
 
 // ── edit ────────────────────────────────────────────────────────────────────
 if (!givenNotes && !noEdit && process.stdout.isTTY) {
@@ -123,6 +163,11 @@ if (!givenNotes && !noEdit && process.stdout.isTTY) {
     if (!body) fail("empty notes — aborted");
   }
 }
+
+// the release workflow refuses a picture at another version or of a missing
+// file (scripts/release-notes.mjs); say so here, before anything is tagged
+const broken = shotProblems(root, version, body);
+if (broken.length) fail(`the notes link pictures that will not show:\n  ${broken.join("\n  ")}`);
 
 const section = `${heading}\n\n${body}\n`;
 console.log(`${"─".repeat(64)}\n${section}${"─".repeat(64)}`);

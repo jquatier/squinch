@@ -14,8 +14,8 @@
 // caller decides how to report, and so one sweep can check a whole corpus and
 // list everything at once instead of dying on the first failure.
 import type { Positioned, PNode, PEdge } from "../src/layout/layout.js";
-import { NOTE_GUTTER } from "../src/layout/layout.js";
-import { measure } from "../src/metrics.js";
+import { NOTE_GUTTER, noteFont } from "../src/layout/layout.js";
+import { runWidth } from "../src/prose.js";
 
 /** What `Positioned` does not carry, and the rules need. */
 export interface Ctx {
@@ -242,7 +242,9 @@ export function checkLayout(p: Positioned, ctx: Ctx = {}): string[] {
   // through the side. The sizing is one function now; this is the assertion
   // that keeps it that way, since a second copy would show up here first.
   for (const n of p.notes ?? []) {
-    const widest = Math.max(...n.lines.map((l) => measure(l, 11, "400", "inter")));
+    // re-measured, not read back: where each line's last run ends, at its own face
+    const font = noteFont({ metrics: "inter", scale: 1 });
+    const widest = Math.max(0, ...n.prose.lines.map((l) => { const s = l.segs[l.segs.length - 1]; return s ? s.x + runWidth(s.text, s.style, font) : 0; }));
     const need = 12 + NOTE_GUTTER + Math.ceil(widest) + 12;
     if (need > n.w)
       bad.push(`note ${n.i}: text needs ${need} but its box is ${n.w}`);

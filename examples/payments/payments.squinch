@@ -1,0 +1,79 @@
+// Card payments across three clouds — and every icon pack in one picture.
+//
+// The money moves down the page: through Cloudflare and the cluster's ingress
+// to the payment service on GKE, out to Stripe, and at close of day to
+// settlement on AWS. The reporting goes out to the side: everything that
+// touches a card writes to the audit trail and takes its keys from Key Vault,
+// on Azure. Left to themselves those edges would leave each box by its bottom
+// and tangle with the money below. `route … from east` sends each one out of
+// the side it names — past whatever stands beside it, and out through the
+// service's frame and the Google Cloud boundary. A side takes as many edges as
+// ask for it: Authorize sends two out of its east side, nested.
+pack aws
+pack azure
+pack gcp
+pack k8s
+pack logos
+
+person shopper "Shopper"
+
+system edge "Edge" {
+  glyph: logos/cloudflare
+  cdn     = logos/cloudflare "Cloudflare" { subtitle: "WAF · bot management" }
+  ingress = k8s/ing          "Ingress"    { subtitle: "NGINX · mTLS" }
+  cdn -> ingress
+  layout { direction right }
+}
+
+system payments "Payment Service" {
+  glyph: gcp/gke
+  auth   = k8s/deploy    "Authorize"   { subtitle: "Deployment · Go" }
+  risk   = gcp/vertex-ai "Risk Score"  { subtitle: "Vertex AI · online" }
+  ledger = gcp/spanner   "Ledger"      { subtitle: "Spanner · double-entry" }
+  vault  = logos/vault   "Token Vault" { subtitle: "Vault · transit" }
+
+  auth -> risk   "score"
+  auth -> ledger "hold"
+  auth -> vault  "tokenize"
+  layout { rows [auth risk] [ledger vault] }
+}
+
+stripe = logos/stripe "Stripe" { subtitle: "acquirer" }
+
+system settlement "Settlement" {
+  glyph: sys/landmark
+  batch = aws/step-functions "Nightly Batch"    { subtitle: "Step Functions" }
+  files = aws/s3             "Settlement Files" { subtitle: "S3 · per acquirer" }
+  batch -> files
+}
+
+system compliance "Compliance" {
+  glyph: sys/shield-check
+  trail = azure/azure-sentinel "Audit Trail" { subtitle: "Microsoft Sentinel" }
+  keys  = azure/key-vaults     "Card Keys"   { subtitle: "Key Vault · Managed HSM" }
+  layout { rows [trail] [keys] }
+}
+
+zone google    "Google Cloud" { contains payments }
+zone microsoft "Azure"        { contains compliance }
+zone amazon    "AWS"          { contains settlement }
+
+shopper      -> edge.cdn          "pays"
+edge.ingress -> payments.auth     "authorize"
+payments.auth   -> stripe           "charge"
+payments.ledger -> settlement.batch "close of day"
+
+payments.auth  -> compliance.trail "audit"
+payments.auth  -> compliance.keys  "decrypt"
+payments.vault -> compliance.keys  "encrypt"
+
+view platform {
+  title "Card payments"
+  expand edge, payments, compliance, settlement
+  layout {
+    rows [shopper] [edge] [stripe payments compliance] [settlement]
+    route payments.auth  -> compliance.trail from east
+    route payments.auth  -> compliance.keys  from east
+    route payments.vault -> compliance.keys  from east
+  }
+}

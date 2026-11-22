@@ -11,8 +11,8 @@
 // and had none for a zone's inside — docs/notes/layout-engine.md.)
 
 import type { Diagnostic, SModel, SView, RelPos } from "../model/types.js";
-import { resolveView, type ViewGraph, type VNode } from "../view/resolve.js";
-import { noteBox, pillDims, sizeOf, SHEET_BLEED, CHIP_H, NOTE_CLEAR, NOTE_GAP } from "./sizes.js";
+import { resolveView, type ViewGraph, type VNode, type VEdge } from "../view/resolve.js";
+import { noteBox, pillDims, sizeOf, SHEET_BLEED, CHIP_H, NOTE_CLEAR, NOTE_GAP, MARK_REACH } from "./sizes.js";
 import { measure } from "../metrics.js";
 import { BADGE_GAP, badgeWidth } from "./annotate.js";
 import type { ThemeFont } from "../themes/index.js";
@@ -228,19 +228,93 @@ function zoneDiagnostics(
   return out;
 }
 
+type Route = SView["layout"]["routes"][number];
+/** A `route` line as a diagnostic quotes it. */
+export const routeSaid = (r: Route) => `route ${r.from} -> ${r.to}${r.label ? ` "${r.label}"` : ""}`;
+/** The `route` lines of a view that name this edge as the view draws it. */
+export const routesOf = (view: SView, e: { from: string; to: string; label?: string }): Route[] =>
+  view.layout.routes.filter((r) => r.from === e.from && r.to === e.to && (!r.label || r.label === e.label));
+/** The sides an edge is asked to use: each end's from the first line that asks
+ *  it (two lines that ask one end for different sides are an error, below). */
+export const routeSides = (view: SView, e: { from: string; to: string; label?: string }) => {
+  const lines = routesOf(view, e);
+  return { fromSide: lines.find((r) => r.fromSide)?.fromSide, toSide: lines.find((r) => r.toSide)?.toSide };
+};
+
 /** Hints about wires that name something this view does not draw. */
 function wireDiagnostics(view: SView, graph: ViewGraph): Diagnostic[] {
   const out: Diagnostic[] = [];
   const visible = new Set([...graph.nodes.map((n) => n.path), ...graph.frames.map((f) => f.path)]);
   const between = (from: string, to: string) => graph.edges.filter((e) => e.from === from && e.to === to).length;
-  for (const r of view.layout.routes)
-    if (!r.label && between(r.from, r.to) > 1)
+  const drawn = { open: new Set(graph.frames.map((f) => f.path)), node: new Set(graph.nodes.map((n) => n.path)) };
+  const said = routeSaid;
+  // the line to write instead: the edge as this view draws it, with its own arrow
+  const arrow = (e: ViewGraph["edges"][number]) => (e.heads === "none" ? "--" : e.heads === "both" ? "<->" : e.async ? "~>" : "->");
+  const sides = (r: Route, swap = false) => { const [f, t] = swap ? [r.toSide, r.fromSide] : [r.fromSide, r.toSide]; return `${f ? ` from ${f}` : ""}${t ? ` to ${t}` : ""}`; };
+  // how a drawn end stands to the one written: the same, the container around it, or something inside it
+  const rel = (written: string, at: string) => (at === written ? 0 : written.startsWith(`${at}.`) ? 1 : at.startsWith(`${written}.`) ? -1 : undefined);
+  for (const r of view.layout.routes) {
+    const between = graph.edges.filter((e) => e.from === r.from && e.to === r.to);
+    if (!r.label && between.length > 1)
       out.push({
         severity: "error",
-        message: `${between(r.from, r.to)} edges match \`route ${r.from} -> ${r.to}\``,
+        message: `${between.length} edges match \`route ${r.from} -> ${r.to}\``,
         fix: "add the edge's label to the route statement to disambiguate",
         loc: r.loc,
       });
+    // A route names an edge as this view draws it. With a container collapsed
+    // the edge is drawn from its card, and opened, from the node inside — so
+    // a line written for one view can name nothing in another, and said
+    // nothing. It says which spelling this view needs.
+    if (between.some((e) => !r.label || e.label === r.label)) continue;
+    const miss = (fix: string) => out.push({ severity: "warning", message: `\`${said(r)}\` names no edge drawn in this view`, fix, loc: r.loc });
+    if (!r.fromSide && !r.toSide) { miss("the line asks for no side, so it does nothing anywhere — drop it"); continue; }
+    // the same pair, another label: several edges lifted into one carry a count, not a label
+    if (between.length) {
+      const named = between.filter((e) => e.count === 1 && e.label).map((e) => `"${e.label}"`);
+      miss(between.length === 1
+        ? `the one edge between them here ${between[0].count > 1 ? `stands for ${between[0].count} edges merged into one` : named.length ? `is labelled ${named[0]}` : "has no label"} — drop the label from this line`
+        : `the edges between them here are labelled ${named.join(", ")} — name one of those`);
+      continue;
+    }
+    // the same edge at another altitude: both ends as written or lifted, or both as written or opened
+    // — and, where the line names a label, the edge that carries it
+    const kin = graph.edges.filter((e) => {
+      const a = rel(r.from, e.from), b = rel(r.to, e.to);
+      return a !== undefined && b !== undefined && a * b >= 0 && (a !== 0 || b !== 0);
+    });
+    const best = r.label && kin.some((e) => e.label === r.label) ? kin.filter((e) => e.label === r.label) : kin;
+    if (best.length) {
+      const e = best[0], twins = graph.edges.filter((x) => x.from === e.from && x.to === e.to).length > 1;
+      // why each end is drawn where it is, read off the view and not off the spelling
+      const why = [[r.from, e.from], [r.to, e.to]].flatMap(([written, at]) => {
+        const k = rel(written, at);
+        if (!k) return [];
+        if (k > 0) return [drawn.open.has(at) ? `\`${written}\` is not drawn in this view, so its edge runs from \`${at}\`` : `\`${at}\` is collapsed here`];
+        return [drawn.open.has(written) ? `\`${written}\` is open here` : `\`${at}\` is drawn at its own depth here`];
+      });
+      const pairs = [...new Set(best.map((x) => `${x.from} -> ${x.to}`))];
+      miss(`${[...new Set(why)].join(" and ")}, so ${pairs.length > 1 ? `${pairs.length} edges are drawn for it (\`${pairs.slice(0, 3).join("`, `")}\`${pairs.length > 3 ? ", …" : ""}); for the first, ` : `the edge is drawn as \`${pairs[0]}\` — `}write \`route ${e.from} ${arrow(e)} ${e.to}${twins && e.label ? ` "${e.label}"` : ""}${sides(r)}\``);
+      continue;
+    }
+    // the edge as declared runs the other way (a route follows the edge's own direction)
+    const back = graph.edges.filter((e) => e.from === r.to && e.to === r.from && (!r.label || e.label === r.label));
+    if (back.length) { miss(`the edge between them runs from \`${r.to}\` to \`${r.from}\`, and a route names an edge in its own direction — write \`route ${r.to} ${arrow(back[0])} ${r.from}${r.label ? ` "${r.label}"` : ""}${sides(r, true)}\``); continue; }
+    const seen = (path: string) => drawn.open.has(path) || drawn.node.has(path);
+    miss(seen(r.from) && seen(r.to) ? "both ends are drawn here, but no edge runs between them — drop the line" : "no edge between them is drawn here — drop the line, or bring both ends into the view");
+  }
+  // two lines for one edge: fine when each asks a different end, a contradiction when they ask one end for two sides
+  for (const e of graph.edges) for (const end of ["from", "to"] as const) {
+    const asking = routesOf(view, e).filter((r) => (end === "from" ? r.fromSide : r.toSide));
+    const asked = [...new Set(asking.map((r) => (end === "from" ? r.fromSide : r.toSide)))];
+    if (asked.length > 1)
+      out.push({
+        severity: "error",
+        message: `\`${said(asking[1])}\` asks \`${end === "from" ? e.from : e.to}\` for its ${asked[1]} side, and another \`route\` line asks it for its ${asked[0]}`,
+        fix: "an end of an edge leaves or enters by one side — keep one of the two lines",
+        loc: asking[1].loc,
+      });
+  }
   for (const ch of view.layout.channels) {
     const members = ch.sources.filter((src) => visible.has(src) && between(src, ch.target) > 0);
     if (visible.has(ch.target) && members.length >= 2) continue;
@@ -419,10 +493,7 @@ export function plan(model: SModel, view: SView, font: Font): Plan {
   };
 
   /** `route a -> b from east to west`: the walls a wire is asked to use. */
-  const sidesOf = (e: ViewGraph["edges"][number]) => {
-    const r = view.layout.routes.find((x) => x.from === e.from && x.to === e.to && (!x.label || x.label === e.label));
-    return r ? { fromSide: r.fromSide, toSide: r.toSide } : {};
-  };
+  const sidesOf = (e: ViewGraph["edges"][number]) => routeSides(view, e);
   // What a wire keeps room for, as one rect on the wire: its pill; with it a
   // flow badge (the annotation pass carves it back out — an unlabelled wire's
   // badge is a bead on the wire and reserves nothing); and the note anchored
@@ -438,7 +509,9 @@ export function plan(model: SModel, view: SView, font: Font): Plan {
     const badge = badgeWidth(graph.flow, e.id, font);
     const pill = e.label ? pillDims(e.label, font).w + (badge ? badge + BADGE_GAP : 0) : 0;
     const note = edgeNote.has(e.id) ? noteBox(view.notes![edgeNote.get(e.id)!].text, font) : undefined;
-    if (!note) return pill ? { w: pill, h: 18 } : undefined;
+    // (a flow badge on an unlabelled wire is a bead that reserves nothing —
+    // except on a marked wire, where it needs a place clear of both marks)
+    if (!note) return pill ? { w: pill, h: 18 } : badge && e.marks && view.layout.lines !== "straight" ? { w: badge, h: 18 } : undefined;
     // The pill stays centred on the wire and the note stands off to one side
     // of it — so the reservation, which the engine centres on the wire, is
     // that much to both sides: across the wire where it runs down, along it
@@ -469,7 +542,35 @@ export function plan(model: SModel, view: SView, font: Font): Plan {
     label: reserve(e),
     bundle: bundleOf(e.from, e.to),
     ...sidesOf(e),
+    ...(e.marks && view.layout.lines !== "straight" ? { tips: { from: MARK_REACH, to: MARK_REACH } } : {}),
   }));
+  // Wires of one trunk share a drawn end, and that end carries one mark. If
+  // the edges mark it differently there is no one mark to draw (SPEC §4).
+  const trunks = new Map<string, VEdge[]>();
+  for (const w of wires) if (w.bundle) (trunks.get(w.bundle) ?? trunks.set(w.bundle, []).get(w.bundle)!).push(graph.edges.find((e) => e.id === w.id)!);
+  for (const [bundle, members] of trunks) {
+    if (members.length < 2 || !members.some((e) => e.marks)) continue;
+    // members that meet the same box share the drawn end there — all of them
+    // at the trunk's one end, and two edges between the same pair at both
+    for (const end of ["to", "from"] as const) {
+      const at = new Map<string, VEdge[]>();
+      for (const e of members) (at.get(e[end]) ?? at.set(e[end], []).get(e[end])!).push(e);
+      for (const [node, sharing] of at) {
+        const said = [...new Set(sharing.map((e) => e.marks?.[end] ?? "no mark"))];
+        if (sharing.length < 2 || said.length < 2) continue;
+        const ch = bundle.startsWith("channel:") ? view.layout.channels.find((c) => `channel:${c.target}` === bundle) : undefined;
+        const container = bundle.includes("@") ? bundle.slice(bundle.indexOf("@") + 1) : "";
+        const wrapLoc = model.containers.get(container)?.layout?.wrap?.loc ?? view.layout.wrap?.loc;
+        const bare = sharing.some((e) => !e.marks);
+        diagnostics.push({
+          severity: "error",
+          message: `${ch ? "this `channel`" : "`wrap`"} draws ${sharing.length} edges ${end === "to" ? "into" : "out of"} \`${node}\` as one wire, and they mark that end differently — ${said.map((x) => `\`${x}\``).join(", ")}`,
+          fix: `one drawn end carries one mark: give every one of these edges the same \`${end}:\`${bare ? " (an edge that cannot carry marks — async, styled, or lifted here — cannot share the wire)" : ""}, or ${ch ? "drop the `channel`" : "arrange the row by hand with `rows` instead of `wrap`"}`,
+          loc: ch?.loc ?? wrapLoc ?? view.loc,
+        });
+      }
+    }
+  }
   const depthOf = (id: string): number => (zoneParent.get(id) ? 1 + depthOf(zoneParent.get(id)!) : 0);
   return {
     problem: { root, wires }, graph, view, unitOf, parentOf: parent, noteRoom, edgeNote, diagnostics,

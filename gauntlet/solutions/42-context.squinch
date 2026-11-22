@@ -1,0 +1,29 @@
+pack aws
+
+person customer "Customer"
+web = sys/app-window "Web Storefront"
+api = aws/lambda "Orders API"
+db = aws/dynamodb "Orders Table" datastore
+queue = aws/sqs "Order Queue"
+worker = sys/cog "Fulfilment Worker"
+shipping = box "Shipping Partner API" external
+
+customer -> web "places orders"
+web -> api
+api -> db "writes"
+api ~> queue "OrderPlaced"
+queue ~> worker "consumes"
+worker -> shipping "calls"
+
+view landscape {
+  title "Order Processing — Current State"
+  include *
+  about """
+    This is the **current state**, before the queue migration.
+
+    - Order writes are **synchronous**
+    - The migration is tracked in `OPS-412`
+    - Runbook: [orders runbook](https://runbooks.example.com/orders)
+  """
+  note right-of db "Encrypted at rest; keeps 18 months of orders"
+}

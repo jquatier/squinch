@@ -2,7 +2,7 @@ pack aws
 
 person customer "Customer"
 cdn = aws/cloudfront "CloudFront"
-store = sys/app-window "Storefront"
+storefront = box "Storefront"
 gw = aws/api-gateway "API Gateway"
 bus = aws/eventbridge "EventBridge"
 worker = sys/cog "Fulfilment Worker"
@@ -28,8 +28,8 @@ system payments "Payments" {
 }
 
 customer -> cdn "browses"
-cdn -> store
-store -> gw
+cdn -> storefront
+storefront -> gw "calls"
 gw -> catalog.fn
 gw -> orders.fn
 gw -> payments.fn { tags: #sensitive }
@@ -49,4 +49,5 @@ view landscape {
 view orders {
   title "Orders Service"
   scope orders
+  legend auto
 }

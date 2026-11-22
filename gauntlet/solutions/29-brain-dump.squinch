@@ -6,13 +6,13 @@ person data_team "Data Team"
 
 mobile  = sys/smartphone "Mobile App"
 website = sys/globe "Website"
-gw      = sys/webhook "Gateway"
+gw      = sys/network "Gateway"
 account = sys/server "Account Service"
 billing = sys/server "Billing Service"
-stripe  = logos/stripe "Stripe" external
 pg      = logos/postgres "Main Postgres" datastore
-billdb  = logos/postgres "Billing Database" datastore
-export  = aws/s3 "Nightly Export" { subtitle: "S3" }
+billdb  = sys/database "Billing Database" datastore
+stripe  = logos/stripe "Stripe" external
+export  = aws/s3 "Nightly Export" datastore { subtitle: "S3" }
 
 customer -> mobile
 customer -> website
@@ -20,13 +20,13 @@ mobile -> gw
 website -> gw
 gw -> account
 gw -> billing
-billing -> stripe
 account -> pg "writes"
 billing -> billdb
-pg ~> export "nightly"
-export ~> data_team
+billing -> stripe
+pg ~> export "nightly export"
+data_team -> export "reads"
 
 view landscape {
-  title "System Landscape"
+  title "Platform Overview"
   include *
 }

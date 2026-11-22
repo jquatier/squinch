@@ -6,6 +6,83 @@ history too. Sections are drafted by `pnpm release` from the commits since the
 previous tag, then edited by a human before anything is written; the release
 workflow lifts the matching section verbatim into the GitHub Release notes.
 
+## 0.22.0 — 2026-11-22
+
+**Prose on the page.** A view can now carry a paragraph or two of context under its title: what the view shows, what is about to change, where the runbook is. Until now there was nowhere to put it. The header held a title and one subtitle line, a note stopped at three lines, and `**bold**` was drawn with its asterisks, so agents edited the rendered SVG instead and `render --check` failed on every run after.
+
+![Prose on the page.](https://github.com/jquatier/squinch/blob/v0.22.0/lookbook/out/45-about-and-notes.checkout.light.svg?raw=true)
+
+No diagram in this repo redraws, and neither does a plain note. A view that asks for a `route` side may now draw it differently, because the side carries further (below). Run `render --check` if you use them. PNG exports redraw, with their titles in the right weight. Re-run `squinch skill` so your agents learn `about` and the new `route` rules.
+
+### About and formatted notes
+
+- **`about` on a view** sets prose in the header under the title, and the drawing moves down to make room. One per view.
+- **`"""` block strings** span lines and are dedented, anywhere a string goes. Prose keeps the line breaks; one-line text reads them as spaces.
+- **One small set of formatting**, the same for `about` and notes: paragraphs, `- ` bullets, `**bold**`, `` `code` `` and `[text](https://…)` links. Anything else is drawn as typed and `check` warns, and so does a link that is not http or https.
+- **Notes are drawn whole.** A note grows to fit what it says rather than stopping at a third line with an ellipsis. Past six lines, `check` points at `about`.
+- The lookbook has a new [About and notes case](https://github.com/jquatier/squinch/blob/main/lookbook/cases/45-about-and-notes.squinch), and the editor and the playground highlight the new strings.
+
+### Route sides
+
+- **A side carries through every wall around the node.** `route shop.api -> audit from east` now leaves API by its east side and leaves Shop by its east wall too, through zones as well. Before, it turned down inside Shop and came out of the bottom, with nothing said. A row-mate in the way no longer stops it: the edge goes over or under the row.
+- **A side takes any number of edges.** The "that wall already carries a wire" refusal is gone. Edges asked out of one side are ordered so that none crosses another.
+- **A wire asked out of the top or bottom goes round the nearer side.** It always turned east, so `from north` toward something to the west went round the far side of the box and back across its other wires.
+- **A refused side says why**, naming the node, the side and the cause, with a fix line that writes the change. A `route` that names no edge in the view writes the spelling the view needs: the card while it is collapsed, the node inside once it is open.
+- **`from` and `to` may be on separate lines** and in either order. Two lines asking one end for different sides are an error.
+- The new [payments example](https://github.com/jquatier/squinch/blob/main/examples/payments/payments.squinch) uses route sides across three clouds. It draws with every icon pack and has no crossings.
+
+![Card payments across three clouds — and every icon pack in one picture.](https://github.com/jquatier/squinch/blob/v0.22.0/examples/payments/payments.platform.light.svg?raw=true)
+
+### Fixed
+
+- **PNG text is drawn in the weight it asks for.** Every PNG title and other medium or semibold text was drawn in the regular weight, because the bundled font files lost the family name resvg matches on. SVGs were never affected and do not change.
+- **`route a -> b to east` turns the right end.** A lone `to` was applied to the edge's source.
+- **A chain of hops gets one error.** `a -> b -> c -> d -> e` sent the parser into four unrelated errors with the real one sixth. It is now one error listing each hop to write.
+- **`view db { title "Schema"  scope shop.db }`** got a bare syntax error. It now says `scope` starts a second statement and writes the line with a `;`.
+
+### Agents
+
+- The skill teaches `about`, the formatting, and to say things in the source, never in the rendered file.
+- Gauntlet round 36, the first with `about`: 41 of 42 from the round, 31 of 42 clean on the first `check`, and the committed corpus scores 42 of 42. The new context prompt, which asks for a section above the diagram without naming the feature, was clean in one call.
+
+### Also in this release
+
+- Wide diagrams order about 10% faster, with byte-identical pictures.
+
+## 0.21.0 — 2026-11-18
+
+**Relationships between tables.** An edge between two tables can now say how many rows take part at each end, and it draws as crow's-foot marks in place of the arrowhead.
+
+```squinch
+orders      -> customers "customer_id" { from: many         to: one }
+orders      -> coupons   "coupon_id"   { from: many         to: zero-or-one }  // the key is nullable
+order_items -> orders    "order_id"    { from: one-or-many  to: exactly-one }
+products    -- tags                    { from: many         to: many }
+```
+
+![A database of six tables with crow's-foot marks on the edges between them](https://github.com/jquatier/squinch/blob/v0.21.0/lookbook/out/44-relationships.schema.light.svg?raw=true)
+
+No existing diagram redraws. Re-run `squinch skill` so your agents learn the new attributes.
+
+### Relationship marks
+
+- **Two attributes, six words.** `from:` counts the rows of the table the edge starts at, `to:` those of the table it ends at. `one` and `many` say nothing about optionality; `exactly-one`, `zero-or-one`, `one-or-many` and `zero-or-many` state it. Write the plain words unless your schema says more.
+- **Both ends or neither**, between two tables, on a plain `->` or `--` edge. Anything else is a check error that writes the line to use.
+- **Drawn where both tables are.** In a view where the tables are inside a collapsed card, their edges and marks are inside it too. An edge with either end lifted draws as an ordinary arrow.
+- **Nothing is inferred.** The marks are what you wrote. `check` warns when they contradict the column the label names: the ends look swapped, or a `nullable` key is marked as required.
+- **Labels keep clear of the marks**, and a table with more relationships on one wall than it can hold apart gets a warning that names it. In a view that flows rightward that starts at five on one side.
+- **A changed mark is structural** in `squinch diff`.
+- The lookbook has a new [Relationships case](https://github.com/jquatier/squinch/blob/main/lookbook/cases/44-relationships.squinch) with all six marks.
+
+### Fixed
+
+- **A self-edge warns once, on its own line.** It used to warn once per view, at the view's line, including views that never showed the node. For a table, the warning now says to state the self-reference on the row: `manager_id uuid fk ref employees`.
+
+### Agents
+
+- The skill teaches the marks: plain `one` / `many` unless optionality is stated, a nullable key for `zero-or-one`, and marks only when the request or the schema gives the cardinality.
+- Gauntlet round 35: 39 of 40 from the round, and the committed corpus scores 41 of 41. The new schema prompt put every mark on the right end, and a tables prompt with nothing said between its tables drew none.
+
 ## 0.20.0 — 2026-11-16
 
 **Squinch has a layout engine of its own.** Until now every diagram was laid out by ELK, a general-purpose graph library, with three routers of ours bolted on for the things it could not draw. This release replaces all of it with one engine written for architecture diagrams, and nothing else. `elkjs` is gone and no dependency took its place.

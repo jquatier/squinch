@@ -1,15 +1,16 @@
 pack aws
+pack logos
 
 system checkout "Checkout" {
   description: "Order Service and the stores it owns"
   svc = aws/lambda "Order Service" { subtitle: "Lambda" }
 
-  container pg "Orders DB" {
+  container db "Postgres" {
     icon: logos/postgres
-    description: "Postgres · 2 tables"
+    description: "2 tables"
     orders = sys/table "orders" datastore {
       fields {
-        id           uuid                  pk
+        id           uuid         pk
         customer_id  uuid
         status       enum(pending, paid, shipped)
         total_cents  bigint
@@ -28,49 +29,46 @@ system checkout "Checkout" {
   }
 
   carts = aws/dynamodb "Carts" datastore {
-    subtitle: "single-table design"
+    subtitle: "single table"
     fields {
-      pk          string  pk "CART#<cartId>"
-      sk          string  pk "ITEM#<sku>"
-      gsi1pk      string  index gsi1 "CUSTOMER#<customerId>"
-      qty         number
-      expires_at  number  ttl
+      pk         string  hash "CART#<cartId>"
+      sk         string  pk "ITEM#<sku>"
+      gsi1pk     string  index gsi1 "CUSTOMER#<customerId>"
+      qty        number
+      expires_at number  ttl
     }
   }
 
-  events = logos/kafka "order-events" datastore {
-    subtitle: "Kafka topic"
-    fields {
-      order_id       string  pk "message key"
-      type           enum(OrderPlaced, OrderPaid)
-      payload.total_cents  long
-      payload.items        array "line items"
-    }
-  }
-
-  svc -> pg.orders "writes orders"
-  svc -> pg.order_items "writes items"
+  svc -> db.orders "writes orders"
+  svc -> db.order_items "writes items"
   svc -> carts "keeps carts"
-  svc ~> events "publishes every order"
 }
 
-analytics = aws/glue "Analytics Job"
-checkout.events ~> analytics "consumes"
+events = logos/kafka "order-events" {
+  subtitle: "Kafka topic"
+  fields {
+    order_id       string  pk "message key"
+    type           enum(OrderPlaced, OrderPaid)
+    payload.total_cents  long
+    payload.items  array   "line items"
+  }
+}
+
+analytics = aws/glue "Analytics Job" { subtitle: "Glue" }
+
+checkout.svc ~> events "publishes every order"
+events ~> analytics "consumes"
 
 view landscape {
-  title "Checkout"
+  title "Checkout landscape"
   include *
-  layout { rows [checkout] [analytics] }
+  preview events
 }
-view pg { title "Postgres schema"
-  scope checkout.pg }
-view carts { title "DynamoDB Carts"
+view checkout {
+  title "Checkout: Order Service and its stores"
   scope checkout
-  only carts }
-view events { title "order-events topic"
-  scope checkout
-  only events }
-view overview { title "Checkout, opened"
-  include *
-  expand checkout
+}
+view db {
+  title "Postgres schema"
+  scope checkout.db
 }

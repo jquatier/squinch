@@ -1,6 +1,6 @@
 pack aws
 
-system api_stack "Orders API" {
+system api "Orders API" {
   gw     = aws/api-gateway "API Gateway"
   create = aws/lambda "Create Handler"
   get    = aws/lambda "Get Handler"
@@ -19,7 +19,7 @@ system api_stack "Orders API" {
   sync -> idx "updates index"
 }
 
-view api_stack {
+view api {
   title "Lambda API"
   layout {
     rows [gw] [create get search] [db files idx] [sync]

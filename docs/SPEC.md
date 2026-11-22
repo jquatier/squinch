@@ -415,6 +415,66 @@ survives a GitHub README `<img>` embed and switches off for readers who ask.
 Unknown values and misspelled attribute keys are diagnosed with did-you-mean;
 attributes are never silently dropped.
 
+### Relationship marks (between tables)
+
+Two attributes on an edge between two tables say how many rows take part, one
+per end. They draw as crow's-foot marks where the wire meets each table, in
+place of the arrowhead.
+
+```squinch
+orders      -> customers "customer_id" { from: many         to: one }          // optionality not stated
+orders      -> coupons   "coupon_id"   { from: many         to: zero-or-one }  // the key is nullable
+order_items -> orders    "order_id"    { from: one-or-many  to: exactly-one }  // both stated
+products    -- tags                    { from: many         to: many }
+```
+
+`from:` counts the rows at the source end of the edge as written, `to:` those
+at the target end; on an undirected `--` edge they are the left and right ends
+as written. `from: many` on `orders -> customers` means many orders.
+
+| Word | Mark, from the table outward | Says |
+| --- | --- | --- |
+| `one` | bar | one; optionality not stated |
+| `many` | crow's foot | many; optionality not stated |
+| `exactly-one` | bar, bar | one, and required |
+| `zero-or-one` | bar, ring | one, and optional |
+| `one-or-many` | foot, bar | many, and at least one |
+| `zero-or-many` | foot, ring | many, and possibly none |
+
+Each end is chosen on its own. **Both ends or neither**: one alone is a check
+error. `->` keeps its meaning for layout direction; the marks only replace the
+head.
+
+- **Where marks are legal.** Both ends are leaves — not a container, not a
+  person; the arrow is `->` or `--`; the edge has no `style:` (but `solid`) and
+  no `animate:` (but `false`). Anything else is a check error that writes the
+  line to use instead — as does a single `cardinality: many-to-one`
+  attribute, or a near word like `zero-or-more`. There is no UML range
+  (`0..*`) and no Mermaid operator: those are not Squinch and do not parse.
+- **Lifting.** If either end of the edge lifts to an ancestor in a view, both
+  marks drop and the edge draws as it always did — a wire that ends on a card
+  does not end on a table.
+- **Shared ends.** Where several wires share one drawn end (a `channel`, a
+  `wrap` trunk) that end carries one mark; edges that mark it differently are
+  a check error on the `channel` or `wrap` line.
+- **Duplicates** (same ends, same label) with different marks are an error,
+  not a merge — `--` written both ways round included.
+- **`lines straight`** draws no marks, and the view says so: a straight line
+  has no run out of the table for a mark to stand on.
+- **Against the column.** When the edge's label names a column of the source
+  table whose `ref` is the target, two warnings and nothing inferred: the ends
+  look swapped (`from:` a "one" word, `to:` a "many" word), or the column is
+  `nullable` and `to:` says `exactly-one` or `one-or-many`. Plain `one` never
+  contradicts a column, and a column without `nullable` proves nothing.
+- **Crowding.** The layout keeps labels, badges and notes off a mark. Where
+  it cannot — a wall with more relationships than it holds apart, a label
+  with nowhere else to stand — the view warns and names the table.
+
+Nothing is derived from `fields`, markers or `ref`: the marks are what the
+author wrote. A table's reference to itself stays on its row (`manager_id uuid
+fk ref employees`); a self-edge is not drawn. Decisions and rejected shapes:
+`docs/notes/relationship-marks.md`.
+
 **Parallel edges & edge identity**: multiple edges between the same pair are legal and
 distinguished by label (`api -> db "read"` / `api -> db "write"`). `route` may include
 the label to disambiguate — `route api -> db "write" from east` — and referencing an
@@ -457,6 +517,13 @@ view shop {
     date:     "7 Aug 2026"      //   mono so hashes line up between diagrams
     owner:    team-orders       // any other key keeps its key beside its value
   }
+  // prose under the title — what the view shows, and why; the drawing below it
+  about """
+    The order path **as it runs today**.
+
+    - Writes are synchronous; see `ADR-42`
+    - Runbook: [orders on-call](https://runbooks.example.com/orders)
+  """
 
   note right-of db "Single-table design; see ADR-42"
   note on db ~> sync "at-least-once; consumer must be idempotent"
@@ -470,6 +537,24 @@ corner (`top-left`…`bottom-right`) — the no-coordinates principle applies to
 too. Themes style them as callouts. A note beside a node has its room kept there by
 the layout — inside the node's own container or zone when it is in one — and a note
 on an edge has its room kept beside that wire; the authored side never changes.
+
+`about` is the view's own prose: set in the header under the title and subtitle,
+at a reading measure that follows the canvas (360–560 px), with the drawing moved
+down to make room. One per view — a second is an error, because joining or
+dropping one silently is the dropped-hint class the check forbids. A note is a
+callout on one thing; what the whole view needs said goes in `about`.
+
+**Prose** — `about` and a note's text — takes a closed set of formatting, each
+drawn in a bundled face: a blank line between paragraphs, `- ` bullets (a
+following line that is neither blank nor a bullet continues one), `**bold**`
+(Inter 600), `` `code` `` (the bundled mono, on a chip) and
+`[text](https://…)` links, which take an absolute `http` or `https` URL as
+`link:` does. Anything else is text, drawn as typed: a heading's `#` and
+emphasis's single `*` or `_` warn, because there is no face to draw them in, and
+a link to anything but http(s) warns that it stays text. Prose is drawn whole —
+never cut. A note wraps at its 200 px column and grows; past six lines the check
+suggests `about` (the note is still drawn in full). `docs/notes/prose.md` has
+the rejected alternatives.
 
 - Every `system`/`container` gets an auto-generated default view (`view <path>`), so
   double-click-to-zoom always works even with zero `view` blocks written. Declaring
@@ -600,6 +685,8 @@ re-anchors them deterministically:
    reappears at the altitude where those edges are native. (An all-`~>` bundle
    has always kept its dashes and drift; this codifies that.)
 5. Lifting is a pure model operation — identical results in SPA, VSCode, CLI, CI.
+6. Relationship marks (§4) never lift: an edge with either end lifted draws
+   without them, singly or in a trunk.
 
 In an `expand *` view no in-scope endpoint has anywhere to lift — every leaf is
 visible — so every interior edge is native and nothing aggregates; only edges
@@ -710,7 +797,7 @@ layout {
   somewhere its band does not, an element listed in `rows` twice, a second `rows` line,
   `wrap` beside `rows`. A hint that is consistent but cannot be given in this view is
   a warning that names it: the `align`/`cols` cases above, a `route` side that cannot
-  be used (Tier 2), a `wrap` that folds nothing, a `channel` whose edges are not all
+  be used or a `route` that names no edge the view draws (Tier 2), a `wrap` that folds nothing, a `channel` whose edges are not all
   visible. A silently dropped hint would strand the agent loop; a diagnostic gets
   fixed in one iteration.
 
@@ -718,19 +805,68 @@ layout {
 
 ```squinch
 layout {
-  route db ~> sync from east to west         // exit/entry sides
+  route api -> db from south to north        // exit/entry sides (edges that span rows)
   channel create, get, search -> db          // shared trunk (bus)
 }
 ```
 
-`from`/`to` name the sides an edge leaves and enters. They apply to edges that
-span rows: on an edge between two elements of one row the sides are ignored with a
-warning ("sides are ignored — it is a same-rank edge"), since such an edge already
-runs face to face. Where a side cannot be used the edge keeps its natural side and
-the check warns "could not use the side it asks for here": that wall already carries
-an edge running straight across to a neighbour, the edge is part of a `channel` or a
-`wrap` trunk, or that end is a container. A `route` matching several edges between
-one pair needs the edge's label to say which; without it, it is an error.
+`from`/`to` name the sides an edge leaves and enters, on the element the `route`
+line names — screen sides, whatever direction a container flows. They apply to
+edges that span rows: on an edge between two elements of one row the sides are
+ignored with a warning ("sides are ignored — it is a same-rank edge"), since such
+an edge already runs face to face.
+
+A side carries outward: the edge crosses every expanded container and zone around
+the element by that same side. Asked for east, it leaves the element by its east
+side, the frame around it by its east wall, and so on through each boundary —
+whatever else stands in the element's row; the edge goes over or under what is in
+its way. An edge that ends at an expanded container itself (`route shop -> db from
+east`) is asked of that frame's wall.
+
+One side is held back at each end: the one that faces back against the edge's own
+way. On an edge that runs down the page that is north where it leaves and south
+where it arrives; on one that runs up, the reverse; in a view that flows right,
+west and east. That side carries through a wall only while what the edge has
+reached so far stands in the first row inside it (the last row, for south or east).
+At the first wall where it does not, the edge turns beside what it has reached —
+the element, or a container around it — and takes its ordinary way out from there.
+
+Two exceptions. Where the edge's other end stands in the same row as a container
+the edge is leaving, it leaves that container toward it, as every same-row edge
+does, whatever side was asked; with a zone around the container, that is the
+boundary standing in the row, and the walls inside it still carry. And inside a
+container that flows the other way from the one around it, the held-back side is
+given only to an element with nothing beside it in its row on that side; any other
+is refused with a warning (below).
+
+`from` and `to` may come in either order, and on separate `route` lines for one
+edge. Two lines that ask one end for different sides are an error.
+
+A side holds any number of edges: none is refused because the side is in use.
+Several asked out of one side of an element all leave by it, beside the edges that
+already run straight out of that side, in an order in which they do not cross one
+another where they leave it. They stand 16px apart while the side has room — four
+on an ordinary node — and share it out evenly beyond that, closer with each one
+more; nothing warns.
+
+Asking for the side an edge would take anyway changes nothing at the element, but
+the frames around it are still asked for that wall, so the edge may then leave
+them by the side rather than the top or bottom.
+
+Where the named element's own side cannot be used the edge keeps its natural side
+and the check warns, naming the element, the side and the cause — "could not use
+the east side of `a` — …": the edge is part of a `channel` or a `wrap` trunk; the
+element is in the same row as what holds the other end; or the edge leaves the
+element's container through what is a side wall in that container's own direction
+— toward something in a row with it, or because the container flows the other way
+— and the element was asked for the side facing away. The fix line says what to
+change; for the last cause it names the sides that are given there.
+
+A `route` names an edge as the view draws it: with a container collapsed the edge
+runs from its card (`route shop -> db`), and opened, from the node inside (`route
+shop.api -> db`). A line that names no edge drawn in the view warns and says which
+spelling the view needs. A `route` matching several edges between one pair needs
+the edge's label to say which; without it, it is an error.
 
 `channel a, b, c -> t` draws the listed edges into `t` as one trunk with a branch
 per source. It applies where the target and at least two of the edges are visible
@@ -806,6 +942,7 @@ viewstmt    = "title" string | "theme" ident | "scope" path
             | "color" tag ident
             | "show" "flow" ident
             | "legend" ( "auto" | "off" ) | "titleblock" attrs
+            | "about" string
             | "note" anchor string [ attrs ]
             | "layout" "{" { layoutstmt } "}" ;
 anchor      = relpos path | "on" path arrow path | corner ;
@@ -842,6 +979,14 @@ after a comma there the parser cannot tell another tag from the next attribute k
 That one is a check error naming the fix. Built with Lezer so the same grammar drives
 parsing, CodeMirror highlighting, and LSP autocomplete.
 
+A string is `"…"` on one line, or a **block string** — `"""` to `"""` — that may run
+over lines and hold one or two quotes in a row, never three. A block loses the line
+break just inside each `"""` and the indentation every non-blank line shares, so one
+indented to sit in a view reads as if written at the margin. A block string is
+accepted wherever a string is: in prose (`about`, a note) its lines are kept; in
+everything drawn on one line (a label, a title, a description) its line breaks read
+as spaces.
+
 ## 8.5 Semantic diff
 
 `squinch diff` compares two *models*, never two renderings, and splits what it
@@ -860,7 +1005,9 @@ squinch diff --fail-on structural     # exit 1 when topology changes
 
 A leaf's `fields` are structure, matched by name so a reorder is nothing: a field
 added, dropped or retyped, a marker or a `ref` changed, each reports on its own
-line. A field's caption and a leaf's `preview:` pick are cosmetic.
+line. A field's caption and a leaf's `preview:` pick are cosmetic. An edge's
+relationship marks are structure too: `to: one` becoming `to: zero-or-one` is
+a claim about the data changing, as is adding or removing the pair.
 
 Renames are reported as a removal plus an addition, with a *possible rename*
 note when the icon and neighbours match — a hint, never a silent assumption.

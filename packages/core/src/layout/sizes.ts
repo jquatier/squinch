@@ -2,7 +2,8 @@
 // they hold and the theme's font. Shared by the planner (which hands sizes to
 // the engine), the annotation passes and the renderer — one source of truth,
 // so room is always reserved for the thing that is actually drawn.
-import { fit, measure, wrapText, type FontFamily } from "../metrics.js";
+import { fit, measure, type FontFamily } from "../metrics.js";
+import { parseProse, setProse, type ProseFont, type SetProse } from "../prose.js";
 import type { VNode, FieldRow } from "../view/resolve.js";
 import type { ThemeFont } from "../themes/index.js";
 
@@ -92,17 +93,25 @@ export function pillDims(text: string, font: Pick<ThemeFont, "metrics" | "scale"
  *
  *  The column narrows by the gutter and the box widens by it, so the text
  *  keeps its 12px right margin whatever the glyph does. */
-export function noteBox(text: string, font: Pick<ThemeFont, "metrics" | "scale">) {
-  const fx11 = Math.round(11 * font.scale);
-  const lines = wrapText(text, NOTE_TEXT_W, fx11, font.metrics, 3);
-  // ceil the *text*, then add the padding — rounding the total instead let a
+export function noteBox(text: string, font: Pick<ThemeFont, "metrics" | "scale">): { prose: SetProse; w: number; h: number } {
+  // Prose (`prose.ts`): paragraphs, bullets, bold, code and links, wrapped to
+  // the column and never cut. A note used to stop at three lines with an
+  // ellipsis, and `check` said nothing — so an agent with more to say edited
+  // the rendered file instead. A long note now grows; past `NOTE_LINES` the
+  // check suggests the view's `about`.
+  const prose = setProse(parseProse(text), NOTE_TEXT_W, noteFont(font));
+  // the text is ceiled before the padding is added — rounding the total let a
   // 32.4px word round its box down and quietly spend a pixel of the right
-  // margin. Integers either way (DESIGN §8); this way the margin is the 12 it
-  // claims to be.
-  const widest = Math.ceil(Math.max(...lines.map((l) => measure(l, fx11, "400", font.metrics))));
-  const w = Math.min(NOTE_MAX_W, widest + 24 + NOTE_GUTTER);
-  return { lines, w, h: lines.length * 15 + 12 };
+  // margin. Integers either way (DESIGN §8). Wider than the column only when
+  // one word is: it stands alone on its line, and the box makes room.
+  return { prose, w: prose.width + 24 + NOTE_GUTTER, h: prose.height + 12 };
 }
+/** How a note is set: 11px on a 15px pitch, as it always was. */
+export const noteFont = (font: Pick<ThemeFont, "metrics" | "scale">): ProseFont =>
+  ({ size: Math.round(11 * font.scale), pitch: 15, gap: 5, indent: 11, fam: font.metrics });
+/** A note longer than this reads as context for the whole view: the check
+ *  points at `about`. Not a limit — the note is drawn whole either way. */
+export const NOTE_LINES = 6;
 
 
 // Node width depends on the theme's font — the theme is a determinism input,
@@ -179,3 +188,10 @@ export function sizeOf(n: VNode, font: Pick<ThemeFont, "metrics" | "scale">): { 
   return { w, h: n.kind === "person" ? PERSON_H : LEAF_H };
 }
 
+
+/** How far a relationship mark reaches out from the wall along its wire: the
+ *  longest (foot and ring) ends here. Inside the 16px every wire runs
+ *  straight before it may turn, and what a label keeps clear of. */
+export const MARK_REACH = 12;
+/** Half the width of a mark across its wire. */
+export const MARK_HALF = 5;

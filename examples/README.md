@@ -8,8 +8,8 @@ kept in sync by CI (`squinch render <dir> --check`) — edit the `.squinch` sour
 run `squinch render <dir> --sync`, and commit both.
 
 - **orders/** — the canonical service (SPEC §10.1): API Gateway, three handlers,
-  DynamoDB with a stream-driven OpenSearch sync. Exercises `rows`,
-  `place right-of`, and `route … from east to west`.
+  DynamoDB with a stream-driven OpenSearch sync. Exercises `rows` and
+  `place right-of`.
 - **products-api/** — the root README's hero: edge, a service inside a VPC zone,
   and a self-warming index. The smallest project here that shows zones.
 - **storefront/** — C4-style altitudes (SPEC §10.2): a landscape of system cards,
@@ -21,7 +21,14 @@ run `squinch render <dir> --sync`, and commit both.
   The landscape shows service cards; each service view opens its internals while
   neighbours collapse to context cards; cross-service calls aggregate behind a
   count badge.
+- **payments/** — card payments across three clouds, drawn with every icon
+  pack: Cloudflare and Stripe (`logos`), a Kubernetes ingress and deployment
+  (`k8s`), the payment service on GKE (`gcp`), compliance on Azure (`azure`),
+  settlement on AWS (`aws`). The money runs down the page and the reporting
+  goes out to the side: `route … from east` sends audit and key calls out of
+  the side of each box, past its row-mates and through the service's frame
+  and the Google Cloud boundary — two of them out of one side.
 
 For deliberately awkward cases — dense meshes, long labels, deep nesting,
-coplanar rows — see the [lookbook](../lookbook/) instead. These four are meant to
+coplanar rows — see the [lookbook](../lookbook/) instead. These are meant to
 look like diagrams you would actually ship.

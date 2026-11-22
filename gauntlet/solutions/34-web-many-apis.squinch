@@ -6,118 +6,182 @@ web = logos/react "Web App" {
 }
 bff = logos/nodedotjs "BFF" {
   subtitle: "apps/bff · Node"
+  description: "One HTTP client module per service"
 }
-kafka = logos/kafka "Kafka" {
+kafka = logos/apachekafka "Kafka" {
   description: "Order and payment events"
 }
 stripe = logos/stripe "Stripe" external
-carrier = box "Carrier API" external
-sendgrid = box "SendGrid" external
+sendgrid = sys/mail "SendGrid" external
+carrier = sys/truck "Carrier API" external
 
 system identity "Identity" {
   description: "Accounts, sessions and profiles"
   preview: [users auth profile]
-  users = box "Users" { subtitle: "services/users" }
-  users_db = logos/postgres "Users DB" datastore
-  auth = box "Auth" { subtitle: "services/auth" }
-  auth_cache = logos/redis "Session Store" datastore
-  profile = box "Profile" { subtitle: "services/profile" }
-  profile_db = logos/postgres "Profile DB" datastore
-  users -> users_db
-  auth -> auth_cache
-  profile -> profile_db
+  system users "Users" {
+    description: "User accounts"
+    svc = sys/server "Users Service" { subtitle: "services/users" }
+    db = logos/postgresql "Users DB" datastore
+    svc -> db
+  }
+  system auth "Auth" {
+    description: "Login and sessions"
+    svc = sys/server "Auth Service" { subtitle: "services/auth" }
+    sessions = logos/redis "Sessions" datastore
+    svc -> sessions
+  }
+  system profile "Profile" {
+    description: "User profiles"
+    svc = sys/server "Profile Service" { subtitle: "services/profile" }
+    db = logos/postgresql "Profile DB" datastore
+    svc -> db
+  }
 }
 
-system catalog "Catalog" {
-  description: "Products, search, prices and reviews"
+system discovery "Catalog & Discovery" {
+  description: "Products, search, prices, reviews, recommendations"
   preview: [catalog search recommendations]
-  catalog = box "Catalog" { subtitle: "services/catalog" }
-  catalog_db = logos/postgres "Catalog DB" datastore
-  search = box "Search" { subtitle: "services/search" }
-  search_index = aws/opensearch "Search Index" datastore
-  pricing = box "Pricing" { subtitle: "services/pricing" }
-  pricing_cache = logos/redis "Pricing Cache" datastore
-  reviews = box "Reviews" { subtitle: "services/reviews" }
-  reviews_db = logos/mongodb "Reviews DB" datastore
-  recommendations = box "Recommendations" { subtitle: "services/recommendations" }
-  recs_cache = logos/redis "Recommendations Cache" datastore
-  catalog -> catalog_db
-  search -> search_index
-  pricing -> pricing_cache
-  reviews -> reviews_db
-  recommendations -> recs_cache
-  search -> catalog "reads"
-  recommendations -> catalog "reads"
-  recommendations -> reviews "reads"
+  system catalog "Catalog" {
+    description: "Product catalogue"
+    svc = sys/server "Catalog Service" { subtitle: "services/catalog" }
+    db = logos/postgresql "Catalog DB" datastore
+    svc -> db
+  }
+  system search "Search" {
+    description: "Product search"
+    svc = sys/server "Search Service" { subtitle: "services/search" }
+    index = aws/opensearch "Search Index" datastore
+    svc -> index
+  }
+  system pricing "Pricing" {
+    description: "Prices"
+    svc = sys/server "Pricing Service" { subtitle: "services/pricing" }
+    cache = logos/redis "Pricing Redis" datastore
+    svc -> cache
+  }
+  system reviews "Reviews" {
+    description: "Product reviews"
+    svc = sys/server "Reviews Service" { subtitle: "services/reviews" }
+    db = logos/mongodb "Reviews DB" datastore
+    svc -> db
+  }
+  system recommendations "Recommendations" {
+    description: "Suggested products"
+    svc = sys/server "Recommendations Service" { subtitle: "services/recommendations" }
+    cache = logos/redis "Recommendations Redis" datastore
+    svc -> cache
+  }
+  search.svc -> catalog.svc "reads"
+  recommendations.svc -> catalog.svc "reads"
+  recommendations.svc -> reviews.svc "reads"
 }
 
 system buying "Buying" {
   description: "Cart, checkout, orders and payments"
   preview: [cart checkout orders]
-  cart = box "Cart" { subtitle: "services/cart" }
-  cart_cache = logos/redis "Cart Store" datastore
-  checkout = box "Checkout" { subtitle: "services/checkout" }
-  checkout_db = logos/postgres "Checkout DB" datastore
-  orders = box "Orders" { subtitle: "services/orders" }
-  orders_db = logos/postgres "Orders DB" datastore
-  payments = box "Payments" { subtitle: "services/payments" }
-  payments_db = logos/postgres "Payments DB" datastore
-  cart -> cart_cache
-  checkout -> checkout_db
-  orders -> orders_db
-  payments -> payments_db
-  checkout -> cart
-  checkout -> payments
-  checkout -> orders
+  system cart "Cart" {
+    description: "Shopping cart"
+    svc = sys/server "Cart Service" { subtitle: "services/cart" }
+    cache = logos/redis "Cart Redis" datastore
+    svc -> cache
+  }
+  system checkout "Checkout" {
+    description: "Checkout flow"
+    svc = sys/server "Checkout Service" { subtitle: "services/checkout" }
+    db = logos/postgresql "Checkout DB" datastore
+    svc -> db
+  }
+  system orders "Orders" {
+    description: "Order lifecycle"
+    svc = sys/server "Orders Service" { subtitle: "services/orders" }
+    db = logos/postgresql "Orders DB" datastore
+    svc -> db
+  }
+  system payments "Payments" {
+    description: "Payment processing"
+    svc = sys/server "Payments Service" { subtitle: "services/payments" }
+    db = logos/postgresql "Payments DB" datastore
+    svc -> db
+  }
+  checkout.svc -> cart.svc
+  checkout.svc -> orders.svc
+  checkout.svc -> payments.svc
 }
 
 system fulfilment "Fulfilment" {
   description: "Stock and delivery"
   preview: [inventory shipping]
-  inventory = box "Inventory" { subtitle: "services/inventory" }
-  inventory_db = logos/postgres "Inventory DB" datastore
-  shipping = box "Shipping" { subtitle: "services/shipping" }
-  shipping_db = logos/postgres "Shipping DB" datastore
-  inventory -> inventory_db
-  shipping -> shipping_db
+  system inventory "Inventory" {
+    description: "Stock levels"
+    svc = sys/server "Inventory Service" { subtitle: "services/inventory" }
+    db = logos/postgresql "Inventory DB" datastore
+    svc -> db
+  }
+  system shipping "Shipping" {
+    description: "Shipments"
+    svc = sys/server "Shipping Service" { subtitle: "services/shipping" }
+    db = logos/postgresql "Shipping DB" datastore
+    svc -> db
+  }
 }
 
-system care "Customer Care" {
+system engagement "Customer Engagement" {
   description: "Notifications and support"
   preview: [notifications support]
-  notifications = box "Notifications" { subtitle: "services/notifications" }
-  support = box "Support" { subtitle: "services/support" }
-  support_db = logos/postgres "Support DB" datastore
-  support -> support_db
+  system notifications "Notifications" {
+    description: "Outbound messages"
+    svc = sys/server "Notifications Service" { subtitle: "services/notifications" }
+  }
+  system support "Support" {
+    description: "Customer support"
+    svc = sys/server "Support Service" { subtitle: "services/support" }
+    db = logos/postgresql "Support DB" datastore
+    svc -> db
+  }
 }
 
 web -> bff
-bff -> identity.users, identity.auth, identity.profile
-bff -> catalog.catalog, catalog.search, catalog.pricing, catalog.reviews, catalog.recommendations
-bff -> buying.cart, buying.checkout, buying.orders, buying.payments
-bff -> fulfilment.shipping, fulfilment.inventory
-bff -> care.notifications, care.support
+bff -> identity.users.svc, identity.auth.svc, identity.profile.svc
+bff -> discovery.catalog.svc, discovery.search.svc, discovery.pricing.svc, discovery.reviews.svc, discovery.recommendations.svc
+bff -> buying.cart.svc, buying.checkout.svc, buying.orders.svc, buying.payments.svc
+bff -> fulfilment.inventory.svc, fulfilment.shipping.svc
+bff -> engagement.notifications.svc, engagement.support.svc
 
-buying.checkout -> catalog.pricing
-buying.orders -> fulfilment.inventory
-buying.payments -> stripe
-fulfilment.shipping -> carrier
-care.notifications -> sendgrid
+buying.checkout.svc -> discovery.pricing.svc
+buying.orders.svc -> fulfilment.inventory.svc
+buying.payments.svc -> stripe
+fulfilment.shipping.svc -> carrier
+engagement.notifications.svc -> sendgrid
 
-buying.orders ~> kafka "order events"
-buying.payments ~> kafka "payment events"
-kafka ~> care.notifications, fulfilment.shipping, catalog.recommendations
+buying.orders.svc ~> kafka "publishes"
+buying.payments.svc ~> kafka "publishes"
+kafka ~> engagement.notifications.svc "consumes"
+kafka ~> fulfilment.shipping.svc "consumes"
+kafka ~> discovery.recommendations.svc "consumes"
 
 view landscape {
-  title "System Landscape"
+  title "Storefront Landscape"
   include *
   preview *
-  layout {
-    rows [web] [bff] [identity catalog buying fulfilment care] [kafka] [stripe carrier sendgrid]
-  }
+  legend auto
 }
-view identity { title "Identity" }
-view catalog { title "Catalog" }
-view buying { title "Buying" }
-view fulfilment { title "Fulfilment" }
-view care { title "Customer Care" }
+view identity {
+  title "Identity"
+  expand *
+}
+view discovery {
+  title "Catalog & Discovery"
+  expand *
+}
+view buying {
+  title "Buying"
+  expand *
+}
+view fulfilment {
+  title "Fulfilment"
+  expand *
+}
+view engagement {
+  title "Customer Engagement"
+  expand *
+}

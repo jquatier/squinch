@@ -12,9 +12,10 @@
 // engine is what it is: docs/notes/layout-engine.md.
 import type { Diagnostic, SModel, SView, Side } from "../model/types.js";
 import type { ThemeFont } from "../themes/index.js";
+import { crowdedMarks } from "./marks.js";
 import { annotate, BADGE_GAP, badgeWidth, markCrossedTitles } from "./annotate.js";
 import { placeNotes } from "./notes.js";
-import { noteOff, plan } from "./plan.js";
+import { noteOff, plan, routeSaid, routesOf } from "./plan.js";
 import type { Positioned, PEdge, PPort } from "./positioned.js";
 import { INTER, NOTE_CLEAR, noteBox, pillDims } from "./sizes.js";
 import { solve } from "./weft/engine.js";
@@ -45,6 +46,18 @@ export async function layoutView(
     return { id: z.id, label: z.label ?? z.id, kind: z.kind, icon: z.icon, labelPos: z.labelPos, color: z.color, detail: z.detail, ...rect(pz.box), depth: pz.depth };
   });
 
+  // Straight lines run from first point to last: the stub a mark stands on
+  // is not in the picture, and a mark turned to the wire's angle would need
+  // geometry off the integer grid. So they are not drawn, and that is said.
+  const straight = view.layout.lines === "straight";
+  const unmarked = straight ? p.graph.edges.filter((e) => e.marks && sol.wires.has(e.id)).length : 0;
+  if (unmarked)
+    p.diagnostics.push({
+      severity: "warning",
+      message: `\`lines straight\` draws no relationship marks — ${unmarked} marked edge${unmarked > 1 ? "s" : ""} in this view ${unmarked > 1 ? "lose theirs" : "loses its"}`,
+      fix: "drop `lines straight` from this view's `layout { }`; the marks stand on the straight run a wire makes out of its table",
+      loc: view.loc,
+    });
   const ports: PPort[] = [];
   const edges: PEdge[] = p.graph.edges.filter((e) => sol.wires.has(e.id)).map((e) => {
     const w = sol.wires.get(e.id)!;
@@ -53,6 +66,7 @@ export async function layoutView(
     return {
       id: e.id, from: e.from, to: e.to, label: e.label, async: e.async, animate: e.animate, style: e.style,
       count: e.count, tags: e.tags, color: e.color, heads: e.heads, points: w.points, labelRect: w.label,
+      ...(e.marks && !straight ? { marks: e.marks } : {}),
       ...(p.problem.wires.find((x) => x.id === e.id)?.bundle?.startsWith("wrap") ? { via: "bus" as const } : {}),
     };
   });
@@ -117,28 +131,46 @@ export async function layoutView(
     else delete e.labelRect;
   }
 
-  // `route … from/to` names walls; say where one could not be used
+  // `route … from/to` names walls; say where one could not be used, and why.
+  // An edge may have a line for each end; each warning is raised at the line
+  // that asked that end, and reads from what the engine reports (`Refusal`).
   const drawnBy = new Map(p.problem.wires.map((w) => [w.id, w]));
-  const frameAt = new Set(p.graph.frames.map((f) => f.path)); // a side is a leaf's wall: an expanded container has none to give
-  for (const r of view.layout.routes) {
-    if (!r.fromSide && !r.toSide) continue;
-    const e = p.graph.edges.find((x) => x.from === r.from && x.to === r.to && (!r.label || x.label === r.label));
-    if (!e || !drawnBy.has(e.id)) continue;
-    const mates = p.parentOf.get(e.from) === p.parentOf.get(e.to) && sol.ranks.get(e.from) === sol.ranks.get(e.to);
-    if (mates)
-      diagnostics.push({
-        severity: "warning",
-        message: `\`route ${r.from} -> ${r.to}\` sides are ignored — it is a same-rank edge`,
-        fix: "same-rank edges are routed side-to-side automatically; drop the `from`/`to`, or move one end to another row so the edge spans ranks",
-        loc: r.loc,
-      });
-    else if (sol.unhonoured?.includes(e.id) || (r.fromSide && frameAt.has(e.from)) || (r.toSide && frameAt.has(e.to)))
-      diagnostics.push({
-        severity: "warning",
-        message: `\`route ${r.from} -> ${r.to}\` could not use the side it asks for here`,
-        fix: "that wall is taken by a wire running straight across to a neighbour, the edge is part of a `channel` or a `wrap` trunk, or one end is a container — drop the `from`/`to`, or free the wall",
-        loc: r.loc,
-      });
+  const name = (id: string) => id.replace(/^zone:/, ""); // a zone's box, by the zone's own id
+  for (const e of p.graph.edges) {
+    const lines = routesOf(view, e).filter((r) => r.fromSide || r.toSide);
+    if (!lines.length || !drawnBy.has(e.id)) continue; // not drawn here: the plan said so
+    const said = routeSaid;
+    if (p.parentOf.get(e.from) === p.parentOf.get(e.to) && sol.ranks.get(e.from) === sol.ranks.get(e.to)) {
+      for (const r of lines)
+        diagnostics.push({
+          severity: "warning",
+          message: `\`${said(r)}\` sides are ignored — it is a same-rank edge`,
+          fix: "same-rank edges are routed side-to-side automatically; drop the `from`/`to`, or move one end to another row so the edge spans ranks",
+          loc: r.loc,
+        });
+      continue;
+    }
+    for (const u of sol.unhonoured ?? []) {
+      const r = u.wire === e.id ? lines.find((x) => (u.end === "from" ? x.fromSide : x.toSide)) : undefined;
+      if (!r) continue;
+      const box = u.end === "from" ? e.from : e.to, side = (u.end === "from" ? r.fromSide : r.toSide)!;
+      const around = name(p.parentOf.get(box) ?? ""), crosses = u.end === "from" ? "leaves" : "enters";
+      const [why, fix] =
+        u.why === "trunk" ? (drawnBy.get(e.id)!.bundle?.startsWith("channel:") ? [
+          "the edge is drawn in a `channel` trunk, whose wires share one port",
+          `take the edge out of the \`channel\` to route it on its own, or drop the \`${u.end}\``,
+        ] : [
+          "the edge is drawn in a trunk a `wrap` fold made, whose wires share one port",
+          `drop the \`${u.end}\`, or arrange the row by hand (\`rows\`) in place of \`wrap\``,
+        ]) : u.why === "row" ? [
+          `\`${box}\` is in the same row as \`${name(u.mate!)}\`, which holds the other end, so the edge runs straight across`,
+          `drop the \`${u.end}\`, or move \`${box}\` to another row`,
+        ] : [
+          `the edge ${crosses} \`${around}\` by its ${u.by} side, the other way`,
+          `drop the \`${u.end}\`, or ask for ${[u.by, ...(u.open ?? [])].join(", ").replace(/, ([^,]*)$/, " or $1")}`,
+        ];
+      diagnostics.push({ severity: "warning", message: `\`${said(r)}\` could not use the ${side} side of \`${box}\` — ${why}`, fix, loc: r.loc });
+    }
   }
 
   // what stands on the layout beside its boxes and wires
@@ -158,6 +190,7 @@ export async function layoutView(
     room.set(i, face === "north" || face === "south" ? { ...r, w: r.w + NOTE_CLEAR + nt.w } : { ...r, h: r.h + NOTE_CLEAR + nt.h });
   });
   const notes = placeNotes({ view, font, width: sol.width, height: sol.height, nodes, edges, ports, frames, zones, chips, badges, pillRects, room, boxes });
+  diagnostics.push(...crowdedMarks({ edges, badges, chips, notes }, pillRects, view.loc));
 
   return {
     positioned: {

@@ -125,4 +125,6 @@ export const
   legend = 143,
   TitleBlockStmt = 144,
   titleblock = 145,
-  FileTheme = 146
+  AboutStmt = 146,
+  about = 147,
+  FileTheme = 148

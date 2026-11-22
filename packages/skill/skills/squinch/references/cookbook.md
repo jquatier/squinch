@@ -11,7 +11,7 @@ themselves.
 - [Placing and banding](#placing-and-banding) — `rows`, `cols`, `place`, `align`, `wrap`, direction — and the hints `check` refuses or warns about
 - [Edges and wires](#edges-and-wires) — fan-in, trunks, self-edges, chaining, `route`, step badges
 - [Zones](#zones) — boundaries that overlap, cut through a frame, or have nothing to show
-- [Labels, attributes and ids](#labels-attributes-and-ids) — cut-off text, attrs on the wrong element, tags, prefixes
+- [Labels, attributes and ids](#labels-attributes-and-ids) — cut-off text, attrs on the wrong element, tags, prefixes, long notes and `about`
 - [Views and altitude](#views-and-altitude) — empty views, `expand`, `only`/`highlight`/`color`, `include`, `detail`, context cards
 - [Icons](#icons) — an id you cannot find
 
@@ -22,7 +22,10 @@ themselves.
 | Layers feel arbitrary / related things scattered | Add `rows`, one group per conceptual tier (entry, handlers, storage) |
 | One node belongs beside another (stream sync, DLQ, cache) | `place X right-of Y` — that is all. The connecting edge runs straight across; adding `route … from east to west` does nothing, because `place` puts them on one row |
 | "`route x -> y` sides are ignored — it is a same-rank edge" warning | Drop the `from`/`to`. Sides only apply to edges that span rows |
-| "`route x -> y` could not use the side it asks for here" warning | That wall already carries a wire running straight across to a neighbour, or the edge is part of a `channel` or a `wrap` trunk, or that end is a system rather than a node. Drop the `from`/`to`, or free the wall (move the neighbour to another row, take the edge out of the `channel`) |
+| "`route x -> y` could not use the east side of `x` — …" warning | What follows the dash is the cause, and the fix line says what to change — follow it: the edge is part of a `channel` or a `wrap` trunk (take it out), `x` is in the same row as what holds the other end (drop the side, or move `x`), or the edge leaves `x`'s system by its side — toward something beside the system, or because the system has `direction right` inside a view that flows down (or the reverse) — and `x` was asked for the side facing away (ask for one of the sides the fix names). A side that already has edges on it is never the cause — it takes any number |
+| "`route x -> y` names no edge drawn in this view" warning | A route names the edge as this view draws it: `route shop -> db` while `shop` is collapsed, `route shop.api -> db` once it is expanded. The fix line writes the spelling this view needs |
+| An edge leaves its node by the side asked, then turns inside the system instead of leaving the system by that side | A side carries through every system and zone wall around the node — past row-mates too, the edge going over or under them — with two exceptions. The side facing back against the edge's own way (`from north` or `to south` on an edge that runs down) carries through a wall only from the first (last) row inside it; at the first wall where it does not, the edge turns there. And where the edge's other end is in the same row as the system, the edge leaves toward it |
+| "`route a -> b` asks `a` for its west side, and another `route` line asks it for its east" error | One end of an edge uses one side. `from` and `to` may be on separate lines; two lines for the same end may not disagree — keep one |
 | "`x` is placed `right-of y`, but `rows` puts it somewhere else" error | The two hints disagree. Restating a band is fine — `rows [db bus]` alongside `place bus right-of db` is accepted, since both say the same thing — so fix whichever one is wrong, or drop `x` from the band |
 | "`x` is listed in `rows` but is placed relative to `y`, which is not" error | Put `y` in a band too, or take `x` out of its band. A banded node can only be placed against another banded one |
 | "cols `[a b c]` — all 3 sit on the same rank, so they cannot share an axis" warning | You wanted them side by side; that is `rows [a b c]`. `rows` is a **rank** — things drawn beside each other. `cols`/`align` stack a node onto another's axis *across* ranks. The confusion is worst with `direction right`, where a rank looks like a column on screen — the words describe the model, not the picture |
@@ -46,7 +49,8 @@ themselves.
 | "an edge has one source — `x, y` cannot fan in" error | Fan-out exists (`a -> b, c`), fan-in does not: write one edge per source. If the point is the *drawing* — many arrows converging as one trunk — that is `channel x, y -> z` in the view's layout |
 | Several things all write to one store, crossing each other | `channel a, b, c -> db` — they merge into one trunk |
 | "channel into `x`" warning | The trunk needs the target visible in this view and at least two of its member edges. Check that nothing is `exclude`d or folded into a collapsed card |
-| "`x` connects to itself — a self-edge is not drawn" warning | Squinch draws connections between things, not loops on one thing. Put it on the node: `note right-of x "retries"`, or fold it into the label |
+| "the relationship marks at `x` are crowded" warning | Too many marked wires meet one wall of `x`. In a `direction right` view a table takes side wires only on its head, which holds four; from five the marks touch. Let that view flow down (drop `direction right`), or move one relationship to another wall of `x`: `route orders -> x to north` in the view's layout (`from north` where the edge leaves `x`). Wider `density` and fewer marks do not help — the wall is as long as it is |
+| "`x` connects to itself — a self-edge is not drawn" warning | Squinch draws connections between things, not loops on one thing. Put it on the node: `note right-of x "retries"`, or fold it into the label. A table that references itself says it on the row: `manager_id uuid fk ref employees` |
 | "edges do not chain — `a -> b -> c` is one statement per hop" error | Only a `flow` chains hops. Write each connection on its own line — `a -> b`, then `b -> c` — and, if the sequence itself is the point, declare a `flow` that walks them |
 | "N edges match route …" error | Add the edge's label to the `route` statement |
 | A numbered step's badge sits past its target node | The edge label is too wide for that run — shorten it, or the badge gets evicted and the reading order looks wrong |
@@ -82,11 +86,17 @@ themselves.
 | "`?` is not squinch" / "`@` attributes are not squinch" error | Pasted Prisma or ORM syntax. An optional field says `nullable`, `@id` is `pk`, any other `@attr` is a bare marker word. The fix writes the whole corrected line |
 | "`scope x` names a leaf — a view stands inside a container" error | To see a table's fields, scope its container: `scope shop.db`. The table draws every field there |
 | "`subtitle` is a leaf attribute" warning | Only a leaf draws a line under its name. On a system or container that line is `description:` (it shows on the collapsed card); a `person` has none |
+| "this note runs to N lines" warning | A note is a callout on one thing. Context for the whole view — what it shows, what is changing, where the runbook is — goes in the view's `about """…"""`, under the title. The note is still drawn in full |
+| "… uses a heading (`#`) / emphasis (`*…*`), which squinch draws as typed" warning | Prose takes `**bold**`, `` `code` ``, `[text](https://…)`, `- ` bullets and blank-line paragraphs, nothing else. Drop the `#`; make emphasis `**bold**` or plain |
+| "the link to `x` in … is drawn as text" warning | A link takes an absolute http or https URL: `[text](https://…)`. A repo-relative path cannot open from a rendered SVG |
+| "view `v` already has an `about`" error | One per view. Join the two into one `"""` block string, a blank line between them |
+| You want more text on the diagram than fits | Write it in the source — `about` for the view, a note for one thing — never in the rendered file: `render --check` reports a hand-edited SVG as stale on every run |
 
 ## Views and altitude
 
 | Symptom | Fix |
 |---|---|
+| "`scope` starts a second statement on this line — statements end at a newline or `;`" error | Statements end at a newline or `;`. A short view on one line needs the `;`: `view db { title "Schema"; scope shop.db }` — or one statement per line |
 | "view `v` has nothing to draw" warning | Everything got filtered out. Check `scope` (a leaf has no insides — scope a system, not a node), then `include`/`only`/`exclude`. An empty `system x { }` does this too: make it a node instead |
 | Too many boxes at once | Group into `system`s by area and let the landscape show their cards — see "When the system is big". Splitting into views alone does not help while everything is still top-level |
 | Everything open on one page, no clicking into containers | `view full { expand * }` — every container becomes a nested frame, every edge shows natively |

@@ -85,7 +85,8 @@ per wire.
   wire an orthogonal polyline from the `from` box's wall to the `to` box's
   wall, and its label rectangle if it has one; `skipped` — ids of wires not
   drawn (one end contains the other, or an end is not in the picture);
-  `unhonoured` — wires drawn, but not by the side they asked for;
+  `unhonoured` — ends of wires drawn, but not by the side they asked for,
+  each with why;
   `unaligned` — boxes left out of an `aligned` set or pushed off their line
   (two boxes of one rank cannot share a centre line: a set takes one box of
   a rank, the first given).
@@ -96,12 +97,21 @@ per wire.
     own wires on that wall, and the container's walls stay outside it. It is
     not part of the box: the box's rectangle, ports and balanced place are
     its own.
-  - `Wire.fromSide` / `toSide` — the wall a wire is asked to leave or enter a
-    leaf by. Only for a wire whose ends are in different ranks or containers.
-    A side that is the natural one changes nothing; any other is drawn the
-    long way round, at least 16 px straight out of the wall first. Where that
-    cannot be drawn the end keeps its natural side and the wire is listed in
-    `unhonoured`.
+  - `Wire.fromSide` / `toSide` — the wall a wire is asked to leave or enter
+    its box by. Only for a wire whose ends are in different ranks or
+    containers. A side that is the natural one changes nothing at the box;
+    any other is drawn the long way round, at least 16 px straight out of the
+    wall first. The side carries outward: the wire crosses the same wall of
+    every container around the box, whatever stands in the box's row — it
+    goes over or under that — natural there or not. Only the wall facing
+    back against the wire's own way is carried just while what the wire has
+    reached stands in the first (last) rank inside the container; at the
+    first wall where it does not, the wire turns beside what it has reached.
+    Inside a container of the other direction that wall is a side one, given
+    only with nothing beyond the box in its row on that side. A wire
+    that ends at a container is asked of the container's own wall. Where the
+    named box's wall cannot be given the end keeps its natural side and is
+    listed in `unhonoured`, with the reason.
 - Treat the `Problem` as read-only. `solve` must be a pure function of it.
 
 ## 3. Hard rules — a layout that breaks one is wrong
@@ -230,6 +240,8 @@ in `layout-engine.md` §7.
   row takes whichever channel — over the row or under it — fewer wires
   already use on that stretch, and steps out into the gutter; it never runs
   along a container's wall.
+  Asked to leave the box by that side, it does — to a lane beside the box —
+  and takes the channel from there.
 - An upward wire leaves by the top of its source and enters by the bottom
   of its target; it is routed like any other.
 - A wire into a container enters through the wall facing where it comes
@@ -246,6 +258,12 @@ in `layout-engine.md` §7.
   on that container's wall.
 - A wire arriving at a box's side wall comes in level with where it left
   the box on the other side of the gutter, if the wall allows.
+- A side wall takes any number of wires, as a north or south wall does: the
+  wires hooked into it from the row above stand highest, the wires straight
+  out of it between, the wires hooked out of it downward lowest, so that none
+  crosses another where they meet the wall; a step apart while the wall has
+  room, evenly closer beyond. Wires through a container's side wall stand in
+  the order the wall outside needs, through as many walls as they cross.
 - A wall's *only* wire meets it in the middle; the wire's own stretch moves
   to the box's middle, not the box to the wire. Several wires on a wall
   stand evenly about its middle.

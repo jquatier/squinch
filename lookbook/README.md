@@ -557,3 +557,37 @@ Source: [`cases/43-fields.squinch`](cases/43-fields.squinch)
 | light | dark |
 |---|---|
 | ![](out/43-fields.overview.light.svg) | ![](out/43-fields.overview.dark.svg) |
+
+## Relationships
+
+Relationship marks. An edge between two tables may say how many rows take part at each end: `from:` counts the rows of the table the edge starts at, `to:` those of the table it ends at. They draw as crow's-foot marks in place of the arrowhead, read from the table outward — a bar is one, a foot is many, and a second bar or a ring says whether there must be one. `one` and `many` leave optionality unstated; write the other four only when the schema or the request states it (the nullable `coupon_id` is why coupons gets `zero-or-one`; order_items states both of its ends only so that all six marks are on one page). Many-to-many is a direct `--` edge. The marks belong to the altitude where both tables are drawn: opened inside the system, the tables keep them, and the service's edge into `orders` is an ordinary arrow.
+
+Source: [`cases/44-relationships.squinch`](cases/44-relationships.squinch)
+
+**`schema`**
+
+| light | dark |
+|---|---|
+| ![](out/44-relationships.schema.light.svg) | ![](out/44-relationships.schema.dark.svg) |
+
+**`rightward`**
+
+| light | dark |
+|---|---|
+| ![](out/44-relationships.rightward.light.svg) | ![](out/44-relationships.rightward.dark.svg) |
+
+**`opened`**
+
+| light | dark |
+|---|---|
+| ![](out/44-relationships.opened.light.svg) | ![](out/44-relationships.opened.dark.svg) |
+
+## About And Notes
+
+Prose on the page. A view's `about` sets a paragraph or two under the title — what the view shows, what is about to change, where the runbook is — and the drawing moves down to make room. A note says something about one thing. Both take the same few kinds of formatting: a blank line between paragraphs, `- ` bullets, `**bold**`, `` `code` `` and `[text](https://…)` links, written in a `"""` block string that spans lines. Prose is drawn whole: a note grows to fit what it says rather than stopping at a third line.
+
+Source: [`cases/45-about-and-notes.squinch`](cases/45-about-and-notes.squinch)
+
+| light | dark |
+|---|---|
+| ![](out/45-about-and-notes.checkout.light.svg) | ![](out/45-about-and-notes.checkout.dark.svg) |

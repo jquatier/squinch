@@ -68,7 +68,10 @@ engine, CLI, playground and extension all ship (see §Where things stand).
   twice — woff2 for the SVG, and `packages/core/fonts/*.ttf` for rasterizers
   that can't read `@font-face`. **resvg is one of them**, so PNG export hands it
   those files with `loadSystemFonts: false`; drop that and PNGs silently pick up
-  whatever font the machine has.
+  whatever font the machine has. The TTFs keep name ids 16/17 (the typographic
+  family): without them Medium and SemiBold were named "Inter Medium" and
+  "Inter SemiBold", and resvg drew every weight as Regular — every PNG title a
+  weight light for months (`docs/notes/prose.md`).
 - **Core is isomorphic**: shared code imports no `node:` builtins. Node registers
   disk packs via `src/index.ts`; browsers call `registerPack` + `preloadIcons`
   (`src/browser.ts`). Tests boot packs through `test/setup.ts`.
@@ -232,10 +235,22 @@ visibility/lifting → layout → themed SVG), the CLI (check/render/diff/icons/
 init/watch + sync/check model + Actions), the SPA playground, the VS Code
 extension + language server, six icon packs, and the light/dark pair. The acceptance
 bar — an agent producing clean diagrams from prose using only the skill + CLI —
-is certified at **39/39
+is certified at **42/42
 by independent cold agents** on the committed corpus; the latest full round scored
-39/39 with **28/39 clean on the first `check`** (round 34, the first on the
-`weft` layout engine — `gauntlet/README.md`; round 33 before it, 38/39 and 29/39, run after the first
+41/42 with **31/42 answered in one `check` call** (round 36, the first with
+`about` and formatted prose: prompt 42 asks for a context section above the
+diagram without naming the feature, and its agent wrote a formatted `about` in
+one call; the round's two engine findings — a chain of four hops or more
+cascading into "`fields` on an edge" errors, and two view statements on one
+line getting a bare syntax error — are fixed, the first by parsing the chain;
+the miss, 20, drew a sync job as an edge and passed two of three re-runs;
+round 35 before it, 39/40 and 29/40, the first with
+relationship marks: the new schema prompt put every mark on the right end and
+the two table prompts that give no counts drew none — prompt 41, added after
+it, is the clean control, tables with nothing said between them; the one
+miss, 28, was a view that did not narrow, and passed three re-runs — `gauntlet/README.md`;
+round 34 before it, 39/39 and 28/39, the first on the
+`weft` layout engine; round 33 before it, 38/39 and 29/39, run after the first
 outside test of `fields` changed where they draw — `gauntlet/README.md`,
 `docs/notes/fields.md`; round 32 before it, 28/39, added a leaf's `fields` and
 a schema prompt;
@@ -364,6 +379,35 @@ what `include` used to smuggle — draw an outside node at its own depth rather
 than as its system card — and splitting that out is what made `only` possible at
 all: a verb that also controls altitude cannot be redefined to control
 membership. Rule stack: SPEC §5.
+**Relationship marks** (2026-11): an edge between two tables may carry `from:`
+and `to:`, one of six words per end (`one many exactly-one zero-or-one
+one-or-many zero-or-many`), drawn as crow's-foot marks in place of the
+arrowhead. Rules that are not negotiable: both ends or neither; only between
+two leaves on a plain `->`/`--` edge; any lift drops both marks; a trunk's
+shared end carries one mark and refuses edges that disagree; `lines straight`
+draws none and says so; nothing is derived from `fields` or `ref`. Plain `one`
+and `many` exist because optionality is usually not in the source — a guessed
+ring on a reviewed diagram reads as a fact. Wrong spellings that parse
+(`zero-or-more`, `cardinality: many-to-one`, `from: east`) get an error that
+writes the line; ones that do not (UML ranges, Mermaid operators, marks
+outside the braces) are plain syntax errors on purpose — a step that
+repaired them before the parse was built, reviewed twice and removed, because
+no cold agent writes them once the skill teaches the syntax. The
+engine's part is `Wire.tips`: labels keep off a marked end, and a port moved
+to straighten its wire keeps 16px from a marked neighbour. A table's head in a
+rightward view holds four; from five the view warns, naming the table. `docs/notes/relationship-marks.md` has the two
+probes, the rejected shapes and what four reviews changed.
+**Prose** (2026-11): a view's `about` — prose set in the header under the title,
+the drawing moved down to make room — and a note's text share one closed set of
+formatting (`src/prose.ts`): paragraphs, `- ` bullets, `**bold**`, `` `code` ``,
+`[text](https://…)`. Anything else is drawn as typed and warns; a non-http(s)
+link stays text and warns. A `"""` block string spans lines anywhere a string
+goes, dedented; prose keeps its lines, everything drawn on one line reads them as
+spaces. Prose is never cut: a note grows past its old three lines, and past six
+the check points at `about`. It exists because a user's agent, with nowhere to put
+a context paragraph, edited the rendered SVG and `--check` failed from then on.
+Layout and renderer read one wrap (`setProse`); runs on one line are measured in
+their own face and drawn unkerned. `docs/notes/prose.md` has the rejected shapes.
 **The detailed card** (2026-09): `preview <path>` / `preview *` in a view draws a
 collapsed card taller, with the children its `preview:` attr names as readable
 rows (up to three; `auto` = the first three declared, *direct* children — a
@@ -451,20 +495,55 @@ share a row with an edge between them; rank hints reach inside zones; `align` an
 node of a rank — two row-mates cannot share an axis, so the rest stay side by side
 and the check says so; no contradiction among hints can overlap boxes). Hint *contradictions* are
 still errors (`place a right-of b` + `place b right-of a`, a `place` against its
-band, a second `rows` line). Layout-time warnings that remain, each naming its hint:
+band, a second `rows` line, two `route` lines asking one end of an edge for two sides). Layout-time warnings that remain, each naming its hint:
 `align`/`cols` on one rank ("cannot share an axis") or across containers ("could not
 be put on `x`'s axis"); `route` sides on a same-rank edge ("sides are ignored") or
-where the wall is taken, the edge is in a `channel` or `wrap` trunk, or an end is a
-container ("could not use the side it asks for here"); a `wrap` that folds nothing;
-a `channel` not fully visible; and "`a` → `b` is not drawn — one end is inside the
-other". The zone errors are unchanged. Notes get room reserved by the engine: beside
+where the named node's own side cannot be given — one sentence per cause, naming the
+node and the side, and a fix line for each (the engine reports them in screen terms,
+`Refusal`; the words are not re-derived in `layout.ts`): the edge is in a `channel` or
+`wrap` trunk, the node is row-mate to what holds the other end, or the edge leaves the
+node's container through what is a side wall in that container's own direction and
+the node was asked for the side facing away — whose fix names the sides that work
+there ("could not use the east side of `a` — …");
+a `route` that names no edge the view draws (it says whether to write the card or the
+node inside); a `wrap` that folds nothing; a `channel` not fully visible; and "`a` →
+`b` is not drawn — one end is inside the other".
+**A `route` side carries through every container wall, and a side holds any number of edges** (2026-11):
+`route shop.api -> audit from east` leaves API eastward and leaves Shop's east wall
+too, through each frame and zone in turn — past a row-mate as well, the edge going
+over or under it from a lane beside the node. The first version carried only while
+nothing stood between, and turned the wire down inside the frame when Cache happened
+to stand east of the API — the complaint the feature was built to end. One side is
+still held back at each end: the one facing back against the edge's own way (`from
+north` or `to south` on an edge that runs down; west and east in a rightward view)
+carries through a wall only while what the edge has reached stands in the first (last)
+row inside it; at the first wall where it does not, the edge turns beside what it has
+reached, because carried always it climbed out of every frame and came all the way
+round (+330 crossings on 600 generated diagrams). Inside a container that flows the
+other way, that side is refused with a warning unless nothing stands beside the node
+in its row on that side. An edge that ends at the
+expanded container is asked of the frame's wall. A node's side wall is allocated like
+its top or bottom (`weft/sides.ts`): wires hooked in from above highest, wires
+straight out between, wires hooked out downward lowest, nested so that none crosses
+another where they leave it; through a frame's wall they keep the order the wall
+outside needs (`comesAt`, read last by `order.ts` for a frame that flows the other
+way) — so two edges asked out of one side both get it, and "that side is taken" is
+no longer a diagnostic. Limits, each recorded with its reason: toward a row-mate of
+the container the side is not carried (the edge leaves toward it); past four edges on
+one side of an ordinary node they stand closer than 16px, sharing the side out evenly,
+with no warning; honouring sides asked at random costs crossings (the note's table).
+Long rows are slow to order whether sides are asked or not (80 wires between two
+containers of ten-node rows: about 15 s) — the search, not the hooks. Naming a side per wall was considered
+and not built (zones are in no path; frames depend on each view's `expand`) —
+`docs/notes/layout-engine.md` §8. The zone errors are unchanged. Notes get room reserved by the engine: beside
 the anchor node (`Box.room` — inside its frame or zone, and never part of the box, so
 a node is balanced as if it had no note) or beside the wire.
 **Not guaranteed**, and written down so nobody assumes otherwise (the note's §8): the
 ordering search is a descent with one restart and can stop at a local minimum on
 dense diagrams — some random diagrams cross more than ELK's did; a side-routed wire
-(`route … from/to`) takes the side asked, not the side nearer its destination, and
-`lookbook/cases/26-route-label` crosses wires because of it; canvases are tighter
+(`route … from/to`) does not pull its node toward where it is going (which way round
+its node a wire out of the top or bottom goes is chosen by the ordering search, for
+fewer crossings and then the nearer side — it used to turn east always); canvases are tighter
 than ELK's, so corner notes sit closer to content; and a label can still be crossed
 by another wire where room cannot be given — wires between two row-mate containers,
 whose ports are fixed by their insides (3 labels in one set turned rightward, about
@@ -509,6 +588,13 @@ in `layout-engine-spike.md`; `coplanar.md`, `wrap.md`, `edge-labels.md` and
   `test/weft/quality.baseline.json`. `UPDATE_QUALITY=1` re-records the
   baseline — same commit as the change that earned it, and only after looking
   at the pictures that moved (`docs/notes/layout-engine.md` §9).
+- `pnpm release [x.y.z]` — cut a release from a clean `main` (CONTRIBUTING
+  "Cutting a release"). Its draft is the commit list with each new lookbook
+  case's and example's SVG embedded under the commit that added it
+  (`scripts/release-shots.mjs`); the notes that ship are prose, written by the
+  `/release` project skill (`.claude/skills/release/`) and approved by the
+  maintainer before it tags. Never run it without `--dry-run` unasked — a tag
+  push publishes to npm.
 - `node scripts/version.mjs [x.y.z]` — print, or set, the **one** version the
   whole workspace shares (root `package.json` is the truth; a guardrail asserts
   every member matches). The engine, CLI and extension are one product cut

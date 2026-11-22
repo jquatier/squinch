@@ -1,13 +1,14 @@
 # The gauntlet (end-to-end acceptance)
 
-Thirty-nine architecture prompts — thirty-eight in prose, and one that hands
+Forty-two architecture prompts — forty-one in prose, and one that hands
 the agent a real repository. An agent, armed with only
 [`packages/skill/skills/squinch/SKILL.md`](../packages/skill/skills/squinch/SKILL.md) and the `squinch` CLI,
 must produce a clean diagram for each. **v1 ships at ≥ 16/20 with zero human
 layout fixes** (the original ≥ 8/10 bar, at the current prompt count).
 
-> **Current standing: the committed corpus scores 39/39 on the deep scorer; the
-> latest round itself — the first on the `weft` layout engine — scored 39/39, with 28 of 39 clean on the first `check`.** The
+> **Current standing: the committed corpus scores 42/42 on the deep scorer; the
+> latest round itself — the first with `about` and formatted prose — scored
+> 41/42, with 31 of 42 answered in one `check` call.** The
 > solutions those agents wrote are committed in `solutions/` and re-scored by CI
 > on every push, so the claim is inspectable rather than asserted.
 >
@@ -69,46 +70,48 @@ nothing.
 
 ## Latest round
 
-**Round 34 — 39/39 on the deep scorer; 28 of 39 clean on the first `check`**
-(2026-11-15, Sonnet). The first round on `weft`, the layout engine that
-replaced ELK (docs/notes/layout-engine.md). Run to find out what the swap did
-to a cold agent's loop and to the pictures it hands over — every earlier round
-certified the language and the skill on the old engine.
+**Round 36 — 41/42 from the round itself, 42/42 committed; 31 of 42 with one
+`check` call** (2026-11-22, Sonnet). Run after `about`, block strings and
+formatted notes went in (docs/notes/prose.md), with the side-wall routing and
+the payments example since round 35: the skill gained the prose passage and
+cookbook rows for the new `route` warnings, the scorer two expectations
+(`requireAbout`, `aboutMatches`), and the set one prompt, `42-context` — an
+architecture review that wants a context section above the diagram with an
+intro, three bullets, a bold word, a ticket id as code and a runbook link,
+and a note on the database. It is the situation a user hit before `about`
+existed: their agent edited the rendered SVG.
 
-**No agent hit a layout error, and the two prompts that always did were clean
-in one call.** 01 and 27 — `27-rank-conflict` is written to provoke it — used
-to fail their first `check` on "hint conflict … runs upward" and fix it from
-the diagnostic. That error no longer exists: an edge against the declared rows
-is drawn, and both were one call, exit 0, no warnings. No band split, no
-row-mates-inside-a-container, no hints-inside-a-zone, no `wrap` shape warning
-either; those classes cannot occur now.
+**42 was clean in one call.** The prompt never names the feature; the agent
+wrote an `about` block string with the intro, `- ` bullets, `**synchronous**`,
+`` `OPS-412` `` and `[orders runbook](https://…)`, and put the database fact
+in a note. No prose diagnostic fired in any session, and no agent touched a
+rendered file.
 
-**One layout diagnostic fired, and it was right.** 26 wrote `cols [wh idx]`
-for two nodes on one rank; `check` said they "cannot share an axis" and wrote
-the `rows` line, and the second call was clean. Before the fix made during the
-swap that hint drew the two boxes on top of each other in silence.
+**Two first failures were the engine's messages, and both are fixed.**
 
-**The first-check count did not move, because what is left was never layout.**
-Of the eleven prompts with more than one call: three ran a clean `check` twice
-(02, 20, 34 — nothing to fix); three re-ran on warnings (22 and 35 a long
-subtitle, 26 above); five had errors, each fixed in one step from its
-diagnostic — attributes written outside the braces (21, 38), two icon ids that
-do not exist (30), chained edges (32), `scope` naming a leaf (39). Two of
-these became changes after the round. Attributes on one line with nothing
-between them — `{ tags: #poll  animate: pulse }`, what 21 and 38 wrote — now
-parse: a value is one run and the next attribute starts `key:`, so the
-grammar had no reason to refuse it. And an icon id that is a word rather
-than a typo (`sys/download`) is answered with the real ids that carry the
-word (`closest: sys/hard-drive-download …`) where it used to say only
-"run a search". Chained edges and `scope` on a leaf are unchanged: their
-diagnostics already write the fix.
+- **A long chain** — `extract -> validate -> … -> notify`, fourteen hops (32).
+  Up to three hops drew the right error; from four, the parser's recovery
+  read the tail as a brace-less attr block that swallowed the next line, and
+  the agent got four "`fields` on an edge" errors, a lost view and the true
+  error sixth. Round 35 saw the same cascade on this prompt and set it aside.
+  The grammar now parses a chain, and the model refuses it in one error that
+  lists every hop to write.
+- **Two statements on one line** — `view db { title "Postgres schema"  scope
+  checkout.db }` (39), three views written that way. It was a bare syntax
+  error; it now says that `scope` starts a second statement and writes the
+  line both ways (own line, or `;`). Whitespace cannot be the separator:
+  after a label a word may be a kind as well as the next statement.
 
-**The pictures were looked at, all 68 declared views.** Every one renders
-with no diagnostic. Nothing overlaps, no label sits on another wire, fans
-stand centred over what they feed. The weak spots the engine note lists did
-not show at this size; the largest views (34, 35, 38) are where to look first
-if they ever do.
+The third first failure, a fan-in `c1, c2 … -> norm` (26), already had a
+diagnostic that writes the six lines, and the agent fixed it from that.
+Eight more prompts ran `check` a second time after an edit with nothing to
+fix.
 
-No agent read outside its sandbox, none opened the cookbook, one opened the
-icon list. The corpus in `solutions/` is this round's answers for all
-thirty-nine prompts.
+**One prompt failed, and it is modelling, not the tool.** 20 drew the nightly
+sync job as an asynchronous edge rather than a node, so it had four nodes to
+the scorer's five. Three re-runs: one the same, two with the job as a node;
+the committed answer is the last of them.
+
+No agent read outside its sandbox; none opened the cookbook, two the icon
+list. The corpus in `solutions/` is this round's answers for all forty-two
+prompts, 20's from its last re-run.

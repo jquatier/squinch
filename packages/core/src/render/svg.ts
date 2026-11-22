@@ -8,9 +8,11 @@ import { iconAsset, symbolId } from "../packs/registry.js";
 import type { Theme } from "../themes/index.js";
 // SHELF_H is layout's: the shelf is inside the card height it sets, so the
 // strip the renderer fills and the room the card reserves are one number.
-import { pillDims, NOTE_GUTTER, SHELF_H, ROW_H, CARD_HEAD_H, FIELD_ROW_H, CHIP_PAD, CHIP_GAP, FIELD_GAP, REF_ARROW_W } from "../layout/layout.js";
+import { parseProse, setProse, CODE_PAD, type ProseFont, type SetProse } from "../prose.js";
+import { pillDims, noteFont, NOTE_GUTTER, SHELF_H, ROW_H, CARD_HEAD_H, FIELD_ROW_H, CHIP_PAD, CHIP_GAP, FIELD_GAP, REF_ARROW_W } from "../layout/layout.js";
 import type { Positioned, PEdge, PNode, PZone, PFrame } from "../layout/layout.js";
-import type { EdgeAnimate, Hue, SNote, ZoneKind } from "../model/types.js";
+import type { EdgeAnimate, EdgeMark, Hue, SNote, ZoneKind } from "../model/types.js";
+import { MARK_HALF } from "../layout/sizes.js";
 import { hueOf } from "../themes/index.js";
 
 const PLATE = 40;
@@ -50,6 +52,8 @@ export interface RenderOpts {
   titleblock?: Record<string, string>;
   /** view title — the titleblock headline */
   title?: string;
+  /** the view's `about`: prose set in the header, under the title, above the drawing */
+  about?: string;
   /** Embed the subsetted faces via @font-face (default true), so the SVG
    *  renders with the exact font the metrics were measured from even in
    *  sandboxed contexts like GitHub's <img>. Off = smaller output for hosts
@@ -453,6 +457,51 @@ function arrow(e: PEdge, t: Theme, lines: Positioned["lines"], col: string, cls 
   return e.heads === "both"
     ? forward + head(e.points[0], after, col, e.async, exact, cls)
     : forward;
+}
+
+/**
+ * Relationship marks (DESIGN §4, SPEC §4): crow's-foot notation, drawn on the
+ * straight run a wire makes out of its table, in place of the arrowhead. Read
+ * from the table outward — a bar is "one", a foot is "many", and a second
+ * bar or a ring says whether there must be one.
+ *
+ * Geometry is in whole and half pixels along the wire's axis, never rotated:
+ * a mark is only drawn on an axis-aligned run (layout drops marks where
+ * `lines: straight` would need anything else). Everything fits inside
+ * `MARK_REACH` of the wall, short of where an 8px corner on the shortest stub
+ * has moved the wire by more than a pixel.
+ *
+ * The ring is open: the wire stops at its far edge (`markGap` says where) and
+ * the mark draws the short piece between the wall and the ring's near edge.
+ * An open ring needs to know nothing about what it stands on — canvas, frame
+ * fill — which a ring filled to hide the wire would.
+ */
+const MARK_SHAPES: Record<EdgeMark, { bars: number[]; foot?: number; ring?: number }> = {
+  "one": { bars: [6] },
+  "many": { bars: [], foot: 10 },
+  "exactly-one": { bars: [4, 8] },
+  "zero-or-one": { bars: [4], ring: 8.5 },
+  "one-or-many": { bars: [10], foot: 7 },
+  "zero-or-many": { bars: [], foot: 7, ring: 9.5 },
+};
+const RING_R = 2.5;
+/** How far from the wall the wire itself begins: past the ring, or at the wall. */
+const markGap = (kind: EdgeMark): number => {
+  const ring = MARK_SHAPES[kind].ring;
+  return ring === undefined ? 0 : ring + RING_R;
+};
+/** One mark where the wire meets the wall at `p`, running out toward `q`. */
+function markAt(p: { x: number; y: number }, q: { x: number; y: number }, kind: EdgeMark, col: string): string {
+  const dx = Math.sign(q.x - p.x), dy = Math.sign(q.y - p.y);
+  // `k` px out along the wire, `o` px across it; (dy, dx) is the perpendicular
+  const at = (k: number, o: number) => `${p.x + dx * k + dy * o} ${p.y + dy * k + dx * o}`;
+  const { bars, foot, ring } = MARK_SHAPES[kind];
+  let d = "";
+  if (foot !== undefined) d += `M ${at(0, MARK_HALF)} L ${at(foot, 0)} L ${at(0, -MARK_HALF)}`;
+  for (const k of bars) d += `${d ? " " : ""}M ${at(k, MARK_HALF)} L ${at(k, -MARK_HALF)}`;
+  if (ring !== undefined) d += ` M ${at(0, 0)} L ${at(ring - RING_R, 0)}`;
+  return `<path d="${d}" fill="none" stroke="${col}" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>`
+    + (ring === undefined ? "" : `<circle cx="${p.x + dx * ring}" cy="${p.y + dy * ring}" r="${RING_R}" fill="none" stroke="${col}" stroke-width="1.5"/>`);
 }
 
 /** class per animate value — `sq-flow` predates the vocabulary and keeps its
@@ -976,7 +1025,7 @@ function notes(
   for (const n of p.notes ?? []) {
     const note = list[n.i];
     if (!note) continue;
-    const { x, y, w, h, lines } = n;
+    const { x, y, w, h, prose } = n;
     ext.minX = Math.min(ext.minX, x); ext.minY = Math.min(ext.minY, y);
     ext.maxX = Math.max(ext.maxX, x + w); ext.maxY = Math.max(ext.maxY, y + h);
     // One plate for every note. The amber `warning` fill is retired here
@@ -1007,11 +1056,8 @@ function notes(
     // 5.5 above it. For a one-line note this is also the box's centre, which
     // is why the two used to look interchangeable.
     L.push(noteGlyph(x + 12, y + 8, warn, rc));
-    lines.forEach((line, i) =>
-      L.push(
-        `<text x="${x + 12 + NOTE_GUTTER}" y="${y + 17 + i * 15}" font-size="${rc.fx(11)}" fill="${t.ink}">${esc(line)}</text>`,
-      ),
-    );
+    // the first baseline 17 down, as it always was: 6 of padding and the 11px line
+    drawProse(prose, x + 12 + NOTE_GUTTER, y + 6, noteFont(rc.t.font), t.ink, rc, L);
     L.push(`</g>`);
   }
   return ext;
@@ -1221,6 +1267,40 @@ function header(
     `<g clip-path="url(#${clip})">${inChip.join("")}</g>` +
     `<rect x="0" y="0" width="${dims.chipW}" height="20" rx="3" fill="none" stroke="${t.border}" stroke-width="1"/></g>`,
   );
+}
+
+/** How a view's `about` is set: a step larger than a note, on a comfortable
+ *  pitch, at a reading measure that follows the canvas between two bounds. */
+const ABOUT_MIN = 360, ABOUT_MAX = 560;
+const aboutFont = (rc: RC): ProseFont => ({ size: rc.fx(12), pitch: rc.fx(12) + 7, gap: 7, indent: 14, fam: rc.fam });
+
+/** Set prose drawn at (x, y), its first line's top at y. Plain text in `ink`,
+ *  bold in ink at 600, code in mono on a bordered chip (the meta chip's
+ *  treatment — a plate alone is the canvas's own tone), a link in the accent and
+ *  underlined — a PNG has no hover, so a link must look like one at rest.
+ *  A line of several runs is drawn unkerned: each is placed at its measured
+ *  width, and the metrics carry advances alone, so a kerned run drew short of
+ *  where the next began — a gap before every full stop after a bold word. A
+ *  line of one run has nothing after it to miss, and is drawn as text always was. */
+function drawProse(set: SetProse, x: number, y: number, f: ProseFont, ink: string, rc: RC, L: string[]): void {
+  const { t } = rc;
+  for (const line of set.lines) {
+    const by = y + line.y, kern = line.segs.length > 1 ? ` font-kerning="none"` : "";
+    if (line.bullet) L.push(`<circle cx="${x + 4}" cy="${by - Math.round(f.size * 0.33)}" r="1.75" fill="${t.faint}"/>`);
+    for (const sg of line.segs) {
+      const sx = x + sg.x;
+      if (sg.style === "code") {
+        L.push(`<rect x="${sx + 0.5}" y="${by - f.size + 0.5}" width="${Math.ceil(sg.w) - 1}" height="${f.size + 4}" rx="3" fill="${t.surface}" stroke="${t.border}" stroke-width="1"/>`);
+        L.push(`<text x="${sx + CODE_PAD}" y="${by}" font-size="${f.size - 1}" font-family="${MONO_CSS}"${kern} fill="${ink}">${esc(sg.text)}</text>`);
+        rc.faces.add("mono:400");
+        continue;
+      }
+      const attrs = sg.style === "bold" ? ` font-weight="600"` : sg.style === "link" ? ` text-decoration="underline"` : "";
+      if (sg.style === "bold") rc.faces.add("inter:600");
+      const text = `<text x="${sx}" y="${by}" font-size="${f.size}"${attrs}${kern} fill="${sg.style === "link" ? t.accent : ink}">${esc(sg.text)}</text>`;
+      L.push(sg.href ? `<a href="${esc(sg.href)}" target="_blank" rel="noopener noreferrer">${text}</a>` : text);
+    }
+  }
 }
 
 interface Pill {
@@ -1630,6 +1710,7 @@ export function renderSVG(p: Positioned, t: Theme, opts: RenderOpts = {}): strin
   const crossedTitle = (f: PFrame): string => frameHeader(f, true);
 
   const hops = hopPoints(p.edges);
+  const markedEnds = new Map<string, { weight: number; svg: string }>(); // wire end → the mark it carries
   for (const e of p.edges) {
     const dimmed = !edgeMatches(e);
     // the hop being narrated right now: accent-coloured and heavier, so the
@@ -1656,13 +1737,40 @@ export function renderSVG(p: Positioned, t: Theme, opts: RenderOpts = {}): strin
     const cls = e.animate ? ANIM_CLASS[e.animate] : undefined;
     const anim = cls ? ` class="${cls}"` : "";
     const op = dimmed ? ` opacity="${DIM}"` : "";
-    const myHops = hops.get(e.id);
+    // A ring is open: the wire begins at its far edge. The piece of wire
+    // before that is skipped with a dash pattern that starts with a gap — a
+    // marked edge is always solid, so the pattern is free — which leaves the
+    // path, and its corners, exactly what every other wire has. A pattern
+    // counts from the start of a path, so the run that reaches the `to` end
+    // is drawn from that end. One run with a ring at both ends is drawn
+    // twice over the same path, once from each end and each a little past
+    // half-way: the two overlap in the middle, so there is no seam to show
+    // at any scale, and no corner is recomputed from a shortened stretch.
+    const gapFrom = e.marks ? markGap(e.marks.from) : 0, gapTo = e.marks ? markGap(e.marks.to) : 0;
+    // A crossing hop right beside a ring would leave the ring with no wire
+    // (the stretch between ring and hop is all gap) — there the wire runs
+    // through the crossing instead.
+    const near = (h: { x: number; y: number }, end: { x: number; y: number }, gap: number) => gap > 0 && Math.abs(h.x - end.x) + Math.abs(h.y - end.y) < gap + 12;
+    const myHops = hops.get(e.id)?.filter((h) => !near(h, e.points[0], gapFrom) && !near(h, e.points[e.points.length - 1], gapTo));
     const runs = myHops?.length ? splitAtHops(e.points, myHops) : [e.points];
     body.push(`<g${op}>`);
-    for (const run of runs) {
-      const d = edgePath(run, p.lines);
+    const pieces: { pts: { x: number; y: number }[]; skip?: string }[] = runs.map((pts) => ({ pts }));
+    if (gapFrom || gapTo) {
+      const back = [...runs[runs.length - 1]].reverse();
+      if (runs.length === 1 && gapFrom && gapTo) {
+        let len = 0;
+        for (let i = 1; i < back.length; i++) len += Math.abs(back[i].x - back[i - 1].x) + Math.abs(back[i].y - back[i - 1].y);
+        const half = Math.ceil(len / 2) + 4;
+        pieces.splice(0, 1, { pts: runs[0], skip: `0 ${gapFrom} ${half - gapFrom} 100000` }, { pts: back, skip: `0 ${gapTo} ${half - gapTo} 100000` });
+      } else {
+        if (gapFrom) pieces[0].skip = `0 ${gapFrom} 100000`;
+        if (gapTo) pieces[pieces.length - 1] = { pts: back, skip: `0 ${gapTo} 100000` };
+      }
+    }
+    for (const { pts, skip } of pieces) {
+      const d = edgePath(pts, p.lines);
       body.push(
-        `<path${anim} d="${d}" fill="none" stroke="${col}" stroke-width="${weight}"${dash}/>`,
+        `<path${anim} d="${d}" fill="none" stroke="${col}" stroke-width="${weight}"${skip ? ` stroke-dasharray="${skip}"` : dash}/>`,
       );
     }
     if (e.animate === "comet") {
@@ -1689,9 +1797,21 @@ export function renderSVG(p: Positioned, t: Theme, opts: RenderOpts = {}): strin
     }
     // pulse breathes the whole edge, arrowhead included; travel animations
     // stay off the head — a drifting chevron reads as the head detaching
-    body.push(arrow(e, t, p.lines, col, e.animate === "pulse" ? anim : ""));
+    if (e.marks) {
+      // One drawn end carries one mark: the wires of a trunk share a port,
+      // and layout has checked that they agree on it. They may still differ
+      // in colour and emphasis, so the mark goes to the one that stands out
+      // most — the flow's current step, else one that is not dimmed.
+      const n = e.points.length, weightOf = current ? 2 : dimmed ? 0 : 1;
+      for (const [at, toward, kind] of [[e.points[0], e.points[1], e.marks.from], [e.points[n - 1], e.points[n - 2], e.marks.to]] as const) {
+        const key = `${at.x},${at.y}`, had = markedEnds.get(key);
+        if (!had || weightOf > had.weight) markedEnds.set(key, { weight: weightOf, svg: `${dimmed ? `<g opacity="${DIM}">` : ""}${markAt(at, toward, kind, col)}${dimmed ? "</g>" : ""}` });
+      }
+    } else body.push(arrow(e, t, p.lines, col, e.animate === "pulse" ? anim : ""));
     body.push(`</g>`);
   }
+  // the marks, over every wire: one per drawn end, in the order the ends were first met
+  for (const m of markedEnds.values()) body.push(m.svg);
 
   for (const n of p.nodes) {
     const dimmed = !nodeMatches(n);
@@ -1759,7 +1879,7 @@ export function renderSVG(p: Positioned, t: Theme, opts: RenderOpts = {}): strin
   // The header sits above everything, so the body shifts down by its height —
   // the same padY machinery notes already use for a diagram that grew upward.
   const hd = headerDims(rc, opts.title, opts.titleblock ?? {});
-  const headerH = hd.h ? hd.h + 22 : 0;
+  let headerH = hd.h ? hd.h + 22 : 0;
   if (opts.notes?.length) {
     // Everything a note must not land on. The legend and titleblock are drawn
     // *after* notes but positioned from the final height, which is circular —
@@ -1783,6 +1903,16 @@ export function renderSVG(p: Positioned, t: Theme, opts: RenderOpts = {}): strin
   if (headerH) {
     header(rc, 18, 14, opts.title, opts.titleblock ?? {}, hd, chrome);
     width = Math.max(width, hd.chipW + 36);
+  }
+  // `about` sets under the header, at a measure that follows the canvas: the
+  // canvas widens to the narrowest measure rather than squeezing the prose
+  const about = opts.about ? parseProse(opts.about) : undefined;
+  if (about?.blocks.length) {
+    const f = aboutFont(rc), col = Math.min(ABOUT_MAX, Math.max(ABOUT_MIN, width - 36));
+    const set = setProse(about, col, f), top = 14 + (hd.h ? hd.h + 12 : 0);
+    drawProse(set, 18, top, f, t.muted, rc, chrome);
+    width = Math.max(width, col + 36);
+    headerH = top - 14 + set.height + 19;
   }
 
   // The band exists to carry the legend; the wordmark rides it. Tying it to

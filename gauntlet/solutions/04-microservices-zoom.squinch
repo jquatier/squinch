@@ -10,14 +10,14 @@ system catalog "Catalog" {
 }
 
 system checkout "Checkout" {
-  description: "Carts, payment and order placement"
+  description: "Carts, orders and payment"
   api = aws/lambda "Checkout API"
   db  = sys/database "Checkout DB" datastore
   api -> db
 }
 
 system identity "Identity" {
-  description: "Accounts, sign-in and sessions"
+  description: "Accounts and sign-in"
   api = aws/lambda "Identity API"
   db  = sys/database "Identity DB" datastore
   api -> db

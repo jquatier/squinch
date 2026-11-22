@@ -1,15 +1,15 @@
 pack azure
 
-person customer "Customer"
+person customer "Customers"
 
 fd    = azure/front-door "Azure Front Door"
 app   = azure/app-service "App Service" { subtitle: "Web tier" }
-sql   = azure/sql-database "Azure SQL" datastore
-redis = azure/cache-redis "Redis Cache" datastore
+sql   = azure/sql "Azure SQL" datastore
+redis = azure/cache-redis "Redis" datastore
 kv    = azure/key-vault "Key Vault"
 ai    = azure/application-insights "Application Insights"
 
-customer -> fd "HTTPS"
+customer -> fd
 fd -> app
 app -> sql "reads/writes"
 app -> redis "caches"

@@ -264,7 +264,7 @@ describe("the skill — diagnostic coverage", () => {
     // ways out spelled in full. A cookbook row would only restate them.
     "align` needs at least two elements", "channel` needs at least two sources",
     "detail` needs a path", "scope` needs a single container path",
-    "theme` needs a theme name", "title` needs a quoted string",
+    "theme` needs a theme name", "title` needs a quoted string", "about` needs a quoted string",
     "async edges are dashed by design — `style: solid` would erase the convention",
     "a dashed sync edge is indistinguishable from an async one — dashes are the async convention",
     "animate: packets` draws its own sparse pattern — `style:` has nothing to add",
@@ -335,6 +335,25 @@ describe("the skill — diagnostic coverage", () => {
     "lists something that reads as an endpoint", "needs the id it points at",
     "picks fields, and it has none", "preview` is none, auto or a list of fields", "preview` on",
     "{ }` nests fields — a nested field is a dotted name",
+    // Relationship marks (2026-11): every one writes the whole corrected edge
+    // line — both ends filled in, the near word translated, the arrow
+    // swapped — or the one word to change (`to: zero-or-one`).
+    "a relationship is marked at both ends or neither",
+    "is `nullable", "is a side, and", "on an edge counts rows", "says every",
+    "is declared twice with different relationship marks",
+    "is not an edge attribute — a relationship is marked at each end",
+    "reads backwards against the column",
+    "relationship marks replace the arrowhead, and",
+    "relationship marks sit between two tables, and",
+    "relationship marks sit on a plain solid edge",
+    "unknown relationship mark",
+    // …and at layout time: each fix names the attribute to make agree or the
+    // line to drop. The crowded-wall warning needs a technique; it is in the
+    // cookbook.
+    "as one wire, and they mark that end differently",
+    "lines straight` draws no relationship marks",
+    // `route a -> b from east from west`: the fix says which word to keep one of
+    "route` gives two",
   ]);
 
   it("every diagnostic that needs a technique is in the cookbook", () => {

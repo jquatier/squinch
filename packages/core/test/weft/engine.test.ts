@@ -6,6 +6,7 @@ import { describe, it, expect } from "vitest";
 import { solve, type Box, type Group, type Problem, type Dir } from "../../src/layout/weft/engine.js";
 import type { Side, Wire } from "../../src/layout/weft/contract.js";
 import { audit, roomRect, wallAt } from "./legal.js";
+import { nestedProblem, randomProblem } from "./random-problem.js";
 
 // ── the whole engine, on problems small enough to read ───────────────────────
 const leaf = (id: string, w = 120, h = 64): Box => ({ id, w, h });
@@ -407,15 +408,436 @@ describe("sides a wire is asked to use", () => {
     for (const w of p.wires) w.bundle = "trunk";
     p.wires[0].fromSide = "east";
     const s = solve(p);
-    expect(s.unhonoured).toEqual(["hub>x"]);
+    expect(s.unhonoured).toEqual([{ wire: "hub>x", end: "from", why: "trunk" }]);
     expect(wallAt(s.boxes.get("hub")!, s.wires.get("hub>x")!.points[0])).toBe("south");
     expect(audit(p, s)).toEqual([]);
     // the far wall of a box whose wire leaves its container sideways
     const inner: Box = { id: "sys", w: 0, h: 0, group: group([leaf("sys.x")], { pad: { top: 44, right: 16, bottom: 16, left: 16 } }) };
     const q: Problem = { root: group([inner, leaf("t")], pin({ sys: 0, t: 0 })), wires: [{ id: "out", from: "sys.x", to: "t", fromSide: "west" }] };
     const t = solve(q);
-    expect(t.unhonoured).toEqual(["out"]);
+    expect(t.unhonoured).toEqual([{ wire: "out", end: "from", why: "far", by: "east", open: ["north", "south"] }]);
     expect(audit(q, t)).toEqual([]);
+    // …told in screen sides: in a container that flows rightward, the ways over and under the row are west and east
+    const turned: Box = { id: "sys", w: 0, h: 0, group: group([leaf("sys.x"), leaf("sys.y")], { dir: "right", pad: { top: 44, right: 16, bottom: 16, left: 16 }, ...pin({ "sys.x": 0, "sys.y": 0 }) }) };
+    const v: Problem = { root: group([turned, leaf("t")], { dir: "right", ...pin({ sys: 0, t: 0 }) }), wires: [{ id: "out", from: "sys.x", to: "t", fromSide: "north" }] };
+    expect(solve(v).unhonoured).toEqual([{ wire: "out", end: "from", why: "far", by: "south", open: ["west", "east"] }]);
+    // a box in one rank with the container the other end is in: the wire runs along the rank
+    const m: Problem = { root: group([leaf("u"), { ...inner, id: "sys" }], pin({ u: 0, sys: 0 })), wires: [{ id: "in", from: "u", to: "sys.x", fromSide: "south" }] };
+    expect(solve(m).unhonoured).toEqual([{ wire: "in", end: "from", why: "row", mate: "sys" }]);
+    // …and so does a container the wire ends at, beside the container the other end is in
+    const cd: Problem = { root: group([{ ...inner, id: "sys" }, { id: "d", w: 0, h: 0, group: group([leaf("d.y")], { pad: { top: 44, right: 16, bottom: 16, left: 16 } }) }], pin({ sys: 0, d: 0 })), wires: [{ id: "over", from: "sys", to: "d.y", fromSide: "north" }] };
+    const drawn = solve(cd);
+    expect(drawn.unhonoured).toEqual([{ wire: "over", end: "from", why: "row", mate: "d" }]);
+    expect(audit(cd, drawn)).toEqual([]);
+  });
+
+  // ── the side carries on through the walls of the containers around the box ──
+  const pad = { top: 44, right: 16, bottom: 16, left: 16 };
+  const sys = (boxes: Box[], over: Partial<Group> = {}, id = "sys"): Box => ({ id, w: 0, h: 0, group: group(boxes, { pad, ...over }) });
+  /** The wall of `box` a wire crosses on its way between a point inside and one outside. */
+  const crosses = (s: ReturnType<typeof solve>, box: string, wireId: string): Side | undefined => {
+    const r = s.boxes.get(box)!, pts = s.wires.get(wireId)!.points;
+    const inside = (q: { x: number; y: number }) => q.x > r.x && q.x < r.x + r.w && q.y > r.y && q.y < r.y + r.h;
+    for (let i = 0; i + 1 < pts.length; i++) {
+      const [a, b] = inside(pts[i]) ? [pts[i], pts[i + 1]] : [pts[i + 1], pts[i]];
+      if (!inside(a) || inside(b)) continue;
+      return b.x >= r.x + r.w ? "east" : b.x <= r.x ? "west" : b.y <= r.y ? "north" : "south";
+    }
+    return undefined;
+  };
+  it("carries the side through a container's wall", () => {
+    for (const side of ["east", "west"] as Side[]) {
+      const p: Problem = { root: group([sys([leaf("sys.x"), leaf("sys.y")]), leaf("t")]), wires: [wire("sys.x>sys.y"), { id: "out", from: "sys.x", to: "t", fromSide: side }] };
+      const s = solve(p);
+      expect(audit(p, s)).toEqual([]);
+      expect(s.unhonoured).toBeUndefined();
+      expect(wallAt(s.boxes.get("sys.x")!, s.wires.get("out")!.points[0])).toBe(side);
+      expect(crosses(s, "sys", "out")).toBe(side);
+    }
+    // into a container, by the wall its box was asked to be entered by
+    const q: Problem = { root: group([leaf("a"), sys([leaf("sys.x"), leaf("sys.y")])]), wires: [wire("sys.x>sys.y"), { id: "in", from: "a", to: "sys.x", toSide: "east" }] };
+    const t = solve(q);
+    expect(audit(q, t)).toEqual([]);
+    expect(crosses(t, "sys", "in")).toBe("east");
+  });
+  it("carries it through every container on the way out, past whatever stands in the row", () => {
+    const deep = (inner: Box[], over: Partial<Group> = {}): Problem => ({
+      root: group([sys([sys(inner, over, "sys.in"), leaf("sys.z")], pin({ "sys.in": 0, "sys.z": 1 })), leaf("t")]),
+      wires: [{ id: "out", from: "sys.in.x", to: "t", fromSide: "east" }],
+    });
+    const p = deep([leaf("sys.in.x")]), s = solve(p);
+    expect(audit(p, s)).toEqual([]);
+    expect([crosses(s, "sys.in", "out"), crosses(s, "sys", "out")]).toEqual(["east", "east"]);
+    // a row-mate east of the box: the wire leaves by the east all the same, goes over or under it, and out of both east walls
+    const q = deep([leaf("sys.in.x"), leaf("sys.in.y")], pin({ "sys.in.x": 0, "sys.in.y": 0 })), t = solve(q);
+    expect(audit(q, t)).toEqual([]);
+    expect(wallAt(t.boxes.get("sys.in.x")!, t.wires.get("out")!.points[0])).toBe("east");
+    expect([crosses(t, "sys.in", "out"), crosses(t, "sys", "out")]).toEqual(["east", "east"]);
+    expect(t.unhonoured).toBeUndefined();
+    // …a container with a row-mate east of it, likewise: out of its east wall, round the row-mate, out of the one around it
+    const r: Problem = { root: group([sys([sys([leaf("s.k.x")], {}, "s.k"), leaf("s.y")], pin({ "s.k": 0, "s.y": 0 }), "s"), leaf("t")]), wires: [{ id: "out", from: "s.k.x", to: "t", fromSide: "east" }] };
+    const u = solve(r);
+    expect(audit(r, u)).toEqual([]);
+    expect([crosses(u, "s.k", "out"), crosses(u, "s", "out")]).toEqual(["east", "east"]);
+  });
+  it("turns a wire asked back against its way beside the innermost box it can", () => {
+    // north, for a wire headed down: from a box with nothing above it, out of the container's north wall and round the container…
+    const top: Problem = { root: group([sys([leaf("s.a"), leaf("s.b")], pin({ "s.a": 0, "s.b": 1 }), "s"), leaf("t")]), wires: [wire("s.a>s.b"), { id: "out", from: "s.a", to: "t", fromSide: "north" }] };
+    const u = solve(top);
+    expect(audit(top, u)).toEqual([]);
+    expect(wallAt(u.boxes.get("s.a")!, u.wires.get("out")!.points[0])).toBe("north");
+    expect(crosses(u, "s", "out")).toBe("north");
+    // …but from a box in a lower rank, round the box: it does not climb past the rank above to go round the whole container
+    const low: Problem = { root: top.root, wires: [wire("s.a>s.b"), { id: "out", from: "s.b", to: "t", fromSide: "north" }] };
+    const v = solve(low);
+    expect(audit(low, v)).toEqual([]);
+    expect(wallAt(v.boxes.get("s.b")!, v.wires.get("out")!.points[0])).toBe("north");
+    expect(crosses(v, "s", "out")).toBe("south");
+    expect(v.unhonoured).toBeUndefined();
+  });
+  it("gives a wire that ends at a container the wall of it that was asked", () => {
+    const p: Problem = { root: group([sys([leaf("sys.x")]), leaf("t")]), wires: [{ id: "out", from: "sys", to: "t", fromSide: "east" }, { id: "back", from: "t", to: "sys", toSide: "west" }] };
+    const s = solve(p);
+    expect(audit(p, s)).toEqual([]);
+    expect(s.unhonoured).toBeUndefined();
+    expect(wallAt(s.boxes.get("sys")!, s.wires.get("out")!.points[0])).toBe("east");
+    const back = s.wires.get("back")!.points;
+    expect(wallAt(s.boxes.get("sys")!, back[back.length - 1])).toBe("west");
+    // …also where that wall carries a wire straight across to a neighbour: a side wall takes one more
+    const q: Problem = { root: group([sys([leaf("sys.x")]), leaf("n"), leaf("t")], pin({ sys: 0, n: 0, t: 1 })), wires: [wire("sys>n"), { id: "out", from: "sys", to: "t", fromSide: "east" }] };
+    const t = solve(q);
+    expect(audit(q, t)).toEqual([]);
+    expect(t.unhonoured).toBeUndefined();
+    expect(wallAt(t.boxes.get("sys")!, t.wires.get("out")!.points[0])).toBe("east");
+    expect(crossed(t)).toBe(0);
+  });
+  // ── a side wall takes any number of wires, of any kind (`sides.ts`) ─────────
+  /** The level a wire meets `box` at, on the wall it uses there. */
+  const levelAt = (s: ReturnType<typeof solve>, id: string, box: string): number => { const pts = s.wires.get(id)!.points, r = s.boxes.get(box)!; const on = (q: { x: number; y: number }) => q.x === r.x || q.x === r.x + r.w; return on(pts[0]) ? pts[0].y : pts[pts.length - 1].y; };
+  it("shares a side wall between a wire straight across to a neighbour and a wire asked out of it", () => {
+    // 0.21.0 refused the second: the wall was "taken"
+    const p: Problem = { root: group([leaf("a"), leaf("c"), leaf("b")], pin({ a: 0, c: 0, b: 1 })), wires: [wire("a>c"), { id: "ab", from: "a", to: "b", fromSide: "east" }] };
+    const s = solve(p);
+    expect(audit(p, s)).toEqual([]);
+    expect(s.unhonoured).toBeUndefined();
+    expect(wallAt(s.boxes.get("a")!, s.wires.get("ab")!.points[0])).toBe("east");
+    expect(crossed(s)).toBe(0);
+    // the wire that goes on down stands below the one straight across, a step apart
+    expect(levelAt(s, "ab", "a") - levelAt(s, "a>c", "a")).toBe(16);
+  });
+  it("orders a side wall so that none of its wires crosses another: lanes that come down above, straight wires between, lanes that go down below", () => {
+    // t arrives at a's east wall from the row above; a→r runs straight across; a→d leaves by the east and goes down
+    const p: Problem = { root: group([leaf("t"), leaf("a"), leaf("r"), leaf("d")], pin({ t: 0, a: 1, r: 1, d: 2 })), wires: [{ id: "in", from: "t", to: "a", toSide: "east" }, wire("a>r"), { id: "out", from: "a", to: "d", fromSide: "east" }] };
+    const s = solve(p);
+    expect(audit(p, s)).toEqual([]);
+    expect(s.unhonoured).toBeUndefined();
+    const [arrives, across, leaves] = [levelAt(s, "in", "a"), levelAt(s, "a>r", "a"), levelAt(s, "out", "a")];
+    expect(arrives).toBeLessThan(across);
+    expect(across).toBeLessThan(leaves);
+    expect(crossed(s)).toBe(0);
+  });
+  it("nests two wires that arrive at one side wall from the row above: the nearer lane's wire the higher", () => {
+    const p: Problem = { root: group([leaf("t"), leaf("u"), leaf("a"), leaf("r")], pin({ t: 0, u: 0, a: 1, r: 1 })), wires: [{ id: "t", from: "t", to: "a", toSide: "east" }, { id: "u", from: "u", to: "a", toSide: "east" }, wire("a>r")] };
+    const s = solve(p);
+    expect(audit(p, s)).toEqual([]);
+    expect(s.unhonoured).toBeUndefined();
+    const lane = (id: string) => { const pts = s.wires.get(id)!.points; return pts[pts.length - 2].x; };
+    const [near, far] = lane("t") < lane("u") ? ["t", "u"] : ["u", "t"];
+    expect(levelAt(s, near, "a")).toBeLessThan(levelAt(s, far, "a"));
+    expect(levelAt(s, far, "a")).toBeLessThan(levelAt(s, "a>r", "a"));
+    expect(crossed(s)).toBe(0);
+  });
+  it("keeps room on a side wall for its hooks: the wires straight across stand clear of them by a step", () => {
+    // three wires between a and c fill a 64 px wall at a step apart; the fourth arrives from above and has the top of it
+    const p: Problem = { root: group([leaf("t"), leaf("a"), leaf("c")], pin({ t: 0, a: 1, c: 1 })), wires: [{ id: "in", from: "t", to: "a", toSide: "east" }, { id: "f1", from: "a", to: "c" }, { id: "f2", from: "c", to: "a" }, { id: "f3", from: "a", to: "c" }] };
+    const s = solve(p);
+    expect(audit(p, s)).toEqual([]);
+    const levels = ["in", "f1", "f2", "f3"].map((id) => levelAt(s, id, "a")).sort((x, y) => x - y);
+    expect(levels[0]).toBe(levelAt(s, "in", "a"));
+    expect(levels.slice(1).map((v, i) => v - levels[i])).toEqual([16, 16, 16]);
+  });
+  it("orders a container's side wall the same way: a wire taken over the row outside stands above one straight across", () => {
+    // in.x → t leaves `in` by its east wall and goes over big.m; in.x → big.m runs straight across below it
+    const inner = sys([leaf("in.x")], {}, "in");
+    const big = sys([inner, leaf("big.m"), leaf("big.low")], pin({ in: 0, "big.m": 0, "big.low": 1 }), "big");
+    const p: Problem = { root: group([big, leaf("t")], pin({ big: 0, t: 0 })), wires: [wire("in.x>big.m"), { id: "out", from: "in.x", to: "t", fromSide: "east" }, wire("big.m>big.low")] };
+    const s = solve(p);
+    expect(audit(p, s)).toEqual([]);
+    expect(s.unhonoured).toBeUndefined();
+    for (const box of ["in.x", "in", "big"]) expect(crosses(s, box, "out") ?? wallAt(s.boxes.get(box)!, s.wires.get("out")!.points[0])).toBe("east");
+    expect(levelAt(s, "out", "in.x")).toBeLessThan(levelAt(s, "in.x>big.m", "in.x"));
+    expect(crossed(s)).toBe(0);
+  });
+  it("nests several wires asked out of one north wall, whichever side they go round", () => {
+    // each goes round a's east side to a lane: the nearest lane's wire leaves nearest that corner, and none crosses another
+    const p: Problem = { root: group([leaf("a"), leaf("d"), leaf("b"), leaf("c")], pin({ a: 0, d: 1, b: 1, c: 2 })), wires: [wire("a>d"), { id: "ab", from: "a", to: "b", fromSide: "north" }, { id: "ac", from: "a", to: "c", fromSide: "north" }, wire("b>c")] };
+    const s = solve(p);
+    expect(audit(p, s)).toEqual([]);
+    expect(s.unhonoured).toBeUndefined();
+    for (const id of ["ab", "ac"]) expect(wallAt(s.boxes.get("a")!, s.wires.get(id)!.points[0])).toBe("north");
+    expect(crossed(s)).toBe(0);
+  });
+  it("takes several wires past a row-mate and out of the container's wall in the order they have outside, whichever way their targets stand", () => {
+    for (const targets of [["d0", "d1"], ["d1", "d0"], ["d2", "d0", "d1"]]) {
+      const inner = sys([leaf("s.hub"), leaf("s.mate")], pin({ "s.hub": 0, "s.mate": 0 }), "s");
+      const p: Problem = { root: group([inner, ...targets.map((t) => leaf(t))], pin({ s: 0, ...Object.fromEntries(targets.map((t) => [t, 1])) })), wires: [...targets].sort().map((t) => ({ id: t, from: "s.hub", to: t, fromSide: "east" as Side })) };
+      const s = solve(p);
+      expect(audit(p, s), `${targets}`).toEqual([]);
+      expect(s.unhonoured).toBeUndefined();
+      for (const t of targets) expect([wallAt(s.boxes.get("s.hub")!, s.wires.get(t)!.points[0]), crosses(s, "s", t)]).toEqual(["east", "east"]);
+      expect(crossed(s), `${targets}`).toBe(0);
+    }
+  });
+  it("takes several wires out of one side through two container walls, either direction inside, in the order their targets stand", () => {
+    // the middle container passes the order on from the one outside it (`comesAt`); a container of the other direction
+    // has its ports on that wall, ordered last by `order.ts`
+    // (and with a row-mate beside the inner container, which the wires go round from lanes of their own: `sideLanes`)
+    for (const mate of [false, true]) for (const dir of ["down", "right"] as const) for (const targets of [["d0", "d1"], ["d1", "d0"], ["d2", "d0", "d1"]]) for (const side of ["east", "west"] as Side[]) {
+      const inner = sys([leaf("s.hub")], { dir }, "s"), kids = mate ? (side === "east" ? [inner, leaf("t.m")] : [leaf("t.m"), inner]) : [inner];
+      const outer = sys(kids, pin(Object.fromEntries(kids.map((k) => [k.id, 0]))), "t");
+      const p: Problem = { root: group([outer, ...targets.map((t) => leaf(t))], pin({ t: 0, ...Object.fromEntries(targets.map((t) => [t, 1])) })), wires: [...targets].sort().map((t) => ({ id: t, from: "s.hub", to: t, fromSide: side })) };
+      const s = solve(p), what = `${mate ? "mate " : ""}${dir} ${side} ${targets}`;
+      expect(audit(p, s), what).toEqual([]);
+      expect(s.unhonoured, what).toBeUndefined();
+      for (const t of targets) expect([crosses(s, "s", t), crosses(s, "t", t)], what).toEqual([side, side]);
+      expect(crossed(s), what).toBe(0);
+    }
+  });
+  it("shares a side wall too short for its wires out evenly, in order", () => {
+    // eight arrive from above, one runs straight across, one turns down: ten on a wall with room for four a step apart
+    const ups = ["u0", "u1", "u2", "u3", "u4", "u5", "u6", "u7"];
+    const p: Problem = { root: group([...ups.map((u) => leaf(u)), leaf("hub"), leaf("mate"), leaf("low")], pin({ ...Object.fromEntries(ups.map((u) => [u, 0])), hub: 1, mate: 1, low: 2 })), wires: [...ups.map((u) => ({ id: u, from: u, to: "hub", toSide: "east" as Side })), wire("hub>mate"), { id: "down", from: "hub", to: "low", fromSide: "east" }] };
+    const s = solve(p);
+    expect(audit(p, s)).toEqual([]);
+    const levels = [...ups, "hub>mate", "down"].map((id) => levelAt(s, id, "hub")).sort((x, y) => x - y);
+    expect(Math.min(...levels.slice(1).map((v, i) => v - levels[i]))).toBeGreaterThanOrEqual(5);
+    expect(levels[levels.length - 2]).toBe(levelAt(s, "hub>mate", "hub"));
+    expect(levels[levels.length - 1]).toBe(levelAt(s, "down", "hub"));
+    expect(crossed(s)).toBe(0);
+  });
+  it("takes a wire round a row-mate the way that keeps the order a container outside it needs, asked a side or not", () => {
+    // in a rightward container, a downward one: hub → d1 asked west, hub → y0 not asked; both must pass l0, and
+    // the wall outside wants y0's above d1's (`settleWays`)
+    const framed = (id: string, boxes: Box[], dir: "down" | "right", held: string[] = []): Box => ({ id, w: 0, h: 0, minW: 120, title: { w: 80, h: 34 }, group: group(boxes, { dir, pad, gap: { lane: 32, rank: 40 }, held, ...pin(Object.fromEntries(held.map((h) => [h, 0]))) }) });
+    for (const third of [false, true]) {
+      const c2 = framed("c2", [framed("c1", [leaf("l0"), leaf("hub"), leaf("r0")], "down", ["l0", "hub", "r0"])], "right");
+      const below = third ? ["d1", "d2"] : ["d1"];
+      const p: Problem = { root: group([leaf("y0"), c2, ...below.map((d) => leaf(d))], { held: ["y0", "c2", ...below], ...pin({ y0: 0, c2: 0, ...Object.fromEntries(below.map((d) => [d, 1])) }) }),
+        wires: [{ id: "w0", from: "hub", to: "d1", fromSide: "west" }, wire("hub>y0"), ...(third ? [{ id: "w2", from: "hub", to: "d2", fromSide: "west" as Side }] : [])] };
+      expect(audit(p, solve(p)), `${third}`).toEqual([]);
+    }
+  });
+  it("keeps every wire on a side wall shared evenly 8 px from its corners", () => {
+    // six wires on a 48 px stretch, 9.6 px apart: placed from the unrounded middle and kept within it
+    // (a generated Problem; it could not be cut down by hand and keep the overflow)
+    const p: Problem = JSON.parse(String.raw`{"root":{"dir":"right","boxes":[{"id":"u0","w":144,"h":56},{"id":"u1","w":136,"h":64},{"id":"u2","w":144,"h":56},{"id":"u3","w":112,"h":64},{"id":"u4","w":144,"h":96},{"id":"y0","w":104,"h":64},{"id":"c1","w":0,"h":0,"minW":120,"title":{"w":80,"h":34},"group":{"dir":"down","boxes":[{"id":"l0","w":144,"h":56},{"id":"hub","w":160,"h":64}],"pins":{"__map":[]},"pad":{"top":44,"right":16,"bottom":16,"left":16},"gap":{"lane":32,"rank":40}}},{"id":"d0","w":104,"h":64},{"id":"d1","w":104,"h":64},{"id":"d2","w":136,"h":64},{"id":"f0","w":96,"h":64},{"id":"f1","w":96,"h":64}],"pins":{"__map":[["u0",0],["u1",0],["u2",0],["u3",0],["u4",0],["c1",1],["y0",1],["d0",2],["d1",2],["d2",2],["f0",3],["f1",3]]},"pad":{"top":32,"right":32,"bottom":32,"left":32},"gap":{"lane":48,"rank":56}},"wires":[{"id":"w0","from":"hub","to":"u0","fromSide":"north"},{"id":"w1","from":"u1","to":"hub","toSide":"west","label":{"w":40,"h":18}},{"id":"w2","from":"u2","to":"hub","toSide":"east"},{"id":"w3","from":"hub","to":"u3","fromSide":"west","label":{"w":72,"h":18}},{"id":"w4","from":"hub","to":"u4","fromSide":"east","label":{"w":80,"h":18}},{"id":"w5","from":"hub","to":"d0","fromSide":"west"},{"id":"w6","from":"hub","to":"d1","fromSide":"west"},{"id":"w7","from":"d2","to":"hub","toSide":"east"},{"id":"w8","from":"d0","to":"f0"},{"id":"w9","from":"hub","to":"f0","fromSide":"west"},{"id":"w10","from":"d2","to":"f1"},{"id":"w11","from":"hub","to":"f1","fromSide":"east"},{"id":"w12","from":"l0","to":"hub"},{"id":"w13","from":"l0","to":"d0","fromSide":"north"},{"id":"w14","from":"hub","to":"y0","fromSide":"west"}]}`, (_k, v) => (v && v.__map ? new Map(v.__map) : v));
+    expect(audit(p, solve(p))).toEqual([]);
+  });
+  it("keeps labelled wires straight across a full step apart, the hooks sharing what is left of the wall", () => {
+    // seven wires on each side wall of `hub`: the labelled one on its west wall must not lie on its neighbour
+    const us = ["u0", "u1", "u2", "u3", "u4"], ds = ["d0", "d1", "d2", "d3", "d4"];
+    const p: Problem = { root: group([...us, "l", "hub", "r", ...ds].map((id) => leaf(id)), pin({ ...Object.fromEntries(us.map((u) => [u, 0])), l: 1, hub: 1, r: 1, ...Object.fromEntries(ds.map((d) => [d, 2])) })),
+      wires: [...us.map((u, i) => ({ id: u, from: u, to: "hub", toSide: (i % 2 ? "east" : "west") as Side })), ...ds.map((d, i) => ({ id: d, from: "hub", to: d, fromSide: (i % 2 ? "west" : "east") as Side })),
+        { id: "hr", from: "hub", to: "r", label: { w: 64, h: 18 } }, { id: "lh", from: "l", to: "hub", label: { w: 64, h: 18 } }, wire("r>hub"), wire("hub>l")] };
+    const s = solve(p);
+    expect(audit(p, s)).toEqual([]);
+    expect(Math.abs(levelAt(s, "lh", "hub") - levelAt(s, "hub>l", "hub"))).toBeGreaterThanOrEqual(16);
+  });
+  it("keeps two wires straight across to a container apart when the wall's hooks take most of it", () => {
+    // a 64 px wall: two wires across to `sys`, and K asked out of the same wall
+    for (const k of [2, 3, 4]) {
+      const inner = sys([leaf("sys.a"), leaf("sys.b")], pin({ "sys.a": 0, "sys.b": 1 }));
+      const downs = Array.from({ length: k }, (_, i) => leaf(`d${i}`));
+      const p: Problem = { root: group([leaf("hub"), inner, ...downs], pin({ hub: 0, sys: 0, ...Object.fromEntries(downs.map((d) => [d.id, 1])) })), wires: [wire("hub>sys.a"), wire("sys.b>hub"), ...downs.map((d) => ({ id: d.id, from: "hub", to: d.id, fromSide: "east" as Side }))] };
+      const s = solve(p);
+      expect(audit(p, s)).toEqual([]);
+      expect(Math.abs(levelAt(s, "hub>sys.a", "hub") - levelAt(s, "sys.b>hub", "hub")), `${k}`).toBeGreaterThanOrEqual(8);
+    }
+  });
+  it("gives a side through a container of the other direction by the order its sheet stands in, whatever the order declared", () => {
+    // `idle` has no wire, so the row stands [x, idle] either way: x is first, and its north side is given
+    for (const declared of [["c.idle", "c.x"], ["c.x", "c.idle"]]) {
+      const c: Box = { id: "c", w: 0, h: 0, group: group(declared.map((id) => leaf(id)), { pad, dir: "right" }) };
+      const p: Problem = { root: group([c, leaf("b")], pin({ c: 0, b: 1 })), wires: [{ id: "xb", from: "c.x", to: "b", fromSide: "north" }] };
+      const s = solve(p);
+      expect(audit(p, s), `${declared}`).toEqual([]);
+      expect(s.unhonoured, `${declared}`).toBeUndefined();
+      expect(crosses(s, "c", "xb"), `${declared}`).toBe("north");
+    }
+  });
+  it("nests several wires asked out of one north wall of a box inside a container, either direction", () => {
+    for (const dir of ["down", "right"] as const) for (const order of [["d0", "d1", "d2"], ["d2", "d0", "d1"], ["d1", "d2", "d0"]]) {
+      const inner = sys([leaf("s.x")], { dir }, "s");
+      const p: Problem = { root: group([inner, ...order.map((d) => leaf(d))], pin({ s: 0, ...Object.fromEntries(order.map((d) => [d, 1])) })), wires: ["d0", "d1", "d2"].map((d) => ({ id: d, from: "s.x", to: d, fromSide: "north" as Side })) };
+      const s = solve(p);
+      expect(audit(p, s), `${dir} ${order}`).toEqual([]);
+      expect(crossed(s), `${dir} ${order}`).toBe(0);
+    }
+  });
+  it("gives eight wires that end at one side wall of a short container a place each", () => {
+    const src = Array.from({ length: 8 }, (_, i) => leaf(`s${i}`));
+    const c: Box = { id: "c", w: 0, h: 0, group: group([leaf("c.x")], { pad }) };
+    const p: Problem = { root: group([...src, c], pin({ ...Object.fromEntries(src.map((x) => [x.id, 0])), c: 1 })), wires: src.map((x) => ({ id: x.id, from: x.id, to: "c", toSide: "east" as Side })) };
+    const s = solve(p);
+    expect(audit(p, s)).toEqual([]);
+    expect(new Set(src.map((x) => levelAt(s, x.id, "c"))).size).toBe(8);
+  });
+  it("does not slide a port along a wall onto a wire that ends there", () => {
+    const g0: Box = { id: "g0", w: 0, h: 0, group: group([leaf("n2", 96), leaf("n3", 96)], { pad }) };
+    const g1: Box = { id: "g1", w: 0, h: 0, group: group([leaf("n5", 152)], { pad, dir: "right" }) };
+    const p: Problem = { root: group([g0, g1], { dir: "right", ...pin({ g0: 0, g1: 0 }) }), wires: [wire("n2>n5"), wire("n3>g1"), wire("n3>n5")] };
+    expect(audit(p, solve(p))).toEqual([]);
+  });
+  // One order along a wall (`sides.ts`), the same rule wherever a wall is read. Each of these drew one
+  // crossing more when a piece of it was written on its own scale.
+  it("stands wires that head for one end of a north or south wall by where they turn: one to the sheet's wall furthest", () => {
+    // a wire round the row to the sheet's own wall turns beyond a row-mate's wire or a hook, so its port stands nearer the middle
+    expect(crossed(solve(nestedProblem(269)))).toBe(5);
+    expect(crossed(solve(randomProblem(777, true, true)))).toBe(2);
+  });
+  it("ranks a wire straight on through a container's wall among the others there by the next wall's order, between its hooks", () => {
+    // it goes on through: the hooks out of that wall stand at its ends, whatever the wall beyond says of it
+    expect(crossed(solve(nestedProblem(696)))).toBe(8);
+  });
+  it("reads where a wire round a container stands outside by the lane it is drawn along, not the one first made for it", () => {
+    // several wires round one container's row-mates trade lanes once the order is final (`laneOrder`); the inside must
+    // order its wall by the lanes they took. Read by the first lanes instead, this drew 18 crossings more.
+    // (a generated Problem: a hub with every side asked)
+    const p: Problem = JSON.parse(String.raw`{"root":{"dir":"down","boxes":[{"id":"u0","w":96,"h":64},{"id":"u1","w":144,"h":64},{"id":"u2","w":136,"h":160},{"id":"y0","w":96,"h":56},{"id":"c2","w":0,"h":0,"minW":120,"title":{"w":80,"h":34},"group":{"dir":"down","boxes":[{"id":"c1","w":0,"h":0,"minW":120,"title":{"w":80,"h":34},"group":{"dir":"down","boxes":[{"id":"hub","w":160,"h":200},{"id":"r0","w":144,"h":64},{"id":"r1","w":96,"h":160}],"pins":{"__map":[["hub",0],["r0",0],["r1",0]]},"pad":{"top":44,"right":16,"bottom":16,"left":16},"gap":{"lane":32,"rank":40},"held":["hub","r0","r1"]}},{"id":"x0","w":96,"h":160}],"pins":{"__map":[["c1",0],["x0",0]]},"pad":{"top":44,"right":16,"bottom":16,"left":16},"gap":{"lane":32,"rank":40}}},{"id":"d0","w":136,"h":56},{"id":"d1","w":112,"h":160},{"id":"d2","w":104,"h":64},{"id":"d3","w":144,"h":64},{"id":"d4","w":144,"h":96},{"id":"f0","w":144,"h":96}],"pins":{"__map":[["u0",0],["u1",0],["u2",0],["c2",1],["y0",1],["d0",2],["d1",2],["d2",2],["d3",2],["d4",2],["f0",3]]},"pad":{"top":32,"right":32,"bottom":32,"left":32},"gap":{"lane":48,"rank":56}},"wires":[{"id":"w0","from":"u0","to":"hub","toSide":"east"},{"id":"w1","from":"u0","to":"hub","toSide":"east"},{"id":"w2","from":"u1","to":"hub","toSide":"west","label":{"w":48,"h":18}},{"id":"w3","from":"u1","to":"hub","toSide":"east"},{"id":"w4","from":"u2","to":"hub","toSide":"south"},{"id":"w5","from":"hub","to":"u2","fromSide":"west","label":{"w":48,"h":18}},{"id":"w6","from":"hub","to":"d0","fromSide":"west"},{"id":"w7","from":"hub","to":"d0","fromSide":"east","label":{"w":40,"h":18}},{"id":"w8","from":"hub","to":"d1","fromSide":"east"},{"id":"w9","from":"hub","to":"d2","fromSide":"east","label":{"w":88,"h":18}},{"id":"w10","from":"hub","to":"d2","fromSide":"south"},{"id":"w11","from":"hub","to":"d3","fromSide":"east"},{"id":"w12","from":"hub","to":"d3","fromSide":"east"},{"id":"w13","from":"d4","to":"hub","toSide":"west","label":{"w":64,"h":18}},{"id":"w14","from":"d2","to":"f0","label":{"w":88,"h":18}},{"id":"w15","from":"hub","to":"f0","fromSide":"west","label":{"w":40,"h":18}},{"id":"w16","from":"r0","to":"hub"},{"id":"w17","from":"r0","to":"hub"},{"id":"w18","from":"hub","to":"r1"},{"id":"w19","from":"r0","to":"d4"},{"id":"w20","from":"r1","to":"d4","fromSide":"east"},{"id":"w21","from":"hub","to":"y0","fromSide":"east"}]}`, (_k, v) => (v && v.__map ? new Map(v.__map) : v));
+    const s = solve(p);
+    expect(audit(p, s)).toEqual([]);
+    expect(crossed(s)).toBeLessThanOrEqual(17);
+  });
+  it("does not slide a port along a wall that also carries a hook", () => {
+    // x → z would come in level with z's port by sliding 16 px down x's wall — onto the wire hooked out of it to y
+    const s1: Box = sys([leaf("s1.x"), leaf("s1.y")], pin({ "s1.x": 0, "s1.y": 1 }), "s1");
+    const s2: Box = { id: "s2", w: 0, h: 0, group: group([leaf("s2.z", 120, 24), leaf("s2.q")], { pad: { ...pad, top: 52 } }) };
+    const p: Problem = { root: group([s1, s2], pin({ s1: 0, s2: 0 })), wires: [wire("s1.x>s2.z"), { id: "h", from: "s1.x", to: "s1.y", fromSide: "east" }, wire("s1.y>s2.q")] };
+    const s = solve(p);
+    expect(audit(p, s)).toEqual([]);
+    expect(levelAt(s, "h", "s1.x") - levelAt(s, "s1.x>s2.z", "s1.x")).toBe(16);
+  });
+  it("nests several wires asked out of one side wall: the nearer lane's wire nearer the middle of the wires that go on down", () => {
+    const p: Problem = { root: group([sys([leaf("s.x")], {}, "s"), leaf("a"), leaf("b"), leaf("c"), leaf("d")], pin({ s: 0, a: 1, b: 1, c: 1, d: 1 })), wires: ["a", "b"].map((t) => ({ id: t, from: "s.x", to: t, fromSide: "west" as Side })).concat(["c", "d"].map((t) => ({ id: t, from: "s.x", to: t, fromSide: "east" as Side }))) };
+    const s = solve(p);
+    expect(audit(p, s)).toEqual([]);
+    expect(s.unhonoured).toBeUndefined();
+    for (const id of ["a", "b"]) expect([wallAt(s.boxes.get("s.x")!, s.wires.get(id)!.points[0]), crosses(s, "s", id)]).toEqual(["west", "west"]);
+    for (const id of ["c", "d"]) expect([wallAt(s.boxes.get("s.x")!, s.wires.get(id)!.points[0]), crosses(s, "s", id)]).toEqual(["east", "east"]);
+    expect(crossed(s)).toBe(0);
+  });
+  it("holds more wires than a side wall has steps for, each at a place of its own", () => {
+    const targets = ["a", "b", "c", "d", "e", "f"];
+    const p: Problem = { root: group([leaf("x"), ...targets.map((t) => leaf(t))], pin({ x: 0, ...Object.fromEntries(targets.map((t) => [t, 1])) })), wires: targets.map((t) => ({ id: t, from: "x", to: t, fromSide: "east" as Side })) };
+    const s = solve(p);
+    expect(audit(p, s)).toEqual([]);
+    expect(s.unhonoured).toBeUndefined();
+    expect(new Set(targets.map((t) => levelAt(s, t, "x"))).size).toBe(6); // six wires on a wall with room for four at a step apart
+    expect(crossed(s)).toBe(0);
+  });
+  it("takes a wire out of a north wall round a side that a straight wire leaves by, when both sides have one", () => {
+    // 0.21.0 refused: no side to go round by. The lane now stands in a gutter, and the wire it crosses there is counted.
+    const p: Problem = { root: group([leaf("l"), leaf("a"), leaf("c"), leaf("b")], pin({ l: 0, a: 0, c: 0, b: 1 })), wires: [wire("l>a"), wire("a>c"), { id: "ab", from: "a", to: "b", fromSide: "north" }] };
+    const s = solve(p);
+    expect(audit(p, s)).toEqual([]);
+    expect(s.unhonoured).toBeUndefined();
+    expect(wallAt(s.boxes.get("a")!, s.wires.get("ab")!.points[0])).toBe("north");
+    expect(crossed(s)).toBe(1);
+  });
+  it("carries a side through a container's wall that already carries a wire, and the box's own side beside the wire that carried", () => {
+    // the container's east wall has the wire straight across to n, and now sys.x's too
+    const p: Problem = { root: group([sys([leaf("sys.x")]), leaf("n"), leaf("t")], pin({ sys: 0, n: 0, t: 1 })), wires: [wire("sys>n"), { id: "out", from: "sys.x", to: "t", fromSide: "east" }] };
+    const s = solve(p);
+    expect(audit(p, s)).toEqual([]);
+    expect(s.unhonoured).toBeUndefined();
+    expect(wallAt(s.boxes.get("sys.x")!, s.wires.get("out")!.points[0])).toBe("east");
+    expect(crosses(s, "sys", "out")).toBe("east");
+    // two wires asked out of one side of a box, one to a box below and one to a row-mate inside: both by that side
+    // (0.21.0 gave both and turned both inside; the version between refused the second)
+    const q: Problem = { root: group([sys([leaf("s.x"), leaf("s.y")], pin({ "s.x": 0, "s.y": 1 }), "s"), leaf("t")]), wires: [{ id: "in", from: "s.x", to: "s.y", fromSide: "west" }, { id: "out", from: "s.x", to: "t", fromSide: "west" }] };
+    const t = solve(q);
+    expect(audit(q, t)).toEqual([]);
+    expect(t.unhonoured).toBeUndefined();
+    for (const id of ["in", "out"]) expect(wallAt(t.boxes.get("s.x")!, t.wires.get(id)!.points[0])).toBe("west");
+    expect(crosses(t, "s", "out")).toBe("west");
+    expect(crossed(t)).toBe(0);
+  });
+  it("takes a container that leaves its own container sideways over the row, when its box was asked for the north", () => {
+    // s and t stand in one rank, so the wire leaves s by its east wall; inside, k is not last in its row
+    const inside = (hint: Partial<Wire>): Problem => ({
+      root: group([sys([sys([leaf("s.k.x")], {}, "s.k"), leaf("s.y")], pin({ "s.k": 0, "s.y": 0 }), "s"), leaf("t")], pin({ s: 0, t: 0 })),
+      wires: [{ id: "out", from: "s.k.x", to: "t", ...hint }],
+    });
+    const plain = solve(inside({})), asked = solve(inside({ fromSide: "north" }));
+    expect(crosses(plain, "s.k", "out")).toBe("south");   // in the first rank a tie goes under: over is where the title is
+    expect(audit(inside({ fromSide: "north" }), asked)).toEqual([]);
+    expect(crosses(asked, "s.k", "out")).toBe("north");
+    expect(asked.unhonoured).toBeUndefined();
+    // a wire that ends at that container is the box named: its far wall is reported; its near wall, with a row-mate before it, is given
+    const ends = (side: Side): Problem => ({ root: inside({}).root, wires: [{ id: "out", from: "s.k", to: "t", fromSide: side }] });
+    expect(solve(ends("west")).unhonoured).toEqual([{ wire: "out", end: "from", why: "far", by: "east", open: ["north", "south"] }]);
+    const near = solve(ends("east"));
+    expect(audit(ends("east"), near)).toEqual([]);
+    expect(near.unhonoured).toBeUndefined();
+    expect(wallAt(near.boxes.get("s.k")!, near.wires.get("out")!.points[0])).toBe("east");
+  });
+  it("brings two wires asked of one wall of a container in at places that keep their order, through a container of the other direction", () => {
+    // c flows down inside g, which flows rightward: its east wall lies along g's last row
+    const g: Box = { id: "g", w: 0, h: 0, group: group([sys([leaf("g.c.x")], {}, "g.c")], { dir: "right", pad }) };
+    for (const hints of [[{ toSide: "east" }, { toSide: "east" }], [{ toSide: "west" }, { toSide: "west" }]] as Partial<Wire>[][]) {
+      const p: Problem = { root: group([leaf("a"), leaf("b"), g], pin({ a: 0, b: 0, g: 1 })), wires: [{ id: "a>c", from: "a", to: "g.c", ...hints[0] }, { id: "b>c", from: "b", to: "g.c", ...hints[1] }] };
+      expect(audit(p, solve(p))).toEqual([]);          // …and not along one line, which they were
+    }
+  });
+  it("puts the port of a wire hooked round a container at the end of the wall its lane stands beside", () => {
+    // c's three wires share the north wall of its container: the one hooked round to b must not cross the two coming in
+    const p: Problem = { root: group([leaf("x"), leaf("y"), sys([leaf("s.c")], {}, "s"), leaf("a"), leaf("b")], pin({ x: 0, y: 0, s: 1, a: 2, b: 2 })), wires: [wire("x>s.c"), wire("y>s.c"), wire("s>a"), { id: "hook", from: "s.c", to: "b", fromSide: "north" }] };
+    const s = solve(p);
+    expect(audit(p, s)).toEqual([]);
+    expect(crosses(s, "s", "hook")).toBe("north");
+    expect(crossed(s)).toBe(0);
+  });
+  it("counts two hooks of one box against each other, and takes them round opposite sides", () => {
+    // into a from above by its south wall, out of a downward by its north: round one side they cross
+    const p: Problem = { root: group([leaf("t"), leaf("a"), leaf("b")], pin({ t: 0, a: 1, b: 2 })), wires: [{ id: "down", from: "a", to: "b", fromSide: "north" }, { id: "up", from: "t", to: "a", toSide: "south" }] };
+    const s = solve(p);
+    expect(audit(p, s)).toEqual([]);
+    expect(crossed(s)).toBe(0);
+  });
+  it("at a tie on crossings, takes a hook round the side nearer where its wire is going", () => {
+    // b hangs between p and a; either way round a crosses nothing, and the west is the shorter
+    const p: Problem = { root: group([leaf("p"), leaf("a"), leaf("b")], pin({ p: 0, a: 0, b: 1 })), wires: [wire("p>b"), { id: "hook", from: "a", to: "b", fromSide: "north" }] };
+    const s = solve(p), pts = s.wires.get("hook")!.points;
+    expect(audit(p, s)).toEqual([]);
+    expect(crossed(s)).toBe(0);
+    expect(pts[2].x).toBeLessThan(s.boxes.get("a")!.x);
+  });
+  it("reads the side as a screen side through a container that flows the other way", () => {
+    const p: Problem = { root: group([sys([leaf("sys.x"), leaf("sys.y")], { dir: "right" }), leaf("t")]), wires: [wire("sys.x>sys.y"), { id: "out", from: "sys.y", to: "t", fromSide: "east" }] };
+    const s = solve(p);
+    expect(audit(p, s)).toEqual([]);
+    expect(wallAt(s.boxes.get("sys.y")!, s.wires.get("out")!.points[0])).toBe("east");
+    expect(crosses(s, "sys", "out")).toBe("east");
+  });
+  it("leaves a picture with no asked side as it was", () => {
+    const p = (hint: Partial<Wire>): Problem => ({ root: group([sys([leaf("sys.x"), leaf("sys.y")]), leaf("t")]), wires: [wire("sys.x>sys.y"), { id: "out", from: "sys.x", to: "t", ...hint }] });
+    // the natural wall, asked for: nothing changes
+    expect(JSON.stringify([...solve(p({ fromSide: "south" })).wires])).toBe(JSON.stringify([...solve(p({})).wires]));
+  });
+  it("takes a wire out of the north wall round the side of its box nearer where it is going", () => {
+    // `b` stands below and to the west of `a`, `c` below and to the east: each hook goes round its own way, and crosses nothing
+    const p = (to: string): Problem => ({
+      root: group([leaf("x"), leaf("a"), leaf("z"), leaf("b"), leaf("y"), leaf("c")], pin({ x: 0, a: 0, z: 0, b: 1, y: 1, c: 1 })),
+      wires: [wire("x>b"), wire("a>y"), wire("z>c"), { id: "hook", from: "a", to, fromSide: "north" }],
+    });
+    for (const [to, west] of [["b", true], ["c", false]] as const) {
+      const q = p(to), s = solve(q), pts = s.wires.get("hook")!.points, a = s.boxes.get("a")!;
+      expect(audit(q, s)).toEqual([]);
+      expect(wallAt(a, pts[0])).toBe("north");
+      expect(pts[2].x < a.x).toBe(west);            // the lane it comes down stands on that side of `a`
+      expect(pts[2].x > a.x + a.w).toBe(!west);
+      expect(crossed(s)).toBe(0);
+    }
   });
   it("goes round a box's own room, not through it", () => {
     const p: Problem = { root: group([{ ...leaf("a"), room: { east: 64, north: 40 } }, leaf("b")]), wires: [{ id: "e", from: "a", to: "b", fromSide: "east" }, { id: "n", from: "a", to: "b", fromSide: "north" }] };

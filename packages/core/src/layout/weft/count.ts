@@ -13,7 +13,9 @@
 //               lane between its ends (or, going round under the row, every
 //               wire leaving the boxes it passes); a wire to a side wall
 //               crosses what stands between its box and the wall, or the
-//               wires of the row-mates it climbs over.
+//               wires of the row-mates it climbs over; a hook — a wire asked
+//               to use a wall, on its way from that wall to its lane beside
+//               the box — crosses every lane standing between the two.
 //
 // Beside each count goes a `rough` length — how far from straight the links
 // are, each row packed at its real sizes — which only ever breaks a tie.
@@ -27,8 +29,8 @@ export interface Tally {
   parent?: Tally;
   /** per slot: the links above it and below it */
   ups: Link[][]; downs: Link[][];
-  /** per row: the wires drawn along it */
-  flats: Sheet["flats"][]; sides: Side[][];
+  /** per row: the wires drawn along it, and the lanes of hooks standing in it */
+  flats: Sheet["flats"][]; sides: Side[][]; hooks: number[][];
   /** per slot: rough centre, measured from the middle of its row */
   x: number[]; stale: boolean[];
   /** per slot: the room it takes in a rough row */
@@ -56,6 +58,7 @@ export class Count {
       const t: Tally = {
         sheet, ups: Array.from({ length: n }, () => []), downs: Array.from({ length: n }, () => []),
         flats: Array.from({ length: rows }, () => []), sides: Array.from({ length: rows }, () => []),
+        hooks: sheet.rows.map((_, k) => sheet.slots.filter((x) => x.beside && x.row === k).map((x) => x.i)),
         x: new Array(n).fill(0), stale: new Array(rows).fill(true), cell: [], chan: [], row: [],
       };
       t.chan = sheet.chan.map((_, k) => ({ tally: t, channel: true, k, cross: 0, rough: 0, dirty: false }));
@@ -225,13 +228,32 @@ export class Count {
   private along(u: Unit): void {
     const t = u.tally, s = t.sheet;
     let cross = 0;
+    // (most rows have nothing along them)
+    if (!t.flats[u.k].length && !t.sides[u.k].length && !t.hooks[u.k].length) { u.cross = 0; u.rough = 0; return; }
+    // (a wire straight out of a leaf's side wall does not cross that wall's own hooks: they stand
+    // above and below it, `sides.ts` — a container's side wall is its inside's to order)
+    const own = (m: number, box: number, wall: Wall) => { const h = s.slots[m].beside; return !!h && h.box === box && h.wall === wall && !s.slots[box].kid!.sheet; };
     for (const f of t.flats[u.k]) {
       const between = s.rows[u.k].slice(s.at[f.a] + 1, s.at[f.b]);
-      for (const m of between) cross += f.straight ? (s.slots[m].kind === "lane" ? 1 : 0) : t.downs[m].length;
+      for (const m of between) cross += f.straight ? (s.slots[m].kind === "lane" && !own(m, f.a, "e") && !own(m, f.b, "w") ? 1 : 0) : t.downs[m].length;
     }
     for (const side of t.sides[u.k]) {
       const how = sideWay(s, side);
-      for (const m of beyond(s, side)) cross += how === "straight" ? 1 : how === "over" ? s.busy.up[m] : s.busy.down[m];
+      for (const m of beyond(s, side)) cross += how === "straight" ? (own(m, side.x, side.wall) ? 0 : 1) : how === "over" ? s.busy.up[m] : s.busy.down[m];
+    }
+    // a hook's stretch from its box's wall to its lane: across every lane that stands between them —
+    // a wire passing the row, or a hook of the same box out of another wall (out of the north wall
+    // and round, across the lane of one that came round to the south). Two hooks out of one wall
+    // nest, the nearer lane inside the further one's stretch, and are not counted against each other.
+    // (every slot between, less the hooks out of the same wall — counted off a running total per wall)
+    if (t.hooks[u.k].length) {
+      const row = s.rows[u.k], before: Record<string, number[]> = {};
+      for (const lane of t.hooks[u.k]) before[s.slots[lane].beside!.wall] ??= [];
+      for (const wall in before) { let n = 0; before[wall] = row.map((m) => (s.slots[m].beside?.wall === wall ? n++ : n)); }
+      for (const lane of t.hooks[u.k]) {
+        const h = s.slots[lane].beside!, lo = Math.min(s.at[lane], s.at[h.box]), hi = Math.max(s.at[lane], s.at[h.box]);
+        cross += hi - lo - 1 - (before[h.wall][hi] - before[h.wall][lo] - (s.slots[row[lo]].beside?.wall === h.wall ? 1 : 0));
+      }
     }
     u.cross = cross; u.rough = 0;
   }

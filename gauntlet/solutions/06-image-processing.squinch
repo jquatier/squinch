@@ -1,17 +1,17 @@
 pack aws
 
-bucket = aws/s3 "Uploads Bucket"
-fn     = aws/lambda "Image Processor"
-rek    = aws/rekognition "Rekognition"
-db     = aws/dynamodb "Metadata Table" datastore
-topic  = aws/sns "Notifications Topic"
-subs   = box "Subscribers" external
+bucket  = aws/s3          "Upload Bucket"
+fn      = aws/lambda      "Image Processor"
+rek     = aws/rekognition "Rekognition"
+meta    = aws/dynamodb    "Image Metadata" datastore
+topic   = aws/sns         "Notifications"
+person subscribers "Subscribers"
 
-bucket ~> fn "upload event"
+bucket ~> fn "object created"
 fn -> rek "detect labels"
-fn -> db "write metadata"
+fn -> meta "write metadata"
 fn ~> topic "publish"
-topic ~> subs "notify"
+topic ~> subscribers "notify"
 
 view landscape {
   title "Serverless Image Pipeline"
