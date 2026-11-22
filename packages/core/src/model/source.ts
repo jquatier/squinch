@@ -30,3 +30,19 @@ export const normalizeFiles = <T extends { src: string }>(files: T[]): T[] =>
   files.some((f) => f.src.includes("\r"))
     ? files.map((f) => (f.src.includes("\r") ? { ...f, src: normalizeSource(f.src) } : f))
     : files;
+
+/** A string literal's text. The one-line form loses its quotes. A block —
+ *  `"""` to `"""` — loses them too, and the indentation it was written at:
+ *  the line breaks just inside each quote (so the text can start and end on
+ *  lines of their own) and whatever leading spaces every non-blank line
+ *  shares, so a block indented to sit inside a view reads as if written at
+ *  the margin. Blank lines inside stay — they are paragraph breaks. */
+export function unquote(literal: string): string {
+  if (!literal.startsWith('"""')) return literal.slice(1, -1);
+  const lines = literal.slice(3, -3).split("\n");
+  if (lines.length > 1 && !lines[0].trim()) lines.shift();
+  if (lines.length > 1 && !lines[lines.length - 1].trim()) lines.pop();
+  const indents = lines.filter((l) => l.trim()).map((l) => /^[ \t]*/.exec(l)![0].length);
+  const cut = indents.length ? Math.min(...indents) : 0;
+  return lines.map((l) => l.slice(cut).trimEnd()).join("\n");
+}

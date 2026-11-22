@@ -352,6 +352,7 @@ export async function renderProject(
       legend: view.legend,
       titleblock: view.titleblock,
       title: view.title,
+      about: view.about,
       embedFonts: opts.embedFonts,
       flowStep: opts.flowStep,
       collectDefs: opts.collectDefs,

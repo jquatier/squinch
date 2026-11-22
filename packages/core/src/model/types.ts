@@ -216,6 +216,8 @@ export interface SView {
   showFlow?: string; // flow id — render ①②③ badges on that flow's edges
   legend: boolean; // `legend auto` — key of the styles actually used (off by default)
   titleblock?: Record<string, string>; // drafting corner block key/values
+  /** `about` — prose for the header, under the title (`prose.ts`); lines kept */
+  about?: string;
   notes: SNote[];
   layout: {
     direction?: "down" | "right";

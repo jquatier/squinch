@@ -517,6 +517,13 @@ view shop {
     date:     "7 Aug 2026"      //   mono so hashes line up between diagrams
     owner:    team-orders       // any other key keeps its key beside its value
   }
+  // prose under the title — what the view shows, and why; the drawing below it
+  about """
+    The order path **as it runs today**.
+
+    - Writes are synchronous; see `ADR-42`
+    - Runbook: [orders on-call](https://runbooks.example.com/orders)
+  """
 
   note right-of db "Single-table design; see ADR-42"
   note on db ~> sync "at-least-once; consumer must be idempotent"
@@ -530,6 +537,24 @@ corner (`top-left`…`bottom-right`) — the no-coordinates principle applies to
 too. Themes style them as callouts. A note beside a node has its room kept there by
 the layout — inside the node's own container or zone when it is in one — and a note
 on an edge has its room kept beside that wire; the authored side never changes.
+
+`about` is the view's own prose: set in the header under the title and subtitle,
+at a reading measure that follows the canvas (360–560 px), with the drawing moved
+down to make room. One per view — a second is an error, because joining or
+dropping one silently is the dropped-hint class the check forbids. A note is a
+callout on one thing; what the whole view needs said goes in `about`.
+
+**Prose** — `about` and a note's text — takes a closed set of formatting, each
+drawn in a bundled face: a blank line between paragraphs, `- ` bullets (a
+following line that is neither blank nor a bullet continues one), `**bold**`
+(Inter 600), `` `code` `` (the bundled mono, on a chip) and
+`[text](https://…)` links, which take an absolute `http` or `https` URL as
+`link:` does. Anything else is text, drawn as typed: a heading's `#` and
+emphasis's single `*` or `_` warn, because there is no face to draw them in, and
+a link to anything but http(s) warns that it stays text. Prose is drawn whole —
+never cut. A note wraps at its 200 px column and grows; past six lines the check
+suggests `about` (the note is still drawn in full). `docs/notes/prose.md` has
+the rejected alternatives.
 
 - Every `system`/`container` gets an auto-generated default view (`view <path>`), so
   double-click-to-zoom always works even with zero `view` blocks written. Declaring
@@ -917,6 +942,7 @@ viewstmt    = "title" string | "theme" ident | "scope" path
             | "color" tag ident
             | "show" "flow" ident
             | "legend" ( "auto" | "off" ) | "titleblock" attrs
+            | "about" string
             | "note" anchor string [ attrs ]
             | "layout" "{" { layoutstmt } "}" ;
 anchor      = relpos path | "on" path arrow path | corner ;
@@ -952,6 +978,14 @@ list, where the comma is what distinguishes `a -> b, c` from a label
 after a comma there the parser cannot tell another tag from the next attribute key.
 That one is a check error naming the fix. Built with Lezer so the same grammar drives
 parsing, CodeMirror highlighting, and LSP autocomplete.
+
+A string is `"…"` on one line, or a **block string** — `"""` to `"""` — that may run
+over lines and hold one or two quotes in a row, never three. A block loses the line
+break just inside each `"""` and the indentation every non-blank line shares, so one
+indented to sit in a view reads as if written at the margin. A block string is
+accepted wherever a string is: in prose (`about`, a note) its lines are kept; in
+everything drawn on one line (a label, a title, a description) its line breaks read
+as spaces.
 
 ## 8.5 Semantic diff
 

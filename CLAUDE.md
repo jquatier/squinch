@@ -68,7 +68,10 @@ engine, CLI, playground and extension all ship (see §Where things stand).
   twice — woff2 for the SVG, and `packages/core/fonts/*.ttf` for rasterizers
   that can't read `@font-face`. **resvg is one of them**, so PNG export hands it
   those files with `loadSystemFonts: false`; drop that and PNGs silently pick up
-  whatever font the machine has.
+  whatever font the machine has. The TTFs keep name ids 16/17 (the typographic
+  family): without them Medium and SemiBold were named "Inter Medium" and
+  "Inter SemiBold", and resvg drew every weight as Regular — every PNG title a
+  weight light for months (`docs/notes/prose.md`).
 - **Core is isomorphic**: shared code imports no `node:` builtins. Node registers
   disk packs via `src/index.ts`; browsers call `registerPack` + `preloadIcons`
   (`src/browser.ts`). Tests boot packs through `test/setup.ts`.
@@ -387,6 +390,17 @@ engine's part is `Wire.tips`: labels keep off a marked end, and a port moved
 to straighten its wire keeps 16px from a marked neighbour. A table's head in a
 rightward view holds four; from five the view warns, naming the table. `docs/notes/relationship-marks.md` has the two
 probes, the rejected shapes and what four reviews changed.
+**Prose** (2026-11): a view's `about` — prose set in the header under the title,
+the drawing moved down to make room — and a note's text share one closed set of
+formatting (`src/prose.ts`): paragraphs, `- ` bullets, `**bold**`, `` `code` ``,
+`[text](https://…)`. Anything else is drawn as typed and warns; a non-http(s)
+link stays text and warns. A `"""` block string spans lines anywhere a string
+goes, dedented; prose keeps its lines, everything drawn on one line reads them as
+spaces. Prose is never cut: a note grows past its old three lines, and past six
+the check points at `about`. It exists because a user's agent, with nowhere to put
+a context paragraph, edited the rendered SVG and `--check` failed from then on.
+Layout and renderer read one wrap (`setProse`); runs on one line are measured in
+their own face and drawn unkerned. `docs/notes/prose.md` has the rejected shapes.
 **The detailed card** (2026-09): `preview <path>` / `preview *` in a view draws a
 collapsed card taller, with the children its `preview:` attr names as readable
 rows (up to three; `auto` = the first three declared, *direct* children — a

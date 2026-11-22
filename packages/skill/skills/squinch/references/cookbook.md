@@ -11,7 +11,7 @@ themselves.
 - [Placing and banding](#placing-and-banding) — `rows`, `cols`, `place`, `align`, `wrap`, direction — and the hints `check` refuses or warns about
 - [Edges and wires](#edges-and-wires) — fan-in, trunks, self-edges, chaining, `route`, step badges
 - [Zones](#zones) — boundaries that overlap, cut through a frame, or have nothing to show
-- [Labels, attributes and ids](#labels-attributes-and-ids) — cut-off text, attrs on the wrong element, tags, prefixes
+- [Labels, attributes and ids](#labels-attributes-and-ids) — cut-off text, attrs on the wrong element, tags, prefixes, long notes and `about`
 - [Views and altitude](#views-and-altitude) — empty views, `expand`, `only`/`highlight`/`color`, `include`, `detail`, context cards
 - [Icons](#icons) — an id you cannot find
 
@@ -86,6 +86,11 @@ themselves.
 | "`?` is not squinch" / "`@` attributes are not squinch" error | Pasted Prisma or ORM syntax. An optional field says `nullable`, `@id` is `pk`, any other `@attr` is a bare marker word. The fix writes the whole corrected line |
 | "`scope x` names a leaf — a view stands inside a container" error | To see a table's fields, scope its container: `scope shop.db`. The table draws every field there |
 | "`subtitle` is a leaf attribute" warning | Only a leaf draws a line under its name. On a system or container that line is `description:` (it shows on the collapsed card); a `person` has none |
+| "this note runs to N lines" warning | A note is a callout on one thing. Context for the whole view — what it shows, what is changing, where the runbook is — goes in the view's `about """…"""`, under the title. The note is still drawn in full |
+| "… uses a heading (`#`) / emphasis (`*…*`), which squinch draws as typed" warning | Prose takes `**bold**`, `` `code` ``, `[text](https://…)`, `- ` bullets and blank-line paragraphs, nothing else. Drop the `#`; make emphasis `**bold**` or plain |
+| "the link to `x` in … is drawn as text" warning | A link takes an absolute http or https URL: `[text](https://…)`. A repo-relative path cannot open from a rendered SVG |
+| "view `v` already has an `about`" error | One per view. Join the two into one `"""` block string, a blank line between them |
+| You want more text on the diagram than fits | Write it in the source — `about` for the view, a note for one thing — never in the rendered file: `render --check` reports a hand-edited SVG as stale on every run |
 
 ## Views and altitude
 

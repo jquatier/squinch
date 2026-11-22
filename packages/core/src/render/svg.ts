@@ -8,7 +8,8 @@ import { iconAsset, symbolId } from "../packs/registry.js";
 import type { Theme } from "../themes/index.js";
 // SHELF_H is layout's: the shelf is inside the card height it sets, so the
 // strip the renderer fills and the room the card reserves are one number.
-import { pillDims, NOTE_GUTTER, SHELF_H, ROW_H, CARD_HEAD_H, FIELD_ROW_H, CHIP_PAD, CHIP_GAP, FIELD_GAP, REF_ARROW_W } from "../layout/layout.js";
+import { parseProse, setProse, CODE_PAD, type ProseFont, type SetProse } from "../prose.js";
+import { pillDims, noteFont, NOTE_GUTTER, SHELF_H, ROW_H, CARD_HEAD_H, FIELD_ROW_H, CHIP_PAD, CHIP_GAP, FIELD_GAP, REF_ARROW_W } from "../layout/layout.js";
 import type { Positioned, PEdge, PNode, PZone, PFrame } from "../layout/layout.js";
 import type { EdgeAnimate, EdgeMark, Hue, SNote, ZoneKind } from "../model/types.js";
 import { MARK_HALF } from "../layout/sizes.js";
@@ -51,6 +52,8 @@ export interface RenderOpts {
   titleblock?: Record<string, string>;
   /** view title — the titleblock headline */
   title?: string;
+  /** the view's `about`: prose set in the header, under the title, above the drawing */
+  about?: string;
   /** Embed the subsetted faces via @font-face (default true), so the SVG
    *  renders with the exact font the metrics were measured from even in
    *  sandboxed contexts like GitHub's <img>. Off = smaller output for hosts
@@ -1022,7 +1025,7 @@ function notes(
   for (const n of p.notes ?? []) {
     const note = list[n.i];
     if (!note) continue;
-    const { x, y, w, h, lines } = n;
+    const { x, y, w, h, prose } = n;
     ext.minX = Math.min(ext.minX, x); ext.minY = Math.min(ext.minY, y);
     ext.maxX = Math.max(ext.maxX, x + w); ext.maxY = Math.max(ext.maxY, y + h);
     // One plate for every note. The amber `warning` fill is retired here
@@ -1053,11 +1056,8 @@ function notes(
     // 5.5 above it. For a one-line note this is also the box's centre, which
     // is why the two used to look interchangeable.
     L.push(noteGlyph(x + 12, y + 8, warn, rc));
-    lines.forEach((line, i) =>
-      L.push(
-        `<text x="${x + 12 + NOTE_GUTTER}" y="${y + 17 + i * 15}" font-size="${rc.fx(11)}" fill="${t.ink}">${esc(line)}</text>`,
-      ),
-    );
+    // the first baseline 17 down, as it always was: 6 of padding and the 11px line
+    drawProse(prose, x + 12 + NOTE_GUTTER, y + 6, noteFont(rc.t.font), t.ink, rc, L);
     L.push(`</g>`);
   }
   return ext;
@@ -1267,6 +1267,40 @@ function header(
     `<g clip-path="url(#${clip})">${inChip.join("")}</g>` +
     `<rect x="0" y="0" width="${dims.chipW}" height="20" rx="3" fill="none" stroke="${t.border}" stroke-width="1"/></g>`,
   );
+}
+
+/** How a view's `about` is set: a step larger than a note, on a comfortable
+ *  pitch, at a reading measure that follows the canvas between two bounds. */
+const ABOUT_MIN = 360, ABOUT_MAX = 560;
+const aboutFont = (rc: RC): ProseFont => ({ size: rc.fx(12), pitch: rc.fx(12) + 7, gap: 7, indent: 14, fam: rc.fam });
+
+/** Set prose drawn at (x, y), its first line's top at y. Plain text in `ink`,
+ *  bold in ink at 600, code in mono on a bordered chip (the meta chip's
+ *  treatment — a plate alone is the canvas's own tone), a link in the accent and
+ *  underlined — a PNG has no hover, so a link must look like one at rest.
+ *  A line of several runs is drawn unkerned: each is placed at its measured
+ *  width, and the metrics carry advances alone, so a kerned run drew short of
+ *  where the next began — a gap before every full stop after a bold word. A
+ *  line of one run has nothing after it to miss, and is drawn as text always was. */
+function drawProse(set: SetProse, x: number, y: number, f: ProseFont, ink: string, rc: RC, L: string[]): void {
+  const { t } = rc;
+  for (const line of set.lines) {
+    const by = y + line.y, kern = line.segs.length > 1 ? ` font-kerning="none"` : "";
+    if (line.bullet) L.push(`<circle cx="${x + 4}" cy="${by - Math.round(f.size * 0.33)}" r="1.75" fill="${t.faint}"/>`);
+    for (const sg of line.segs) {
+      const sx = x + sg.x;
+      if (sg.style === "code") {
+        L.push(`<rect x="${sx + 0.5}" y="${by - f.size + 0.5}" width="${Math.ceil(sg.w) - 1}" height="${f.size + 4}" rx="3" fill="${t.surface}" stroke="${t.border}" stroke-width="1"/>`);
+        L.push(`<text x="${sx + CODE_PAD}" y="${by}" font-size="${f.size - 1}" font-family="${MONO_CSS}"${kern} fill="${ink}">${esc(sg.text)}</text>`);
+        rc.faces.add("mono:400");
+        continue;
+      }
+      const attrs = sg.style === "bold" ? ` font-weight="600"` : sg.style === "link" ? ` text-decoration="underline"` : "";
+      if (sg.style === "bold") rc.faces.add("inter:600");
+      const text = `<text x="${sx}" y="${by}" font-size="${f.size}"${attrs}${kern} fill="${sg.style === "link" ? t.accent : ink}">${esc(sg.text)}</text>`;
+      L.push(sg.href ? `<a href="${esc(sg.href)}" target="_blank" rel="noopener noreferrer">${text}</a>` : text);
+    }
+  }
 }
 
 interface Pill {
@@ -1845,7 +1879,7 @@ export function renderSVG(p: Positioned, t: Theme, opts: RenderOpts = {}): strin
   // The header sits above everything, so the body shifts down by its height —
   // the same padY machinery notes already use for a diagram that grew upward.
   const hd = headerDims(rc, opts.title, opts.titleblock ?? {});
-  const headerH = hd.h ? hd.h + 22 : 0;
+  let headerH = hd.h ? hd.h + 22 : 0;
   if (opts.notes?.length) {
     // Everything a note must not land on. The legend and titleblock are drawn
     // *after* notes but positioned from the final height, which is circular —
@@ -1869,6 +1903,16 @@ export function renderSVG(p: Positioned, t: Theme, opts: RenderOpts = {}): strin
   if (headerH) {
     header(rc, 18, 14, opts.title, opts.titleblock ?? {}, hd, chrome);
     width = Math.max(width, hd.chipW + 36);
+  }
+  // `about` sets under the header, at a measure that follows the canvas: the
+  // canvas widens to the narrowest measure rather than squeezing the prose
+  const about = opts.about ? parseProse(opts.about) : undefined;
+  if (about?.blocks.length) {
+    const f = aboutFont(rc), col = Math.min(ABOUT_MAX, Math.max(ABOUT_MIN, width - 36));
+    const set = setProse(about, col, f), top = 14 + (hd.h ? hd.h + 12 : 0);
+    drawProse(set, 18, top, f, t.muted, rc, chrome);
+    width = Math.max(width, col + 36);
+    headerH = top - 14 + set.height + 19;
   }
 
   // The band exists to carry the legend; the wordmark rides it. Tying it to

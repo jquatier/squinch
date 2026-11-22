@@ -264,7 +264,7 @@ describe("the skill — diagnostic coverage", () => {
     // ways out spelled in full. A cookbook row would only restate them.
     "align` needs at least two elements", "channel` needs at least two sources",
     "detail` needs a path", "scope` needs a single container path",
-    "theme` needs a theme name", "title` needs a quoted string",
+    "theme` needs a theme name", "title` needs a quoted string", "about` needs a quoted string",
     "async edges are dashed by design — `style: solid` would erase the convention",
     "a dashed sync edge is indistinguishable from an async one — dashes are the async convention",
     "animate: packets` draws its own sparse pattern — `style:` has nothing to add",

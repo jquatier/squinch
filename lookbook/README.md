@@ -581,3 +581,13 @@ Source: [`cases/44-relationships.squinch`](cases/44-relationships.squinch)
 | light | dark |
 |---|---|
 | ![](out/44-relationships.opened.light.svg) | ![](out/44-relationships.opened.dark.svg) |
+
+## About And Notes
+
+Prose on the page. A view's `about` sets a paragraph or two under the title — what the view shows, what is about to change, where the runbook is — and the drawing moves down to make room. A note says something about one thing. Both take the same few kinds of formatting: a blank line between paragraphs, `- ` bullets, `**bold**`, `` `code` `` and `[text](https://…)` links, written in a `"""` block string that spans lines. Prose is drawn whole: a note grows to fit what it says rather than stopping at a third line.
+
+Source: [`cases/45-about-and-notes.squinch`](cases/45-about-and-notes.squinch)
+
+| light | dark |
+|---|---|
+| ![](out/45-about-and-notes.checkout.light.svg) | ![](out/45-about-and-notes.checkout.dark.svg) |

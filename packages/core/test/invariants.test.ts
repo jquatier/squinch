@@ -12,7 +12,8 @@
 // caught.
 import { describe, it, expect } from "vitest";
 import { buildProject } from "../src/index.js";
-import { layoutView, type Positioned } from "../src/layout/layout.js";
+import { layoutView, noteFont, type Positioned } from "../src/layout/layout.js";
+import { runWidth } from "../src/prose.js";
 import { corpus } from "./helpers/corpus.js";
 import { checkLayout, labelsOnWires, type Ctx } from "./invariants.js";
 
@@ -249,7 +250,9 @@ describe("the invariants themselves", () => {
     // The shape of a real bug: two functions sized notes, only one learned
     // about the glyph gutter, and the paths served by the other reserved a box
     // 19px narrower than the text drawn into it.
-    const note = (w: number) => ({ i: 0, x: 0, y: 200, w, h: 27, lines: ["a reasonably long note"] });
+    const text = "a reasonably long note", wide = runWidth(text, "plain", noteFont({ metrics: "inter", scale: 1 }));
+    const prose = { lines: [{ y: 11, bullet: false, segs: [{ x: 0, w: wide, text, style: "plain" }] }], width: Math.ceil(wide), height: 15 };
+    const note = (w: number) => ({ i: 0, x: 0, y: 200, w, h: 27, prose });
     expect(checkLayout(base({ notes: [note(60)] } as any)).join()).toContain("but its box is 60");
     expect(checkLayout(base({ notes: [note(200)] } as any))).toEqual([]);
   });

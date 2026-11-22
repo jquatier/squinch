@@ -132,9 +132,12 @@ ViewBody { "{" list<viewStmt> "}" }
 viewStmt {
   TitleStmt | ThemeStmt | ScopeStmt | OnlyStmt | IncludeStmt | ExcludeStmt |
   DetailStmt | ExpandStmt | PreviewStmt | ContextStmt | HighlightStmt | ColorStmt | ShowStmt |
-  NoteStmt | LegendStmt | TitleBlockStmt | LayoutBlock
+  NoteStmt | LegendStmt | TitleBlockStmt | AboutStmt | LayoutBlock
 }
 TitleStmt { kw<"title"> String }
+// `about` — prose set in the header, under the title: what the view shows and
+// why, for the reader (SPEC §5). Usually a block string.
+AboutStmt { kw<"about"> String }
 ThemeStmt { kw<"theme"> Ident }
 ScopeStmt { kw<"scope"> Path }
 OnlyStmt { kw<"only"> TargetList }
@@ -202,7 +205,10 @@ Side { kw<"north"> | kw<"south"> | kw<"east"> | kw<"west"> }
   Comment { "//" ![\n]* }
   // hyphen must be followed by alnum so `a->b` tokenizes as Ident Arrow Ident
   Ident { $[a-zA-Z_] ($[a-zA-Z0-9_] | "-" $[a-zA-Z0-9_])* }
-  String { '"' !["\n]* '"' }
+  // A block string runs over lines between triple quotes — prose for a view's
+  // `about` or a long note — and may hold a quote or two, never three. The
+  // one-line form is unchanged; `unquote` (model/source.ts) strips either.
+  String { '"""' (!["] | '"' !["] | '""' !["])* '"""' | '"' !["\n]* '"' }
   Number { $[0-9]+ ("." $[0-9]+)? }
   Tag { "#" $[a-zA-Z0-9_-]+ }
   Arrow { "->" | "~>" | "<->" | "--" }

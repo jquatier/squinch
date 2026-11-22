@@ -23,7 +23,9 @@ function searchHint(pack: string, id: string): string {
   return near.length ? `closest: ${near.join(", ")} — or ${search}` : search;
 }
 import { suggest } from "./suggest.js";
-import { normalizeFiles } from "./source.js";
+import { normalizeFiles, unquote } from "./source.js";
+import { parseProse } from "../prose.js";
+import { noteBox, NOTE_LINES } from "../layout/sizes.js";
 import { themes } from "../themes/index.js";
 import type {
   ArrowKind, BuildResult, Diagnostic, Hue, Loc, RelPos, SContainer, SEdge, SField, SModel, SNode, SNote, SView, Side, SFlow, SZone, ZoneKind, ZoneLabelPos,
@@ -42,7 +44,11 @@ interface Ctx {
   name: string;
   src: string;
   text: (n: SyntaxNode) => string;
+  /** A string's text, on one line: a block string's line breaks read as
+   *  spaces, because everything but prose is drawn on one line. */
   str: (n: SyntaxNode) => string;
+  /** A string's text with its lines kept — for prose (`about`, a note). */
+  prose: (n: SyntaxNode) => string;
   loc: (n: SyntaxNode) => Loc;
 }
 
@@ -80,6 +86,7 @@ function textsInModel(model: SModel): [string, string, Loc, string | undefined][
     for (const [k, val] of Object.entries(v.titleblock ?? {}))
       out.push([`titleblock \`${k}\``, val, v.loc, v.file]);
     for (const note of v.notes) out.push([`note`, note.text, v.loc, v.file]);
+    if (v.about) out.push([`\`about\` of view \`${v.name}\``, v.about, v.loc, v.file]);
   }
   return out;
 }
@@ -103,7 +110,8 @@ export function buildProject(input: ProjectFile[]): BuildResult {
     name,
     src,
     text: (n) => src.slice(n.from, n.to),
-    str: (n) => src.slice(n.from + 1, n.to - 1),
+    str: (n) => unquote(src.slice(n.from, n.to)).replace(/\s*\n\s*/g, " "),
+    prose: (n) => unquote(src.slice(n.from, n.to)),
     loc: (n) => {
       const before = src.slice(0, n.from);
       return {
@@ -119,6 +127,18 @@ export function buildProject(input: ProjectFile[]): BuildResult {
       severity: "error", message, fix, file: ctx.name,
       loc: "from" in at && "line" in at ? (at as Loc) : ctx.loc(at as SyntaxNode),
     });
+  /** Prose (`about`, a note) takes a closed set of formatting (`prose.ts`).
+   *  What falls outside it is drawn as typed — say so, rather than let a
+   *  reader find the asterisks. */
+  const checkProse = (ctx: Ctx, at: SyntaxNode, text: string, where: string) => {
+    const p = parseProse(text);
+    if (p.unsupported.length)
+      warn(ctx, at, `${where} uses ${p.unsupported.join(" and ")}, which squinch draws as typed`,
+        "prose takes **bold**, `code`, [text](https://…) links, `- ` bullets and a blank line between paragraphs");
+    for (const url of p.badLinks)
+      warn(ctx, at, `the link to \`${url}\` in ${where} is drawn as text`,
+        "a link takes an absolute http or https URL: [text](https://…)");
+  };
   const warn = (ctx: Ctx, at: SyntaxNode | Loc, message: string, fix?: string) =>
     diagnostics.push({
       severity: "warning", message, fix, file: ctx.name,
@@ -1803,6 +1823,14 @@ export function buildProject(input: ProjectFile[]): BuildResult {
     const titleStr = title?.getChild("String");
     if (title && !titleStr) error(ctx, title, "`title` needs a quoted string", 'title "My Diagram"');
     else if (titleStr) view.title = ctx.str(titleStr);
+    // `about`: one per view. A second would have to be joined to the first or
+    // dropped, and choosing silently is the dropped-hint class the check forbids.
+    const [about, ...more] = body.getChildren("AboutStmt");
+    const aboutStr = about?.getChild("String");
+    if (about && !aboutStr) error(ctx, about, "`about` needs a quoted string", 'about """What this view shows, and why"""');
+    else if (aboutStr) { view.about = ctx.prose(aboutStr); checkProse(ctx, about, view.about, "`about`"); }
+    for (const m of more)
+      error(ctx, m, `view \`${view.name}\` already has an \`about\``, "a view has one `about` — join the two into one block string, a blank line between them");
     const theme = body.getChildren("ThemeStmt")[0];
     const themeIdent = theme?.getChild("Ident");
     if (theme && !themeIdent) error(ctx, theme, "`theme` needs a theme name", "theme dark");
@@ -1934,7 +1962,14 @@ export function buildProject(input: ProjectFile[]): BuildResult {
       const anchorNode = n.getChild("NoteAnchor");
       const textNode = n.getChild("String");
       if (!anchorNode || !textNode) continue;
-      const noteText = ctx.str(textNode);
+      const noteText = ctx.prose(textNode);
+      checkProse(ctx, n, noteText, "this note");
+      // drawn whole, however long — but a note is a callout on one thing, and
+      // past a few lines it is context for the whole view, which has a place
+      const lines = noteBox(noteText, { metrics: "inter", scale: 1 }).prose.lines.length;
+      if (lines > NOTE_LINES)
+        warn(ctx, n, `this note runs to ${lines} lines`,
+          `a note is a callout on one thing — what the whole view needs said goes in the view's \`about\`, under its title`);
       const meta = attrsOf(ctx, n.getChild("AttrBlock"));
       // A note takes one attr, with one value. `style: warn` used to draw a
       // plain note and say nothing — the dropped-hint class the check forbids.

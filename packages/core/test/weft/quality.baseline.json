@@ -1,6 +1,6 @@
 {
   "corpus": {
-    "views": 277,
+    "views": 279,
     "totals": {
       "crossings": 25,
       "bends": 817,
@@ -13,10 +13,10 @@
     }
   },
   "corpus, turned right": {
-    "views": 272,
+    "views": 274,
     "totals": {
       "crossings": 27,
-      "bends": 1207,
+      "bends": 1211,
       "kinks": 1,
       "nearMiss": 0,
       "lopsided": 113,

@@ -1,6 +1,7 @@
 // `Positioned`: a view with a place for everything — what layout produces,
 // what the renderer draws and what `checkLayout` holds to the invariants.
 import type { VNode } from "../view/resolve.js";
+import type { SetProse } from "../prose.js";
 import type { Side, Hue, ZoneKind, ZoneLabelPos } from "../model/types.js";
 
 export interface PNode extends VNode {
@@ -80,5 +81,5 @@ export interface Positioned {
    *  stands in room the layout kept beside that node; one anchored to an edge,
    *  beside the wire. Text lines are pre-wrapped (font-derived, theme-free);
    *  style/colour stay the renderer's. */
-  notes?: { i: number; x: number; y: number; w: number; h: number; lines: string[]; leader?: { x1: number; y1: number; x2: number; y2: number } }[];
+  notes?: { i: number; x: number; y: number; w: number; h: number; prose: SetProse; leader?: { x1: number; y1: number; x2: number; y2: number } }[];
 }

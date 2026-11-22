@@ -405,6 +405,13 @@ view shop {                 // name matching a system = that system's view
                             // one tag per line; wins over an element's own color:
   note right-of db "Single-table design; see ADR-42"
   note top-right "Audit scope: Q3" { style: warning }
+  // context for the reader: prose under the title, the drawing below it
+  about """
+    The checkout path **as it runs today**.
+
+    - Writes are synchronous — see `ADR-42`
+    - Runbook: [checkout on-call](https://runbooks.example.com/checkout)
+  """
   context off               // drop the muted neighbour cards this view earned
                             // (default is `context auto`)
   legend auto               // footer key of the styles actually used
@@ -416,6 +423,14 @@ view shop {                 // name matching a system = that system's view
   }
 }
 ```
+
+Prose — `about` and notes — takes `**bold**`, `` `code` ``,
+`[text](https://…)`, `- ` bullets and a blank line between paragraphs; a
+`"""` block string spans lines. Nothing else formats (no `#`, no `*italic*`).
+A note is a callout on one thing; anything longer — what the view shows, what
+is changing, where the runbook is — goes in `about`. Never edit a rendered SVG
+or PNG to add text: `render --check` then reports it stale on every run. Say it
+in the source.
 
 When the reader wants **everything on one page** — every container open to
 leaf depth, no clicking around — declare a full-detail view with `expand *`

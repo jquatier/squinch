@@ -1,0 +1,44 @@
+// Prose on the page. A view's `about` sets a paragraph or two under the title —
+// what the view shows, what is about to change, where the runbook is — and the
+// drawing moves down to make room. A note says something about one thing. Both
+// take the same few kinds of formatting: a blank line between paragraphs, `- `
+// bullets, `**bold**`, `` `code` `` and `[text](https://…)` links, written in a
+// `"""` block string that spans lines. Prose is drawn whole: a note grows to
+// fit what it says rather than stopping at a third line.
+person shopper "Shopper"
+
+system shop "Checkout" {
+  description: "Takes the order, takes the money"
+  icon: sys/cart
+
+  web = sys/browser "Storefront"
+  api = sys/server "Checkout API" { subtitle: "Node 22" }
+  pay = logos/stripe "Stripe" external
+  db = sys/database "Orders" datastore
+
+  web -> api "place order"
+  api -> pay "charge"
+  api -> db "write"
+}
+
+shopper -> shop.web
+
+view checkout {
+  title "Checkout"
+  expand shop
+  titleblock { subtitle: "As it runs today" }
+  about """
+    The path an order takes from the cart to the database. Writes are
+    **synchronous**: a slow database is checkout latency, one for one.
+
+    - The Q3 payments split moves card handling out of the API — see `ADR-42`.
+    - On call: [checkout runbook](https://runbooks.example.com/checkout)
+  """
+  note right-of shop.db """
+    **Single-table** design, encrypted at rest.
+
+    - point reads by `order_id`
+    - nightly export to the warehouse
+  """
+  note left-of shop.api "Retries a charge twice, then answers `503` — never charges twice."
+}

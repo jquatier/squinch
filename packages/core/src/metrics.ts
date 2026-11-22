@@ -85,10 +85,9 @@ export function labelFits(label: string, kind: keyof typeof WIDEST_TITLE_ROOM): 
 }
 
 /** Greedy word-wrap against the committed metrics tables, ellipsizing the last
- *  line. Lived in svg.ts as `wrap()` until edge notes became layout citizens:
- *  the layout must reserve exactly the box the renderer will draw, so the two
- *  have to share one wrapping function or the reservation is for a different
- *  note than the one drawn — the same single-source rule as `pillDims`. */
+ *  line — for one-face text drawn in a fixed number of lines. Prose (a note,
+ *  a view's `about`) is never cut and wraps in `prose.ts` instead; it moved
+ *  there when notes gained formatting. */
 export function wrapText(
   text: string, maxPx: number, sizePx: number, fam: FontFamily, maxLines: number,
 ): string[] {

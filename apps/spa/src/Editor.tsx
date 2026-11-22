@@ -26,7 +26,7 @@ const squinchLanguage = LRLanguage.define({
         "FieldName/...": t.propertyName,
         "< >": t.angleBracket,
         "rows cols place align route channel wrap from to direction lines density": t.keyword,
-        "scope only include exclude detail expand context highlight color show note title theme": t.keyword,
+        "scope only include exclude detail expand context highlight color show note title about theme": t.keyword,
         "right-of left-of above below north south east west": t.atom,
         String: t.string,
         Number: t.number,
