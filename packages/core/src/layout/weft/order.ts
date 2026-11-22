@@ -29,6 +29,7 @@
 // tie and a box never moves merely to straighten a wire — the straighter.
 import { Count, type Tally } from "./count.js";
 import { hookAfter } from "./sheet.js";
+import { comesAt } from "./sides.js";
 import type { Link, Sheet } from "./types.js";
 
 const ROUNDS = 12, SWEEPS = 6, TRIES = 2;
@@ -60,6 +61,12 @@ export function order(sheets: Sheet[]): Count {
     search.revert(best);
   }
   search.restore();
+  // A container that flows the other way from the one around it has its
+  // ports on what is a side wall outside, and two of one box's wires there
+  // stand in the order that wall has them — which only the finished order
+  // says (`comesAt`). Outermost first, so each reads a settled outside.
+  search.final = true;
+  for (const t of count.tallies) if (t.parent && t.parent.sheet.dir !== t.sheet.dir) for (const wall of ["n", "s"] as const) search.comb(t, wall, false);
   count.settle();
   return count;
 }
@@ -231,7 +238,9 @@ class Search {
    *  stands against that one. `deep`: what lies outside has changed, so the
    *  containers standing against this wall inside — whose wires are headed
    *  out through it — are combed too. */
-  private comb(t: Tally, wall: "n" | "s", deep: boolean): void {
+  /** the order is final: a wall that is a side wall outside may be read (`comesAt`) */
+  final = false;
+  comb(t: Tally, wall: "n" | "s", deep: boolean): void {
     const s = t.sheet, k = wall === "n" ? 0 : s.R + 1, row = s.rows[k], n = row.length;
     if (n > 1) {
       const inside = this.inside, outside = this.outside, heading = this.heading.get(t)!, hooking = this.hooking.get(t), links = wall === "n" ? t.downs : t.ups;
@@ -240,7 +249,7 @@ class Search {
         const l = links[row[i]][0], h = heading[row[i]], hook = hooking?.[row[i]];
         inside[i] = l ? (wall === "n" ? this.count.below(t, l) : this.count.above(t, l)) : Infinity;
         // a wire hooked round this container outside stands, among the wires of one box, at the end of the wall its lane is beside
-        outside[i] = hook ? (hookAfter(hook.t.sheet, hook.lane) ? HOOKED : -HOOKED) : h ? (wall === "n" ? this.count.above(h.t, h.link) : this.count.below(h.t, h.link)) : 0;
+        outside[i] = hook ? (hookAfter(hook.t.sheet, hook.lane) ? HOOKED : -HOOKED) : h ? (wall === "n" ? this.count.above(h.t, h.link) : this.count.below(h.t, h.link)) : this.final && s.slots[row[i]].key !== undefined ? comesAt(s, wall, s.slots[row[i]].key!) ?? 0 : 0;
         if (i && (inside[i - 1] > inside[i] || (inside[i - 1] === inside[i] && outside[i - 1] > outside[i]))) sorted = false;
       }
       // A wire that ends at this wall has nothing inside to follow, so it

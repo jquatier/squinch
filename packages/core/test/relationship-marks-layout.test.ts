@@ -267,6 +267,8 @@ view v {
     const crowded = async (extra: string) => (await lay(src(extra), "v")).diagnostics.filter((d) => d.message.includes("crowded")).length;
     expect(await crowded("direction right")).toBe(1);
     expect(await crowded("direction right\n    route s.db.t0 -> s.db.hub from east to north\n    route s.db.t5 -> s.db.hub from east to south")).toBe(0);
+    // the side at the crowded table's end is enough: what the fix line says
+    expect(await crowded("direction right\n    route s.db.t0 -> s.db.hub to north\n    route s.db.t5 -> s.db.hub to south")).toBe(0);
     expect(await crowded("direction down")).toBe(0);
   });
 
@@ -292,6 +294,6 @@ view v {
     expect(crowded).toHaveLength(1);
     expect(crowded[0].severity).toBe("warning");
     expect(crowded[0].message).toBe("the relationship marks at `s.db.hub` are crowded — another mark stands on one of them");
-    expect(crowded[0].fix).toContain("from <side> to <side>");
+    expect(crowded[0].fix).toContain("route <a> -> s.db.hub to <side>");
   });
 });

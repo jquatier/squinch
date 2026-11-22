@@ -76,11 +76,11 @@ vocabulary. Each file opens with what it decides and why.
 | `order.ts` | ~560 | the order of every row |
 | `project.ts` | ~70 | positions on a line under gaps, nearest to what each wants |
 | `place.ts` | ~250 | where each slot stands along its row: balance first |
-| `ports.ts` | ~90 | ports on a leaf's wall: ordered, even, sliding to meet |
-| `sides.ts` | ~100 | ports on a leaf's side wall: hooks and straight wires in one order |
+| `ports.ts` | ~120 | ports on a leaf's wall: ordered, even, sliding to meet |
+| `sides.ts` | ~180 | ports on a side wall: hooks and straight wires in one order; where a wire stands on a container's side wall (`comesAt`), and which lane each wire round a row-mate takes (`sideLanes`) |
 | `gutter.ts` | ~130 | a wire straight across between two neighbours; its label |
 | `tracks.ts` | ~125 | track order and spacing in a channel |
-| `lay.ts` | ~660 | rows, fit, channel depths, the polylines |
+| `lay.ts` | ~630 | rows, fit, channel depths, the polylines |
 | `engine.ts` | ~120 | the stages in order; sheets onto the page; pieces joined |
 
 ## The rules, and where each is kept
@@ -250,26 +250,34 @@ by screen side, that nothing enters but the box's own wires on that wall.
   straight out where the box is last in its row (kept so by `sheet.last`);
   with row-mates between (`beyond`), it leaves by that wall to a lane beside
   the box and goes over or under the row from there (`Side.hook`, drawn in
-  `drawSide`);
+  `drawSide`). Several of one box, out of one wall and the same way round,
+  take their lanes in the order the wall outside has the wires, the highest
+  outside nearest (`sideLanes`), so they nest;
 - **a side wall takes any number of wires** (`sides.ts`): the hooks whose
   lane comes down to the wall (`beside.tail`) stand highest, the nearest lane
   first; the wires straight out — flats across the gutter, wires on to the
   sheet's wall — between; the hooks whose lane goes on down lowest, the
   nearest lane last. In that order none crosses another, which is why
   `Count.along` does not count a box's own hook lane against the wires
-  straight out of the same wall (`own`). The straight wires are placed first
-  with the hooks' room kept free (`reserve`, read by `gutters` as `keep` and
-  by the `level` step of `lay.ts`), then `stand` places the hooks about them
-  (`hookV`). A wire that steps in a gutter steps beyond the lanes of that
+  straight out of the same wall (`own`). A step apart while the wall has
+  room, an even share of it beyond (`share`). The straight wires are placed
+  first with the hooks' share kept free (`reserve`, read by `gutters` as
+  `keep` and by the `level` step of `lay.ts`), then `stand` places the hooks
+  about them (`hookV`). Hooks out of one north or south wall nest the same
+  way: the nearest lane's wire nearest that corner (the `far` given `add` for
+  each in `lay.ts`). A wire that steps in a gutter steps beyond the lanes of that
   wall's hooks (`Crossing.after`, `before`), and `slide` leaves a wall with
   hooks alone;
 - **through a container's wall**: the side asked of a box carries on through
   the same wall of every container around it (`asked` always answers). The
   one wall held back is the north or south one that faces against the wire's
-  own way: it is carried only while the box is in the first (last) rank at
-  every level on the way in (`clear`, read off `rankings`: ranks and declared
-  order, so it is known before the sheet inside is built), and otherwise the
-  box takes its hook inside and the container keeps its natural wall. The
+  own way: it is carried through a container's wall only while what the wire
+  has reached stands in that container's first (last) rank (`clear`, read off
+  `rankings`: ranks and declared order, so it is known before the sheet
+  inside is built); at the first wall where it does not, the wire takes its
+  hook beside what it has reached and the containers outside keep their
+  natural wall. Inside a container of the other direction that wall is a
+  side one, given only with nothing beyond the box in its row (`far`). The
   container takes a hook like a leaf (`hookFor`), and the wire, already
   handed to the sheet inside by its natural wall to keep its place among that
   sheet's wires, is turned to the wall given (`Ask.thru`, set in `hookFor`;
@@ -277,9 +285,12 @@ by screen side, that nothing enters but the box's own wires on that wall.
   wire to a side wall, as between row-mates. Its place on the container's
   side wall is the inside's (`fixedPort` in `hookOf`), and the inside orders
   that wall as `sides.ts` orders a leaf's, reading off the sheet outside
-  which wires are hooked round the container and which way (`comesAt` in
-  `lay.ts`) — so wires hooked into one side wall of a container do not cross
-  between the wall and their lanes. A wire that ends at the container is
+  which wires are hooked round the container and which way (`comesAt`), and
+  for a wire that goes straight on through the wall out there, what the wall
+  beyond says. A container of the other direction has its ports on that wall,
+  and `order.ts` combs them by `comesAt` once the search is over, outermost
+  first (`Search.final`) — `comesAt` and `sideLanes` read the order of the
+  rows, so they are good only once it is final. A wire that ends at the container is
   asked of the container's wall (`named`, the one test of "the box the wire
   names", read by every place that reports). Several wires that end at one
   side wall of a container take their places there in the order they come to
@@ -290,8 +301,9 @@ by screen side, that nothing enters but the box's own wires on that wall.
   wire names, and only where the picture bears it out: `engine.ts` drops a
   refusal whose end was drawn by the wall asked after all (a box the ordering
   stage put last in its row). The reasons are three: a wire of a bundle
-  (`trunk`); the far wall of a box whose wire leaves its container sideways,
-  toward a row-mate of the container (`far`); a box standing in one rank with
+  (`trunk`); the far wall of a box whose wire leaves its container by what
+  is a side wall in the container's own direction — toward a row-mate of the
+  container, or because the container flows the other way (`far`); a box standing in one rank with
   the container the other end is in (`row`). A wall that already carries
   wires is never a reason. Between two row-mates of one container the side
   is ignored without report (the caller can see that), and a container the
@@ -378,10 +390,9 @@ The list, with what each costs and what to try next, is §8 of
   are not counted.
 - `place.ts`: a hook does not pull its box.
 - `order.ts`: a box cannot be sifted past its own hook's lane, so a hook out
-  of an east or west wall holds its box on that side of the lane. Many hooks
-  beside one box are slow to order: each is a slot of that row, and the cost
-  grows steeply with their number (80 sided wires out of one container about
-  a quarter of a second, 120 about a second).
+  of an east or west wall holds its box on that side of the lane. Long rows
+  are slow to order, hooks or not (two containers of ten-node rows with 80
+  wires between them: about 15 s, 4 s with every wire asked a side).
 - `sides.ts`: a side wall shorter than its wires holds them closer than a
   step, and where a straight wire is fixed at the very end of the wall (a
   container's port across the gutter) a hook that belongs beyond it takes the

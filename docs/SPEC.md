@@ -780,7 +780,7 @@ layout {
 
 ```squinch
 layout {
-  route db ~> sync from east to west         // exit/entry sides
+  route api -> db from south to north        // exit/entry sides (edges that span rows)
   channel create, get, search -> db          // shared trunk (bus)
 }
 ```
@@ -795,29 +795,47 @@ A side carries outward: the edge crosses every expanded container and zone aroun
 the element by that same side. Asked for east, it leaves the element by its east
 side, the frame around it by its east wall, and so on through each boundary —
 whatever else stands in the element's row; the edge goes over or under what is in
-its way. One side is held back: the one that faces against the edge's own way
-(north, for an edge that runs down the page). That one carries through a wall only
-while the element is in the first row inside it; deeper in, the edge leaves the
-element by the side asked and turns beside it to take its ordinary way out. An
-edge that ends at an expanded container itself (`route shop -> db from east`) is
-asked of that frame's wall. One exception: where the edge's other end stands in
-the same row as the container, the edge leaves the container toward it, as every
-same-row edge does, whatever side was asked.
+its way. An edge that ends at an expanded container itself (`route shop -> db from
+east`) is asked of that frame's wall.
+
+One side is held back at each end: the one that faces back against the edge's own
+way. On an edge that runs down the page that is north where it leaves and south
+where it arrives; on one that runs up, the reverse; in a view that flows right,
+west and east. That side carries through a wall only while what the edge has
+reached so far stands in the first row inside it (the last row, for south or east).
+At the first wall where it does not, the edge turns beside what it has reached —
+the element, or a container around it — and takes its ordinary way out from there.
+
+Two exceptions. Where the edge's other end stands in the same row as a container
+the edge is leaving, it leaves that container toward it, as every same-row edge
+does, whatever side was asked; with a zone around the container, that is the
+boundary standing in the row, and the walls inside it still carry. And inside a
+container that flows the other way from the one around it, the held-back side is
+given only to an element with nothing beside it in its row on that side; any other
+is refused with a warning (below).
 
 `from` and `to` may come in either order, and on separate `route` lines for one
 edge. Two lines that ask one end for different sides are an error.
 
-A side holds any number of edges. Several asked out of one side of an element all
-leave by it, beside the edges that already run straight out of that side, a step
-apart and in an order in which none of them crosses another.
+A side holds any number of edges: none is refused because the side is in use.
+Several asked out of one side of an element all leave by it, beside the edges that
+already run straight out of that side, in an order in which they do not cross one
+another where they leave it. They stand 16px apart while the side has room — four
+on an ordinary node — and share it out evenly beyond that, closer with each one
+more; nothing warns.
+
+Asking for the side an edge would take anyway changes nothing at the element, but
+the frames around it are still asked for that wall, so the edge may then leave
+them by the side rather than the top or bottom.
 
 Where the named element's own side cannot be used the edge keeps its natural side
 and the check warns, naming the element, the side and the cause — "could not use
 the east side of `a` — …": the edge is part of a `channel` or a `wrap` trunk; the
 element is in the same row as what holds the other end; or the edge leaves the
-element's container sideways, toward something in the container's own row, and the
-element was asked for the side facing the other way. The fix line names the sides
-that are given there.
+element's container through what is a side wall in that container's own direction
+— toward something in a row with it, or because the container flows the other way
+— and the element was asked for the side facing away. The fix line says what to
+change; for the last cause it names the sides that are given there.
 
 A `route` names an edge as the view draws it: with a container collapsed the edge
 runs from its card (`route shop -> db`), and opened, from the node inside (`route

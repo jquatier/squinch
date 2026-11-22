@@ -8,8 +8,8 @@ kept in sync by CI (`squinch render <dir> --check`) — edit the `.squinch` sour
 run `squinch render <dir> --sync`, and commit both.
 
 - **orders/** — the canonical service (SPEC §10.1): API Gateway, three handlers,
-  DynamoDB with a stream-driven OpenSearch sync. Exercises `rows`,
-  `place right-of`, and `route … from east to west`.
+  DynamoDB with a stream-driven OpenSearch sync. Exercises `rows` and
+  `place right-of`.
 - **products-api/** — the root README's hero: edge, a service inside a VPC zone,
   and a self-warming index. The smallest project here that shows zones.
 - **storefront/** — C4-style altitudes (SPEC §10.2): a landscape of system cards,

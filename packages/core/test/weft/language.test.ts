@@ -6,6 +6,7 @@ import { describe, it, expect } from "vitest";
 import { buildModel } from "../../src/model/build.js";
 import { layoutView } from "../../src/layout/layout.js";
 import { checkLayout } from "../invariants.js";
+import { measureLayout } from "./metrics.js";
 
 /** `trunkTargets`: boxes where a trunk arrives on one shared port by design. */
 const lay = async (src: string, trunkTargets: string[] = []) => {
@@ -471,6 +472,47 @@ view v { expand shop
     expect(r.sides("shop.api", "audit")[0]).toBe("west");
     expect(r.sides("shop.api", "shop.db")[0]).toBe("west");
     expect(crosses(r, "shop", "shop.api", "audit")).toBe("west");
+  });
+
+  // several edges out of one side of a node do not cross one another (`sides.ts`; `sideLanes` and the
+  // nesting of a north or south wall's hooks in lay.ts)
+  it("several edges asked out of one north side of a node nest, and cross nothing", async () => {
+    for (const routes of [["b", "c"], ["b", "c", "d"]]) {
+      const r = await lay(`a = box "A"
+b = box "B"
+c = box "C"
+d = box "D"
+a -> b
+a -> c
+a -> d
+b -> c
+view v { layout {
+${routes.map((t) => `  route a -> ${t} from north`).join("\n")} } }`);
+      expect(r.illegal).toEqual([]);
+      expect(r.diagnostics).toEqual([]);
+      for (const t of routes) expect(r.sides("a", t)[0]).toBe("north");
+      expect(measureLayout(r.p).crossings, `${routes}`).toBe(0);
+    }
+  });
+
+  it("several edges carried past a row-mate and out of the frame's side leave it in the order their targets stand", async () => {
+    for (const order of ["d0 d1", "d1 d0", "d2 d0 d1"]) {
+      const targets = order.split(" ");
+      const r = await lay(`system s "S" {
+  hub  = box "Hub"
+  mate = box "Mate"
+  layout { rows [hub mate] }
+}
+${targets.map((t) => `${t} = box "${t}"`).join("\n")}
+${[...targets].sort().map((t) => `s.hub -> ${t}`).join("\n")}
+view v { expand s
+  layout { rows [s] [${order}]
+${[...targets].sort().map((t) => `  route s.hub -> ${t} from east`).join("\n")} } }`);
+      expect(r.illegal).toEqual([]);
+      expect(r.diagnostics).toEqual([]);
+      for (const t of targets) expect([r.sides("s.hub", t)[0], crosses(r, "s", "s.hub", t)]).toEqual(["east", "east"]);
+      expect(measureLayout(r.p).crossings, order).toBe(0);
+    }
   });
 
   it("a side asked of an edge that ends at an expanded container is that frame's wall", async () => {

@@ -444,7 +444,7 @@ describe("sides a wire is asked to use", () => {
     }
     return undefined;
   };
-  it("carries the side through a container's wall while the box has a clear run to it", () => {
+  it("carries the side through a container's wall", () => {
     for (const side of ["east", "west"] as Side[]) {
       const p: Problem = { root: group([sys([leaf("sys.x"), leaf("sys.y")]), leaf("t")]), wires: [wire("sys.x>sys.y"), { id: "out", from: "sys.x", to: "t", fromSide: side }] };
       const s = solve(p);
@@ -565,6 +565,53 @@ describe("sides a wire is asked to use", () => {
     expect(s.unhonoured).toBeUndefined();
     for (const box of ["in.x", "in", "big"]) expect(crosses(s, box, "out") ?? wallAt(s.boxes.get(box)!, s.wires.get("out")!.points[0])).toBe("east");
     expect(levelAt(s, "out", "in.x")).toBeLessThan(levelAt(s, "in.x>big.m", "in.x"));
+    expect(crossed(s)).toBe(0);
+  });
+  it("nests several wires asked out of one north wall, whichever side they go round", () => {
+    // each goes round a's east side to a lane: the nearest lane's wire leaves nearest that corner, and none crosses another
+    const p: Problem = { root: group([leaf("a"), leaf("d"), leaf("b"), leaf("c")], pin({ a: 0, d: 1, b: 1, c: 2 })), wires: [wire("a>d"), { id: "ab", from: "a", to: "b", fromSide: "north" }, { id: "ac", from: "a", to: "c", fromSide: "north" }, wire("b>c")] };
+    const s = solve(p);
+    expect(audit(p, s)).toEqual([]);
+    expect(s.unhonoured).toBeUndefined();
+    for (const id of ["ab", "ac"]) expect(wallAt(s.boxes.get("a")!, s.wires.get(id)!.points[0])).toBe("north");
+    expect(crossed(s)).toBe(0);
+  });
+  it("takes several wires past a row-mate and out of the container's wall in the order they have outside, whichever way their targets stand", () => {
+    for (const targets of [["d0", "d1"], ["d1", "d0"], ["d2", "d0", "d1"]]) {
+      const inner = sys([leaf("s.hub"), leaf("s.mate")], pin({ "s.hub": 0, "s.mate": 0 }), "s");
+      const p: Problem = { root: group([inner, ...targets.map((t) => leaf(t))], pin({ s: 0, ...Object.fromEntries(targets.map((t) => [t, 1])) })), wires: [...targets].sort().map((t) => ({ id: t, from: "s.hub", to: t, fromSide: "east" as Side })) };
+      const s = solve(p);
+      expect(audit(p, s), `${targets}`).toEqual([]);
+      expect(s.unhonoured).toBeUndefined();
+      for (const t of targets) expect([wallAt(s.boxes.get("s.hub")!, s.wires.get(t)!.points[0]), crosses(s, "s", t)]).toEqual(["east", "east"]);
+      expect(crossed(s), `${targets}`).toBe(0);
+    }
+  });
+  it("takes several wires out of one side through two container walls, either direction inside, in the order their targets stand", () => {
+    // the middle container passes the order on from the one outside it (`comesAt`); a container of the other direction
+    // has its ports on that wall, ordered last by `order.ts`
+    // (and with a row-mate beside the inner container, which the wires go round from lanes of their own: `sideLanes`)
+    for (const mate of [false, true]) for (const dir of ["down", "right"] as const) for (const targets of [["d0", "d1"], ["d1", "d0"], ["d2", "d0", "d1"]]) for (const side of ["east", "west"] as Side[]) {
+      const inner = sys([leaf("s.hub")], { dir }, "s"), kids = mate ? (side === "east" ? [inner, leaf("t.m")] : [leaf("t.m"), inner]) : [inner];
+      const outer = sys(kids, pin(Object.fromEntries(kids.map((k) => [k.id, 0]))), "t");
+      const p: Problem = { root: group([outer, ...targets.map((t) => leaf(t))], pin({ t: 0, ...Object.fromEntries(targets.map((t) => [t, 1])) })), wires: [...targets].sort().map((t) => ({ id: t, from: "s.hub", to: t, fromSide: side })) };
+      const s = solve(p), what = `${mate ? "mate " : ""}${dir} ${side} ${targets}`;
+      expect(audit(p, s), what).toEqual([]);
+      expect(s.unhonoured, what).toBeUndefined();
+      for (const t of targets) expect([crosses(s, "s", t), crosses(s, "t", t)], what).toEqual([side, side]);
+      expect(crossed(s), what).toBe(0);
+    }
+  });
+  it("shares a side wall too short for its wires out evenly, in order", () => {
+    // eight arrive from above, one runs straight across, one turns down: ten on a wall with room for four a step apart
+    const ups = ["u0", "u1", "u2", "u3", "u4", "u5", "u6", "u7"];
+    const p: Problem = { root: group([...ups.map((u) => leaf(u)), leaf("hub"), leaf("mate"), leaf("low")], pin({ ...Object.fromEntries(ups.map((u) => [u, 0])), hub: 1, mate: 1, low: 2 })), wires: [...ups.map((u) => ({ id: u, from: u, to: "hub", toSide: "east" as Side })), wire("hub>mate"), { id: "down", from: "hub", to: "low", fromSide: "east" }] };
+    const s = solve(p);
+    expect(audit(p, s)).toEqual([]);
+    const levels = [...ups, "hub>mate", "down"].map((id) => levelAt(s, id, "hub")).sort((x, y) => x - y);
+    expect(Math.min(...levels.slice(1).map((v, i) => v - levels[i]))).toBeGreaterThanOrEqual(5);
+    expect(levels[levels.length - 2]).toBe(levelAt(s, "hub>mate", "hub"));
+    expect(levels[levels.length - 1]).toBe(levelAt(s, "down", "hub"));
     expect(crossed(s)).toBe(0);
   });
   it("does not slide a port along a wall that also carries a hook", () => {

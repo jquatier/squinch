@@ -157,9 +157,10 @@ the owner in one line: the wires should match every other wire.
 - **The crowded warning's advice was wrong three ways out of four.** Wider
   spacing does not lengthen a table's head, dropping the marks on one edge
   leaves its wire on the same port, and `route … from <side>` moves the other
-  end. What clears it is `route a -> b from <side> to <side>` with both
-  sides named, or a view that flows down; the message says those, and a test
-  applies them.
+  end. What clears it is a side named at the crowded table's end — `route a
+  -> hub to <side>` (a lone `to` was read as a `from` in 0.21.0 and before, so the
+  advice once said to name both) — or a view that flows down; the message
+  says those, and a test applies them.
 - **A hop right beside a ring is dropped.** The stretch between ring and hop
   was all gap, and the ring sat detached on the crossing wire.
 - **A ring at both ends of one run is the same path drawn from each end**,
@@ -211,7 +212,7 @@ the owner in one line: the wires should match every other wire.
   the curve has moved the wire about a pixel there by design.
 - "crowded" on a table with room: something other than a mark stands on it —
   the message says which — or the view flows rightward and five or more of
-  its wires share the table's head. `route a -> b from <side> to <side>`
-  (both sides) moves one; `route … to <side>` alone does not, today.
+  its wires share the table's head. `route a -> hub to <side>` moves one
+  (`from <side>` where the edge leaves the table).
 - A check error on a `channel` or `wrap` line about marks: edges that share a
   drawn end mark it differently, or one of them carries none.

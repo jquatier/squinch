@@ -37,9 +37,9 @@ export interface Gutters {
 const PORT = 16, EDGE = 12;
 
 /** `fixed(kid, wall, key)`: where a container's own wire meets its wall, from its top; `dv`: a box's top
- *  within its row; `keep(slot, wall)`: the room that wall's hooks take above and below the wires that
- *  cross the gutter (`sides.ts`: lanes that come down to the wall stand above them, lanes that go down, below). */
-export function gutters(s: Sheet, dv: number[], fixed: (kid: Kid, wall: "e" | "w", key: string) => number | undefined, keep: (slot: number, wall: "e" | "w") => { above: number; below: number } = () => ({ above: 0, below: 0 })): Gutters {
+ *  within its row; `keep(slot, wall, span, n)`: the room that wall's hooks take above and below the `n` wires
+ *  that cross the gutter, on a wall `span` long (`sides.ts`: lanes that come down to the wall stand above them, lanes that go down, below). */
+export function gutters(s: Sheet, dv: number[], fixed: (kid: Kid, wall: "e" | "w", key: string) => number | undefined, keep: (slot: number, wall: "e" | "w", span: number, n: number) => { above: number; below: number } = () => ({ above: 0, below: 0 })): Gutters {
   const of = new Map<Flat, Crossing>(), room = new Map<number, number>();
   const pairs = new Map<string, Flat[]>();
   for (const f of s.flats) if (f.straight) (pairs.get(`${f.a}|${f.b}`) ?? pairs.set(`${f.a}|${f.b}`, []).get(`${f.a}|${f.b}`)!).push(f);
@@ -50,9 +50,9 @@ export function gutters(s: Sheet, dv: number[], fixed: (kid: Kid, wall: "e" | "w
     const reach = (slot: typeof a, wall: "e" | "w"): [number, number] => {
       const k = slot.kid!, lo = dv[slot.i] + 8, hi = dv[slot.i] + Math.min(k.h, k.faceV ?? k.h) - 8;
       if (lo > hi) return [dv[slot.i] + k.h / 2, dv[slot.i] + k.h / 2];
-      // less the room the wall's hooks stand in, where the wall is long enough for both
-      const hooks = keep(slot.i, wall), room = (flats.length - 1) * PORT;
-      return lo + hooks.above + room <= hi - hooks.below ? [lo + hooks.above, hi - hooks.below] : [lo, hi];
+      // less the room the wall's hooks stand in
+      const hooks = keep(slot.i, wall, hi - lo, flats.length);
+      return [lo + hooks.above, hi - hooks.below];
     };
     const [ra, rb] = [reach(a, "e"), reach(b, "w")];
     const taken = { a: [] as number[], b: [] as number[] };

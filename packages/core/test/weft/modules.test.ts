@@ -391,9 +391,16 @@ describe("sides", () => {
     expect(new Set(all).size).toBe(all.length);
     expect(all.every((v) => v >= 8 && v <= 56)).toBe(true);
   });
-  it("reserves a step of the wall for each hook, above for tails and below for heads", () => {
-    expect(reserve({ tails: [3, 4], heads: [5] })).toEqual({ above: 32, below: 16 });
-    expect(reserve(undefined)).toEqual({ above: 0, below: 0 });
+  it("reserves a step of the wall for each hook, above for tails and below for heads — or its even share of a short wall", () => {
+    expect(reserve({ tails: [3, 4], heads: [5] }, 112, 1)).toEqual({ above: 32, below: 16 });
+    expect(reserve(undefined, 48, 2)).toEqual({ above: 0, below: 0 });
+    // ten wires on a wall with room for four: 48 px in nine shares
+    expect(reserve({ tails: [1, 2, 3, 4, 5, 6, 7, 8], heads: [9] }, 48, 1)).toEqual({ above: 42, below: 5 });
+  });
+  it("shares a short wall out evenly among all its wires, in order", () => {
+    const { tails, heads } = stand(8, 56, [50], { tails: 8, heads: 1 }), all = [...tails, 50, ...heads];
+    expect(sorted(all), `${all}`).toBe(true);
+    expect(Math.min(...all.slice(1).map((v, i) => v - all[i]))).toBeGreaterThanOrEqual(5);
   });
 });
 

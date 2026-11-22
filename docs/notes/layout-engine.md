@@ -120,10 +120,14 @@ Two fields were added after acceptance, for product parity, and are opt-in:
   that wall of it instead of its north or south one: the side asked of a box
   **carries outward through every container around it**, each asked for the
   same wall — past whatever stands in the box's row, the wire going over or
-  under it from a lane beside the box. One wall is held back: the one that
-  faces against the wire's own way (north, for a wire going down) is carried
-  only while the box is in the first rank at every level — otherwise the
-  wire turns beside the box and takes its ordinary way out. All of that is
+  under it from a lane beside the box. One wall is held back at each end:
+  the one that faces back against the wire's own way (north where a wire
+  going down leaves, south where it arrives) is carried through a container's
+  wall only while what the wire has reached stands in the first (last) rank
+  inside it; at the first wall where it does not, the wire turns beside what
+  it has reached and takes its ordinary way out. Inside a container of the
+  other direction that wall is a side wall, and the box gets it only with
+  nothing beyond it in its row (`far` otherwise). All of that is
   known from ranks and declared order alone, so it is settled before any
   sheet inside is built, like every other wall. A side wall takes any number
   of wires, hooked and straight together (`sides.ts`, §4). A side that the
@@ -378,15 +382,21 @@ kinds of wire meet a leaf's east or west wall, and they stand in this order
 from the top: hooks whose lane comes down to the wall (the nearest lane
 highest), wires straight out — across the gutter or on to the sheet's wall —
 and hooks whose lane goes on down (the nearest lane lowest). In that order
-none of them crosses another, so the wall takes any number, a step apart, or
-closer only when it is too short for them all. The straight wires are placed
-first, with the hooks' room kept free above and below them (`gutter.ts`
-`keep`); a wire that steps in the gutter steps beyond the lanes of that wall's
-hooks. A container's side wall is ordered the same way, the container being
-the box: its inside reads the order off the sheet outside (`comesAt` in
-`lay.ts`), which is settled before anything is placed. `count.ts` does not
-count a box's own hook lane against the wires straight out of the same wall —
-drawn in this order they do not cross.
+none of them crosses another, so the wall takes any number: a step apart
+while it has room (four on a 64 px box), and an even share of it beyond that.
+The straight wires are placed first, with the hooks' share kept free above
+and below them (`reserve`, read by `gutter.ts` as `keep`); a wire that steps
+in the gutter steps beyond the lanes of that wall's hooks. A container's side
+wall is ordered the same way, the container being the box: its inside reads
+the order off the sheet outside (`comesAt` in `sides.ts`), which is settled
+before anything is placed — passed on through every wall a wire goes straight
+through, and, for a container whose ports stand on that wall because it flows
+the other way, read by `order.ts` once the search is over. Several wires that
+go over (under) one row-mate from one box take their lanes in that same order
+(`sideLanes`), the one highest outside nearest; several hooks out of one
+north or south wall nest the same way, the nearest lane's wire nearest the
+corner. `count.ts` does not count a box's own hook lane against the wires
+straight out of the same wall — drawn in this order they do not cross.
 
 ## 5. Decisions, and the evidence for each
 
@@ -668,9 +678,9 @@ kept here because each fix added a rule to the engine.
   on it**, whichever way it was headed, and crossed the container's other
   wires for nothing (`shop -> archive` beside `shop.svc -> db`, with Archive
   on the left). It has nothing inside to follow, so `comb` in `order.ts` now
-  stands it among the others by where it goes outside. Four views of the
-  corpus changed, all in `lookbook/cases/45-route-through-walls`: six
-  crossings fewer, nothing else moved in 823.
+  stands it among the others by where it goes outside. Four views changed,
+  all in `lookbook/cases/45-route-through-walls`, each with fewer crossings;
+  nothing else in the four sets moved.
 - **A label could lie across a neighbouring wire** — 29 pills in 13 corpus
   views at the swap, because wires 16 px apart each carried a pill far wider
   than that. Fixed in two steps, the cheap one first (`7af1ee7`; §4, "Labels
@@ -734,19 +744,40 @@ that a second wire asked out of one side of a box. A leaf's side wall now has
 one allocator for everything that meets it (§4, `sides.ts`), and nothing is
 refused for want of a wall. The three reasons left are `trunk` (the wire is
 one of a bundle), `row` (the box is row-mate to what holds the other end) and
-`far` (the wire leaves the box's container by a side wall toward a row-mate
-of the container, and the box was asked for the wall facing the other way).
+`far` (the wire leaves the box's container by what is a side wall in the
+container's own direction — toward a row-mate of the container, or because
+the container flows the other way — and the box was asked for the wall
+facing the other way).
+
+The first adversarial read of this version found wires that crossed one
+another between leaving their box and reaching their lanes: two hooks out of
+one north wall (they stood at the wall's ends whatever their lanes), several
+wires carried past a row-mate out of one container wall (the lanes were
+handed out in the order the hooks were made), and any wires through two
+container walls, where the middle container passed on no order at all. On
+its probes those were 22 crossings among eight wires out of one boxed-in
+node, and 13 of 140 pairs of wires asked out of one side crossing each other
+on the 600 generated diagrams; with the fixes in §4 (`sideLanes`, nested
+north and south hooks, `comesAt` passed on and read last for a container of
+the other direction) both are 0 as written, and 1 of 117 turned rightward
+(an edge into the bottom of a box beside one out of it). The same read
+found five wires on a 64 px wall standing 12 px apart and ten standing 1 px
+apart; they now share the wall evenly (ten: 5 px).
 
 What the rule does not do:
 
 - **Toward a row-mate the side is not carried.** Where the wire's other end
   stands in the container's own rank the wire leaves the container toward it,
   as every same-rank wire does, whatever the box was asked. A side asked of
-  the container itself there is reported (`row`), like a leaf's.
+  the container itself there is a same-rank edge to `plan.ts` ("sides are
+  ignored"). Where a zone stands round the container, the zone is what stands
+  in the row: the wire leaves the zone toward the row-mate, and the walls
+  inside it still carry.
 - **A wall shorter than its wires.** More wires than a wall has steps for
-  stand closer than 16 px, still in order. Where a straight wire is fixed at
-  the very end of the wall — by a container's port across the gutter — a hook
-  that belongs beyond it takes the nearest free place instead, and crosses it.
+  stand closer than 16 px, evenly, still in order, and nothing warns. Where a
+  straight wire is fixed at the very end of the wall — by a container's port
+  across the gutter — a hook that belongs beyond it takes the nearest free
+  place instead, and crosses it.
 
 Two reviews found, and the engine fixes: a side asked of a *container* end
 beside the container holding the other end, dropped with no report (the
@@ -767,11 +798,12 @@ every stub off every other where the greedy stacking found none
 On the first review's 600 generated diagrams with sides (its sources, not in
 the tree), as written:
 
-| | 0.21.0 | carried while clear | **every wall, shared side walls** |
-|---|---|---|---|
-| crossings | 2,872 | 2,619 | 2,864 |
-| bends | 20,851 | 20,329 | 20,669 |
-| ends refused a side | — | 24 | 0 |
+| | 0.21.0 | carried while clear | every wall, shared side walls | **…and ordered through walls** |
+|---|---|---|---|---|
+| crossings | 2,872 | 2,619 | 2,864 | 2,851 |
+| bends | 20,851 | 20,329 | 20,669 | 20,669 |
+| ends refused a side | — | 24 | 0 | 0 |
+| pairs asked out of one side that cross | — | — | 13 of 140 | 0 of 140 |
 
 The crossings that came back are the price of drawing what was asked, on
 diagrams that ask for sides at random; on the four sets the quality gate
@@ -827,12 +859,15 @@ Written down at acceptance, less what has been fixed since.
   hook's stretch from wall to lane is in the crossing count, so
   `lookbook/cases/26-route-label` turned rightward no longer crosses. A hook
   out of a side wall stands on that side, as asked.)
-- **A hook holds its box, and many hooks are slow.** A box is never sifted
-  past its own hook's lane, so a hook out of an east or west wall keeps the
-  box on that side of it where another order might cross less. And every hook
-  is a slot of its box's row: many beside one box — one container with dozens
-  of sided wires out of it — cost steeply more to order (80 about a quarter of
-  a second, 120 about a second; a handful cost nothing).
+- **A hook holds its box.** A box is never sifted past its own hook's lane,
+  so a hook out of an east or west wall keeps the box on that side of it
+  where another order might cross less.
+- **Wide diagrams are slow to order, sides asked or not.** Two expanded
+  containers of ten-node rows with 80 wires between them take about 15 s with
+  no side asked and about 4 s with every one asked `from east`; one container
+  fanning 80 wires to one box, about a quarter of a second either way. The
+  cost is the search over long rows, not the hooks (an earlier version of
+  this note blamed them).
 - **Past one level of nesting, two hard rules are not held everywhere.** With
   a container inside a container, 38 of 3,000 random Problems break one: all
   but four leave a label under another wire, and those four draw two wires
@@ -853,8 +888,9 @@ Written down at acceptance, less what has been fixed since.
   to inside).
 - **Titles in a rightward container** lie along the wall wires enter by, so a
   wire may run under one; the renderer draws the title on a halo.
-- **A wire ending at a container's side wall** takes the free place nearest
-  the wall's middle; nothing more is considered.
+- **A wire ending at a container's side wall** takes a free place near the
+  wall's middle, in the order the sheet outside has the wires (`comesAt`);
+  nothing more is considered.
 - A wall's only wire can still be a few pixels off the middle where it meets
   a container port that is off the grid (3 cases in the random set).
 

@@ -478,11 +478,12 @@ band, a second `rows` line, two `route` lines asking one end of an edge for two 
 `align`/`cols` on one rank ("cannot share an axis") or across containers ("could not
 be put on `x`'s axis"); `route` sides on a same-rank edge ("sides are ignored") or
 where the named node's own side cannot be given — one sentence per cause, naming the
-node and the side, and a fix line that names the sides that work there (the engine
-reports them in screen terms, `Refusal`; the words are not re-derived in `layout.ts`):
-the edge is in a `channel` or `wrap` trunk, the node is row-mate to what holds the
-other end, or the edge leaves the node's container sideways and the node was asked for
-the side facing away ("could not use the east side of `a` — …");
+node and the side, and a fix line for each (the engine reports them in screen terms,
+`Refusal`; the words are not re-derived in `layout.ts`): the edge is in a `channel` or
+`wrap` trunk, the node is row-mate to what holds the other end, or the edge leaves the
+node's container through what is a side wall in that container's own direction and
+the node was asked for the side facing away — whose fix names the sides that work
+there ("could not use the east side of `a` — …");
 a `route` that names no edge the view draws (it says whether to write the card or the
 node inside); a `wrap` that folds nothing; a `channel` not fully visible; and "`a` →
 `b` is not drawn — one end is inside the other".
@@ -492,18 +493,26 @@ too, through each frame and zone in turn — past a row-mate as well, the edge g
 over or under it from a lane beside the node. The first version carried only while
 nothing stood between, and turned the wire down inside the frame when Cache happened
 to stand east of the API — the complaint the feature was built to end. One side is
-still held back: the one facing against the edge's own way (`from north`, on an edge
-that runs down) carries only from the container's first row; from deeper the edge
-turns beside its node, because carried always it climbed out of every frame and came
-all the way round (+330 crossings on 600 generated diagrams). An edge that ends at the
+still held back at each end: the one facing back against the edge's own way (`from
+north` or `to south` on an edge that runs down; west and east in a rightward view)
+carries through a wall only while what the edge has reached stands in the first (last)
+row inside it; at the first wall where it does not, the edge turns beside what it has
+reached, because carried always it climbed out of every frame and came all the way
+round (+330 crossings on 600 generated diagrams). Inside a container that flows the
+other way, that side is refused with a warning unless nothing stands beside the node
+in its row on that side. An edge that ends at the
 expanded container is asked of the frame's wall. A node's side wall is allocated like
 its top or bottom (`weft/sides.ts`): wires hooked in from above highest, wires
-straight out between, wires hooked out downward lowest, a step apart, none crossing
-another — so two edges asked out of one side both get it, and "that side is taken" is
+straight out between, wires hooked out downward lowest, nested so that none crosses
+another where they leave it; through a frame's wall they keep the order the wall
+outside needs (`comesAt`, read last by `order.ts` for a frame that flows the other
+way) — so two edges asked out of one side both get it, and "that side is taken" is
 no longer a diagnostic. Limits, each recorded with its reason: toward a row-mate of
-the container the side is not carried (the edge leaves toward it); many sided edges
-out of one container are slow to order (dozens, not a handful); honouring sides asked
-at random costs crossings (the note's table). Naming a side per wall was considered
+the container the side is not carried (the edge leaves toward it); past four edges on
+one side of an ordinary node they stand closer than 16px, sharing the side out evenly,
+with no warning; honouring sides asked at random costs crossings (the note's table).
+Long rows are slow to order whether sides are asked or not (80 wires between two
+containers of ten-node rows: about 15 s) — the search, not the hooks. Naming a side per wall was considered
 and not built (zones are in no path; frames depend on each view's `expand`) —
 `docs/notes/layout-engine.md` §8. The zone errors are unchanged. Notes get room reserved by the engine: beside
 the anchor node (`Box.room` — inside its frame or zone, and never part of the box, so

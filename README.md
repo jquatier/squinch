@@ -319,7 +319,7 @@ that both humans and LLMs can reason about:
 - **`rows [api] [create get search]`** — pin ranks and their order
 - **`place sync right-of db`** — relative placement, no geometry
 - **`align get db`** — put two nodes on a shared axis
-- **`route db ~> sync from east to west`** — pick the sides an edge leaves *and* enters
+- **`route create -> files from east`** — pick the side an edge leaves (or enters, with `to`), through every frame around it
 
 Three tiers, in the order you reach for them: auto-layout underneath, relative
 placement on top of it (`rows`, `cols`, `place`, `align`), explicit edge routing
@@ -393,7 +393,7 @@ Events arrive as <code>packets</code>, the archive job drifts <code>slow</code>,
   <img alt="Edge routing" src="lookbook/out/14-sidecar-routes.app.light.svg" width="100%">
 </picture>
 <b>Edge routing</b><br>
-<code>place</code> puts the sidecar beside its owner; <code>route … from east to west</code> picks the sides
+<code>place</code> puts the sidecar beside its owner, and the edge between them runs straight across
 </td>
 </tr>
 <tr>

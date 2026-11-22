@@ -99,13 +99,16 @@ per wire.
     its own.
   - `Wire.fromSide` / `toSide` — the wall a wire is asked to leave or enter
     its box by. Only for a wire whose ends are in different ranks or
-    containers. A side that is the natural one changes nothing; any other is
-    drawn the long way round, at least 16 px straight out of the wall first.
-    The side carries outward: the wire crosses the same wall of every
-    container around the box, whatever stands in the box's row — it goes
-    over or under that. Only the wall facing against the wire's own way is
-    carried just while the box has a clear run to it (it is in the first
-    rank at every level); otherwise the wire turns beside the box. A wire
+    containers. A side that is the natural one changes nothing at the box;
+    any other is drawn the long way round, at least 16 px straight out of the
+    wall first. The side carries outward: the wire crosses the same wall of
+    every container around the box, whatever stands in the box's row — it
+    goes over or under that — natural there or not. Only the wall facing
+    back against the wire's own way is carried just while what the wire has
+    reached stands in the first (last) rank inside the container; at the
+    first wall where it does not, the wire turns beside what it has reached.
+    Inside a container of the other direction that wall is a side one, given
+    only with nothing beyond the box in its row on that side. A wire
     that ends at a container is asked of the container's own wall. Where the
     named box's wall cannot be given the end keeps its natural side and is
     listed in `unhonoured`, with the reason.
@@ -257,8 +260,10 @@ in `layout-engine.md` §7.
   the box on the other side of the gutter, if the wall allows.
 - A side wall takes any number of wires, as a north or south wall does: the
   wires hooked into it from the row above stand highest, the wires straight
-  out of it between, the wires hooked out of it downward lowest, a step
-  apart, so that none crosses another.
+  out of it between, the wires hooked out of it downward lowest, so that none
+  crosses another where they meet the wall; a step apart while the wall has
+  room, evenly closer beyond. Wires through a container's side wall stand in
+  the order the wall outside needs, through as many walls as they cross.
 - A wall's *only* wire meets it in the middle; the wire's own stretch moves
   to the box's middle, not the box to the wire. Several wires on a wall
   stand evenly about its middle.

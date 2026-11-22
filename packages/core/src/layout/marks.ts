@@ -60,11 +60,12 @@ export function crowdedMarks(
   return [...crowded].map(([node, what]) => ({
     severity: "warning" as const,
     message: `the relationship marks at \`${node}\` are crowded — ${[...what].join(", ")} stands on one of them`,
-    // what clears it, tried on the cases that raise it: naming both walls of
-    // one wire, or a view that flows down. Wider spacing and fewer marks do
-    // not — the wall is as long as it is, and an unmarked wire keeps its port.
-    fix: `spread the wires at \`${node}\` over more of its walls: \`route <a> -> <b> from <side> to <side>\` in the view's \`layout { }\` moves one `
-      + "(name both sides); or let this view flow down — in a `direction right` view a table takes side wires only on its 64px head, four at most",
+    // what clears it, tried on the cases that raise it: naming the wall at the
+    // crowded table's end of one wire, or a view that flows down. Wider spacing
+    // and fewer marks do not — the wall is as long as it is, and an unmarked
+    // wire keeps its port.
+    fix: `spread the wires at \`${node}\` over more of its walls: \`route <a> -> ${node} to <side>\` in the view's \`layout { }\` moves one `
+      + `(\`from <side>\` where the edge leaves \`${node}\`); or let this view flow down — in a \`direction right\` view a table takes side wires only on its 64px head, four at most`,
     loc,
   }));
 }
