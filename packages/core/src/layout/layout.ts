@@ -15,7 +15,7 @@ import type { ThemeFont } from "../themes/index.js";
 import { crowdedMarks } from "./marks.js";
 import { annotate, BADGE_GAP, badgeWidth, markCrossedTitles } from "./annotate.js";
 import { placeNotes } from "./notes.js";
-import { noteOff, plan, routesOf } from "./plan.js";
+import { noteOff, plan, routeSaid, routesOf } from "./plan.js";
 import type { Positioned, PEdge, PPort } from "./positioned.js";
 import { INTER, NOTE_CLEAR, noteBox, pillDims } from "./sizes.js";
 import { solve } from "./weft/engine.js";
@@ -139,7 +139,7 @@ export async function layoutView(
   for (const e of p.graph.edges) {
     const lines = routesOf(view, e).filter((r) => r.fromSide || r.toSide);
     if (!lines.length || !drawnBy.has(e.id)) continue; // not drawn here: the plan said so
-    const said = (r: (typeof lines)[number]) => `route ${r.from} -> ${r.to}${r.label ? ` "${r.label}"` : ""}`;
+    const said = routeSaid;
     if (p.parentOf.get(e.from) === p.parentOf.get(e.to) && sol.ranks.get(e.from) === sol.ranks.get(e.to)) {
       for (const r of lines)
         diagnostics.push({

@@ -11,17 +11,19 @@
 //   channels  between each two rows: what turns there, on which track,
 //             the labels, and so how deep the channel is           (tracks.ts)
 //   draw      the polyline of every wire's piece in this sheet
-import { ceilTo, floorTo, GRID, snap, turn } from "./frame.js";
+import { ceilTo, floorTo, GRID, nearestFree, snap, turn } from "./frame.js";
 import { gutters } from "./gutter.js";
 import { place } from "./place.js";
 import { meetAcross, wallspace, type End, type Wallspace } from "./ports.js";
 import { hookAfter, sideWay } from "./sheet.js";
-import { comesAt, reserve, sideHooks, sideLanes, stand } from "./sides.js";
+import { cmpRank, comesAt, placeSideWall, reserve, sideHooks, sideLanes } from "./sides.js";
 import { pitch, stack, type Net, type Stack } from "./tracks.js";
 import type { Flat, Geo, Hook, Kid, Link, Sheet, Side, Wall } from "./types.js";
 
 type Pt = { x: number; y: number };
 const STUB = 16;
+/** Past every place on a row: where a port that heads for an end of its wall is measured from (`toEnd`). */
+const EDGE = 1e7, FAR = 1e6;
 
 /** Where a container child's own wire meets one of its walls, along that wall. */
 const fixedPort = (s: Sheet, kid: Kid, wall: Wall, key: string): number | undefined =>
@@ -99,7 +101,7 @@ export function lay(s: Sheet, root: boolean): Geo {
   /** …and those that leave their box by the wall facing it and go over or under the row from a lane beside the box (`Side.hook`) */
   const lanes = sideLanes(s), hooked = (d: Side): number | undefined => lanes.get(d);
   // a leaf's side wall is shared by its hooks and the wires straight out of it (`sides.ts`)
-  const onSide = sideHooks(s, [...hooks, ...s.sides.flatMap((d) => (hooked(d) === undefined ? [] : [{ box: d.x, wall: d.wall, lane: hooked(d)!, tail: how.get(d) === "over" }]))]);
+  const onSide = sideHooks(s);
   const gut = gutters(s, dv, (kid, wall, key) => fixedPort(s, kid, wall, key), (slot, wall, span, n) => reserve(onSide.get(`${slot}|${wall}`), span, n));
   const off = (slot: number, wall: Wall, key: string): number => {
     const kid = s.slots[slot].kid;
@@ -133,6 +135,11 @@ export function lay(s: Sheet, root: boolean): Geo {
   const tipClear = (a: string, b: string) => (tipped.has(a) || tipped.has(b) ? STUB : 0);
   const space = new Map<number, Wallspace>();
   const spaceOf = (slot: number) => space.get(slot) ?? space.set(slot, wallspace(s, slot, u[slot], w[slot])).get(slot)!;
+  /** of the wires round a row to one side wall of the sheet from one box, one way round: each one's place
+   *  among them, in the order the wall outside has them */
+  const outOrder = new Map<Side, number>(), byWay = new Map<string, Side[]>();
+  for (const d of s.sides) { const id = `${d.x}|${d.wall}|${how.get(d)}`; (byWay.get(id) ?? byWay.set(id, []).get(id)!).push(d); }
+  for (const group of byWay.values()) [...group].sort((p, q) => cmpRank(comesAt(s, p.wall, p.key) ?? [0], comesAt(s, q.wall, q.key) ?? [0])).forEach((d, i) => outOrder.set(d, i));
   for (let k = 0; k <= R; k++) {
     const walls = new Map<string, { ends: End[]; space: Wallspace }>();
     const add = (slot: number, wall: "n" | "s", key: string, far: number): End | undefined => {
@@ -159,29 +166,27 @@ export function lay(s: Sheet, root: boolean): Geo {
       else if (a && a.far >= spaceOf(l.up).lo && a.far <= spaceOf(l.up).hi) a.meet ??= a.far;
       else if (b && b.far >= spaceOf(l.down).lo && b.far <= spaceOf(l.down).hi) b.meet ??= b.far;
     }
-    // wires that go along the row instead: a port at the end of the wall they head for,
-    // the longer run nearer the middle so that none crosses another's stub
-    const EDGE = 1e7;
-    /** where on its box's north or south wall a wire to the sheet's side wall leaves: at the end facing that wall,
-     *  and of several there, in the order the wall outside has them (`comesAt`) — under the row the one higher
-     *  on the wall nearest it, over the row the one higher on the wall furthest off, so that they nest */
-    const sideEnd = (side: Side, way: string) => {
-      const r = Math.max(-5e6, Math.min(5e6, comesAt(s, side.wall, side.key) ?? 0)), under = way === "under";
-      return side.wall === "e" ? EDGE + (under ? -r : r) : -EDGE + (under ? r : -r);
-    };
+    // Wires that go along the row instead stand at the end of the wall they
+    // head for, and nest there: the nearer the place a wire turns, the nearer
+    // the corner its port — so that none crosses another's stub. A wire
+    // round under (over) the row to a row-mate turns at it; a hook, at its
+    // lane; a wire to the sheet's own wall goes furthest, and of several of
+    // those the one higher on that wall outside nearest the corner under the
+    // row, furthest from it over the row (`sides.ts`, the wall's order).
+    const toEnd = (end: 1 | -1, turn: number) => end * (EDGE - turn);
     for (const f of s.flats) if (!f.straight && s.slots[f.a].row === k) {
       const span = u[f.b] - u[f.a];
-      const fa = add(f.a, "s", f.key, EDGE - span), fb = add(f.b, "s", f.key, -EDGE + span);
+      const fa = add(f.a, "s", f.key, toEnd(1, span)), fb = add(f.b, "s", f.key, toEnd(-1, span));
       if (fa && tipAt(f.a, [f.wire])) tipped.add(fa.id);
       if (fb && tipAt(f.b, [f.wire])) tipped.add(fb.id);
     }
     for (const side of s.sides) {
       const way = how.get(side)!, row = s.slots[side.x].row;
-      if (hooked(side) === undefined && ((way === "over" && row === k + 1) || (way === "under" && row === k))) add(side.x, way === "over" ? "n" : "s", side.key, sideEnd(side, way));
+      if (hooked(side) === undefined && ((way === "over" && row === k + 1) || (way === "under" && row === k))) add(side.x, way === "over" ? "n" : "s", side.key, toEnd(side.wall === "e" ? 1 : -1, FAR + (way === "under" ? 1 : -1) * outOrder.get(side)!));
     }
     // a hook out of a north or south wall: its port at the end of the wall its lane stands beside
     // (several hooks out of one wall nest: the nearest lane's wire nearest that end of the wall)
-    for (const h of hooks) if ((h.wall === "n" && s.slots[h.box].row === k + 1) || (h.wall === "s" && s.slots[h.box].row === k)) add(h.box, h.wall, h.key, hookAfter(s, h.lane) ? EDGE - (u[h.lane] - u[h.box]) : -EDGE + (u[h.box] - u[h.lane]));
+    for (const h of hooks) if ((h.wall === "n" && s.slots[h.box].row === k + 1) || (h.wall === "s" && s.slots[h.box].row === k)) add(h.box, h.wall, h.key, toEnd(hookAfter(s, h.lane) ? 1 : -1, Math.abs(u[h.lane] - u[h.box])));
     meetAcross(walls);
     for (const wall of walls.values()) for (const e of wall.ends) { port.set(e.id, e.at); if (e.room) roomAt.set(e.id, e.room); }
     // Nothing almost-right (§4.3): a link whose ends are less than 16 px
@@ -284,47 +289,42 @@ export function lay(s: Sheet, root: boolean): Geo {
       }
       return { nets, netOf };
     };
+    // One stub cannot lie along another — two wires trading places between
+    // the same two lines. Where the stacking leaves such a clash, four
+    // remedies are tried, in this order, each while one remains:
+    //   1. a port (or a lane) steps aside, one step a try, and the nets are
+    //      stacked again — bounded: a wall has only so many places (12);
+    //   2. one of the two wires steps twice instead: across to a line of its
+    //      own between its ends on a track above the other wire, and on from
+    //      there on one below it — a line no wire of the channel stands on, a
+    //      straight one included, which has no track and so is no net, but
+    //      runs along its line the whole way; a wire with no such line cannot,
+    //      and the other of the two is tried (6);
+    //   3. the tracks are stacked for any order that keeps every stub off
+    //      every other, where the cheapest order found did not (`stack`);
+    //   4. the first of the two that can steps twice at the middle of its run,
+    //      on a line of its own or not.
     let { nets, netOf } = build(), st = stack(nets);
-    // One stub cannot lie along another. Where the only way to stack two nets
-    // would do that — two wires trading places between the same two lines —
-    // one of the ports steps aside and the nets are stacked again. Bounded:
-    // each try moves one port one step, and a wall has only so many.
-    for (let tries = 0; st.clash && tries < 12; tries++) {
-      if (!stepAside(st.clash.at, k)) break;
-      ({ nets, netOf } = build());
-      st = stack(nets);
-    }
-    // Where no port can step aside — both wires fixed at both ends, by
-    // containers or by lanes already drawn above — one of the two wires
-    // steps twice instead: across to a free line between its ends on a
-    // track above the other wire, and on from there on a track below it.
-    // It needs a line of its own to cross on: one no wire of the channel
-    // stands on — a straight one included, which has no track and so is no
-    // net, but runs along its line the whole way. A wire with no such line
-    // between its ends cannot step twice; the other of the two is tried.
+    const restack = () => { ({ nets, netOf } = build()); st = stack(nets); };
+    const twiceable = (x: Net) => x.tops.length === 1 && x.bots.length === 1 && !x.under && !twice.has(`${k}|${x.id}`) && Math.abs(x.tops[0] - x.bots[0]) >= 2 * STUB;
+    for (let tries = 0; st.clash && tries < 12 && stepAside(st.clash.at, k); tries++) restack();
     const lines = s.chan[k].flatMap((l) => [endU(l.up, "s", l.key), endU(l.down, "n", l.key)]), cannot = new Set<string>();
     for (let tries = 0; st.clash && tries < 6; tries++) {
-      const net = [st.clash.upper, st.clash.lower].find((x) => x.tops.length === 1 && x.bots.length === 1 && !x.under && !twice.has(`${k}|${x.id}`) && !cannot.has(x.id) && Math.abs(x.tops[0] - x.bots[0]) >= 2 * STUB);
+      const net = [st.clash.upper, st.clash.lower].find((x) => twiceable(x) && !cannot.has(x.id));
       if (!net) break;
       const taken = [...nets.flatMap((x) => [...x.tops, ...x.bots]), ...lines], lo = Math.min(net.tops[0], net.bots[0]), hi = Math.max(net.tops[0], net.bots[0]), mid = snap((lo + hi) / 2);
       let line: number | undefined;
       for (let d = 0; d < hi - lo && line === undefined; d += GRID) line = [mid - d, mid + d].find((x) => x >= lo + STUB && x <= hi - STUB && taken.every((o) => Math.abs(o - x) >= GRID));
       if (line === undefined) { cannot.add(net.id); continue; }
       twice.set(`${k}|${net.id}`, line);
-      ({ nets, netOf } = build());
-      st = stack(nets);
+      restack();
     }
-    // …and where neither would do, the tracks are stacked once more for any order that keeps every stub off every other;
-    // failing that too, the first of the two that can steps twice at the middle of its run, free line or not
     if (st.clash) st = stack(nets, true);
-    if (st.clash) {
-      const net = [st.clash.upper, st.clash.lower].find((x) => x.tops.length === 1 && x.bots.length === 1 && !x.under && !twice.has(`${k}|${x.id}`) && Math.abs(x.tops[0] - x.bots[0]) >= 2 * STUB);
-      if (net) {
-        twice.set(`${k}|${net.id}`, snap((net.tops[0] + net.bots[0]) / 2));
-        ({ nets, netOf } = build());
-        st = stack(nets);
-        if (st.clash) st = stack(nets, true);
-      }
+    const last = st.clash && [st.clash.upper, st.clash.lower].find(twiceable);
+    if (last) {
+      twice.set(`${k}|${last.id}`, snap((last.tops[0] + last.bots[0]) / 2));
+      restack();
+      if (st.clash) st = stack(nets, true);
     }
     channels.push({ nets, stack: st, at: pitch(nets, st), netOf, top: tags[k].filter((t) => t.at === "top"), bottom: tags[k].filter((t) => t.at === "bottom"), v0: 0, depth: 0, trackV: [], topV: [], bottomV: [] });
   }
@@ -418,38 +418,24 @@ export function lay(s: Sheet, root: boolean): Geo {
   const trackOf = (k: number, id: string): number => channels[k].trackV[channels[k].stack.track.get(id)!];
   const label = (wire: string, x: number, y: number, lw: number, lh: number) => geo.labels.set(wire, { x: Math.round(x - lw / 2), y: Math.round(y - lh / 2), w: lw, h: lh });
 
-  // wires straight out of a leaf's side wall: about the middle of what the wall offers, less what its hooks take
-  const level = new Map<Side, number>();
-  /** the stretch of a leaf's side wall a wire may meet */
-  const wallV = (x: number): [number, number] => { const kid = s.slots[x].kid!; return [top[x] + 8, top[x] + Math.min(kid.h, kid.faceV ?? kid.h) - 8]; };
-  for (const x of new Set(s.sides.map((d) => d.x))) for (const wall of ["e", "w"] as const) {
-    // (in the order the sheet outside has them, where it hooks them round this one: `comesAt`)
-    // (the wires of one bundle share a place, as they share their port through the wall: one per key)
-    const every = s.sides.filter((d) => d.x === x && d.wall === wall && how.get(d) === "straight"), kid = s.slots[x].kid!;
-    const out = every.filter((d, i) => every.findIndex((e) => e.key === d.key) === i).sort((p, q) => (comesAt(s, wall, p.key) ?? 0) - (comesAt(s, wall, q.key) ?? 0));
-    const all = wallV(x), keep = reserve(onSide.get(`${x}|${wall}`), all[1] - all[0], out.length);
-    const lo = all[0] + keep.above, hi = all[1] - keep.below, mid = Math.round((lo + hi) / 2);
-    const step = (out.length - 1) * 16 > hi - lo ? (hi - lo) / Math.max(1, out.length - 1) : 16;
-    // each a step from the next — or, beside a wire that carries a label just outside the wall, half that label's width
-    const gaps = out.slice(1).map((d, i) => Math.max(step, Math.max(d.room ?? 0, out[i].room ?? 0) ? ceilTo(Math.max(d.room ?? 0, out[i].room ?? 0) / 2 + 4, GRID) : 0));
-    const wide = gaps.reduce((a, g) => a + g, 0) <= hi - lo ? gaps : gaps.map(() => step), span = wide.reduce((a, g) => a + g, 0);
-    // (rounded each, and kept on the stretch: a shared step is fractional, and the last can round past its end)
-    let at = mid - span / 2;
-    out.forEach((d, i) => { level.set(d, fixedPort(s, kid, wall, d.key) !== undefined ? top[x] + fixedPort(s, kid, wall, d.key)! : Math.min(hi, Math.max(lo, Math.round(at)))); at += wide[i] ?? 0; });
-    for (const d of every) if (!level.has(d)) level.set(d, level.get(out.find((e) => e.key === d.key)!)!);
-  }
-  // …and its hooks either side of them: lanes that come down to the wall above, lanes that go on down below
-  const hookV = new Map<number, number>(); // a side-wall hook's lane → the level it meets the wall at
-  for (const [id, at] of onSide) {
-    const [x, wall] = [+id.split("|")[0], id.split("|")[1] as "e" | "w"], k = s.slots[x].row, [lo, hi] = wallV(x);
+  // Every wire on a side wall of a box: the wires straight out of it and its hooks, placed together
+  // (`placeSideWall`) — but where a container's inside has put a wire, there. One place per key: the
+  // wires of one bundle share their port through the wall, and so their place.
+  const level = new Map<Side, number>(), hookV = new Map<number, number>(); // a straight wire's level; a side-wall hook's lane → its level
+  const walls = new Set([...s.sides.map((d) => `${d.x}|${d.wall}`), ...onSide.keys()]);
+  for (const id of walls) {
+    const x = +id.split("|")[0], wall = id.split("|")[1] as "e" | "w", kid = s.slots[x].kid!, k = s.slots[x].row;
+    const every = s.sides.filter((d) => d.x === x && d.wall === wall && how.get(d) === "straight");
+    const out = every.filter((d, i) => every.findIndex((e) => e.key === d.key) === i).sort((p, q) => cmpRank(comesAt(s, wall, p.key) ?? [0], comesAt(s, wall, q.key) ?? [0]));
     const flats = s.flats.filter((f) => f.straight && (wall === "e" ? f.a === x : f.b === x));
-    const straight = [...flats.map((f) => rowTop[k] + (wall === "e" ? gut.of.get(f)!.va : gut.of.get(f)!.vb)), ...s.sides.filter((d) => d.x === x && d.wall === wall && level.has(d)).map((d) => level.get(d)!)];
-    // a label that stands across a straight wire (a rightward sheet, or one given room) keeps the hooks beside it half its depth off
+    const across = flats.map((f) => rowTop[k] + (wall === "e" ? gut.of.get(f)!.va : gut.of.get(f)!.vb));
+    // (a label standing across a straight wire — a rightward sheet, or one given room — keeps the hooks beside it half its depth off)
     const deep = Math.max(0, ...flats.map((f) => f.label?.v ?? 0), ...s.sides.filter((d) => d.x === x && d.wall === wall).map((d) => d.room ?? 0));
-    const clear = Math.max(STUB, ceilTo(deep / 2 + 4, GRID));
-    const levels = stand(lo, hi, straight, { tails: at.tails.length, heads: at.heads.length }, { top: clear, bottom: clear });
-    at.tails.forEach((lane, i) => hookV.set(lane, levels.tails[i]));
-    at.heads.forEach((lane, i) => hookV.set(lane, levels.heads[i]));
+    const placed = placeSideWall({ lo: top[x] + 8, hi: top[x] + Math.min(kid.h, kid.faceV ?? kid.h) - 8, across, out, hooks: onSide.get(id), deep });
+    out.forEach((d, i) => { const fixed = fixedPort(s, kid, wall, d.key); level.set(d, fixed !== undefined ? top[x] + fixed : placed.out[i]); });
+    for (const d of every) if (!level.has(d)) level.set(d, level.get(out.find((e) => e.key === d.key)!)!);
+    onSide.get(id)?.tails.forEach((lane, i) => hookV.set(lane, placed.tails[i]));
+    onSide.get(id)?.heads.forEach((lane, i) => hookV.set(lane, placed.heads[i]));
   }
   for (const [wire, piece] of s.pieces) {
     let pts: Pt[] = [];
@@ -542,18 +528,12 @@ export function lay(s: Sheet, root: boolean): Geo {
     const terms = s.terms.filter((t) => t.wall === wall);
     if (!terms.length) continue;
     const used = [...geo.ports].filter(([id]) => id.startsWith(`${wall}|`)).map(([, at]) => at), places: number[] = [];
-    // (a step from every other where the wall has room; closer, as close as it must, where it has not)
-    for (let i = 0; i < terms.length; i++) {
-      const mid = snap(H / 2);
-      let y: number | undefined;
-      for (const gap of [16, 8, 4, 2, 1]) {
-        for (let d = 0; d < H && y === undefined; d += gap) y = [mid - d, mid + d].find((c) => c >= 8 && c <= H - 8 && [...used, ...places].every((o) => Math.abs(o - c) >= gap));
-        if (y !== undefined) break;
-      }
-      places.push(y ?? mid);
-    }
+    // (a step from every other where the wall has room; closer, as close as it must, where it has not —
+    // and in whole steps out from the middle: searched on the 8 px grid, a wire that ends here could stand
+    // half a step off the line of one through the same wall, and the two were drawn along one line outside)
+    for (let i = 0; i < terms.length; i++) places.push(nearestFree([...used, ...places], snap(H / 2), 8, H - 8, undefined, true) ?? snap(H / 2));
     const outside = terms.map((t) => comesAt(s, wall, t.key));
-    const order = outside.every((at) => at !== undefined) ? terms.map((_, i) => i).sort((p, q) => outside[p]! - outside[q]! || p - q) : undefined;
+    const order = outside.every((at) => at !== undefined) ? terms.map((_, i) => i).sort((p, q) => cmpRank(outside[p]!, outside[q]!) || p - q) : undefined;
     if (order) places.sort((p, q) => p - q);
     terms.forEach((_, i) => geo.ports.set(`${wall}|${terms[order ? order[i] : i].key}`, places[i]));
   }

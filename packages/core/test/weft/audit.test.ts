@@ -71,6 +71,25 @@ it("wires under a row-mate to a container's side wall leave their box in the ord
   }
 });
 
+// A wire that ends at a container's side wall is placed in whole steps out
+// from the middle of it (`lay.ts`). Searched on the 8 px grid, such a wire
+// stood half a step off the line of one through the same wall, and the two
+// were drawn along one line outside.
+it("wires that end at a container's side wall stand a whole step off the others: the nested seeds that did not", () => {
+  for (const seed of [2313, 2385]) {
+    const p = nestedProblem(seed);
+    expect(audit(p, solve(p)), `seed ${seed}`).toEqual([]);
+  }
+});
+
+// Two containers side by side, joined by wires straight across the gap:
+// both insides order their facing walls by the order those wires are
+// declared in out there (`comesAt`), so the two walls agree.
+it("two containers side by side put the wires across the gap between them in one order: the nested seed that did not", () => {
+  const p = nestedProblem(1605);
+  expect(audit(p, solve(p))).toEqual([]);
+});
+
 // What `randomProblem` never makes: a container inside a container, sometimes
 // of the other direction, and wires that end at a container (`nestedProblem`).
 // The rule for a side asked is held on all of it: the box the wire names is

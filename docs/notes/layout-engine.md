@@ -377,6 +377,18 @@ only tells the renderer the wire is a wrap trunk.
 its neighbour (or part of its rank's depth, above and below). A hook's lane
 stays beside its box through every ordering move.
 
+**One order along every wall** (`sides.ts`). Wherever a wall is ordered —
+a leaf's north or south wall by `ports.ts`, its side wall, a container's
+wall from inside or out — the wires stand by one rule: a hook (a wire that
+turns along the row to a lane beside its box) at the end its lane is beside,
+several there nested, the nearer lane's wire nearer that end; the rest by
+where they go. It is kept as a `Rank`, compared part by part, because the
+first version kept it as numbers on four scales (1e6, 1e7, 1e9 and pixels)
+and a value passed on through a wall was compared with one that was not —
+a wire straight through could sort above a hook that belongs on top. Made
+one, it moved 256 of 11,423 generated problems and none of the gate sets'
+views: 154 crossings fewer, 12 bends fewer, the same number of rule breaks.
+
 **A side wall is allocated like a north or south one** (`sides.ts`). Three
 kinds of wire meet a leaf's east or west wall, and they stand in this order
 from the top: hooks whose lane comes down to the wall (the nearest lane
@@ -384,9 +396,10 @@ highest), wires straight out — across the gutter or on to the sheet's wall —
 and hooks whose lane goes on down (the nearest lane lowest). In that order
 none of them crosses another, so the wall takes any number: a step apart
 while it has room (four on a 64 px box), and an even share of it beyond that.
-The straight wires are placed first, with the hooks' share kept free above
-and below them (`reserve`, read by `gutter.ts` as `keep`); a wire that steps
-in the gutter steps beyond the lanes of that wall's hooks. A container's side
+One placer does the wall (`placeSideWall`); the wires across a gutter are
+placed by `gutter.ts`, which levels both facing walls at once, keeping the
+hooks' share free above and below them (`reserve`, read as `keep`); a wire
+that steps in the gutter steps beyond the lanes of that wall's hooks. A container's side
 wall is ordered the same way, the container being the box: its inside reads
 the order off the sheet outside (`comesAt` in `sides.ts`), which is settled
 before anything is placed — passed on through every wall a wire goes straight
@@ -678,9 +691,9 @@ kept here because each fix added a rule to the engine.
   on it**, whichever way it was headed, and crossed the container's other
   wires for nothing (`shop -> archive` beside `shop.svc -> db`, with Archive
   on the left). It has nothing inside to follow, so `comb` in `order.ts` now
-  stands it among the others by where it goes outside. Four views changed,
-  all in `lookbook/cases/45-route-through-walls`, each with fewer crossings;
-  nothing else in the four sets moved.
+  stands it among the others by where it goes outside. On the four sets
+  the quality gate draws, only views that asked for sides moved, each with
+  fewer crossings.
 - **A label could lie across a neighbouring wire** — 29 pills in 13 corpus
   views at the swap, because wires 16 px apart each carried a pill far wider
   than that. Fixed in two steps, the cheap one first (`7af1ee7`; §4, "Labels
@@ -838,8 +851,7 @@ the tree), as written:
 
 The crossings that came back are the price of drawing what was asked, on
 diagrams that ask for sides at random; on the four sets the quality gate
-draws, as written and turned, no view changed but the lookbook case that
-shows the feature.
+draws, as written and turned, no view that asks for no side changed.
 
 **A picture with no asked side** is drawn by the same rules as before, with
 one exception, which is the label fix below. A wire is still handed to the

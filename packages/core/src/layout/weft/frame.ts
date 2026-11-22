@@ -32,3 +32,17 @@ export const floorTo = (x: number, step: number): number => Math.floor(x / step 
 /** The 8-pixel grid every centre line stands on (§5.5). */
 export const GRID = 8;
 export const snap = (x: number): number => Math.round(x / GRID) * GRID;
+
+/** The free place nearest `want` on the stretch `lo`..`hi`: a step from
+ *  every place in `used` — the first of `gaps` — or, where the stretch is
+ *  too crowded for that, as far from them as it allows, each gap in turn.
+ *  Searched on the grid (or finer where the gap is finer), or, `stepped`, in
+ *  whole gaps out from `want`. The one rule for sharing out a wall that has
+ *  more wires than steps (`gutter.ts`, `lay.ts`, `sides.ts`); undefined only
+ *  when not a pixel is free. */
+export function nearestFree(used: readonly number[], want: number, lo: number, hi: number, gaps: readonly number[] = [16, 8, 4, 2, 1], stepped = false): number | undefined {
+  for (const gap of gaps)
+    for (let d = 0; d <= hi - lo; d += stepped ? gap : Math.min(gap, GRID))
+      for (const x of [want - d, want + d]) if (x >= lo && x <= hi && used.every((t) => Math.abs(t - x) >= gap)) return x;
+  return undefined;
+}

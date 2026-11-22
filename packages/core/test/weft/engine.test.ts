@@ -6,6 +6,7 @@ import { describe, it, expect } from "vitest";
 import { solve, type Box, type Group, type Problem, type Dir } from "../../src/layout/weft/engine.js";
 import type { Side, Wire } from "../../src/layout/weft/contract.js";
 import { audit, roomRect, wallAt } from "./legal.js";
+import { nestedProblem, randomProblem } from "./random-problem.js";
 
 // ── the whole engine, on problems small enough to read ───────────────────────
 const leaf = (id: string, w = 120, h = 64): Box => ({ id, w, h });
@@ -686,6 +687,26 @@ describe("sides a wire is asked to use", () => {
     const g1: Box = { id: "g1", w: 0, h: 0, group: group([leaf("n5", 152)], { pad, dir: "right" }) };
     const p: Problem = { root: group([g0, g1], { dir: "right", ...pin({ g0: 0, g1: 0 }) }), wires: [wire("n2>n5"), wire("n3>g1"), wire("n3>n5")] };
     expect(audit(p, solve(p))).toEqual([]);
+  });
+  // One order along a wall (`sides.ts`), the same rule wherever a wall is read. Each of these drew one
+  // crossing more when a piece of it was written on its own scale.
+  it("stands wires that head for one end of a north or south wall by where they turn: one to the sheet's wall furthest", () => {
+    // a wire round the row to the sheet's own wall turns beyond a row-mate's wire or a hook, so its port stands nearer the middle
+    expect(crossed(solve(nestedProblem(269)))).toBe(5);
+    expect(crossed(solve(randomProblem(777, true, true)))).toBe(2);
+  });
+  it("ranks a wire straight on through a container's wall among the others there by the next wall's order, between its hooks", () => {
+    // it goes on through: the hooks out of that wall stand at its ends, whatever the wall beyond says of it
+    expect(crossed(solve(nestedProblem(696)))).toBe(8);
+  });
+  it("reads where a wire round a container stands outside by the lane it is drawn along, not the one first made for it", () => {
+    // several wires round one container's row-mates trade lanes once the order is final (`laneOrder`); the inside must
+    // order its wall by the lanes they took. Read by the first lanes instead, this drew 18 crossings more.
+    // (a generated Problem: a hub with every side asked)
+    const p: Problem = JSON.parse(String.raw`{"root":{"dir":"down","boxes":[{"id":"u0","w":96,"h":64},{"id":"u1","w":144,"h":64},{"id":"u2","w":136,"h":160},{"id":"y0","w":96,"h":56},{"id":"c2","w":0,"h":0,"minW":120,"title":{"w":80,"h":34},"group":{"dir":"down","boxes":[{"id":"c1","w":0,"h":0,"minW":120,"title":{"w":80,"h":34},"group":{"dir":"down","boxes":[{"id":"hub","w":160,"h":200},{"id":"r0","w":144,"h":64},{"id":"r1","w":96,"h":160}],"pins":{"__map":[["hub",0],["r0",0],["r1",0]]},"pad":{"top":44,"right":16,"bottom":16,"left":16},"gap":{"lane":32,"rank":40},"held":["hub","r0","r1"]}},{"id":"x0","w":96,"h":160}],"pins":{"__map":[["c1",0],["x0",0]]},"pad":{"top":44,"right":16,"bottom":16,"left":16},"gap":{"lane":32,"rank":40}}},{"id":"d0","w":136,"h":56},{"id":"d1","w":112,"h":160},{"id":"d2","w":104,"h":64},{"id":"d3","w":144,"h":64},{"id":"d4","w":144,"h":96},{"id":"f0","w":144,"h":96}],"pins":{"__map":[["u0",0],["u1",0],["u2",0],["c2",1],["y0",1],["d0",2],["d1",2],["d2",2],["d3",2],["d4",2],["f0",3]]},"pad":{"top":32,"right":32,"bottom":32,"left":32},"gap":{"lane":48,"rank":56}},"wires":[{"id":"w0","from":"u0","to":"hub","toSide":"east"},{"id":"w1","from":"u0","to":"hub","toSide":"east"},{"id":"w2","from":"u1","to":"hub","toSide":"west","label":{"w":48,"h":18}},{"id":"w3","from":"u1","to":"hub","toSide":"east"},{"id":"w4","from":"u2","to":"hub","toSide":"south"},{"id":"w5","from":"hub","to":"u2","fromSide":"west","label":{"w":48,"h":18}},{"id":"w6","from":"hub","to":"d0","fromSide":"west"},{"id":"w7","from":"hub","to":"d0","fromSide":"east","label":{"w":40,"h":18}},{"id":"w8","from":"hub","to":"d1","fromSide":"east"},{"id":"w9","from":"hub","to":"d2","fromSide":"east","label":{"w":88,"h":18}},{"id":"w10","from":"hub","to":"d2","fromSide":"south"},{"id":"w11","from":"hub","to":"d3","fromSide":"east"},{"id":"w12","from":"hub","to":"d3","fromSide":"east"},{"id":"w13","from":"d4","to":"hub","toSide":"west","label":{"w":64,"h":18}},{"id":"w14","from":"d2","to":"f0","label":{"w":88,"h":18}},{"id":"w15","from":"hub","to":"f0","fromSide":"west","label":{"w":40,"h":18}},{"id":"w16","from":"r0","to":"hub"},{"id":"w17","from":"r0","to":"hub"},{"id":"w18","from":"hub","to":"r1"},{"id":"w19","from":"r0","to":"d4"},{"id":"w20","from":"r1","to":"d4","fromSide":"east"},{"id":"w21","from":"hub","to":"y0","fromSide":"east"}]}`, (_k, v) => (v && v.__map ? new Map(v.__map) : v));
+    const s = solve(p);
+    expect(audit(p, s)).toEqual([]);
+    expect(crossed(s)).toBeLessThanOrEqual(17);
   });
   it("does not slide a port along a wall that also carries a hook", () => {
     // x → z would come in level with z's port by sliding 16 px down x's wall — onto the wire hooked out of it to y

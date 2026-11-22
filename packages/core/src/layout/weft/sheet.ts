@@ -437,16 +437,6 @@ export const hookAfter = (s: Sheet, lane: number): boolean => {
   return b.free ? s.at[lane] > s.at[b.box] : b.after;
 };
 
-/** Where a wire hooked round `box`'s north or south wall stands on that wall,
- *  by its lane `lane` (`beside`): at the end the lane is beside — `far` past
- *  every other place — and of several there, the nearer lane's wire nearer
- *  that end, so that they nest. Ascending along the wall. One rule for a
- *  container's ports, read by the ordering stage and by the inside alike. */
-export function hookRank(s: Sheet, lane: number, far = 1e9): number {
-  const d = Math.abs(s.at[lane] - s.at[s.slots[lane].beside!.box]);
-  return hookAfter(s, lane) ? far - d : -far + d;
-}
-
 /** The slots between a box and the side wall its wire is headed for. */
 export function beyond(s: Sheet, side: Side): number[] {
   const row = s.rows[s.slots[side.x].row], i = s.at[side.x];

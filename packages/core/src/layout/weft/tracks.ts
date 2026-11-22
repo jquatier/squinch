@@ -42,6 +42,9 @@ export function above(a: Net, b: Net): number {
   return cost;
 }
 
+/** Would `a` above `b` lay a stub of one along a stub of the other? */
+const clashing = (a: Net, b: Net) => above(a, b) >= CLASH && a.under !== b.id;
+
 export interface Stack {
   /** net id → track, 0 nearest the row above */
   track: Map<string, number>;
@@ -50,10 +53,10 @@ export interface Stack {
   clash?: { upper: Net; lower: Net; at: number };
 }
 
-/** `sorted`: where the cheapest order found still lays one stub along
+/** `anyOrder`: where the cheapest order found still lays one stub along
  *  another, look for any order that does not — the last resort of a channel
  *  whose wires could neither step aside nor step twice (`lay.ts`). */
-export function stack(nets: readonly Net[], sorted = false): Stack {
+export function stack(nets: readonly Net[], anyOrder = false): Stack {
   // insert each net where it costs least among those already placed
   let order: Net[] = [];
   for (const n of [...nets].sort((p, q) => p.lo - q.lo || p.hi - q.hi || (p.id < q.id ? -1 : 1))) {
@@ -78,8 +81,7 @@ export function stack(nets: readonly Net[], sorted = false): Stack {
   // and where those musts make no ring there is an order that keeps them
   // all — the one nearest the order found, taking the first net free to go
   // next each time.
-  const clashes = (list: Net[]) => list.some((a, i) => list.slice(i + 1).some((b) => above(a, b) >= CLASH && a.under !== b.id));
-  if (sorted && clashes(order)) {
+  if (anyOrder && order.some((a, i) => order.slice(i + 1).some((b) => clashing(a, b)))) {
     const left = [...order], out: Net[] = [];
     while (left.length) {
       const i = left.findIndex((n) => left.every((m) => m === n || above(n, m) < CLASH));
@@ -109,7 +111,7 @@ export function stack(nets: readonly Net[], sorted = false): Stack {
   let clash: Stack["clash"];
   for (let i = 0; i < order.length && !clash; i++)
     for (let j = i + 1; j < order.length && !clash; j++)
-      if (above(order[i], order[j]) >= CLASH && order[i].under !== order[j].id) clash = { upper: order[i], lower: order[j], at: order[i].bots.find((x) => order[j].tops.includes(x))! };
+      if (clashing(order[i], order[j])) clash = { upper: order[i], lower: order[j], at: order[i].bots.find((x) => order[j].tops.includes(x))! };
   return { track, count, clash };
 }
 

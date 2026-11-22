@@ -10,6 +10,7 @@
 // Everything here is measured from the top of the row and from the first
 // box's far wall, so it can be worked out before anything has a position —
 // which is what lets placement leave the gutter exactly the room it needs.
+import { nearestFree } from "./frame.js";
 import type { Flat, Kid, Sheet } from "./types.js";
 import { stack, type Net } from "./tracks.js";
 
@@ -61,16 +62,9 @@ export function gutters(s: Sheet, dv: number[], fixed: (kid: Kid, wall: "e" | "w
     };
     const [ra, rb] = [reach(a, "e"), reach(b, "w")];
     const taken = { a: [] as number[], b: [] as number[] };
-    /** The free place on a wall nearest `v`, within `[lo, hi]` if there is one: a step from every other, or
-     *  where the reach is too short for that, as far from them as it allows (half a step, a quarter…). */
-    const free = (used: number[], v: number, [lo, hi]: [number, number]): number => {
-      for (const gap of [PORT, 8, 4, 2, 1]) {
-        const ok = (x: number) => x >= lo && x <= hi && used.every((t) => Math.abs(t - x) >= gap);
-        for (let d = 0; d <= hi - lo + PORT; d += Math.min(gap, 8)) for (const x of [v - d, v + d]) if (ok(x)) return x;
-      }
-      for (let d = 0; d < 4096; d += 1) for (const x of [v - d, v + d]) if (!used.includes(x) && x >= lo && x <= hi) return x;
-      return v;
-    };
+    /** The free place on a wall nearest `v`, within `[lo, hi]`: a step from every other, or where the reach is
+     *  too short for that, as far from them as it allows. */
+    const free = (used: number[], v: number, [lo, hi]: [number, number]): number => nearestFree(used, v, lo, hi) ?? v;
     const clamp = (v: number, [lo, hi]: [number, number]) => Math.max(lo, Math.min(hi, v));
 
     const ends = flats.map((f) => ({ f, fa: fixed(a.kid!, "e", f.key), fb: fixed(b.kid!, "w", f.key) }));

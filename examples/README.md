@@ -14,7 +14,9 @@ run `squinch render <dir> --sync`, and commit both.
   and a self-warming index. The smallest project here that shows zones.
 - **storefront/** — C4-style altitudes (SPEC §10.2): a landscape of system cards,
   a zoomed service view with an aggregated edge and a context card, a `#pci`
-  highlight view with notes, and a container frame via `expand`.
+  highlight view with notes, and a container frame via `expand` — where an
+  event leaves its handler by the side asked (`route … from east`), past the
+  handler beside it and out of the frame's east wall.
 - **microservices/** — the zoom showcase, and the source of the animation at the
   top of the root README: a storefront, an edge gateway, and three services
   (catalog with OpenSearch, orders with an async fulfillment queue, accounts).

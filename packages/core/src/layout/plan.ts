@@ -229,6 +229,8 @@ function zoneDiagnostics(
 }
 
 type Route = SView["layout"]["routes"][number];
+/** A `route` line as a diagnostic quotes it. */
+export const routeSaid = (r: Route) => `route ${r.from} -> ${r.to}${r.label ? ` "${r.label}"` : ""}`;
 /** The `route` lines of a view that name this edge as the view draws it. */
 export const routesOf = (view: SView, e: { from: string; to: string; label?: string }): Route[] =>
   view.layout.routes.filter((r) => r.from === e.from && r.to === e.to && (!r.label || r.label === e.label));
@@ -245,7 +247,7 @@ function wireDiagnostics(view: SView, graph: ViewGraph): Diagnostic[] {
   const visible = new Set([...graph.nodes.map((n) => n.path), ...graph.frames.map((f) => f.path)]);
   const between = (from: string, to: string) => graph.edges.filter((e) => e.from === from && e.to === to).length;
   const drawn = { open: new Set(graph.frames.map((f) => f.path)), node: new Set(graph.nodes.map((n) => n.path)) };
-  const said = (r: Route) => `route ${r.from} -> ${r.to}${r.label ? ` "${r.label}"` : ""}`;
+  const said = routeSaid;
   // the line to write instead: the edge as this view draws it, with its own arrow
   const arrow = (e: ViewGraph["edges"][number]) => (e.heads === "none" ? "--" : e.heads === "both" ? "<->" : e.async ? "~>" : "->");
   const sides = (r: Route, swap = false) => { const [f, t] = swap ? [r.toSide, r.fromSide] : [r.fromSide, r.toSide]; return `${f ? ` from ${f}` : ""}${t ? ` to ${t}` : ""}`; };
