@@ -101,14 +101,14 @@ per wire.
     its box by. Only for a wire whose ends are in different ranks or
     containers. A side that is the natural one changes nothing; any other is
     drawn the long way round, at least 16 px straight out of the wall first.
-    The side carries outward: where the box has a clear run to the same wall
-    of the container around it (it is last in its row on that side, or in
-    the first or last rank), the wire crosses that wall by the same side, and
-    so on through each container; where something stands between, that
-    container keeps its natural wall. A wire that ends at a container is
-    asked of the container's own wall. Where the named box's wall cannot be
-    given the end keeps its natural side and is listed in `unhonoured`, with
-    the reason.
+    The side carries outward: the wire crosses the same wall of every
+    container around the box, whatever stands in the box's row — it goes
+    over or under that. Only the wall facing against the wire's own way is
+    carried just while the box has a clear run to it (it is in the first
+    rank at every level); otherwise the wire turns beside the box. A wire
+    that ends at a container is asked of the container's own wall. Where the
+    named box's wall cannot be given the end keeps its natural side and is
+    listed in `unhonoured`, with the reason.
 - Treat the `Problem` as read-only. `solve` must be a pure function of it.
 
 ## 3. Hard rules — a layout that breaks one is wrong
@@ -237,6 +237,8 @@ in `layout-engine.md` §7.
   row takes whichever channel — over the row or under it — fewer wires
   already use on that stretch, and steps out into the gutter; it never runs
   along a container's wall.
+  Asked to leave the box by that side, it does — to a lane beside the box —
+  and takes the channel from there.
 - An upward wire leaves by the top of its source and enters by the bottom
   of its target; it is routed like any other.
 - A wire into a container enters through the wall facing where it comes
@@ -253,6 +255,10 @@ in `layout-engine.md` §7.
   on that container's wall.
 - A wire arriving at a box's side wall comes in level with where it left
   the box on the other side of the gutter, if the wall allows.
+- A side wall takes any number of wires, as a north or south wall does: the
+  wires hooked into it from the row above stand highest, the wires straight
+  out of it between, the wires hooked out of it downward lowest, a step
+  apart, so that none crosses another.
 - A wall's *only* wire meets it in the middle; the wire's own stretch moves
   to the box's middle, not the box to the wire. Several wires on a wall
   stand evenly about its middle.

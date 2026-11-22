@@ -154,7 +154,7 @@ export async function layoutView(
       const r = u.wire === e.id ? lines.find((x) => (u.end === "from" ? x.fromSide : x.toSide)) : undefined;
       if (!r) continue;
       const box = u.end === "from" ? e.from : e.to, side = (u.end === "from" ? r.fromSide : r.toSide)!;
-      const around = name(p.parentOf.get(box) ?? ""), crosses = u.end === "from" ? "leaves" : "enters", either = (u.open ?? []).join(" or ");
+      const around = name(p.parentOf.get(box) ?? ""), crosses = u.end === "from" ? "leaves" : "enters";
       const [why, fix] =
         u.why === "trunk" ? (drawnBy.get(e.id)!.bundle?.startsWith("channel:") ? [
           "the edge is drawn in a `channel` trunk, whose wires share one port",
@@ -162,21 +162,12 @@ export async function layoutView(
         ] : [
           "the edge is drawn in a trunk a `wrap` fold made, whose wires share one port",
           `drop the \`${u.end}\`, or arrange the row by hand (\`rows\`) in place of \`wrap\``,
-        ]) : u.why === "taken" ? (u.inUse!.length === 1 ? [
-          `the ${side} side of \`${box}\` already carries a wire running straight out of it`,
-          `ask for another side, or free that one: the wire it carries runs to a neighbour in the same row, or straight out through the wall of what \`${box}\` is in`,
-        ] : [
-          `a wire out of the ${side} side of \`${box}\` has to go round one side of it, and its ${u.inUse!.join(" and ")} sides both carry a wire running straight out`,
-          `drop the \`${u.end}\`, or free one of those sides: move a neighbour that wire runs to into another row`,
         ]) : u.why === "row" ? [
           `\`${box}\` is in the same row as \`${name(u.mate!)}\`, which holds the other end, so the edge runs straight across`,
           `drop the \`${u.end}\`, or move \`${box}\` to another row`,
-        ] : u.why === "far" ? [
-          `the edge ${crosses} \`${around}\` by its ${u.by} side, the other way`,
-          `drop the \`${u.end}\`, or ask for ${either}`,
         ] : [
-          `another box stands between \`${box}\` and the ${side} side of \`${around}\`, which the edge ${crosses} by`,
-          `drop the \`${u.end}\`, ask for ${either}, or put \`${box}\` at the ${side} end of its row`,
+          `the edge ${crosses} \`${around}\` by its ${u.by} side, the other way`,
+          `drop the \`${u.end}\`, or ask for ${[u.by, ...(u.open ?? [])].join(", ").replace(/, ([^,]*)$/, " or $1")}`,
         ];
       diagnostics.push({ severity: "warning", message: `\`${said(r)}\` could not use the ${side} side of \`${box}\` — ${why}`, fix, loc: r.loc });
     }

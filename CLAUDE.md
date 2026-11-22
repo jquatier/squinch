@@ -480,26 +480,32 @@ be put on `x`'s axis"); `route` sides on a same-rank edge ("sides are ignored") 
 where the named node's own side cannot be given — one sentence per cause, naming the
 node and the side, and a fix line that names the sides that work there (the engine
 reports them in screen terms, `Refusal`; the words are not re-derived in `layout.ts`):
-the side already carries a wire straight out of the node, the edge is in a `channel`
-or `wrap` trunk, the node is row-mate to what holds the other end, or the edge leaves
-the node's container sideways ("could not use the east side of `a` — …");
+the edge is in a `channel` or `wrap` trunk, the node is row-mate to what holds the
+other end, or the edge leaves the node's container sideways and the node was asked for
+the side facing away ("could not use the east side of `a` — …");
 a `route` that names no edge the view draws (it says whether to write the card or the
 node inside); a `wrap` that folds nothing; a `channel` not fully visible; and "`a` →
 `b` is not drawn — one end is inside the other".
-**A `route` side carries through container walls while the run is clear** (2026-11):
-`route shop.api -> audit from east` leaves API eastward and, where API is the last
-thing on that side of Shop, leaves Shop's east wall too — through each frame and zone
-in turn, stopping at the first wall something stands before; there the node keeps its
-side and the wire its ordinary way out, with no warning. "Last" is by declared order,
-which is why it is settled before anything is placed. An edge that ends at the
-expanded container is asked of the frame's wall. Three limits, each recorded with its
-reason: toward a row-mate of the container the side is not carried (the edge leaves
-toward it); two edges asked out of one side of a node cannot both carry — the first
-has the wall and the second is told it is taken, where 0.21.0 turned both inside;
-and many sided edges out of one container are slow to order (dozens, not a handful). Carrying through every wall always
-was measured and rejected (a row-mate in the way costs the node its own side), and so
-was naming a side per wall (zones are in no path; frames depend on each view's
-`expand`; `rows [cache api]` already says it) — `docs/notes/layout-engine.md` §8. The zone errors are unchanged. Notes get room reserved by the engine: beside
+**A `route` side carries through every container wall, and a side holds any number of edges** (2026-11):
+`route shop.api -> audit from east` leaves API eastward and leaves Shop's east wall
+too, through each frame and zone in turn — past a row-mate as well, the edge going
+over or under it from a lane beside the node. The first version carried only while
+nothing stood between, and turned the wire down inside the frame when Cache happened
+to stand east of the API — the complaint the feature was built to end. One side is
+still held back: the one facing against the edge's own way (`from north`, on an edge
+that runs down) carries only from the container's first row; from deeper the edge
+turns beside its node, because carried always it climbed out of every frame and came
+all the way round (+330 crossings on 600 generated diagrams). An edge that ends at the
+expanded container is asked of the frame's wall. A node's side wall is allocated like
+its top or bottom (`weft/sides.ts`): wires hooked in from above highest, wires
+straight out between, wires hooked out downward lowest, a step apart, none crossing
+another — so two edges asked out of one side both get it, and "that side is taken" is
+no longer a diagnostic. Limits, each recorded with its reason: toward a row-mate of
+the container the side is not carried (the edge leaves toward it); many sided edges
+out of one container are slow to order (dozens, not a handful); honouring sides asked
+at random costs crossings (the note's table). Naming a side per wall was considered
+and not built (zones are in no path; frames depend on each view's `expand`) —
+`docs/notes/layout-engine.md` §8. The zone errors are unchanged. Notes get room reserved by the engine: beside
 the anchor node (`Box.room` — inside its frame or zone, and never part of the box, so
 a node is balanced as if it had no note) or beside the wire.
 **Not guaranteed**, and written down so nobody assumes otherwise (the note's §8): the

@@ -80,7 +80,7 @@ export interface Slot {
    *  its box, so the ordering stage chooses (`Search.flip`) — `after` is then
    *  only where the lane starts, and the rows are the one record of where it
    *  stands: read it with `hookAfter` (sheet.ts), never from here. */
-  beside?: { box: number; wall: Wall; after: boolean; free?: boolean };
+  beside?: { box: number; wall: Wall; after: boolean; free?: boolean; /** the lane comes down to the hook from the row above (the hook is at the lower end of its wire's way through the sheet) */ tail?: boolean };
 }
 
 /** A stretch of wire from a slot in one row to a slot in the next. Wires of
@@ -131,6 +131,11 @@ export interface Side {
   /** the width of a label standing on this wire just outside the wall: the
    *  wires that leave the box beside it keep half of it away */
   room?: number;
+  /** The box was asked for the wall facing the sheet's own, with row-mates
+   *  standing between: the wire leaves it by that wall all the same, to this
+   *  lane right beside it, and goes over or under the row from there. (Not
+   *  used if the ordering stage leaves the box last in its row after all.) */
+  hook?: number;
 }
 
 /** A wire that ends at this container's own east or west wall. */

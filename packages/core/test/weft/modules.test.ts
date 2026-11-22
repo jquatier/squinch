@@ -10,6 +10,7 @@ import { place } from "../../src/layout/weft/place.js";
 import { settle, wallspace, type End } from "../../src/layout/weft/ports.js";
 import { project } from "../../src/layout/weft/project.js";
 import { beyond, sideWay, weave } from "../../src/layout/weft/sheet.js";
+import { reserve, stand } from "../../src/layout/weft/sides.js";
 import { above, pitch, stack, type Net } from "../../src/layout/weft/tracks.js";
 import { grow } from "../../src/layout/weft/tree.js";
 import type { Sheet } from "../../src/layout/weft/types.js";
@@ -119,6 +120,20 @@ describe("tracks", () => {
     const s = stack([net("a", [0], [100]), net("b", [100], [0])]);
     expect(s.clash?.at).toBeDefined();
   });
+  it("finds the order with no stub along another where the cheapest insertion misses it, when asked", () => {
+    // five runs that must stand in one order — each comes down where the next
+    // goes up — the fourth of them the second half of a wire that steps twice
+    const nets: Net[] = [net("a", [176], [160]), net("b", [232], [176]), net("c", [160], [216]), { ...net("c~", [216], [264]), under: "c" }, net("d", [264], [232])];
+    expect(stack(nets).clash).toBeDefined();
+    const s = stack(nets, true);
+    expect(s.clash).toBeUndefined();
+    expect(["c", "a", "b", "d", "c~"].map((id) => s.track.get(id))).toEqual([0, 1, 2, 3, 4]);
+    // it changes nothing where the first order already had none
+    const plain = [net("a", [0], [100]), net("b", [50], [150]), net("c", [300], [400])];
+    expect([...stack(plain, true).track]).toEqual([...stack(plain).track]);
+    // and a ring has no such order, and still says so
+    expect(stack([net("a", [0], [100]), net("b", [100], [0])], true).clash?.at).toBeDefined();
+  });
   it("sinks a run with no stub upward to the row below", () => {
     const s = stack([net("a", [0], [100]), net("b", [50], [150]), net("side", [], [300])]);
     expect(s.track.get("side")).toBe(s.count - 1);
@@ -224,6 +239,14 @@ describe("count", () => {
     // with the passing lane between: the hook's stretch crosses it, and the two wires cross again below
     expect(put([a, pass, hook])).toBe(2);
   });
+  it("does not count a box's own hook lane against the wires straight out of the same wall", () => {
+    // a → c runs straight across the lane a → b turns down in: they share a's east wall, one above the other (`sides.ts`)
+    const flat: Problem = { root: group([leaf("a"), leaf("c"), leaf("b")], pin({ a: 0, c: 0, b: 1 })), wires: [wire("a>c"), { id: "ab", from: "a", to: "b", fromSide: "east" }] };
+    expect(order(sheets(flat)).cross).toBe(0);
+    // …nor against a wire straight on to the container's own side wall
+    const side: Problem = { root: group([box("s", ["a", "b"], pin({ "s.a": 0, "s.b": 1 })), leaf("n")], pin({ s: 0, n: 0 })), wires: [wire("s.a>n"), { id: "ab", from: "s.a", to: "s.b", fromSide: "east" }] };
+    expect(order(sheets(side)).cross).toBe(0);
+  });
 });
 
 describe("order", () => {
@@ -245,6 +268,20 @@ describe("order", () => {
     for (const held of [["l", "r"], ["r", "l"]]) {
       const { count } = xs(problem([box("top", ["a", "b"]), ...held.map((o) => leaf(o))], ["top.a>top.b", "top.a>r", "top.b>l"], { held }));
       expect(count.cross).toBe(0);
+    }
+  });
+  it("stands a wire that ends at a container's wall among the others by where it is headed", () => {
+    // nothing inside to follow: whichever side of `top.a`'s wire its target stands, so does its port
+    for (const held of [["l", "r"], ["r", "l"]]) {
+      const { all, count } = xs(problem([box("top", ["a"]), ...held.map((o) => leaf(o))], ["top.a>r", "top>l"], { held }));
+      expect(count.cross).toBe(0);
+      expect(names(sheetOf(all, "top"), 2)).toEqual(held[0] === "l" ? ["port:top>l", "port:top.a>r"] : ["port:top.a>r", "port:top>l"]);
+    }
+    // between two it parts, and before or after both
+    for (const [held, at] of [[["m", "l", "r"], 0], [["l", "m", "r"], 1], [["l", "r", "m"], 2]] as const) {
+      const { all, count } = xs(problem([box("top", ["a", "b"]), ...held.map((o) => leaf(o))], ["top.a>l", "top.b>r", "top>m"], { held: [...held] }));
+      expect(count.cross).toBe(0);
+      expect(names(sheetOf(all, "top"), 2).indexOf("port:top>m")).toBe(at);
     }
   });
   it("moves a lane and the port it enters by together", () => {
@@ -326,6 +363,37 @@ describe("ports", () => {
     expect(ends[1].at).toBeLessThan(64);            // toward 20, as far as the first port lets it
     expect(ends[1].at - ends[0].at).toBeGreaterThanOrEqual(16);
     expect(ends[0].at).toBeGreaterThanOrEqual(space.lo);
+  });
+});
+
+describe("sides", () => {
+  const sorted = (xs: number[]) => xs.every((x, i) => !i || xs[i - 1] < x);
+  it("stands a wall's hooks about the middle when nothing goes straight out: tails above heads, a step apart", () => {
+    expect(stand(8, 56, [], { tails: 1, heads: 0 })).toEqual({ tails: [32], heads: [] });
+    expect(stand(8, 56, [], { tails: 1, heads: 1 })).toEqual({ tails: [24], heads: [40] });
+    expect(stand(8, 56, [], { tails: 2, heads: 1 })).toEqual({ tails: [16, 32], heads: [48] });
+  });
+  it("stands tails above the straight wires and heads below, nearest first", () => {
+    expect(stand(8, 120, [56, 72], { tails: 2, heads: 2 })).toEqual({ tails: [24, 40], heads: [88, 104] });
+    // a label across the nearest straight wire keeps the hooks further off
+    expect(stand(8, 120, [64], { tails: 1, heads: 1 }, { top: 24, bottom: 16 })).toEqual({ tails: [40], heads: [80] });
+  });
+  it("holds more than the wall has steps for: closer together, in the same order, all on the wall", () => {
+    for (const straight of [[], [32]]) {
+      const { tails, heads } = stand(8, 56, straight, { tails: 4, heads: 4 }), all = [...tails, ...heads];
+      expect(all.every((v) => v >= 8 && v <= 56), `${all}`).toBe(true);
+      if (!straight.length) expect(sorted(all), `${all}`).toBe(true);
+      else { expect(Math.max(...tails)).toBeLessThan(32); expect(Math.min(...heads)).toBeGreaterThan(32); }
+    }
+  });
+  it("gives every wire a place of its own even where a straight wire stands at the wall's end", () => {
+    const { tails, heads } = stand(8, 56, [8], { tails: 2, heads: 1 }), all = [8, ...tails, ...heads];
+    expect(new Set(all).size).toBe(all.length);
+    expect(all.every((v) => v >= 8 && v <= 56)).toBe(true);
+  });
+  it("reserves a step of the wall for each hook, above for tails and below for heads", () => {
+    expect(reserve({ tails: [3, 4], heads: [5] })).toEqual({ above: 32, below: 16 });
+    expect(reserve(undefined)).toEqual({ above: 0, below: 0 });
   });
 });
 

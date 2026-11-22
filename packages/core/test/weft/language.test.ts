@@ -163,19 +163,18 @@ view v { include *
     expect(r.wire("b", "c").points).toHaveLength(2); // still drawn, straight across
   });
 
-  it("a route side that is taken says so, and the edge keeps its natural side", async () => {
-    // a's east wall carries the wire straight across to its row-mate c
+  // a side wall takes any number of wires: a side that already carries one to a neighbour is given all the same
+  it("a route side shares the wall with a wire straight across to a neighbour", async () => {
     const r = await lay(`${fan}view v { include *
   layout { rows [a c] [b]
   route a -> b from east } }`);
     expect(r.illegal).toEqual([]);
-    expect(r.diagnostics.map((d) => [d.severity, d.message])).toEqual([["warning", "`route a -> b` could not use the east side of `a` — the east side of `a` already carries a wire running straight out of it"]]);
-    expect(r.diagnostics[0].fix).toContain("neighbour in the same row");
-    expect(r.sides("a", "b")).toEqual(["south", "north"]);
+    expect(r.diagnostics).toEqual([]);
+    expect(r.sides("a", "b")).toEqual(["east", "north"]);
   });
 
-  // out of the top or bottom a wire goes round one side of its node: it is the sides that are in use, not the top
-  it("a route out of the north side with both sides of the node in use says which sides are", async () => {
+  // …and out of the top, round a side that carries one: the wire it crosses there is the price, and nothing is refused
+  it("a route out of the north side goes round a side that carries a wire, when both do", async () => {
     const r = await lay(`l = box "L"
 a = box "A"
 r = box "R"
@@ -187,11 +186,11 @@ view v { include *
   layout { rows [l a r] [c]
   route a -> c from north } }`);
     expect(r.illegal).toEqual([]);
-    expect(r.diagnostics.map((d) => d.message)).toEqual(["`route a -> c` could not use the north side of `a` — a wire out of the north side of `a` has to go round one side of it, and its east and west sides both carry a wire running straight out"]);
-    expect(r.diagnostics[0].fix).toContain("free one of those sides");
+    expect(r.diagnostics).toEqual([]);
+    expect(r.sides("a", "c")[0]).toBe("north");
   });
 
-  // one edge may have a line for each end; each warning is raised at the line that asked that end
+  // one edge may have a line for each end
   it("two route lines for one edge each ask their own end, and two for one end are an error", async () => {
     const src = (routes: string) => `l = box "L"
 a = box "A"
@@ -205,8 +204,8 @@ view v { include *
   ${routes} } }`;
     const each = await lay(src("route a -> c from east\n  route a -> c to west"));
     expect(each.illegal).toEqual([]);
-    expect(each.diagnostics.map((d) => d.message)).toEqual(["`route a -> c` could not use the east side of `a` — the east side of `a` already carries a wire running straight out of it"]);
-    expect(each.sides("a", "c")[1]).toBe("west");      // the second line's end was given
+    expect(each.diagnostics).toEqual([]);
+    expect(each.sides("a", "c")).toEqual(["east", "west"]);
     const built = buildModel(src("route a -> c from east\n  route a -> c from west"));
     const { diagnostics } = await layoutView(built.model, built.model.views.find((v) => v.name === "v")!);
     expect(diagnostics.filter((d) => d.severity === "error").map((d) => d.message)).toEqual(["`route a -> c` asks `a` for its west side, and another `route` line asks it for its east"]);
@@ -264,7 +263,7 @@ view v { include *
     expect(zone.diagnostics.map((d) => d.message)).toEqual(["`route u -> x` could not use the south side of `u` — `u` is in the same row as `vpc`, which holds the other end, so the edge runs straight across"]);
   });
 
-  it("a route side on a box whose edge leaves its container sideways says which way the edge leaves, or what is in the way", async () => {
+  it("a route side facing away from where the edge leaves its container says which way that is; with a row-mate in the way it is given", async () => {
     const src = (side: string) => `system s "S" { x = box "X"; y = box "Y"
   layout { rows [x y] } }
 t = box "T"
@@ -275,11 +274,12 @@ view v { expand s
     const far = await lay(src("west"));
     expect(far.illegal).toEqual([]);
     expect(far.diagnostics.map((d) => d.message)).toEqual(["`route s.x -> t` could not use the west side of `s.x` — the edge leaves `s` by its east side, the other way"]);
-    expect(far.diagnostics[0].fix).toContain("north or south");
-    const blocked = await lay(src("east"));
-    expect(blocked.illegal).toEqual([]);
-    expect(blocked.diagnostics.map((d) => d.message)).toEqual(["`route s.x -> t` could not use the east side of `s.x` — another box stands between `s.x` and the east side of `s`, which the edge leaves by"]);
-    expect(blocked.diagnostics[0].fix).toContain("at the east end of its row");
+    expect(far.diagnostics[0].fix).toBe("drop the `from`, or ask for east, north or south");
+    // east, with Y standing between X and the wall: out of X's east side, round Y, out of the frame's east wall
+    const past = await lay(src("east"));
+    expect(past.illegal).toEqual([]);
+    expect(past.diagnostics).toEqual([]);
+    expect(past.sides("s.x", "t")[0]).toBe("east");
     // north and south are the ways over and under the row: given
     expect((await lay(src("north"))).diagnostics).toEqual([]);
   });
@@ -296,7 +296,7 @@ view v { expand s
   route s.x -> t from ${side} } }`;
     const far = await lay(src("north"));
     expect(far.diagnostics.map((d) => d.message)).toEqual(["`route s.x -> t` could not use the north side of `s.x` — the edge leaves `s` by its south side, the other way"]);
-    expect(far.diagnostics[0].fix).toBe("drop the `from`, or ask for west or east");
+    expect(far.diagnostics[0].fix).toBe("drop the `from`, or ask for south, west or east");
     expect((await lay(src("east"))).diagnostics).toEqual([]);
     expect((await lay(src("west"))).diagnostics).toEqual([]);
   });
@@ -443,7 +443,7 @@ view v { expand shop
   layout { rows [shop] [db audit]
   ${route} } }`;
 
-  it("a side asked of a node carries through its container's wall, while nothing stands between", async () => {
+  it("a side asked of a node carries through its container's wall", async () => {
     const r = await lay(shop("layout { rows [cache api] [svc] }", "route shop.api -> audit from east"));
     expect(r.illegal).toEqual([]);
     expect(r.diagnostics).toEqual([]);
@@ -451,12 +451,26 @@ view v { expand shop
     expect(crosses(r, "shop", "shop.api", "audit")).toBe("east");
   });
 
-  it("with a row-mate between it and the wall, the node keeps its side and the wire its ordinary way out", async () => {
+  it("with a row-mate between it and the wall, the wire leaves the node by that side all the same, goes round, and out of the frame's wall", async () => {
     const r = await lay(shop("layout { rows [api cache] [svc] }", "route shop.api -> audit from east"));
     expect(r.illegal).toEqual([]);
-    expect(r.diagnostics).toEqual([]);                 // the node was given the side it was asked for
+    expect(r.diagnostics).toEqual([]);
     expect(r.sides("shop.api", "audit")[0]).toBe("east");
-    expect(crosses(r, "shop", "shop.api", "audit")).toBe("south");
+    expect(crosses(r, "shop", "shop.api", "audit")).toBe("east");
+  });
+
+  it("two edges asked out of one side of a node both leave by it — one through the frame's wall, one to a node inside", async () => {
+    const r = await lay(`system shop "Shop" { api = box "API"; db = box "DB"; api -> db }
+audit = box "Audit"
+shop.api -> audit
+view v { expand shop
+  layout { route shop.api -> audit from west
+  route shop.api -> shop.db from west } }`);
+    expect(r.illegal).toEqual([]);
+    expect(r.diagnostics).toEqual([]);
+    expect(r.sides("shop.api", "audit")[0]).toBe("west");
+    expect(r.sides("shop.api", "shop.db")[0]).toBe("west");
+    expect(crosses(r, "shop", "shop.api", "audit")).toBe("west");
   });
 
   it("a side asked of an edge that ends at an expanded container is that frame's wall", async () => {

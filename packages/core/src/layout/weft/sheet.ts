@@ -14,16 +14,14 @@
 //   · a wire to the sheet's east or west wall leaves a container child
 //     straight only if that child is last in its row as declared, and that
 //     child then stays last;
-//   · a wire asked to use a side (`Wire.fromSide`, `toSide`) crosses a
-//     container's wall by that side only while the box it names has a clear
-//     run to it — read off the ranks and declared order of the containers on
-//     the way in (`clear`), which are worked out before any of their sheets.
+//   · a wire asked to use a side (`Wire.fromSide`, `toSide`) uses that
+//     side of the box it names and of every container it leaves on the way
+//     out — by a hook, a lane right beside the box, where the side is not
+//     the one facing where the wire goes.
 //
-// So the set of slots is fixed, which wall of a container each wire uses is
-// settled by the sheet outside it — from ranks and declared order alone —
-// before the container's own sheet is built, and the ordering stage can
-// count crossings over the whole tree without anything appearing or
-// vanishing.
+// So the set of slots is fixed, a container knows which of its walls each
+// wire uses before its inside is looked at, and the ordering stage can count
+// crossings over the whole tree without anything appearing or vanishing.
 import type { Group, Refusal, Side as ScreenSide, Wire } from "./contract.js";
 import { framed, real, turn } from "./frame.js";
 import { rankGroup, type Edge } from "./rank.js";
@@ -40,7 +38,7 @@ interface Thru { path: Path; side: "from" | "to"; depth: number; wall: Wall }
  *  a wall it cannot be given is reported; a container the wire only passes
  *  through keeps its natural wall and says nothing. `thru`: the wire as it
  *  was handed to the container at this end, whose wall a hook turns. */
-interface Ask { wall: Wall; end: "from" | "to"; named: boolean; thru?: Thru }
+interface Ask { wall: Wall; end: "from" | "to"; named: boolean; thru?: Thru; /** see `clear` */ clear: boolean }
 /** Is this end of the wire the box it names — a leaf, or the container it
  *  ends at — and not a container the wire goes on into? `step` is that box's
  *  step of the path, if it is a container. */
@@ -53,46 +51,31 @@ interface Vert { wire: Wire; key: string; top: number; bottom: number; down: boo
 /** A screen side as a wall of a `dir` sheet. */
 const wallOf = (side: "north" | "south" | "east" | "west", dir: "down" | "right"): Wall => turn(side[0] as Wall, "down", dir);
 
-/** A container's ranks, the declared order of its boxes and the wires whose
- *  ends part in it: what its own sheet is built from, and what the sheets
- *  outside it read before it has one (`clear`). A box no wire touches stands
- *  after its row-mates that have one, unless the author placed it (§5.2). */
-interface Ranked { rank: Map<string, number>; R: number; boxes: Group["boxes"]; paths: Path[] }
-type Ranks = (cell: Cell) => Ranked;
-/** The ranking of every container of one tree, each worked out once. */
-function rankings(tree: Tree): Ranks {
-  const made = new Map<Cell, Ranked>();
-  return (cell) => {
-    const had = made.get(cell);
-    if (had) return had;
-    const g = cell.group, held = new Set(g.held ?? []), paths = tree.paths.filter((p) => p.lca === cell);
-    const rank = rankGroup(g.boxes.map((b) => b.id), paths.map((p): Edge => [p.a, p.b]), g.pins);
-    const aside = (id: string) => (!tree.wired.has(id) && !held.has(id) ? 1 : 0);
-    const ranked: Ranked = { rank, R: g.boxes.length ? Math.max(...rank.values()) + 1 : 0, boxes: [...g.boxes].sort((p, q) => aside(p.id) - aside(q.id)), paths };
-    made.set(cell, ranked);
-    return ranked;
-  };
-}
+/** A container's ranks, which its own sheet is built on and the sheets
+ *  outside it may read before it has one (`clear`): each worked out once. */
+type Ranks = (cell: Cell) => Map<string, number>;
+const rankings = (tree: Tree): Ranks => {
+  const made = new Map<Cell, Map<string, number>>();
+  return (cell) => made.get(cell) ?? made.set(cell, rankGroup(cell.group.boxes.map((b) => b.id), tree.paths.filter((p) => p.lca === cell).map((p): Edge => [p.a, p.b]), cell.group.pins)).get(cell)!;
+};
 
-/** A side asked of a box carries on through the wall of the container around
- *  it, and of the one around that, while the box has a clear run to it:
- *  nothing between that side of the box and the wall — it is the last box of
- *  its row on that side, or in the first (last) rank for the north (south)
- *  wall — at every level on the way in. `wall` is the wall of the container
- *  `path[side][depth]`, in the frame of the sheet outside it. A wire that
- *  ends at the container itself has nothing in its way.
+/** Is nothing above the box a wire names, all the way out to the north wall
+ *  of the container `path[side][depth]` (or below it, to the south one)? It
+ *  stands in the first (last) rank of every container on the way in.
  *
- *  Read off the ranks and the declared order alone (`Ranked` — the order a
- *  sheet's rows are first built in, which is also what a wire to a side wall
- *  reads there, `beyond` in `buildSheet`), so it is known before any sheet
- *  inside is built; a box that leaves by a side wall is then kept last in
- *  its row (`sheet.last`), so the run stays clear. */
+ *  This matters for one case only. A side carries through every wall — but
+ *  where the wall asked is the one *against* the way the wire has to go (the
+ *  north, for a wire headed down), the wire has to turn back somewhere, and
+ *  it turns beside the innermost box it can: beside the container, if the
+ *  box has a clear run to that wall; beside the box itself, if not — it does
+ *  not climb past the ranks above it to go round the whole container. */
 function clear(ranks: Ranks, path: Path, side: "from" | "to", depth: number, wall: Wall, outer: "down" | "right"): boolean {
   const step = path[side][depth];
   if (named(step)) return true;
-  const { rank, R, boxes } = ranks(step.cell), w = turn(wall, outer, step.cell.group.dir);
-  const r = rank.get(step.kid!)!, row = boxes.filter((b) => rank.get(b.id) === r);
-  const open = w === "e" ? row[row.length - 1].id === step.kid : w === "w" ? row[0].id === step.kid : w === "n" ? r === 0 : r === R - 1;
+  const rank = ranks(step.cell), w = turn(wall, outer, step.cell.group.dir), r = rank.get(step.kid!)!;
+  // (through a container of the other direction the wall is a side one: nothing of its row beyond it, as declared)
+  const row = step.cell.group.boxes.filter((b) => rank.get(b.id) === r);
+  const open = w === "n" ? r === 0 : w === "s" ? r === Math.max(...rank.values()) : w === "e" ? row[row.length - 1].id === step.kid : row[0].id === step.kid;
   return open && clear(ranks, path, side, depth + 1, w, step.cell.group.dir);
 }
 
@@ -162,7 +145,9 @@ function claim(s: Sheet, slot: number, wall: "n" | "s", key: string, room: numbe
 
 function buildSheet(tree: Tree, ranks: Ranks, cell: Cell, arriving: Thru[], inbound: Map<string, Thru[]>, parent?: Sheet, self?: number): Sheet {
   const g = cell.group, dir = g.dir, down = dir === "down";
-  const { rank, R, boxes: declared, paths: mine } = ranks(cell);
+  const mine = tree.paths.filter((p) => p.lca === cell);
+  const rank = ranks(cell);
+  const R = g.boxes.length ? Math.max(...rank.values()) + 1 : 0;
 
   const held = new Set(g.held ?? []);
   const col = new Map<string, number>();
@@ -171,8 +156,9 @@ function buildSheet(tree: Tree, ranks: Ranks, cell: Cell, arriving: Thru[], inbo
   const rows: number[][] = Array.from({ length: R + 2 }, () => []);
   const slotOf = new Map<string, number>();
   const kids: Kid[] = [];
-  // (a box no wire touches stands after its row-mates that have one: `ranked`)
-  for (const box of declared) {
+  // a box no wire touches stands after its row-mates that have one, unless the author placed it (§5.2)
+  const aside = (id: string) => (!tree.wired.has(id) && !held.has(id) ? 1 : 0);
+  for (const box of [...g.boxes].sort((p, q) => aside(p.id) - aside(q.id))) {
     const size = framed(dir, box.w, box.h);
     const kid: Kid = {
       id: box.id, box, w: size.u, h: size.v,
@@ -224,20 +210,20 @@ function buildSheet(tree: Tree, ranks: Ranks, cell: Cell, arriving: Thru[], inbo
   };
   /** The side asked of one end of a wire, as it applies to the box that end
    *  is, or is in, here: `depth` is the step of `path[side]` that box would
-   *  be, if it is a container. A leaf is asked as it is; a container the
-   *  wire ends at likewise; a container the wire goes on into, only while
-   *  the box it names has a clear run to that wall (`clear`). */
+   *  be, if it is a container. The side is asked of the box the wire names
+   *  and carries outward: every container around that box is asked for the
+   *  same wall. */
   const asked = (path: Path, side: "from" | "to", depth: number, thru?: Thru): Ask | undefined => {
     const hint = side === "from" ? path.wire.fromSide : path.wire.toSide;
-    if (!hint) return undefined;
-    const wall = wallOf(hint, dir), step = path[side][depth];
-    if (!named(step) && !clear(ranks, path, side, depth, wall, dir)) return undefined;
-    return { wall, end: side, named: named(step), thru };
+    return hint ? { wall: wallOf(hint, dir), end: side, named: named(path[side][depth]), thru, clear: clear(ranks, path, side, depth, wallOf(hint, dir), dir) } : undefined;
+  };
+  /** A lane right beside `box`, on the side of it `wall` faces, for a wire that leaves it by that wall. */
+  const beside = (box: number, wall: "e" | "w", key: string, tail?: boolean): number => {
+    const lane = thin("lane", slots[box].row, key);
+    slots[lane].beside = { box, wall, after: wall === "e", ...(tail === undefined ? {} : { tail }) };
+    return lane;
   };
   const refuse = (wire: string, end: "from" | "to", why: Refusal["why"], facts: Omit<Refusal, "wire" | "end" | "why"> = {}) => { sheet.unhonoured.push({ wire, end, why, ...facts }); };
-  /** What a box whose wire leaves this sheet sideways is told when its own side wall is not given: the
-   *  wall the wire leaves by, and the two it could have — over and under the row. */
-  const sidelong = (wall: Wall): Pick<Refusal, "by" | "open"> => ({ by: screen(wall, dir), open: [screen("n", dir), screen("s", dir)] });
   const portFor = (wall: "n" | "s", key: string): number => {
     const k = `${wall}|${key}`;
     return sheet.port.get(k) ?? sheet.port.set(k, thin("port", wall === "n" ? 0 : R + 1, key)).get(k)!;
@@ -305,29 +291,29 @@ function buildSheet(tree: Tree, ranks: Ranks, cell: Cell, arriving: Thru[], inbo
     const wall = t.wall as "e" | "w", x = slotOf.get(kid)!, key = t.path.wire.bundle ?? t.path.wire.id;
     const row = rows[slots[x].row], i = row.indexOf(x);
     const beyond = (wall === "e" ? row.slice(i + 1) : row.slice(0, i)).filter((s) => slots[s].kind === "box");
-    let via: Side["via"] = "auto";
-    if (slots[x].kid!.box.group) {
+    const group = !!slots[x].kid!.box.group;
+    let via: Side["via"] = "auto", hook: number | undefined;
+    if (group) {
       const over = beyond.reduce((n, s) => n + (ends.up.get(s) ?? 0), 0), under = beyond.reduce((n, s) => n + (ends.down.get(s) ?? 0), 0);
       via = !beyond.length ? "straight" : over < under || (over === under && slots[x].row > 1) ? "over" : "under";
-      // asked to leave by its north or south wall, with a clear run to it: over or under the row, as a leaf would
-      const want = asked(t.path, t.side, t.depth + 1);
-      if (want && (want.wall === "n" || want.wall === "s")) via = want.wall === "n" ? "over" : "under";
-      else if (want?.named && (want.wall !== wall || beyond.length)) refuse(t.path.wire.id, t.side, want.wall === wall ? "blocked" : "far", sidelong(wall));
-      if (via === "straight") sheet.last.push({ x, wall });
-      pass(t.path, t.side, t.depth + 1, kid, via === "straight" ? wall : via === "over" ? "n" : "s");
     }
-    // A leaf asked to use a wall: over or under the row is its north or south
-    // wall; the wall facing the sheet's own is the natural one only while the
-    // box is last in its row, so it is then kept last. Anything else — the
-    // far wall, or the near one with a row-mate in the way — is not given.
-    const hint = slots[x].kid!.box.group || t.path[t.side][t.depth + 1] ? undefined : t.side === "from" ? t.path.wire.fromSide : t.path.wire.toSide;
-    if (hint) {
-      const ask = wallOf(hint, dir);
-      if (ask === "n" || ask === "s") via = ask === "n" ? "over" : "under";
-      else if (ask === wall && !beyond.length) sheet.last.push({ x, wall });
-      else refuse(t.path.wire.id, t.side, ask === wall ? "blocked" : "far", sidelong(wall));
+    // What the box was asked — itself, if it is the one the wire names; the
+    // same wall, if it is a container the wire goes on into. Over or under
+    // the row is its north or south wall. The wall facing the sheet's own is
+    // the natural one while the box is last in its row, and it is then kept
+    // last; with row-mates between, the wire leaves by that wall all the
+    // same, to a lane right beside the box, and goes over or under the row
+    // from there (`Side.hook`). The far wall is not given.
+    const want = asked(t.path, t.side, t.depth + 1);
+    if (want && (want.wall === "n" || want.wall === "s")) via = want.wall === "n" ? "over" : "under";
+    else if (want && want.wall !== wall) { if (want.named) refuse(t.path.wire.id, t.side, "far", { by: screen(wall, dir), open: [screen("n", dir), screen("s", dir)] }); }
+    else if (want && beyond.length) {
+      if (!t.path.wire.bundle) hook = beside(x, wall, key);
+      else if (want.named) refuse(t.path.wire.id, t.side, "trunk");
     }
-    const piece: Side = { x, wall, key, wire: t.path.wire.id, via, out: t.side === "from" };
+    if (via === "straight" || (want?.wall === wall && !beyond.length)) sheet.last.push({ x, wall });
+    if (group) pass(t.path, t.side, t.depth + 1, kid, hook !== undefined || via === "straight" ? wall : via === "over" ? "n" : "s");
+    const piece: Side = hook === undefined ? { x, wall, key, wire: t.path.wire.id, via, out: t.side === "from" } : { x, wall, key, wire: t.path.wire.id, via, out: t.side === "from", hook };
     sheet.sides.push(piece);
     sheet.through.set(`${wall}|${key}`, piece);
     sheet.pieces.set(t.path.wire.id, { kind: "side", side: piece });
@@ -350,9 +336,9 @@ function buildSheet(tree: Tree, ranks: Ranks, cell: Cell, arriving: Thru[], inbo
   // of the wire starts from — so the ordering stage sees the detour as what
   // it is, a wire passing the box — and the short way from the asked wall to
   // that lane. Not given (the end keeps its natural wall, and the wire is
-  // reported) to a wire of a bundle, whose port and lanes are shared; nor
-  // where the box already has a wire straight across that side's gutter or
-  // out to that side's wall, which the hook would have to run along.
+  // reported) to a wire of a bundle, whose port and lanes are shared — and
+  // to no other: a wall that already carries a wire straight across that
+  // side's gutter, or out to that side's wall, takes the hook beside it.
   // A container is given a hook on the same terms: the wire then crosses
   // that wall of it instead of its north or south one (`Ask.thru`, turned
   // here), where its inside put it. One the wire only passes through says nothing when it
@@ -360,18 +346,19 @@ function buildSheet(tree: Tree, ranks: Ranks, cell: Cell, arriving: Thru[], inbo
   // still given it there.
   const hookFor = (v: Vert, box: number, ask: Ask | undefined, natural: Wall): Hook | undefined => {
     if (!ask || ask.wall === natural || slots[box].kind !== "box") return undefined;
-    const taken = (wall: Wall) => sheet.flats.some((f) => f.straight && ((f.a === box && wall === "e") || (f.b === box && wall === "w"))) || sheet.sides.some((d) => d.x === box && d.wall === wall);
-    const side = ask.wall === "e" || ask.wall === "w" ? ask.wall : !taken("e") ? "e" : "w";
-    if (v.wire.bundle || taken(side)) {
-      // (out of a north or south wall the hook needs one side of the box to go round by: both are in use)
-      if (ask.named) refuse(v.wire.id, ask.end, v.wire.bundle ? "trunk" : "taken", v.wire.bundle ? {} : { inUse: side === ask.wall ? [screen(side, dir)] : [screen("e", dir), screen("w", dir)] });
-      return undefined;
-    }
+    // the wall against the way the wire goes, of a container it only passes through: the wire turns back
+    // beside the innermost box it can — this one only if nothing stands above (below) the box inside (`clear`)
+    if (!ask.named && !ask.clear && (ask.wall === "n" || ask.wall === "s")) return undefined;
+    if (v.wire.bundle) { if (ask.named) refuse(v.wire.id, ask.end, "trunk"); return undefined; }
+    // A side wall takes the hook whatever else it carries: the wall's wires are placed together (`sides.ts`).
+    // Out of a north or south wall the hook may go round either side of its box, and the ordering stage
+    // chooses (`Search.flip`); it starts on a side nothing runs straight out of — a lane on the other
+    // is counted as crossing that wire.
+    const straight = (wall: Wall) => sheet.flats.some((f) => f.straight && ((f.a === box && wall === "e") || (f.b === box && wall === "w"))) || sheet.sides.some((d) => d.x === box && d.wall === wall);
+    const side = ask.wall === "e" || ask.wall === "w" ? ask.wall : !straight("e") ? "e" : "w";
     const lane = thin("lane", slots[box].row, v.key);
-    // out of a north or south wall the hook may go round either side of its box, and the ordering stage chooses
-    // (`Search.flip`). It starts on a side nothing runs straight out of; a lane on the other is counted as crossing that wire
-    const free = ask.wall !== "e" && ask.wall !== "w";
-    slots[lane].beside = free ? { box, wall: ask.wall, after: side === "e", free } : { box, wall: ask.wall, after: side === "e" };
+    const free = ask.wall !== "e" && ask.wall !== "w", tail = natural === "n"; // the lower end of the wire's way through the sheet
+    slots[lane].beside = free ? { box, wall: ask.wall, after: side === "e", free, tail } : { box, wall: ask.wall, after: side === "e", tail };
     if (ask.thru) ask.thru.wall = turn(ask.wall, dir, slots[box].kid!.box.group!.dir);
     return { box, wall: ask.wall, lane };
   };

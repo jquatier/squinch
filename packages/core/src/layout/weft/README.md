@@ -57,7 +57,8 @@ solve
  └─ lay      lay.ts      one sheet's geometry, innermost first
       ├─ gutters   gutter.ts   wires between row-mates, and the room they need
       ├─ place     place.ts    every slot along its row         solver: project.ts
-      ├─ ports     ports.ts    where wires meet the walls of leaves
+      ├─ ports     ports.ts    where wires meet the north and south walls of leaves
+      │            sides.ts    …and their east and west walls
       └─ channels  tracks.ts   what turns between two rows, on which track
 ```
 
@@ -72,13 +73,14 @@ vocabulary. Each file opens with what it decides and why.
 | `rank.ts` | ~160 | ranks of one container: pins exact, the rest least total length |
 | `sheet.ts` | ~450 | slots, links, trunks, labels' places, which wall each wire uses |
 | `count.ts` | ~260 | how many crossings an order will draw — exactly, and incrementally |
-| `order.ts` | ~540 | the order of every row |
+| `order.ts` | ~560 | the order of every row |
 | `project.ts` | ~70 | positions on a line under gaps, nearest to what each wants |
 | `place.ts` | ~250 | where each slot stands along its row: balance first |
 | `ports.ts` | ~90 | ports on a leaf's wall: ordered, even, sliding to meet |
-| `gutter.ts` | ~110 | a wire straight across between two neighbours; its label |
-| `tracks.ts` | ~110 | track order and spacing in a channel |
-| `lay.ts` | ~620 | rows, fit, channel depths, the polylines |
+| `sides.ts` | ~100 | ports on a leaf's side wall: hooks and straight wires in one order |
+| `gutter.ts` | ~130 | a wire straight across between two neighbours; its label |
+| `tracks.ts` | ~125 | track order and spacing in a channel |
+| `lay.ts` | ~660 | rows, fit, channel depths, the polylines |
 | `engine.ts` | ~120 | the stages in order; sheets onto the page; pieces joined |
 
 ## The rules, and where each is kept
@@ -118,11 +120,14 @@ cannot point down runs up instead (`constraints`); network simplex
 - tracks 16 apart, ordered so that wires which need not cross do not, and so
   that no stub lies along another: `tracks.ts` (`above`, `stack`, `pitch`);
 - a wire fixed at both ends that would lie along another steps aside
-  (`stepAside`) or, failing that, steps twice (`twice`): `lay.ts`;
+  (`stepAside`) or, failing that, steps twice (`twice`): `lay.ts`; and where
+  neither can, the channel is stacked once more for any order that keeps
+  every stub off every other (`stack(…, true)`);
 - same-rank neighbours straight across the gutter: `gutter.ts`; round under
   the row otherwise: `sheet.ts` (`Flat.straight`), drawn in `drawFlat`;
 - to a side wall, straight if last in the row, else by the quieter channel:
-  `sideWay` in `sheet.ts`;
+  `sideWay` in `sheet.ts` — from the box's north or south wall, or, asked for
+  the side wall, from a lane beside the box (`Side.hook`);
 - upward wires: a link marked `back`, drawn top-down and reversed.
 
 **Ports (§5.4)** — `ports.ts` (`settle`, `meetAcross`): order by far end,
@@ -241,37 +246,54 @@ by screen side, that nothing enters but the box's own wires on that wall.
   a north or south wall is placed with the wall's others, at the end
   nearest the lane;
 - a wire to the sheet's own side wall, from a leaf: north and south are
-  `Side.via` over and under; the near wall is kept by keeping the box last
-  (`sheet.last`);
+  `Side.via` over and under. Asked for the side wall itself, the wire runs
+  straight out where the box is last in its row (kept so by `sheet.last`);
+  with row-mates between (`beyond`), it leaves by that wall to a lane beside
+  the box and goes over or under the row from there (`Side.hook`, drawn in
+  `drawSide`);
+- **a side wall takes any number of wires** (`sides.ts`): the hooks whose
+  lane comes down to the wall (`beside.tail`) stand highest, the nearest lane
+  first; the wires straight out — flats across the gutter, wires on to the
+  sheet's wall — between; the hooks whose lane goes on down lowest, the
+  nearest lane last. In that order none crosses another, which is why
+  `Count.along` does not count a box's own hook lane against the wires
+  straight out of the same wall (`own`). The straight wires are placed first
+  with the hooks' room kept free (`reserve`, read by `gutters` as `keep` and
+  by the `level` step of `lay.ts`), then `stand` places the hooks about them
+  (`hookV`). A wire that steps in a gutter steps beyond the lanes of that
+  wall's hooks (`Crossing.after`, `before`), and `slide` leaves a wall with
+  hooks alone;
 - **through a container's wall**: the side asked of a box carries on through
-  the same wall of the container around it while the box has a clear run to
-  it — last in its row on that side, or in the first (last) rank for north
-  (south) — at every level on the way in (`clear`, read off `ranked`: ranks
-  and declared order, so it is known before the sheet inside is built). The
-  container then takes a hook like a leaf (`hookFor`), and the wire, already
+  the same wall of every container around it (`asked` always answers). The
+  one wall held back is the north or south one that faces against the wire's
+  own way: it is carried only while the box is in the first (last) rank at
+  every level on the way in (`clear`, read off `rankings`: ranks and declared
+  order, so it is known before the sheet inside is built), and otherwise the
+  box takes its hook inside and the container keeps its natural wall. The
+  container takes a hook like a leaf (`hookFor`), and the wire, already
   handed to the sheet inside by its natural wall to keep its place among that
   sheet's wires, is turned to the wall given (`Ask.thru`, set in `hookFor`;
   `Thru.wall` is final once the sheet outside is built); inside, it is a
   wire to a side wall, as between row-mates. Its place on the container's
-  side wall is the inside's (`fixedPort` in `hookOf`). Where the run is not
-  clear the container keeps its natural wall and the box takes its hook
-  inside, as before. A wire that ends at the container is asked of the
-  container's wall (`named`, the one test of "the box the wire names", read
-  by every place that reports). Several wires that end at one side wall of a
-  container take their places there in the order they come to it outside,
-  where the container stands in one of the other direction (`comesAt` in
-  `lay.ts`);
+  side wall is the inside's (`fixedPort` in `hookOf`), and the inside orders
+  that wall as `sides.ts` orders a leaf's, reading off the sheet outside
+  which wires are hooked round the container and which way (`comesAt` in
+  `lay.ts`) — so wires hooked into one side wall of a container do not cross
+  between the wall and their lanes. A wire that ends at the container is
+  asked of the container's wall (`named`, the one test of "the box the wire
+  names", read by every place that reports). Several wires that end at one
+  side wall of a container take their places there in the order they come to
+  it outside (`comesAt` again);
 - not given, and reported in `Solution.unhonoured` with the reason and what
-  a caller needs to say it in screen sides (`Refusal`: the sides in use, the
-  row-mate, the wall the wire leaves by, the sides that would be given) —
-  only for the box the wire names, and only where the picture bears it out:
-  `engine.ts` drops a refusal whose end was drawn by the wall asked after
-  all (a box the ordering stage put last in its row). The reasons: a
-  wire of a bundle (`trunk`); a box that already has a wire straight across
-  that side's gutter or out to that side's wall (`taken`); the far wall
-  (`far`), or a blocked near wall (`blocked`), of a box whose wire leaves its
-  container sideways; a leaf standing in one rank with the container the
-  other end is in (`row`). Between two row-mates of one container the side
+  a caller needs to say it in screen sides (`Refusal`: the row-mate, the wall
+  the wire leaves by, the sides that would be given) — only for the box the
+  wire names, and only where the picture bears it out: `engine.ts` drops a
+  refusal whose end was drawn by the wall asked after all (a box the ordering
+  stage put last in its row). The reasons are three: a wire of a bundle
+  (`trunk`); the far wall of a box whose wire leaves its container sideways,
+  toward a row-mate of the container (`far`); a box standing in one rank with
+  the container the other end is in (`row`). A wall that already carries
+  wires is never a reason. Between two row-mates of one container the side
   is ignored without report (the caller can see that), and a container the
   wire only passes through keeps its natural wall without report.
 
@@ -360,20 +382,21 @@ The list, with what each costs and what to try next, is §8 of
   beside one box are slow to order: each is a slot of that row, and the cost
   grows steeply with their number (80 sided wires out of one container about
   a quarter of a second, 120 about a second).
-- `count.ts`: two hooks out of one wall of a box are taken to nest, which
-  they mostly do; and two wires hooked into one *side* wall of a container
-  may cross once between the wall and their lanes — the inside fixes their
-  levels, the lanes outside are ordered without them.
-- Two wires asked for one side wall of a box: the one that carries on through
-  the container's wall takes it (it is a wire straight out of that side), and
-  the other is refused `taken`.
+- `sides.ts`: a side wall shorter than its wires holds them closer than a
+  step, and where a straight wire is fixed at the very end of the wall (a
+  container's port across the gutter) a hook that belongs beyond it takes the
+  nearest free place and crosses it.
+- `sheet.ts`: a side asked against the wire's own way (north, going down) is
+  carried through a container's wall only from the first rank; from deeper
+  the wire turns beside its box. Carried always it looped round every
+  container on the way (docs/notes/layout-engine.md §8).
 - A side is not carried through a container's wall toward a row-mate: where
   the wire's other end stands in the container's own rank, the wire leaves
   the container toward it (§ same-rank wires), whatever the box was asked.
-- Past one level of nesting (`nestedProblem` in the audit), two wires fixed at
-  both ends 16 px apart can still be drawn along one line, and a label can
-  lie under another wire — about one Problem in a hundred, with or without
-  sides asked.
+- Past one level of nesting (`nestedProblem` in the audit), a label can lie
+  under another wire (about one Problem in ninety) and two wires that each
+  step twice in one channel can be drawn along one line (four in 3,000) —
+  with or without sides asked.
 - `lay.ts`: a container's north and south ports stand where its inside puts
   them; only `slide` (across a gutter) moves a finished container's port to
   meet a wire.

@@ -20,6 +20,12 @@ export interface Crossing {
   step?: number;
   /** the middle of its label, from `a`'s wall */
   label?: number;
+  /** The gutter's own room — the columns wires step on, the labels — lies
+   *  past the lanes of `a`'s hooks on that wall, and short of the lanes of
+   *  `b`'s: the last of the one, the first of the other, where there are
+   *  any. A wire that steps there is on its far level only beyond `a`'s
+   *  hooks, so it cannot lie along one of them. */
+  after?: number; before?: number;
 }
 export interface Gutters {
   /** flat → how it crosses */
@@ -30,8 +36,10 @@ export interface Gutters {
 
 const PORT = 16, EDGE = 12;
 
-/** `fixed(kid, wall, key)`: where a container's own wire meets its wall, from its top; `dv`: a box's top within its row. */
-export function gutters(s: Sheet, dv: number[], fixed: (kid: Kid, wall: "e" | "w", key: string) => number | undefined): Gutters {
+/** `fixed(kid, wall, key)`: where a container's own wire meets its wall, from its top; `dv`: a box's top
+ *  within its row; `keep(slot, wall)`: the room that wall's hooks take above and below the wires that
+ *  cross the gutter (`sides.ts`: lanes that come down to the wall stand above them, lanes that go down, below). */
+export function gutters(s: Sheet, dv: number[], fixed: (kid: Kid, wall: "e" | "w", key: string) => number | undefined, keep: (slot: number, wall: "e" | "w") => { above: number; below: number } = () => ({ above: 0, below: 0 })): Gutters {
   const of = new Map<Flat, Crossing>(), room = new Map<number, number>();
   const pairs = new Map<string, Flat[]>();
   for (const f of s.flats) if (f.straight) (pairs.get(`${f.a}|${f.b}`) ?? pairs.set(`${f.a}|${f.b}`, []).get(`${f.a}|${f.b}`)!).push(f);
@@ -39,11 +47,14 @@ export function gutters(s: Sheet, dv: number[], fixed: (kid: Kid, wall: "e" | "w
   for (const flats of pairs.values()) {
     const a = s.slots[flats[0].a], b = s.slots[flats[0].b];
     /** The stretch of a leaf's wall a wire may land on. */
-    const reach = (slot: typeof a): [number, number] => {
+    const reach = (slot: typeof a, wall: "e" | "w"): [number, number] => {
       const k = slot.kid!, lo = dv[slot.i] + 8, hi = dv[slot.i] + Math.min(k.h, k.faceV ?? k.h) - 8;
-      return lo <= hi ? [lo, hi] : [dv[slot.i] + k.h / 2, dv[slot.i] + k.h / 2];
+      if (lo > hi) return [dv[slot.i] + k.h / 2, dv[slot.i] + k.h / 2];
+      // less the room the wall's hooks stand in, where the wall is long enough for both
+      const hooks = keep(slot.i, wall), room = (flats.length - 1) * PORT;
+      return lo + hooks.above + room <= hi - hooks.below ? [lo + hooks.above, hi - hooks.below] : [lo, hi];
     };
-    const [ra, rb] = [reach(a), reach(b)];
+    const [ra, rb] = [reach(a, "e"), reach(b, "w")];
     const taken = { a: [] as number[], b: [] as number[] };
     /** The free place on a wall nearest `v`, within `[lo, hi]` if there is one. */
     const free = (used: number[], v: number, [lo, hi]: [number, number]): number => {
@@ -105,7 +116,12 @@ export function gutters(s: Sheet, dv: number[], fixed: (kid: Kid, wall: "e" | "w
       }
       width = left[left.length - 1] + wide[wide.length - 1] + EDGE;
     }
-    room.set(a.i, Math.max(room.get(a.i) ?? 0, width));
+    // the lanes of hooks out of the two facing walls stand in the gutter too, each beside its own box
+    const row = s.rows[a.row], between = row.slice(s.at[a.i] + 1, s.at[b.i]);
+    const after = between.filter((m) => s.slots[m].beside?.box === a.i && s.slots[m].beside!.wall === "e").pop();
+    const before = between.find((m) => s.slots[m].beside?.box === b.i && s.slots[m].beside!.wall === "w");
+    for (const f of flats) Object.assign(of.get(f)!, after === undefined ? {} : { after }, before === undefined ? {} : { before });
+    room.set(after ?? a.i, Math.max(room.get(after ?? a.i) ?? 0, width));
   }
   return { of, room };
 }

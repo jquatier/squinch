@@ -243,8 +243,27 @@ class Search {
         outside[i] = hook ? (hookAfter(hook.t.sheet, hook.lane) ? HOOKED : -HOOKED) : h ? (wall === "n" ? this.count.above(h.t, h.link) : this.count.below(h.t, h.link)) : 0;
         if (i && (inside[i - 1] > inside[i] || (inside[i - 1] === inside[i] && outside[i - 1] > outside[i]))) sorted = false;
       }
+      // A wire that ends at this wall has nothing inside to follow, so it
+      // stands among the others by where it is headed outside: at the place
+      // that puts it on the right side of the most of them.
+      let by: number[] | undefined;
+      if (inside.slice(0, n).includes(Infinity)) {
+        const all = row.map((_, i) => i), cmp = (p: number, q: number) => outside[p] - outside[q] || p - q;
+        const through = all.filter((i) => inside[i] !== Infinity).sort((p, q) => inside[p] - inside[q] || cmp(p, q));
+        const ended = all.filter((i) => inside[i] === Infinity).sort(cmp).map((i) => {
+          let at = through.length, least = Infinity;
+          for (let c = through.length; c >= 0; c--) {
+            const cost = through.reduce((sum, j, m) => sum + (m < c ? +(outside[j] > outside[i]) : +(outside[j] < outside[i])), 0);
+            if (cost < least) { least = cost; at = c; }
+          }
+          return { i, at };
+        });
+        by = [];
+        for (let c = 0; c <= through.length; c++) { for (const e of ended) if (e.at === c) by.push(e.i); if (c < through.length) by.push(through[c]); }
+        sorted = by.every((i, m) => i === m);
+      }
       if (!sorted) {
-        const by = row.map((_, i) => i).sort((p, q) => inside[p] - inside[q] || outside[p] - outside[q] || p - q);
+        by ??= row.map((_, i) => i).sort((p, q) => inside[p] - inside[q] || outside[p] - outside[q] || p - q);
         this.set(t, k, by.map((i) => row[i]));
         const out = t.parent;
         if (out && out.sheet.dir === s.dir) {
@@ -274,7 +293,8 @@ class Search {
   private ties(t: Tally, wall: "n" | "s"): boolean {
     const s = t.sheet, ports = s.rows[wall === "n" ? 0 : s.R + 1];
     const inner = ports.map((p) => { const l = (wall === "n" ? t.downs : t.ups)[p][0]; return l ? (wall === "n" ? l.down : l.up) : -1; });
-    let tied = new Set(inner).size < inner.length;
+    // (a wire that ends at the wall is placed by what lies outside alone)
+    let tied = new Set(inner).size < inner.length || (inner.length > 1 && inner.includes(-1));
     for (const slot of s.rows[wall === "n" ? 1 : s.R] ?? []) {
       const kid = s.slots[slot].kid?.sheet;
       if (kid && kid.dir === s.dir && this.ties(this.count.tally(kid), wall)) tied = true;

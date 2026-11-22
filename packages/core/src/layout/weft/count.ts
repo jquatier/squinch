@@ -228,13 +228,16 @@ export class Count {
   private along(u: Unit): void {
     const t = u.tally, s = t.sheet;
     let cross = 0;
+    // (a wire straight out of a leaf's side wall does not cross that wall's own hooks: they stand
+    // above and below it, `sides.ts` — a container's side wall is its inside's to order)
+    const own = (m: number, box: number, wall: Wall) => { const h = s.slots[m].beside; return !!h && h.box === box && h.wall === wall && !s.slots[box].kid!.sheet; };
     for (const f of t.flats[u.k]) {
       const between = s.rows[u.k].slice(s.at[f.a] + 1, s.at[f.b]);
-      for (const m of between) cross += f.straight ? (s.slots[m].kind === "lane" ? 1 : 0) : t.downs[m].length;
+      for (const m of between) cross += f.straight ? (s.slots[m].kind === "lane" && !own(m, f.a, "e") && !own(m, f.b, "w") ? 1 : 0) : t.downs[m].length;
     }
     for (const side of t.sides[u.k]) {
       const how = sideWay(s, side);
-      for (const m of beyond(s, side)) cross += how === "straight" ? 1 : how === "over" ? s.busy.up[m] : s.busy.down[m];
+      for (const m of beyond(s, side)) cross += how === "straight" ? (own(m, side.x, side.wall) ? 0 : 1) : how === "over" ? s.busy.up[m] : s.busy.down[m];
     }
     // a hook's stretch from its box's wall to its lane: across every lane that stands between them —
     // a wire passing the row, or a hook of the same box out of another wall (out of the north wall

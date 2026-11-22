@@ -584,7 +584,7 @@ Source: [`cases/44-relationships.squinch`](cases/44-relationships.squinch)
 
 ## Route Through Walls
 
-A `route` side carries through walls. Asked to leave by its east side, the API leaves the Shop frame by its east wall as well, and the zone around it — through each boundary in turn, for as long as nothing stands between the node and that wall. In the second view Cache has been put east of the API, so the side stops at the node: it still leaves by the east, and the edge takes its ordinary way out of the frame. Nothing warns there — the node was given the side it was asked for. An edge declared on the system itself (`shop -> archive`) is asked of the frame's own wall.
+A `route` side carries through walls. Asked to leave by its east side, the API leaves the Shop frame by its east wall as well, and the zone around it — through each boundary in turn. In the second view Cache has been put east of the API: the edge still leaves the API by the east, goes over what stands in the row, and leaves the frame and the zone by their east walls. A side wall takes any number of edges — in the third view two leave the API by the east, one to a node inside the frame and one on through its wall. An edge declared on the system itself (`shop -> archive`) is asked of the frame's own wall.
 
 Source: [`cases/45-route-through-walls.squinch`](cases/45-route-through-walls.squinch)
 
@@ -594,8 +594,14 @@ Source: [`cases/45-route-through-walls.squinch`](cases/45-route-through-walls.sq
 |---|---|
 | ![](out/45-route-through-walls.carried.light.svg) | ![](out/45-route-through-walls.carried.dark.svg) |
 
-**`stopped`**
+**`past`**
 
 | light | dark |
 |---|---|
-| ![](out/45-route-through-walls.stopped.light.svg) | ![](out/45-route-through-walls.stopped.dark.svg) |
+| ![](out/45-route-through-walls.past.light.svg) | ![](out/45-route-through-walls.past.dark.svg) |
+
+**`shared`**
+
+| light | dark |
+|---|---|
+| ![](out/45-route-through-walls.shared.light.svg) | ![](out/45-route-through-walls.shared.dark.svg) |

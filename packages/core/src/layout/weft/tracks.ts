@@ -50,9 +50,12 @@ export interface Stack {
   clash?: { upper: Net; lower: Net; at: number };
 }
 
-export function stack(nets: readonly Net[]): Stack {
+/** `sorted`: where the cheapest order found still lays one stub along
+ *  another, look for any order that does not — the last resort of a channel
+ *  whose wires could neither step aside nor step twice (`lay.ts`). */
+export function stack(nets: readonly Net[], sorted = false): Stack {
   // insert each net where it costs least among those already placed
-  const order: Net[] = [];
+  let order: Net[] = [];
   for (const n of [...nets].sort((p, q) => p.lo - q.lo || p.hi - q.hi || (p.id < q.id ? -1 : 1))) {
     let best = 0, least = Infinity;
     for (let at = 0; at <= order.length; at++) {
@@ -68,6 +71,22 @@ export function stack(nets: readonly Net[]): Stack {
     moved = false;
     for (let i = 0; i + 1 < order.length; i++)
       if (above(order[i + 1], order[i]) < above(order[i], order[i + 1])) { [order[i], order[i + 1]] = [order[i + 1], order[i]]; moved = true; }
+  }
+
+  // The insertion is greedy, and can leave a clash that some other order
+  // would not have: `b` must stand above `a` wherever `a` above `b` clashes,
+  // and where those musts make no ring there is an order that keeps them
+  // all — the one nearest the order found, taking the first net free to go
+  // next each time.
+  const clashes = (list: Net[]) => list.some((a, i) => list.slice(i + 1).some((b) => above(a, b) >= CLASH && a.under !== b.id));
+  if (sorted && clashes(order)) {
+    const left = [...order], out: Net[] = [];
+    while (left.length) {
+      const i = left.findIndex((n) => left.every((m) => m === n || above(n, m) < CLASH));
+      if (i < 0) break; // a ring: no order will do
+      out.push(...left.splice(i, 1));
+    }
+    if (!left.length) order = out;
   }
 
   // tracks: as near the row above as the order allows; a net with nothing

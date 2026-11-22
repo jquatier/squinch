@@ -36,13 +36,28 @@ it("a label given room is not stepped into: the seeds that need the room held fi
   }
 });
 
+// A side wall shared by hooks and straight wires found two ways to lay one
+// wire along another, both outside the ranges above. 711: a channel whose
+// wires could neither step aside nor step twice has an order that keeps every
+// stub off every other, which the greedy stacking missed (`stack(…, true)`).
+// 1041: a wire stepping in a gutter stood on the lane of a hook on the same
+// wall, and now steps beyond it (`Crossing.after`, `before`).
+it("wires that share a side wall with hooks are not drawn along one line: the seeds that were", () => {
+  for (const seed of [711, 1041]) {
+    const p = randomProblem(seed, true, false);
+    expect(audit(p, solve(p)), `seed ${seed}`).toEqual([]);
+  }
+});
+
 // What `randomProblem` never makes: a container inside a container, sometimes
 // of the other direction, and wires that end at a container (`nestedProblem`).
 // The rule for a side asked is held on all of it: the box the wire names is
 // given that wall or the end is reported, and nothing reported was given.
-// Two older weaknesses show at this depth with or without sides asked — two
-// wires along one line between fixed ends 16 px apart, and a label under
-// another wire (docs/notes/layout-engine.md §8) — and may not grow.
+// Two older weaknesses show at this depth with or without sides asked
+// (docs/notes/layout-engine.md §8). A label under another wire may not grow.
+// Two wires along one line between fixed ends 16 px apart no longer shows in
+// these 600 — four of the 2,400 seeds after them still have it — and may not
+// come back.
 it("600 random problems nested two deep, with wires that end at containers: every side asked is given or reported", () => {
   const sides: string[] = [], along: string[] = [], labels: string[] = [], other: string[] = [];
   for (let seed = 0; seed < 600; seed++) {
@@ -52,6 +67,6 @@ it("600 random problems nested two deep, with wires that end at containers: ever
   }
   expect(sides).toEqual([]);
   expect(other).toEqual([]);
-  expect(along.length, along.join("\n")).toBeLessThanOrEqual(7);
-  expect(labels.length, labels.join("\n")).toBeLessThanOrEqual(8);
+  expect(along).toEqual([]);
+  expect(labels.length, labels.join("\n")).toBeLessThanOrEqual(7);
 }, 120_000);

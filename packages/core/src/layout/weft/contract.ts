@@ -65,14 +65,14 @@ export interface Wire {
    *  side that is the natural one changes nothing; any other is drawn the
    *  long way round, at least 16 px straight out of the wall first.
    *
-   *  The side is asked of the box the wire names, and carries outward: where
-   *  that box has a clear run to the same wall of the container around it —
-   *  it is the last box of its row on that side as declared, or in the first
-   *  (last) rank for north (south) — the wire crosses the container's wall by that side
-   *  too, and so on through each container out to where the wire's two ends
-   *  part. Where something stands between, the wire crosses that container
-   *  by its natural wall. A wire that ends at a container is asked of that
-   *  container's wall.
+   *  The side is asked of the box the wire names, and carries outward: the
+   *  wire crosses the same wall of every container around that box, out to
+   *  where its two ends part — past whatever stands in the box's row, which
+   *  it goes over or under. One wall is carried only while the box has a
+   *  clear run to it: the north or south one that faces against the wire's
+   *  own way, which is given through a container's wall from the first
+   *  (last) rank and no deeper; from deeper the wire turns beside its box. A
+   *  wire that ends at a container is asked of that container's wall.
    *
    *  Where the named box's own wall cannot be given, the end keeps its
    *  natural side and is listed in `Solution.unhonoured`. */
@@ -103,19 +103,17 @@ export interface Solution {
 /** An end of a wire that was not given the side it asked for, and why — with
  *  what the caller needs to say so, in screen sides:
  *  - `trunk`: the wire is one of a bundle, which shares its port and lanes;
- *  - `taken`: that side of the box already carries a wire straight out of it
- *    — across to a neighbour, or on to the container's wall. Asked for north
- *    or south, the wire has to go round one side of its box, and both are in
- *    use. `inUse`: those sides;
  *  - `row`: the box stands in one rank with the box that holds the other end
  *    (`mate`), so the wire runs along the rank;
  *  - `far`: the wire leaves the box's container by a side wall (`by`), and
- *    the box was asked for the wall facing the other way;
- *  - `blocked`: it was asked for the wall facing that way, with a row-mate
- *    standing between. For both, `open` is the two sides it could be given
- *    there: over and under the row. */
+ *    the box was asked for the wall facing the other way. `open`: the two
+ *    sides it could be given there besides — over and under the row.
+ *  Nothing else is a reason. A wall that already carries other wires takes
+ *  one more, as a north or south wall does; and a box with row-mates between
+ *  it and the wall its wire leaves by is given that side all the same, the
+ *  wire going over or under them. */
 export interface Refusal {
   wire: string; end: "from" | "to";
-  why: "trunk" | "taken" | "row" | "far" | "blocked";
-  inUse?: Side[]; mate?: string; by?: Side; open?: Side[];
+  why: "trunk" | "row" | "far";
+  mate?: string; by?: Side; open?: Side[];
 }
