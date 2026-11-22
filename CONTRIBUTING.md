@@ -154,7 +154,19 @@ CHANGELOG section from the commits since the last tag, opens it in `$EDITOR`
 to be trimmed into something a reader deserves (the draft is a starting point,
 not the changelog), bumps every workspace manifest together, commits
 `release: <version>`, tags `v<version>`, and pushes branch + tag in one go.
-`--dry-run` shows everything and writes nothing; `--no-edit` accepts the draft.
+`--dry-run` shows everything and writes nothing; `--no-edit` accepts the draft;
+`--notes "…"` or `--notes-file notes.md` supplies finished notes instead of a
+draft, with no editor.
+
+**The notes are written, not drafted.** The draft is the commit list; what
+ships is prose — a bold opening on the headline feature with a code example and
+its picture, whether existing diagrams redraw, a section per feature, then
+Fixed, Agents and the rest (the last few CHANGELOG sections are the model). In
+Claude Code, `/release [version]` writes them: the project skill in
+[`.claude/skills/release/`](.claude/skills/release/SKILL.md) reads the range,
+works out whether committed renders changed and whether the skill did, writes
+the notes in that style with every picture beside its feature, checks them with
+a dry run, and shows them to you. It runs `pnpm release` only after you say go.
 
 The draft also **embeds the SVG of every new feature** where it is announced:
 each lookbook case (`lookbook/cases/`) and example project (`examples/`) added

@@ -4,7 +4,12 @@
 //   pnpm release 0.1.0          # same, version given up front
 //   pnpm release 0.1.0 --no-edit   # accept the drafted notes as-is
 //   pnpm release 0.1.0 --notes "Initial release."   # your notes, no editor
+//   pnpm release 0.1.0 --notes-file notes.md        # the same, from a file
 //   pnpm release --dry-run      # show everything, write nothing
+//
+// In Claude Code, `/release` (.claude/skills/release/) writes the notes as
+// prose from this draft, checks them with --dry-run, and runs this with
+// --notes-file once the maintainer has approved them.
 //
 // It drafts the CHANGELOG section from the commits since the last tag, the SVG
 // of every lookbook case and example project added since then embedded under
@@ -17,7 +22,7 @@
 // Release with this section as its notes, and publishes the npm packages. If
 // CI fails, no release exists — fix and run this again with the next number.
 import { execFileSync, spawnSync } from "node:child_process";
-import { readFileSync, writeFileSync, mkdtempSync, rmSync } from "node:fs";
+import { existsSync, readFileSync, writeFileSync, mkdtempSync, rmSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { tmpdir } from "node:os";
 import { createInterface } from "node:readline/promises";
@@ -31,12 +36,15 @@ const noEdit = args.includes("--no-edit");
 // --notes "text" supplies the section body directly — no draft, no editor.
 // This is the non-interactive path (an agent or CI has no $EDITOR), and the
 // honest spelling of "I already know what the notes should say".
-const notesAt = args.indexOf("--notes");
-const givenNotes = notesAt !== -1 ? args[notesAt + 1] : undefined;
-// The value after --notes is not the version; with no --notes there is nothing
-// to skip (notesAt + 1 would be 0 — the first argument — which is where the
-// version usually sits).
-const givenVersion = args.find((a, i) => !a.startsWith("--") && (notesAt === -1 || i !== notesAt + 1));
+// --notes-file reads it from a file: written notes are Markdown full of
+// backticks, which a shell argument mangles (the /release skill uses this).
+const notesAt = args.indexOf("--notes"), fileAt = args.indexOf("--notes-file");
+const notesFile = fileAt !== -1 ? args[fileAt + 1] : undefined;
+const readable = notesFile && !notesFile.startsWith("--") && existsSync(notesFile);
+const givenNotes = notesAt !== -1 ? args[notesAt + 1] : readable ? readFileSync(notesFile, "utf8").trim() : undefined;
+// The value after --notes / --notes-file is not the version.
+const values = new Set([notesAt, fileAt].filter((i) => i !== -1).map((i) => i + 1));
+const givenVersion = args.find((a, i) => !a.startsWith("--") && !values.has(i));
 
 // stderr piped, not inherited: the no-tags-yet probe (`git describe`) fails
 // by design on a fresh repo, and its "fatal:" would leak into our output.
@@ -50,6 +58,10 @@ const fail = (msg) => {
 // ── preflight rails ─────────────────────────────────────────────────────────
 if (notesAt !== -1 && (!givenNotes || givenNotes.startsWith("--")))
   fail("--notes needs a value — a following flag doesn't count");
+if (fileAt !== -1 && (!notesFile || notesFile.startsWith("--"))) fail("--notes-file needs a path");
+if (fileAt !== -1 && !readable) fail(`no such file: ${notesFile}`);
+if (notesAt !== -1 && fileAt !== -1) fail("--notes or --notes-file, not both");
+if (fileAt !== -1 && !givenNotes) fail(`${notesFile} is empty`);
 const branch = git("rev-parse", "--abbrev-ref", "HEAD");
 if (branch !== "main") fail(`on \`${branch}\` — releases cut from main`);
 if (git("status", "--porcelain") !== "") fail("working tree is dirty — commit or stash first");

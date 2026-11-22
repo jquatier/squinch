@@ -436,6 +436,19 @@ describe("the workspace ships one version", () => {
     expect(readFileSync(join(root, "scripts/release.mjs"), "utf8")).toContain("screenshots(root, added)");
     expect(readFileSync(join(root, "scripts/release-notes.mjs"), "utf8")).toContain("shotProblems(root, version, notes)");
   });
+
+  it("the /release skill uses only flags the release command has, and is documented", () => {
+    // The notes are written by the project skill and passed to `pnpm release`;
+    // a flag renamed in the script would leave the skill telling an agent to
+    // run a command that fails at the moment of release.
+    const skill = readFileSync(join(root, ".claude/skills/release/SKILL.md"), "utf8");
+    expect(skill).toMatch(/^---\nname: release\n/);
+    const script = readFileSync(join(root, "scripts/release.mjs"), "utf8");
+    const flags = [...new Set([...skill.matchAll(/pnpm release[^\n`]*/g)].flatMap((m) => m[0].match(/--[a-z-]+/g) ?? []))];
+    expect(flags.sort()).toEqual(["--dry-run", "--no-edit", "--notes-file"]);
+    for (const f of flags) expect(script, `release.mjs has no ${f}`).toContain(`"${f}"`);
+    expect(readFileSync(join(root, "CONTRIBUTING.md"), "utf8")).toContain(".claude/skills/release/SKILL.md");
+  });
 });
 
 describe("workspace scripts run on every platform", () => {

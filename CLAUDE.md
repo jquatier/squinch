@@ -581,6 +581,13 @@ in `layout-engine-spike.md`; `coplanar.md`, `wrap.md`, `edge-labels.md` and
   `test/weft/quality.baseline.json`. `UPDATE_QUALITY=1` re-records the
   baseline — same commit as the change that earned it, and only after looking
   at the pictures that moved (`docs/notes/layout-engine.md` §9).
+- `pnpm release [x.y.z]` — cut a release from a clean `main` (CONTRIBUTING
+  "Cutting a release"). Its draft is the commit list with each new lookbook
+  case's and example's SVG embedded under the commit that added it
+  (`scripts/release-shots.mjs`); the notes that ship are prose, written by the
+  `/release` project skill (`.claude/skills/release/`) and approved by the
+  maintainer before it tags. Never run it without `--dry-run` unasked — a tag
+  push publishes to npm.
 - `node scripts/version.mjs [x.y.z]` — print, or set, the **one** version the
   whole workspace shares (root `package.json` is the truth; a guardrail asserts
   every member matches). The engine, CLI and extension are one product cut
