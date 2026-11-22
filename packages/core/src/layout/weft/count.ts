@@ -228,6 +228,8 @@ export class Count {
   private along(u: Unit): void {
     const t = u.tally, s = t.sheet;
     let cross = 0;
+    // (most rows have nothing along them)
+    if (!t.flats[u.k].length && !t.sides[u.k].length && !t.hooks[u.k].length) { u.cross = 0; u.rough = 0; return; }
     // (a wire straight out of a leaf's side wall does not cross that wall's own hooks: they stand
     // above and below it, `sides.ts` — a container's side wall is its inside's to order)
     const own = (m: number, box: number, wall: Wall) => { const h = s.slots[m].beside; return !!h && h.box === box && h.wall === wall && !s.slots[box].kid!.sheet; };

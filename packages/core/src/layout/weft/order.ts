@@ -497,8 +497,12 @@ class Search {
     let any = false;
     for (let again = true, pass = 0; again && pass < row.length; pass++) {
       again = false;
-      for (let i = 0; i + 1 < row.length; i++)
-        if (this.back(t, row[i], step) > this.back(t, row[i + 1], step)) { this.swap(t, k, i, log); again = any = true; }
+      // (each place read once a pass, until a trade — which may comb a wall the row reads from)
+      let left = this.back(t, row[0], step);
+      for (let i = 0; i + 1 < row.length; i++) {
+        const right = this.back(t, row[i + 1], step);
+        if (left > right) { this.swap(t, k, i, log); again = any = true; left = this.back(t, row[i + 1], step); } else left = right;
+      }
     }
     if (any) this.untangle(t, k + step, step, log);
   }
