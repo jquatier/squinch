@@ -159,7 +159,7 @@ not the changelog), bumps every workspace manifest together, commits
 draft, with no editor.
 
 **The notes are written, not drafted.** The draft is the commit list; what
-ships is prose — a bold opening on the headline feature with a code example and
+ships is prose, with no code blocks — a bold opening on the headline feature and
 its picture, whether existing diagrams redraw, a section per feature, then
 Fixed, Agents and the rest (the last few CHANGELOG sections are the model). In
 Claude Code, `/release [version]` writes them: the project skill in

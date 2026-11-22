@@ -46,8 +46,7 @@ Read the last two sections of `CHANGELOG.md` before writing; they are the
 model. In short:
 
 - **Open with the headline feature**: one bold sentence saying what a user can
-  now do, a sentence or two on why it matters, then a short `squinch` code
-  block showing it, then its picture.
+  now do, a sentence or two on why it matters, then its picture.
 - Then the redraw line and, if the skill changed, the `squinch skill` line.
 - A `### <Feature>` section per feature: bullets that each open with a bold
   claim, then the detail. Real numbers where there are any (crossings, ms,
@@ -62,6 +61,9 @@ model. In short:
   them at the end, and never link a picture at another tag.
 - Link a new lookbook case or example at `blob/main/…` (the case's source),
   as 0.21.0 does.
+- **No code blocks.** The picture shows the feature and the docs show the
+  syntax; a keyword or a short attribute in backticks inside a sentence is
+  fine. (0.21.0 opened with one — that part of it is not the model.)
 - No commit hashes, no internal names (`weft` internals, test files), no
   "refactor" entries. Plain English, present tense, no hype words.
 
