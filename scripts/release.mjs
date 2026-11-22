@@ -6,8 +6,11 @@
 //   pnpm release 0.1.0 --notes "Initial release."   # your notes, no editor
 //   pnpm release --dry-run      # show everything, write nothing
 //
-// It drafts the CHANGELOG section from the commits since the last tag, opens
-// it in $EDITOR to be trimmed into something a reader deserves, bumps every
+// It drafts the CHANGELOG section from the commits since the last tag, with a
+// screenshot of every lookbook case and example project added since then
+// (scripts/release-shots.mjs), opens it in $EDITOR to be trimmed into
+// something a reader deserves — each picture moved beside the feature it
+// shows — bumps every
 // workspace manifest via scripts/version.mjs, commits, tags vX.Y.Z, and pushes
 // branch + tag together. From there .github/workflows/release.yml builds the
 // VSIX from that exact commit, re-runs the suite, publishes the GitHub
@@ -19,6 +22,7 @@ import { dirname, join } from "node:path";
 import { tmpdir } from "node:os";
 import { createInterface } from "node:readline/promises";
 import { fileURLToPath } from "node:url";
+import { repoUrl, screenshots, shotMarkdown, shotProblems } from "./release-shots.mjs";
 
 const root = join(dirname(fileURLToPath(import.meta.url)), "..");
 const args = process.argv.slice(2);
@@ -100,7 +104,20 @@ const today = new Date().toISOString().slice(0, 10);
 const heading = `## ${version} — ${today}`;
 let body = givenNotes ?? subjects.map((c) => `- ${c.subject} (${c.sha})`).join("\n");
 
-console.log(`\n${subjects.length} commit(s) since ${lastTag ?? "the beginning"}.\n`);
+// Pictures of what is new: added files only, renames not counted as additions
+// so a moved case does not reappear. Notes given with --notes keep their own
+// placement of any picture they already show; the rest are appended.
+const added = lastTag
+  ? git("diff", "--name-only", "--no-renames", "--diff-filter=A", `${lastTag}..HEAD`, "--", "lookbook/cases", "examples").split("\n").filter(Boolean)
+  : [];
+const shots = screenshots(root, added).filter((s) => !body.includes(s.path));
+if (shots.length) {
+  const repo = repoUrl(root);
+  body += `\n\n### Screenshots\n\n${shots.map((s) => shotMarkdown(repo, version, s)).join("\n\n")}`;
+}
+
+console.log(`\n${subjects.length} commit(s) since ${lastTag ?? "the beginning"}` +
+  (shots.length ? `, ${shots.length} screenshot(s) of what is new.\n` : ".\n"));
 
 // ── edit ────────────────────────────────────────────────────────────────────
 if (!givenNotes && !noEdit && process.stdout.isTTY) {
@@ -123,6 +140,11 @@ if (!givenNotes && !noEdit && process.stdout.isTTY) {
     if (!body) fail("empty notes — aborted");
   }
 }
+
+// the release workflow refuses a picture at another version or of a missing
+// file (scripts/release-notes.mjs); say so here, before anything is tagged
+const broken = shotProblems(root, version, body);
+if (broken.length) fail(`the notes link pictures that will not show:\n  ${broken.join("\n  ")}`);
 
 const section = `${heading}\n\n${body}\n`;
 console.log(`${"─".repeat(64)}\n${section}${"─".repeat(64)}`);

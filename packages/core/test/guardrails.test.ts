@@ -412,6 +412,29 @@ describe("the workspace ships one version", () => {
     expect(publish).toBeGreaterThan(wf.indexOf("gh release create"));
     expect(wf, "release.yml must not carry an npm token — OIDC only").not.toMatch(/NPM_TOKEN|NODE_AUTH_TOKEN/);
   });
+
+  it("the release notes picture every new lookbook case and example, and only at their own tag", async () => {
+    // A release shows what it adds (scripts/release-shots.mjs): each new case
+    // or example becomes a picture linked at the new tag, and the workflow's
+    // notes step refuses a picture at another version or of a missing file.
+    const { screenshots, shotMarkdown, shotProblems, repoUrl } = await import(join(root, "scripts/release-shots.mjs"));
+    const cases = readdirSync(join(root, "lookbook/cases")).filter((f) => f.endsWith(".squinch"));
+    const examples = readdirSync(join(root, "examples")).filter((d) => existsSync(join(root, "examples", d)) && statSync(join(root, "examples", d)).isDirectory());
+    const added = [`lookbook/cases/${cases[cases.length - 1]}`, ...examples.map((d) => `examples/${d}/${readdirSync(join(root, "examples", d)).find((f) => f.endsWith(".squinch"))}`), "packages/core/src/prose.ts"];
+    const shots = screenshots(root, added);
+    // one picture per light render of each new case and example, nothing for other files
+    const lights = (dir: string, prefix: string) => readdirSync(join(root, dir)).filter((f) => f.startsWith(prefix) && f.endsWith(".light.svg")).length;
+    expect(shots.length).toBe(lights("lookbook/out", cases[cases.length - 1].replace(/\.squinch$/, ".")) + examples.reduce((n, d) => n + lights(`examples/${d}`, ""), 0));
+    for (const s of shots) expect(s.alt.length, s.path).toBeGreaterThan(0);
+    const md = shots.map((s: unknown) => shotMarkdown(repoUrl(root), "9.9.9", s)).join("\n\n");
+    expect(md).toContain(`https://github.com/jquatier/squinch/blob/v9.9.9/${shots[0].path}?raw=true`);
+    expect(shotProblems(root, "9.9.9", md)).toEqual([]);
+    expect(shotProblems(root, "9.9.8", md)[0]).toMatch(/is linked at v9\.9\.9, not v9\.9\.8$/);
+    expect(shotProblems(root, "9.9.9", "![x](https://github.com/o/r/blob/v9.9.9/lookbook/out/nope.svg?raw=true)")).toEqual(["lookbook/out/nope.svg does not exist"]);
+    // and both scripts are wired to it
+    expect(readFileSync(join(root, "scripts/release.mjs"), "utf8")).toContain("screenshots(root, added)");
+    expect(readFileSync(join(root, "scripts/release-notes.mjs"), "utf8")).toContain("shotProblems(root, version, notes)");
+  });
 });
 
 describe("workspace scripts run on every platform", () => {
