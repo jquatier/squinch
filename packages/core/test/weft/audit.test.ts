@@ -6,6 +6,8 @@ import { it, expect } from "vitest";
 import { solve } from "../../src/layout/weft/engine.js";
 import { audit } from "./legal.js";
 import { nestedProblem, randomProblem } from "./random-problem.js";
+import { randomDiagram } from "./random.js";
+import { draw } from "./sets.js";
 
 for (const [name, n, extensions, arranged] of [["with rooms and asked sides", 400, true, false], ["with neither", 150, false, false], ["with aligned sets and columns that may contradict", 400, true, true]] as const)
   it(`${n} random problems ${name} are legal`, () => {
@@ -49,6 +51,26 @@ it("wires that share a side wall with hooks are not drawn along one line: the se
   }
 });
 
+// Two wires that could step neither aside nor twice on a line of their own,
+// and that no order of the tracks keeps apart: one of them steps twice at
+// the middle of its run all the same (lay.ts). Seen once in 3,000 random
+// diagrams, with no side asked — beyond the 80 the quality gate draws.
+it("a channel with no free line and no clean order still lays no wire along another: random-381", async () => {
+  for (const d of await draw({ name: "random-381", src: randomDiagram(381) })) expect(d.illegal, d.view).toEqual([]);
+});
+
+// Two wires that run to a container's side wall under (or over) a row-mate
+// stand on that wall in the order the box's wall gives them, so where they
+// leave the box is chosen in the order the wall outside has them
+// (`sideEnd`, lay.ts). Two of the four nested seeds that drew two wires
+// along one line were that.
+it("wires under a row-mate to a container's side wall leave their box in the order the wall outside has them: the nested seeds that did not", () => {
+  for (const seed of [1841, 2271]) {
+    const p = nestedProblem(seed);
+    expect(audit(p, solve(p)), `seed ${seed}`).toEqual([]);
+  }
+});
+
 // What `randomProblem` never makes: a container inside a container, sometimes
 // of the other direction, and wires that end at a container (`nestedProblem`).
 // The rule for a side asked is held on all of it: the box the wire names is
@@ -56,7 +78,7 @@ it("wires that share a side wall with hooks are not drawn along one line: the se
 // Two older weaknesses show at this depth with or without sides asked
 // (docs/notes/layout-engine.md §8). A label under another wire may not grow.
 // Two wires along one line between fixed ends 16 px apart no longer shows in
-// these 600 — four of the 2,400 seeds after them still have it — and may not
+// these 600 — two of the 2,400 seeds after them still have it — and may not
 // come back.
 it("600 random problems nested two deep, with wires that end at containers: every side asked is given or reported", () => {
   const sides: string[] = [], along: string[] = [], labels: string[] = [], other: string[] = [];

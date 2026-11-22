@@ -50,16 +50,24 @@ export function gutters(s: Sheet, dv: number[], fixed: (kid: Kid, wall: "e" | "w
     const reach = (slot: typeof a, wall: "e" | "w"): [number, number] => {
       const k = slot.kid!, lo = dv[slot.i] + 8, hi = dv[slot.i] + Math.min(k.h, k.faceV ?? k.h) - 8;
       if (lo > hi) return [dv[slot.i] + k.h / 2, dv[slot.i] + k.h / 2];
-      // less the room the wall's hooks stand in
-      const hooks = keep(slot.i, wall, hi - lo, flats.length);
-      return [lo + hooks.above, hi - hooks.below];
+      // less the room the wall's hooks stand in — except that wires carrying a label keep a full step apart,
+      // the hooks taking what is left (a label is deeper than a shared step: it would lie on its neighbour)
+      const hooks = keep(slot.i, wall, hi - lo, flats.length), need = flats.some((f) => f.label) ? (flats.length - 1) * PORT : 0;
+      const spare = hi - lo - need, cut = hooks.above + hooks.below;
+      if (cut <= spare) return [lo + hooks.above, hi - hooks.below];
+      if (spare <= 0) return [lo, hi]; // the labelled wires alone fill the wall: theirs, and the hooks take what places are free
+      const above = spare > 0 ? Math.floor((hooks.above * spare) / cut) : 0;
+      return [lo + above, lo + above + Math.max(need, hi - lo - cut)];
     };
     const [ra, rb] = [reach(a, "e"), reach(b, "w")];
     const taken = { a: [] as number[], b: [] as number[] };
-    /** The free place on a wall nearest `v`, within `[lo, hi]` if there is one. */
+    /** The free place on a wall nearest `v`, within `[lo, hi]` if there is one: a step from every other, or
+     *  where the reach is too short for that, as far from them as it allows (half a step, a quarter…). */
     const free = (used: number[], v: number, [lo, hi]: [number, number]): number => {
-      const ok = (x: number) => x >= lo && x <= hi && used.every((t) => Math.abs(t - x) >= PORT);
-      for (let d = 0; d <= hi - lo + PORT; d += 8) for (const x of [v - d, v + d]) if (ok(x)) return x;
+      for (const gap of [PORT, 8, 4, 2, 1]) {
+        const ok = (x: number) => x >= lo && x <= hi && used.every((t) => Math.abs(t - x) >= gap);
+        for (let d = 0; d <= hi - lo + PORT; d += Math.min(gap, 8)) for (const x of [v - d, v + d]) if (ok(x)) return x;
+      }
       for (let d = 0; d < 4096; d += 1) for (const x of [v - d, v + d]) if (!used.includes(x) && x >= lo && x <= hi) return x;
       return v;
     };

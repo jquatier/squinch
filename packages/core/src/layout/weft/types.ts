@@ -56,7 +56,9 @@ export interface Slot {
   /** 0 is the north wall, 1..R the ranks, R+1 the south wall */
   row: number;
   kid?: Kid;
-  /** a lane's or port's wire, or the bundle it carries */
+  /** a lane's or port's wire, or the bundle it carries (a lane beside a box
+   *  for a wire round its row-mates is one of that box's: which wire takes
+   *  which is `Sheet.lanes`') */
   key?: string;
   /** a label riding on a lane: its extent along u and along v, and its wire */
   label?: { u: number; v: number; wire: string };
@@ -132,9 +134,12 @@ export interface Side {
    *  wires that leave the box beside it keep half of it away */
   room?: number;
   /** The box was asked for the wall facing the sheet's own, with row-mates
-   *  standing between: the wire leaves it by that wall all the same, to this
-   *  lane right beside it, and goes over or under the row from there. (Not
-   *  used if the ordering stage leaves the box last in its row after all.) */
+   *  standing between: the wire leaves it by that wall all the same, to a
+   *  lane right beside it, and goes over or under the row from there. This
+   *  is the lane made for it; several of one box going one way round take
+   *  theirs in the order the wall outside has them, so the one it is drawn
+   *  to is `Sheet.lanes`'. (Not used if the ordering stage leaves the box
+   *  last in its row after all.) */
   hook?: number;
 }
 
@@ -213,6 +218,9 @@ export interface Sheet {
    *  steps aside to close a short jog (`shift` in lay.ts) had stepped into
    *  that room. From then on it keeps out of every label's room here. */
   firm?: boolean;
+  /** the lane each wire round a row-mate takes (`Side.hook` names one of its box's; which is the wire's is
+   *  this), set by `order.ts` once the order is final (`sides.ts`, `laneOrder`) */
+  lanes?: Map<Side, number>;
   geo?: Geo;
 }
 

@@ -24,17 +24,24 @@
 //             side of its box.
 //   restore   boxes that left their declared order for nothing go back.
 //
+// Once the order is final, three things that read it are settled, outermost
+// sheet first: which way round its row-mates a wire to a side wall goes
+// (`settleWays`), the ports of a container that flows the other way from the
+// one around it (their wall is a side wall outside: `comesAt`), and which
+// lane each wire round a row-mate takes (`laneOrder`, kept as `Sheet.lanes`).
+// None changes a counted crossing; each keeps the inside in the order the
+// outside needs.
+//
 // What decides between two orders, in this order: fewer crossings; then —
 // only if no box has passed another, because declaration order is worth a
 // tie and a box never moves merely to straighten a wire — the straighter.
 import { Count, type Tally } from "./count.js";
-import { hookAfter } from "./sheet.js";
-import { comesAt } from "./sides.js";
+import { hookAfter, hookRank } from "./sheet.js";
+import { comesAt, laneOrder, settleWays } from "./sides.js";
 import type { Link, Sheet } from "./types.js";
 
 const ROUNDS = 12, SWEEPS = 6, TRIES = 2;
 /** Further along a wall than any place the count gives a wire. */
-const HOOKED = 1e9;
 
 export function order(sheets: Sheet[]): Count {
   for (const s of sheets) seed(s);
@@ -65,8 +72,15 @@ export function order(sheets: Sheet[]): Count {
   // ports on what is a side wall outside, and two of one box's wires there
   // stand in the order that wall has them — which only the finished order
   // says (`comesAt`). Outermost first, so each reads a settled outside.
+  // So does the way round its row-mates of a wire asked out of a side wall
+  // (`settleWays`), which reads the same order.
   search.final = true;
-  for (const t of count.tallies) if (t.parent && t.parent.sheet.dir !== t.sheet.dir) for (const wall of ["n", "s"] as const) search.comb(t, wall, false);
+  // Then the lanes of the wires round a row-mate, which read both (`laneOrder`).
+  for (const t of count.tallies) {
+    settleWays(t.sheet);
+    if (t.parent && t.parent.sheet.dir !== t.sheet.dir) for (const wall of ["n", "s"] as const) search.comb(t, wall, false);
+    t.sheet.lanes = laneOrder(t.sheet);
+  }
   count.settle();
   return count;
 }
@@ -244,26 +258,33 @@ class Search {
     const s = t.sheet, k = wall === "n" ? 0 : s.R + 1, row = s.rows[k], n = row.length;
     if (n > 1) {
       const inside = this.inside, outside = this.outside, heading = this.heading.get(t)!, hooking = this.hooking.get(t), links = wall === "n" ? t.downs : t.ups;
-      let sorted = true;
+      let sorted = true, ends = false;
       for (let i = 0; i < n; i++) {
         const l = links[row[i]][0], h = heading[row[i]], hook = hooking?.[row[i]];
         inside[i] = l ? (wall === "n" ? this.count.below(t, l) : this.count.above(t, l)) : Infinity;
+        if (!l) ends = true;
         // a wire hooked round this container outside stands, among the wires of one box, at the end of the wall its lane is beside
-        outside[i] = hook ? (hookAfter(hook.t.sheet, hook.lane) ? HOOKED : -HOOKED) : h ? (wall === "n" ? this.count.above(h.t, h.link) : this.count.below(h.t, h.link)) : this.final && s.slots[row[i]].key !== undefined ? comesAt(s, wall, s.slots[row[i]].key!) ?? 0 : 0;
+        // (several of one box nest: the nearer lane's wire nearer that end)
+        outside[i] = hook ? hookRank(hook.t.sheet, hook.lane) : h ? (wall === "n" ? this.count.above(h.t, h.link) : this.count.below(h.t, h.link)) : this.final && s.slots[row[i]].key !== undefined ? comesAt(s, wall, s.slots[row[i]].key!) ?? 0 : 0;
         if (i && (inside[i - 1] > inside[i] || (inside[i - 1] === inside[i] && outside[i - 1] > outside[i]))) sorted = false;
       }
       // A wire that ends at this wall has nothing inside to follow, so it
       // stands among the others by where it is headed outside: at the place
       // that puts it on the right side of the most of them.
       let by: number[] | undefined;
-      if (inside.slice(0, n).includes(Infinity)) {
+      if (ends) {
         const all = row.map((_, i) => i), cmp = (p: number, q: number) => outside[p] - outside[q] || p - q;
         const through = all.filter((i) => inside[i] !== Infinity).sort((p, q) => inside[p] - inside[q] || cmp(p, q));
+        // (the cost of each place, from the last back: moving one wire from before it to after it changes
+        // the count by one at most — so each ended wire is placed in one pass over the others)
         const ended = all.filter((i) => inside[i] === Infinity).sort(cmp).map((i) => {
-          let at = through.length, least = Infinity;
-          for (let c = through.length; c >= 0; c--) {
-            const cost = through.reduce((sum, j, m) => sum + (m < c ? +(outside[j] > outside[i]) : +(outside[j] < outside[i])), 0);
-            if (cost < least) { least = cost; at = c; }
+          let cost = 0;
+          for (const j of through) if (outside[j] > outside[i]) cost++;
+          let at = through.length, least = cost;
+          for (let c = through.length; c > 0; c--) {
+            const j = through[c - 1];
+            cost += (outside[j] < outside[i] ? 1 : 0) - (outside[j] > outside[i] ? 1 : 0);
+            if (cost < least) { least = cost; at = c - 1; }
           }
           return { i, at };
         });

@@ -54,6 +54,8 @@ solve
  ├─ grow     tree.ts     the tree of containers; each wire cut where its ends part
  ├─ weave    sheet.ts    a sheet per container: ranks (rank.ts), slots, links, walls
  ├─ order    order.ts    the order of every row, together       cost: count.ts
+ │                       then, outermost first, what reads it: ways round row-mates, the
+ │                       ports of a container of the other direction, lanes  (sides.ts)
  └─ lay      lay.ts      one sheet's geometry, innermost first
       ├─ gutters   gutter.ts   wires between row-mates, and the room they need
       ├─ place     place.ts    every slot along its row         solver: project.ts
@@ -318,8 +320,14 @@ by screen side, that nothing enters but the box's own wires on that wall.
 - `place.ts`: rows are solved one at a time, down and up, `SWEEPS` (4) times.
   Each row solve is exact; the sweeps are how a row hears from its
   neighbours.
+- `order.ts`: once the search is over, one pass, outermost sheet first, that
+  settles what reads the final order — `settleWays`, the comb of a container
+  of the other direction, `laneOrder` (§ sides). It changes no counted
+  crossing and is never repeated.
 - `lay.ts`: a port may step aside (at most 12 tries per channel) and a wire
-  step twice (at most 6) to keep stubs off each other.
+  step twice (at most 6) to keep stubs off each other; where neither does,
+  the channel is stacked for any clash-free order, and failing that the
+  first wire that can steps twice at the middle of its run.
 - The one message from outside to inside: `slide` in `lay.ts`, which moves a
   finished container's side port to come level with a wire.
 - `engine.ts`: the sheets are laid out again (not ordered again) when a
@@ -405,9 +413,23 @@ The list, with what each costs and what to try next, is §8 of
   the wire's other end stands in the container's own rank, the wire leaves
   the container toward it (§ same-rank wires), whatever the box was asked.
 - Past one level of nesting (`nestedProblem` in the audit), a label can lie
-  under another wire (about one Problem in ninety) and two wires that each
-  step twice in one channel can be drawn along one line (four in 3,000) —
-  with or without sides asked.
+  under another wire (about one Problem in a hundred) and two wires that
+  each step twice in one channel can be drawn along one line (two in 3,000)
+  — with or without sides asked. Three levels deep with frames of both
+  directions it is about one in ten, mostly the second (a tie on a wall
+  broken differently either side of a container of the other direction).
+- One side wall is placed by three hands: `gutter.ts` (wires straight
+  across), the `level` step of `lay.ts` (wires on to the sheet's wall) and
+  `sides.ts` (hooks). They agree through `reserve`, not by construction;
+  one allocator for all of them would be simpler.
+- `count.ts`: at a container's side wall, a wire straight out of it and a
+  hook out of the same wall outside are counted as crossing where the
+  inside's order keeps them apart (`own` exempts leaves only); dropping
+  the exemption for containers under-counts instead, when the two leave
+  different rows inside. A phantom crossing can steer the restart.
+- `order.ts`: combing a wall with wires that end at it costs a few times
+  what it did before they were placed by where they go (linear per wire,
+  but the wall is now combed whenever the outside changes).
 - `lay.ts`: a container's north and south ports stand where its inside puts
   them; only `slide` (across a gutter) moves a finished container's port to
   meet a wire.

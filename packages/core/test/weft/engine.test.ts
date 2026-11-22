@@ -614,6 +614,79 @@ describe("sides a wire is asked to use", () => {
     expect(levels[levels.length - 1]).toBe(levelAt(s, "down", "hub"));
     expect(crossed(s)).toBe(0);
   });
+  it("takes a wire round a row-mate the way that keeps the order a container outside it needs, asked a side or not", () => {
+    // in a rightward container, a downward one: hub → d1 asked west, hub → y0 not asked; both must pass l0, and
+    // the wall outside wants y0's above d1's (`settleWays`)
+    const framed = (id: string, boxes: Box[], dir: "down" | "right", held: string[] = []): Box => ({ id, w: 0, h: 0, minW: 120, title: { w: 80, h: 34 }, group: group(boxes, { dir, pad, gap: { lane: 32, rank: 40 }, held, ...pin(Object.fromEntries(held.map((h) => [h, 0]))) }) });
+    for (const third of [false, true]) {
+      const c2 = framed("c2", [framed("c1", [leaf("l0"), leaf("hub"), leaf("r0")], "down", ["l0", "hub", "r0"])], "right");
+      const below = third ? ["d1", "d2"] : ["d1"];
+      const p: Problem = { root: group([leaf("y0"), c2, ...below.map((d) => leaf(d))], { held: ["y0", "c2", ...below], ...pin({ y0: 0, c2: 0, ...Object.fromEntries(below.map((d) => [d, 1])) }) }),
+        wires: [{ id: "w0", from: "hub", to: "d1", fromSide: "west" }, wire("hub>y0"), ...(third ? [{ id: "w2", from: "hub", to: "d2", fromSide: "west" as Side }] : [])] };
+      expect(audit(p, solve(p)), `${third}`).toEqual([]);
+    }
+  });
+  it("keeps every wire on a side wall shared evenly 8 px from its corners", () => {
+    // six wires on a 48 px stretch, 9.6 px apart: placed from the unrounded middle and kept within it
+    // (a generated Problem; it could not be cut down by hand and keep the overflow)
+    const p: Problem = JSON.parse(String.raw`{"root":{"dir":"right","boxes":[{"id":"u0","w":144,"h":56},{"id":"u1","w":136,"h":64},{"id":"u2","w":144,"h":56},{"id":"u3","w":112,"h":64},{"id":"u4","w":144,"h":96},{"id":"y0","w":104,"h":64},{"id":"c1","w":0,"h":0,"minW":120,"title":{"w":80,"h":34},"group":{"dir":"down","boxes":[{"id":"l0","w":144,"h":56},{"id":"hub","w":160,"h":64}],"pins":{"__map":[]},"pad":{"top":44,"right":16,"bottom":16,"left":16},"gap":{"lane":32,"rank":40}}},{"id":"d0","w":104,"h":64},{"id":"d1","w":104,"h":64},{"id":"d2","w":136,"h":64},{"id":"f0","w":96,"h":64},{"id":"f1","w":96,"h":64}],"pins":{"__map":[["u0",0],["u1",0],["u2",0],["u3",0],["u4",0],["c1",1],["y0",1],["d0",2],["d1",2],["d2",2],["f0",3],["f1",3]]},"pad":{"top":32,"right":32,"bottom":32,"left":32},"gap":{"lane":48,"rank":56}},"wires":[{"id":"w0","from":"hub","to":"u0","fromSide":"north"},{"id":"w1","from":"u1","to":"hub","toSide":"west","label":{"w":40,"h":18}},{"id":"w2","from":"u2","to":"hub","toSide":"east"},{"id":"w3","from":"hub","to":"u3","fromSide":"west","label":{"w":72,"h":18}},{"id":"w4","from":"hub","to":"u4","fromSide":"east","label":{"w":80,"h":18}},{"id":"w5","from":"hub","to":"d0","fromSide":"west"},{"id":"w6","from":"hub","to":"d1","fromSide":"west"},{"id":"w7","from":"d2","to":"hub","toSide":"east"},{"id":"w8","from":"d0","to":"f0"},{"id":"w9","from":"hub","to":"f0","fromSide":"west"},{"id":"w10","from":"d2","to":"f1"},{"id":"w11","from":"hub","to":"f1","fromSide":"east"},{"id":"w12","from":"l0","to":"hub"},{"id":"w13","from":"l0","to":"d0","fromSide":"north"},{"id":"w14","from":"hub","to":"y0","fromSide":"west"}]}`, (_k, v) => (v && v.__map ? new Map(v.__map) : v));
+    expect(audit(p, solve(p))).toEqual([]);
+  });
+  it("keeps labelled wires straight across a full step apart, the hooks sharing what is left of the wall", () => {
+    // seven wires on each side wall of `hub`: the labelled one on its west wall must not lie on its neighbour
+    const us = ["u0", "u1", "u2", "u3", "u4"], ds = ["d0", "d1", "d2", "d3", "d4"];
+    const p: Problem = { root: group([...us, "l", "hub", "r", ...ds].map((id) => leaf(id)), pin({ ...Object.fromEntries(us.map((u) => [u, 0])), l: 1, hub: 1, r: 1, ...Object.fromEntries(ds.map((d) => [d, 2])) })),
+      wires: [...us.map((u, i) => ({ id: u, from: u, to: "hub", toSide: (i % 2 ? "east" : "west") as Side })), ...ds.map((d, i) => ({ id: d, from: "hub", to: d, fromSide: (i % 2 ? "west" : "east") as Side })),
+        { id: "hr", from: "hub", to: "r", label: { w: 64, h: 18 } }, { id: "lh", from: "l", to: "hub", label: { w: 64, h: 18 } }, wire("r>hub"), wire("hub>l")] };
+    const s = solve(p);
+    expect(audit(p, s)).toEqual([]);
+    expect(Math.abs(levelAt(s, "lh", "hub") - levelAt(s, "hub>l", "hub"))).toBeGreaterThanOrEqual(16);
+  });
+  it("keeps two wires straight across to a container apart when the wall's hooks take most of it", () => {
+    // a 64 px wall: two wires across to `sys`, and K asked out of the same wall
+    for (const k of [2, 3, 4]) {
+      const inner = sys([leaf("sys.a"), leaf("sys.b")], pin({ "sys.a": 0, "sys.b": 1 }));
+      const downs = Array.from({ length: k }, (_, i) => leaf(`d${i}`));
+      const p: Problem = { root: group([leaf("hub"), inner, ...downs], pin({ hub: 0, sys: 0, ...Object.fromEntries(downs.map((d) => [d.id, 1])) })), wires: [wire("hub>sys.a"), wire("sys.b>hub"), ...downs.map((d) => ({ id: d.id, from: "hub", to: d.id, fromSide: "east" as Side }))] };
+      const s = solve(p);
+      expect(audit(p, s)).toEqual([]);
+      expect(Math.abs(levelAt(s, "hub>sys.a", "hub") - levelAt(s, "sys.b>hub", "hub")), `${k}`).toBeGreaterThanOrEqual(8);
+    }
+  });
+  it("gives a side through a container of the other direction by the order its sheet stands in, whatever the order declared", () => {
+    // `idle` has no wire, so the row stands [x, idle] either way: x is first, and its north side is given
+    for (const declared of [["c.idle", "c.x"], ["c.x", "c.idle"]]) {
+      const c: Box = { id: "c", w: 0, h: 0, group: group(declared.map((id) => leaf(id)), { pad, dir: "right" }) };
+      const p: Problem = { root: group([c, leaf("b")], pin({ c: 0, b: 1 })), wires: [{ id: "xb", from: "c.x", to: "b", fromSide: "north" }] };
+      const s = solve(p);
+      expect(audit(p, s), `${declared}`).toEqual([]);
+      expect(s.unhonoured, `${declared}`).toBeUndefined();
+      expect(crosses(s, "c", "xb"), `${declared}`).toBe("north");
+    }
+  });
+  it("nests several wires asked out of one north wall of a box inside a container, either direction", () => {
+    for (const dir of ["down", "right"] as const) for (const order of [["d0", "d1", "d2"], ["d2", "d0", "d1"], ["d1", "d2", "d0"]]) {
+      const inner = sys([leaf("s.x")], { dir }, "s");
+      const p: Problem = { root: group([inner, ...order.map((d) => leaf(d))], pin({ s: 0, ...Object.fromEntries(order.map((d) => [d, 1])) })), wires: ["d0", "d1", "d2"].map((d) => ({ id: d, from: "s.x", to: d, fromSide: "north" as Side })) };
+      const s = solve(p);
+      expect(audit(p, s), `${dir} ${order}`).toEqual([]);
+      expect(crossed(s), `${dir} ${order}`).toBe(0);
+    }
+  });
+  it("gives eight wires that end at one side wall of a short container a place each", () => {
+    const src = Array.from({ length: 8 }, (_, i) => leaf(`s${i}`));
+    const c: Box = { id: "c", w: 0, h: 0, group: group([leaf("c.x")], { pad }) };
+    const p: Problem = { root: group([...src, c], pin({ ...Object.fromEntries(src.map((x) => [x.id, 0])), c: 1 })), wires: src.map((x) => ({ id: x.id, from: x.id, to: "c", toSide: "east" as Side })) };
+    const s = solve(p);
+    expect(audit(p, s)).toEqual([]);
+    expect(new Set(src.map((x) => levelAt(s, x.id, "c"))).size).toBe(8);
+  });
+  it("does not slide a port along a wall onto a wire that ends there", () => {
+    const g0: Box = { id: "g0", w: 0, h: 0, group: group([leaf("n2", 96), leaf("n3", 96)], { pad }) };
+    const g1: Box = { id: "g1", w: 0, h: 0, group: group([leaf("n5", 152)], { pad, dir: "right" }) };
+    const p: Problem = { root: group([g0, g1], { dir: "right", ...pin({ g0: 0, g1: 0 }) }), wires: [wire("n2>n5"), wire("n3>g1"), wire("n3>n5")] };
+    expect(audit(p, solve(p))).toEqual([]);
+  });
   it("does not slide a port along a wall that also carries a hook", () => {
     // x → z would come in level with z's port by sliding 16 px down x's wall — onto the wire hooked out of it to y
     const s1: Box = sys([leaf("s1.x"), leaf("s1.y")], pin({ "s1.x": 0, "s1.y": 1 }), "s1");

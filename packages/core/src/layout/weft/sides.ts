@@ -20,14 +20,10 @@
 // of any kind, as a north or south wall does — a step apart, or, when the
 // wall is too short for them all, sharing it out evenly as `ports.ts` does.
 import { turn } from "./frame.js";
-import { hookAfter, sideWay } from "./sheet.js";
+import { beyond, hookRank, sideWay } from "./sheet.js";
 import type { Sheet, Side, Wall } from "./types.js";
 
 const STEP = 16;
-
-/** A hook on a side wall: its lane, and whether that lane runs up from the
- *  wall's level (`tail`) or down from it. */
-export interface Hooked { lane: number; tail: boolean }
 
 /** The hooks of one side wall of a box, each kind in the order it stands from the top. */
 export interface Hooks { tails: number[]; heads: number[] }
@@ -61,11 +57,11 @@ export function reserve(h: Hooks | undefined, span: number, straight: number): {
 /**
  * Where a wall's hooks stand, given where its straight wires do: `tails`
  * upward from the highest of them, `heads` downward from the lowest — a step
- * apart, or as much of one as the wall has. `lo`..`hi` is the stretch of the
- * wall a wire may meet; `clear`: how far the nearest hook keeps from the
- * straight wires either side (a label standing across one of them) — where
- * the wall has a step for every wire. With no straight wire the hooks stand
- * about the middle.
+ * apart, or an even share of what the wall has left on that side. `lo`..`hi`
+ * is the stretch of the wall a wire may meet; `clear`: how far the nearest
+ * hook keeps from the straight wires either side (a label standing across
+ * one of them), where that side has room for it. With no straight wire the
+ * hooks stand about the middle.
  */
 export function stand(lo: number, hi: number, straight: number[], n: { tails: number; heads: number }, clear: { top: number; bottom: number } = { top: STEP, bottom: STEP }): { tails: number[]; heads: number[] } {
   const mid = Math.round((lo + hi) / 2);
@@ -75,18 +71,15 @@ export function stand(lo: number, hi: number, straight: number[], n: { tails: nu
     const all = Array.from({ length: count }, (_, i) => Math.round(first + i * step));
     return { tails: all.slice(0, n.tails), heads: all.slice(n.tails) };
   }
-  const step = share(hi - lo, n.tails + n.heads + straight.length), tight = step < STEP;
-  const top = Math.min(...straight) - (tight ? step : clear.top), bottom = Math.max(...straight) + (tight ? step : clear.bottom);
-  // `count` places from `from`, away from the straight wires, a step apart — or closer, to stay on the wall
-  const run = (count: number, from: number, end: number, dir: 1 | -1): number[] => {
+  // `count` places out from the straight wire at `from` toward the wall's end `end`: the first `gap` off it, the
+  // rest a step apart — or the side's room shared evenly, the first no further off than `gap`
+  const run = (count: number, from: number, end: number, gap: number, dir: 1 | -1): number[] => {
     if (!count) return [];
-    const room = (end - from) * dir;
-    const step = (count - 1) * STEP <= room ? STEP : Math.max(0, room) / Math.max(1, count - 1);
-    const start = room < 0 ? end : from; // no room at all on that side: every one at the wall's end
-    return Array.from({ length: count }, (_, i) => Math.round(start + dir * i * step));
+    const room = Math.max(0, (end - from) * dir), first = Math.min(gap, room / count), step = count > 1 ? Math.min(STEP, (room - first) / (count - 1)) : 0;
+    return Array.from({ length: count }, (_, i) => Math.round(from + dir * (first + i * step)));
   };
   // (`run` counts outward from the straight wires; a tail's place in the list is from the top)
-  const tails = run(n.tails, top, lo, -1).reverse(), heads = run(n.heads, bottom, hi, 1);
+  const tails = run(n.tails, Math.min(...straight), lo, clear.top, -1).reverse(), heads = run(n.heads, Math.max(...straight), hi, clear.bottom, 1);
   // A wall too short to hold them in order — a straight wire at its very end,
   // fixed there by a container across the gutter — still gives every wire a
   // place of its own: the nearest free one, at the price of a crossing.
@@ -118,8 +111,12 @@ export function stand(lo: number, hi: number, straight: number[], n: { tails: nu
  *  this file's, the container being the box: lanes that come down to the
  *  wall first, the nearest highest; lanes that go on down last, the nearest
  *  lowest. A wire that goes straight on through the wall out there stands
- *  where the wall beyond that one has it. Undefined at the root, and for a
- *  north or south wall that stays one outside. */
+ *  where the wall beyond that one has it; one straight across the gutter to
+ *  a neighbour, by the order the wires across that gutter are declared in —
+ *  which the neighbour's inside reads too, so the two walls agree. Undefined
+ *  at the root, and for a north or south wall that stays one outside. */
+/** past every place a wire can have in a row (a lane round the end of the wall, out there) */
+const BEYOND = 1e7;
 export function comesAt(s: Sheet, wall: Wall, key: string): number | undefined {
   const p = s.parent;
   if (!p) return undefined;
@@ -131,21 +128,32 @@ export function comesAt(s: Sheet, wall: Wall, key: string): number | undefined {
     if (link) return p.at[north ? link.up : link.down];
     // …or hooked round the container out there: at the end of the wall its lane stands beside
     const lane = p.slots.find((x) => x.beside?.box === self && x.key === key && x.beside.wall === out);
-    return lane ? (hookAfter(p, lane.i) ? Infinity : -Infinity) : undefined;
+    return lane ? hookRank(p, lane.i, BEYOND) : undefined;
   }
   // hooked round this container out there: by a lane of its own (a hook), or by one of those beside it that
   // take its wires over or under the row (`sideLanes`)
   const round = p.sides.find((d) => d.x === self && d.key === key && d.wall === out), mine = round && sideLanes(p).get(round);
   const lane = mine ?? p.slots.find((x) => x.beside?.box === self && x.key === key && x.beside.wall === out)?.i;
   // straight on through the wall out there too: where it stands is the next wall's to say
-  if (lane === undefined) return round && sideWay(p, round) === "straight" ? comesAt(p, out, key) ?? 0 : 0;
+  if (lane === undefined && round) return sideWay(p, round) === "straight" ? comesAt(p, out, key) ?? 0 : 0;
+  // straight across the gutter to a neighbour: whose inside orders its facing wall by this same rule, so
+  // the two agree on the one thing both know — the order the wires are declared in out there
+  if (lane === undefined) { const i = p.flats.findIndex((f) => f.key === key && f.straight && (out === "e" ? f.a === self : f.b === self)); return i < 0 ? 0 : i; }
   const tail = mine !== undefined ? sideWay(p, round!) === "over" : !!p.slots[lane].beside!.tail;
   const far = Math.abs(p.at[lane] - p.at[self]);
   return tail ? -1e6 + far : 1e6 - far;
 }
 
 /** The lane each wire takes that leaves its box by a side wall and goes over
- *  or under the row from beside it (`Side.hook`). Several such wires of one
+ *  or under the row from beside it (`Side.hook`): `laneOrder`, kept on the
+ *  sheet by `order.ts` once the order is final, outermost first. Asked
+ *  before that, it is an error — what it reads would not yet be settled. */
+export function sideLanes(s: Sheet): Map<Side, number> {
+  if (!s.lanes) throw new Error(`weft: the lanes of ${s.cell.id || "the root"} were asked before the order was final`);
+  return s.lanes;
+}
+
+/** Which lane each wire round a row-mate takes. Several such wires of one
  *  box, out of one wall and the same way round, have a lane each, and which
  *  wire has which is free: nothing else of the sheet reads it. So they take
  *  them in the order the sheet outside has the wires (`comesAt`), which is
@@ -153,14 +161,9 @@ export function comesAt(s: Sheet, wall: Wall, key: string): number | undefined {
  *  that stands highest out there has the nearest lane and the nearest track;
  *  under it, the lowest. Nested like that they cross neither each other here
  *  nor on the way from the wall to their lanes outside.
- *
- *  Kept per sheet once worked out, so it must not be asked before the order
- *  of the sheet and every sheet outside it is final: `order.ts` asks it last,
- *  outermost first, and `lay.ts` after that. */
-const laned = new WeakMap<Sheet, Map<Side, number>>();
-export function sideLanes(s: Sheet): Map<Side, number> {
-  const had = laned.get(s);
-  if (had) return had;
+ * Read off the order of this sheet and the sheets outside it, so worked out
+ *  when they are all final (`order.ts`). */
+export function laneOrder(s: Sheet): Map<Side, number> {
   const out = new Map<Side, number>(), groups = new Map<string, Side[]>();
   for (const d of s.sides) {
     const way = sideWay(s, d);
@@ -173,6 +176,44 @@ export function sideLanes(s: Sheet): Map<Side, number> {
     const at = new Map(group.map((d) => [d, comesAt(s, d.wall, d.key) ?? 0])), over = id.endsWith("over");
     [...group].sort((p, q) => (over ? at.get(p)! - at.get(q)! : at.get(q)! - at.get(p)!)).forEach((d, i) => out.set(d, near[i]));
   }
-  laned.set(s, out);
   return out;
+}
+
+/** Which way round its row-mates each wire goes that has row-mates between
+ *  its box and the sheet's side wall: over the row or under it. The sheet
+ *  first chose by how busy each way is (`sideWay`), not knowing the wall
+ *  outside; that order comes in at this sheet's wall as well, and a wire on
+ *  the wrong side of another there crosses it between the wall and the
+ *  sheet outside. So once the order is final the choice is made again, over
+ *  the crossings of both: the wires each way would cross inside, and the
+ *  wires of the same wall it would then stand out of order with. Where it
+ *  stands is known from the order alone: over the row above it and under it
+ *  below, and of two that go one way round, the one that turns nearer the
+ *  wall nearer the row (it nests inside the other). A tie keeps the first
+ *  choice; a container's way, set by its insides, is left as it is unless
+ *  the wire was asked for that side. Asked of every sheet outermost first,
+ *  before anything reads `sideLanes`. */
+export function settleWays(s: Sheet): void {
+  if (!s.parent) return;
+  for (const wall of ["e", "w"] as const) {
+    const all = s.sides.filter((d) => d.wall === wall);
+    if (all.length < 2) continue;
+    const at = new Map(all.map((d) => [d, comesAt(s, wall, d.key) ?? 0]));
+    /** how far along the row from the wall the wire turns: its lane beside the box, or the box */
+    const far = (d: Side) => { const i = s.at[d.hook ?? d.x], n = s.rows[s.slots[d.x].row].length; return wall === "e" ? n - 1 - i : i; };
+    /** where the wire meets the wall, top to bottom: by row, then over, across or under it, then nested */
+    const pos = (d: Side, way: string) => 4 * s.slots[d.x].row + (way === "over" ? -1 - far(d) / 1e4 : way === "under" ? 1 + far(d) / 1e4 : 0);
+    const out = (d: Side, way: string) => all.filter((w) => {
+      if (w === d) return false;
+      const ww = sideWay(s, w);
+      return ww !== "straight" || way !== "straight" ? (pos(d, way) - pos(w, ww)) * (at.get(d)! - at.get(w)!) < 0 : false;
+    }).length;
+    for (const d of all) {
+      if (sideWay(s, d) === "straight" || (d.via !== "auto" && d.hook === undefined)) continue;
+      const past = beyond(s, d);
+      const cost = (way: "over" | "under") => past.reduce((n, b) => n + (way === "over" ? s.busy.up[b] : s.busy.down[b]), 0) + out(d, way);
+      const over = cost("over"), under = cost("under");
+      if (over !== under) d.via = over < under ? "over" : "under";
+    }
+  }
 }

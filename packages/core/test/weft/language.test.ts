@@ -515,6 +515,71 @@ ${[...targets].sort().map((t) => `  route s.hub -> ${t} from east`).join("\n")} 
     }
   });
 
+  it("several boxes of one row asked out of one side all leave the frame by it, and cross nothing", async () => {
+    // each goes over or under the row-mates between it and the wall, whichever keeps the order the wall outside has
+    for (const side of ["east", "west"]) for (const k of [2, 3, 6]) {
+      const ids = Array.from({ length: k }, (_, i) => `b${i}`);
+      const r = await lay(`system s "S" {
+${ids.map((i) => `  ${i} = box "${i}"`).join("\n")}
+}
+hub = box "Hub"
+${ids.map((i) => `s.${i} -> hub`).join("\n")}
+view v { expand s
+  layout {
+${ids.map((i) => `  route s.${i} -> hub from ${side}`).join("\n")} } }`);
+      expect(r.illegal).toEqual([]);
+      expect(r.diagnostics).toEqual([]);
+      for (const i of ids) expect([r.sides(`s.${i}`, "hub")[0], crosses(r, "s", `s.${i}`, "hub")]).toEqual([side, side]);
+      expect(measureLayout(r.p).crossings, `${side} ${k}`).toBe(0);
+    }
+  });
+
+  it("a side asked of one edge of a `channel` through a frame's wall says the edge is part of a trunk, and the trunk meets its target as one wire", async () => {
+    const src = (route: string) => `a = box "A"
+b = box "B"
+c = box "C"
+system shop "Shop" {
+  db = box "DB"
+  layout { direction down }
+}
+a -> shop.db
+b -> shop.db
+c -> shop.db
+view v { expand shop
+  layout { direction right
+    rows [a b c] [shop]
+    channel a, b, c -> shop.db
+    ${route} } }`;
+    const plain = await lay(src(""), ["shop.db"]), routed = await lay(src("route a -> shop.db to south"), ["shop.db"]);
+    expect(plain.illegal).toEqual([]);
+    expect(plain.diagnostics).toEqual([]);
+    // one port on DB for the three
+    const ends = ["a", "b", "c"].map((x) => { const pts = plain.wire(x, "shop.db").points; return JSON.stringify(pts[pts.length - 1]); });
+    expect(new Set(ends).size).toBe(1);
+    expect(routed.diagnostics.map((d) => d.message)).toEqual(["`route a -> shop.db` could not use the south side of `shop.db` — the edge is drawn in a `channel` trunk, whose wires share one port"]);
+  });
+
+  it("two edges between a node of each of two frames side by side run straight across the gap, not along one line", async () => {
+    const r = await lay(`system a "A" {
+  a1 = box "A1"
+  a2 = box "A2"
+  layout { rows [a1 a2] }
+}
+system b "B" {
+  b1 = box "B1"
+  b2 = box "B2"
+  layout { rows [b1 b2] }
+}
+a.a1 -> b.b2
+b.b2 -> a.a1
+view v { expand a, b
+  layout { rows [a b] } }`);
+    expect(r.illegal).toEqual([]);
+    // both insides put the two wires on their facing walls in one order (`comesAt`), and leave their boxes in it
+    // (`sideEnd` in lay.ts), so each runs out under its row-mate and straight across: two bends a wire
+    expect(measureLayout(r.p)).toMatchObject({ crossings: 0, bends: 4 });
+  });
+
   it("a side asked of an edge that ends at an expanded container is that frame's wall", async () => {
     const r = await lay(`system s "S" { x = box "X" }
 b = box "B"

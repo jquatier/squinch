@@ -764,6 +764,37 @@ the other direction) both are 0 as written, and 1 of 117 turned rightward
 found five wires on a 64 px wall standing 12 px apart and ten standing 1 px
 apart; they now share the wall evenly (ten: 5 px).
 
+Three more reviews of that (breaking it, regressions in pictures, debt)
+found, and the engine fixes: a wire with no side asked drawn along another
+(`random-381`: a channel whose wires could step neither aside nor twice on a
+free line, and had no clash-free order — the old fallback, a step twice at
+the middle, is back as the last resort); wires out of one side wall from
+different boxes of a row crossing pairwise outside the container (each
+chose over or under its row-mates by how busy each way is, blind to the
+wall outside — `settleWays` now chooses again once the order is final, over
+both costs: 45 crossings for ten boxes to 0); the same blindness through a
+rightward container around a downward one, drawing two wires along one
+line; two wires straight across to a container landing 1 px apart, and a
+labelled pair squeezed under its label, by the even share (a wire straight
+across keeps a step where it carries a label; `free` shares the rest);
+a port 7 px from a corner by rounding; eight wires that end at one side
+wall taking one place; `slide` moving a port onto a wire that ends at the
+same wall; a bundle's wire given a north or south side with no `trunk`
+report, and a trunk splitting on a container's wall into an arrowhead per
+wire (its wires now share one place on the wall, as they share the port);
+two edges between nodes of two side-by-side frames trading places in the
+gap (both insides now order their facing walls by the declared order out
+there, and leave their boxes in it, `sideEnd`); three hooks out of one
+container's north wall not nesting (`hookRank`, one rule for a container's
+ports inside and out); the comb that places wires ending at a wall running
+in cubic time (60 + 60 wires: 32 s, now linear); and `clear` reading the
+declared order where the sheet's rows read the order with unwired boxes set
+aside. The lanes cache, which was right only by call order, is now
+`Sheet.lanes`, set once by `order.ts` and an error to read before. On the
+reviews' own generators, problems breaking a rule: three levels deep 61 →
+53 in 600, a hub with every side asked 43 → 2 in 1,500, nested 39 → 34 in
+3,000; one level deep 18 → 20 in 1,000, all labels under a wire.
+
 What the rule does not do:
 
 - **Toward a row-mate the side is not carried.** Where the wire's other end
@@ -869,10 +900,12 @@ Written down at acceptance, less what has been fixed since.
   cost is the search over long rows, not the hooks (an earlier version of
   this note blamed them).
 - **Past one level of nesting, two hard rules are not held everywhere.** With
-  a container inside a container, 38 of 3,000 random Problems break one: all
-  but four leave a label under another wire, and those four draw two wires
+  a container inside a container, 34 of 3,000 random Problems break one: all
+  but two leave a label under another wire, and those two draw two wires
   along one line — two wires that each step twice in one channel and trade
-  tracks. With or without sides asked. The standard generator nests one level
+  tracks. With or without sides asked. Three levels deep, with frames of
+  both directions, it is about one in ten (a tie on a wall broken
+  differently either side of a container of the other direction). The standard generator nests one level
   and never showed it; `nestedProblem` does, and `audit.test.ts` holds the
   first 600 to none along one line and the labels where they are.
 - **Canvases are tighter than ELK's**, so a note pinned to a corner sits
