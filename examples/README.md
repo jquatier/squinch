@@ -14,16 +14,18 @@ run `squinch render <dir> --sync`, and commit both.
   and a self-warming index. The smallest project here that shows zones.
 - **storefront/** — C4-style altitudes (SPEC §10.2): a landscape of system cards,
   a zoomed service view with an aggregated edge and a context card, a `#pci`
-  highlight view with notes, and a container frame via `expand` — where an
-  event leaves its handler by the side asked (`route … from east`), past the
-  handler beside it and out of the frame's east wall.
+  highlight view with notes, and a container frame via `expand`.
 - **microservices/** — the zoom showcase, and the source of the animation at the
   top of the root README: a storefront, an edge gateway, and three services
   (catalog with OpenSearch, orders with an async fulfillment queue, accounts).
   The landscape shows service cards; each service view opens its internals while
   neighbours collapse to context cards; cross-service calls aggregate behind a
   count badge.
+- **payments/** — a card-payments platform where the money runs down the page
+  and the reporting goes out to the side: `route … from east` sends audit and
+  key calls out of the side of each box, past its row-mates and through the
+  service's frame and the PCI zone, two of them out of one side.
 
 For deliberately awkward cases — dense meshes, long labels, deep nesting,
-coplanar rows — see the [lookbook](../lookbook/) instead. These four are meant to
+coplanar rows — see the [lookbook](../lookbook/) instead. These are meant to
 look like diagrams you would actually ship.

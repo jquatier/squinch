@@ -1,0 +1,74 @@
+// Card payments — the money moves down the page, and the reporting goes out
+// to the side.
+//
+// Everything in the payment service answers to compliance: it writes to the
+// audit trail, and nothing touches a card number without a key from KMS. Left
+// to themselves those edges would leave each box by its bottom and tangle with
+// the money below. `route … from east` sends each one out of the side it
+// names — past whatever stands beside it, and out through the Payment Service
+// frame and the PCI zone — to the compliance column. A side takes as many
+// edges as ask for it: Authorize sends two out of its east side, nested.
+pack aws
+
+person shopper "Shopper"
+
+system edge "Edge" {
+  glyph: sys/shield
+  waf = aws/waf         "WAF"          { subtitle: "bot rules · rate limits" }
+  gw  = aws/api-gateway "Payments API" { subtitle: "REST · idempotency keys" }
+  waf -> gw
+  layout { direction right }
+}
+
+system payments "Payment Service" {
+  glyph: sys/credit-card
+  auth   = aws/lambda         "Authorize"   { subtitle: "Lambda · card auth" }
+  risk   = aws/fraud-detector "Risk Score"  { subtitle: "Fraud Detector" }
+  vault  = aws/dynamodb       "Token Vault" { subtitle: "DynamoDB · PAN tokens" }
+  ledger = aws/aurora         "Ledger"      { subtitle: "Aurora · double-entry" }
+
+  auth -> risk   "score"
+  auth -> vault  "tokenize"
+  auth -> ledger "hold"
+  layout { rows [auth risk] [ledger vault] }
+}
+
+system settlement "Settlement" {
+  glyph: sys/landmark
+  batch = aws/step-functions "Nightly Batch"    { subtitle: "Step Functions" }
+  files = aws/s3             "Settlement Files" { subtitle: "S3 · per acquirer" }
+  batch -> files
+}
+
+system compliance "Compliance" {
+  glyph: sys/shield-check
+  trail = aws/cloudtrail             "Audit Trail" { subtitle: "CloudTrail Lake" }
+  keys  = aws/key-management-service "Card Keys"   { subtitle: "KMS · HSM-backed" }
+  layout { rows [trail] [keys] }
+}
+
+zone pci "PCI DSS scope" { contains payments }
+
+shopper -> edge.waf         "pays"
+edge.gw -> payments.auth    "authorize"
+payments.ledger -> settlement.batch "close of day"
+
+payments.auth  -> compliance.trail "audit"
+payments.auth  -> compliance.keys  "decrypt"
+payments.vault -> compliance.keys  "encrypt"
+
+view platform {
+  title "Card payments"
+  expand edge, payments, compliance
+  layout {
+    rows [shopper] [edge] [payments compliance] [settlement]
+    route payments.auth  -> compliance.trail from east
+    route payments.auth  -> compliance.keys  from east
+    route payments.vault -> compliance.keys  from east
+  }
+}
+
+view close-of-day {
+  title "Close of day"
+  expand settlement
+}

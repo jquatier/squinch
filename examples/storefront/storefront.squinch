@@ -34,12 +34,9 @@ system orders "Order Service" {
       created_at   string
     }
   }
-  bus = aws/eventbridge "Order Events" { subtitle: "EventBridge" }
-
   api -> handlers.create, handlers.get
   handlers.create -> db
   handlers.get    -> db
-  handlers.create ~> bus "OrderPlaced"
 }
 
 customer -> web.cdn "browses"
@@ -66,9 +63,4 @@ view orders-detail {
   scope orders
   title "Order Service — detail"
   expand handlers
-  layout {
-    place bus right-of db
-    // out of Create's east side, past Get, and out of the frame's east wall
-    route handlers.create ~> bus from east
-  }
 }
