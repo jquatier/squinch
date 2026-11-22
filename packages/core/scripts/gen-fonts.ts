@@ -38,8 +38,14 @@ for (const [family, pattern] of Object.entries(FILES)) {
     const woff2 = await subsetFont(source, repertoire, { targetFormat: "woff2" });
     out[family][weight] = woff2.toString("base64");
     // sfnt keeps the source face's own family name (Inter / IBM Plex Mono) —
-    // which is exactly what the CSS stack falls through to after ours.
-    const sfnt = await subsetFont(source, repertoire, { targetFormat: "sfnt" });
+    // which is exactly what the CSS stack falls through to after ours. That
+    // name is the *typographic* family (name id 16, with 17 its weight), and
+    // harfbuzz drops both by default: each face was left with only its legacy
+    // id-1 name — "Inter Medium", "Inter SemiBold" — so a rasterizer asked for
+    // Inter at 600 found one face called Inter, the Regular, and drew every
+    // title and every bold run with it. The woff2 above needs neither: CSS
+    // names it in the @font-face rule, and it stays byte-identical.
+    const sfnt = await subsetFont(source, repertoire, { targetFormat: "sfnt", preserveNameIds: [16, 17] });
     writeFileSync(`fonts/${family}-${weight}.ttf`, sfnt);
     console.log(
       `subset ${family} ${weight}: ${woff2.length}b woff2, ${sfnt.length}b sfnt` +
