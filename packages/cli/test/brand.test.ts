@@ -52,19 +52,32 @@ const pixelsOfPng = (file: string, size: number) => {
   );
 };
 
+/** The mark inset `pad` px on every side of a `size` square — the listing
+ *  icon's breathing room. The mark is nested whole as an inner `<svg>`, so its
+ *  artwork is untouched and only the frame around it is new. */
+const framed = (mark: string, size: number, pad: number) =>
+  pad === 0
+    ? mark
+    : `<svg xmlns="http://www.w3.org/2000/svg" width="${size}" height="${size}" viewBox="0 0 ${size} ${size}">` +
+      mark
+        .replace(/^<\?xml[^>]*\?>\s*/, "")
+        .replace("<svg ", `<svg x="${pad}" y="${pad}" width="${size - 2 * pad}" height="${size - 2 * pad}" `) +
+      `</svg>`;
+
 describe("brand", () => {
   // Rasterise the mark and walk every pixel against the committed PNG. Fast
   // once the font book is out of the way (well under a second locally, the
   // 1024px one included), but these carry an explicit timeout rather than
   // riding the 5s default: a shared runner having a bad minute should not be
   // able to turn a brand guard into a red build.
-  const RASTERS: [name: string, file: string, size: number][] = [
-    ["the VS Code extension's icon", "packages/vscode/icon.png", 256],
-    ["the plugin directory's icon", "packages/skill/.claude-plugin/icon.png", 1024],
+  const RASTERS: [name: string, file: string, size: number, pad: number][] = [
+    ["the VS Code extension's icon", "packages/vscode/icon.png", 256, 0],
+    ["the plugin directory's icon", "packages/skill/.claude-plugin/icon.png", 1024, 96],
   ];
 
-  it.each(RASTERS)("%s is docs/assets/mark.svg at its size", (_, file, SIZE) => {
-    const mark = pixelsOf(readFileSync(join(root, "docs/assets/mark.svg"), "utf8"), SIZE);
+  it.each(RASTERS)("%s is docs/assets/mark.svg at its size", (_, file, SIZE, PAD) => {
+    const svg = framed(readFileSync(join(root, "docs/assets/mark.svg"), "utf8"), SIZE, PAD);
+    const mark = pixelsOf(svg, SIZE);
     const icon = pixelsOfPng(join(root, file), SIZE);
 
     expect([icon.w, icon.h], `${file} is not ${SIZE}x${SIZE}`).toEqual([mark.w, mark.h]);
@@ -84,7 +97,8 @@ describe("brand", () => {
     expect(
       worst,
       `${file} differs from mark.svg (worst channel delta ${worst} at byte ${at}, ` +
-        `pixel ${Math.floor(at / 4)}). Regenerate it from docs/assets/mark.svg at ${SIZE}px.`,
+        `pixel ${Math.floor(at / 4)}). Regenerate it from docs/assets/mark.svg at ${SIZE}px` +
+        (PAD ? `, inset ${PAD}px on every side.` : "."),
     ).toBe(0);
   }, 30_000);
 });

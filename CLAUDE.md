@@ -124,7 +124,7 @@ the layered mark, for wherever the logo runs large — is *generated* from it by
 recolour propagates by re-running rather than by remembering. The copies that
 cannot be derived are the two rasters — `packages/vscode/icon.png` (a VSIX
 needs one, 256px) and `packages/skill/.claude-plugin/icon.png` (the plugin
-directory's listing icon, 1024px) — so they are asserted instead:
+directory's listing icon, 1024px with the mark inset 96px) — so they are asserted instead:
 `packages/cli/test/brand.test.ts` rasterises the SVG at each size and demands
 pixel equality. Four byte-identical copies of the mark used to live in
 the tree, which was four chances for the brand to drift; two of them disagreed
