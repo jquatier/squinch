@@ -584,20 +584,27 @@ pre code { background: none; padding: 0; font-size: inherit; }
 }
 .hero-links a { width: 100%; }
 /* One quiet line under the buttons, for the visitor who already uses another
-   tool: the question they arrived with, one click from its answer. */
-.hero-compare { display: inline-block; margin-top: 14px; font-size: 13.5px; color: var(--muted); }
+   tool: the question they arrived with, one click from its answer. A block,
+   not inline-block, so no strut adds a pixel under it: the demo panel lines
+   up with the buttons by subtracting exactly these two numbers. */
+.hero { --compare-gap: 14px; --compare-line: 22px; }
+.hero-compare { display: block; width: fit-content; margin-top: var(--compare-gap); font-size: 13.5px; line-height: var(--compare-line); color: var(--muted); }
 .hero-compare::after { content: " →" / ""; color: var(--accent); }
 .hero-compare:hover { color: var(--fg); text-decoration: none; }
 
-/* The demo stretches to the copy column's height so its bottom lands level
-   with the CTA grid. The gif keeps its aspect (`contain`), and the slack
-   becomes side margins in the gif's own canvas colour — the bars are
-   invisible against the artwork's identical background, so the panel just
-   reads as a wider stage. */
-/* the grid item is the wrap; .hero-demo stretches to fill it exactly */
-.hero-demo-wrap { position: relative; margin: 0; min-width: 0; align-self: stretch; display: flex; flex-direction: column; }
-.hero-demo { margin: 0; flex: 1; min-height: 0; display: flex; flex-direction: column; }
-.hero-demo img, .hero-demo video { flex: 1; min-height: 0; width: 100%; height: 100%; object-fit: contain; background: #161618; }
+/* The panel hugs the clip: the video sizes itself from its own aspect (the
+   width/height attributes) and the panel wraps it. Stretching it to the copy
+   column's height letterboxed the clip whenever the two ratios disagreed.
+   At the hero's full width its bottom sits on the bottom of the four buttons
+   (the compare line under them is the copy's tail, so it is subtracted); on
+   a narrower two-column screen the panel is shorter than the copy, and it is
+   centred against it instead. */
+.hero-demo-wrap { position: relative; margin: 0; min-width: 0; align-self: center; }
+@media (min-width: 1180px) {
+  .hero-demo-wrap { align-self: end; margin-bottom: calc(var(--compare-gap) + var(--compare-line)); }
+}
+.hero-demo { margin: 0; }
+.hero-demo img, .hero-demo video { display: block; width: 100%; height: auto; background: #161618; }
 /* Two brand-hue glows drifting over the hero (the dot grid itself lives on
    body so it runs the full page without a seam at the hero's edge).
    Unclipped on purpose: each glow already fades to transparent within its

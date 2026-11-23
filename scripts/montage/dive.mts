@@ -31,7 +31,7 @@ const PANE = { w: 880, h: 616 }; // the box a picture is contained in (reel.html
 const C = { x: PANE.w / 2, y: PANE.h / 2 };
 
 /** The montage's cuts, seconds each: they accelerate. */
-const MONT = [0.70, 0.62, 0.55, 0.50, 0.45, 0.42, 0.38, 0.35, 0.32, 0.30, 0.30, 0.30];
+const MONT = [0.70, 0.62, 0.55, 0.50, 0.45, 0.42, 0.38, 0.35, 0.32, 0.30, 0.30, 0.30, 0.30];
 
 /** The reel's timeline, seconds — every other time in the clip is computed from these. The holds are what a
  *  reader needs to take a picture in: GAP between the two dives, TABLES on the finished tables view, FADE
@@ -182,9 +182,10 @@ export function timelineCss() {
   out.push(kf("sq-driftB", [[0, "transform:translateX(-210px)"], [3.5, "transform:translateX(0)"], [LOOP, "transform:translateX(0)"]]));
   out.push(kf("sq-band", [[0, "transform:translateX(-110%)"], [0.3, "transform:translateX(-110%)"], [0.9, "transform:translateX(0)"],
     [2.5, "transform:translateX(0)"], [3.2, "transform:translateX(-110%)"], [LOOP, "transform:translateX(-110%)"]]));
-  // the prompt card starts large and centred, then shrinks to a bar on top
+  // the prompt card starts large and centred and stays there while the agent's lines appear under it; once
+  // they go, it shrinks to a bar on top just ahead of the picture
   const big = "left:70px;top:300px;width:800px;height:160px;font-size:34px", small = "left:30px;top:28px;width:880px;height:56px;font-size:22px";
-  out.push(kf("sq-card", [[0, big], [5.0, big], [5.6, small], [LOOP, small]]));
+  out.push(kf("sq-card", [[0, big], [T.appear - 0.8, big], [T.appear - 0.2, small], [LOOP, small]]));
   out.push(kf("sq-caretwin", [[0, show], [3.79, show], [3.82, hide], [LOOP, hide]]));
   out.push(`@keyframes sq-blink{0%,49%{opacity:1}50%,100%{opacity:0}}\n`);
   // typed text and the agent's lines: reveal, hold, put away
@@ -192,18 +193,23 @@ export function timelineCss() {
   out.push(kf("sq-type", [[0, clip(100)], [1.0, "clip-path:inset(0 -2px 0 0)"], [24.0, "clip-path:inset(0 -2px 0 0)"], [24.1, clip(100)], [LOOP, clip(100)]]));
   const up = "opacity:0;transform:translateY(8px)", on = "opacity:1;transform:translateY(0)";
   out.push(kf("sq-line", [[0, up], [0.36, on], [20.5, on], [20.6, up], [LOOP, up]]));
-  out.push(kf("sq-lines", [[0, show], [T.appear - 0.3, show], [T.appear + 0.5, hide], [LOOP, hide]]));
+  out.push(kf("sq-lines", [[0, show], [T.appear - 1.0, show], [T.appear - 0.7, hide], [LOOP, hide]]));
   out.push(kf("sq-pane", [[0, "opacity:0;transform:translateY(36px)"], [T.appear, "opacity:0;transform:translateY(36px)"],
     [T.appear + 0.8, "opacity:1;transform:translateY(0)"], [LOOP, "opacity:1;transform:translateY(0)"]]));
   // the scenes
   out.push(kf("sq-app", [[0, hide], [3.0, hide], [3.6, show], [T.appFade, show], [T.appEnd, hide], [LOOP, hide]]));
   out.push(kf("sq-mont", [[0, hide], [T.montStart - 0.1, hide], [T.montStart, show], [T.montEnd + 0.1, show], [T.montEnd + 0.6, hide], [LOOP, hide]]));
   let t = T.montStart;
+  // Hard cuts, never a crossfade: a board comes in fully opaque on top (each one is backed by the canvas, so it
+  // covers the last whatever its shape) and the board under it stays solid until well after. Fading one out
+  // while the next fades in left a frame at every cut where both were half there and the canvas showed through
+  // — a dark blink at every cut. The last board is never switched off: sq-mont fades the scene out with it.
   MONT.forEach((dur, i) => {
     const big = "opacity:1;transform:scale(1.06)", flat = "opacity:1;transform:scale(1)";
-    const b0 = t + Math.min(0.25, dur * 0.7), c0 = t + dur;
-    out.push(kf(`sq-m${i}`, [[0, "opacity:0;transform:scale(1.06)"], [t, "opacity:0;transform:scale(1.06)"], [t + 0.02, big], [b0, flat],
-      [c0, flat], [c0 + 0.02, "opacity:0;transform:scale(1)"], [LOOP, "opacity:0;transform:scale(1)"]]));
+    const b0 = t + Math.min(0.25, dur * 0.7), c0 = t + dur, last = i === MONT.length - 1;
+    out.push(kf(`sq-m${i}`, [[0, "opacity:0;transform:scale(1.06)"], [t, "opacity:0;transform:scale(1.06)"], [t + 0.001, big], [b0, flat],
+      ...(last ? [[LOOP, flat] as [number, string]]
+        : [[c0 + 0.1, flat], [c0 + 0.101, "opacity:0;transform:scale(1)"], [LOOP, "opacity:0;transform:scale(1)"]] as [number, string][])]));
     t += dur;
   });
   const rise = "opacity:0;transform:translateY(14px)", rest = "opacity:1;transform:translateY(0)";

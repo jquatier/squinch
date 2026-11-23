@@ -51,7 +51,7 @@
 //     from the built model of that same source.
 //
 // What is not, and is a claim about the picture: the agent's wording, the
-// prompt (`diagram this app`), the twelve boards picked for the montage and the
+// prompt (`diagram this app`), the thirteen boards picked for the montage and the
 // timeline. Like prompt-gif.mts's sentence, no test can catch these going out of
 // step with the picture — change the shop source and read the clip.
 //
@@ -97,7 +97,7 @@ const TOKENS: Record<string, Record<string, string>> = {
     canvas: "#161618", surface: "#1A1A1D", control: "#1F1F23", line: "#2C2C30", "line-strong": "#46464C",
     "text-3": "#6C6B66", ghost: "#6C6B66", muted: "#9C9B94", fg: "#EDEDEA", accent: "#8B88E8", ok: "#3FBF8F",
     pill: "rgba(26,26,29,.92)", "accent-25": "rgba(139,136,232,.25)", "accent-55": "rgba(139,136,232,.55)",
-    shadow: "rgba(0,0,0,.5)", tile: "#1A1A1D", "tile-edge": "#2C2C30", "tile-shadow": "0 0 0 0 transparent",
+    tile: "#1A1A1D", "tile-edge": "#2C2C30",
   },
   light: {
     canvas: "#E3E3E1", surface: "#FFFFFF", control: "#F0EFEC", line: "#E4E3DF", "line-strong": "#CFCEC9",
@@ -108,7 +108,7 @@ const TOKENS: Record<string, Record<string, string>> = {
     "text-3": "#8A8983", ghost: "#72716B", muted: "#62615C", fg: "#1C1C1A", accent: "#5551C4", ok: "#1F8A66",
     pill: "rgba(255,255,255,.92)", "accent-25": "rgba(85,81,196,.25)", "accent-55": "rgba(85,81,196,.45)",
     // light tiles take the diagrams' own canvas so letterboxing never shows as a white mat
-    shadow: "rgba(0,0,0,.14)", tile: "#E3E3E1", "tile-edge": "#CFCEC9", "tile-shadow": "0 2px 8px rgba(0,0,0,.12)",
+    tile: "#E3E3E1", "tile-edge": "#CFCEC9",
   },
 };
 
@@ -132,7 +132,7 @@ const stems = [
   ...readdirSync(examples).sort().flatMap((d) => statSync(join(examples, d)).isDirectory()
     ? readdirSync(join(examples, d)).filter((f) => f.endsWith(".dark.svg")).sort() : []),
 ].map((f) => f.replace(/\.dark\.svg$/, ""));
-if (stems.length !== 74) throw new Error(`expected 74 committed views, found ${stems.length} — the wall's tiling assumes it; check lookbook/out and examples/`);
+if (stems.length !== 79) throw new Error(`expected 79 committed views, found ${stems.length} — the wall's tiling assumes it; check lookbook/out and examples/`);
 
 function svgFor(stem: string, theme: string): string {
   for (const p of [join(lookbook, `${stem}.${theme}.svg`), join(examples, stem.split(".")[0], `${stem}.${theme}.svg`)]) {
@@ -276,7 +276,7 @@ async function main() {
       // the wall: eight rows dealt by index mod 8, brick-offset, alternate rows drifting the other way
       const rows = [0, 1, 2, 3, 4, 5, 6, 7].map((r) => {
         const tiles = stems.filter((_, i) => i % 8 === r).map((stem) =>
-          `<img src="${frozen(svgFor(stem, theme), dir)}" alt="" style="flex: none; width: 200px; height: 140px; object-fit: contain; background: var(--tile); border-radius: 8px; box-shadow: 0 0 0 1px var(--tile-edge), var(--tile-shadow)">`);
+          `<img src="${frozen(svgFor(stem, theme), dir)}" alt="" style="flex: none; width: 200px; height: 140px; object-fit: contain; background: var(--tile); border-radius: 8px; box-shadow: 0 0 0 1px var(--tile-edge)">`);
         return `      <div style="display: flex; gap: 14px; margin-left: ${r % 2 ? 107 : 0}px; animation: ${r % 2 ? "sq-driftB" : "sq-driftA"} ${LOOP}s linear infinite">${tiles.join("")}</div>`;
       }).join("\n");
       html = html.replace("<!--{{WALL}}-->", () => rows)

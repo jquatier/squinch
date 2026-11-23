@@ -67,8 +67,8 @@ system orders "Orders" {
       }
     }
 
-    order_items -> orders "order_id"
-    shipments   -> orders "order_id"
+    order_items -> orders "order_id" { from: many  to: one }
+    shipments   -> orders "order_id" { from: many  to: one }
   }
 
   api -> pg             "writes"

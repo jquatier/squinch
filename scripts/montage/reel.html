@@ -31,15 +31,15 @@ html, body { margin: 0; background: var(--canvas); }
       <!--{{WALL}}-->
     </div>
     <div style="position: absolute; left: 0; bottom: 78px; padding: 26px 54px 30px 58px; background: var(--canvas); border: 1px solid var(--line-strong); border-left: 0; animation: sq-band {{LOOP}}s cubic-bezier(.2,.8,.2,1) infinite">
-      <div style="font-size: 64px; font-weight: 600; letter-spacing: -0.04em; line-height: 1.02">So many<br>possibilities.</div>
+      <div style="font-size: 64px; font-weight: 600; letter-spacing: -0.04em; line-height: 1.02">Any system.<br>Any altitude.</div>
     </div>
   </div>
 
   <!-- Scene 2 · the ask, the work, the picture -->
   <div style="position: absolute; inset: 0; opacity: 0; animation: sq-app {{LOOP}}s linear infinite">
 
-    <!-- the prompt: large and centred, then a bar across the top -->
-    <div style="position: absolute; left: 70px; top: 300px; width: 800px; height: 160px; box-sizing: border-box; padding: 0 28px; display: flex; align-items: center; gap: 16px; background: var(--surface); border: 1px solid var(--line); border-radius: 14px; box-shadow: 0 24px 70px var(--shadow); font-size: 34px; font-weight: 500; animation: sq-card {{LOOP}}s cubic-bezier(.6,0,.2,1) infinite">
+    <!-- the prompt: large and centred while the agent works, then a bar across the top -->
+    <div style="position: absolute; left: 70px; top: 300px; width: 800px; height: 160px; box-sizing: border-box; padding: 0 28px; display: flex; align-items: center; gap: 16px; background: var(--surface); border: 1px solid var(--line); border-radius: 14px; font-size: 34px; font-weight: 500; animation: sq-card {{LOOP}}s cubic-bezier(.6,0,.2,1) infinite">
       <span style="color: var(--accent); font-weight: 600; line-height: 1">›</span>
       <span style="display: inline-block; white-space: nowrap; clip-path: inset(0 100% 0 0); animation: sq-type {{LOOP}}s steps(16, end) infinite; animation-delay: 3.8s">diagram this app</span>
       <span aria-hidden="true" style="position: absolute; left: 62px; top: 50%; margin-top: -0.55em; width: 3px; height: 1.1em; opacity: 0; animation: sq-caretwin {{LOOP}}s linear infinite">
@@ -47,17 +47,17 @@ html, body { margin: 0; background: var(--canvas); }
       </span>
     </div>
 
-    <!-- what the agent does, until the picture arrives -->
-    <div style="position: absolute; left: 36px; top: 112px; display: flex; flex-direction: column; gap: 16px; font-size: 22px; font-weight: 500; animation: sq-lines {{LOOP}}s linear infinite">
-      <div style="display: flex; gap: 14px; align-items: center; opacity: 0; animation: sq-line {{LOOP}}s ease-out infinite; animation-delay: 5.8s"><span aria-hidden="true" style="flex: none; width: 10px; height: 10px; border-radius: 50%; background: var(--ok)"></span><span>Using the <span style="color: var(--accent)">squinch</span> skill</span></div>
-      <div style="display: flex; gap: 14px; align-items: center; opacity: 0; animation: sq-line {{LOOP}}s ease-out infinite; animation-delay: 6.4s"><span aria-hidden="true" style="flex: none; width: 10px; height: 10px; border-radius: 50%; background: var(--ok)"></span><span>Reading the repo <span style="color: var(--muted)">· {{COUNTS}}</span></span></div>
-      <div style="display: flex; gap: 14px; align-items: center; opacity: 0; animation: sq-line {{LOOP}}s ease-out infinite; animation-delay: 7s"><span aria-hidden="true" style="flex: none; width: 10px; height: 10px; border-radius: 50%; background: var(--ok)"></span><span>Writing <span style="font-family: 'IBM Plex Mono', ui-monospace, monospace; font-size: 20px; color: var(--muted)">architecture/shop.squinch</span></span></div>
-      <div style="margin-top: 8px; font-size: 25px; font-weight: 600; letter-spacing: -0.01em; opacity: 0; animation: sq-line {{LOOP}}s ease-out infinite; animation-delay: 7.6s">Done. An overview, plus a page for each service.</div>
+    <!-- what the agent does, under the centred prompt, until the picture arrives -->
+    <div style="position: absolute; left: 98px; top: 500px; display: flex; flex-direction: column; gap: 16px; font-size: 22px; font-weight: 500; animation: sq-lines {{LOOP}}s linear infinite">
+      <div style="display: flex; gap: 14px; align-items: center; opacity: 0; animation: sq-line {{LOOP}}s ease-out infinite; animation-delay: 5.2s"><span aria-hidden="true" style="flex: none; width: 10px; height: 10px; border-radius: 50%; background: var(--ok)"></span><span>Using the <span style="color: var(--accent)">squinch</span> skill</span></div>
+      <div style="display: flex; gap: 14px; align-items: center; opacity: 0; animation: sq-line {{LOOP}}s ease-out infinite; animation-delay: 5.8s"><span aria-hidden="true" style="flex: none; width: 10px; height: 10px; border-radius: 50%; background: var(--ok)"></span><span>Reading the repo <span style="color: var(--muted)">· {{COUNTS}}</span></span></div>
+      <div style="display: flex; gap: 14px; align-items: center; opacity: 0; animation: sq-line {{LOOP}}s ease-out infinite; animation-delay: 6.4s"><span aria-hidden="true" style="flex: none; width: 10px; height: 10px; border-radius: 50%; background: var(--ok)"></span><span>Writing <span style="font-family: 'IBM Plex Mono', ui-monospace, monospace; font-size: 20px; color: var(--muted)">architecture/shop.squinch</span></span></div>
+      <div style="margin-top: 8px; font-size: 25px; font-weight: 600; letter-spacing: -0.01em; opacity: 0; animation: sq-line {{LOOP}}s ease-out infinite; animation-delay: 7s">Done. An overview, plus a page for each service.</div>
     </div>
 
     <!-- the picture: landscape, zoom into the app, zoom into its database -->
     <div style="position: absolute; left: 30px; top: 108px; width: 880px; opacity: 0; transform: translateY(36px); animation: sq-pane {{LOOP}}s cubic-bezier(.2,.8,.2,1) infinite">
-      <div style="position: relative; width: 880px; height: 664px; background: var(--canvas); border-radius: 14px; box-shadow: 0 0 0 1px var(--line), 0 24px 70px var(--shadow); overflow: hidden">
+      <div style="position: relative; width: 880px; height: 664px; background: var(--canvas); border-radius: 14px; box-shadow: 0 0 0 1px var(--line); overflow: hidden">
         <div style="position: absolute; inset: 48px 0 0 0; opacity: 0; animation: sq-A {{LOOP}}s linear infinite">
           <!--{{shop:landscape}}-->
           <div aria-hidden="true" style="position: absolute; {{RING_A}}; box-sizing: border-box; border: 2px solid var(--accent); border-radius: 12px; box-shadow: 0 0 0 4px var(--accent-25), 0 0 26px var(--accent-55); opacity: 0; animation: sq-ringA {{LOOP}}s linear infinite"></div>
@@ -83,22 +83,23 @@ html, body { margin: 0; background: var(--canvas); }
   </div>
   <!-- Scene 3 · montage -->
   <div style="position: absolute; inset: 0; opacity: 0; animation: sq-mont {{LOOP}}s linear infinite">
-    <img src="{{board:microservices.full}}" alt="microservices, every service open" style="position: absolute; left: 20px; top: 30px; width: 900px; height: 720px; object-fit: contain; opacity: 0; animation: sq-m0 {{LOOP}}s linear infinite">
-    <img src="{{board:06-dense-mesh.mesh}}" alt="a dense mesh of services" style="position: absolute; left: 20px; top: 30px; width: 900px; height: 720px; object-fit: contain; opacity: 0; animation: sq-m1 {{LOOP}}s linear infinite">
-    <img src="{{board:27-k8s.cluster}}" alt="a Kubernetes cluster" style="position: absolute; left: 20px; top: 30px; width: 900px; height: 720px; object-fit: contain; opacity: 0; animation: sq-m2 {{LOOP}}s linear infinite">
-    <img src="{{board:29-google-cloud.platform}}" alt="a Google Cloud platform" style="position: absolute; left: 20px; top: 30px; width: 900px; height: 720px; object-fit: contain; opacity: 0; animation: sq-m3 {{LOOP}}s linear infinite">
-    <img src="{{board:28-azure.storefront}}" alt="an Azure storefront" style="position: absolute; left: 20px; top: 30px; width: 900px; height: 720px; object-fit: contain; opacity: 0; animation: sq-m4 {{LOOP}}s linear infinite">
-    <img src="{{board:14-sidecar-routes.app}}" alt="an app with sidecars" style="position: absolute; left: 20px; top: 30px; width: 900px; height: 720px; object-fit: contain; opacity: 0; animation: sq-m5 {{LOOP}}s linear infinite">
-    <img src="{{board:17-zones.landscape}}" alt="a hybrid estate in zones" style="position: absolute; left: 20px; top: 30px; width: 900px; height: 720px; object-fit: contain; opacity: 0; animation: sq-m6 {{LOOP}}s linear infinite">
-    <img src="{{board:30-badges.lakehouse}}" alt="a lakehouse platform" style="position: absolute; left: 20px; top: 30px; width: 900px; height: 720px; object-fit: contain; opacity: 0; animation: sq-m7 {{LOOP}}s linear infinite">
-    <img src="{{board:43-fields.overview}}" alt="tables with their schemas" style="position: absolute; left: 20px; top: 30px; width: 900px; height: 720px; object-fit: contain; opacity: 0; animation: sq-m8 {{LOOP}}s linear infinite">
-    <img src="{{board:38-container-direction.load}}" alt="a load path, laid out rightward" style="position: absolute; left: 20px; top: 30px; width: 900px; height: 720px; object-fit: contain; opacity: 0; animation: sq-m9 {{LOOP}}s linear infinite">
-    <img src="{{board:41-preview-card.landscape}}" alt="cards that preview their children" style="position: absolute; left: 20px; top: 30px; width: 900px; height: 720px; object-fit: contain; opacity: 0; animation: sq-m10 {{LOOP}}s linear infinite">
-    <img src="{{board:21-logos.landscape}}" alt="a stack of vendor logos" style="position: absolute; left: 20px; top: 30px; width: 900px; height: 720px; object-fit: contain; opacity: 0; animation: sq-m11 {{LOOP}}s linear infinite">
+    <img src="{{board:microservices.full}}" alt="microservices, every service open" style="position: absolute; left: 20px; top: 30px; width: 900px; height: 720px; object-fit: contain; background: var(--canvas); opacity: 0; animation: sq-m0 {{LOOP}}s linear infinite">
+    <img src="{{board:payments.platform}}" alt="card payments across three clouds, every icon pack" style="position: absolute; left: 20px; top: 30px; width: 900px; height: 720px; object-fit: contain; background: var(--canvas); opacity: 0; animation: sq-m1 {{LOOP}}s linear infinite">
+    <img src="{{board:06-dense-mesh.mesh}}" alt="a dense mesh of services" style="position: absolute; left: 20px; top: 30px; width: 900px; height: 720px; object-fit: contain; background: var(--canvas); opacity: 0; animation: sq-m2 {{LOOP}}s linear infinite">
+    <img src="{{board:27-k8s.cluster}}" alt="a Kubernetes cluster" style="position: absolute; left: 20px; top: 30px; width: 900px; height: 720px; object-fit: contain; background: var(--canvas); opacity: 0; animation: sq-m3 {{LOOP}}s linear infinite">
+    <img src="{{board:29-google-cloud.platform}}" alt="a Google Cloud platform" style="position: absolute; left: 20px; top: 30px; width: 900px; height: 720px; object-fit: contain; background: var(--canvas); opacity: 0; animation: sq-m4 {{LOOP}}s linear infinite">
+    <img src="{{board:28-azure.storefront}}" alt="an Azure storefront" style="position: absolute; left: 20px; top: 30px; width: 900px; height: 720px; object-fit: contain; background: var(--canvas); opacity: 0; animation: sq-m5 {{LOOP}}s linear infinite">
+    <img src="{{board:14-sidecar-routes.app}}" alt="an app with sidecars" style="position: absolute; left: 20px; top: 30px; width: 900px; height: 720px; object-fit: contain; background: var(--canvas); opacity: 0; animation: sq-m6 {{LOOP}}s linear infinite">
+    <img src="{{board:17-zones.landscape}}" alt="a hybrid estate in zones" style="position: absolute; left: 20px; top: 30px; width: 900px; height: 720px; object-fit: contain; background: var(--canvas); opacity: 0; animation: sq-m7 {{LOOP}}s linear infinite">
+    <img src="{{board:30-badges.lakehouse}}" alt="a lakehouse platform" style="position: absolute; left: 20px; top: 30px; width: 900px; height: 720px; object-fit: contain; background: var(--canvas); opacity: 0; animation: sq-m8 {{LOOP}}s linear infinite">
+    <img src="{{board:43-fields.overview}}" alt="tables with their schemas" style="position: absolute; left: 20px; top: 30px; width: 900px; height: 720px; object-fit: contain; background: var(--canvas); opacity: 0; animation: sq-m9 {{LOOP}}s linear infinite">
+    <img src="{{board:38-container-direction.load}}" alt="a load path, laid out rightward" style="position: absolute; left: 20px; top: 30px; width: 900px; height: 720px; object-fit: contain; background: var(--canvas); opacity: 0; animation: sq-m10 {{LOOP}}s linear infinite">
+    <img src="{{board:41-preview-card.landscape}}" alt="cards that preview their children" style="position: absolute; left: 20px; top: 30px; width: 900px; height: 720px; object-fit: contain; background: var(--canvas); opacity: 0; animation: sq-m11 {{LOOP}}s linear infinite">
+    <img src="{{board:21-logos.landscape}}" alt="a stack of vendor logos" style="position: absolute; left: 20px; top: 30px; width: 900px; height: 720px; object-fit: contain; background: var(--canvas); opacity: 0; animation: sq-m12 {{LOOP}}s linear infinite">
   </div>
   <!-- Scene 4 · the close -->
   <div style="position: absolute; inset: 0; opacity: 0; transform: translateY(14px); animation: sq-inst {{LOOP}}s linear infinite">
-    <div style="position: absolute; left: 70px; top: 292px; width: 800px; box-sizing: border-box; padding: 40px 44px; display: flex; flex-direction: column; gap: 28px; background: var(--surface); border: 1px solid var(--line); border-radius: 14px; box-shadow: 0 24px 70px var(--shadow)">
+    <div style="position: absolute; left: 70px; top: 292px; width: 800px; box-sizing: border-box; padding: 40px 44px; display: flex; flex-direction: column; gap: 28px; background: var(--surface); border: 1px solid var(--line); border-radius: 14px">
       <div style="display: flex; align-items: baseline; gap: 20px; font-family: 'IBM Plex Mono', ui-monospace, monospace; font-size: 34px; font-weight: 500">
         <span style="color: var(--accent); font-weight: 600">$</span>
         <span style="display: inline-block; white-space: nowrap; clip-path: inset(0 100% 0 0); animation: sq-type2 {{LOOP}}s steps(16, end) infinite; animation-delay: {{T_INST_1}}s">npm i -g squinch</span>
