@@ -5,9 +5,11 @@
 // its gradient stops out of mark.svg when scripts/mark-stack.mts regenerates
 // docs/assets/mark-stack.svg.
 //
-// packages/vscode/icon.png is the exception. A VSIX needs a raster icon, so it
-// is a committed PNG with no build step and nothing to re-run — which makes it
-// the one copy that can silently fall behind a recolour. It nearly did: the
+// The rasters are the exception. A VSIX needs a raster icon
+// (packages/vscode/icon.png), and so does the plugin directory's listing
+// (packages/skill/.claude-plugin/icon.png, 1024px square); each is a committed
+// PNG with no build step and nothing to re-run — which makes them the copies
+// that can silently fall behind a recolour. It nearly did: the
 // mark's ramp was very nearly changed to the cooler indigo of the retired
 // logo-dark.png, which would have left the extension wearing the old colours
 // with no test to say so.
@@ -51,16 +53,21 @@ const pixelsOfPng = (file: string, size: number) => {
 };
 
 describe("brand", () => {
-  // Two rasterisations and a 256x256 pixel walk. Fast once the font book is out
-  // of the way (well under a second locally), but this carries an explicit
-  // timeout rather than riding the 5s default: a shared runner having a bad
-  // minute should not be able to turn a brand guard into a red build.
-  it("the VS Code extension's icon is docs/assets/mark.svg at 256px", () => {
-    const SIZE = 256;
-    const mark = pixelsOf(readFileSync(join(root, "docs/assets/mark.svg"), "utf8"), SIZE);
-    const icon = pixelsOfPng(join(root, "packages/vscode/icon.png"), SIZE);
+  // Rasterise the mark and walk every pixel against the committed PNG. Fast
+  // once the font book is out of the way (well under a second locally, the
+  // 1024px one included), but these carry an explicit timeout rather than
+  // riding the 5s default: a shared runner having a bad minute should not be
+  // able to turn a brand guard into a red build.
+  const RASTERS: [name: string, file: string, size: number][] = [
+    ["the VS Code extension's icon", "packages/vscode/icon.png", 256],
+    ["the plugin directory's icon", "packages/skill/.claude-plugin/icon.png", 1024],
+  ];
 
-    expect([icon.w, icon.h], "icon.png is not 256x256").toEqual([mark.w, mark.h]);
+  it.each(RASTERS)("%s is docs/assets/mark.svg at its size", (_, file, SIZE) => {
+    const mark = pixelsOf(readFileSync(join(root, "docs/assets/mark.svg"), "utf8"), SIZE);
+    const icon = pixelsOfPng(join(root, file), SIZE);
+
+    expect([icon.w, icon.h], `${file} is not ${SIZE}x${SIZE}`).toEqual([mark.w, mark.h]);
 
     let worst = 0;
     let at = -1;
@@ -76,8 +83,8 @@ describe("brand", () => {
     // not that the two renderers disagree.
     expect(
       worst,
-      `icon.png differs from mark.svg (worst channel delta ${worst} at byte ${at}, ` +
-        `pixel ${Math.floor(at / 4)}). Regenerate it from docs/assets/mark.svg at 256px.`,
+      `${file} differs from mark.svg (worst channel delta ${worst} at byte ${at}, ` +
+        `pixel ${Math.floor(at / 4)}). Regenerate it from docs/assets/mark.svg at ${SIZE}px.`,
     ).toBe(0);
   }, 30_000);
 });

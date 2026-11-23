@@ -1,6 +1,8 @@
 ---
 name: release
 description: Cut a squinch release — write the release notes as prose in the house style, with each new feature's SVG beside the paragraph that announces it, show them to the maintainer, and only on their go-ahead run `pnpm release`. Use when asked to release, cut, tag or ship a version of squinch.
+metadata:
+  internal: true
 ---
 
 # Cutting a squinch release
