@@ -83,8 +83,9 @@ const FPS = Number(env.FPS ?? 60);
 const PREVIEW = env.PREVIEW ? env.PREVIEW.split(",").map(Number) : null;
 /** RANGE=10.5,14.5 encodes just that stretch into the kept temp dir (no assets written) — for comparing FPS/CRF/preset on real motion. */
 const RANGE = env.RANGE ? env.RANGE.split(",").map(Number) : null;
-/** The tables view is on screen from the end of dive 2 until the app scene fades at 18.6 s. */
-const POSTER_AT = T.appFade - 0.2;
+/** The landscape, zoomed all the way out: the pane has risen by T.appear + 0.8 and dive 1's ring starts to
+ *  show at T.dive1 - 0.7, so the still is taken in the middle of that hold — the whole system, nothing moving. */
+const POSTER_AT = (T.appear + 0.8 + T.dive1 - 0.7) / 2;
 /** x264 at its slowest, tuned for flat vector art — the same settings, and the same reasons, as the
  *  other clips' mp4 (prompt-gif.mts), one notch softer: CRF 28 is indistinguishable from 22 at 2× on this
  *  artwork and 40% smaller; at 1.5× a CRF of 30 lands the clip near 1.5 MB a theme. */
@@ -321,7 +322,7 @@ async function main() {
         continue;
       }
 
-      // the poster: the tables view, the still a reduced-motion or script-off reader gets
+      // the poster: the landscape, the still a reduced-motion or script-off reader gets
       if (!RANGE) {
         const posterPng = join(dir, "poster.png");
         writeFileSync(posterPng, await shoot(POSTER_AT));
