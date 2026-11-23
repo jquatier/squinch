@@ -121,10 +121,12 @@ holds a second copy of it. The site's `favicon.svg` is that file, copied at
 build time, and does double duty as tab icon and page logo. `mark-stack.svg` —
 the layered mark, for wherever the logo runs large — is *generated* from it by
 `scripts/mark-stack.mts`, lifting its paths **and** its gradient stops, so a
-recolour propagates by re-running rather than by remembering. The one copy that
-cannot be derived is `packages/vscode/icon.png` (a VSIX needs a raster), so it
-is asserted instead: `packages/cli/test/brand.test.ts` rasterises the SVG and
-demands pixel equality. Four byte-identical copies of the mark used to live in
+recolour propagates by re-running rather than by remembering. The copies that
+cannot be derived are the two rasters — `packages/vscode/icon.png` (a VSIX
+needs one, 256px) and `packages/skill/.claude-plugin/icon.png` (the plugin
+directory's listing icon, 1024px) — so they are asserted instead:
+`packages/cli/test/brand.test.ts` rasterises the SVG at each size and demands
+pixel equality. Four byte-identical copies of the mark used to live in
 the tree, which was four chances for the brand to drift; two of them disagreed
 with the vector for three weeks.
 `packages/core` — the engine (see below).
