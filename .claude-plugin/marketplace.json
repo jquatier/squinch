@@ -1,7 +1,7 @@
 {
   "name": "squinch",
   "owner": { "name": "Jacob Quatier", "url": "https://github.com/jquatier" },
-  "description": "Squinch — architecture diagrams as code. The squinch plugin teaches your coding agent to write, check and render diagrams with the squinch CLI.",
+  "description": "Squinch: a skill for AI coding agents that draws clean, professional architecture diagrams as code — real cloud icons, zoom into any system, SVG, PNG or HTML export.",
   "plugins": [
     {
       "name": "squinch",
