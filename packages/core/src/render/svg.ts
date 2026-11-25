@@ -1881,11 +1881,9 @@ export function renderSVG(p: Positioned, t: Theme, opts: RenderOpts = {}): strin
   const hd = headerDims(rc, opts.title, opts.titleblock ?? {});
   let headerH = hd.h ? hd.h + 22 : 0;
   if (opts.notes?.length) {
-    // Everything a note must not land on. The legend and titleblock are drawn
-    // *after* notes but positioned from the final height, which is circular —
-    // so reserve the strip they will occupy at the current bottom. A note that
-    // still has to travel past it grows the canvas, and the footer follows the
-    // new bottom, so it stays below the note either way.
+    // Notes are placed on the body alone. The header and the legend band sit
+    // outside it — the body shifts down under one, the other is appended below
+    // the final content height, notes included — so neither is an obstacle.
     const ext = notes({ ...p, height }, rc, opts.notes, body);
     padX = Math.max(0, Math.ceil(-ext.minX) + (ext.minX < 0 ? 8 : 0));
     padY = Math.max(0, Math.ceil(-ext.minY) + (ext.minY < 0 ? 8 : 0));

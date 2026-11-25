@@ -33,26 +33,19 @@ export function placeNotes(input: NoteInput): NonNullable<Positioned["notes"]> {
   const { view, font, width, height, nodes, edges: pEdges, ports, frames, zones: pZones, chips, badges, pillRects } = input;
   const noteRoom = input.room ?? new Map<number, { dx: number; dy: number; w: number; h: number }>();
   const noteBoxes = input.boxes;
-  // footer band + pill-extended height, exactly as the renderer computed them
-  // when it owned note placement
+  // pill-extended height, exactly as the renderer computes it. Nothing below
+  // the drawing is an obstacle: the header and the legend band are laid
+  // outside the content box (the renderer shifts the body down for one and
+  // appends the other under it), so a note cannot land on either.
   const drawnBottoms = pillRects.map((r) => r.y + r.h + 16);
   const heightForNotes = Math.max(height, ...drawnBottoms);
-  const footer: { x: number; y: number; w: number; h: number }[] = [];
-  if (view.legend || (view.titleblock && Object.keys(view.titleblock).length)) {
-    const rows = Object.entries(view.titleblock ?? {});
-    const tbH = rows.length || view.title
-      ? 12 + (view.title ? 20 : 0) + rows.length * 15 + 6
-      : 0;
-    const bandH = Math.max(view.legend ? 24 : 0, tbH) + 16;
-    footer.push({ x: 0, y: heightForNotes - bandH, w: width, h: bandH });
-  }
   const pNotes: NonNullable<Positioned["notes"]> = [];
   {
   const out = pNotes;
   const list = view.notes ?? [];
   const p = { width, height: heightForNotes, nodes, edges: pEdges, noteBoxes } as any;
   const obstacles: { x: number; y: number; w: number; h: number }[] = [
-    ...nodes, ...pillRects, ...chips, ...badges, ...footer,
+    ...nodes, ...pillRects, ...chips, ...badges,
   ];
   const byPath = new Map(nodes.map((n) => [n.path, n]));
   // Notes are placed in declaration order and each joins the obstacle set, so
