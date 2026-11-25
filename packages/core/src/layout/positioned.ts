@@ -2,7 +2,7 @@
 // what the renderer draws and what `checkLayout` holds to the invariants.
 import type { VNode } from "../view/resolve.js";
 import type { SetProse } from "../prose.js";
-import type { Side, Hue, ZoneKind, ZoneLabelPos } from "../model/types.js";
+import type { Side, Hue, ZoneKind, ZoneLabelPos, LegendKey } from "../model/types.js";
 
 export interface PNode extends VNode {
   x: number; y: number; w: number; h: number;
@@ -55,6 +55,17 @@ export interface PEdge {
    *  (docs/notes/wrap.md). */
   via?: "bus";
 }
+/** How a legend entry's swatch is drawn — theme-free, so the light and dark
+ *  renders of one layout carry the same structure (`--adaptive` merges them
+ *  positionally). The renderer picks every colour. */
+export type LegendSwatch =
+  | { kind: "arrow"; arrow: "->" | "~>" | "<->" | "--"; style?: "dashed" | "dotted" }
+  | { kind: "aggregated" }
+  | { kind: "external" }
+  | { kind: "context" }
+  | { kind: "tag"; hue: Hue };
+export interface PLegendEntry { key: LegendKey; label: string; swatch: LegendSwatch }
+
 export interface Positioned {
   name: string;
   width: number; height: number;
@@ -82,4 +93,8 @@ export interface Positioned {
    *  beside the wire. Text lines are pre-wrapped (font-derived, theme-free);
    *  style/colour stay the renderer's. */
   notes?: { i: number; x: number; y: number; w: number; h: number; prose: SetProse; leader?: { x1: number; y1: number; x2: number; y2: number } }[];
+  /** The view's legend: the entries it wrote that this drawing has marks
+   *  for, in written order (`view/legend.ts`). `auto` is the retired
+   *  `legend auto`. Absent when the view has no legend. */
+  legend?: { auto: true } | { entries: PLegendEntry[] };
 }

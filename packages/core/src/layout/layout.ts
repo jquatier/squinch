@@ -15,6 +15,7 @@ import type { ThemeFont } from "../themes/index.js";
 import { crowdedMarks } from "./marks.js";
 import { annotate, BADGE_GAP, badgeWidth, markCrossedTitles } from "./annotate.js";
 import { placeNotes } from "./notes.js";
+import { matchLegend } from "../view/legend.js";
 import { noteOff, plan, routeSaid, routesOf } from "./plan.js";
 import type { Positioned, PEdge, PPort } from "./positioned.js";
 import { INTER, NOTE_CLEAR, noteBox, pillDims } from "./sizes.js";
@@ -191,12 +192,17 @@ export async function layoutView(
   });
   const notes = placeNotes({ view, font, width: sol.width, height: sol.height, nodes, edges, ports, frames, zones, chips, badges, pillRects, room, boxes });
   diagnostics.push(...crowdedMarks({ edges, badges, chips, notes }, pillRects, view.loc));
+  // the entries this drawing has marks for — matched on what was laid out
+  const legend: Positioned["legend"] = !view.legend ? undefined
+    : "auto" in view.legend ? { auto: true }
+    : { entries: matchLegend(model, view, { nodes, edges, frames }) };
 
   return {
     positioned: {
       name: view.name, width: sol.width, height: sol.height,
       nodes, edges, ports, frames, zones, chips, badges, notes,
       flow: p.graph.flow, lines: view.layout.lines ?? "orthogonal",
+      ...(legend ? { legend } : {}),
     },
     diagnostics,
   };

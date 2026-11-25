@@ -150,20 +150,25 @@ const styleOf = (e: SEdge): "dashed" | "dotted" | undefined => {
 const parentOf = (p: string) => (p.includes(".") ? p.slice(0, p.lastIndexOf(".")) : "");
 const topOf = (p: string) => p.split(".")[0];
 
+/** An element's own tags and every enclosing container's — tags inherit to
+ *  everything inside (SPEC §tags). Exported for the legend, which matches a
+ *  `#tag` key on a frame the same way the colour lens painted it. */
+export function effectiveTagsOf(model: SModel, path: string): string[] {
+  const own = model.nodes.get(path)?.tags ?? model.containers.get(path)?.tags ?? [];
+  const tags = [...own];
+  let p = parentOf(path);
+  while (p) {
+    tags.push(...(model.containers.get(p)?.tags ?? []));
+    p = parentOf(p);
+  }
+  return [...new Set(tags)];
+}
+
 export function resolveView(model: SModel, view: SView): ViewGraph {
   const diagnostics: Diagnostic[] = [];
   const scope = view.scope ?? "";
 
-  const effectiveTags = (path: string): string[] => {
-    const own = model.nodes.get(path)?.tags ?? model.containers.get(path)?.tags ?? [];
-    const tags = [...own];
-    let p = parentOf(path);
-    while (p) {
-      tags.push(...(model.containers.get(p)?.tags ?? []));
-      p = parentOf(p);
-    }
-    return [...new Set(tags)];
-  };
+  const effectiveTags = (path: string): string[] => effectiveTagsOf(model, path);
 
   // a tag target expands to every element whose EFFECTIVE tags match —
   // inherited tags count (SPEC: tags inherit to everything inside).

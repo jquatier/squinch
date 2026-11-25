@@ -349,7 +349,6 @@ export async function renderProject(
       highlight: view.highlight,
       colors: view.colors,
       notes: view.notes,
-      legend: !!view.legend && "auto" in view.legend,
       titleblock: view.titleblock,
       title: view.title,
       about: view.about,

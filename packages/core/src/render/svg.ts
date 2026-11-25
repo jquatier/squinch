@@ -46,8 +46,6 @@ export interface RenderOpts {
    *  the one label a hue can honestly carry. */
   colors?: { tag: string; hue: Hue }[];
   notes?: SNote[];
-  /** `legend auto` — a key of the styles this render actually uses. */
-  legend?: boolean;
   /** drafting-style corner block (bottom-right), free-form key/values */
   titleblock?: Record<string, string>;
   /** view title — the titleblock headline */
@@ -1917,9 +1915,9 @@ export function renderSVG(p: Positioned, t: Theme, opts: RenderOpts = {}): strin
   // the header instead would put an otherwise-empty strip under any diagram
   // that merely named itself — a signature looking for a reason to be there.
   let bandH = 0;
-  if (opts.legend) {
+  if (p.legend && "auto" in p.legend) {
     const bandY = headerH + contentH;
-    const lg = opts.legend ? legend(p, rc, bandY + 5, chrome, opts.colors) : { h: 0, w: 0 };
+    const lg = legend(p, rc, bandY + 5, chrome, opts.colors);
     // +.02em over seven characters is ~1.5px the metrics table cannot see;
     // reserve it so the mark never sits closer to the edge than intended
     const markW = Math.ceil(measure(wordmark, rc.fx(10.5), "500", rc.fam)) + 2;
