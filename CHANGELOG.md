@@ -6,6 +6,47 @@ history too. Sections are drafted by `pnpm release` from the commits since the
 previous tag, then edited by a human before anything is written; the release
 workflow lifts the matching section verbatim into the GitHub Release notes.
 
+## 0.24.0 — 2026-11-25
+
+**Icons for most of a modern stack.** The `logos` pack nearly doubles, from 147 product marks to 283, so the things architecture diagrams name and squinch used to draw as a plain box now have their mark: model providers and AI tooling, operating systems and hypervisors, infrastructure as code, identity, network gear, data and observability tools. The new [assistant example](https://github.com/jquatier/squinch/blob/main/examples/assistant/assistant.squinch) draws a support assistant on a language model almost entirely with them.
+
+![A support assistant on a language model: retrieval over the help centre, a gateway that picks a model per request, and an evaluation loop that feeds the next fine-tune.](https://github.com/jquatier/squinch/blob/v0.24.0/examples/assistant/assistant.assistant.light.svg?raw=true)
+
+No diagram in this repo redraws. One of yours does if it uses `logos/netlify`, `logos/python` or `logos/elixir`, whose marks changed upstream (below); run `squinch render --sync` after upgrading if you do. Re-run `squinch skill` so your agents know the new marks and words.
+
+### Product marks
+
+- **136 new marks**, all from Simple Icons (CC0), the source the pack already uses:
+  - AI and ML: Anthropic, Mistral, Hugging Face, LangChain, Ollama, PyTorch, TensorFlow, Jupyter, MLflow, Ray, Qdrant, Milvus.
+  - Operating systems and virtualization: Linux, Ubuntu, Debian, Red Hat, Alpine, Android, iOS, macOS, VMware, Proxmox, Nutanix, OpenStack.
+  - Data: Firebase, Couchbase, ScyllaDB, TiDB, Timescale, Vitess, Neon, Airbyte, Trino, Presto, Superset, Metabase, PostHog.
+  - Platform: Pulumi, OpenTofu, Packer, Chef, Puppet, Rancher, Nomad, Dapr, k3s, Fly.io, Hetzner, Alibaba Cloud, Cloudflare Workers.
+  - Security and network: Keycloak, Tailscale, WireGuard, Fortinet, Palo Alto Networks, HAProxy, F5, Juniper, Cilium, Linkerd.
+  - Also observability, CI/CD and SaaS: Dynatrace, Fluentd, Thanos, Snyk, Tekton, Harbor, Notion, Figma, Zendesk, SAP, and more.
+- **Five new search categories**: AI, Security, Network, Operating system and Workflow. `squinch icons search` groups the marks by role.
+- **25 more short names**: `couchdb`, `superset`, `rhel`, `alpine`, `cpp`, `bash`, `wasm`, `hf`, `tofu`, `artifactory` and others, alongside the upstream ids.
+- **Three existing marks changed upstream.** Netlify has new artwork, and its plate is now black rather than teal. Python has new artwork. Elixir's plate is a lighter purple.
+
+### Generic icons and the words you would use
+
+- **`sys/api`, `sys/worker`, `sys/process`, `sys/device`, `sys/web` and 16 more now resolve**, to the icon each word means:
+  - `api` draws braces, `worker` a cog, `process` a workflow;
+  - `analytics` and `chart` a bar chart, `device` and `mobile` a phone;
+  - `scheduler` a calendar clock, `ml` and `ai` a circuit brain.
+
+  These were the words agents guessed most. `sys/api` alone failed 15 times in our agent test runs, and `check` suggested `sys/ads`.
+- **Four of those were retired in July and are back:** `api`, `worker`, `mobile` and `scheduler`. They had been left unresolvable on purpose when the generic set moved to Lucide. Each now draws what its name says; the other retired names still fail `check`.
+- **Five new icons**: `upload`, `download`, `cloud`, `scan-barcode` and `briefcase-conveyor-belt`, for 200 in all.
+- **Cloud packs answer to a few more names:** `aws/aws` draws the AWS mark, and Azure accepts `synapse`, `power-bi`, `devops`, `pipelines` and `blob-storage`.
+
+### Agents
+
+- The skill names a few of the new marks and lists the words that now work in `sys/`. It also shows a third party keeping its mark: `logos/stripe "Stripe" external`. Agents had drawn Stripe as a plain box twenty times.
+- Gauntlet round 40, run on the new packs: 41 of 42 from the round, 32 of 42 clean on the first `check`, and the committed corpus scores 42 of 42.
+  - No agent hit an unknown icon in 213 calls.
+  - The monorepo prompt now draws Firebase and Metabase with their marks.
+  - Stripe never appears as a box.
+
 ## 0.23.0 — 2026-11-25
 
 **Legends say what you mean.** A legend is now a list of what the marks mean, written by you: `legend { -> "Request"  ~> "Event"  #money "Payment path" }`. Squinch draws each swatch from the picture and shows the entries the view draws. The old `legend auto` labelled things for you, as `sync`, `async`, a zone's kind or a tag's name, and a legend is a claim about meaning that only the author can make.
