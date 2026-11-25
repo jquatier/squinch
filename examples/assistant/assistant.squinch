@@ -1,0 +1,81 @@
+// A support assistant on a language model: retrieval over the help centre, a
+// gateway that picks a model per request, and an evaluation loop that feeds
+// the next fine-tune.
+//
+// A question comes in through the chat app and the agent does two things with
+// it: it retrieves the passages that answer it, and it asks the gateway for a
+// completion — Claude, hosted, for the hard ones; a Llama model on the
+// company's own GPUs for the rest. The help centre is re-embedded whenever an
+// article changes. Every conversation is scored offline, a person reviews the
+// low scores, and the scored set trains the self-hosted model overnight.
+//
+// The legend keys the one colour on the page: where conversations are kept
+// once the answer is sent.
+pack logos
+
+person customer "Customer"
+person reviewer "Support lead"
+
+system app "Assistant" {
+  glyph: sys/bot
+  icon: sys/bot
+  web   = logos/nextdotjs "Chat"     { subtitle: "Next.js" }
+  api   = sys/api         "Chat API" { subtitle: "FastAPI" }
+  auth  = logos/keycloak  "Sign-in"  { subtitle: "Keycloak · OIDC" }
+  agent = logos/langchain "Agent"    { subtitle: "LangChain · tools" }
+  web -> api
+  api -> auth "verify"
+  api -> agent "ask"
+}
+
+system models "Model gateway" {
+  glyph: sys/route
+  icon: sys/route
+  router = sys/route       "Router" { subtitle: "per-request policy" }
+  claude = logos/anthropic "Claude" external { subtitle: "hosted API" }
+  llama  = logos/ollama    "Llama"  { subtitle: "Ollama · own GPUs" }
+  router -> claude "hard"
+  router -> llama  "routine"
+}
+
+system retrieval "Retrieval" {
+  glyph: sys/database-search
+  icon: sys/database-search
+  articles = logos/postgres    "Help centre" datastore { subtitle: "articles" }
+  ingest   = sys/worker        "Ingest"      { subtitle: "chunk · embed" }
+  embed    = logos/huggingface "Embeddings"  { subtitle: "bge-large" }
+  vectors  = logos/qdrant      "Vectors"     datastore { subtitle: "Qdrant" }
+  articles ~> ingest "on change"
+  ingest -> embed
+  ingest -> vectors "upsert"
+}
+
+system evals "Evaluation" #conversation {
+  glyph: sys/target
+  icon: sys/target
+  scorer = sys/target    "Scorer"      { subtitle: "model as judge" }
+  runs   = logos/mlflow  "Experiments" datastore { subtitle: "MLflow" }
+  tune   = logos/pytorch "Fine-tune"   { subtitle: "PyTorch on Ray" }
+  scorer -> runs "scores"
+  runs -> tune "nightly set"
+}
+
+customer -> app.web "asks"
+app.agent -> retrieval.vectors "retrieve"
+app.agent -> models.router "complete"
+app.api ~> evals.scorer "transcripts" #conversation
+reviewer -> evals.runs "reviews"
+evals.tune ~> models.llama "new weights"
+
+view assistant {
+  title "Support assistant"
+  expand app, models, retrieval, evals
+  color #conversation amber
+  layout { rows [customer reviewer] [app] [retrieval models evals] }
+  legend {
+    ->            "Request"
+    ~>            "Asynchronous: changes, transcripts, weights"
+    external      "Hosted by a provider"
+    #conversation "Keeps customer conversations"
+  }
+}

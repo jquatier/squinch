@@ -28,6 +28,14 @@ run `squinch render <dir> --sync`, and commit both.
   goes out to the side: `route … from east` sends audit and key calls out of
   the side of each box, past its row-mates and through the service's frame
   and the Google Cloud boundary — two of them out of one side.
+- **assistant/** — a support assistant on a language model, drawn almost
+  entirely with `logos` marks: the chat app and its agent (Next.js, Keycloak,
+  LangChain), retrieval over the help centre (Postgres, Hugging Face
+  embeddings, Qdrant), a gateway that routes each request to Claude or to a
+  Llama model on Ollama, and an evaluation loop (MLflow, PyTorch) that trains
+  the self-hosted model overnight. `sys/api` and `sys/worker` fill in what no
+  vendor draws, and the legend keys the one colour: where conversations are
+  kept.
 
 For deliberately awkward cases — dense meshes, long labels, deep nesting,
 coplanar rows — see the [lookbook](../lookbook/) instead. These are meant to
