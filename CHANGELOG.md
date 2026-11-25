@@ -6,6 +6,41 @@ history too. Sections are drafted by `pnpm release` from the commits since the
 previous tag, then edited by a human before anything is written; the release
 workflow lifts the matching section verbatim into the GitHub Release notes.
 
+## 0.23.0 — 2026-11-25
+
+**Legends say what you mean.** A legend is now a list of what the marks mean, written by you: `legend { -> "Request"  ~> "Event"  #money "Payment path" }`. Squinch draws each swatch from the picture and shows the entries the view draws. The old `legend auto` labelled things for you, as `sync`, `async`, a zone's kind or a tag's name, and a legend is a claim about meaning that only the author can make.
+
+![Legends say what you mean.](https://github.com/jquatier/squinch/blob/v0.23.0/lookbook/out/16-legend-titleblock.pay.light.svg?raw=true)
+
+Every view with a legend redraws. A view that still says `legend auto` renders with no legend, and `check` warns, naming the keys that view draws: write a line for each, then run `squinch render --sync`. A note at the bottom of a view with a title block may also sit lower (below). Re-run `squinch skill` so your agents write the new block.
+
+### Legends
+
+- **One line per mark: a key and what it means.** Keys are the four arrows (`->` `~>` `<->` `--`), `aggregated`, `external`, `context`, and any tag the view colours. The colon is optional (`#money: "Payment path"`), and entries may share a line. Every key needs a label; none is written for you.
+- **A view shows the entries it draws**, in the order written, and leaves the rest out without a word, so one block can go in every view of a diagram. The lookbook's legend case does exactly that across its two views.
+- **Each swatch is the mark itself**: the arrow's own dash and heads in the theme's colour, the ×n pill, a hatched card for external, a dashed card for context. An arrow whose edges are all dotted gets a dotted sample.
+- **A tag is keyed by its colour.** `#money "Payment path"` draws a chip in the hue the view's `color #money` line gives it. An element's own `color:` is never keyed, and a `highlight` needs no key: a legend keys colours.
+- **One band under the drawing, and no wordmark.** It wraps at the canvas width and widens the canvas only for an entry wider than the drawing, where the old legend stretched it: the lookbook's coloured-by-tag view was drawn 549 px wide for a 304 px diagram and is now drawn 304 px wide.
+- **Zones and flows are not keys.** Their chips and badges name them. A flow's name now belongs in the view's `title`; the flows case moved it there.
+- **`check` catches the mistakes**, each with its fix: an unknown key with the one it meant (`sync` → `->`, `merged` → `aggregated`) and the full list, a missing label, a key written twice, an empty block, a second `legend` in one view (silently ignored before), and a tag no view colours. `legend off` warns that there is nothing to turn off.
+- The editor completes keys and coloured tags inside `legend { }`.
+
+![A legend keyed by tag colour, in a drawing no wider than itself.](https://github.com/jquatier/squinch/blob/v0.23.0/lookbook/out/36-colors.lens.light.svg?raw=true)
+
+### Fixed
+
+- **Notes no longer dodge an empty strip.** A note at the bottom of a view with a title block or legend was placed clear of a footer band nothing was drawn in, so it sat higher than the node it describes. It now stands level with it; the lookbook's about-and-notes case redraws.
+
+### Agents
+
+- The skill teaches the legend block: write one when the request asks for it or when colour carries meaning, key colours and never a highlight, and there is no `legend auto`.
+- Gauntlet rounds 37 to 39 ran on the new legend. Round 39 scored 41 of 42, 30 of 42 clean on the first `check`, and the committed corpus scores 42 of 42. No legend diagnostic fired in it: eight agents wrote a legend and every one checked clean, and the prompt that asks for one drew it in one call. The earlier two rounds each had an agent key a tag its view only highlighted, which is why the error and the skill now say a highlight needs no key.
+
+### Also in this release
+
+- The landing page opens on a new clip: a prompt in, a diagram out, a zoom through the system into its database, then a run through what else the corpus draws.
+- The skill's plugin is ready for the Claude Code plugin directory, with a listing icon and a marketplace description.
+
 ## 0.22.0 — 2026-11-22
 
 **Prose on the page.** A view can now carry a paragraph or two of context under its title: what the view shows, what is about to change, where the runbook is. Until now there was nowhere to put it. The header held a title and one subtitle line, a note stopped at three lines, and `**bold**` was drawn with its asterisks, so agents edited the rendered SVG instead and `render --check` failed on every run after.
