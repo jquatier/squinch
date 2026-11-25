@@ -45,6 +45,10 @@ interface Expect {
   requireNarrowerView?: boolean;
   /** a view must render a declared flow */
   requireFlowShown?: boolean;
+  /** Some view draws a legend: a written `legend { }` with at least one
+   *  entry the view has marks for (docs/notes/legend.md). `legend auto` draws
+   *  nothing, so it does not count — its warning fails the run anyway. */
+  requireLegend?: boolean;
   /** a view must use a channel trunk */
   requireChannel?: boolean;
   /** at least one node must use an icon from this pack */
@@ -321,6 +325,14 @@ for (const p of prompts) {
     problems.push(`flows ${m.flows.length} < ${e.minFlows}`);
   if (e.requireFlowShown && !m.views.some((v) => v.showFlow))
     problems.push("no view renders a flow (`show flow <id>`)");
+  if (e.requireLegend) {
+    let drawn = false;
+    for (const v of m.views.filter((x) => x.legend && "entries" in x.legend)) {
+      const { positioned } = await layoutView(m, v);
+      if (positioned.legend && "entries" in positioned.legend && positioned.legend.entries.length) { drawn = true; break; }
+    }
+    if (!drawn) problems.push("no view draws a legend (`legend { -> \"…\" }`, an entry for a mark it draws)");
+  }
   if (e.requireChannel && !m.views.some((v) => v.layout.channels.length))
     problems.push("no channel trunk");
   if (e.requireNarrowerView) {

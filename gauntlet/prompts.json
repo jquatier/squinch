@@ -255,6 +255,7 @@
       "minAsync": 1,
       "minFlows": 1,
       "requireFlowShown": true,
+      "requireLegend": true,
       "icons": [
         [
           "lambda"
