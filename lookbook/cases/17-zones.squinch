@@ -45,5 +45,9 @@ zone vpc1 "VPC prod-main" vpc {
 view landscape {
   title "Hybrid Estate"
   include *
-  legend auto
+  legend {
+    ->       "Request"
+    ~>       "Batch or event"
+    external "Legacy system, not ours"
+  }
 }

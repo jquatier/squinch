@@ -40,7 +40,10 @@ system estate "Edge styles" {
 view styles {
   title "Edge styles and motion"
   scope estate
-  legend auto
+  legend {
+    -> "Synchronous"
+    ~> "Asynchronous"
+  }
   layout {
     rows [hub] [plain dashed dotted flow rev] [slowfn fastfn pkts beat combo trace]
   }

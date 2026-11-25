@@ -23,6 +23,10 @@ flow order "Place an order" {
 }
 
 view shop {
+  title "Place an order"
   show flow order
-  legend auto
+  legend {
+    -> "Synchronous call"
+    ~> "Event"
+  }
 }

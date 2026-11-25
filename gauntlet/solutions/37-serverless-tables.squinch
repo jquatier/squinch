@@ -25,5 +25,4 @@ view landscape {
 
 view notifications {
   title "Notifications Service"
-  legend auto
 }

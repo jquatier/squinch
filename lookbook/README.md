@@ -178,7 +178,7 @@ Source: [`cases/15-densities.squinch`](cases/15-densities.squinch)
 
 ## Legend Titleblock
 
-Footer furniture. `legend auto` explains the line styles the diagram uses; `titleblock` stamps the drawing. Four keys are drawn canonically — `subtitle` under the title, `version`, mono `commit` and a dimmed `date` in the meta chip — and every other key appends as its own chip segment.
+Furniture. `legend { }` says what the marks mean, in the author's words — each view shows the entries it draws, so one block serves both; `titleblock` stamps the drawing. Four keys are drawn canonically — `subtitle` under the title, `version`, mono `commit` and a dimmed `date` in the meta chip — and every other key appends as its own chip segment.
 
 Source: [`cases/16-legend-titleblock.squinch`](cases/16-legend-titleblock.squinch)
 
@@ -440,7 +440,7 @@ Source: [`cases/35-rows-cols.squinch`](cases/35-rows-cols.squinch)
 
 ## Colors
 
-`color:` — nine hue words (red, amber, green, teal, blue, violet, pink, gray, accent), never hex. A leaf, person or system takes a spine down its left edge, an edge its stroke and head, a zone its outline. The `lens` view colours by tag instead — `color #money red` — and earns a legend entry per tag.
+`color:` — nine hue words (red, amber, green, teal, blue, violet, pink, gray, accent), never hex. A leaf, person or system takes a spine down its left edge, an edge its stroke and head, a zone its outline. The `lens` view colours by tag instead — `color #money red` — which is how a colour comes to mean something: a legend can key a tag, never a bare hue.
 
 Source: [`cases/36-colors.squinch`](cases/36-colors.squinch)
 

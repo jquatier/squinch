@@ -24,5 +24,4 @@ zone dbvpc "Database VPC" vpc {
 view landscape {
   title "Hybrid Estate"
   include *
-  legend auto
 }

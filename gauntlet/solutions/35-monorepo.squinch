@@ -126,7 +126,6 @@ view landscape {
   title "System Landscape"
   include *
   preview *
-  legend auto
 }
 view identity { title "Identity" }
 view catalog { title "Catalog" }

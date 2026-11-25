@@ -54,6 +54,9 @@ view cluster {
   include *
   expand orders
   expand batch
-  legend auto
+  legend {
+    -> "Request"
+    ~> "Reconcile loop"
+  }
   layout { rows [dev] [ing api] [batch orders] }
 }

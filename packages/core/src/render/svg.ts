@@ -10,7 +10,7 @@ import type { Theme } from "../themes/index.js";
 // strip the renderer fills and the room the card reserves are one number.
 import { parseProse, setProse, CODE_PAD, type ProseFont, type SetProse } from "../prose.js";
 import { pillDims, noteFont, NOTE_GUTTER, SHELF_H, ROW_H, CARD_HEAD_H, FIELD_ROW_H, CHIP_PAD, CHIP_GAP, FIELD_GAP, REF_ARROW_W } from "../layout/layout.js";
-import type { Positioned, PEdge, PNode, PZone, PFrame } from "../layout/layout.js";
+import type { Positioned, PEdge, PNode, PZone, PFrame, LegendSwatch, PLegendEntry } from "../layout/layout.js";
 import type { EdgeAnimate, EdgeMark, Hue, SNote, ZoneKind } from "../model/types.js";
 import { MARK_HALF } from "../layout/sizes.js";
 import { hueOf } from "../themes/index.js";
@@ -41,10 +41,6 @@ const DIM = "0.35";
 
 export interface RenderOpts {
   highlight?: string[];
-  /** The view's `color #tag hue` statements — already applied to the graph by
-   *  resolution; the renderer only needs them for the legend, where a tag is
-   *  the one label a hue can honestly carry. */
-  colors?: { tag: string; hue: Hue }[];
   notes?: SNote[];
   /** drafting-style corner block (bottom-right), free-form key/values */
   titleblock?: Record<string, string>;
@@ -1077,105 +1073,66 @@ const ZONE_TINT: Record<ZoneKind, Hue> = {
 const zoneColor = (z: { kind: ZoneKind; color?: Hue }, t: Theme) =>
   hueOf(t, z.color ?? ZONE_TINT[z.kind]);
 
-/** Legend of what's actually in the picture — never a fixed key (DESIGN:
- *  quiet structure; only earned entries). Returns markup + band height. */
-function legend(p: Positioned, rc: RC, y: number, L: string[], colors: RenderOpts["colors"] = []): { h: number; w: number } {
+/** One legend entry's swatch, centred on `cy` in a 28px slot from `x`. Each
+ *  is the mark itself, drawn the way the diagram draws it — the arrow's own
+ *  dash and heads, the ×n pill, the hatched and dashed cards — in the theme's
+ *  default colour; a tag is a chip in its hue (a plain line would be `--`). */
+const SWATCH_W = 28;
+function swatch(sw: LegendSwatch, x: number, cy: number, rc: RC): string {
   const { t } = rc;
-  const items: { sample: (x: number, cy: number) => string; label: string }[] = [];
-  // Each wire entry samples the colour its edges were actually drawn in when
-  // they all agree (one `color:` across the board, or none), and the kind's
-  // theme default when they don't — a violet "async" swatch over red async
-  // edges would be a lie, and a grey one over mixed colours is the honest
-  // "several" sample.
-  const drawn = (e: PEdge) => (e.color ? hueOf(t, e.color) : e.async ? t.asyncEdge : t.edge);
-  const agreed = (es: PEdge[], fallback: string) => {
-    const cols = new Set(es.map(drawn));
-    return cols.size === 1 ? [...cols][0] : fallback;
-  };
-  const syncs = p.edges.filter((e) => !e.async);
-  if (syncs.length) {
-    const col = agreed(syncs, t.edge);
-    items.push({
-      sample: (x, cy) => `<line x1="${x}" y1="${cy}" x2="${x + 24}" y2="${cy}" stroke="${col}" stroke-width="1.5"/>`,
-      label: "sync",
-    });
+  switch (sw.kind) {
+    case "arrow": {
+      const async = sw.arrow === "~>";
+      const col = async ? t.asyncEdge : t.edge;
+      const pattern = sw.style === "dashed" ? DASHED : sw.style === "dotted" ? "2 3" : undefined;
+      const dash = pattern ? ` stroke-dasharray="${pattern}"${pattern === DASHED ? DASHED_CAPS : ""}` : "";
+      const a = { x, y: cy }, b = { x: x + SWATCH_W, y: cy };
+      return `<line x1="${a.x}" y1="${cy}" x2="${b.x}" y2="${cy}" stroke="${col}" stroke-width="1.5"${dash}/>` +
+        (sw.arrow === "--" ? "" : head(b, a, col, async)) +
+        (sw.arrow === "<->" ? head(a, b, col, async) : "");
+    }
+    case "aggregated":
+      return `<line x1="${x}" y1="${cy}" x2="${x + SWATCH_W}" y2="${cy}" stroke="${t.edge}" stroke-width="1.5"/>` +
+        box(rc, x + 6, cy - 6, 16, 12, 2, t.surface, t.border, 1) +
+        `<text x="${x + 14}" y="${cy + 3}" text-anchor="middle" font-size="${rc.fx(8.5)}" fill="${t.muted}">×n</text>`;
+    case "external":
+      return box(rc, x + 2, cy - 7, 24, 14, 2, t.surface, t.border, 1) + hatched(rc, x + 2, cy - 7, 24, 14, 2);
+    case "context":
+      return `<rect x="${x + 2}" y="${cy - 7}" width="24" height="14" rx="2" fill="${t.surface}" stroke="${t.border}" stroke-width="1.5" stroke-dasharray="4 3"/>`;
+    case "tag":
+      return `<rect x="${x + 8}" y="${cy - 6}" width="12" height="12" rx="3" fill="${hueOf(t, sw.hue)}"/>`;
   }
-  // The async sample follows the pattern the view's async edges actually use
-  // (`dotted` is the sanctioned alternative); mixed patterns sample the default.
-  const asyncs = p.edges.filter((e) => e.async);
-  if (asyncs.length) {
-    const dots = asyncs.every((e) => e.style === "dotted");
-    const col = agreed(asyncs, t.asyncEdge);
-    items.push({
-      sample: (x, cy) => `<line x1="${x}" y1="${cy}" x2="${x + 24}" y2="${cy}" stroke="${col}" stroke-width="1.5" stroke-dasharray="${dots ? "2 3" : DASHED}"${dots ? "" : DASHED_CAPS}/>`,
-      label: "async",
-    });
-  }
-  // A restyled sync edge (`style: dashed | dotted`) earns nothing: the legend
-  // carries meanings, and a style name beside its own pattern is a tautology —
-  // the same reason an element-level `color:` earns no swatch. An author who
-  // wants it keyed tags the edge and colours the tag in the view.
-  if (p.edges.some((e) => e.count > 1))
-    items.push({
-      sample: (x, cy) =>
-        `<line x1="${x}" y1="${cy}" x2="${x + 24}" y2="${cy}" stroke="${t.edge}" stroke-width="1.5"/>` +
-        `<text x="${x + 12}" y="${cy - 4}" text-anchor="middle" font-size="${rc.fx(9)}" fill="${t.muted}">×n</text>`,
-      label: "aggregated",
-    });
-  // Cards and persons earn no entry: the chevron and the person glyph already
-  // say what they are, and a plain or gradient swatch beside the colour key
-  // read as one more hue.
-  if (p.nodes.some((n) => n.kind.startsWith("context")))
-    items.push({
-      sample: (x, cy) => `<rect x="${x + 2}" y="${cy - 7}" width="20" height="14" rx="2" fill="${t.surface}" stroke="${t.border}" stroke-width="1.5" stroke-dasharray="4 3"/>`,
-      label: "context",
-    });
-  if (p.flow && Object.keys(p.flow.byEdge).length)
-    items.push({
-      sample: (x, cy) =>
-        `<circle cx="${x + 12}" cy="${cy}" r="8" fill="${t.accent}"/>` +
-        `<text x="${x + 12}" y="${cy + 3}" text-anchor="middle" font-size="${rc.fx(9)}" font-weight="500" fill="${t.beadText}">1</text>`,
-      label: `flow: ${p.flow.label}`,
-    });
-  // Zone entries, keyed on (kind, the colour the boundary was actually drawn
-  // in) — in zone order, deduped. It used to sample the kind's default tint,
-  // which lied the moment a zone said `color:`; an account zone drawn gray
-  // earns a gray swatch, and two account zones in two colours earn two.
-  const zoneKeys = new Map<string, { kind: ZoneKind; col: string }>();
-  for (const z of p.zones ?? []) {
-    const col = zoneColor(z, t);
-    zoneKeys.set(`${z.kind}|${col}`, { kind: z.kind, col });
-  }
-  for (const { kind, col } of zoneKeys.values())
-    items.push({
-      sample: (x, cy) =>
-        `<rect x="${x + 2}" y="${cy - 7}" width="20" height="14" rx="2" fill="none" stroke="${col}" stroke-width="1" stroke-dasharray="4 3"/>`,
-      label: kind,
-    });
-  // The view's `color #tag hue` statements, in declaration order, one per tag
-  // (a restated tag keeps its last hue, which is the one that was drawn). A
-  // solid swatch — the tag-key swatch — because the hue lands on
-  // spines and strokes, not on a box; an outlined sample read as one more
-  // kind of frame beside the zone and context entries. Element-level
-  // `color:` earns nothing: a hue name is not a label.
-  const byTag = new Map<string, Hue>();
-  for (const c of colors) byTag.set(c.tag, c.hue);
-  for (const [tag, hue] of byTag)
-    items.push({
-      sample: (x, cy) =>
-        `<rect x="${x + 5}" y="${cy - 5}" width="14" height="10" rx="2" fill="${hueOf(t, hue)}"/>`,
-      label: `#${tag}`,
-    });
-  if (!items.length) return { h: 0, w: 0 };
-  const cy = y + 12;
-  let x = 16;
+}
+
+/** The legend band under the drawing: the entries the author wrote that this
+ *  view draws, in written order, wrapping into rows at the canvas width and
+ *  never breaking inside an entry (SPEC §5, docs/notes/legend.md). Labels are
+ *  the author's and are never cut, so an entry wider than the canvas widens
+ *  it — the only way a legend changes the canvas. No title, no wordmark. */
+const LEGEND_PAD = 18, LEGEND_GAP = 20, LEGEND_ROW = 24, LEGEND_TOP = 17;
+function legendBand(entries: PLegendEntry[], rc: RC, top: number, width: number) {
+  const f = rc.fx(11);
+  const items = entries.map((e) => ({ e, w: SWATCH_W + 8 + Math.ceil(measure(e.label, f, "400", rc.fam)) }));
+  const w = Math.max(width, ...items.map((it) => it.w + LEGEND_PAD * 2));
+  const rows: (typeof items)[] = [[]];
+  let used = 0;
   for (const it of items) {
-    L.push(it.sample(x, cy));
-    x += 24 + 8;
-    L.push(`<text x="${x}" y="${cy + 4}" font-size="${rc.fx(11)}" fill="${t.muted}">${esc(it.label)}</text>`);
-    x += Math.round(measure(it.label, rc.fx(11), "400", rc.fam)) + 24;
+    const need = (rows[rows.length - 1].length ? LEGEND_GAP : 0) + it.w;
+    if (rows[rows.length - 1].length && used + need > w - LEGEND_PAD * 2) { rows.push([]); used = 0; }
+    used += (rows[rows.length - 1].length ? LEGEND_GAP : 0) + it.w;
+    rows[rows.length - 1].push(it);
   }
-  return { h: 24, w: x - 24 };
+  const L: string[] = [];
+  rows.forEach((row, r) => {
+    const cy = top + LEGEND_TOP + r * LEGEND_ROW;
+    let x = LEGEND_PAD;
+    for (const { e, w: iw } of row) {
+      L.push(swatch(e.swatch, x, cy, rc));
+      L.push(`<text x="${x + SWATCH_W + 8}" y="${cy + 4}" font-size="${f}" fill="${rc.t.muted}">${esc(e.label)}</text>`);
+      x += iw + LEGEND_GAP;
+    }
+  });
+  return { markup: L.join(""), w, h: LEGEND_TOP * 2 + (rows.length - 1) * LEGEND_ROW };
 }
 
 /** Reserved keys the meta chip lays out in a fixed order, each in its own
@@ -1895,7 +1852,6 @@ export function renderSVG(p: Positioned, t: Theme, opts: RenderOpts = {}): strin
   // full-width band starting 8px in, a header 8px off the corner.
   const chrome: string[] = [];
   const contentH = height;
-  const wordmark = "squinch";
   if (headerH) {
     header(rc, 18, 14, opts.title, opts.titleblock ?? {}, hd, chrome);
     width = Math.max(width, hd.chipW + 36);
@@ -1911,27 +1867,22 @@ export function renderSVG(p: Positioned, t: Theme, opts: RenderOpts = {}): strin
     headerH = top - 14 + set.height + 19;
   }
 
-  // The band exists to carry the legend; the wordmark rides it. Tying it to
-  // the header instead would put an otherwise-empty strip under any diagram
-  // that merely named itself — a signature looking for a reason to be there.
+  // The legend band sits under the drawing, under a hairline, and only when
+  // the view draws something its legend names. `legend auto` draws nothing
+  // now (layout says so); a legend never earns its own entries.
   let bandH = 0;
-  if (p.legend && "auto" in p.legend) {
+  const entries = p.legend && "entries" in p.legend ? p.legend.entries : [];
+  if (entries.length) {
     const bandY = headerH + contentH;
-    const lg = legend(p, rc, bandY + 5, chrome, opts.colors);
-    // +.02em over seven characters is ~1.5px the metrics table cannot see;
-    // reserve it so the mark never sits closer to the edge than intended
-    const markW = Math.ceil(measure(wordmark, rc.fx(10.5), "500", rc.fam)) + 2;
-    // A legend wider than the canvas used to clip silently at the right edge;
-    // grow the canvas instead.
-    width = Math.max(width, 18 + lg.w + 24 + markW + 18);
-    bandH = Math.max(lg.h, 24) + 10;
-    // Unshifted so the band lands *under* the legend already drawn into
-    // `chrome`, and the whole of chrome lands over the body.
+    const lg = legendBand(entries, rc, bandY, width);
+    width = lg.w;
+    bandH = lg.h;
+    // Unshifted so the band's ground lands under its entries, and the whole of
+    // chrome lands over the body.
     chrome.unshift(
       `<rect x="0" y="${bandY}" width="${width}" height="${bandH}" fill="${t.canvas}"/>` +
       `<line x1="0" y1="${bandY}" x2="${width}" y2="${bandY}" stroke="${t.border}" stroke-width="1"/>` +
-      `<text x="${width - 18}" y="${bandY + Math.round(bandH / 2) + 4}" text-anchor="end" ` +
-      `font-size="${rc.fx(10.5)}" font-weight="500" letter-spacing=".02em" fill="${t.dim}">${wordmark}</text>`,
+      lg.markup,
     );
   }
   height = headerH + contentH + bandH;

@@ -21,7 +21,12 @@ system mesh "Service Mesh" {
 view mesh {
   title "Arrow kinds"
   scope mesh
-  legend auto
+  legend {
+    ->  "Request"
+    <-> "Both ways"
+    ~>  "Publishes"
+    --  "Related"
+  }
   layout {
     rows [a c e g] [b d f h]
   }

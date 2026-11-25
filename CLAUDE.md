@@ -354,7 +354,7 @@ own brand colour on a quiet plate — never recoloured, never baked into an asse
 blue violet pink gray accent`, never hex — `HUES` in `model/types.ts`, one
 designed light/dark pair per theme token `hue*`), accepted on leaves, containers,
 edges and zones, plus the view lens `color #tag hue` which wins over an element's
-own and earns a legend entry. It paints only what is already the element's mark
+own and is what a legend's `#tag` key shows. It paints only what is already the element's mark
 — a spine on leaves, people and cards, frame stroke, edge + head, zone outline —
 so shape and pattern stay the encoding (DESIGN §6). Zones' old role names
 (`account`, `network`, …) are gone; kinds still tint by default and the error
@@ -410,6 +410,21 @@ the check points at `about`. It exists because a user's agent, with nowhere to p
 a context paragraph, edited the rendered SVG and `--check` failed from then on.
 Layout and renderer read one wrap (`setProse`); runs on one line are measured in
 their own face and drawn unkerned. `docs/notes/prose.md` has the rejected shapes.
+**The legend** (2026-11): `legend { #money "Payment path"  -> "Request" }` —
+a list of what the marks mean, written by the author; squinch draws each swatch
+from the picture (the arrow's own dash and heads, the ×n pill, hatched and
+dashed cards, a chip in a tag's hue). Keys are the four arrows, `aggregated`,
+`external`, `context` and any tag a view colours; every line needs a label and
+none is written for you. A view shows the entries it draws and silently leaves
+the rest, so one block goes in every view — matched on the *laid-out* view
+(`view/legend.ts`), stored theme-free on `Positioned`. One band under the
+drawing, wrapping at the canvas width, no title, no wordmark. `legend auto` —
+which chose its own entries and labelled them `sync`/`async`/zone kinds —
+renders with no legend and warns, naming the keys to write; never an error,
+never an automatic migration. Not keys: zones, flows (a flow's name goes in the
+view's `title`), colour or style words. `docs/notes/legend.md` has the three
+revisions' rejected shapes (automatic entries, default labels, side/corner
+placement, exact-mark tag swatches, a "matches nothing" warning).
 **The detailed card** (2026-09): `preview <path>` / `preview *` in a view draws a
 collapsed card taller, with the children its `preview:` attr names as readable
 rows (up to three; `auto` = the first three declared, *direct* children — a
@@ -452,7 +467,8 @@ outside its group and bleeding into gaps an invariant proves are empty;
 lost their fill so nesting cannot compound, and their chips gained a segmented
 grammar with an optional mono `detail:`; notes lost the amber and gained an
 info/warning glyph; the title block moved top-left as a header with a meta
-chip, and the legend joined a full-width footer band with the wordmark. New
+chip, and the legend joined a full-width footer band (the wordmark that rode it
+is gone since the legend overhaul, below). New
 optional attrs: `icon:`/`domain:` on containers, `detail:` on zones, and the
 reserved titleblock keys (`subtitle`, `version`, `commit`, `date`) — none of
 them derived, because a render is a pure function of its source. The sketch and

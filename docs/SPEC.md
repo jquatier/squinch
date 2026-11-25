@@ -394,9 +394,9 @@ dashed; the pattern is a presentation attribute, so it survives PNG export.
 convention; `dotted` is the sanctioned alternative. The other direction is a
 warning: `style: dashed` on a sync edge, in a model that has dashed async
 edges, wears that convention (and is the same stroke once both carry a
-`color:`). Restyled edges earn no legend entry — the legend carries meanings,
-and a style name beside its own pattern says nothing; tag the edge and colour
-the tag in the view to key it.
+`color:`). A legend keys an arrow, never a style — the legend carries
+meanings, and a style name beside its own pattern says nothing; tag the edge
+and colour the tag in the view to key it.
 
 **`animate:`** — `false | flow | reverse | slow | fast | packets | pulse | comet`, one
 value per edge. Async edges default to `flow` (dashes drift toward the target);
@@ -508,8 +508,11 @@ view shop {
   color #pci red                // colour everything carrying the tag (§3 Colour);
                                 // one tag per line, repeat for more
   show flow checkout            // ①②③ badges along a declared flow
-  legend auto                   // auto | off — key of what this view earned:
-                                // sync/async, boundaries, flow, tag colours
+  legend {                      // what the marks mean, in your words (§5 Legend)
+    #pci "Card data in scope"
+    ->   "Request"
+    ~>   "Event"
+  }
   titleblock {                  // the header's meta chip, under the title
     subtitle: "Landscape view"  // a line under the diagram's name
     version:  "2026-07"         // version | commit | date are reserved: their
@@ -588,8 +591,54 @@ the rejected alternatives.
   tags inherit through containers exactly as for `highlight`. Two statements
   landing on one element with different hues is a warning (the later one
   wins), and a tag nothing visible carries is a warning, as with `highlight`.
-  With `legend auto`, each tag coloured this way earns a legend entry labelled
-  `#tag`; element-level colours earn none — a hue name is not a label.
+  A legend can key the tag (`#pci "Card data"`, below); an element-level
+  colour is never keyed — a hue name is not a label.
+
+### Legend
+
+A legend is a list of what the marks mean, written by the author; squinch draws
+each swatch from the picture. It is off unless a view writes one.
+
+```squinch
+legend {
+  #money:  "Payment path"
+  ->       "Request"
+  ~>       "Event"
+  external "Third-party service"
+}
+```
+
+One line per entry: a key, an optional colon, and a label in quotes. Entries
+may share a line (`-> "Request"  ~> "Event"`), separated by nothing, `,` or
+`;`. The keys are the whole vocabulary:
+
+| Key | Shown when the view draws | Swatch |
+|---|---|---|
+| `->` `~>` `<->` `--` | an edge drawn as that arrow | the arrow's pattern and heads, in the theme's colour |
+| `aggregated` | a merged ×n edge (which also counts as its arrow) | a line with the ×n pill |
+| `external` | anything drawn hatched | a hatched card |
+| `context` | a context card | a dashed card |
+| `#tag` | anything this view's `color #tag hue` painted | a chip in the hue |
+
+- **A view shows the entries it draws**, in written order, and leaves the rest
+  out without a warning — one block is meant to be pasted into every view. An
+  arrow's sample takes the dash its edges share (every `~>` dotted: a dotted
+  sample).
+- **Every line needs a label.** None is written for you: a legend states what
+  the author means, and a default would state it for them.
+- **Not keys:** zone kinds and flows (their chips and badges name them; a flow's
+  name belongs in the view's `title`), colour words and style words (colour
+  means something only through a tag), highlight, relationship marks.
+- The band sits under the drawing, under a hairline, and wraps at the canvas
+  width without breaking an entry. It never widens the canvas, except for an
+  entry wider than the drawing — labels are never cut.
+
+Check-time errors: an unknown key (with the key it meant), a missing label,
+the same key twice, an empty block, a second `legend` in one view, and a
+`#tag` no view colours. `legend off` warns — there is nothing to turn off.
+`legend auto` and a bare `legend`, the retired form that chose its own
+entries, render with no legend and warn, naming the keys that view draws:
+writing a line for each is the migration.
 
 ### Visibility resolution (what's shown at each level)
 
@@ -941,10 +990,12 @@ viewstmt    = "title" string | "theme" ident | "scope" path
             | "highlight" tag { tag }
             | "color" tag ident
             | "show" "flow" ident
-            | "legend" ( "auto" | "off" ) | "titleblock" attrs
+            | "legend" "{" { legendkey [ ":" ] string } "}"
+            | "titleblock" attrs
             | "about" string
             | "note" anchor string [ attrs ]
             | "layout" "{" { layoutstmt } "}" ;
+legendkey   = arrow | "aggregated" | "external" | "context" | tag ;
 anchor      = relpos path | "on" path arrow path | corner ;
 corner      = "top-left" | "top-right" | "bottom-left" | "bottom-right" ;
 tag         = "#" ident ;

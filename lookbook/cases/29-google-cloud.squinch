@@ -46,5 +46,8 @@ view platform {
   title "Storefront on Google Cloud"
   include *
   expand shop
-  legend auto
+  legend {
+    -> "Request"
+    ~> "Event"
+  }
 }

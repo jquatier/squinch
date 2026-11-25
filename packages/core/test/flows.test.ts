@@ -22,7 +22,6 @@ flow checkout "Checkout" {
 
 view shop {
   show flow checkout
-  legend auto
 }
 `;
 
@@ -52,14 +51,15 @@ describe("flows — model", () => {
 });
 
 describe("flows — render", () => {
-  it("renders numbered badges near each step's source, and a legend entry", async () => {
+  it("renders numbered badges near each step's source", async () => {
     const r = await render(SRC, { view: "shop", theme: "light" });
     expect(r.ok).toBe(true);
     expect(validateSVG(r.svg!).ok).toBe(true);
     const badges = r.svg!.match(/data-kind="flow-step"/g) ?? [];
     expect(badges.length).toBe(3);
     for (const n of ["1", "2", "3"]) expect(r.svg).toMatch(new RegExp(`>${n}</text>`));
-    expect(r.svg).toContain("flow: Checkout");
+    // the flow is named by the view's title, never a legend entry
+    expect(r.svg).not.toContain("flow: Checkout");
     // determinism
     const again = await render(SRC, { view: "shop", theme: "light" });
     expect(again.svg).toBe(r.svg);

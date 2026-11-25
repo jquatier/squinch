@@ -46,7 +46,6 @@ view landscape {
   title "Databricks Lakehouse"
   include *
   expand dbx
-  legend auto
   about """
   Hatched box = **not Databricks** (Kafka). Everything inside the frame, marked with the Databricks badge, is Databricks' own.
   """

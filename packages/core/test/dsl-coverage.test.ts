@@ -38,6 +38,41 @@ async function allDistinct(label: string, variants: Record<string, string>, view
   return svgs;
 }
 
+describe("legend swatches", () => {
+  // One diagram that draws every key, keyed one entry at a time under one
+  // label: each swatch must draw something its neighbours do not.
+  const src = (key: string) => `system s "S" { tags: #m
+ a = aws/lambda "A"
+ b = aws/lambda "B"
+ c = aws/lambda "C"
+ a ~> b
+ b <-> c
+}
+system t "T" { p = aws/lambda "P"\n q = aws/lambda "Q" }
+x = aws/lambda "X" external
+s.a -> t.p
+s.b -- t.q
+s.c -> x
+view v {
+ expand s
+ color #m green
+ legend { ${key} "Key" }
+}
+view w {
+ scope s
+ legend { ${key} "Key" }
+}`;
+
+  it("every key draws a distinct swatch", async () => {
+    await allDistinct("legend keys", {
+      "->": src("->"), "~>": src("~>"), "<->": src("<->"), "--": src("--"),
+      aggregated: src("aggregated"), external: src("external"), "#m": src("#m"),
+    }, "v");
+    // context cards live in a scoped view; there the key must draw too
+    await allDistinct("legend keys, scoped", { "<->": src("<->"), context: src("context"), external: src("external") }, "w");
+  });
+});
+
 describe("arrow kinds", () => {
   const src = (a: string) =>
     `system s "S" {\n x = aws/lambda "X"\n y = aws/lambda "Y"\n x ${a} y\n}`;

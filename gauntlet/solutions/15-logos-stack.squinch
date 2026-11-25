@@ -21,6 +21,5 @@ graf -> web, api, pg, cache, kafka "watches"
 view landscape {
   title "Product Stack"
   include *
-  legend auto
   layout { rows [dev gh k8s] [web] [api] [pg cache kafka] [graf] }
 }

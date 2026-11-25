@@ -340,10 +340,16 @@ or a `system` gets a spine down its left edge, an edge its stroke and head, a
 zone its outline. Use it to say *these belong together* or *this is the path*
 without dimming everything else the way `highlight` does. The stronger form is
 the view statement `color #tag red`, which colours every visible thing carrying
-the tag, one tag per line — it wins over an element's own `color:`, and with
-`legend auto` each coloured tag earns a legend entry. Colour is annotation:
-async stays dashed, context stays muted, so a greyscale print loses only the
-emphasis.
+the tag, one tag per line — it wins over an element's own `color:`. Colour is
+annotation: async stays dashed, context stays muted, so a greyscale print loses
+only the emphasis.
+
+A legend says what the marks mean, in your words — write one when the request
+asks for it or when colour carries meaning: `legend { #pci "Card data in scope"
+-> "Request"  ~> "Event" }`. Keys are `-> ~> <-> -- aggregated external context`
+and any tag the view colours; every key needs a label. A view shows only the
+entries it draws, so one block can go in every view. An element's own `color:`
+is never keyed — colour a tag. There is no `legend auto`.
 
 Zones mark deployment boundaries: `zone id "Label" kind { contains a, b.c }`,
 kinds `account | region | vpc | subnet | network | cloud | onprem | custom`.
@@ -414,7 +420,11 @@ view shop {                 // name matching a system = that system's view
   """
   context off               // drop the muted neighbour cards this view earned
                             // (default is `context auto`)
-  legend auto               // footer key of the styles actually used
+  legend {                  // what the marks mean — only those this view draws
+    #pci "Card data in scope"
+    ->   "Request"
+    ~>   "Event"
+  }
   titleblock {                // a meta chip under the title. version/commit/
     subtitle: "Landscape view" // date are reserved — their values stand alone,
     version: "2026-07"         // and `commit` sets in mono. Any other key

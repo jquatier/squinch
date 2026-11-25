@@ -129,10 +129,6 @@
 <g><rect x="1162" y="233" width="45" height="18" rx="2" fill="#FFFFFF" stroke="#C7C7C3" stroke-width="1"/><text x="1185" y="246" text-anchor="middle" font-size="11" fill="#474744">comet</text></g>
 <g><rect x="896" y="233" width="81" height="18" rx="2" fill="#FFFFFF" stroke="#C7C7C3" stroke-width="1"/><text x="937" y="246" text-anchor="middle" font-size="11" fill="#474744">dotted + flow</text></g>
 </g>
-<rect x="0" y="472" width="1392" height="34" fill="#E3E3E1"/><line x1="0" y1="472" x2="1392" y2="472" stroke="#C7C7C3" stroke-width="1"/><text x="1374" y="493" text-anchor="end" font-size="11" font-weight="500" letter-spacing=".02em" fill="#85857F">squinch</text>
+<rect x="0" y="472" width="1392" height="34" fill="#E3E3E1"/><line x1="0" y1="472" x2="1392" y2="472" stroke="#C7C7C3" stroke-width="1"/><line x1="18" y1="489" x2="46" y2="489" stroke="#2F2F2C" stroke-width="1.5"/><path d="M 46 489 L 38 495 L 38 483 Z" fill="#2F2F2C"/><text x="54" y="493" font-size="11" fill="#474744">Synchronous</text><line x1="143" y1="489" x2="171" y2="489" stroke="#4C47C2" stroke-width="1.5" stroke-dasharray="4 7" stroke-linecap="round"/><path d="M 163 495 L 171 489 L 163 483" fill="none" stroke="#4C47C2" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/><text x="179" y="493" font-size="11" fill="#474744">Asynchronous</text>
 <text x="18" y="32" font-size="19" font-weight="600" letter-spacing="-.01em" fill="#111111">Edge styles and motion</text>
-<line x1="16" y1="489" x2="40" y2="489" stroke="#2F2F2C" stroke-width="1.5"/>
-<text x="48" y="493" font-size="11" fill="#474744">sync</text>
-<line x1="97" y1="489" x2="121" y2="489" stroke="#4C47C2" stroke-width="1.5" stroke-dasharray="4 7" stroke-linecap="round"/>
-<text x="129" y="493" font-size="11" fill="#474744">async</text>
 </svg>

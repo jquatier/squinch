@@ -36,7 +36,10 @@ zone vpc "VPC prod-main" vpc {
 
 view products {
   title "Products API — edge to index"
-  legend auto
+  legend {
+    -> "Request"
+    ~> "Change stream"
+  }
   layout {
     // `alb` names the VPC's rank — one member is enough to place a zone.
     rows [shopper cdn] [alb] [db indexer search]

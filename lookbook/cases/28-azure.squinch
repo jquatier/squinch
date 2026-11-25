@@ -35,5 +35,8 @@ view storefront {
   title "Storefront on Azure"
   include *
   expand shop
-  legend auto
+  legend {
+    -> "Request"
+    ~> "Event"
+  }
 }

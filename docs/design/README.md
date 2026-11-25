@@ -54,8 +54,8 @@ Recreate the values below in those files' existing patterns; don't copy HTML/CSS
 ### Diagram title block (top-left of a rendered diagram)
 - Diagram name (19px, weight 600) + view-type subtitle (11.5px) stacked, then a three-segment meta chip: version / short commit hash (mono) / date. Same chip grammar (segments in alternating tints, hairline border, 3px radius) as zone/boundary chips.
 
-### Footer wordmark
-- Bottom-right corner of the canvas: small `squinch` wordmark, 10.5px Inter, letter-spacing .02em, dimmed tone (`#A5A199` light / `#6E6D67` dark). Replaces an earlier "microservices · landscape" text — the wordmark goes in the footer; diagram name/type goes in the title block instead.
+### Legend band
+- Full width under a hairline, below the drawing, and only when the view writes a legend: the author's entries, each a swatch and an 11px `muted` label, wrapping at the canvas width. There is no wordmark — it rode the old footer band and was removed with `legend auto` (`docs/notes/legend.md`); the diagram name/type stays in the title block.
 
 ### Dark theme
 Mirrors light exactly in structure. Every light token above has a listed dark equivalent — implement as paired values in `themes/index.ts`, not as a separate visual system.

@@ -310,13 +310,6 @@ view landscape { include * }
     const r = await render(src, { view: "ingest" });
     expect(r.diagnostics.some((x) => x.message.includes("no visible members"))).toBe(false);
   });
-
-  it("zone kinds show up as earned legend entries", async () => {
-    const src = BASE + ZONES.replace("view landscape {\n  include *\n}", "view landscape {\n  include *\n  legend auto\n}");
-    const r = await render(src, { view: "landscape" });
-    expect(r.ok).toBe(true);
-    for (const kind of ["onprem", "cloud", "vpc"]) expect(r.svg).toContain(`>${kind}</text>`);
-  });
 });
 
 // ── round-3 gauntlet findings: zones silently defeating layout hints ────────

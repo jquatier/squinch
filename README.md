@@ -295,7 +295,10 @@ zone vpc "VPC prod-main" vpc {
 
 view products {
   title "Products API — edge to index"
-  legend auto
+  legend {
+    -> "Request"
+    ~> "Change stream"
+  }
   layout {
     // `alb` names the VPC's rank — one member is enough to place a zone.
     rows [shopper cdn] [alb] [db indexer search]
@@ -375,7 +378,7 @@ Events arrive as <code>packets</code>, the archive job drifts <code>slow</code>,
   <img alt="Legend and titleblock" src="lookbook/out/16-legend-titleblock.pay.light.svg" width="100%">
 </picture>
 <b>Legend and titleblock</b><br>
-<code>legend auto</code> keys only the styles the diagram actually uses; <code>titleblock</code> is drafting-style metadata
+<code>legend { }</code> says what the marks mean in your words, and each view shows the entries it draws; <code>titleblock</code> is drafting-style metadata
 </td>
 </tr>
 <tr>

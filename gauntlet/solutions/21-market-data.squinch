@@ -24,7 +24,11 @@ view landscape {
   color #continuous blue
   color #nightly amber
   color #poll violet
-  legend auto
+  legend {
+    #continuous "Continuous stream"
+    #nightly    "Nightly batch"
+    #poll       "Health poll"
+  }
   about """
   - **Continuous**: live stream, ticks and subscription
   - **Nightly**: overnight fills reconciliation

@@ -1,5 +1,6 @@
-// Footer furniture. `legend auto` explains the line styles the diagram uses;
-// `titleblock` stamps the drawing. Four keys are drawn canonically —
+// Furniture. `legend { }` says what the marks mean, in the author's words —
+// each view shows the entries it draws, so one block serves both; `titleblock`
+// stamps the drawing. Four keys are drawn canonically —
 // `subtitle` under the title, `version`, mono `commit` and a dimmed `date` in
 // the meta chip — and every other key appends as its own chip segment.
 pack aws
@@ -30,7 +31,12 @@ pay.api -> ledger.db "balance check"
 view overview {
   title "Payments — money path"
   include *
-  legend auto
+  legend {
+    ->         "Synchronous call"
+    ~>         "Queued, asynchronous"
+    aggregated "Calls merged into one"
+    context    "Outside this view"
+  }
   titleblock {
     subtitle: "Settlement path, capture to ledger"
     version: "2026-07"
@@ -46,7 +52,12 @@ view pay {
   // one alignment hint: label dummies join crossing minimization, and without
   // a spine this small view drifted into a staircase — the DSL's own remedy
   layout { align api w ledger.db }
-  legend auto
+  legend {
+    ->         "Synchronous call"
+    ~>         "Queued, asynchronous"
+    aggregated "Calls merged into one"
+    context    "Outside this view"
+  }
   titleblock {
     version: "2026-07"
   }

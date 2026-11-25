@@ -53,7 +53,6 @@ assist -> gemini
 view landscape {
   title "Online Boutique"
   include *
-  legend auto
   about """
     gRPC between services, except the shopper and load generator (HTTP) and the shopping assistant (HTTP from the frontend).
 

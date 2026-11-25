@@ -71,10 +71,6 @@
 <g><rect x="425" y="115" width="62" height="18" rx="2" fill="#FFFFFF" stroke="#C7C7C3" stroke-width="1"/><text x="456" y="128" text-anchor="middle" font-size="11" fill="#474744">publishes</text></g>
 <g><rect x="627" y="115" width="42" height="18" rx="2" fill="#FFFFFF" stroke="#C7C7C3" stroke-width="1"/><text x="648" y="128" text-anchor="middle" font-size="11" fill="#474744">peers</text></g>
 </g>
-<rect x="0" y="294" width="760" height="34" fill="#E3E3E1"/><line x1="0" y1="294" x2="760" y2="294" stroke="#C7C7C3" stroke-width="1"/><text x="742" y="315" text-anchor="end" font-size="11" font-weight="500" letter-spacing=".02em" fill="#85857F">squinch</text>
+<rect x="0" y="294" width="760" height="34" fill="#E3E3E1"/><line x1="0" y1="294" x2="760" y2="294" stroke="#C7C7C3" stroke-width="1"/><line x1="18" y1="311" x2="46" y2="311" stroke="#2F2F2C" stroke-width="1.5"/><path d="M 46 311 L 38 317 L 38 305 Z" fill="#2F2F2C"/><text x="54" y="315" font-size="11" fill="#474744">Request</text><line x1="117" y1="311" x2="145" y2="311" stroke="#2F2F2C" stroke-width="1.5"/><path d="M 145 311 L 137 317 L 137 305 Z" fill="#2F2F2C"/><path d="M 117 311 L 125 305 L 125 317 Z" fill="#2F2F2C"/><text x="153" y="315" font-size="11" fill="#474744">Both ways</text><line x1="228" y1="311" x2="256" y2="311" stroke="#4C47C2" stroke-width="1.5" stroke-dasharray="4 7" stroke-linecap="round"/><path d="M 248 317 L 256 311 L 248 305" fill="none" stroke="#4C47C2" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/><text x="264" y="315" font-size="11" fill="#474744">Publishes</text><line x1="335" y1="311" x2="363" y2="311" stroke="#2F2F2C" stroke-width="1.5"/><text x="371" y="315" font-size="11" fill="#474744">Related</text>
 <text x="18" y="32" font-size="19" font-weight="600" letter-spacing="-.01em" fill="#111111">Arrow kinds</text>
-<line x1="16" y1="311" x2="40" y2="311" stroke="#2F2F2C" stroke-width="1.5"/>
-<text x="48" y="315" font-size="11" fill="#474744">sync</text>
-<line x1="97" y1="311" x2="121" y2="311" stroke="#4C47C2" stroke-width="1.5" stroke-dasharray="4 7" stroke-linecap="round"/>
-<text x="129" y="315" font-size="11" fill="#474744">async</text>
 </svg>

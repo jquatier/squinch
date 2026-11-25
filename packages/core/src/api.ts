@@ -347,7 +347,6 @@ export async function renderProject(
   const draw = (th: Theme) =>
     renderSVG(positioned, th, {
       highlight: view.highlight,
-      colors: view.colors,
       notes: view.notes,
       titleblock: view.titleblock,
       title: view.title,

@@ -204,31 +204,19 @@ view v { scope s\n show flow f }`;
     expect(svg).toContain(`<rect x="0" y="0" width="3" height="56" fill="${hueOf(themes.light, "pink")}"/>`);
   });
 
-  it("the legend lists the view's tag colours by tag, and nothing for element colours", async () => {
-    const tagged = await svgOf(`${BASE}\nview v { include *\n legend auto\n color #money teal }`, "light", "v");
-    expect(tagged).toContain(">#money</text>");
-    // a solid swatch, a solid swatch — not an outlined box
-    expect(tagged).toContain(`width="14" height="10" rx="2" fill="${hueOf(themes.light, "teal")}"/>`);
+  it("the legend keys a tag by its lens hue, and never an element's own colour", async () => {
+    const tagged = await svgOf(`${BASE}\nview v { include *\n color #money teal\n legend { #money "Money" } }`, "light", "v");
+    expect(tagged).toContain(">Money</text>");
+    // a chip, never a plain line (that is the \`--\` mark)
+    expect(tagged).toContain(`width="12" height="12" rx="3" fill="${hueOf(themes.light, "teal")}"/>`);
+    // an element colour is decoration: the arrow's sample keeps the theme's
+    // own colour whatever its edges wear
     const element = await svgOf(
-      `${BASE.replace("tags: #money", "tags: #money\n  color: teal")}\nview v { include *\n legend auto }`,
+      `${BASE.replace('"charges" { tags: #money }', '"charges" { tags: #money, color: teal }')}\nview v { include *\n legend { -> "Call" } }`,
       "light", "v",
     );
-    expect(element).not.toContain(">#money</text>");
-    expect(element).not.toContain(">teal</text>");
-  });
-
-  it("the legend's zone swatch is the colour the boundary was drawn in", async () => {
-    // an account zone overridden to gray earns a gray swatch, not the kind's
-    // default red; two account zones in two colours earn two entries
-    const one = await svgOf(`${BASE}\nzone z "Z" account { contains shop\n color: gray }\nview v { include *\n legend auto }`, "light", "v");
-    const swatch = (svg: string) => [...svg.matchAll(/width="20" height="14" rx="2" fill="none" stroke="(#[0-9A-F]{6})" stroke-width="1" stroke-dasharray="4 3"/g)].map((m) => m[1]);
-    expect(swatch(one)).toEqual([hueOf(themes.light, "gray")]);
-    const two = await svgOf(
-      `${BASE}\nzone a "A" account { contains shop }\nzone b "B" account { contains pay\n color: teal }\nview v { include *\n legend auto }`,
-      "light", "v",
-    );
-    expect(swatch(two)).toEqual([hueOf(themes.light, "red"), hueOf(themes.light, "teal")]);
-    expect(two.match(/>account<\/text>/g)).toHaveLength(2);
+    expect(element).not.toContain(`width="12" height="12" rx="3"`);
+    expect(element).toMatch(new RegExp(`stroke="${themes.light.edge}" stroke-width="1.5"/><path d="M[^"]+" fill="${themes.light.edge}"/><text[^>]*>Call</text>`));
   });
 
   it("survives the adaptive merge with every site coloured", async () => {
@@ -245,7 +233,7 @@ system b "B" { tags: #edge
 u -> a.x
 a.y ~> b.z "evt" { color: teal }
 zone zz "Zone" vpc { contains a, b\n color: violet }
-view v { include *\n expand b\n color #edge blue\n legend auto }`;
+view v { include *\n expand b\n color #edge blue\n legend { #edge "Edge"  ~> "Event" } }`;
     const lr = await render(src, { theme: "light", view: "v" });
     expect(lr.diagnostics.filter((d) => d.severity === "error")).toEqual([]);
     const light = lr.svg!;
@@ -277,13 +265,5 @@ describe("color: the diff", () => {
     const view = d(`${BASE}\nview v { include * }`, `${BASE}\nview v { include *\n color #money red }`);
     expect(view.structural).toBe(0);
     expect(view.cosmetic).toBe(1);
-  });
-
-  it("the legend's wire samples take a hue only when every edge of that kind agrees", async () => {
-    const base = `pack aws\nsystem s "S" {\n a = aws/lambda "A"\n b = aws/lambda "B"\n c = aws/lambda "C"\n`;
-    const all = await render(`${base} a ~> b { color: red }\n b ~> c { color: red }\n}\nview s { legend auto }`, { theme: "light" });
-    expect(all.svg).toMatch(new RegExp(`stroke="${themes.light.hueRed}" stroke-width="1.5" stroke-dasharray="4 7" stroke-linecap="round"/>(?:(?!<line)[\\s\\S])*?>async</text>`));
-    const mixed = await render(`${base} a ~> b { color: red }\n b ~> c\n}\nview s { legend auto }`, { theme: "light" });
-    expect(mixed.svg).toMatch(new RegExp(`stroke="${themes.light.asyncEdge}" stroke-width="1.5" stroke-dasharray="4 7" stroke-linecap="round"/>(?:(?!<line)[\\s\\S])*?>async</text>`));
   });
 });

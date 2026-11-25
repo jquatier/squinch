@@ -322,9 +322,12 @@ it gets none of the marks that imply one.
   underlined, because a PNG has no hover. Runs of different faces on one line
   are drawn unkerned at their measured widths: the metrics carry advances only,
   and a kerned run fell short of where the next began.
-- **Footer**, full width under a hairline: the legend on the left, the `squinch`
-  wordmark on the right. The legend shows only what the diagram earned — a
-  drawing with no async edge never explains dashes.
+- **Legend band**, full width under a hairline, only when the view writes a
+  legend and draws something it names: the author's entries in written order,
+  each a 28px swatch (the mark itself, in the theme's colour; a tag is a 12px
+  chip in its hue) and an 11px label in `muted`, wrapping into 24px rows at the
+  canvas width. No title and no wordmark — the drawing is the author's, and a
+  signature in it said otherwise (`docs/notes/legend.md`).
 - Both are drawn in canvas coordinates, never inside the body's transform. A
   note can push the diagram right and down, and chrome that rode along would
   slide with it.

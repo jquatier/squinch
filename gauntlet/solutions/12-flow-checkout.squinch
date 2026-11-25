@@ -24,5 +24,8 @@ view landscape {
   title "Checkout path"
   include *
   show flow checkout
-  legend auto
+  legend {
+    -> "Synchronous call"
+    ~> "Asynchronous message"
+  }
 }

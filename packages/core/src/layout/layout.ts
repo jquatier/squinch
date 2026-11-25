@@ -15,7 +15,7 @@ import type { ThemeFont } from "../themes/index.js";
 import { crowdedMarks } from "./marks.js";
 import { annotate, BADGE_GAP, badgeWidth, markCrossedTitles } from "./annotate.js";
 import { placeNotes } from "./notes.js";
-import { matchLegend } from "../view/legend.js";
+import { drawnLegendKeys, matchLegend } from "../view/legend.js";
 import { noteOff, plan, routeSaid, routesOf } from "./plan.js";
 import type { Positioned, PEdge, PPort } from "./positioned.js";
 import { INTER, NOTE_CLEAR, noteBox, pillDims } from "./sizes.js";
@@ -196,6 +196,23 @@ export async function layoutView(
   const legend: Positioned["legend"] = !view.legend ? undefined
     : "auto" in view.legend ? { auto: true }
     : { entries: matchLegend(model, view, { nodes, edges, frames }) };
+  // The retired `legend auto` (and a bare `legend`) still renders — with no
+  // legend, and said here, never dropped in silence. Only the drawing knows
+  // which keys the author has to write, so it is raised at layout time.
+  if (view.legend && "auto" in view.legend) {
+    const keys = drawnLegendKeys(model, view, { nodes, edges, frames }).map((k) => `\`${k}\``);
+    const list = keys.length > 1 ? `${keys.slice(0, -1).join(", ")} and ${keys[keys.length - 1]}` : keys[0];
+    diagnostics.push({
+      severity: "warning",
+      message: keys.length
+        ? `a legend shows only the entries you write, so \`legend auto\` draws nothing — this view draws ${list}`
+        : "a legend shows only the entries you write, so `legend auto` draws nothing — and this view draws nothing a legend keys",
+      fix: keys.length
+        ? "write a `legend { }` block with a line for each, saying what it means here, or delete the line"
+        : "delete the line",
+      loc: view.legend.auto,
+    });
+  }
 
   return {
     positioned: {

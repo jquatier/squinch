@@ -1,8 +1,8 @@
 // `color:` — nine hue words (red, amber, green, teal, blue, violet, pink,
 // gray, accent), never hex. A leaf, person or system takes a spine down its
 // left edge, an edge its stroke and head, a zone its outline. The `lens` view
-// colours by tag instead — `color #money red` — and earns a legend entry per
-// tag.
+// colours by tag instead — `color #money red` — which is how a colour comes to
+// mean something: a legend can key a tag, never a bare hue.
 pack aws
 
 user = person "Shopper" { color: pink }
@@ -41,7 +41,10 @@ zone prod "prod account" account {
 view landscape {
   title "Every site, coloured"
   include *
-  legend auto
+  legend {
+    -> "Request"
+    ~> "Event"
+  }
 }
 
 // the same model through a tag lens: the money path, and the edge tier
@@ -50,7 +53,10 @@ view lens {
   include *
   color #money red
   color #edge blue
-  legend auto
+  legend {
+    #money "Money path"
+    #edge  "Edge tier"
+  }
 }
 
 // inside a system: spines on leaves, and the edge that keeps its hue

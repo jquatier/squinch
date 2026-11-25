@@ -16,5 +16,4 @@ bus ~> dlq "failed events"
 view landscape {
   title "Order Event Flow"
   include *
-  legend auto
 }

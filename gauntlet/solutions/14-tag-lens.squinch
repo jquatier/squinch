@@ -15,7 +15,11 @@ view full {
   title "Payments Platform"
   include *
   color #pci red
-  legend auto
+  legend {
+    #pci "PCI scope"
+    ->   "Call"
+    ~>   "Event"
+  }
 }
 
 view auditor {

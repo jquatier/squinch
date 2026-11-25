@@ -22,5 +22,4 @@ view pci {
   scope payments
   highlight #pci
   note right-of vault "Tokens are stored in the Card Vault (DynamoDB)"
-  legend auto
 }

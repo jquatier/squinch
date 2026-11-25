@@ -44,10 +44,13 @@ view landscape {
   title "Order Platform"
   include *
   color #sensitive red
-  legend auto
+  legend {
+    #sensitive "Payments path (sensitive)"
+    ->         "Request"
+    ~>         "Event"
+  }
 }
 view orders {
   title "Orders Service"
   scope orders
-  legend auto
 }

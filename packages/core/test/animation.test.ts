@@ -114,7 +114,7 @@ describe("animate vocabulary + edge styles", () => {
     expect(dashed.length).toBeGreaterThan(0);
     for (const p of dashed) expect(p).toContain(`stroke-dasharray="4 7" stroke-linecap="round"`);
     for (const p of wires.filter((p) => !p.includes("stroke-dasharray"))) expect(p).not.toContain("stroke-linecap");
-    // (the legend sample matching the wire is asserted in colors.test.ts)
+    // (the legend sample matching the wire is asserted in legend.test.ts)
   });
 
   it("aggregates keep styling only on full agreement", async () => {

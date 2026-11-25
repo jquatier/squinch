@@ -163,7 +163,6 @@ view landscape {
   title "Storefront Landscape"
   include *
   preview *
-  legend auto
 }
 view identity {
   title "Identity"
