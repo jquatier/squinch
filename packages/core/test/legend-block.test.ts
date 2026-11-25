@@ -110,6 +110,11 @@ describe("legend { } — check-time diagnostics", () => {
     expect(messages(none)).toEqual([
       "error: `#money` is coloured in no view, so its legend entry can never show | add a `color #money` line, with the hue you want, to the views it should colour",
     ]);
+    // round 37: the tag the view highlights — a highlight needs no key
+    const lit = build(`  highlight #money\n  legend { #money "Money" }`);
+    expect(messages(lit)).toEqual([
+      "error: `#money` is highlighted, not coloured — a legend keys a colour, and a highlight needs no key | drop the entry, or colour the tag: add a `color #money` line, with the hue you want, to the views it should colour",
+    ]);
     // one block pasted into every view: a view that does not colour the tag
     // just leaves the entry out (view/legend.ts), so this checks clean
     const shared = build(`  legend { #money "Money" }`, `view w {\n  color #money red\n  legend { #money "Money" }\n}`);

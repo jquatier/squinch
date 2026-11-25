@@ -358,6 +358,7 @@ describe("the skill — diagnostic coverage", () => {
     // write, the line to keep or delete, the tag's colour line or its spelling
     "a view takes one `legend` — this is the second",
     "is coloured in no view, so its legend entry can never show",
+    "is highlighted, not coloured — a legend keys a colour, and a highlight needs no key",
     "is in this legend twice",
     "legend off` does nothing — a view has no legend unless it writes one",
     "needs a label — what does it mean in this view?",

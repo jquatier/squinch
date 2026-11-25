@@ -2268,6 +2268,17 @@ export function buildProject(input: ProjectFile[]): BuildResult {
     if (v.legend && "entries" in v.legend)
       for (const e of v.legend.entries) {
         if (!e.key.startsWith("#") || coloured.includes(e.key.slice(1))) continue;
+        // Round 37: an agent keyed the tag its view highlighted. A highlight
+        // dims everything else and needs no key; a legend keys a colour.
+        if (model.views.some((x) => x.highlight.includes(e.key.slice(1)))) {
+          diagnostics.push({
+            severity: "error",
+            message: `\`${e.key}\` is highlighted, not coloured — a legend keys a colour, and a highlight needs no key`,
+            fix: `drop the entry, or colour the tag: add a \`color ${e.key}\` line, with the hue you want, to the views it should colour`,
+            loc: e.loc, file: v.file,
+          });
+          continue;
+        }
         const s = suggest(e.key.slice(1), coloured);
         diagnostics.push({
           severity: "error",
