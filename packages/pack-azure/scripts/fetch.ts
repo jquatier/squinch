@@ -40,6 +40,11 @@ const ALIASES: Record<string, string> = {
   "log-analytics": "log-analytics-workspaces",
   "api-management": "api-management-services",
   redis: "azure-managed-redis",
+  synapse: "azure-synapse-analytics",
+  "power-bi": "power-bi-embedded",
+  devops: "azure-devops",
+  pipelines: "azure-devops",
+  "blob-storage": "storage-accounts",
 };
 
 /** An id has to be writable in the DSL, and the grammar's Ident token is

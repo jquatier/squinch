@@ -8,11 +8,6 @@ import { drawable, labelFits } from "../metrics.js";
 import { parser } from "../grammar/parser.js";
 import { iconExists, packExists, iconIds, allPackNames } from "./packs.js";
 
-/** What to say about an icon id nothing is one typo from: the real ids that
- *  carry the same word — in the pack that was asked first, then the others —
- *  and the search command for the rest. Round 34: `sys/download` and
- *  `sys/upload` were guessed, the fix was "run a search", and the answer
- *  (`sys/hard-drive-download`) was one command away instead of in the error. */
 /** Words an author reaches for instead of a legend key — today's legend
  *  labels (`sync`, `async`) first among them. */
 const LEGEND_ALIASES: Record<string, string> = {
@@ -24,6 +19,11 @@ const LEGEND_ALIASES: Record<string, string> = {
   "third-party": "external", outside: "external",
 };
 
+/** What to say about an icon id nothing is one typo from: the real ids that
+ *  carry the same word — in the pack that was asked first, then the others —
+ *  and the search command for the rest. Round 34: `sys/download` and
+ *  `sys/upload` were guessed, the fix was "run a search", and the answer
+ *  (`sys/hard-drive-download`) was one command away instead of in the error. */
 function searchHint(pack: string, id: string): string {
   const words = id.split("-").filter((w) => w.length > 2);
   const hit = (cand: string) => cand.includes(id) || words.some((w) => cand.split("-").includes(w));

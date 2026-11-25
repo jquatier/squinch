@@ -1589,6 +1589,7 @@
   },
   "aliases": {
     "apigateway": "api-gateway",
+    "aws": "cloud-logo",
     "aws-cloud": "cloud",
     "dynamo": "dynamodb",
     "ecr": "elastic-container-registry",
@@ -1596,6 +1597,7 @@
     "eks": "elastic-kubernetes-service",
     "elb": "elastic-load-balancing",
     "glacier": "simple-storage-service-glacier",
+    "logo": "cloud-logo",
     "opensearch": "opensearch-service",
     "s3": "simple-storage-service",
     "ses": "simple-email-service",

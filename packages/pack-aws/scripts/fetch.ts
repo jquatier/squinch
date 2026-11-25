@@ -31,6 +31,9 @@ const ALIASES: Record<string, string> = {
   apigateway: "api-gateway",
   cloudwatch: "cloudwatch",
   glacier: "simple-storage-service-glacier",
+  // the AWS mark itself, which agents asked for as `logos/aws`
+  aws: "cloud-logo",
+  logo: "cloud-logo",
   // group/boundary icons (zone chips)
   vpc: "virtual-private-cloud-vpc",
   "aws-cloud": "cloud",
