@@ -347,8 +347,15 @@ for (const p of prompts) {
   }
   if (e.requireAnimate) {
     // distinct values, not edge count: ten edges all `flow` is one statement
-    // about the system, and the prompt asked for a contrast.
-    const kinds = new Set(m.edges.map((x) => x.attrs["animate"]).filter((v) => v && v !== "false"));
+    // about the system, and the prompt asked for a contrast. Counted as the
+    // reader sees them: a `~>` edge drifts unless told otherwise, and
+    // `animate: false` holds one still — round 37's agent contrasted drifting
+    // streams, a still nightly batch and a pulsing poll, and the old count
+    // (written values only, `false` skipped) saw one. A sync edge that says
+    // nothing states nothing, so defaults alone never make a contrast.
+    const motion = (x: (typeof m.edges)[number]) =>
+      x.attrs["animate"] === "false" ? "still" : x.attrs["animate"] ?? (x.arrow === "~>" ? "flow" : undefined);
+    const kinds = new Set(m.edges.map(motion).filter((v) => v));
     if (kinds.size < e.requireAnimate)
       problems.push(`animate: ${kinds.size} distinct value(s) < ${e.requireAnimate}`);
   }
