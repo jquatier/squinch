@@ -20,10 +20,10 @@ describe("legend + titleblock", () => {
     );
     expect(r.ok).toBe(true);
     const v = r.model.views.find((x) => x.name === "s")!;
-    expect(v.legend).toBe(true);
+    expect(v.legend).toEqual({ auto: expect.objectContaining({ line: 10 }) });
     expect(v.titleblock).toEqual({ version: "2026-07", owner: "team-payments" });
     const off = buildModel(`${BASE}\nview s {\n legend off\n}`);
-    expect(off.model.views.find((x) => x.name === "s")!.legend).toBe(false);
+    expect(off.model.views.find((x) => x.name === "s")!.legend).toBe(null);
   });
 
   it("a restyled sync edge earns no entry, and async samples its own pattern", async () => {

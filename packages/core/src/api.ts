@@ -204,7 +204,7 @@ export function searchIconsDetailed(
 export type { ProjectFile };
 export type * from "./model/types.js";
 // the one colour vocabulary, for editors that complete it and tests that sweep it
-export { HUES } from "./model/types.js";
+export { HUES, LEGEND_KEYS } from "./model/types.js";
 export { hueOf } from "./themes/index.js";
 export type { Positioned } from "./layout/layout.js";
 export type { Theme } from "./themes/index.js";
@@ -306,7 +306,7 @@ export async function renderProject(
       name: first ?? "default", scope: first,
       only: [], include: [], includeStar: false, exclude: [], expand: [], expandStar: false,
       preview: [], previewStar: false, detail: [],
-      context: "auto", highlight: [], colors: [], legend: false, notes: [],
+      context: "auto", highlight: [], colors: [], legend: null, notes: [],
       layout: { place: [], routes: [], align: [], channels: [] },
       loc: { from: 0, to: 0, line: 1, col: 1 },
     };
@@ -349,7 +349,7 @@ export async function renderProject(
       highlight: view.highlight,
       colors: view.colors,
       notes: view.notes,
-      legend: view.legend,
+      legend: !!view.legend && "auto" in view.legend,
       titleblock: view.titleblock,
       title: view.title,
       about: view.about,

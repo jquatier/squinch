@@ -131,6 +131,26 @@ describe("block context", () => {
     expect(completionsAt(ref.src, ref.offset).map((c) => c.label)).toContain("customers");
   });
 
+  it("completes legend keys and coloured tags inside `legend { }`, never edge targets", () => {
+    const src = `system s "S" { api = box "API" }\nview v {\n  color #money red\n  color #edge blue\n  legend {\n    |\n  }\n}\n`;
+    const p = at(src);
+    expect(blockStack(p.src, p.offset).slice(-2)).toEqual(["view", "legend"]);
+    expect(completionsAt(p.src, p.offset).map((c) => c.label)).toEqual([
+      "->", "~>", "<->", "--", "aggregated", "external", "context", "#edge", "#money",
+    ]);
+    // `-|` narrows to the arrows that start with it, and inserts the rest
+    const dash = at(src.replace("    |", "    -|"));
+    expect(completionsAt(dash.src, dash.offset).map((c) => [c.label, c.insert])).toEqual([["->", ">"], ["--", "-"]]);
+    // after `->` the line is a label: no paths, no keys
+    const label = at(src.replace("    |", "    -> |"));
+    expect(completionsAt(label.src, label.offset)).toEqual([]);
+    const inside = at(src.replace("    |", '    -> "Req, |'));
+    expect(completionsAt(inside.src, inside.offset)).toEqual([]);
+    // a second entry on the same line starts after the label
+    const next = at(src.replace("    |", '    -> "Request"  #m|'));
+    expect(completionsAt(next.src, next.offset).map((c) => c.label)).toEqual(["#money"]);
+  });
+
   it("ignores braces inside strings and comments", () => {
     const src = `system s "a { b" {\n  // } not a close\n  x = box "X"\n`;
     expect(blockStack(src, src.length).pop()).toBe("system");

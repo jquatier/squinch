@@ -382,7 +382,8 @@ export function diffModels(before: SModel, after: SModel): DiffResult {
       title: v.title, theme: v.theme, highlight: [...v.highlight].sort(),
       colors: (v.colors ?? []).map((c) => [c.tag, c.hue]),
       showFlow: v.showFlow,
-      legend: v.legend, titleblock: v.titleblock, about: v.about,
+      legend: !v.legend ? null : "auto" in v.legend ? "auto" : v.legend.entries.map((e) => [e.key, e.label]),
+      titleblock: v.titleblock, about: v.about,
       notes: v.notes.map((n) => ({ anchor: n.anchor, text: n.text, style: n.style })),
       layout: {
         direction: v.layout.direction,

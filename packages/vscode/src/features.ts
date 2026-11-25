@@ -2,7 +2,7 @@
 // (src/server.ts) is a thin protocol shell around these — everything that can
 // be wrong lives here, where vitest can reach it without a running editor.
 import {
-  buildProject, renderProject, allPackNames, iconIds, iconMeta, iconTitle, packExists, HUES,
+  buildProject, renderProject, allPackNames, iconIds, iconMeta, iconTitle, packExists, HUES, LEGEND_KEYS,
   type Diagnostic as CoreDiagnostic,
 } from "@squinch/core";
 
@@ -105,7 +105,7 @@ export async function allDiagnosticsFor(src: string): Promise<FeatureDiagnostic[
 }
 
 // ── block context ─────────────────────────────────────────────────────────
-const BLOCK_KEYWORDS = ["view", "layout", "system", "container", "zone", "flow", "fields"] as const;
+const BLOCK_KEYWORDS = ["view", "layout", "system", "container", "zone", "flow", "fields", "legend"] as const;
 export type BlockKind = (typeof BLOCK_KEYWORDS)[number] | "file" | "attrs";
 
 /** Which `{ }` block the offset sits in — innermost last. Brace scanning, not
@@ -137,6 +137,10 @@ export function blockStack(src: string, offset: number): BlockKind[] {
   return stack;
 }
 
+const LEGEND_DETAIL: Record<string, string> = {
+  "->": "solid arrows", "~>": "async arrows", "<->": "two-way arrows", "--": "undirected lines",
+  aggregated: "merged ×n edges", external: "hatched (external) nodes", context: "context cards",
+};
 const TOP_KEYWORDS = ["pack", "person", "system", "container", "zone", "flow", "view", "theme"];
 const VIEW_KEYWORDS = [
   "title", "theme", "scope", "only", "include", "exclude", "detail", "expand", "preview", "context",
@@ -161,6 +165,22 @@ export function completionsAt(src: string, offset: number): Completion[] {
   if (here === "fields") {
     const ref = /\bref\s+([\w.]*)$/.exec(line);
     return ref ? pathCompletions(src, ref[1]) : [];
+  }
+
+  // 0b. a `legend { }` line starts with a key — an arrow, a mark, or a tag the
+  // file colours — and the rest of it is a free label. `->` here is a key,
+  // never an edge, so this has to run before the edge-target rule.
+  if (here === "legend") {
+    // inside a label (an odd count of quotes), nothing completes
+    if ((line.match(/"/g) ?? []).length % 2) return [];
+    const key = /(?:^|[;,]|"\s)\s*([#\w~<>-]*)$/.exec(line);
+    if (!key) return [];
+    const partial = key[1];
+    const tags = [...new Set([...src.matchAll(/\bcolor\s+#([\w-]+)/g)].map((m) => `#${m[1]}`))].sort();
+    return [
+      ...LEGEND_KEYS.map((k) => ({ label: k, kind: "keyword" as const, detail: LEGEND_DETAIL[k] })),
+      ...tags.map((t) => ({ label: t, kind: "value" as const, detail: "a tag this file colours" })),
+    ].filter((c) => c.label.startsWith(partial)).map((c) => ({ ...c, insert: c.label.slice(partial.length) }));
   }
 
   // 1. icon reference: `aws/lam|`

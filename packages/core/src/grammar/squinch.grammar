@@ -166,7 +166,14 @@ HighlightStmt { kw<"highlight"> Tag (","? Tag)* }
 // ordinary Attr — different production, no collision.)
 ColorStmt { kw<"color"> Tag Ident }
 ShowStmt { kw<"show"> (kw<"descriptions"> | kw<"flow"> Ident) }
-LegendStmt { kw<"legend"> (kw<"auto"> | kw<"off">) }
+// legend { -> "Request"  #money: "Payment path" } — the author's key, one
+// line per entry. A key is never followed by anything but an optional colon
+// and label, so the attr separators work here, nothing between entries
+// included. `auto`, `off`, a bare `legend` and a missing label all parse on
+// purpose: each is a diagnostic with a fix (model/build.ts), not a syntax error.
+LegendStmt { kw<"legend"> (LegendBlock | kw<"auto"> | kw<"off">)? }
+LegendBlock { "{" as* (LegendItem as*)* "}" }
+LegendItem { (Arrow | Ident | Tag) ":"? String? }
 TitleBlockStmt { kw<"titleblock"> AttrBlock }
 NoteStmt { kw<"note"> NoteAnchor String AttrBlock? }
 NoteAnchor { RelPos Path | kw<"on"> Path Arrow Path | Corner }

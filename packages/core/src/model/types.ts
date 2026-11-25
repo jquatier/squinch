@@ -183,6 +183,13 @@ export interface SNote {
   loc: Loc;
 }
 
+/** The whole legend vocabulary: the four arrows, three marks, and any tag a
+ *  view colours (`#money`). Nothing else is keyed — zones and flows name
+ *  themselves, and an element's own `color:` is decoration (SPEC §5). */
+export const LEGEND_KEYS = ["->", "~>", "<->", "--", "aggregated", "external", "context"] as const;
+export type LegendKey = (typeof LEGEND_KEYS)[number] | `#${string}`;
+export interface LegendEntry { key: LegendKey; label: string; loc: Loc }
+
 export interface SView {
   name: string;
   title?: string;
@@ -214,7 +221,11 @@ export interface SView {
    *  last wins when two match one element (and that is a warning). */
   colors: { tag: string; hue: Hue; loc: Loc }[];
   showFlow?: string; // flow id — render ①②③ badges on that flow's edges
-  legend: boolean; // `legend auto` — key of the styles actually used (off by default)
+  /** `legend { -> "Request" … }` — the author's key, entries in written order;
+   *  a view draws the ones it has marks for. `{ auto }` is the retired
+   *  `legend auto` (and a bare `legend`), kept so the diagnostic can name the
+   *  keys this view draws. Off (`null`) by default. */
+  legend: { entries: LegendEntry[]; loc: Loc } | { auto: Loc } | null;
   titleblock?: Record<string, string>; // drafting corner block key/values
   /** `about` — prose for the header, under the title (`prose.ts`); lines kept */
   about?: string;

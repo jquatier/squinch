@@ -13,6 +13,17 @@ import { iconExists, packExists, iconIds, allPackNames } from "./packs.js";
  *  and the search command for the rest. Round 34: `sys/download` and
  *  `sys/upload` were guessed, the fix was "run a search", and the answer
  *  (`sys/hard-drive-download`) was one command away instead of in the error. */
+/** Words an author reaches for instead of a legend key — today's legend
+ *  labels (`sync`, `async`) first among them. */
+const LEGEND_ALIASES: Record<string, string> = {
+  sync: "->", request: "->", call: "->",
+  async: "~>", event: "~>", events: "~>",
+  "two-way": "<->", bidirectional: "<->", both: "<->",
+  undirected: "--", line: "--",
+  merged: "aggregated", aggregate: "aggregated", lifted: "aggregated",
+  "third-party": "external", outside: "external",
+};
+
 function searchHint(pack: string, id: string): string {
   const words = id.split("-").filter((w) => w.length > 2);
   const hit = (cand: string) => cand.includes(id) || words.some((w) => cand.split("-").includes(w));
@@ -30,8 +41,8 @@ import { themes } from "../themes/index.js";
 import type {
   ArrowKind, BuildResult, Diagnostic, Hue, Loc, RelPos, SContainer, SEdge, SField, SModel, SNode, SNote, SView, Side, SFlow, SZone, ZoneKind, ZoneLabelPos,
 } from "./types.js";
-import { ZONE_KINDS, HUES, EDGE_STYLES, EDGE_ANIMATE, EDGE_MARKS, MARKS_ONE, PREVIEW_MAX, PREVIEW_FIELDS_PICK_MAX } from "./types.js";
-import type { EdgeMark } from "./types.js";
+import { ZONE_KINDS, HUES, EDGE_STYLES, EDGE_ANIMATE, EDGE_MARKS, MARKS_ONE, PREVIEW_MAX, PREVIEW_FIELDS_PICK_MAX, LEGEND_KEYS } from "./types.js";
+import type { EdgeMark, LegendEntry, LegendKey } from "./types.js";
 
 import { resolveView } from "../view/resolve.js";
 
@@ -144,6 +155,65 @@ export function buildProject(input: ProjectFile[]): BuildResult {
       severity: "warning", message, fix, file: ctx.name,
       loc: "from" in at && "line" in at ? (at as Loc) : ctx.loc(at as SyntaxNode),
     });
+
+  /** A view's `legend` (SPEC §5): the author's key, one line per mark. What a
+   *  view draws decides which entries show (`view/legend.ts`); everything that
+   *  can be known from the source alone is checked here. */
+  const legendKeys = `${LEGEND_KEYS.join(" ")} #tag`;
+  const unknownLegendKey = (raw: string): [string, string] => {
+    const alias = LEGEND_ALIASES[raw.toLowerCase()];
+    if (alias) return [`unknown legend key \`${raw}\` — did you mean \`${alias}\`?`, `keys: ${legendKeys}`];
+    if ((ZONE_KINDS as readonly string[]).includes(raw) || raw === "zone" || raw === "flow")
+      return [`\`${raw}\` is not a legend key — zones and flows name themselves on the drawing`, `keys: ${legendKeys}`];
+    if ((HUES as readonly string[]).includes(raw))
+      return [`\`${raw}\` is not a legend key — a colour means something only through a tag`,
+        `tag what it marks, colour the tag in the view (\`color #tag ${raw}\`) and key \`#tag\``];
+    const s = suggest(raw, [...LEGEND_KEYS]);
+    return [`unknown legend key \`${raw}\`${s ? ` — did you mean \`${s}\`?` : ""}`, `keys: ${legendKeys}`];
+  };
+  const readLegend = (ctx: Ctx, body: SyntaxNode, view: SView) => {
+    const stmts = body.getChildren("LegendStmt");
+    // a second statement used to be ignored without a word
+    for (const extra of stmts.slice(1))
+      error(ctx, extra, "a view takes one `legend` — this is the second",
+        "move its entries into the first `legend { }` and delete this one");
+    const stmt = stmts[0];
+    if (!stmt) return;
+    if (stmt.getChild("off")) {
+      warn(ctx, stmt, "`legend off` does nothing — a view has no legend unless it writes one", "delete the line");
+      return;
+    }
+    const block = stmt.getChild("LegendBlock");
+    if (!block) { view.legend = { auto: ctx.loc(stmt) }; return; }
+    const items = block.getChildren("LegendItem");
+    if (!items.length) {
+      error(ctx, stmt, "this `legend { }` is empty",
+        `write a line for each mark to explain — a key, then what it means here in quotes (keys: ${legendKeys}) — or delete the line`);
+      return;
+    }
+    const entries: LegendEntry[] = [];
+    for (const it of items) {
+      const keyNode = it.firstChild!;
+      const raw = ctx.text(keyNode);
+      let key: LegendKey;
+      if (keyNode.name === "Arrow" || keyNode.name === "Tag") key = raw as LegendKey;
+      else if ((LEGEND_KEYS as readonly string[]).includes(raw)) key = raw as LegendKey;
+      else { const [m, f] = unknownLegendKey(raw); error(ctx, keyNode, m, f); continue; }
+      const labelNode = it.getChild("String");
+      const label = labelNode ? ctx.str(labelNode) : "";
+      if (!label.trim()) {
+        error(ctx, it, `\`${raw}\` needs a label — what does it mean in this view?`,
+          "write it after the key, in quotes — a legend says what a mark means, and nothing is labelled for you");
+        continue;
+      }
+      if (entries.some((e) => e.key === key)) {
+        error(ctx, it, `\`${raw}\` is in this legend twice`, "keep one line for it");
+        continue;
+      }
+      entries.push({ key, label, loc: ctx.loc(it) });
+    }
+    view.legend = { entries, loc: ctx.loc(stmt) };
+  };
 
   /**
    * A declared theme name is static — it can be checked the moment the model is
@@ -1804,7 +1874,7 @@ export function buildProject(input: ProjectFile[]): BuildResult {
       name,
       only: [], include: [], includeStar: false, exclude: [], expand: [], expandStar: false,
       preview: [], previewStar: false, detail: [],
-      context: "auto", highlight: [], colors: [], legend: false, notes: [],
+      context: "auto", highlight: [], colors: [], legend: null, notes: [],
       layout: { place: [], routes: [], align: [], channels: [] },
       loc: ctx.loc(v), file: ctx.name,
     };
@@ -1971,8 +2041,7 @@ export function buildProject(input: ProjectFile[]): BuildResult {
       }
       view.showFlow = flowId;
     }
-    const legendStmt = body.getChildren("LegendStmt")[0];
-    if (legendStmt) view.legend = !legendStmt.getChild("off");
+    readLegend(ctx, body, view);
     const tb = body.getChildren("TitleBlockStmt")[0];
     if (tb) view.titleblock = attrsOf(ctx, tb.getChild("AttrBlock")).attrs;
     for (const n of body.getChildren("NoteStmt")) {
@@ -2183,12 +2252,31 @@ export function buildProject(input: ProjectFile[]): BuildResult {
       auto: true,
       only: [], include: [], includeStar: false, exclude: [], expand: [], expandStar: false,
       preview: [], previewStar: false, detail: [],
-      context: "auto", highlight: [], colors: [], legend: false, notes: [],
+      context: "auto", highlight: [], colors: [], legend: null, notes: [],
       layout: { place: [], routes: [], align: [], channels: [] },
       loc: model.containers.get(path)!.loc,
       file: model.containers.get(path)!.file,
     });
   }
+
+  // A `#tag` legend key shows the hue a view's `color #tag` line gives it. A
+  // view that does not colour the tag simply leaves the entry out — one block
+  // is meant to be pasted into every view — but a tag no view colours can
+  // never show anywhere, which is a typo or a missing line.
+  const coloured = [...new Set(model.views.flatMap((v) => v.colors.map((c) => c.tag)))];
+  for (const v of model.views)
+    if (v.legend && "entries" in v.legend)
+      for (const e of v.legend.entries) {
+        if (!e.key.startsWith("#") || coloured.includes(e.key.slice(1))) continue;
+        const s = suggest(e.key.slice(1), coloured);
+        diagnostics.push({
+          severity: "error",
+          message: `\`${e.key}\` is coloured in no view, so its legend entry can never show`,
+          fix: s ? `did you mean \`#${s}\`?`
+            : `add a \`color ${e.key}\` line, with the hue you want, to the views it should colour`,
+          loc: e.loc, file: v.file,
+        });
+      }
 
   // One mistake, one diagnostic — the rule the syntax pass and the align/cols
   // collapse already follow, applied to the loudest class there is. Round 16:

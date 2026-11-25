@@ -123,8 +123,10 @@ export const
   Corner = 137,
   LegendStmt = 142,
   legend = 143,
-  TitleBlockStmt = 144,
-  titleblock = 145,
-  AboutStmt = 146,
-  about = 147,
-  FileTheme = 148
+  LegendBlock = 144,
+  LegendItem = 145,
+  TitleBlockStmt = 146,
+  titleblock = 147,
+  AboutStmt = 148,
+  about = 149,
+  FileTheme = 150

@@ -354,6 +354,14 @@ describe("the skill — diagnostic coverage", () => {
     "lines straight` draws no relationship marks",
     // `route a -> b from east from west`: the fix says which word to keep one of
     "route` gives two",
+    // `legend { }` (2026-11): each fix names the one change — the label to
+    // write, the line to keep or delete, the tag's colour line or its spelling
+    "a view takes one `legend` — this is the second",
+    "is coloured in no view, so its legend entry can never show",
+    "is in this legend twice",
+    "legend off` does nothing — a view has no legend unless it writes one",
+    "needs a label — what does it mean in this view?",
+    "this `legend { }` is empty",
   ]);
 
   it("every diagnostic that needs a technique is in the cookbook", () => {
