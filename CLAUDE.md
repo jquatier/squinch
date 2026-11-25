@@ -137,7 +137,7 @@ which permit copying and distributing them **for architecture diagrams, training
 and documentation only** — narrower than an open-source licence (see its NOTICE).
 Nearly all of them are gradient artwork, which is the one thing that
 distinguishes them from the other packs.
-`packages/pack-logos` — 147 curated Simple Icons marks (CC0) for the non-cloud
+`packages/pack-logos` — 283 curated Simple Icons marks (CC0) for the non-cloud
 half of a stack; `monochrome: true` in its manifest makes the renderer plate and
 tint them.
 `packages/pack-k8s` — 39 Kubernetes community icons (dual Apache-2.0 /
@@ -148,7 +148,7 @@ applies two licence-permitted treatments, both recorded in its NOTICE: strip
 Inkscape metadata, and promote `style="fill:…"` CSS into presentation
 attributes — the upstream files carry all their paint in `style`, which the
 sanitizer drops, so without promotion every icon loads unfilled.
-`packages/pack-sys` — 195 curated Lucide icons (ISC): the generic set for what no
+`packages/pack-sys` — 200 curated Lucide icons (ISC): the generic set for what no
 vendor draws (servers, hardware, network gear, data/ML concepts, and the commerce
 row — cart, payment, order, shipping — that round 26 agents reached for and
 missed) plus plain shapes as a last resort. Also `monochrome: true`. It is the `sys/*` prefix, and like `builtin` it

@@ -361,7 +361,7 @@ sugar, drawn in core) and `sys`, the generic set. Nothing enforces the
 distinction: a pack resolves once it is *registered*, and `pack` is a
 declaration of intent rather than a gate.
 
-`sys` is 195 icons from Lucide (ISC), covering what no cloud vendor draws —
+`sys` is 200 icons from Lucide (ISC), covering what no cloud vendor draws —
 servers, racks, laptops, factories, network gear, carts and payments — plus
 plain shapes for when nothing else fits. Ids are Lucide's own names; `squinch icons search` is the way
 in. `logos` (third-party brand marks, Simple Icons) ships as a normal

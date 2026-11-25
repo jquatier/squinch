@@ -102,7 +102,7 @@ is a boundary, not a workload — prefer `zone team-a "team-a" custom { contains
 
 ## Logos — products and open source
 
-**Non-AWS things** come from the `logos` pack (147 product marks, plated in
+**Non-AWS things** come from the `logos` pack (283 product marks, plated in
 their brand colour): `logos/postgres` · `logos/mysql` · `logos/mongodb` ·
 `logos/redis` · `logos/kafka` · `logos/rabbitmq` · `logos/elasticsearch` ·
 `logos/kubernetes` (`k8s`) · `logos/docker` · `logos/terraform` ·
@@ -110,13 +110,17 @@ their brand colour): `logos/postgres` · `logos/mysql` · `logos/mongodb` ·
 `logos/prometheus` · `logos/datadog` · `logos/sentry` · `logos/stripe` ·
 `logos/snowflake` · `logos/cloudflare` · `logos/vercel` · `logos/nextdotjs` ·
 `logos/react` · `logos/python` · `logos/nodedotjs` (`node`) · `logos/go` ·
-`logos/rust` · `logos/graphql`.
+`logos/rust` · `logos/graphql` · `logos/firebase` · `logos/metabase` ·
+`logos/airbyte` · `logos/trino` · `logos/pulumi` · `logos/keycloak` ·
+`logos/haproxy` · `logos/linux` (`rhel`, `alpine`) · `logos/vmware` ·
+`logos/anthropic` · `logos/huggingface` (`hf`) · `logos/pytorch` ·
+`logos/temporal` · `logos/notion`. `squinch icons search` finds the rest.
 Some brands (Slack, Twilio, Salesforce, Heroku, gRPC…) have no icon upstream —
 they were withdrawn on trademark request. Use `box` for those.
 
 ## sys — the generic set
 
-`sys/*` is the generic set — 195 Lucide icons for anything no vendor draws, and
+`sys/*` is the generic set — 200 Lucide icons for anything no vendor draws, and
 it needs no `pack` statement. Use it for on-prem and physical things, and as the
 last resort when nothing else fits. Ids are Lucide's own names:
 
@@ -139,7 +143,10 @@ Short aliases exist for words you would type instead: `gear`→`cog`,
 `cube`→`box`, `db`→`database`, `rack`/`vm`/`host`→`server`, `disk`→`hard-drive`,
 `firewall`→`shield`, `vault`→`lock-keyhole`, `cron`→`clock`, `lb`→`share-2`,
 `cart`→`shopping-cart`, `checkout`→`shopping-bag`, `payment`→`credit-card`,
-`order`/`invoice`→`receipt-text`, `shipping`→`truck`, `ads`→`megaphone`.
+`order`/`invoice`→`receipt-text`, `shipping`→`truck`, `ads`→`megaphone`,
+`api`→`braces`, `worker`→`cog`, `process`→`workflow`, `analytics`/`chart`→`chart-bar`,
+`device`/`mobile`→`smartphone`, `web`→`globe`, `notification`→`bell`,
+`scheduler`→`calendar-clock`, `scanner`→`scan-barcode`, `ml`/`ai`→`brain-circuit`.
 
 ## Platforms with no icon pack
 

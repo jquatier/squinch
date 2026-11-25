@@ -195,6 +195,7 @@ system shop "Order Service" {         // systems/containers nest arbitrarily
                                       // see "Platforms with no icon pack" below
   }
   legacy = box             "Old Billing" external   // `box` = no icon
+  stripe = logos/stripe    "Stripe" external        // a third party keeps its mark
   // kinds: `external` (not ours — draws a hatched surface, and also goes on a
   // whole system: `system stripe "Stripe" external { … }`) and `datastore`
   // (holds state — a note to the reader and to `squinch diff`; your icon
@@ -720,23 +721,27 @@ Six packs, and the ids you'll reach for in each:
   `k8s/pvc` · `k8s/hpa` · `k8s/job` · `k8s/cronjob` · `k8s/crd` · `k8s/node` ·
   `k8s/etcd` · `k8s/control-plane` · `k8s/api` · `k8s/sched` · `k8s/kubelet`.
   `logos/kubernetes` when the cluster is one box in a wider estate.
-- **`logos/`** — 147 product marks plated in their brand colour, the non-cloud
+- **`logos/`** — 283 product marks plated in their brand colour, the non-cloud
   half of a stack: `logos/postgres` · `logos/mysql` · `logos/mongodb` ·
   `logos/redis` · `logos/kafka` · `logos/rabbitmq` · `logos/elasticsearch` ·
-  `logos/docker` · `logos/terraform` · `logos/nginx` · `logos/github` ·
-  `logos/gitlab` · `logos/grafana` · `logos/prometheus` · `logos/datadog` ·
-  `logos/sentry` · `logos/stripe` · `logos/snowflake` · `logos/cloudflare` ·
-  `logos/vercel` · `logos/react` · `logos/python` · `logos/go` · `logos/rust`.
-  Slack, Twilio, Salesforce, Heroku, gRPC and dbt have no mark upstream — use
-  `box` or the label.
-- **`sys/`** — 195 generic Lucide icons for what no vendor draws, and it needs
-  no `pack` statement. Ids are Lucide's own names, so a word you would say
-  (`process`, `analytics`, `device`, `web`) is usually *not* one — pick from
+  `logos/firebase` · `logos/docker` · `logos/terraform` · `logos/pulumi` ·
+  `logos/nginx` · `logos/github` · `logos/gitlab` · `logos/grafana` ·
+  `logos/prometheus` · `logos/datadog` · `logos/sentry` · `logos/keycloak` ·
+  `logos/stripe` · `logos/snowflake` · `logos/cloudflare` · `logos/vercel` ·
+  `logos/linux` · `logos/anthropic` · `logos/pytorch` · `logos/react` ·
+  `logos/python` · `logos/go` · `logos/rust`; `squinch icons search` finds
+  the rest. Slack, Twilio, Salesforce, Heroku, gRPC and dbt have no mark
+  upstream — use `box` or the label.
+- **`sys/`** — 200 generic Lucide icons for what no vendor draws, and it needs
+  no `pack` statement. Ids are Lucide's own names, and the words you would say
+  are aliases (`api`, `worker`, `process`, `analytics`, `device`, `mobile`,
+  `web`, `notification`, `scheduler`, `scanner`, `ml`) — or pick from
   these: compute `server` `container` `cpu` `code` `app-window` `terminal`
   `cog` `webhook` `workflow`; hardware `laptop` `monitor` `smartphone`
   `hard-drive` `printer`; network `network` `router` `wifi` `radio-tower`
-  `globe` `share-2`; security `lock` `key-round` `shield` `shield-check`;
-  data `database` `folder` `search` `archive` `table` `file`; places `factory`
+  `globe` `cloud` `share-2`; security `lock` `key-round` `shield` `shield-check`;
+  data `database` `folder` `search` `archive` `table` `file` `upload`
+  `download`; places `factory`
   `warehouse` `building-2` `house` `earth`; process and observability `clock`
   `timer` `repeat` `activity` `gauge` `chart-line` `siren` `bug`; commerce
   `shopping-cart` `credit-card` `wallet` `receipt-text` `truck`
