@@ -3,7 +3,7 @@ pack aws
 gw = aws/api-gateway "API Gateway"
 
 system catalog "Catalog" {
-  description: "Product listings and search"
+  description: "Products and their listings"
   api = aws/lambda "Catalog API"
   db  = sys/database "Catalog DB" datastore
   api -> db
@@ -23,12 +23,10 @@ system identity "Identity" {
   api -> db
 }
 
-gw -> catalog.api
-gw -> checkout.api
-gw -> identity.api
+gw -> catalog.api, checkout.api, identity.api
 
 view landscape {
-  title "System Landscape"
+  title "Microservices Landscape"
   include *
 }
 

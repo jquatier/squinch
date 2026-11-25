@@ -1,14 +1,16 @@
-req      = sys/server "Request Service"
-policy   = sys/cog "Policy Engine"
-approver = sys/server "Approver Service"
+request  = sys/server   "Request Service"
+policy   = sys/shield-check "Policy Engine"
+approver = sys/server   "Approver Service"
 audit    = sys/database "Audit Log" datastore
 
-req -> policy
-policy -> approver
+request -> policy "hands off"
+policy -> approver "calls"
 approver -> audit "writes"
 
-view approvals {
+view landscape {
   title "Approval Chain"
   include *
-  layout { rows [req] [policy audit] [approver] }
+  layout {
+    rows [request] [policy audit] [approver]
+  }
 }

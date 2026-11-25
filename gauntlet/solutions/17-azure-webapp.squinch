@@ -3,7 +3,9 @@ pack azure
 person customer "Customers"
 
 fd    = azure/front-door "Azure Front Door"
-app   = azure/app-service "App Service" { subtitle: "Web tier" }
+app   = azure/app-services "App Service" {
+  subtitle: "Web tier"
+}
 sql   = azure/sql "Azure SQL" datastore
 redis = azure/cache-redis "Redis" datastore
 kv    = azure/key-vault "Key Vault"

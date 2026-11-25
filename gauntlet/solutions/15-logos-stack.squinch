@@ -1,25 +1,26 @@
 pack logos
 
 person dev "Developers"
+
 gh   = logos/github "GitHub"
 k8s  = logos/kubernetes "Kubernetes"
-web  = logos/nextjs "Frontend" { subtitle: "Next.js" }
-api  = logos/nestjs "API" { subtitle: "NestJS" }
+web  = logos/nextjs "Next.js" { subtitle: "Frontend" }
+api  = logos/nestjs "NestJS" { subtitle: "API" }
 pg   = logos/postgresql "PostgreSQL" datastore
-cache = logos/redis "Redis" datastore { subtitle: "Cache" }
-kafka = logos/kafka "Kafka" { subtitle: "Events" }
-graf = logos/grafana "Grafana"
+rd   = logos/redis "Redis" datastore { subtitle: "Cache" }
+kf   = logos/apachekafka "Kafka" { subtitle: "Events" }
+graf = logos/grafana "Grafana" { subtitle: "Monitoring" }
 
 dev -> gh "push"
 gh -> k8s "deploys"
 web -> api
 api -> pg
-api -> cache
-api ~> kafka "events"
-graf -> web, api, pg, cache, kafka "watches"
+api -> rd "cache"
+api ~> kf "events"
+graf -> web, api, pg, rd, kf
 
 view landscape {
-  title "Product Stack"
+  title "Open-source Stack"
   include *
-  layout { rows [dev gh k8s] [web] [api] [pg cache kafka] [graf] }
+  layout { rows [dev gh k8s] [web] [api] [pg rd kf] [graf] }
 }

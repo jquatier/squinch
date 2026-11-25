@@ -348,8 +348,9 @@ A legend says what the marks mean, in your words — write one when the request
 asks for it or when colour carries meaning: `legend { #pci "Card data in scope"
 -> "Request"  ~> "Event" }`. Keys are `-> ~> <-> -- aggregated external context`
 and any tag the view colours; every key needs a label. A view shows only the
-entries it draws, so one block can go in every view. An element's own `color:`
-is never keyed — colour a tag. There is no `legend auto`.
+entries it draws, so one block can go in every view. A legend keys colours: an
+element's own `color:` is never keyed, and a `highlight #tag` needs no key (it
+dims the rest) — to key a tag, colour it. There is no `legend auto`.
 
 Zones mark deployment boundaries: `zone id "Label" kind { contains a, b.c }`,
 kinds `account | region | vpc | subnet | network | cloud | onprem | custom`.

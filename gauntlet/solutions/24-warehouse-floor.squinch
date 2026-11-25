@@ -1,24 +1,29 @@
 person supervisor "Shift Supervisor"
 
-scan1 = sys/barcode "Bench 1 Scanner"
-scan2 = sys/barcode "Bench 2 Scanner"
-scan3 = sys/barcode "Bench 3 Scanner"
-ctrl = sys/cpu "Local Controller"
-sorter = sys/cog "Conveyor Sorter"
-printer = sys/printer "Label Printer"
-board = sys/monitor "Status Board"
-erp = box "ERP" external
+system floor "Packing Floor" {
+  bench1 = sys/barcode "Bench 1 Scanner"
+  bench2 = sys/barcode "Bench 2 Scanner"
+  bench3 = sys/barcode "Bench 3 Scanner"
+  ctrl   = sys/cpu "Local Controller"
+  sorter = sys/workflow "Conveyor Sorter"
+  printer = sys/printer "Label Printer"
+  board  = sys/monitor "Status Board"
 
-scan1 ~> ctrl "scans"
-scan2 ~> ctrl "scans"
-scan3 ~> ctrl "scans"
-ctrl -> sorter "drives"
-ctrl -> printer "drives"
-ctrl -> erp "syncs every minute" { animate: pulse }
-ctrl -> board "status"
-supervisor -> board "watches"
+  bench1 ~> ctrl "scans"
+  bench2 ~> ctrl
+  bench3 ~> ctrl
+  ctrl -> sorter
+  ctrl -> printer
+  ctrl -> board
+}
 
-view floor {
+erp = sys/server "ERP"
+
+floor.ctrl -> erp "syncs once a minute (site network)"
+supervisor -> floor.board "watches"
+
+view landscape {
   title "Warehouse Floor"
   include *
+  expand floor
 }

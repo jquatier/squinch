@@ -1,21 +1,25 @@
 pack aws
 
-clients  = sys/smartphone "Client Apps"
-api      = aws/api-gateway "API Gateway"
-fn       = aws/lambda "Front-end Lambda"
-endpoint = aws/sagemaker "SageMaker Endpoint" { subtitle: "Model hosting" }
-features = aws/dynamodb "Feature Store" datastore
-batch    = sys/clock "Nightly Batch Job" { subtitle: "Retraining" }
-training = aws/s3 "Training Data" datastore
+client = sys/smartphone "Client Apps"
+gw     = aws/api-gateway "API Gateway"
+fn     = aws/lambda "Front-end Lambda"
+ep     = aws/sagemaker "SageMaker Endpoint"
+feat   = aws/dynamodb "Feature Store" datastore
+train  = aws/s3 "Training Data" datastore
+batch  = sys/clock "Nightly Batch Job" { subtitle: "Retraining" }
 
-clients -> api "requests"
-api -> fn
-fn -> endpoint "predict"
-fn -> features "fetch features"
-batch -> training "reads"
-batch ~> endpoint "retrains model"
+client -> gw "request"
+gw -> fn
+fn -> ep "predict"
+fn -> feat "get features"
+batch -> train "read training data"
+batch ~> ep "retrain model"
 
 view landscape {
   title "Realtime ML Inference"
   include *
+  legend {
+    -> "Request"
+    ~> "Async"
+  }
 }

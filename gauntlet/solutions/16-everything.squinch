@@ -1,26 +1,29 @@
 pack aws
 
 person customer "Customer"
+
 cdn = aws/cloudfront "CloudFront"
-storefront = box "Storefront"
+storefront = sys/app-window "Storefront"
 gw = aws/api-gateway "API Gateway"
 bus = aws/eventbridge "EventBridge"
-worker = sys/cog "Fulfilment Worker"
+worker = aws/lambda "Fulfilment Worker"
 
-system catalog "Catalog" {
-  description: "Product catalog service"
+system catalog "Catalog Service" {
+  description: "Product catalog"
   fn = aws/lambda "Catalog Lambda"
   db = sys/database "Catalog DB" datastore
   fn -> db
 }
-system orders "Orders" {
-  description: "Order service"
+
+system orders "Orders Service" {
+  description: "Order intake and events"
   fn = aws/lambda "Orders Lambda"
   db = sys/database "Orders DB" datastore
   fn -> db
 }
-system payments "Payments" {
-  description: "Payment service"
+
+system payments "Payments Service" {
+  description: "Payment processing"
   tags: #sensitive
   fn = aws/lambda "Payments Lambda"
   db = sys/database "Payments DB" datastore
@@ -33,24 +36,29 @@ storefront -> gw "calls"
 gw -> catalog.fn
 gw -> orders.fn
 gw -> payments.fn { tags: #sensitive }
-orders.fn ~> bus "order events"
+orders.fn ~> bus "publishes order events"
 bus ~> worker "consumes"
 
-zone prod "Production VPC" vpc {
+zone prod_vpc "Production VPC" vpc {
   contains gw, catalog, orders, payments, bus, worker
 }
 
 view landscape {
-  title "Order Platform"
+  title "Order Platform Landscape"
   include *
   color #sensitive red
   legend {
-    #sensitive "Payments path (sensitive)"
-    ->         "Request"
-    ~>         "Event"
+    #sensitive "Sensitive payments path"
+    -> "Request"
+    ~> "Event"
   }
 }
+
 view orders {
   title "Orders Service"
   scope orders
+  legend {
+    -> "Request"
+    ~> "Event"
+  }
 }

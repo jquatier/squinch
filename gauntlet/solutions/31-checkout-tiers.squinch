@@ -1,33 +1,36 @@
 person shopper "Shopper"
-cdn = sys/globe "CDN"
+cdn = sys/cdn "CDN"
 
 system checkout "Checkout" {
-  description: "Order intake and payment"
+  description: "Cart to confirmed order"
   api    = sys/webhook "Checkout API"
   svc    = sys/server "Order Service"
   cache  = sys/database "Session Cache" datastore
-  queue  = sys/workflow "Order Events"
+  events = sys/workflow "Order Events"
   worker = sys/cog "Payment Worker"
   orders = sys/table "Orders" datastore
 
   api -> svc
   svc -> cache
-  svc ~> queue "publishes"
-  queue ~> worker
-  svc -> orders "writes"
-  worker -> orders "writes"
+  svc ~> events
+  events ~> worker
+  svc -> orders
+  worker -> orders
 
-  layout { rows [api] [svc] [cache queue] [worker] [orders] }
+  layout { rows [api] [svc] [cache events] [worker] [orders] }
 }
 
-fulfillment = box "Fulfillment"
+system fulfillment "Fulfillment" {
+  description: "Downstream of confirmed orders"
+  intake = box "Fulfillment Intake"
+}
 
 shopper -> cdn
 cdn -> checkout.api
-checkout.svc -> fulfillment
+checkout.svc ~> fulfillment "order placed"
 
 view landscape {
-  title "Checkout landscape"
+  title "Landscape"
   include *
   expand checkout
 }

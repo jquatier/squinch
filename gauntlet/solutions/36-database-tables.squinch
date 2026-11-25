@@ -1,9 +1,11 @@
 pack aws
 
-system billing "Billing" {
+system billing "Billing Service" {
+  description: "Invoicing, payments and refunds"
+
   api    = aws/fargate "Billing API" { subtitle: "ECS Fargate" }
-  export = aws/lambda  "Nightly Export" { subtitle: "Lambda" }
-  files  = aws/s3      "Export File" datastore
+  export = aws/lambda "Nightly Export" { subtitle: "Lambda" }
+  files  = aws/s3 "Export File" datastore
 
   container db "Billing DB" {
     icon: aws/rds
@@ -14,10 +16,10 @@ system billing "Billing" {
     payments      = sys/table "payments" datastore
     refunds       = sys/table "refunds" datastore
 
-    invoices      -> customers
-    invoice_lines -> invoices
-    payments      -> invoices
-    refunds       -> payments
+    invoices      -> customers "customer"
+    invoice_lines -> invoices  "invoice"
+    payments      -> invoices  "invoice"
+    refunds       -> payments  "payment"
   }
 
   api -> db.invoices "writes"
@@ -27,11 +29,11 @@ system billing "Billing" {
 }
 
 view landscape {
-  title "Billing"
+  title "Billing Service"
   include *
 }
 
 view db {
-  title "Billing database"
+  title "Billing DB tables"
   scope billing.db
 }

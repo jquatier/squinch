@@ -1,26 +1,25 @@
 pack aws
 
-system api_svc "Items API" {
-  gw     = aws/api-gateway "API Gateway"
+system orders "Orders API" {
+  api    = aws/api-gateway "API Gateway"
   create = aws/lambda "Create Handler"
   read   = aws/lambda "Read Handler"
   update = aws/lambda "Update Handler"
   delete = aws/lambda "Delete Handler"
   search = aws/lambda "Search Handler"
-  table  = aws/dynamodb "Table" datastore
+  db     = aws/dynamodb "Table" datastore
 
-  gw -> create, read, update, delete, search
-  create -> table
-  read -> table
-  update -> table
-  delete -> table
-  search -> table
+  api -> create, read, update, delete, search
+  create -> db
+  read -> db
+  update -> db
+  delete -> db
+  search -> db
 }
 
-view landscape {
-  title "Items API"
-  scope api_svc
+view orders {
+  title "Handlers into one table"
   layout {
-    channel create, read, update, delete, search -> table
+    channel orders.create, orders.read, orders.update, orders.delete, orders.search -> orders.db
   }
 }

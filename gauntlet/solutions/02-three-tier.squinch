@@ -5,12 +5,12 @@ person user "User"
 alb   = aws/elastic-load-balancing "Application Load Balancer"
 app   = aws/fargate "Web Service" { subtitle: "ECS · Fargate" }
 db    = aws/aurora "Aurora Database" datastore
-cache = aws/elasticache "ElastiCache" datastore
+cache = aws/elasticache "Cache" datastore
 
-user -> alb "requests"
+user -> alb
 alb -> app
-app -> db "reads/writes"
-app -> cache "caches"
+app -> db
+app -> cache
 
 view landscape {
   title "Three-Tier Web App"

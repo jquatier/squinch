@@ -70,48 +70,51 @@ nothing.
 
 ## Latest round
 
-**Round 36 — 41/42 from the round itself, 42/42 committed; 31 of 42 with one
-`check` call** (2026-11-22, Sonnet). Run after `about`, block strings and
-formatted notes went in (docs/notes/prose.md), with the side-wall routing and
-the payments example since round 35: the skill gained the prose passage and
-cookbook rows for the new `route` warnings, the scorer two expectations
-(`requireAbout`, `aboutMatches`), and the set one prompt, `42-context` — an
-architecture review that wants a context section above the diagram with an
-intro, three bullets, a bold word, a ticket id as code and a runbook link,
-and a note on the database. It is the situation a user hit before `about`
-existed: their agent edited the rendered SVG.
+**Round 39 — 41/42 from the round itself, 42/42 committed; 30 of 42 with one
+`check` call** (2026-11-25, Sonnet). The third of three rounds run on the
+legend overhaul (docs/notes/legend.md): `legend auto` is retired, a legend is
+a `legend { }` block of entries the author labels, and the skill gained a
+paragraph on writing one — when the request asks or colour carries meaning,
+keys are the arrows, three marks and coloured tags, every key needs a label.
+The scorer gained `requireLegend`, set on 12, the one prompt that asks for a
+legend: some view must draw at least one entry.
 
-**42 was clean in one call.** The prompt never names the feature; the agent
-wrote an `about` block string with the intro, `- ` bullets, `**synchronous**`,
-`` `OPS-412` `` and `[orders runbook](https://…)`, and put the database fact
-in a note. No prose diagnostic fired in any session, and no agent touched a
-rendered file.
+**No legend diagnostic fired in round 39.** Eight agents wrote a legend and
+every one checked clean; 12 drew `-> "Request / response"  ~> "Async
+message"` in one call, 14, 16 and 21 keyed their coloured tags (`#pci`,
+`#sensitive`, the three cadences of 21). The two rounds before it each
+surfaced one thing, and both are fixed:
 
-**Two first failures were the engine's messages, and both are fixed.**
+- **A key on a highlighted tag** (08, rounds 37 and 38). The agent keyed
+  `#pci` in a view that `highlight`ed it and got "coloured in no view" —
+  true, but silent on why a highlight was not enough. The error now says a
+  legend keys a colour and a highlight needs no key, and offers both ways
+  out; round 38's agent fixed it from that in one step. The skill then said
+  it up front ("a `highlight #tag` needs no key"), and round 39's 08 was clean
+  in one call with no legend.
+- **A cadence the scorer could not see** (21, round 37). The agent drew
+  drifting streams, a nightly batch held still with `animate: false` and a
+  pulsing poll, all keyed in a legend; `requireAnimate` counted written values
+  and skipped `false`, so it saw one. It now counts the motion a reader sees —
+  a written value, `false` as still, a `~>` edge's default drift — and a sync
+  edge that says nothing still states nothing.
 
-- **A long chain** — `extract -> validate -> … -> notify`, fourteen hops (32).
-  Up to three hops drew the right error; from four, the parser's recovery
-  read the tail as a brace-less attr block that swallowed the next line, and
-  the agent got four "`fields` on an edge" errors, a lost view and the true
-  error sixth. Round 35 saw the same cascade on this prompt and set it aside.
-  The grammar now parses a chain, and the model refuses it in one error that
-  lists every hop to write.
-- **Two statements on one line** — `view db { title "Postgres schema"  scope
-  checkout.db }` (39), three views written that way. It was a bare syntax
-  error; it now says that `scope` starts a second statement and writes the
-  line both ways (own line, or `;`). Whitespace cannot be the separator:
-  after a label a word may be a kind as well as the next statement.
+**One thing seen twice and left alone:** 16 pasted its `color #sensitive`
+line into the orders view along with the legend block, where nothing carries
+the tag, and got the colour lens's own "nothing visible here is tagged"
+warning (rounds 38 and 39, fixed in one step both times). The legend entry
+itself is left out there, as designed.
 
-The third first failure, a fan-in `c1, c2 … -> norm` (26), already had a
-diagnostic that writes the six lines, and the agent fixed it from that.
-Eight more prompts ran `check` a second time after an edit with nothing to
-fix.
+**First failures were the engine's existing messages**, each fixed from its
+fix line: a fan-in written as one edge (24, 26, 35), a chained edge list
+(32), a `preview` child guessed (28, 34), a `place` against `rows` (30).
+33 and 39 ran `check` again after an edit with nothing to fix, and 15 four
+times against clean output. Solutions with a legend fell from thirteen (the
+old corpus's `legend auto` lines) to eight blocks: 12, which asks; 14, 16 and
+21, which colour tags; and four that key only arrows (03, 09, 11, 22).
 
-**One prompt failed, and it is modelling, not the tool.** 20 drew the nightly
-sync job as an asynchronous edge rather than a node, so it had four nodes to
-the scorer's five. Three re-runs: one the same, two with the job as a node;
-the committed answer is the last of them.
-
-No agent read outside its sandbox; none opened the cookbook, two the icon
-list. The corpus in `solutions/` is this round's answers for all forty-two
-prompts, 20's from its last re-run.
+**One prompt failed, and it is modelling, not the tool.** 20 drew the
+nightly sync job as an edge rather than a node, as in rounds 36, 37 and 38;
+the committed answer is round 36's re-run. 38 read outside its sandbox and is
+discarded, its committed answer kept. The corpus in `solutions/` is round
+39's answers for the other forty.

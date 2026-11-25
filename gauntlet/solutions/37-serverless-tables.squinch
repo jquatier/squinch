@@ -1,7 +1,8 @@
 pack aws
 
 system notifications "Notifications Service" {
-  description: "Accepts send requests and delivers them"
+  description: "Accepts send requests and delivers them by email"
+
   api     = aws/api-gateway "API Gateway"
   intake  = aws/lambda "API Lambda" { subtitle: "Takes send requests" }
   queue   = aws/sqs "Send Queue"
@@ -21,8 +22,5 @@ system notifications "Notifications Service" {
 view landscape {
   title "Notifications Service"
   include *
-}
-
-view notifications {
-  title "Notifications Service"
+  expand notifications
 }

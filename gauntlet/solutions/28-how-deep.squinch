@@ -1,43 +1,43 @@
+person customer "Customer"
+
 system orders "Orders" {
-  description: "Order lifecycle, from placement to completion"
-  icon: sys/package-check
+  description: "Takes and tracks customer orders"
   preview: [api workflow store]
-  api      = sys/app-window "Orders API" { subtitle: "Entry point" }
-  workflow = sys/workflow "Order Workflow" { subtitle: "Order state changes" }
-  worker   = sys/cog "Order Worker" { subtitle: "Background jobs" }
-  store    = sys/database "Orders Store" datastore
+  api      = sys/webhook "Orders API" { subtitle: "Entry point" }
+  workflow = sys/workflow "Order Workflow" { subtitle: "Validation and status" }
+  store    = sys/database "Order Store" datastore
+  events   = sys/radio-tower "Order Events" { subtitle: "Publishes changes" }
   api -> workflow
   workflow -> store
-  workflow ~> worker "async jobs"
-  worker -> store
-  layout { rows [api] [workflow] [worker store] }
+  workflow ~> events
 }
+
 system inventory "Inventory" {
   description: "Stock levels and reservations"
-  icon: sys/warehouse
-  api   = sys/app-window "Inventory API"
-  logic = sys/cog "Stock Logic"
-  store = sys/database "Inventory Store" datastore
-  api -> logic
-  logic -> store
+  preview: [api stock]
+  api   = sys/webhook "Inventory API"
+  stock = sys/database "Stock Store" datastore
+  api -> stock
 }
+
 system notifications "Notifications" {
-  description: "Messages sent to customers"
-  icon: sys/radio-tower
-  intake = sys/webhook "Event Intake"
-  sender = sys/cog "Sender"
-  queue  = sys/archive "Outbox" datastore
-  intake ~> queue
-  queue ~> sender
+  description: "Customer messages about orders"
+  preview: [consumer sender]
+  consumer = sys/workflow "Event Consumer"
+  sender   = sys/send "Message Sender"
+  consumer -> sender
 }
-orders.workflow -> inventory.api "reserve stock"
-orders.workflow ~> notifications.intake "order events"
+
+customer -> orders.api "places order"
+orders.workflow -> inventory.api "reserves stock"
+orders.events ~> notifications.consumer "order events"
 
 view landscape {
   title "Order Platform"
   include *
-  preview orders
+  preview *
 }
+
 view orders {
-  title "Orders — how it is put together"
+  title "Orders"
 }
