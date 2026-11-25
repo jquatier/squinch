@@ -27,49 +27,92 @@ for (const value of Object.values(si))
 
 // Deliberately absent, and not an oversight: Simple Icons removes marks at the
 // trademark owner's request, so Slack, Twilio, Salesforce, Heroku, SendGrid,
-// Segment, Tableau, dbt, gRPC, HAProxy, Linode and Typesense have no upstream
-// icon. Use `box` for those — do not re-add the slugs expecting them to appear.
+// Segment, Tableau, dbt, gRPC, Linode and Typesense have no upstream icon
+// (HAProxy, once on this list, arrived in 16.38.1). Use `box` for those — do not re-add the slugs expecting them to appear.
 /** Curated by role — the categories double as `squinch icons search` context. */
 const CURATED: Record<string, string[]> = {
   Database: [
     "postgresql", "mysql", "mariadb", "mongodb", "redis", "sqlite", "elasticsearch",
     "apachecassandra", "neo4j", "clickhouse", "influxdb", "duckdb", "cockroachlabs",
     "supabase", "planetscale", "prisma",
+    // 2026-11, from the coverage analysis: the stores architecture diagrams
+    // name that we drew as `box`
+    "apachecouchdb", "apachedruid", "apachehive", "apachesolr", "couchbase",
+    "firebase", "neon", "scylladb", "singlestore", "tidb", "timescale", "vitess",
   ],
-  Messaging: ["apachekafka", "rabbitmq", "natsdotio", "celery", "apachepulsar"],
+  Messaging: [
+    "apachekafka", "rabbitmq", "natsdotio", "celery", "apachepulsar",
+    "eclipsemosquitto", "mqtt",
+  ],
   Runtime: [
     "nodedotjs", "python", "go", "rust", "openjdk", "typescript", "javascript",
     "php", "ruby", "dotnet", "deno", "bun", "elixir", "kotlin", "swift", "scala",
+    "c", "cplusplus", "dart", "gnubash", "webassembly",
   ],
   Framework: [
     "spring", "django", "rubyonrails", "fastapi", "express", "nestjs", "laravel",
     "flask", "react", "vuedotjs", "angular", "svelte", "nextdotjs", "nuxt", "astro",
+    "contentful", "drupal", "electron", "flutter", "remix", "sanity", "strapi",
+    "wordpress",
   ],
   Platform: [
     "docker", "kubernetes", "terraform", "ansible", "nginx", "apache", "helm",
     "vault", "consul", "envoyproxy", "istio", "argo", "podman", "redhatopenshift",
     "cloudflare", "vercel", "netlify", "digitalocean", "googlecloud",
     "render", "railway", "fastly", "akamai",
+    // infrastructure as code
+    "chef", "opentofu", "packer", "pulumi", "puppet",
+    // the clouds and hosts beyond the three with their own packs
+    "alibabacloud", "cloudflareworkers", "flydotio", "hetzner", "huawei", "ovh",
+    "scaleway", "upstash",
+    // containers beyond Kubernetes itself
+    "containerd", "dapr", "k3s", "longhorn", "nomad", "portainer", "rancher",
+  ],
+  AI: [
+    "anthropic", "huggingface", "jupyter", "langchain", "milvus", "mistralai",
+    "mlflow", "ollama", "pytorch", "qdrant", "ray", "tensorflow",
   ],
   Observability: [
     "grafana", "prometheus", "datadog", "sentry", "opentelemetry", "jaeger",
     "elastic", "kibana", "newrelic", "splunk", "pagerduty",
+    "dynatrace", "fluentbit", "fluentd", "logstash", "opsgenie", "thanos",
+    "victoriametrics",
   ],
   Data: [
     "snowflake", "databricks", "apacheairflow", "apachespark", "apacheflink",
     "looker", "apachehadoop",
+    "airbyte", "apachenifi", "apacheparquet", "apachesuperset", "metabase",
+    "mixpanel", "posthog", "prefect", "presto", "trino",
+  ],
+  Workflow: ["camunda", "nodered", "temporal"],
+  Security: [
+    "clerk", "falco", "fortinet", "keycloak", "letsencrypt", "paloaltonetworks",
+    "tailscale", "trivy", "wireguard",
+  ],
+  Network: ["cilium", "f5", "haproxy", "junipernetworks", "linkerd", "pfsense", "ubiquiti"],
+  "Operating system": [
+    "alpinelinux", "android", "debian", "ios", "linux", "macos", "nutanix",
+    "openstack", "proxmox", "redhat", "ubuntu", "vmware",
   ],
   Service: [
     "stripe", "auth0", "okta", "algolia", "meilisearch",
     "mailgun", "shopify", "hubspot", "atlassian", "jira", "discord", "zoom",
+    "adyen", "braintree", "confluence", "dropbox", "figma", "googledrive",
+    "intercom", "klarna", "mailchimp", "notion", "sap", "square", "zapier",
+    "zendesk",
   ],
   "Source control": [
     "github", "gitlab", "bitbucket", "git", "githubactions", "circleci", "jenkins",
     "sonarqubeserver", "renovate",
+    "buildkite", "flux", "harbor", "jfrog", "snyk", "spinnaker", "teamcity", "tekton",
   ],
-  Protocol: ["graphql", "apollographql", "swagger", "openapiinitiative", "socketdotio"],
+  Protocol: [
+    "graphql", "apollographql", "swagger", "openapiinitiative", "socketdotio",
+    "postman", "webrtc",
+  ],
   Gateway: ["kong", "traefikproxy", "caddy"],
-  Storage: ["minio", "ceph"],
+  Storage: ["minio", "ceph", "backblaze", "netapp", "veeam"],
+  Device: ["arduino", "raspberrypi"],
   // Household-name companies, for the *other* side of an integration diagram —
   // the payment network a checkout talks to, the carrier a label prints for.
   // Curated to a short blue-chip list (2026-08); the deliberately-absent note
@@ -116,6 +159,14 @@ const ALIASES: Record<string, string> = {
   gcp: "googlecloud", ts: "typescript", js: "javascript", socketio: "socketdotio",
   openapi: "openapiinitiative", actions: "githubactions",
   openshift: "redhatopenshift", sonarqube: "sonarqubeserver",
+  couchdb: "apachecouchdb", druid: "apachedruid", hive: "apachehive", solr: "apachesolr",
+  superset: "apachesuperset", nifi: "apachenifi", parquet: "apacheparquet",
+  mosquitto: "eclipsemosquitto", juniper: "junipernetworks", fly: "flydotio",
+  flyio: "flydotio", alibaba: "alibabacloud", workers: "cloudflareworkers",
+  mistral: "mistralai", hf: "huggingface", paloalto: "paloaltonetworks",
+  rhel: "redhat", alpine: "alpinelinux", cpp: "cplusplus", bash: "gnubash",
+  wasm: "webassembly", artifactory: "jfrog", tofu: "opentofu",
+  huaweicloud: "huawei", fluxcd: "flux",
 };
 const aliases: Record<string, string> = {};
 for (const [alias, target] of Object.entries(ALIASES))

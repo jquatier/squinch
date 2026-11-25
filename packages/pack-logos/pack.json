@@ -1,12 +1,24 @@
 {
   "name": "logos",
   "title": "Product & technology logos",
-  "release": "16.27.1",
+  "release": "16.38.1",
   "source": "https://simpleicons.org",
   "license": "CC0-1.0",
   "attribution": "Simple Icons — https://simpleicons.org (marks are their owners' trademarks)",
   "monochrome": true,
   "icons": {
+    "adyen": {
+      "file": "adyen.svg",
+      "title": "Adyen",
+      "category": "Service",
+      "color": "#0ABF53"
+    },
+    "airbyte": {
+      "file": "airbyte.svg",
+      "title": "Airbyte",
+      "category": "Data",
+      "color": "#615EFF"
+    },
     "akamai": {
       "file": "akamai.svg",
       "title": "Akamai",
@@ -19,11 +31,29 @@
       "category": "Service",
       "color": "#003DFF"
     },
+    "alibabacloud": {
+      "file": "alibabacloud.svg",
+      "title": "Alibaba Cloud",
+      "category": "Platform",
+      "color": "#FF6A00"
+    },
+    "alpinelinux": {
+      "file": "alpinelinux.svg",
+      "title": "Alpine Linux",
+      "category": "Operating system",
+      "color": "#0D597F"
+    },
     "americanexpress": {
       "file": "americanexpress.svg",
       "title": "American Express",
       "category": "Company",
       "color": "#2E77BC"
+    },
+    "android": {
+      "file": "android.svg",
+      "title": "Android",
+      "category": "Operating system",
+      "color": "#3DDC84"
     },
     "angular": {
       "file": "angular.svg",
@@ -36,6 +66,12 @@
       "title": "Ansible",
       "category": "Platform",
       "color": "#EE0000"
+    },
+    "anthropic": {
+      "file": "anthropic.svg",
+      "title": "Anthropic",
+      "category": "AI",
+      "color": "#191919"
     },
     "apache": {
       "file": "apache.svg",
@@ -55,6 +91,18 @@
       "category": "Database",
       "color": "#1287B1"
     },
+    "apachecouchdb": {
+      "file": "apachecouchdb.svg",
+      "title": "Apache CouchDB",
+      "category": "Database",
+      "color": "#E42528"
+    },
+    "apachedruid": {
+      "file": "apachedruid.svg",
+      "title": "Apache Druid",
+      "category": "Database",
+      "color": "#29F1FB"
+    },
     "apacheflink": {
       "file": "apacheflink.svg",
       "title": "Apache Flink",
@@ -67,11 +115,29 @@
       "category": "Data",
       "color": "#66CCFF"
     },
+    "apachehive": {
+      "file": "apachehive.svg",
+      "title": "Apache Hive",
+      "category": "Database",
+      "color": "#FDEE21"
+    },
     "apachekafka": {
       "file": "apachekafka.svg",
       "title": "Apache Kafka",
       "category": "Messaging",
       "color": "#231F20"
+    },
+    "apachenifi": {
+      "file": "apachenifi.svg",
+      "title": "Apache NiFi",
+      "category": "Data",
+      "color": "#728E9B"
+    },
+    "apacheparquet": {
+      "file": "apacheparquet.svg",
+      "title": "Apache Parquet",
+      "category": "Data",
+      "color": "#50ABF1"
     },
     "apachepulsar": {
       "file": "apachepulsar.svg",
@@ -79,11 +145,23 @@
       "category": "Messaging",
       "color": "#188FFF"
     },
+    "apachesolr": {
+      "file": "apachesolr.svg",
+      "title": "Apache Solr",
+      "category": "Database",
+      "color": "#D9411E"
+    },
     "apachespark": {
       "file": "apachespark.svg",
       "title": "Apache Spark",
       "category": "Data",
       "color": "#E25A1C"
+    },
+    "apachesuperset": {
+      "file": "apachesuperset.svg",
+      "title": "Apache Superset",
+      "category": "Data",
+      "color": "#20A6C9"
     },
     "apollographql": {
       "file": "apollographql.svg",
@@ -96,6 +174,12 @@
       "title": "Apple",
       "category": "Company",
       "color": "#000000"
+    },
+    "arduino": {
+      "file": "arduino.svg",
+      "title": "Arduino",
+      "category": "Device",
+      "color": "#00878F"
     },
     "argo": {
       "file": "argo.svg",
@@ -121,6 +205,12 @@
       "category": "Service",
       "color": "#EB5424"
     },
+    "backblaze": {
+      "file": "backblaze.svg",
+      "title": "Backblaze",
+      "category": "Storage",
+      "color": "#E21E29"
+    },
     "bankofamerica": {
       "file": "bankofamerica.svg",
       "title": "Bank of America",
@@ -133,17 +223,41 @@
       "category": "Source control",
       "color": "#0052CC"
     },
+    "braintree": {
+      "file": "braintree.svg",
+      "title": "Braintree",
+      "category": "Service",
+      "color": "#000000"
+    },
+    "buildkite": {
+      "file": "buildkite.svg",
+      "title": "Buildkite",
+      "category": "Source control",
+      "color": "#14CC80"
+    },
     "bun": {
       "file": "bun.svg",
       "title": "Bun",
       "category": "Runtime",
       "color": "#000000"
     },
+    "c": {
+      "file": "c.svg",
+      "title": "C",
+      "category": "Runtime",
+      "color": "#A8B9CC"
+    },
     "caddy": {
       "file": "caddy.svg",
       "title": "Caddy",
       "category": "Gateway",
       "color": "#1F88C0"
+    },
+    "camunda": {
+      "file": "camunda.svg",
+      "title": "Camunda",
+      "category": "Workflow",
+      "color": "#FC5D0D"
     },
     "celery": {
       "file": "celery.svg",
@@ -163,6 +277,18 @@
       "category": "Company",
       "color": "#117ACA"
     },
+    "chef": {
+      "file": "chef.svg",
+      "title": "Chef",
+      "category": "Platform",
+      "color": "#F09820"
+    },
+    "cilium": {
+      "file": "cilium.svg",
+      "title": "Cilium",
+      "category": "Network",
+      "color": "#F8C517"
+    },
     "circleci": {
       "file": "circleci.svg",
       "title": "CircleCI",
@@ -175,6 +301,12 @@
       "category": "Company",
       "color": "#1BA0D7"
     },
+    "clerk": {
+      "file": "clerk.svg",
+      "title": "Clerk",
+      "category": "Security",
+      "color": "#6C47FF"
+    },
     "clickhouse": {
       "file": "clickhouse.svg",
       "title": "ClickHouse",
@@ -184,6 +316,12 @@
     "cloudflare": {
       "file": "cloudflare.svg",
       "title": "Cloudflare",
+      "category": "Platform",
+      "color": "#F38020"
+    },
+    "cloudflareworkers": {
+      "file": "cloudflareworkers.svg",
+      "title": "Cloudflare Workers",
       "category": "Platform",
       "color": "#F38020"
     },
@@ -199,11 +337,53 @@
       "category": "Database",
       "color": "#6933FF"
     },
+    "confluence": {
+      "file": "confluence.svg",
+      "title": "Confluence",
+      "category": "Service",
+      "color": "#172B4D"
+    },
     "consul": {
       "file": "consul.svg",
       "title": "Consul",
       "category": "Platform",
       "color": "#F24C53"
+    },
+    "containerd": {
+      "file": "containerd.svg",
+      "title": "containerd",
+      "category": "Platform",
+      "color": "#575757"
+    },
+    "contentful": {
+      "file": "contentful.svg",
+      "title": "Contentful",
+      "category": "Framework",
+      "color": "#2478CC"
+    },
+    "couchbase": {
+      "file": "couchbase.svg",
+      "title": "Couchbase",
+      "category": "Database",
+      "color": "#EA2328"
+    },
+    "cplusplus": {
+      "file": "cplusplus.svg",
+      "title": "C++",
+      "category": "Runtime",
+      "color": "#00599C"
+    },
+    "dapr": {
+      "file": "dapr.svg",
+      "title": "Dapr",
+      "category": "Platform",
+      "color": "#0D2192"
+    },
+    "dart": {
+      "file": "dart.svg",
+      "title": "Dart",
+      "category": "Runtime",
+      "color": "#0175C2"
     },
     "databricks": {
       "file": "databricks.svg",
@@ -216,6 +396,12 @@
       "title": "Datadog",
       "category": "Observability",
       "color": "#632CA6"
+    },
+    "debian": {
+      "file": "debian.svg",
+      "title": "Debian",
+      "category": "Operating system",
+      "color": "#A81D33"
     },
     "delta": {
       "file": "delta.svg",
@@ -259,11 +445,35 @@
       "category": "Runtime",
       "color": "#512BD4"
     },
+    "dropbox": {
+      "file": "dropbox.svg",
+      "title": "Dropbox",
+      "category": "Service",
+      "color": "#0061FF"
+    },
+    "drupal": {
+      "file": "drupal.svg",
+      "title": "Drupal",
+      "category": "Framework",
+      "color": "#0678BE"
+    },
     "duckdb": {
       "file": "duckdb.svg",
       "title": "DuckDB",
       "category": "Database",
       "color": "#FFF000"
+    },
+    "dynatrace": {
+      "file": "dynatrace.svg",
+      "title": "Dynatrace",
+      "category": "Observability",
+      "color": "#1496FF"
+    },
+    "eclipsemosquitto": {
+      "file": "eclipsemosquitto.svg",
+      "title": "Eclipse Mosquitto",
+      "category": "Messaging",
+      "color": "#3C5280"
     },
     "elastic": {
       "file": "elastic.svg",
@@ -277,11 +487,17 @@
       "category": "Database",
       "color": "#005571"
     },
+    "electron": {
+      "file": "electron.svg",
+      "title": "Electron",
+      "category": "Framework",
+      "color": "#47848F"
+    },
     "elixir": {
       "file": "elixir.svg",
       "title": "Elixir",
       "category": "Runtime",
-      "color": "#4B275F"
+      "color": "#8847B9"
     },
     "envoyproxy": {
       "file": "envoyproxy.svg",
@@ -294,6 +510,18 @@
       "title": "Express",
       "category": "Framework",
       "color": "#0A0A0A"
+    },
+    "f5": {
+      "file": "f5.svg",
+      "title": "F5",
+      "category": "Network",
+      "color": "#E4002B"
+    },
+    "falco": {
+      "file": "falco.svg",
+      "title": "Falco",
+      "category": "Security",
+      "color": "#00AEC7"
     },
     "fastapi": {
       "file": "fastapi.svg",
@@ -313,11 +541,59 @@
       "category": "Company",
       "color": "#4D148C"
     },
+    "figma": {
+      "file": "figma.svg",
+      "title": "Figma",
+      "category": "Service",
+      "color": "#F24E1E"
+    },
+    "firebase": {
+      "file": "firebase.svg",
+      "title": "Firebase",
+      "category": "Database",
+      "color": "#DD2C00"
+    },
     "flask": {
       "file": "flask.svg",
       "title": "Flask",
       "category": "Framework",
       "color": "#3BABC3"
+    },
+    "fluentbit": {
+      "file": "fluentbit.svg",
+      "title": "Fluent Bit",
+      "category": "Observability",
+      "color": "#49BDA5"
+    },
+    "fluentd": {
+      "file": "fluentd.svg",
+      "title": "Fluentd",
+      "category": "Observability",
+      "color": "#0E83C8"
+    },
+    "flutter": {
+      "file": "flutter.svg",
+      "title": "Flutter",
+      "category": "Framework",
+      "color": "#02569B"
+    },
+    "flux": {
+      "file": "flux.svg",
+      "title": "Flux",
+      "category": "Source control",
+      "color": "#5468FF"
+    },
+    "flydotio": {
+      "file": "flydotio.svg",
+      "title": "Fly.io",
+      "category": "Platform",
+      "color": "#24175B"
+    },
+    "fortinet": {
+      "file": "fortinet.svg",
+      "title": "Fortinet",
+      "category": "Security",
+      "color": "#EE3124"
     },
     "git": {
       "file": "git.svg",
@@ -343,6 +619,12 @@
       "category": "Source control",
       "color": "#FC6D26"
     },
+    "gnubash": {
+      "file": "gnubash.svg",
+      "title": "GNU Bash",
+      "category": "Runtime",
+      "color": "#4EAA25"
+    },
     "go": {
       "file": "go.svg",
       "title": "Go",
@@ -361,6 +643,12 @@
       "category": "Platform",
       "color": "#4285F4"
     },
+    "googledrive": {
+      "file": "googledrive.svg",
+      "title": "Google Drive",
+      "category": "Service",
+      "color": "#4285F4"
+    },
     "grafana": {
       "file": "grafana.svg",
       "title": "Grafana",
@@ -373,17 +661,47 @@
       "category": "Protocol",
       "color": "#E10098"
     },
+    "haproxy": {
+      "file": "haproxy.svg",
+      "title": "HAProxy",
+      "category": "Network",
+      "color": "#169BD6"
+    },
+    "harbor": {
+      "file": "harbor.svg",
+      "title": "Harbor",
+      "category": "Source control",
+      "color": "#60B932"
+    },
     "helm": {
       "file": "helm.svg",
       "title": "Helm",
       "category": "Platform",
       "color": "#0F1689"
     },
+    "hetzner": {
+      "file": "hetzner.svg",
+      "title": "Hetzner",
+      "category": "Platform",
+      "color": "#D50C2D"
+    },
+    "huawei": {
+      "file": "huawei.svg",
+      "title": "Huawei",
+      "category": "Platform",
+      "color": "#FF0000"
+    },
     "hubspot": {
       "file": "hubspot.svg",
       "title": "HubSpot",
       "category": "Service",
       "color": "#FF7A59"
+    },
+    "huggingface": {
+      "file": "huggingface.svg",
+      "title": "Hugging Face",
+      "category": "AI",
+      "color": "#FFD21E"
     },
     "influxdb": {
       "file": "influxdb.svg",
@@ -396,6 +714,18 @@
       "title": "Intel",
       "category": "Company",
       "color": "#0071C5"
+    },
+    "intercom": {
+      "file": "intercom.svg",
+      "title": "Intercom",
+      "category": "Service",
+      "color": "#6AFDEF"
+    },
+    "ios": {
+      "file": "ios.svg",
+      "title": "iOS",
+      "category": "Operating system",
+      "color": "#000000"
     },
     "istio": {
       "file": "istio.svg",
@@ -421,17 +751,53 @@
       "category": "Source control",
       "color": "#D24939"
     },
+    "jfrog": {
+      "file": "jfrog.svg",
+      "title": "JFrog",
+      "category": "Source control",
+      "color": "#40BE46"
+    },
     "jira": {
       "file": "jira.svg",
       "title": "Jira",
       "category": "Service",
       "color": "#0052CC"
     },
+    "junipernetworks": {
+      "file": "junipernetworks.svg",
+      "title": "Juniper Networks",
+      "category": "Network",
+      "color": "#84B135"
+    },
+    "jupyter": {
+      "file": "jupyter.svg",
+      "title": "Jupyter",
+      "category": "AI",
+      "color": "#F37626"
+    },
+    "k3s": {
+      "file": "k3s.svg",
+      "title": "K3s",
+      "category": "Platform",
+      "color": "#FFC61C"
+    },
+    "keycloak": {
+      "file": "keycloak.svg",
+      "title": "Keycloak",
+      "category": "Security",
+      "color": "#4D4D4D"
+    },
     "kibana": {
       "file": "kibana.svg",
       "title": "Kibana",
       "category": "Observability",
       "color": "#005571"
+    },
+    "klarna": {
+      "file": "klarna.svg",
+      "title": "Klarna",
+      "category": "Service",
+      "color": "#FFB3C7"
     },
     "kong": {
       "file": "kong.svg",
@@ -451,17 +817,65 @@
       "category": "Platform",
       "color": "#326CE5"
     },
+    "langchain": {
+      "file": "langchain.svg",
+      "title": "LangChain",
+      "category": "AI",
+      "color": "#7FC8FF"
+    },
     "laravel": {
       "file": "laravel.svg",
       "title": "Laravel",
       "category": "Framework",
       "color": "#FF2D20"
     },
+    "letsencrypt": {
+      "file": "letsencrypt.svg",
+      "title": "Let's Encrypt",
+      "category": "Security",
+      "color": "#003A70"
+    },
+    "linkerd": {
+      "file": "linkerd.svg",
+      "title": "Linkerd",
+      "category": "Network",
+      "color": "#2BEDA7"
+    },
+    "linux": {
+      "file": "linux.svg",
+      "title": "Linux",
+      "category": "Operating system",
+      "color": "#FCC624"
+    },
+    "logstash": {
+      "file": "logstash.svg",
+      "title": "Logstash",
+      "category": "Observability",
+      "color": "#005571"
+    },
+    "longhorn": {
+      "file": "longhorn.svg",
+      "title": "Longhorn",
+      "category": "Platform",
+      "color": "#5F224B"
+    },
     "looker": {
       "file": "looker.svg",
       "title": "Looker",
       "category": "Data",
       "color": "#4285F4"
+    },
+    "macos": {
+      "file": "macos.svg",
+      "title": "macOS",
+      "category": "Operating system",
+      "color": "#000000"
+    },
+    "mailchimp": {
+      "file": "mailchimp.svg",
+      "title": "MailChimp",
+      "category": "Service",
+      "color": "#FFE01B"
     },
     "mailgun": {
       "file": "mailgun.svg",
@@ -499,17 +913,53 @@
       "category": "Company",
       "color": "#0467DF"
     },
+    "metabase": {
+      "file": "metabase.svg",
+      "title": "Metabase",
+      "category": "Data",
+      "color": "#509EE3"
+    },
+    "milvus": {
+      "file": "milvus.svg",
+      "title": "Milvus",
+      "category": "AI",
+      "color": "#00A1EA"
+    },
     "minio": {
       "file": "minio.svg",
       "title": "MinIO",
       "category": "Storage",
       "color": "#C72E49"
     },
+    "mistralai": {
+      "file": "mistralai.svg",
+      "title": "Mistral AI",
+      "category": "AI",
+      "color": "#FA520F"
+    },
+    "mixpanel": {
+      "file": "mixpanel.svg",
+      "title": "Mixpanel",
+      "category": "Data",
+      "color": "#7856FF"
+    },
+    "mlflow": {
+      "file": "mlflow.svg",
+      "title": "MLflow",
+      "category": "AI",
+      "color": "#0194E2"
+    },
     "mongodb": {
       "file": "mongodb.svg",
       "title": "MongoDB",
       "category": "Database",
       "color": "#47A248"
+    },
+    "mqtt": {
+      "file": "mqtt.svg",
+      "title": "MQTT",
+      "category": "Messaging",
+      "color": "#660066"
     },
     "mysql": {
       "file": "mysql.svg",
@@ -529,11 +979,23 @@
       "category": "Database",
       "color": "#4581C3"
     },
+    "neon": {
+      "file": "neon.svg",
+      "title": "Neon",
+      "category": "Database",
+      "color": "#34D59A"
+    },
     "nestjs": {
       "file": "nestjs.svg",
       "title": "NestJS",
       "category": "Framework",
       "color": "#E0234E"
+    },
+    "netapp": {
+      "file": "netapp.svg",
+      "title": "NetApp",
+      "category": "Storage",
+      "color": "#0067C5"
     },
     "netflix": {
       "file": "netflix.svg",
@@ -545,7 +1007,7 @@
       "file": "netlify.svg",
       "title": "Netlify",
       "category": "Platform",
-      "color": "#00C7B7"
+      "color": "#000000"
     },
     "newrelic": {
       "file": "newrelic.svg",
@@ -577,6 +1039,30 @@
       "category": "Runtime",
       "color": "#5FA04E"
     },
+    "nodered": {
+      "file": "nodered.svg",
+      "title": "Node-RED",
+      "category": "Workflow",
+      "color": "#8F0000"
+    },
+    "nomad": {
+      "file": "nomad.svg",
+      "title": "Nomad",
+      "category": "Platform",
+      "color": "#00CA8E"
+    },
+    "notion": {
+      "file": "notion.svg",
+      "title": "Notion",
+      "category": "Service",
+      "color": "#000000"
+    },
+    "nutanix": {
+      "file": "nutanix.svg",
+      "title": "Nutanix",
+      "category": "Operating system",
+      "color": "#024DA1"
+    },
     "nuxt": {
       "file": "nuxt.svg",
       "title": "Nuxt",
@@ -595,6 +1081,12 @@
       "category": "Service",
       "color": "#007DC1"
     },
+    "ollama": {
+      "file": "ollama.svg",
+      "title": "Ollama",
+      "category": "AI",
+      "color": "#000000"
+    },
     "openapiinitiative": {
       "file": "openapiinitiative.svg",
       "title": "OpenAPI Initiative",
@@ -607,11 +1099,41 @@
       "category": "Runtime",
       "color": "#000000"
     },
+    "openstack": {
+      "file": "openstack.svg",
+      "title": "OpenStack",
+      "category": "Operating system",
+      "color": "#ED1944"
+    },
     "opentelemetry": {
       "file": "opentelemetry.svg",
       "title": "OpenTelemetry",
       "category": "Observability",
       "color": "#000000"
+    },
+    "opentofu": {
+      "file": "opentofu.svg",
+      "title": "OpenTofu",
+      "category": "Platform",
+      "color": "#FFDA18"
+    },
+    "opsgenie": {
+      "file": "opsgenie.svg",
+      "title": "Opsgenie",
+      "category": "Observability",
+      "color": "#172B4D"
+    },
+    "ovh": {
+      "file": "ovh.svg",
+      "title": "OVH",
+      "category": "Platform",
+      "color": "#123F6D"
+    },
+    "packer": {
+      "file": "packer.svg",
+      "title": "Packer",
+      "category": "Platform",
+      "color": "#02A8EF"
     },
     "pagerduty": {
       "file": "pagerduty.svg",
@@ -619,11 +1141,23 @@
       "category": "Observability",
       "color": "#06AC38"
     },
+    "paloaltonetworks": {
+      "file": "paloaltonetworks.svg",
+      "title": "Palo Alto Networks",
+      "category": "Security",
+      "color": "#F04E23"
+    },
     "paypal": {
       "file": "paypal.svg",
       "title": "PayPal",
       "category": "Company",
       "color": "#002991"
+    },
+    "pfsense": {
+      "file": "pfsense.svg",
+      "title": "pfSense",
+      "category": "Network",
+      "color": "#212121"
     },
     "php": {
       "file": "php.svg",
@@ -643,11 +1177,41 @@
       "category": "Platform",
       "color": "#892CA0"
     },
+    "portainer": {
+      "file": "portainer.svg",
+      "title": "Portainer",
+      "category": "Platform",
+      "color": "#13BEF9"
+    },
     "postgresql": {
       "file": "postgresql.svg",
       "title": "PostgreSQL",
       "category": "Database",
       "color": "#4169E1"
+    },
+    "posthog": {
+      "file": "posthog.svg",
+      "title": "PostHog",
+      "category": "Data",
+      "color": "#000000"
+    },
+    "postman": {
+      "file": "postman.svg",
+      "title": "Postman",
+      "category": "Protocol",
+      "color": "#FF6C37"
+    },
+    "prefect": {
+      "file": "prefect.svg",
+      "title": "Prefect",
+      "category": "Data",
+      "color": "#070E10"
+    },
+    "presto": {
+      "file": "presto.svg",
+      "title": "Presto",
+      "category": "Data",
+      "color": "#5890FF"
     },
     "prisma": {
       "file": "prisma.svg",
@@ -661,11 +1225,41 @@
       "category": "Observability",
       "color": "#E6522C"
     },
+    "proxmox": {
+      "file": "proxmox.svg",
+      "title": "Proxmox",
+      "category": "Operating system",
+      "color": "#E57000"
+    },
+    "pulumi": {
+      "file": "pulumi.svg",
+      "title": "Pulumi",
+      "category": "Platform",
+      "color": "#8A3391"
+    },
+    "puppet": {
+      "file": "puppet.svg",
+      "title": "Puppet",
+      "category": "Platform",
+      "color": "#FFAE1A"
+    },
     "python": {
       "file": "python.svg",
       "title": "Python",
       "category": "Runtime",
       "color": "#3776AB"
+    },
+    "pytorch": {
+      "file": "pytorch.svg",
+      "title": "PyTorch",
+      "category": "AI",
+      "color": "#EE4C2C"
+    },
+    "qdrant": {
+      "file": "qdrant.svg",
+      "title": "Qdrant",
+      "category": "AI",
+      "color": "#DC244C"
     },
     "rabbitmq": {
       "file": "rabbitmq.svg",
@@ -679,11 +1273,35 @@
       "category": "Platform",
       "color": "#0B0D0E"
     },
+    "rancher": {
+      "file": "rancher.svg",
+      "title": "Rancher",
+      "category": "Platform",
+      "color": "#0075A8"
+    },
+    "raspberrypi": {
+      "file": "raspberrypi.svg",
+      "title": "Raspberry Pi",
+      "category": "Device",
+      "color": "#A22846"
+    },
+    "ray": {
+      "file": "ray.svg",
+      "title": "Ray",
+      "category": "AI",
+      "color": "#028CF0"
+    },
     "react": {
       "file": "react.svg",
       "title": "React",
       "category": "Framework",
       "color": "#61DAFB"
+    },
+    "redhat": {
+      "file": "redhat.svg",
+      "title": "Red Hat",
+      "category": "Operating system",
+      "color": "#EE0000"
     },
     "redhatopenshift": {
       "file": "redhatopenshift.svg",
@@ -696,6 +1314,12 @@
       "title": "Redis",
       "category": "Database",
       "color": "#FF4438"
+    },
+    "remix": {
+      "file": "remix.svg",
+      "title": "Remix",
+      "category": "Framework",
+      "color": "#000000"
     },
     "render": {
       "file": "render.svg",
@@ -727,11 +1351,35 @@
       "category": "Runtime",
       "color": "#000000"
     },
+    "sanity": {
+      "file": "sanity.svg",
+      "title": "Sanity",
+      "category": "Framework",
+      "color": "#0D0E12"
+    },
+    "sap": {
+      "file": "sap.svg",
+      "title": "SAP",
+      "category": "Service",
+      "color": "#0FAAFF"
+    },
     "scala": {
       "file": "scala.svg",
       "title": "Scala",
       "category": "Runtime",
       "color": "#DC322F"
+    },
+    "scaleway": {
+      "file": "scaleway.svg",
+      "title": "Scaleway",
+      "category": "Platform",
+      "color": "#4F0599"
+    },
+    "scylladb": {
+      "file": "scylladb.svg",
+      "title": "ScyllaDB",
+      "category": "Database",
+      "color": "#6CD5E7"
     },
     "sentry": {
       "file": "sentry.svg",
@@ -745,11 +1393,23 @@
       "category": "Service",
       "color": "#7AB55C"
     },
+    "singlestore": {
+      "file": "singlestore.svg",
+      "title": "SingleStore",
+      "category": "Database",
+      "color": "#AA00FF"
+    },
     "snowflake": {
       "file": "snowflake.svg",
       "title": "Snowflake",
       "category": "Data",
       "color": "#29B5E8"
+    },
+    "snyk": {
+      "file": "snyk.svg",
+      "title": "Snyk",
+      "category": "Source control",
+      "color": "#4C4A73"
     },
     "socketdotio": {
       "file": "socketdotio.svg",
@@ -762,6 +1422,12 @@
       "title": "SonarQube Server",
       "category": "Source control",
       "color": "#126ED3"
+    },
+    "spinnaker": {
+      "file": "spinnaker.svg",
+      "title": "Spinnaker",
+      "category": "Source control",
+      "color": "#139BB4"
     },
     "splunk": {
       "file": "splunk.svg",
@@ -781,11 +1447,23 @@
       "category": "Database",
       "color": "#003B57"
     },
+    "square": {
+      "file": "square.svg",
+      "title": "Square",
+      "category": "Service",
+      "color": "#3E4348"
+    },
     "starbucks": {
       "file": "starbucks.svg",
       "title": "Starbucks",
       "category": "Company",
       "color": "#006241"
+    },
+    "strapi": {
+      "file": "strapi.svg",
+      "title": "Strapi",
+      "category": "Framework",
+      "color": "#4945FF"
     },
     "stripe": {
       "file": "stripe.svg",
@@ -817,11 +1495,41 @@
       "category": "Runtime",
       "color": "#F05138"
     },
+    "tailscale": {
+      "file": "tailscale.svg",
+      "title": "Tailscale",
+      "category": "Security",
+      "color": "#242424"
+    },
     "target": {
       "file": "target.svg",
       "title": "Target",
       "category": "Company",
       "color": "#CC0000"
+    },
+    "teamcity": {
+      "file": "teamcity.svg",
+      "title": "TeamCity",
+      "category": "Source control",
+      "color": "#000000"
+    },
+    "tekton": {
+      "file": "tekton.svg",
+      "title": "Tekton",
+      "category": "Source control",
+      "color": "#FD495C"
+    },
+    "temporal": {
+      "file": "temporal.svg",
+      "title": "Temporal",
+      "category": "Workflow",
+      "color": "#000000"
+    },
+    "tensorflow": {
+      "file": "tensorflow.svg",
+      "title": "TensorFlow",
+      "category": "AI",
+      "color": "#FF6F00"
     },
     "terraform": {
       "file": "terraform.svg",
@@ -835,11 +1543,41 @@
       "category": "Company",
       "color": "#CC0000"
     },
+    "thanos": {
+      "file": "thanos.svg",
+      "title": "Thanos",
+      "category": "Observability",
+      "color": "#6D41FF"
+    },
+    "tidb": {
+      "file": "tidb.svg",
+      "title": "TiDB",
+      "category": "Database",
+      "color": "#DC150B"
+    },
+    "timescale": {
+      "file": "timescale.svg",
+      "title": "Timescale",
+      "category": "Database",
+      "color": "#FDB515"
+    },
     "traefikproxy": {
       "file": "traefikproxy.svg",
       "title": "Traefik Proxy",
       "category": "Gateway",
       "color": "#24A1C1"
+    },
+    "trino": {
+      "file": "trino.svg",
+      "title": "Trino",
+      "category": "Data",
+      "color": "#DD00A1"
+    },
+    "trivy": {
+      "file": "trivy.svg",
+      "title": "Trivy",
+      "category": "Security",
+      "color": "#1904DA"
     },
     "typescript": {
       "file": "typescript.svg",
@@ -853,11 +1591,29 @@
       "category": "Company",
       "color": "#000000"
     },
+    "ubiquiti": {
+      "file": "ubiquiti.svg",
+      "title": "Ubiquiti",
+      "category": "Network",
+      "color": "#0559C9"
+    },
+    "ubuntu": {
+      "file": "ubuntu.svg",
+      "title": "Ubuntu",
+      "category": "Operating system",
+      "color": "#E95420"
+    },
     "ups": {
       "file": "ups.svg",
       "title": "UPS",
       "category": "Company",
       "color": "#150400"
+    },
+    "upstash": {
+      "file": "upstash.svg",
+      "title": "Upstash",
+      "category": "Platform",
+      "color": "#00E9A3"
     },
     "vault": {
       "file": "vault.svg",
@@ -865,11 +1621,23 @@
       "category": "Platform",
       "color": "#FFEC6E"
     },
+    "veeam": {
+      "file": "veeam.svg",
+      "title": "Veeam",
+      "category": "Storage",
+      "color": "#00B336"
+    },
     "vercel": {
       "file": "vercel.svg",
       "title": "Vercel",
       "category": "Platform",
       "color": "#000000"
+    },
+    "victoriametrics": {
+      "file": "victoriametrics.svg",
+      "title": "VictoriaMetrics",
+      "category": "Observability",
+      "color": "#621773"
     },
     "visa": {
       "file": "visa.svg",
@@ -877,11 +1645,59 @@
       "category": "Company",
       "color": "#1A1F71"
     },
+    "vitess": {
+      "file": "vitess.svg",
+      "title": "Vitess",
+      "category": "Database",
+      "color": "#F16728"
+    },
+    "vmware": {
+      "file": "vmware.svg",
+      "title": "VMware",
+      "category": "Operating system",
+      "color": "#607078"
+    },
     "vuedotjs": {
       "file": "vuedotjs.svg",
       "title": "Vue.js",
       "category": "Framework",
       "color": "#4FC08D"
+    },
+    "webassembly": {
+      "file": "webassembly.svg",
+      "title": "WebAssembly",
+      "category": "Runtime",
+      "color": "#654FF0"
+    },
+    "webrtc": {
+      "file": "webrtc.svg",
+      "title": "WebRTC",
+      "category": "Protocol",
+      "color": "#333333"
+    },
+    "wireguard": {
+      "file": "wireguard.svg",
+      "title": "WireGuard",
+      "category": "Security",
+      "color": "#88171A"
+    },
+    "wordpress": {
+      "file": "wordpress.svg",
+      "title": "WordPress",
+      "category": "Framework",
+      "color": "#21759B"
+    },
+    "zapier": {
+      "file": "zapier.svg",
+      "title": "Zapier",
+      "category": "Service",
+      "color": "#FF4F00"
+    },
+    "zendesk": {
+      "file": "zendesk.svg",
+      "title": "Zendesk",
+      "category": "Service",
+      "color": "#03363D"
     },
     "zoom": {
       "file": "zoom.svg",
@@ -893,31 +1709,56 @@
   "aliases": {
     "actions": "githubactions",
     "airflow": "apacheairflow",
+    "alibaba": "alibabacloud",
+    "alpine": "alpinelinux",
+    "artifactory": "jfrog",
+    "bash": "gnubash",
     "cassandra": "apachecassandra",
+    "couchdb": "apachecouchdb",
+    "cpp": "cplusplus",
+    "druid": "apachedruid",
     "envoy": "envoyproxy",
     "es": "elasticsearch",
     "flink": "apacheflink",
+    "fluxcd": "flux",
+    "fly": "flydotio",
+    "flyio": "flydotio",
     "gcp": "googlecloud",
     "hadoop": "apachehadoop",
+    "hf": "huggingface",
+    "hive": "apachehive",
+    "huaweicloud": "huawei",
     "java": "openjdk",
     "js": "javascript",
+    "juniper": "junipernetworks",
     "k8s": "kubernetes",
     "kafka": "apachekafka",
+    "mistral": "mistralai",
+    "mosquitto": "eclipsemosquitto",
     "nats": "natsdotio",
     "next": "nextdotjs",
     "nextjs": "nextdotjs",
+    "nifi": "apachenifi",
     "node": "nodedotjs",
     "nodejs": "nodedotjs",
     "openapi": "openapiinitiative",
     "openshift": "redhatopenshift",
+    "paloalto": "paloaltonetworks",
+    "parquet": "apacheparquet",
     "postgres": "postgresql",
     "pulsar": "apachepulsar",
     "rails": "rubyonrails",
+    "rhel": "redhat",
     "socketio": "socketdotio",
+    "solr": "apachesolr",
     "sonarqube": "sonarqubeserver",
     "spark": "apachespark",
+    "superset": "apachesuperset",
+    "tofu": "opentofu",
     "traefik": "traefikproxy",
     "ts": "typescript",
-    "vue": "vuedotjs"
+    "vue": "vuedotjs",
+    "wasm": "webassembly",
+    "workers": "cloudflareworkers"
   }
 }
