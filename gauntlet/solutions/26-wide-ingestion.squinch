@@ -1,21 +1,23 @@
-c1 = sys/radio-tower "Collector 1"
-c2 = sys/radio-tower "Collector 2"
-c3 = sys/radio-tower "Collector 3"
-c4 = sys/radio-tower "Collector 4"
-c5 = sys/radio-tower "Collector 5"
-c6 = sys/radio-tower "Collector 6"
+c1 = sys/download "Collector 1"
+c2 = sys/download "Collector 2"
+c3 = sys/download "Collector 3"
+c4 = sys/download "Collector 4"
+c5 = sys/download "Collector 5"
+c6 = sys/download "Collector 6"
 norm = sys/workflow "Normaliser"
 wh = sys/database "Warehouse" datastore
 idx = sys/search "Search Index" datastore
 alert = sys/siren "Alerting Service"
 
-c1 -> norm
-c2 -> norm
-c3 -> norm
-c4 -> norm
-c5 -> norm
-c6 -> norm
-norm -> wh, idx, alert
+c1 ~> norm
+c2 ~> norm
+c3 ~> norm
+c4 ~> norm
+c5 ~> norm
+c6 ~> norm
+norm -> wh
+norm -> idx
+norm -> alert
 
 view landscape {
   title "Ingestion Estate"
@@ -24,6 +26,5 @@ view landscape {
     density compact
     rows [c1 c2 c3 c4 c5 c6] [norm] [wh alert] [idx]
     cols [wh idx]
-    channel c1, c2, c3, c4, c5, c6 -> norm
   }
 }

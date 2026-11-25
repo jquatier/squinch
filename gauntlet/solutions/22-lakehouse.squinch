@@ -1,63 +1,40 @@
 pack logos
 
 person analyst "Analyst"
+kafka = logos/apachekafka "Kafka" { subtitle: "Order events" }
 
-kafka  = logos/apachekafka "Order Events" external {
-  subtitle: "Kafka topic"
-}
-
-loader = sys/stream "Auto Loader" {
-  badge: logos/databricks
-  subtitle: "Databricks"
-}
-bronze = sys/table "Bronze Orders" datastore {
-  badge: logos/databricks
-  subtitle: "Delta table"
-}
-job = sys/workflow "Nightly Merge" {
-  badge: logos/databricks
-  subtitle: "Databricks job"
-}
-silver = sys/table "Silver Customers" datastore {
-  badge: logos/databricks
-  subtitle: "Delta table"
-}
-uc = sys/catalog "Unity Catalog" {
-  badge: logos/databricks
-  subtitle: "Governance"
-}
-wh = sys/database "SQL Warehouse" {
-  badge: logos/databricks
-  subtitle: "Databricks SQL"
-}
-vs = sys/waypoints "Vector Search Index" {
-  badge: logos/databricks
-}
-serving = sys/model "Model Serving Endpoint" {
-  badge: logos/databricks
-}
-
-kafka ~> loader "order events"
-loader ~> bronze
-bronze -> job
-job -> silver "merge"
-uc -> silver "governs"
-analyst -> wh "queries"
-wh -> silver
-vs ~> serving
-
-zone dbx "Databricks" custom {
-  contains loader, bronze, job, silver, uc, wh, vs, serving
+system dbx "Databricks Lakehouse" {
+  description: "Everything inside this frame is Databricks"
   icon: logos/databricks
-  color: amber
+  color: accent
+
+  loader  = sys/stream    "Auto Loader"    { badge: logos/databricks  subtitle: "Streaming ingest" }
+  bronze  = sys/table     "Bronze Orders"  datastore { badge: logos/databricks  subtitle: "Delta table" }
+  nightly = sys/workflow  "Nightly Merge"  { badge: logos/databricks  subtitle: "Workflows job" }
+  silver  = sys/table     "Silver Customers" datastore { badge: logos/databricks  subtitle: "Delta table" }
+  uc      = sys/catalog   "Unity Catalog"  { badge: logos/databricks  subtitle: "Governance" }
+  wh      = sys/database  "SQL Warehouse"  { badge: logos/databricks  subtitle: "Databricks SQL" }
+  vs      = sys/vector-search "Vector Search Index" { badge: logos/databricks }
+  serving = sys/model     "Model Serving Endpoint" { badge: logos/databricks }
+
+  loader -> bronze "lands"
+  bronze -> nightly "reads"
+  nightly -> silver "merges"
+  uc -> silver "governs"
+  wh -> silver "queries"
+  vs ~> serving "feeds"
 }
+
+kafka ~> dbx.loader "order events"
+analyst -> dbx.wh "queries"
 
 view landscape {
-  title "Databricks Lakehouse"
+  title "Lakehouse"
   include *
+  expand dbx
   legend {
-    external "Not Databricks"
-    ->  "Request"
-    ~>  "Event flow"
+    ~> "Event flow"
+    -> "Request / read"
   }
+  note right-of kafka "Outside Databricks: Kafka and the analyst"
 }

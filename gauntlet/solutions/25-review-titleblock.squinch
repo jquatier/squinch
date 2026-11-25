@@ -1,16 +1,16 @@
-gw     = sys/router    "API Gateway"
-auth   = sys/key-round "Auth Service"
+gw     = sys/api "API Gateway"
+auth   = sys/lock "Auth Service"
 ledger = logos/postgres "Ledger" datastore {
   subtitle: "Postgres"
 }
-worker = sys/cog       "Settlement Worker" {
-  subtitle: "Overnight batch"
+worker = sys/worker "Settlement Worker" {
+  subtitle: "Overnight batches"
 }
-bank   = box           "Bank" external
+bank   = box "Bank" external
 
 gw -> auth
 gw -> ledger
-worker -> ledger "reads settled entries"
+worker -> ledger "reads"
 worker ~> bank "overnight batch"
 
 view landscape {
@@ -18,7 +18,7 @@ view landscape {
   include *
   titleblock {
     version: "2.1"
-    date: "2026 Q4"
     owner: "Payments team"
+    date: "2026 Q4"
   }
 }

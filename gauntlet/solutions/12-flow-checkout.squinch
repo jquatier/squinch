@@ -1,32 +1,32 @@
 pack aws
 
 gw     = aws/api-gateway "API Gateway"
-cart   = aws/lambda "Cart" 
-pay    = aws/lambda "Payment"
-db     = aws/dynamodb "DynamoDB" datastore
-queue  = aws/sqs "Fulfilment Queue"
-worker = sys/cog "Fulfilment Worker"
+cart   = aws/lambda "Cart" { subtitle: "Lambda" }
+pay    = aws/lambda "Payment" { subtitle: "Lambda" }
+orders = aws/dynamodb "DynamoDB" datastore
+queue  = aws/sqs "SQS Queue"
+worker = box "Fulfilment Worker"
 
 gw -> cart
 cart -> pay
-pay -> db "writes"
+pay -> orders "writes"
 pay ~> queue "publishes"
 queue ~> worker "drains"
 
 flow checkout "Checkout" {
   gw -> cart
   cart -> pay
-  pay -> db
+  pay -> orders
   pay ~> queue
   queue ~> worker
 }
 
 view checkout {
-  title "Checkout Path"
+  title "Checkout Flow"
   include *
   show flow checkout
   legend {
-    ->  "Request / response"
-    ~>  "Asynchronous"
+    -> "Synchronous call"
+    ~> "Asynchronous message"
   }
 }

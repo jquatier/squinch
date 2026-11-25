@@ -6,11 +6,16 @@ acr = azure/acr "Container Registry"
 sql = azure/sql "Azure SQL" datastore
 
 gw -> aks
+aks -> sql
 aks -> acr "pulls images"
 
-zone sub "Azure Subscription" account { contains gw, aks, acr, sql }
-zone vnet "Virtual Network" network { contains aks, acr, sql }
-zone subnet "Private Subnet" subnet {
+zone sub "Azure Subscription" account {
+  contains gw, aks, acr, sql
+}
+zone vnet "Virtual Network" network {
+  contains aks, acr, sql
+}
+zone snet "Private Subnet" subnet {
   contains aks, acr
   color: teal
 }

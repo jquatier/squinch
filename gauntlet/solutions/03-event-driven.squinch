@@ -1,23 +1,19 @@
 pack aws
 
-bus      = aws/eventbridge "Order Events"
-notifier = aws/lambda "Email Notifier"
-topic    = aws/sns "Email Topic"
-writer   = aws/lambda "Analytics Writer"
-lake     = aws/s3 "Data Lake" datastore
-dlq      = aws/sqs "Dead-Letter Queue"
+view landscape {
+  title "Order Events"
+}
+
+bus = aws/eventbridge "Order Events Bus"
+
+notifier  = aws/lambda "Email Notifier"
+topic     = aws/sns "Email Topic"
+writer    = aws/lambda "Analytics Writer"
+lake      = aws/s3 "Data Lake" datastore
+dlq       = aws/sqs "Dead-Letter Queue"
 
 bus ~> notifier "order events"
-notifier ~> topic "publishes"
 bus ~> writer "order events"
-writer -> lake "writes"
+notifier ~> topic "email"
+writer ~> lake "events"
 bus ~> dlq "failed events"
-
-view landscape {
-  title "Order Event Flow"
-  include *
-  legend {
-    ~> "Async event"
-    -> "Direct call"
-  }
-}

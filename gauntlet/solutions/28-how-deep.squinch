@@ -1,35 +1,32 @@
-person customer "Customer"
-
 system orders "Orders" {
   description: "Takes and tracks customer orders"
   preview: [api workflow store]
-  api      = sys/webhook "Orders API" { subtitle: "Entry point" }
-  workflow = sys/workflow "Order Workflow" { subtitle: "Validation and status" }
-  store    = sys/database "Order Store" datastore
-  events   = sys/radio-tower "Order Events" { subtitle: "Publishes changes" }
+  api      = sys/api "Orders API" { subtitle: "Entry point" }
+  workflow = sys/workflow "Order Workflow" { subtitle: "Order lifecycle" }
+  store    = sys/database "Orders Store" datastore
+  events   = sys/radio-tower "Order Events"
   api -> workflow
   workflow -> store
   workflow ~> events
 }
 
 system inventory "Inventory" {
-  description: "Stock levels and reservations"
+  description: "Tracks stock levels"
   preview: [api stock]
-  api   = sys/webhook "Inventory API"
+  api   = sys/api "Inventory API"
   stock = sys/database "Stock Store" datastore
   api -> stock
 }
 
 system notifications "Notifications" {
-  description: "Customer messages about orders"
+  description: "Tells customers about their orders"
   preview: [consumer sender]
-  consumer = sys/workflow "Event Consumer"
-  sender   = sys/send "Message Sender"
+  consumer = sys/worker "Event Consumer"
+  sender   = sys/notification "Sender"
   consumer -> sender
 }
 
-customer -> orders.api "places order"
-orders.workflow -> inventory.api "reserves stock"
+orders.workflow -> inventory.api "reserve stock"
 orders.events ~> notifications.consumer "order events"
 
 view landscape {
@@ -39,5 +36,5 @@ view landscape {
 }
 
 view orders {
-  title "Orders"
+  title "How Orders Is Put Together"
 }

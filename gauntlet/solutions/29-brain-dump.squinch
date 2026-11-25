@@ -1,34 +1,29 @@
-pack aws
-pack logos
-
 person customer "Customer"
 person data_team "Data Team"
 
-mobile = sys/smartphone "Mobile App"
-web    = sys/globe "Website"
-gw     = sys/webhook "Gateway"
-
-account = sys/cog "Account Service"
-billing = sys/credit-card "Billing Service"
-
-main_db    = logos/postgres "Main Postgres" datastore
-billing_db = logos/postgres "Billing Database" datastore
-stripe     = logos/stripe "Stripe" external
-export     = aws/s3 "Nightly Export" datastore
+mobile  = sys/smartphone "Mobile App"
+web     = sys/globe "Website"
+gateway = sys/api "Gateway"
+account = sys/server "Account Service"
+billing = sys/server "Billing Service"
+pg      = logos/postgres "Main Postgres" datastore
+billdb  = sys/database "Billing Database" datastore
+stripe  = logos/stripe "Stripe" external
+export  = aws/s3 "Nightly Export" datastore
 
 customer -> mobile
 customer -> web
-mobile -> gw
-web -> gw
-gw -> account
-gw -> billing
-account -> main_db "writes"
-billing -> billing_db
+mobile -> gateway
+web -> gateway
+gateway -> account
+gateway -> billing
+account -> pg "writes"
+billing -> billdb
 billing -> stripe
-main_db ~> export "nightly export"
+pg ~> export "nightly export"
 export -> data_team
 
 view landscape {
-  title "Platform Landscape"
+  title "Platform Overview"
   include *
 }

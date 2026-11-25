@@ -2,10 +2,10 @@ pack aws
 
 person customer "Customer"
 
-cdn = aws/cloudfront "CloudFront"
-storefront = sys/app-window "Storefront"
-gw = aws/api-gateway "API Gateway"
-bus = aws/eventbridge "EventBridge"
+cdn   = aws/cloudfront "CloudFront" 
+store = sys/app-window "Storefront"
+gw    = aws/api-gateway "API Gateway"
+bus   = aws/eventbridge "Order Events"
 worker = aws/lambda "Fulfilment Worker"
 
 system catalog "Catalog Service" {
@@ -16,7 +16,7 @@ system catalog "Catalog Service" {
 }
 
 system orders "Orders Service" {
-  description: "Order intake and events"
+  description: "Order handling"
   fn = aws/lambda "Orders Lambda"
   db = sys/database "Orders DB" datastore
   fn -> db
@@ -31,15 +31,15 @@ system payments "Payments Service" {
 }
 
 customer -> cdn "browses"
-cdn -> storefront
-storefront -> gw "calls"
+cdn -> store
+store -> gw "calls"
 gw -> catalog.fn
 gw -> orders.fn
 gw -> payments.fn { tags: #sensitive }
 orders.fn ~> bus "publishes order events"
 bus ~> worker "consumes"
 
-zone prod_vpc "Production VPC" vpc {
+zone prod "Production VPC" vpc {
   contains gw, catalog, orders, payments, bus, worker
 }
 
@@ -57,8 +57,4 @@ view landscape {
 view orders {
   title "Orders Service"
   scope orders
-  legend {
-    -> "Request"
-    ~> "Event"
-  }
 }

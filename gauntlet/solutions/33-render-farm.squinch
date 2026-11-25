@@ -1,31 +1,26 @@
 pack aws
 
-disp = sys/workflow "Dispatcher" {
-  description: "Hands frames out to the workers"
+dispatcher = sys/workflow "Dispatcher" {
+  subtitle: "Hands out frames"
 }
 
-system farm "Render Workers" {
-  description: "Twelve identical EC2 machines"
-  w1 = aws/ec2 "Render Worker 1"
-  w2 = aws/ec2 "Render Worker 2"
-  w3 = aws/ec2 "Render Worker 3"
-  w4 = aws/ec2 "Render Worker 4"
-  w5 = aws/ec2 "Render Worker 5"
-  w6 = aws/ec2 "Render Worker 6"
-  w7 = aws/ec2 "Render Worker 7"
-  w8 = aws/ec2 "Render Worker 8"
-  w9 = aws/ec2 "Render Worker 9"
-  w10 = aws/ec2 "Render Worker 10"
-  w11 = aws/ec2 "Render Worker 11"
-  w12 = aws/ec2 "Render Worker 12"
-  layout { wrap 4 }
-}
+w1  = aws/ec2 "Render Worker 1"
+w2  = aws/ec2 "Render Worker 2"
+w3  = aws/ec2 "Render Worker 3"
+w4  = aws/ec2 "Render Worker 4"
+w5  = aws/ec2 "Render Worker 5"
+w6  = aws/ec2 "Render Worker 6"
+w7  = aws/ec2 "Render Worker 7"
+w8  = aws/ec2 "Render Worker 8"
+w9  = aws/ec2 "Render Worker 9"
+w10 = aws/ec2 "Render Worker 10"
+w11 = aws/ec2 "Render Worker 11"
+w12 = aws/ec2 "Render Worker 12"
 
-disp -> farm.w1, farm.w2, farm.w3, farm.w4, farm.w5, farm.w6, farm.w7, farm.w8, farm.w9, farm.w10, farm.w11, farm.w12
+dispatcher -> w1, w2, w3, w4, w5, w6, w7, w8, w9, w10, w11, w12
 
 view landscape {
   title "Render Farm"
   include *
-  expand farm
   layout { wrap 4 }
 }

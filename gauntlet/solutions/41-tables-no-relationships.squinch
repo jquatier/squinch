@@ -1,25 +1,31 @@
 pack aws
 pack logos
 
-rollup = aws/lambda "Rollup Job" { subtitle: "Lambda · nightly" }
-export = aws/lambda "Export Job" { subtitle: "Lambda" }
-files  = aws/s3 "CSV Files" datastore
+system reporting "Reporting Service" {
+  description: "Nightly rollups and CSV exports"
 
-container db "Reporting Database" {
-  icon: logos/postgresql
-  description: "Postgres · 4 tables"
-  events       = sys/table "events" datastore
-  sessions     = sys/table "sessions" datastore
-  daily_totals = sys/table "daily_totals" datastore
-  exports      = sys/table "exports" datastore
+  rollup = aws/lambda "Rollup Job" {
+    subtitle: "runs nightly"
+  }
+  export = aws/lambda "Export Job"
+  files  = aws/s3 "Export Files" datastore
+
+  container db "Reporting DB" {
+    icon: logos/postgres
+    description: "Postgres · 4 tables"
+    events       = sys/table "events" datastore
+    sessions     = sys/table "sessions" datastore
+    daily_totals = sys/table "daily_totals" datastore
+    exports      = sys/table "exports" datastore
+  }
+
+  rollup -> db.events "reads"
+  rollup -> db.sessions "reads"
+  rollup -> db.daily_totals "writes"
+  export -> db.daily_totals "reads"
+  export -> files "writes CSV"
+  export -> db.exports "records files"
 }
-
-rollup -> db.events "reads"
-rollup -> db.sessions "reads"
-rollup -> db.daily_totals "writes"
-export -> db.daily_totals "reads"
-export -> files "writes CSV"
-export -> db.exports "records each file"
 
 view landscape {
   title "Reporting Service"
@@ -27,6 +33,7 @@ view landscape {
 }
 
 view db {
-  title "Reporting Database"
-  scope db
+  title "Reporting DB: tables and jobs"
+  scope reporting
+  expand db
 }

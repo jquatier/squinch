@@ -1,28 +1,26 @@
 pack aws
 pack logos
 
-svc = aws/lambda "Order Service" {
-  subtitle: "Lambda"
-}
+svc = aws/lambda "Order Service" { subtitle: "Lambda" }
 
-container pg "Postgres" {
+container pg "Orders DB" {
   icon: logos/postgres
-  description: "Orders database · 2 tables"
+  description: "Postgres · 2 tables"
   orders = sys/table "orders" datastore {
     fields {
-      id           uuid         pk
-      customer_id  uuid
-      status       enum(pending, paid, shipped)
-      total_cents  bigint
-      created_at   timestamptz
+      id          uuid                     pk
+      customer_id uuid
+      status      enum(pending, paid, shipped)
+      total_cents bigint
+      created_at  timestamptz
     }
   }
   order_items = sys/table "order_items" datastore {
     fields {
-      order_id    uuid           pk fk ref orders
-      sku         text           pk
-      quantity    int
-      unit_price  numeric(10,2)
+      order_id   uuid          pk fk ref orders
+      sku        text          pk
+      quantity   int
+      unit_price numeric(10,2)
     }
   }
   order_items -> orders "order_id"
@@ -32,7 +30,7 @@ carts = aws/dynamodb "Carts" datastore {
   subtitle: "single-table design"
   fields {
     pk         string  hash "CART#<cartId>"
-    sk         string  pk "ITEM#<sku>"
+    sk         string  range "ITEM#<sku>"
     gsi1pk     string  index gsi1 "CUSTOMER#<customerId>"
     qty        number
     expires_at number  ttl
@@ -42,24 +40,25 @@ carts = aws/dynamodb "Carts" datastore {
 events = logos/kafka "order-events" {
   subtitle: "Kafka topic"
   fields {
-    order_id       string       pk "message key"
-    type           enum(OrderPlaced, OrderPaid)
-    payload.total_cents  long
-    payload.items        array "line items"
+    key     string "order_id"
+    type    enum(OrderPlaced, OrderPaid)
+    payload.total_cents long
+    payload.items       array "line items"
   }
 }
 
-analytics = aws/glue "Analytics Job"
+etl = aws/glue "Analytics Job"
 
 svc -> pg.orders "writes orders"
 svc -> pg.order_items "writes items"
-svc -> carts "keeps carts"
-svc ~> events "publishes every order"
-events ~> analytics "consumes"
+svc -> carts "reads/writes carts"
+svc ~> events "publishes orders"
+events ~> etl "consumes"
 
 view landscape {
-  title "Checkout stores"
+  title "Checkout"
   include *
   preview carts, events
 }
-view pg { scope pg }
+view pg { title "Orders DB schema"
+  scope pg }

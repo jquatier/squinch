@@ -1,16 +1,17 @@
 exchange = box "Exchange" external
-feed     = sys/server "Feed Handler" { subtitle: "ingests and normalises" }
-pricing  = sys/cpu "Pricing Engine"
-ui       = sys/app-window "Trading UI"
-risk     = sys/shield "Risk Service"
-batch    = sys/clock "Overnight Batch" { subtitle: "fills reconciliation" }
 clearing = box "Clearing House" external
+
+feed    = sys/radio-tower "Feed Handler" { subtitle: "ingest · normalise" }
+pricing = sys/gauge "Pricing Engine"
+ui      = sys/monitor "Trading UI"
+risk    = sys/shield-check "Risk Service"
+recon   = sys/clock "Fills Reconciliation" { subtitle: "overnight batch" }
 
 exchange ~> feed "price stream" { tags: #continuous }
 feed ~> pricing "ticks" { tags: #continuous }
-pricing ~> ui "subscription" { tags: #continuous }
-batch -> clearing "nightly reconcile" { tags: #nightly; style: dotted }
-risk -> pricing "health poll, every few s" { tags: #poll; animate: pulse }
+pricing ~> ui "tick subscription" { tags: #continuous }
+recon -> clearing "reconcile day's fills" { tags: #nightly, style: dotted }
+risk -> pricing "health poll, every few secs" { tags: #poll, animate: pulse }
 
 view landscape {
   title "Market Data Path"
@@ -20,8 +21,10 @@ view landscape {
   color #poll violet
   legend {
     #continuous "Continuous stream"
-    #nightly "Nightly batch job"
+    #nightly "Nightly batch"
     #poll "Periodic poll"
   }
-  layout { rows [exchange batch] [feed clearing] [pricing] [ui risk] }
+  layout {
+    rows [exchange recon] [feed clearing] [pricing] [ui risk]
+  }
 }

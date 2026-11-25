@@ -239,10 +239,13 @@ extension + language server, six icon packs, and the light/dark pair. The accept
 bar — an agent producing clean diagrams from prose using only the skill + CLI —
 is certified at **42/42
 by independent cold agents** on the committed corpus; the latest full round scored
-41/42 with **30/42 answered in one `check` call** (round 39, the third on the
-legend overhaul: no legend diagnostic fired, and the two its predecessors
-surfaced — a key on a highlighted tag, a cadence the scorer could not see —
-are fixed; the miss is 20 again, `gauntlet/README.md`); round 36 before it,
+41/42 with **32/42 answered in one `check` call** (round 40, after the icon
+packs grew: no agent hit an unknown icon, where `sys/api` alone had missed 15
+times; its one engine finding, an 8px jog where a wire enters a frame, is held
+out of the corpus as a follow-up, `gauntlet/README.md`); round 39 before it,
+41/42 and 30/42, the third on the legend overhaul (no legend diagnostic fired,
+and the two its predecessors surfaced — a key on a highlighted tag, a cadence
+the scorer could not see — are fixed; the miss is 20 again); round 36 before it,
 41/42 and 31/42, the first with
 `about` and formatted prose: prompt 42 asks for a context section above the
 diagram without naming the feature, and its agent wrote a formatted `about` in

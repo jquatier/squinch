@@ -4,7 +4,7 @@ pack aws
 web = logos/react "Web App" {
   subtitle: "apps/web · React SPA"
 }
-bff = logos/nodedotjs "BFF" {
+bff = logos/nodejs "BFF" {
   subtitle: "apps/bff · Node"
   description: "One HTTP client module per service"
 }
@@ -14,7 +14,7 @@ system identity "Identity" {
   preview: [users auth profile]
   users = sys/server "Users" { subtitle: "services/users" }
   users_db = logos/postgres "Users DB" datastore
-  auth = sys/server "Auth" { subtitle: "services/auth" }
+  auth = sys/lock "Auth" { subtitle: "services/auth" }
   sessions = logos/redis "Sessions" datastore
   profile = sys/server "Profile" { subtitle: "services/profile" }
   profile_db = logos/postgres "Profile DB" datastore
@@ -23,24 +23,24 @@ system identity "Identity" {
   profile -> profile_db
 }
 
-system discovery "Discovery" {
-  description: "Catalogue, search, prices, reviews, recommendations"
+system discovery "Catalog & Discovery" {
+  description: "Products, search, prices, reviews, recommendations"
   preview: [catalog search recs]
   catalog = sys/server "Catalog" { subtitle: "services/catalog" }
   catalog_db = logos/postgres "Catalog DB" datastore
-  search = sys/server "Search" { subtitle: "services/search" }
+  search = sys/search "Search" { subtitle: "services/search" }
   search_idx = aws/opensearch "Search Index" datastore
   pricing = sys/server "Pricing" { subtitle: "services/pricing" }
   pricing_cache = logos/redis "Pricing Store" datastore
   reviews = sys/server "Reviews" { subtitle: "services/reviews" }
   reviews_db = logos/mongodb "Reviews DB" datastore
   recs = sys/server "Recommendations" { subtitle: "services/recommendations" }
-  recs_cache = logos/redis "Recs Store" datastore
+  recs_store = logos/redis "Recommendations Store" datastore
   catalog -> catalog_db
   search -> search_idx
   pricing -> pricing_cache
   reviews -> reviews_db
-  recs -> recs_cache
+  recs -> recs_store
   search -> catalog "reads"
   recs -> catalog "reads"
   recs -> reviews "reads"
@@ -49,15 +49,15 @@ system discovery "Discovery" {
 system buying "Buying" {
   description: "Cart, checkout, orders and payments"
   preview: [cart checkout orders]
-  cart = sys/server "Cart" { subtitle: "services/cart" }
-  cart_cache = logos/redis "Cart Store" datastore
+  cart = sys/cart "Cart" { subtitle: "services/cart" }
+  cart_store = logos/redis "Cart Store" datastore
   checkout = sys/server "Checkout" { subtitle: "services/checkout" }
   checkout_db = logos/postgres "Checkout DB" datastore
-  orders = sys/server "Orders" { subtitle: "services/orders" }
+  orders = sys/order "Orders" { subtitle: "services/orders" }
   orders_db = logos/postgres "Orders DB" datastore
-  payments = sys/server "Payments" { subtitle: "services/payments" }
+  payments = sys/payment "Payments" { subtitle: "services/payments" }
   payments_db = logos/postgres "Payments DB" datastore
-  cart -> cart_cache
+  cart -> cart_store
   checkout -> checkout_db
   orders -> orders_db
   payments -> payments_db
@@ -67,18 +67,18 @@ system buying "Buying" {
 }
 
 system fulfilment "Fulfilment" {
-  description: "Stock, shipping and customer messages"
+  description: "Stock, shipping and customer notifications"
   preview: [inventory shipping notifications]
-  inventory = sys/server "Inventory" { subtitle: "services/inventory" }
+  inventory = sys/warehouse "Inventory" { subtitle: "services/inventory" }
   inventory_db = logos/postgres "Inventory DB" datastore
-  shipping = sys/server "Shipping" { subtitle: "services/shipping" }
+  shipping = sys/truck "Shipping" { subtitle: "services/shipping" }
   shipping_db = logos/postgres "Shipping DB" datastore
-  notifications = sys/server "Notifications" { subtitle: "services/notifications" }
+  notifications = sys/notification "Notifications" { subtitle: "services/notifications" }
   inventory -> inventory_db
   shipping -> shipping_db
 }
 
-system support_area "Support" {
+system support "Support" {
   description: "Customer support"
   support = sys/server "Support" { subtitle: "services/support" }
   support_db = logos/postgres "Support DB" datastore
@@ -87,34 +87,36 @@ system support_area "Support" {
 
 kafka = logos/kafka "Kafka" { description: "Order and payment events" }
 stripe = logos/stripe "Stripe" external
+carrier = sys/truck "Carrier API" external
 sendgrid = box "SendGrid" external
-carrier = box "Carrier API" external
 
 web -> bff
 bff -> identity.users, identity.auth, identity.profile
 bff -> discovery.catalog, discovery.search, discovery.pricing, discovery.reviews, discovery.recs
 bff -> buying.cart, buying.checkout, buying.orders, buying.payments
 bff -> fulfilment.shipping, fulfilment.inventory, fulfilment.notifications
-bff -> support_area.support
+bff -> support.support
 
 buying.checkout -> discovery.pricing
 buying.orders -> fulfilment.inventory
-buying.orders ~> kafka "order events"
-buying.payments ~> kafka "payment events"
-kafka ~> fulfilment.notifications
-kafka ~> fulfilment.shipping
-kafka ~> discovery.recs
 buying.payments -> stripe
 fulfilment.shipping -> carrier
-fulfilment.notifications -> sendgrid "sends email"
+fulfilment.notifications -> sendgrid
+
+buying.orders ~> kafka "publishes"
+buying.payments ~> kafka "publishes"
+kafka ~> fulfilment.notifications, fulfilment.shipping, discovery.recs "consume"
 
 view landscape {
   title "System Landscape"
   include *
   preview *
+  layout {
+    rows [web] [bff] [identity discovery buying fulfilment support] [kafka stripe carrier sendgrid]
+  }
 }
 view identity { title "Identity" }
-view discovery { title "Discovery" }
+view discovery { title "Catalog & Discovery" }
 view buying { title "Buying" }
 view fulfilment { title "Fulfilment" }
-view support_area { title "Support" }
+view support { title "Support" }

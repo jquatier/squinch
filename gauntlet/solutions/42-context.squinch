@@ -1,26 +1,27 @@
 pack aws
 
 person customer "Customer"
+web = sys/app-window "Web Storefront"
+api = aws/lambda "Orders API" {
+  subtitle: "Lambda"
+}
+db = aws/dynamodb "Orders Table" datastore
+queue = aws/sqs "Order Queue"
+worker = sys/worker "Fulfilment Worker"
+shipping = box "Shipping Partner API" external
 
-store   = sys/app-window "Web Storefront"
-api     = aws/lambda "Orders API" { subtitle: "Lambda" }
-db      = aws/dynamodb "Orders Table" datastore
-queue   = aws/sqs "Order Queue"
-worker  = sys/cog "Fulfilment Worker"
-partner = box "Shipping Partner API" external
-
-customer -> store "places orders"
-store -> api
+customer -> web "places orders"
+web -> api
 api -> db "writes"
 api ~> queue "OrderPlaced"
-queue ~> worker "consumes"
-worker -> partner "ships via"
+queue ~> worker
+worker -> shipping
 
 view landscape {
-  title "Order Processing"
+  title "Order Processing — Current State"
   include *
   about """
-    Current state, **before the queue migration**.
+    This is the **current state**, before the queue migration.
 
     - Order writes are **synchronous**
     - The migration is tracked in `OPS-412`

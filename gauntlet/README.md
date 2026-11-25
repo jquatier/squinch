@@ -70,51 +70,38 @@ nothing.
 
 ## Latest round
 
-**Round 39 — 41/42 from the round itself, 42/42 committed; 30 of 42 with one
-`check` call** (2026-11-25, Sonnet). The third of three rounds run on the
-legend overhaul (docs/notes/legend.md): `legend auto` is retired, a legend is
-a `legend { }` block of entries the author labels, and the skill gained a
-paragraph on writing one — when the request asks or colour carries meaning,
-keys are the arrows, three marks and coloured tags, every key needs a label.
-The scorer gained `requireLegend`, set on 12, the one prompt that asks for a
-legend: some view must draw at least one entry.
+**Round 40 — 41/42 from the round itself, 42/42 committed; 32 of 42 with one
+`check` call** (2026-11-25, Sonnet). Run after the icon packs grew: `logos/`
+from 147 marks to 283 (Simple Icons 16.38.1), `sys/` from 195 icons to 200
+with aliases for the concept words agents kept guessing (`api`, `worker`,
+`process`, `device`, `scheduler`, `scanner`…), a few vendor aliases
+(`aws/aws`, `azure/synapse`, `azure/power-bi`), and a skill line showing a
+third party keeping its mark (`logos/stripe "Stripe" external`).
 
-**No legend diagnostic fired in round 39.** Eight agents wrote a legend and
-every one checked clean; 12 drew `-> "Request / response"  ~> "Async
-message"` in one call, 14, 16 and 21 keyed their coloured tags (`#pci`,
-`#sensitive`, the three cadences of 21). The two rounds before it each
-surfaced one thing, and both are fixed:
+**No agent hit an unknown icon** in 213 CLI calls. Across every earlier log on
+disk, `sys/api` alone had missed 15 times (its nearest suggestion was
+`sys/ads`), with `worker`, `scanner`, `upload` and `download` behind it. This
+round's answers use `sys/api` 20 times, `sys/worker` 9 and `sys/download` 6;
+the monorepo prompt (35) drew Firebase and Metabase with their marks where
+earlier rounds drew boxes, and Stripe appears as `logos/stripe` three times
+with no `box "Stripe"` left. SendGrid is still a box: it has no mark
+anywhere we can ship.
 
-- **A key on a highlighted tag** (08, rounds 37 and 38). The agent keyed
-  `#pci` in a view that `highlight`ed it and got "coloured in no view" —
-  true, but silent on why a highlight was not enough. The error now says a
-  legend keys a colour and a highlight needs no key, and offers both ways
-  out; round 38's agent fixed it from that in one step. The skill then said
-  it up front ("a `highlight #tag` needs no key"), and round 39's 08 was clean
-  in one call with no legend.
-- **A cadence the scorer could not see** (21, round 37). The agent drew
-  drifting streams, a nightly batch held still with `animate: false` and a
-  pulsing poll, all keyed in a legend; `requireAnimate` counted written values
-  and skipped `false`, so it saw one. It now counts the motion a reader sees —
-  a written value, `false` as still, a `~>` edge's default drift — and a sync
-  edge that says nothing still states nothing.
+**One engine finding, set aside for its own change.** Round 40's answer to 38
+(Online Boutique) drew the Frontend → Recommendation wire with an 8px jog
+where it enters the Catalog & Discovery frame, just right of the title — a
+wall port slid off the wire's line. It is the first `kinks` (and, turned
+rightward, the first `offCentre`) the corpus has produced on `weft`, so the
+quality gate caught it. That answer is not committed; 38 keeps its previous
+answer, and the jog is a follow-up for the layout engine.
 
-**One thing seen twice and left alone:** 16 pasted its `color #sensitive`
-line into the orders view along with the legend block, where nothing carries
-the tag, and got the colour lens's own "nothing visible here is tagged"
-warning (rounds 38 and 39, fixed in one step both times). The legend entry
-itself is left out there, as designed.
+**First failures were the engine's existing messages**, each fixed from its fix
+line: a fan-in written as one edge (24), a chained edge list (32), a
+`preview` child guessed (34). Seven more ran `check` again with nothing to fix
+but one colour-lens warning (16, the same `color #sensitive` pasted into a
+view without the tag as in rounds 38 and 39).
 
-**First failures were the engine's existing messages**, each fixed from its
-fix line: a fan-in written as one edge (24, 26, 35), a chained edge list
-(32), a `preview` child guessed (28, 34), a `place` against `rows` (30).
-33 and 39 ran `check` again after an edit with nothing to fix, and 15 four
-times against clean output. Solutions with a legend fell from thirteen (the
-old corpus's `legend auto` lines) to eight blocks: 12, which asks; 14, 16 and
-21, which colour tags; and four that key only arrows (03, 09, 11, 22).
-
-**One prompt failed, and it is modelling, not the tool.** 20 drew the
-nightly sync job as an edge rather than a node, as in rounds 36, 37 and 38;
-the committed answer is round 36's re-run. 38 read outside its sandbox and is
-discarded, its committed answer kept. The corpus in `solutions/` is round
-39's answers for the other forty.
+**One prompt failed, and it is modelling, not the tool.** 20 drew the nightly
+sync job as an edge again; the committed answer is round 36's re-run. 30 read
+outside its sandbox and is discarded. The corpus is round 40's answers for
+the other thirty-nine.

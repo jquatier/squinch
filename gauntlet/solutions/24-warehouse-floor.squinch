@@ -1,29 +1,23 @@
 person supervisor "Shift Supervisor"
 
-system floor "Packing Floor" {
-  bench1 = sys/barcode "Bench 1 Scanner"
-  bench2 = sys/barcode "Bench 2 Scanner"
-  bench3 = sys/barcode "Bench 3 Scanner"
-  ctrl   = sys/cpu "Local Controller"
-  sorter = sys/workflow "Conveyor Sorter"
-  printer = sys/printer "Label Printer"
-  board  = sys/monitor "Status Board"
+scan1 = sys/barcode "Barcode Scanner" { subtitle: "Packing bench 1" }
+scan2 = sys/barcode "Barcode Scanner" { subtitle: "Packing bench 2" }
+scan3 = sys/barcode "Barcode Scanner" { subtitle: "Packing bench 3" }
+ctrl = sys/cpu "Local Controller"
+sorter = sys/package-check "Conveyor Sorter"
+printer = sys/printer "Label Printer"
+erp = sys/server "ERP" external
+board = sys/monitor "Status Board"
 
-  bench1 ~> ctrl "scans"
-  bench2 ~> ctrl
-  bench3 ~> ctrl
-  ctrl -> sorter
-  ctrl -> printer
-  ctrl -> board
-}
-
-erp = sys/server "ERP"
-
-floor.ctrl -> erp "syncs once a minute (site network)"
-supervisor -> floor.board "watches"
+scan1 ~> ctrl "scans"
+scan2 ~> ctrl "scans"
+scan3 ~> ctrl "scans"
+ctrl -> sorter "drives"
+ctrl -> printer "drives"
+ctrl -> erp "syncs once a minute, site network"
+supervisor -> board "watches"
 
 view landscape {
   title "Warehouse Floor"
   include *
-  expand floor
 }

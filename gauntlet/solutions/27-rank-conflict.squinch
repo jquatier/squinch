@@ -1,5 +1,5 @@
 request  = sys/server   "Request Service"
-policy   = sys/shield-check "Policy Engine"
+policy   = sys/cog      "Policy Engine"
 approver = sys/server   "Approver Service"
 audit    = sys/database "Audit Log" datastore
 

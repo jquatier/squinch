@@ -1,6 +1,6 @@
 pack aws
 
-system orders "Orders API" {
+system crud "CRUD API" {
   api    = aws/api-gateway "API Gateway"
   create = aws/lambda "Create Handler"
   read   = aws/lambda "Read Handler"
@@ -17,9 +17,10 @@ system orders "Orders API" {
   search -> db
 }
 
-view orders {
-  title "Handlers into one table"
+view crud {
+  title "CRUD API"
   layout {
-    channel orders.create, orders.read, orders.update, orders.delete, orders.search -> orders.db
+    rows [api] [create read update delete search] [db]
+    channel create, read, update, delete, search -> db
   }
 }
