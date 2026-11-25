@@ -474,13 +474,15 @@ describe("grammar + model builder", () => {
     });
 
     it("names the real ids that carry the word, when the guess is a word and not a typo", () => {
-      // round 34: `sys/download` — the icon exists as `sys/hard-drive-download`,
-      // and the old fix only said to go and search for it
-      const r = buildModel(`a = sys/download "Fetch"\n`);
+      // round 34: `sys/download` was guessed while the icon only existed as
+      // `sys/hard-drive-download`, and the old fix only said to go and search.
+      // (`sys/download` is a real id since 2026-11; `drive` is still a word
+      // that is not one.)
+      const r = buildModel(`a = sys/drive "Disk"\n`);
       expect(r.ok).toBe(false);
-      const fix = r.diagnostics.find((x) => x.message.includes("unknown icon `sys/download`"))?.fix;
-      expect(fix).toContain("closest: `sys/hard-drive-download`");
-      expect(fix).toContain("squinch icons search download");
+      const fix = r.diagnostics.find((x) => x.message.includes("unknown icon `sys/drive`"))?.fix;
+      expect(fix).toContain("closest: `sys/hard-drive`");
+      expect(fix).toContain("squinch icons search drive");
     });
 
     it("rejects an unknown pack, and suggests a real one", () => {

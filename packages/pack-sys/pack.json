@@ -132,6 +132,11 @@
       "title": "Briefcase",
       "category": "People"
     },
+    "briefcase-conveyor-belt": {
+      "file": "briefcase-conveyor-belt.svg",
+      "title": "Briefcase conveyor belt",
+      "category": "Commerce"
+    },
     "bug": {
       "file": "bug.svg",
       "title": "Bug",
@@ -212,6 +217,11 @@
       "title": "Clock",
       "category": "Process"
     },
+    "cloud": {
+      "file": "cloud.svg",
+      "title": "Cloud",
+      "category": "Network"
+    },
     "code": {
       "file": "code.svg",
       "title": "Code",
@@ -291,6 +301,11 @@
       "file": "dot.svg",
       "title": "Dot",
       "category": "Shapes"
+    },
+    "download": {
+      "file": "download.svg",
+      "title": "Download",
+      "category": "Data"
     },
     "earth": {
       "file": "earth.svg",
@@ -727,6 +742,11 @@
       "title": "Scan",
       "category": "Observability"
     },
+    "scan-barcode": {
+      "file": "scan-barcode.svg",
+      "title": "Scan barcode",
+      "category": "Commerce"
+    },
     "scan-face": {
       "file": "scan-face.svg",
       "title": "Scan face",
@@ -912,6 +932,11 @@
       "title": "Unlock",
       "category": "Security"
     },
+    "upload": {
+      "file": "upload.svg",
+      "title": "Upload",
+      "category": "Data"
+    },
     "usb": {
       "file": "usb.svg",
       "title": "Usb",
@@ -987,11 +1012,16 @@
     "accelerator": "gpu",
     "ads": "megaphone",
     "agent": "bot",
+    "ai": "brain-circuit",
     "alert": "siren",
+    "analytics": "chart-bar",
+    "api": "braces",
     "assistant": "bot-message-square",
     "audit": "history",
     "bank": "landmark",
+    "barcode-scanner": "scan-barcode",
     "basket": "shopping-cart",
+    "batch": "layers",
     "billing": "receipt-text",
     "blob": "folder",
     "broker": "radio-tower",
@@ -1002,9 +1032,11 @@
     "catalog": "library-big",
     "cdn": "earth",
     "cert": "shield-check",
+    "chart": "chart-bar",
     "chatbot": "bot-message-square",
     "checkout": "shopping-bag",
     "context": "memory-stick",
+    "conveyor": "briefcase-conveyor-belt",
     "coupon": "ticket",
     "cron": "clock",
     "cube": "box",
@@ -1012,8 +1044,10 @@
     "db": "database",
     "delivery": "truck",
     "desktop": "monitor",
+    "device": "smartphone",
     "discount": "badge-percent",
     "disk": "hard-drive",
+    "display": "monitor",
     "dns": "globe",
     "egress": "log-out",
     "eval": "target",
@@ -1030,6 +1064,7 @@
     "gear": "cog",
     "gift-card": "gift",
     "guardrail": "shield-check",
+    "hardware": "cpu",
     "helpdesk": "headset",
     "host": "server",
     "ingress": "log-in",
@@ -1044,8 +1079,12 @@
     "logs": "scroll-text",
     "loyalty": "gift",
     "metrics": "chart-line",
+    "ml": "brain-circuit",
+    "mobile": "smartphone",
     "model": "brain-circuit",
     "notebook": "notebook-text",
+    "notification": "bell",
+    "notifications": "bell",
     "ocr": "scan-text",
     "office": "building-2",
     "onprem": "factory",
@@ -1059,6 +1098,7 @@
     "plant": "factory",
     "pos": "barcode",
     "pricing": "badge-percent",
+    "process": "workflow",
     "promo": "badge-percent",
     "pubsub": "radio-tower",
     "rack": "server",
@@ -1068,6 +1108,9 @@
     "retrieval": "file-search",
     "retry": "refresh-cw",
     "reviews": "thumbs-up",
+    "scanner": "scan-barcode",
+    "scheduled": "calendar-clock",
+    "scheduler": "calendar-clock",
     "screen": "monitor",
     "secret": "lock-keyhole",
     "settlement": "banknote",
@@ -1089,6 +1132,9 @@
     "vision": "image",
     "vm": "server",
     "voucher": "ticket",
-    "wishlist": "heart"
+    "web": "globe",
+    "website": "globe",
+    "wishlist": "heart",
+    "worker": "cog"
   }
 }

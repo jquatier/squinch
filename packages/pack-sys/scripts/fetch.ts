@@ -33,7 +33,7 @@ const CURATED: Record<string, string[]> = {
   ],
   Network: [
     "network", "router", "wifi", "radio-tower", "cable", "ethernet-port",
-    "satellite-dish", "globe", "rss", "share-2", "git-fork", "split", "merge",
+    "satellite-dish", "globe", "cloud", "rss", "share-2", "git-fork", "split", "merge",
     "arrow-left-right", "waypoints",
   ],
   Security: [
@@ -43,7 +43,8 @@ const CURATED: Record<string, string[]> = {
   ],
   Data: [
     "database", "folder", "folder-open", "file", "files", "archive", "table",
-    "save", "hard-drive-download", "hard-drive-upload", "binary", "sheet",
+    "save", "hard-drive-download", "hard-drive-upload", "upload", "download",
+    "binary", "sheet",
     "search", "filter", "funnel", "tags", "bookmark", "library-big",
     "book-open", "database-zap", "database-backup", "file-json", "file-code",
   ],
@@ -87,7 +88,8 @@ const CURATED: Record<string, string[]> = {
   Commerce: [
     "shopping-cart", "shopping-bag", "credit-card", "wallet", "receipt-text",
     "banknote", "coins", "hand-coins", "badge-percent", "ticket", "truck",
-    "package-check", "package-search", "barcode", "qr-code", "calculator",
+    "package-check", "package-search", "barcode", "scan-barcode",
+    "briefcase-conveyor-belt", "qr-code", "calculator",
     "gift", "heart", "thumbs-up", "headset",
   ],
   Process: [
@@ -109,11 +111,14 @@ const titleOf = (id: string) =>
  *  `gear`, it is called `cog`. Aliases so search and authoring both work — the
  *  same treatment pack-logos gives `postgres` → `postgresql`.
  *
- *  Deliberately NOT here: the ids this pack replaced (`api`, `webapp`, `queue`,
- *  `auth`, `monitor`, `gateway`, …). Aliasing those would quietly resurrect the
- *  old vocabulary — `sys/api` would resolve, so a reference this migration
- *  missed would render some other icon instead of failing `check`. The rename is
- *  meant to be enforceable, so the old names must stay unresolvable. */
+ *  The ids this pack replaced (2026-07: `api`, `webapp`, `queue`, `auth`,
+ *  `gateway`, …) were left unresolvable at first, so a reference the migration
+ *  missed would fail `check` rather than draw some other icon. Four of them came
+ *  back as aliases in 2026-11 — `api`, `worker`, `mobile`, `scheduler` — because
+ *  four months on, cold agents still wrote them (`sys/api` 15 times, `worker` 5
+ *  in the gauntlet logs) and the error's nearest match was `sys/ads` and
+ *  `sys/order`. Each now draws what its name says; the other retired ids stay
+ *  unresolvable. */
 const ALIASES: Record<string, string> = {
   gear: "cog", cube: "box", disk: "hard-drive", ssd: "hard-drive",
   db: "database", firewall: "shield", phone: "smartphone",
@@ -133,6 +138,14 @@ const ALIASES: Record<string, string> = {
   model: "brain-circuit", agent: "bot", notebook: "notebook-text",
   catalog: "library-big", experiment: "flask-conical", stream: "database-zap",
   audit: "history",
+  // 2026-11: the words cold agents wrote and missed, from 4,920 gauntlet calls
+  api: "braces", worker: "cog", process: "workflow", batch: "layers",
+  scanner: "scan-barcode", "barcode-scanner": "scan-barcode",
+  conveyor: "briefcase-conveyor-belt", device: "smartphone", mobile: "smartphone",
+  hardware: "cpu", display: "monitor", web: "globe", website: "globe",
+  chart: "chart-bar", analytics: "chart-bar", ml: "brain-circuit", ai: "brain-circuit",
+  notification: "bell", notifications: "bell",
+  scheduled: "calendar-clock", scheduler: "calendar-clock",
   llm: "brain", accelerator: "gpu", training: "brain-cog", "fine-tune": "brain-cog",
   chatbot: "bot-message-square", assistant: "bot-message-square",
   "vector-search": "database-search", retrieval: "file-search", rag: "file-search",
