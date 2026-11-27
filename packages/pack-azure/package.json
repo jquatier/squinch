@@ -16,6 +16,18 @@
   },
   "type": "module",
   "description": "Azure architecture icons packaged for Squinch. Icon assets are Microsoft's, redistributed verbatim under Microsoft's icon terms \u2014 see NOTICE.",
+  "keywords": [
+    "azure",
+    "azure-icons",
+    "azure-architecture-icons",
+    "microsoft-azure",
+    "architecture-icons",
+    "architecture-diagram",
+    "cloud-icons",
+    "svg-icons",
+    "icons",
+    "squinch"
+  ],
   "files": [
     "pack.json",
     "icons",

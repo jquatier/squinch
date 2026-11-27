@@ -16,6 +16,18 @@
   },
   "type": "module",
   "description": "Google Cloud product icons packaged for Squinch. Icon assets are Google's, redistributed verbatim from the official icon library for architecture diagrams — see NOTICE.",
+  "keywords": [
+    "gcp",
+    "google-cloud",
+    "google-cloud-icons",
+    "gcp-icons",
+    "architecture-icons",
+    "architecture-diagram",
+    "cloud-icons",
+    "svg-icons",
+    "icons",
+    "squinch"
+  ],
   "files": [
     "pack.json",
     "icons",

@@ -16,6 +16,18 @@
   },
   "type": "module",
   "description": "Kubernetes community icons for Squinch diagrams (Apache-2.0 / CC-BY-4.0).",
+  "keywords": [
+    "kubernetes",
+    "k8s",
+    "kubernetes-icons",
+    "k8s-icons",
+    "cncf",
+    "architecture-icons",
+    "architecture-diagram",
+    "svg-icons",
+    "icons",
+    "squinch"
+  ],
   "files": [
     "pack.json",
     "icons",

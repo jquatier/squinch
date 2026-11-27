@@ -16,6 +16,18 @@
   },
   "type": "module",
   "description": "Product and technology logos for Squinch, from Simple Icons (CC0-1.0) — see NOTICE.",
+  "keywords": [
+    "logos",
+    "brand-logos",
+    "technology-logos",
+    "tech-stack",
+    "simple-icons",
+    "svg-logos",
+    "svg-icons",
+    "architecture-diagram",
+    "icons",
+    "squinch"
+  ],
   "files": [
     "pack.json",
     "icons",

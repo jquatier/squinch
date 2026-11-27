@@ -16,6 +16,18 @@
   },
   "type": "module",
   "description": "Generic system, infrastructure and shape icons for Squinch, from Lucide (ISC) \u2014 see NOTICE.",
+  "keywords": [
+    "lucide",
+    "system-icons",
+    "infrastructure-icons",
+    "network-icons",
+    "line-icons",
+    "architecture-icons",
+    "architecture-diagram",
+    "svg-icons",
+    "icons",
+    "squinch"
+  ],
   "files": [
     "pack.json",
     "icons",
