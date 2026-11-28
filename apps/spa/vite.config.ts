@@ -49,6 +49,13 @@ const inlineMark = (): Plugin => ({
  *  count localhost pageviews, so it is keyed to the Pages deploy's BASE_PATH
  *  being set or a plain production build). */
 const GA_ID = "G-WNNSX9K9PC";
+/** Cloudflare Web Analytics, running beside GA4 until its numbers are trusted;
+ *  then GA4 goes. It sets no cookies and keeps no visitor identifiers, which is
+ *  what lets the site drop GA4 without needing a consent banner. squinch.cc's
+ *  DNS is on Cloudflare but not proxied (it points at GitHub Pages), so this is
+ *  the JS beacon rather than edge analytics. The token is public by design: it
+ *  is in every page's source. */
+const CF_TOKEN = "cb4223e0ebac425e88a02ac61e1220fc";
 const analytics = (): Plugin => ({
   name: "squinch-analytics",
   apply: "build",
@@ -58,7 +65,8 @@ const analytics = (): Plugin => ({
       if (ctx.path.includes("playground")) return html;
       const snippet =
         `    <script async src="https://www.googletagmanager.com/gtag/js?id=${GA_ID}"></script>\n` +
-        `    <script>window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments)}gtag("js",new Date());gtag("config","${GA_ID}");</script>\n`;
+        `    <script>window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments)}gtag("js",new Date());gtag("config","${GA_ID}");</script>\n` +
+        `    <script type="module" src="https://static.cloudflareinsights.com/beacon.min.js" data-cf-beacon='{"token": "${CF_TOKEN}"}'></script>\n`;
       return html.replace("</head>", `${snippet}  </head>`);
     },
   },
