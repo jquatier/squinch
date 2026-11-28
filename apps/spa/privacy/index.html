@@ -1,0 +1,87 @@
+<!doctype html>
+<html lang="en" data-theme="dark">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Privacy - squinch</title>
+    <meta name="description" content="Squinch collects nothing about you: no accounts, no cookies, no tracking. Here is everything that leaves your machine, and where it goes." />
+    <meta name="theme-color" content="#141416" />
+    <!--site-head-->
+    <link rel="stylesheet" href="/src/site.css" />
+  </head>
+  <body>
+    <!--site-header-->
+
+    <!--
+      This page states facts about code elsewhere in the repo. Change it in the
+      same commit as any of them: the beacon in vite.config.ts, the self-hosted
+      fonts in src/fonts.css, the playground's storage and share links in
+      src/App.tsx, and the CLI's update check in packages/cli/src/update.ts.
+    -->
+    <div class="wrap sub-hero">
+      <span class="eyebrow">Privacy</span>
+      <h1>No accounts. No cookies.</h1>
+      <p>
+        Squinch collects nothing about you. Here is everything that leaves
+        your machine, and where it goes. Last updated 27 November 2026.
+      </p>
+    </div>
+
+    <div class="wrap sub-body single">
+      <main>
+        <section class="panel method" aria-labelledby="site-h">
+          <div class="card-head"><h2 id="site-h">This website</h2></div>
+          <div class="card-body">
+            <p>
+              Every page except the playground counts visits with
+              <a href="https://www.cloudflare.com/web-analytics/">Cloudflare Web Analytics</a>.
+              It uses no cookies and keeps no identifiers: it records the page,
+              the site that linked you here, your browser, your country and how
+              fast the page loaded.
+            </p>
+            <p>
+              The site is hosted on GitHub Pages, which logs visitors' IP
+              addresses for security; see
+              <a href="https://docs.github.com/en/site-policy/privacy-policies/github-general-privacy-statement">GitHub's privacy statement</a>.
+            </p>
+          </div>
+        </section>
+
+        <section class="panel method" aria-labelledby="playground-h">
+          <div class="card-head"><h2 id="playground-h">The playground</h2></div>
+          <div class="card-body">
+            <p>
+              No analytics. What you write stays in your browser's local
+              storage. A share link carries the diagram after the
+              <code>#</code>, which browsers never send to a server.
+            </p>
+          </div>
+        </section>
+
+        <section class="panel method" aria-labelledby="tools-h">
+          <div class="card-head"><h2 id="tools-h">The CLI, plugin and extension</h2></div>
+          <div class="card-body">
+            <p>
+              The CLI checks the npm registry for a newer version at most once
+              a day. It skips the check in CI, and
+              <code>SQUINCH_NO_UPDATE_CHECK=1</code> turns it off. Nothing else
+              is sent anywhere: not your diagrams, not how you use it. The
+              plugin and the VS Code extension send nothing at all.
+            </p>
+          </div>
+        </section>
+
+        <p class="privacy-foot">
+          Questions? <a href="https://github.com/jquatier/squinch/issues">Open an issue</a>.
+          Every change to this page is in
+          <a href="https://github.com/jquatier/squinch/commits/main/apps/spa/privacy/index.html">its history</a>.
+        </p>
+      </main>
+    </div>
+
+    <footer class="site-foot">
+      <span class="foot-meta"><!--foot-meta--></span>
+      <a class="btn-grad" href="/playground/">Open the playground</a>
+    </footer>
+  </body>
+</html>

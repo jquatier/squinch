@@ -6,5 +6,6 @@
   "homepage": "https://squinch.cc/",
   "repository": "https://github.com/jquatier/squinch",
   "supportUrl": "https://github.com/jquatier/squinch/issues",
+  "privacyPolicyUrl": "https://squinch.cc/privacy/",
   "license": "Apache-2.0"
 }

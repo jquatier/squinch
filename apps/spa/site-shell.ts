@@ -10,7 +10,7 @@
 //
 // A page opts in per placeholder, so what is particular to it stays in it:
 //
-//   <!--site-head-->    canonical, icons, the og/twitter card and the fonts.
+//   <!--site-head-->    canonical, icons and the og/twitter card.
 //                       Title and description are read off the page's own
 //                       <title> and <meta name="description">, which stay
 //                       where a reader of the file expects them.
@@ -135,10 +135,7 @@ const head = (html: string, route: string): string => {
     <meta property="og:image:height" content="630" />
     <meta property="og:image:alt" content="The squinch mark - an S standing on three stacked isometric planes - beside the wordmark and, under it, the lines “diagrams as code” and “for AI agents”" />
     <meta property="og:url" content="${ORIGIN}${route}" />
-    <meta name="twitter:card" content="summary_large_image" />
-    <link rel="preconnect" href="https://fonts.googleapis.com" />
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <link href="https://fonts.googleapis.com/css2?family=Inter:ital,wght@0,400;0,500;0,600;1,400&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet" />`;
+    <meta name="twitter:card" content="summary_large_image" />`;
 };
 
 const header = (route: string): string => `<header class="site-header">
@@ -151,7 +148,9 @@ ${NAV.map(([href, label]) => `        <a href="${href}"${href === route ? ' aria
 const footMeta = (version: string): string =>
   `<a class="foot-version" href="${REPO}/releases" title="The version this site was built from">v${version}</a>` +
   `<span aria-hidden="true">·</span>` +
-  `<span>Apache-2.0</span>`;
+  `<span>Apache-2.0</span>` +
+  `<span aria-hidden="true">·</span>` +
+  `<a href="/privacy/">Privacy</a>`;
 
 export const siteShell = ({ version }: { version: string }): Plugin => ({
   name: "squinch-site-shell",

@@ -99,12 +99,12 @@ engine, CLI, playground and extension all ship (see §Where things stand).
 
 ## Layout of the workspace
 
-`apps/spa` — the **site** (Vite/React/Tailwind), five HTML entries from one app:
-the landing at `/`, `/install/`, `/lookbook/`, `/compare/` and the playground at
-`/playground/`. Only the playground is React; the rest are hand-set static
+`apps/spa` — the **site** (Vite/React/Tailwind), six HTML entries from one app:
+the landing at `/`, `/install/`, `/lookbook/`, `/compare/`, `/privacy/` and the
+playground at `/playground/`. Only the playground is React; the rest are hand-set static
 documents sharing `src/tokens.css` via `src/site.css`. `/lookbook/` is generated
 from `lookbook/README.md` by `scripts/sync-lookbook.ts`. What the documents share
-— the head's og/font block, the header nav, the footer's version line, the rail's
+— the head's og block, the header nav, the footer's version line, the rail's
 scroll-spy (`src/rail.js`) and the icon and case counts — is written once in
 `site-shell.ts` and substituted at build time for placeholders like
 `<!--site-header-->`; never paste it back into a page. `/compare/` sets one system beside
@@ -665,7 +665,7 @@ in `layout-engine-spike.md`; `coplanar.md`, `wrap.md`, `edge-labels.md` and
   --update-baseline` re-records — do it in the same commit as the change that
   earned the cost. CI has no baseline, so there it is budgets only.
 - `pnpm --filter @squinch/spa dev` — the site on :5180 (`.claude/launch.json`):
-  landing at `/`, playground at `/playground/`; one Vite app, five HTML entries.
+  landing at `/`, playground at `/playground/`; one Vite app, six HTML entries.
 - `npx tsx scripts/mark-stack.mts` — regenerate the layered mark from
   `docs/assets/mark.svg`. Maintainer-only; its header records the measurements
   the shape was reconstructed from.

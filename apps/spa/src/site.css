@@ -7,6 +7,7 @@
    Measurements follow the design handoff (design_handoff_site_dark/README.md):
    1180px content on the landing and install, 1240px on the lookbook, 40–44px
    gutters, 14px card radius, 10px buttons, mono eyebrows at 10.5px/.12em. */
+@import "./fonts.css";
 @import "./tokens.css";
 
 * { box-sizing: border-box; }
@@ -338,6 +339,9 @@ pre code { background: none; padding: 0; font-size: inherit; }
 .sub-body > .rail { position: sticky; top: 20px; max-height: 86vh; overflow-y: auto; }
 .sub-body > main { display: flex; flex-direction: column; gap: 14px; min-width: 0; }
 .sub-body.lb > main { gap: 16px; }
+/* /privacy/: three short cards and no rail, one readable column */
+.sub-body.single { grid-template-columns: minmax(0, 46rem); }
+.privacy-foot { color: var(--muted); font-size: 14px; padding: 6px 2px 0; }
 
 /* A card with a numbered header row: the install methods and the lookbook
    cases share this anatomy. */
@@ -361,6 +365,7 @@ pre code { background: none; padding: 0; font-size: inherit; }
 .card-body { padding: 18px 22px 22px; }
 .card-body > p { color: var(--muted); font-size: 14.5px; max-width: 56ch; }
 .card-body > p + pre, .card-body > p + .copyable { margin-top: 14px; }
+.card-body > p + p { margin-top: 12px; }
 .card-body p a { color: var(--accent); }
 
 /* the commands table: hairline rows, a code chip per command */

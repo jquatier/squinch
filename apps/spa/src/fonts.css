@@ -1,0 +1,14 @@
+/* The site's two families, served from squinch.cc rather than Google Fonts,
+   so no page asks a third party for anything but the analytics beacon (and
+   the playground for nothing at all) — /privacy/ says so, and changes with
+   this file. These are exactly the faces the Google link used to load. Each
+   file splits its face by script with unicode-range, so a browser downloads
+   only the Latin file it needs. The family names match Google's, which is
+   what tokens.css's --font-ui and --font-mono name. */
+@import "@fontsource/inter/400.css";
+@import "@fontsource/inter/400-italic.css";
+@import "@fontsource/inter/500.css";
+@import "@fontsource/inter/600.css";
+@import "@fontsource/ibm-plex-mono/400.css";
+@import "@fontsource/ibm-plex-mono/500.css";
+@import "@fontsource/ibm-plex-mono/600.css";
