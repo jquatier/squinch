@@ -18,11 +18,15 @@ import { describe, it, expect } from "vitest";
 import { readFileSync, readdirSync, statSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { dirname, join, relative, sep } from "node:path";
-import { buildModel, iconExists, packExists } from "@squinch/core";
+import { buildModel, iconExists, packExists } from "../src/index.js";
 
-const pkg = join(dirname(fileURLToPath(import.meta.url)), "..");
+// The skill lives in packages/skill, which is the plugin directory itself and
+// so holds nothing but what a plugin may ship (the last describe below says
+// what that is). Its tests live here, beside the engine they check it against.
+const core = join(dirname(fileURLToPath(import.meta.url)), "..");
+const pkg = join(core, "..", "skill");
 const DIR = join(pkg, "skills", "squinch");
-const CORE = join(pkg, "..", "core", "src");
+const CORE = join(core, "src");
 
 function walk(d: string): string[] {
   const out: string[] = [];
@@ -487,6 +491,33 @@ describe("the plugin manifest", () => {
     // agreement is asserted rather than remembered. version.mjs moves both.
     const [a, b] = [claude(), portable()];
     expect([a.name, a.version, a.description]).toEqual([b.name, b.version, b.description]);
+  });
+
+  it("the plugin directory holds only what the plugin directory accepts", () => {
+    // Anthropic's plugin directory takes Markdown, text, JSON, YAML and raster
+    // images from an unverified publisher, and refuses the rest: scripts and
+    // source files, any package manager's manifest with fields beyond its short
+    // list (`scripts`, `devDependencies`), an .svg that is not the icon. The
+    // submission was refused once for this folder's package.json, tsconfig,
+    // vitest config and this very test, which is why they live in core now.
+    // node_modules is skipped because it is never committed — a stale one from
+    // before the move would otherwise fail this on a maintainer's machine.
+    const files = (function walk(d: string): string[] {
+      return readdirSync(d).flatMap((e) => {
+        const p = join(d, e);
+        if (e === "node_modules") return [];
+        return statSync(p).isDirectory() ? walk(p) : [relative(pkg, p).split(sep).join("/")];
+      });
+    })(pkg);
+    const refused = files.filter(
+      (f) =>
+        !/\.(md|json|png)$/.test(f) ||
+        /(^|\/)(package|package-lock|tsconfig)\.json$/.test(f) ||
+        /(^|\/)(claude|agents)\.md$/i.test(f),
+    );
+    expect(refused, `files the plugin directory would refuse: ${refused.join(", ")}`).toEqual([]);
+    expect(files.filter((f) => f.startsWith(".claude-plugin/")).sort())
+      .toEqual([".claude-plugin/icon.png", ".claude-plugin/plugin.json"]);
   });
 
   it("the skill's directory name matches its frontmatter name", () => {

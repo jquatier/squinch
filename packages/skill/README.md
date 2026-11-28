@@ -1,4 +1,4 @@
-# @squinch/skill
+# The Squinch skill
 
 [`skills/squinch/`](skills/squinch/) is the whole contract an agent needs to
 author Squinch diagrams. `SKILL.md` is the body — the check-render-fix loop,
@@ -66,8 +66,8 @@ loop, not around one vendor's format.
 
 ## Keeping it true
 
-`test/skill.test.ts` compiles every DSL snippet in the directory through the
-real engine, asserts every icon id it names actually resolves in an installed
+[`skill.test.ts`](../core/test/skill.test.ts), in core's suite, compiles every
+DSL snippet in the directory through the real engine, asserts every icon id it names actually resolves in an installed
 pack, that every grammar keyword is documented somewhere in the set, that
 every engine diagnostic needing a technique has a cookbook row, and that every
 reference file is named from `SKILL.md`. Documentation that drifts from the
@@ -84,6 +84,10 @@ dir: `.claude-plugin/plugin.json` for Claude Code, and `plugin.json` — Agent
 Plugins 1.0 — for Codex and the rest. Each has a marketplace manifest at the
 repo root pointing back at this directory (`.claude-plugin/marketplace.json`
 and `.agents/plugins/marketplace.json`), and `scripts/version.mjs` moves both
-plugin manifests with everything else. `test/skill.test.ts` asserts the two
+plugin manifests with everything else. The same test asserts the two
 agree on name, version and description, and core's guardrails assert both
 marketplaces still resolve here.
+
+This directory is what a plugin install copies, so it holds nothing else: no
+`package.json`, no tests, no source. Anthropic's plugin directory refuses a
+folder with scripts or build files in it, and `skill.test.ts` keeps it that way.

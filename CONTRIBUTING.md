@@ -183,8 +183,7 @@ From there [release.yml](.github/workflows/release.yml) builds the VSIX from
 the tagged commit, re-runs the whole suite as its own gate, publishes the
 GitHub Release with that CHANGELOG section as its notes plus a `SHA256SUMS`,
 and then **publishes** the npm packages — `squinch`, `@squinch/core` and the six
-icon packs, in dependency order. Everything else (`@squinch/skill`, the
-playground, the gauntlet, the lookbook) stays `private: true` and never
+icon packs, in dependency order. Everything else (the playground, the gauntlet, the lookbook) stays `private: true` and never
 reaches the registry; a guardrail asserts that split by name.
 
 npm goes **last** on purpose: the GitHub Release is the fallback artifact, so a

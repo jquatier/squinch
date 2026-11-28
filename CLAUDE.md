@@ -227,7 +227,12 @@ repo root pointing back at `./packages/skill` —
 `scripts/version.mjs` moves both plugin manifests with everything else. One
 product named in two files is two chances to drift, so the agreement is
 asserted (`skill.test.ts`), not remembered; core's guardrails assert both
-marketplaces still resolve. `examples/` — one directory per project, with
+marketplaces still resolve. `packages/skill` is the plugin directory itself,
+so it holds **only what Anthropic's plugin directory accepts from an unverified
+publisher** — Markdown, JSON, the PNG icon: no `package.json`, no source, no
+tests, no `.svg`. A submission was refused for exactly that, so the folder is no
+longer a workspace member and its tests (`skill.test.ts`) live in
+`packages/core/test/`, which also asserts the folder stays that way. `examples/` — one directory per project, with
 committed SVGs that CI verifies.
 
 ## Where things stand
